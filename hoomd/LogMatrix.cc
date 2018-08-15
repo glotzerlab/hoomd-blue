@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 /*! \file LogMatrix.cc
@@ -184,7 +184,7 @@ py::array LogMatrix::getMatrix(const std::string &quantity, unsigned int timeste
             py::object extracted_rv = rv.cast<py::object >();
             return extracted_rv;
             }
-        catch (py::cast_error)
+        catch (const py::cast_error&)
             {
             m_exec_conf->msg->warning() << "analyze.log: Log matrix callback "
                                         << quantity << " no matrix obtainable from callback." << endl;

@@ -32,6 +32,10 @@ With non-interacting depletant (**implicit=True**), the following log quantities
 - ``hpmc_overlap_fraction`` - Fraction of deplatants in excluded volume after trial move to depletants in free volume before move
 - ``hpmc_configurational_bias_ratio`` - Ratio of configurational bias attempts to depletant insertions
 
+With patch energies defined, the following quantities are available:
+- ``hpmc_patch_energy`` - The potential energy of the system resulting from the patch interaction.
+- ``hpmc_patch_rcut`` - The cutoff radius in the patch energy interaction.
+
 :py:class:`compute.free_volume` provides the following loggable quantities:
 - ``hpmc_free_volume`` - The free volume estimate in the simulation box obtained by MC sampling (in volume units)
 
@@ -39,6 +43,7 @@ With non-interacting depletant (**implicit=True**), the following log quantities
 
 - ``hpmc_boxmc_trial_count`` - Number of box changes attempted since the start of the boxmc updater
 - ``hpmc_boxmc_volume_acceptance`` - Fraction of volume/length change trials accepted (averaged from the start of the last run)
+- ``hpmc_boxmc_ln_volume_acceptance`` - Fraction of log(volume) change trials accepted (averaged from the start of the last run)
 - ``hpmc_boxmc_shear_acceptance`` - Fraction of shear trials accepted (averaged from the start of the last run)
 - ``hpmc_boxmc_aspect_acceptance`` - Fraction of aspect trials accepted (averaged from the start of the last run)
 - ``hpmc_boxmc_betaP`` Current value of the :math:`\beta p` value of the boxmc updater
@@ -48,6 +53,14 @@ With non-interacting depletant (**implicit=True**), the following log quantities
 - ``hpmc_muvt_insert_acceptance`` - Fraction of particle insertions accepted (averaged from start of run)
 - ``hpmc_muvt_remove_acceptance`` - Fraction of particle removals accepted (averaged from start of run)
 - ``hpmc_muvt_volume_acceptance`` - Fraction of particle removals accepted (averaged from start of run)
+
+:py:class:`update.clusters()` provides the following loggable quantities.
+
+- ``hpmc_clusters_moves`` - Fraction of cluster moves divided by the number of particles
+- ``hpmc_clusters_pivot_acceptance`` - Fraction of pivot moves accepted
+- ``hpmc_clusters_reflection_acceptance`` - Fraction of reflection moves accepted
+- ``hpmc_clusters_swap_acceptance`` - Fraction of swap moves accepted
+- ``hpmc_clusters_avg_size`` - Average cluster size
 
 .. rubric:: Timestep definition
 

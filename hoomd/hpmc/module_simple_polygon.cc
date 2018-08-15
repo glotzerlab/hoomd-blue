@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -22,6 +22,8 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
+#include "UpdaterClustersImplicit.h"
 
 #include "ShapeUtils.h"
 #include "ShapeMoves.h"
@@ -54,6 +56,9 @@ void export_simple_polygon(py::module& m)
     export_ComputeFreeVolume< ShapeSimplePolygon >(m, "ComputeFreeVolumeSimplePolygon");
     export_AnalyzerSDF< ShapeSimplePolygon >(m, "AnalyzerSDFSimplePolygon");
     export_UpdaterMuVT< ShapeSimplePolygon >(m, "UpdaterMuVTSimplePolygon");
+    export_UpdaterClusters< ShapeSimplePolygon >(m, "UpdaterClustersSimplePolygon");
+    export_UpdaterClustersImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicit<ShapeSimplePolygon> >(m, "UpdaterClustersImplicitSimplePolygon");
+    export_UpdaterClustersImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicitNew<ShapeSimplePolygon> >(m, "UpdaterClustersImplicitNewSimplePolygon");
     export_UpdaterMuVTImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicit<ShapeSimplePolygon> >(m, "UpdaterMuVTImplicitSimplePolygon");
     export_UpdaterMuVTImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicitNew<ShapeSimplePolygon> >(m, "UpdaterMuVTImplicitNewSimplePolygon");
 

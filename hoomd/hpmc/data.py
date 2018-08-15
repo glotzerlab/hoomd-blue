@@ -123,15 +123,15 @@ class sphere_params(_hpmc.sphere_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.sphere_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['diameter'];
+        self._keys += ['diameter','orientable'];
 
     def __str__(self):
         return "sphere(diameter = {})".format(self.diameter)
 
     @classmethod
-    def make_param(cls, diameter, ignore_statistics=False):
+    def make_param(cls, diameter, ignore_statistics=False, orientable=False):
         return _hpmc.make_sph_params(   float(diameter)/2.0,
-                                        ignore_statistics);
+                                        ignore_statistics,orientable);
 
 class convex_polygon_params(_hpmc.convex_polygon_param_proxy, _param):
     def __init__(self, mc, index):
@@ -355,7 +355,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
     def make_param(cls, diameters, centers, overlap=None, ignore_statistics=False, capacity=4):
         if overlap is None:
             overlap = [1 for c in centers]
-        members = [_hpmc.make_sph_params(float(d)/2.0, False) for d in diameters];
+        members = [_hpmc.make_sph_params(float(d)/2.0, False, False) for d in diameters];
         N = len(diameters)
         if len(centers) != N:
             raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")

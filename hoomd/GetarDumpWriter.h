@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __GETARDUMPER_H_
@@ -211,7 +211,7 @@ namespace getardump{
         };
 
     /// HOOMD analyzer which periodically dumps a set of properties
-    class GetarDumpWriter: public Analyzer
+    class PYBIND11_EXPORT GetarDumpWriter: public Analyzer
         {
         public:
             typedef std::map<unsigned int, std::vector<GetarDumpDescription> > PeriodMap;

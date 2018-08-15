@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -10,6 +10,7 @@
 
 
 #include "HOOMDMath.h"
+#include "VectorMath.h"
 
 namespace py = pybind11;
 
@@ -130,4 +131,19 @@ void export_hoomd_math_functions(py::module& m)
     m.def("make_int4", &make_int4);
     m.def("make_char3", &make_char3);
     m.def("int_as_scalar", &__int_as_scalar);
+
+    // entries from VectorMath.h
+    py::class_< vec3<float>, std::shared_ptr<vec3<float> > >(m,"vec3_float")
+        .def(py::init<float, float, float>())
+        .def_readwrite("x", &vec3<float>::x)
+        .def_readwrite("y", &vec3<float>::y)
+        .def_readwrite("z", &vec3<float>::z)
+        ;
+
+    py::class_< quat<float>, std::shared_ptr<quat<float> > >(m,"quat_float")
+        .def(py::init<float, const vec3<float>&>())
+        .def_readwrite("s", &quat<float>::s)
+        .def_readwrite("v", &quat<float>::v)
+        .def_static("fromAxisAngle", &quat<float>::fromAxisAngle)
+        ;
     }

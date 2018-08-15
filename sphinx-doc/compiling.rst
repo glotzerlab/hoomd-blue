@@ -11,9 +11,10 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
      * Python >= 2.7
      * numpy >= 1.7
      * CMake >= 2.8.0
-     * C++ 11 capable compiler (tested with gcc 4.8, 4.9, 5.4, clang 3.4 (no cuda), clang 3.8)
+     * C++ 11 capable compiler (tested with gcc 4.8, 4.9, 5.4, 6.4, 7.0, 8.0, clang 3.8, 5.0, 6.0)
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
+     * Intel Threaded Building Blocks >= 4.3
      * MPI (tested with OpenMPI, MVAPICH)
      * sqlite3
  * Useful developer tools
@@ -23,16 +24,8 @@ Software prerequisites on clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Most cluster administrators provide versions of Git, Python, NumPy, MPI, and CUDA as modules.
-`glotzports <https://bitbucket.org/glotzer/glotzports>`_ will load these modules and build HOOMD (and other glotzer
-group developed tools) with a single command::
-
-    ./create-env /path/to/prefix "hoomd"
-
-glotzports supports a number of national supercomputing systems, such as OLCF Titan and XSEDE Comet. If you would
-like to configure your own module environment, you can reference
-`glotzports environments <https://bitbucket.org/glotzer/glotzports/src/master/system-config/>`_ as a starting point.
-For systems not supported by glotzports, you will need to consult the documentation or ask the system administrators
-for suggestions to load the appropriate modules.
+You will need to consult the documentation or ask the system administrators
+for instructions to load the appropriate modules.
 
 Prerequisites on workstations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -183,10 +176,13 @@ Other option changes take effect at any time. These can be set from within `ccma
     - When set to **OFF**, HOOMD always runs in single-GPU mode
 * **ENABLE_MPI_CUDA** - Enable CUDA-aware MPI library support
     - Requires a MPI library with CUDA support to be installed
-    - When set to **ON** (default if a CUDA-aware MPI library is detected), HOOMD-blue will make use of  the capability of the MPI library to accelerate CUDA-buffer transfers
+    - When set to **ON** (default if a CUDA-aware MPI library is detected), HOOMD-blue will make use of the capability of the MPI library to accelerate CUDA-buffer transfers
     - When set to **OFF**, standard MPI calls will be used
     - *Warning:* Manually setting this feature to ON when the MPI library does not support CUDA may
       result in a crash of HOOMD-blue
+* **ENABLE_TBB** - Enable support for Intel's Threading Building Blocks (TBB)
+    - Requires TBB to be installed
+    - When set to **ON**, HOOMD will use TBB to speed up calculations in some classes on multiple CPU cores
 * **UPDATE_SUBMODULES** - When ON (the default), execute ``git submodule update --init`` whenever cmake runs.
 * **COPY_HEADERS** - When ON (OFF is default), copy header files into the build directory to make it a valid plugin build source
 

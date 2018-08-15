@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -22,6 +22,8 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
+#include "UpdaterClustersImplicit.h"
 
 #include "ShapeUtils.h"
 #include "ShapeMoves.h"
@@ -51,6 +53,9 @@ void export_ellipsoid(py::module& m)
     export_ComputeFreeVolume< ShapeEllipsoid >(m, "ComputeFreeVolumeEllipsoid");
     export_AnalyzerSDF< ShapeEllipsoid >(m, "AnalyzerSDFEllipsoid");
     export_UpdaterMuVT< ShapeEllipsoid >(m, "UpdaterMuVTEllipsoid");
+    export_UpdaterClusters< ShapeEllipsoid >(m, "UpdaterClustersEllipsoid");
+    export_UpdaterClustersImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicit<ShapeEllipsoid> >(m, "UpdaterClustersImplicitEllipsoid");
+    export_UpdaterClustersImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicitNew<ShapeEllipsoid> >(m, "UpdaterClustersImplicitNewEllipsoid");
     export_UpdaterMuVTImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicit<ShapeEllipsoid> >(m, "UpdaterMuVTImplicitEllipsoid");
     export_UpdaterMuVTImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicitNew<ShapeEllipsoid> >(m, "UpdaterMuVTImplicitNewEllipsoid");
 

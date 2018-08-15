@@ -7,6 +7,7 @@ set(_deprecated_sources
      POSDumpWriter.cc
      HOOMDInitializer.cc
      RandomGenerator.cc
+     xmlParser.cc
    )
 
 set(_deprecated_headers
@@ -15,6 +16,7 @@ set(_deprecated_headers
     MSDAnalyzer.h
     POSDumpWriter.h
     RandomGenerator.h
+    xmlParser.h
     )
 
 if (ENABLE_CUDA)
@@ -25,17 +27,19 @@ endif()
 set(_deprecated_cu_sources
    )
 
-# Need to define NO_IMPORT_ARRAY in every file but module.cc
-set_source_files_properties(${_deprecated_sources} ${_deprecated_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
 if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_deprecated_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_deprecated SHARED ${_deprecated_sources} ${_CUDA_GENERATED_FILES})
+pybind11_add_module (_deprecated SHARED ${_deprecated_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
+if (APPLE)
+set_target_properties(_deprecated PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
+else()
+set_target_properties(_deprecated PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
+endif()
 
 # link the library to its dependencies
-target_link_libraries(_deprecated _hoomd ${HOOMD_COMMON_LIBS})
+target_link_libraries(_deprecated PRIVATE ${HOOMD_LIBRARIES})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -48,15 +52,6 @@ if (ENABLE_MPI)
    endif(MPI_LINK_FLAGS)
 endif(ENABLE_MPI)
 
-##################################
-# change the name of the library to be a valid python module
-# tweak the properties of the output to make a functional python module
-set_target_properties(_deprecated PROPERTIES PREFIX "" OUTPUT_NAME "_deprecated")
-
-# .dylib is not recognized as a python module by python on Mac OS X
-if(APPLE)
-    set_target_properties(_deprecated PROPERTIES SUFFIX ".so")
-endif(APPLE)
 fix_cudart_rpath(_deprecated)
 
 # install the library

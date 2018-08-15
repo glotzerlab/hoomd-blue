@@ -2,6 +2,132 @@
 
 [TOC]
 
+## v2.3.4
+
+Released 2018/07/30
+
+*Bug fixes*
+
+* ``init.read_gsd`` no longer applies the *time_step* override when reading the *restart* file
+* HPMC: Add ``hpmc_patch_energy`` and ``hpmc_patch_rcut`` loggable quantities to the documentation
+
+## v2.3.3
+
+Released 2018/07/03
+
+*Bug fixes*
+
+* Fix ``libquickhull.so`` not found regression on Mac OS X
+
+## v2.3.2
+
+Released 2018/06/29
+
+*Bug fixes*
+
+* Fix a bug where gsd_snapshot would segfault when called without an execution context.
+* Compile warning free with gcc8.
+* Fix compile error when TBB include files are in non-system directory.
+* Fix ``libquickhull.so`` not found error on additional platforms.
+* HOOMD-blue is now available on **conda-forge** and the **docker hub**.
+* MPCD: Default value for ``kT`` parameter is removed for ``mpcd.collide.at``.
+  Scripts that are correctly running are not affected by this change.
+* MPCD: ``mpcd`` notifies the user of the appropriate citation.
+* MD: Correct force calculation between dipoles and point charge in ``pair.dipole``
+
+*Deprecated*
+
+* The **anaconda** channel **glotzer** will no longer be updated. Use **conda-forge**
+  to upgrade to v2.3.2 and newer versions.
+
+## v2.3.1
+
+Released 2018/05/25
+
+*Bug fixes*
+
+* Fix doxygen documentation syntax errors
+* Fix libquickhull.so not found error on some platforms
+* HPMC: Fix bug that allowed particles to pas through walls
+* HPMC: Check spheropolyhedra with 0 vertices against walls correctly
+* HPMC: Fix plane wall/spheropolyhedra overlap test
+* HPMC: Restore detailed balance in implicit depletant integrator
+* HPMC: Correctly choose between volume and lnV moves in `hpmc.update.boxmc`
+* HPMC: Fix name of log quantity `hpmc_clusters_pivot_acceptance`
+* MD: Fix image list for tree neighbor lists in 2d
+
+## v2.3.0
+
+Released 2018/04/25
+
+*New features*
+
+* General:
+    * Store `BUILD_*` CMake variables in the hoomd cmake cache for use in external plugins.
+    * `init.read_gsd` and `data.gsd_snapshot` now accept negative frame indices to index from the end of the trajectory.
+    * Faster reinitialization from snapshots when done frequently.
+    * New command line option `--single-mpi` allows non-mpi builds of hoomd to launch within mpirun (i.e. for use with mpi4py managed pools of jobs)
+    * For users of the University of Michigan Flux system: A `--mode` option is no longer required to run hoomd.
+
+* MD:
+    * Improve performance with `md.constrain.rigid` in multi-GPU simulations.
+    * New command `integrator.randomize_velocities()` sets a particle group's linear and angular velocities to random values consistent with a given kinetic temperature.
+    * `md.force.constant()` now supports setting the force per particle and inside a callback
+
+* HPMC:
+    * Enabled simulations involving spherical walls and convex spheropolyhedral particle shapes.
+    * Support patchy energetic interactions between particles (CPU only)
+    * New command `hpmc.update.clusters()` supports geometric cluster moves with anisotropic particles and/or depletants and/or patch potentials. Supported move types: pivot and line reflection (geometric), and AB type swap.
+
+* JIT:
+    * Add new experimental `jit` module that uses LLVM to compile and execute user provided C++ code at runtime. (CPU only)
+    * Add `jit.patch.user`: Compute arbitrary patch energy between particles in HPMC (CPU only)
+    * Add `jit.patch.user_union`: Compute arbitrary patch energy between rigid unions of points in HPMC (CPU only)
+    * Patch energies operate with implicit depletant and normal HPMC integration modes.
+    * `jit.patch.user_union` operates efficiently with additive contributions to the cutoff.
+
+* MPCD:
+    * The `mpcd` component adds support for simulating hydrodynamics using the multiparticle collision dynamics method.
+
+*Beta feature*
+
+* Node local parallelism (optional, build with `ENABLE_TBB=on`):
+    * The Intel TBB library is required to enable this feature.
+    * The command line option `--nthreads` limits the number of threads HOOMD will use. The default is all CPU cores in the system.
+    * Only the following methods in HOOMD will take advantage of multiple threads:
+        * `hpmc.update.clusters()`
+        * HPMC integrators with implicit depletants enabled
+        * `jit.patch.user_union`
+
+Node local parallelism is still under development. It is not enabled in builds by default and only a few methods utilize
+multiple threads. In future versions, additional methods in HOOMD may support multiple threads.
+
+To ensure future workflow compatibility as future versions enable threading in more components, explicitly set --nthreads=1.
+
+*Bug fixes*
+
+* Fixed a problem with periodic boundary conditions and implicit depletants when `depletant_mode=circumsphere`
+* Fixed a rare segmentation fault with `hpmc.integrate.*_union()` and `hpmc.integrate.polyhedron`
+* `md.force.active` and `md.force.dipole` now record metadata properly.
+* Fixed a bug where HPMC restore state did not set ignore flags properly.
+* `hpmc_boxmc_ln_volume_acceptance` is now available for logging.
+
+*Other changes*
+
+* Eigen is now provided as a submodule. Plugins that use Eigen headers need to update include paths.
+* HOOMD now builds with pybind 2.2. Minor changes to source and cmake scripts in plugins may be necessary. See the updated example plugin.
+* HOOMD now builds without compiler warnings on modern compilers (gcc6, gcc7, clang5, clang6).
+* HOOMD now uses pybind11 for numpy arrays instead of `num_util`.
+* HOOMD versions v2.3.x will be the last available on the anaconda channel `glotzer`.
+
+## v2.2.5
+
+Released 2018/04/20
+
+*Bug fixes*
+
+* Pin cuda compatible version in conda package to resolve `libcu*.so` not found errors in conda installations.
+
 ## v2.2.4
 
 Released 2018/03/05
@@ -13,7 +139,6 @@ Released 2018/03/05
 * Sample from the correct uniform distribution of depletants in a sphere cap with `depletant_mode='overlap_regions'` on the CPU
 * Fix a bug where ternary (or higher order) mixtures of small and large particles were not correctly handled with `depletant_mode='overlap_regions'` on the CPU
 * Improve acceptance rate in depletant simulations with `depletant_mode='overlap_regions'`
-
 
 ## v2.2.3
 

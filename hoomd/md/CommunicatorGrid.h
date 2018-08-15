@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -23,6 +23,8 @@ class CommunicatorGrid
         //! Constructor
         CommunicatorGrid(std::shared_ptr<SystemDefinition> sysdef, uint3 dim,
             uint3 embed, uint3 offset, bool add_outer_layer_to_inner);
+
+        virtual ~CommunicatorGrid() { }
 
         //! Communicate grid
         virtual void communicate(const GPUArray<T>& grid);

@@ -162,6 +162,11 @@ class UpdaterMuVT : public Updater
         std::vector<std::vector<unsigned int> > m_type_map;   //!< Local list of particle tags per type
         std::vector<unsigned int> m_transfer_types;  //!< List of types being insert/removed/transfered between boxes
 
+        GPUVector<Scalar4> m_pos_backup;             //!< Backup of particle positions for volume move
+        GPUVector<Scalar4> m_orientation_backup;     //!< Backup of particle orientations for volume move
+        GPUVector<Scalar> m_charge_backup;           //!< Backup of particle charges for volume move
+        GPUVector<Scalar> m_diameter_backup;         //!< Backup of particle diameters for volume move
+
         /*! Check for overlaps of a fictituous particle
          * \param timestep Current time step
          * \param type Type of particle to test
@@ -179,15 +184,7 @@ class UpdaterMuVT : public Updater
             \param lnboltzmann Log of Boltzmann weight of removal attempt (return value)
             \returns True if boltzmann weight is non-zero
          */
-        virtual bool tryRemoveParticle(unsigned int timestep, unsigned int tag, Scalar &lnboltzmann)
-            {
-            lnboltzmann = Scalar(0.0);
-
-            // guard against trying to modify empty particle data
-            if (tag == UINT_MAX) return false;
-
-            return true;
-            }
+        virtual bool tryRemoveParticle(unsigned int timestep, unsigned int tag, Scalar &lnboltzmann);
 
         /*! Try switching particle type
          * \param timestep Current time step
@@ -205,10 +202,11 @@ class UpdaterMuVT : public Updater
          * \param new_box the old BoxDim
          * \param new_box the new BoxDim
          * \param extra_ndof (return value) extra degrees of freedom added before box resize
-         * \returns true if box resize could be performed
+         * \param lnboltzmann (return value) exponent of Boltzmann factor (-delta_E)
+         * \returns true if no overlaps
          */
         virtual bool boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
-            unsigned int &extra_ndof);
+            unsigned int &extra_ndof, Scalar &lnboltzmann);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
@@ -224,6 +222,16 @@ class UpdaterMuVT : public Updater
 
         //! Get number of particles of a given type
         unsigned int getNumParticlesType(unsigned int type);
+
+    private:
+        //! Handle MaxParticleNumberChange signal
+        /*! Resize the m_pos_backup array
+        */
+        void slotMaxNChange()
+            {
+            unsigned int MaxN = m_pdata->getMaxN();
+            m_pos_backup.resize(MaxN);
+            }
     };
 
 //! Export the UpdaterMuVT class to python
@@ -309,6 +317,9 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
 
     // initialize list of tags per type
     mapTypes();
+
+    // Connect to the MaxParticleNumberChange signal
+    m_pdata->getMaxParticleNumberChangeSignal().template connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotMaxNChange>(this);
     }
 
 //! Destructor
@@ -317,6 +328,7 @@ UpdaterMuVT<Shape>::~UpdaterMuVT()
     {
     m_pdata->getNumTypesChangeSignal().template disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
     m_pdata->getParticleSortSignal().template disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().template disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotMaxNChange>(this);
     }
 
 template<class Shape>
@@ -420,17 +432,28 @@ void UpdaterMuVT<Shape>::slotNumTypesChange()
 */
 template<class Shape>
 bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
-    unsigned int &extra_ndof)
+    unsigned int &extra_ndof, Scalar& lnboltzmann)
     {
-    unsigned int N = m_pdata->getN();
+    lnboltzmann = Scalar(0.0);
+
+    unsigned int N_old = m_pdata->getN();
+
     extra_ndof = 0;
+
+    auto patch = m_mc->getPatchInteraction();
+
+    if (patch)
+        {
+        // energy of old configuration
+        lnboltzmann += m_mc->computePatchEnergy(timestep);
+        }
 
         {
         // Get particle positions
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
 
         // move the particles to be inside the new box
-        for (unsigned int i = 0; i < N; i++)
+        for (unsigned int i = 0; i < N_old; i++)
             {
             Scalar3 old_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
 
@@ -451,7 +474,15 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
     m_mc->communicate(false);
 
     // check for overlaps
-    return !m_mc->countOverlaps(timestep, true);
+    bool overlap = m_mc->countOverlaps(timestep, true);
+
+    if (!overlap && patch)
+        {
+        // energy of new configuration
+        lnboltzmann -= m_mc->computePatchEnergy(timestep);
+        }
+
+    return !overlap;
     }
 
 template<class Shape>
@@ -524,7 +555,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 }
             else
                 {
-                MPI_Status(stat);
+                MPI_Status stat;
                 MPI_Send(&timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
                 MPI_Recv(&other_timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
                 }
@@ -1167,10 +1198,12 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
         unsigned int extra_ndof = 0;
 
         // set new box and rescale coordinates
-        bool has_overlaps = !boxResizeAndScale(timestep, global_box_old, global_box_new, extra_ndof);
+        Scalar lnb(0.0);
+        bool has_overlaps = !boxResizeAndScale(timestep, global_box_old, global_box_new, extra_ndof, lnb);
         ndof += extra_ndof;
 
         unsigned int other_result;
+        Scalar other_lnb;
 
         if (is_root)
             {
@@ -1179,12 +1212,14 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 // receive result from other rank
                 MPI_Status stat;
                 MPI_Recv(&other_result, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                MPI_Recv(&other_lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 1, MPI_COMM_WORLD, &stat);
                 }
             else
                 {
                 // send result to other rank
                 unsigned int result = has_overlaps;
                 MPI_Send(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
+                MPI_Send(&lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 1, MPI_COMM_WORLD);
                 }
             }
 
@@ -1200,7 +1235,8 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 MPI_Recv(&other_ndof, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
 
                 // apply criterium on rank zero
-                Scalar arg = log(V_new/V)*(Scalar)(ndof+1)+log(V_new_other/V_other)*(Scalar)(other_ndof+1);
+                Scalar arg = log(V_new/V)*(Scalar)(ndof+1)+log(V_new_other/V_other)*(Scalar)(other_ndof+1)
+                    + lnb + other_lnb;
 
                 accept = rng.f() < exp(arg);
                 accept &= !(has_overlaps || other_result);
@@ -1271,109 +1307,321 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
     }
 
 template<class Shape>
-bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int type, vec3<Scalar> pos,
-    quat<Scalar> orientation, Scalar &lnboltzmann)
+bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int tag, Scalar &lnboltzmann)
     {
     lnboltzmann = Scalar(0.0);
 
-    unsigned int overlap = 0;
+    // guard against trying to modify empty particle data
+    if (tag == UINT_MAX) return false;
 
-    // update the aabb tree
-    const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+    bool is_local = this->m_pdata->isParticleLocal(tag);
 
-    // update the image list
-    const std::vector<vec3<Scalar> >&image_list = m_mc->updateImageList();
+    // do we have to compute energetic contribution?
+    auto patch = m_mc->getPatchInteraction();
 
-    // check for overlaps
-    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    // if not, no overlaps generated, return happily
+    if (!patch) return true;
 
-    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc->getParams();
-
-    ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
-    const Index2D& overlap_idx = m_mc->getOverlapIndexer();
+    // type
+    unsigned int type = this->m_pdata->getType(tag);
 
     // read in the current position and orientation
-    Shape shape(orientation, params[type]);
+    quat<Scalar> orientation(m_pdata->getOrientation(tag));
 
-    // Check particle against AABB tree for neighbors
-    detail::AABB aabb_local = shape.getAABB(vec3<Scalar>(0,0,0));
+    // charge and diameter
+    Scalar diameter = m_pdata->getDiameter(tag);
+    Scalar charge = m_pdata->getCharge(tag);
 
-    unsigned int err_count = 0;
+    // getPosition() takes into account grid shift, correct for that
+    Scalar3 p = m_pdata->getPosition(tag)+m_pdata->getOrigin();
+    int3 tmp = make_int3(0,0,0);
+    m_pdata->getGlobalBox().wrap(p,tmp);
+    vec3<Scalar> pos(p);
 
-    const unsigned int n_images = image_list.size();
-    for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+    if (is_local)
         {
-        vec3<Scalar> pos_image = pos + image_list[cur_image];
+        // update the aabb tree
+        const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
 
-        if (cur_image != 0)
+        // update the image list
+        const std::vector<vec3<Scalar> >&image_list = m_mc->updateImageList();
+
+        // check for overlaps
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+        // Check particle against AABB tree for neighbors
+        Scalar r_cut_patch = patch->getRCut() + 0.5*patch->getAdditiveCutoff(type);
+
+        OverlapReal R_query = std::max(0.0,r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+        detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+        Scalar r_cut_self = r_cut_patch + 0.5*patch->getAdditiveCutoff(type);
+
+        const unsigned int n_images = image_list.size();
+        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
-            // check for self-overlap with all images except the original
-            vec3<Scalar> r_ij = pos - pos_image;
-            if (h_overlaps.data[overlap_idx(type, type)]
-                && check_circumsphere_overlap(r_ij, shape, shape)
-                && test_overlap(r_ij, shape, shape, err_count))
-                {
-                overlap = 1;
-                break;
-                }
-            }
+            vec3<Scalar> pos_image = pos + image_list[cur_image];
 
-        detail::AABB aabb = aabb_local;
-        aabb.translate(pos_image);
-
-        // stackless search
-        for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
-            {
-            if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+            if (cur_image != 0)
                 {
-                if (aabb_tree.isNodeLeaf(cur_node_idx))
+                vec3<Scalar> r_ij = pos - pos_image;
+                // self-energy
+                if (dot(r_ij,r_ij) <= r_cut_self*r_cut_self)
                     {
-                    for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                    lnboltzmann += patch->energy(r_ij,
+                        type,
+                        quat<float>(orientation),
+                        diameter,
+                        charge,
+                        type,
+                        quat<float>(orientation),
+                        diameter,
+                        charge);
+                    }
+                }
+
+            detail::AABB aabb = aabb_local;
+            aabb.translate(pos_image);
+
+            // stackless search
+            for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+                {
+                if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    {
+                    if (aabb_tree.isNodeLeaf(cur_node_idx))
                         {
-                        // read in its position and orientation
-                        unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                        Scalar4 postype_j = h_postype.data[j];
-                        Scalar4 orientation_j = h_orientation.data[j];
-
-                        // put particles in coordinate system of particle i
-                        vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
-
-                        unsigned int typ_j = __scalar_as_int(postype_j.w);
-                        Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
-
-                        if (h_overlaps.data[overlap_idx(type, typ_j)]
-                            && check_circumsphere_overlap(r_ij, shape, shape_j)
-                            && test_overlap(r_ij, shape, shape_j, err_count))
+                        for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
                             {
-                            overlap = 1;
-                            break;
+                            // read in its position and orientation
+                            unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                            Scalar4 postype_j = h_postype.data[j];
+                            Scalar4 orientation_j = h_orientation.data[j];
+
+                            // put particles in coordinate system of particle i
+                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
+
+                            unsigned int typ_j = __scalar_as_int(postype_j.w);
+
+                            // we computed the self-interaction above
+                            if (h_tag.data[j] == tag) continue;
+
+                            Scalar r_cut_ij = r_cut_patch + 0.5*patch->getAdditiveCutoff(typ_j);
+
+                            if (dot(r_ij,r_ij) <= r_cut_ij*r_cut_ij)
+                                {
+                                lnboltzmann += patch->energy(r_ij,
+                                    type,
+                                    quat<float>(orientation),
+                                    diameter,
+                                    charge,
+                                    typ_j,
+                                    quat<float>(orientation_j),
+                                    h_diameter.data[j],
+                                    h_charge.data[j]);
+                                }
                             }
                         }
                     }
-                }
-            else
-                {
-                // skip ahead
-                cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                }
-
-            if (overlap)
-                {
-                break;
-                }
-            } // end loop over AABB nodes
-
-        if (overlap)
-            {
-            break;
-            }
-        } // end loop over images
+                else
+                    {
+                    // skip ahead
+                    cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+                    }
+                } // end loop over AABB nodes
+            } // end loop over images
+        }
 
     #ifdef ENABLE_MPI
     if (m_comm)
         {
+        MPI_Allreduce(MPI_IN_PLACE, &lnboltzmann, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    return true;
+    }
+
+
+template<class Shape>
+bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int type, vec3<Scalar> pos,
+    quat<Scalar> orientation, Scalar &lnboltzmann)
+    {
+    // do we have to compute energetic contribution?
+    auto patch = m_mc->getPatchInteraction();
+
+    lnboltzmann = Scalar(0.0);
+
+    unsigned int overlap = 0;
+
+    bool is_local = true;
+    #ifdef ENABLE_MPI
+    if (this->m_pdata->getDomainDecomposition())
+        {
+        const BoxDim& global_box = this->m_pdata->getGlobalBox();
+        is_local = this->m_exec_conf->getRank() == this->m_pdata->getDomainDecomposition()->placeParticle(global_box, vec_to_scalar3(pos));
+        }
+    #endif
+
+    unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
+
+    if (is_local)
+        {
+        // update the image list
+        const std::vector<vec3<Scalar> >&image_list = m_mc->updateImageList();
+
+        // check for overlaps
+        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc->getParams();
+
+        ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+        const Index2D& overlap_idx = m_mc->getOverlapIndexer();
+
+        // read in the current position and orientation
+        Shape shape(orientation, params[type]);
+
+        OverlapReal r_cut_patch(0.0);
+        Scalar r_cut_self(0.0);
+
+        if (patch)
+            {
+            r_cut_patch = patch->getRCut() + 0.5*patch->getAdditiveCutoff(type);
+            r_cut_self = r_cut_patch + 0.5*patch->getAdditiveCutoff(type);
+            }
+
+        unsigned int err_count = 0;
+
+        const unsigned int n_images = image_list.size();
+        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+            {
+            vec3<Scalar> pos_image = pos + image_list[cur_image];
+
+            if (cur_image != 0)
+                {
+                // check for self-overlap with all images except the original
+                vec3<Scalar> r_ij = pos - pos_image;
+                if (h_overlaps.data[overlap_idx(type, type)]
+                    && check_circumsphere_overlap(r_ij, shape, shape)
+                    && test_overlap(r_ij, shape, shape, err_count))
+                    {
+                    overlap = 1;
+                    break;
+                    }
+
+                // self-energy
+                if (patch && dot(r_ij,r_ij) <= r_cut_self*r_cut_self)
+                    {
+                    lnboltzmann -= patch->energy(r_ij,
+                        type,
+                        quat<float>(orientation),
+                        1.0, // diameter i
+                        0.0, // charge i
+                        type,
+                        quat<float>(orientation),
+                        1.0, // diameter i
+                        0.0 // charge i
+                        );
+                    }
+                }
+            }
+
+        // we cannot rely on a valid AABB tree when there are 0 particles
+        if (! overlap && nptl_local > 0)
+            {
+            // Check particle against AABB tree for neighbors
+            const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+
+            OverlapReal R_query = std::max(shape.getCircumsphereDiameter()/OverlapReal(2.0),
+                r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+            detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                {
+                vec3<Scalar> pos_image = pos + image_list[cur_image];
+
+
+                detail::AABB aabb = aabb_local;
+                aabb.translate(pos_image);
+
+                // stackless search
+                for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+                    {
+                    if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                        {
+                        if (aabb_tree.isNodeLeaf(cur_node_idx))
+                            {
+                            for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                {
+                                // read in its position and orientation
+                                unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                Scalar4 postype_j = h_postype.data[j];
+                                Scalar4 orientation_j = h_orientation.data[j];
+
+                                // put particles in coordinate system of particle i
+                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
+
+                                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
+
+                                Scalar r_cut_ij(0.0);
+                                if (patch)
+                                    r_cut_ij = r_cut_patch + 0.5*patch->getAdditiveCutoff(typ_j);
+
+                                if (h_overlaps.data[overlap_idx(type, typ_j)]
+                                    && check_circumsphere_overlap(r_ij, shape, shape_j)
+                                    && test_overlap(r_ij, shape, shape_j, err_count))
+                                    {
+                                    overlap = 1;
+                                    break;
+                                    }
+                                else if (patch && dot(r_ij,r_ij) <= r_cut_ij*r_cut_ij)
+                                    {
+                                    lnboltzmann -= patch->energy(r_ij,
+                                        type,
+                                        quat<float>(orientation),
+                                        1.0, // diameter i
+                                        0.0, // charge i
+                                        typ_j,
+                                        quat<float>(orientation_j),
+                                        h_diameter.data[j],
+                                        h_charge.data[j]);
+                                    }
+                                }
+                            }
+                        }
+                    else
+                        {
+                        // skip ahead
+                        cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+                        }
+
+                    if (overlap)
+                        {
+                        break;
+                        }
+                    } // end loop over AABB nodes
+
+                if (overlap)
+                    {
+                    break;
+                    }
+                } // end loop over images
+            } // end if nptl_local > 0
+        } // end if local
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &lnboltzmann, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
         MPI_Allreduce(MPI_IN_PLACE, &overlap, 1, MPI_UNSIGNED, MPI_MAX, m_exec_conf->getMPICommunicator());
         }
     #endif

@@ -1,6 +1,6 @@
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 <xsl:output method="xml" indent="yes"/>
- 
+
         <xsl:template match="/Site">
                 <testsuite>
                         <xsl:variable name="BuildName"><xsl:value-of select="@BuildName"/></xsl:variable>
@@ -50,7 +50,7 @@
                                 <property name="ProcessorClockFrequency" value="{$ProcessorClockFrequency}" />
                         </properties>
                         <xsl:apply-templates select="Testing/Test"/>
-                       
+
                         <system-out>
                                 BuildName: <xsl:value-of select="$BuildName" />
                                 BuildStamp: <xsl:value-of select="$BuildStamp" />
@@ -77,7 +77,7 @@
                         </system-out>
                 </testsuite>
         </xsl:template>
- 
+
     <xsl:template match="Testing/Test">
         <xsl:variable name="testcasename"><xsl:value-of select= "Name"/></xsl:variable>
                 <xsl:variable name="exectime">
@@ -87,7 +87,7 @@
                                 </xsl:if>
                         </xsl:for-each>
                 </xsl:variable>
-               
+
                         <testcase name="{$testcasename}" classname="TestSuite" time="{$exectime}">
             <xsl:if test="@Status = 'passed'">
             </xsl:if>
@@ -113,7 +113,6 @@
             </xsl:if>
         </testcase>
     </xsl:template>
- 
+
 
     </xsl:stylesheet>
-

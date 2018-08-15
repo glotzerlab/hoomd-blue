@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -33,6 +33,52 @@ namespace hpmc
 
     \ingroup hpmc_integrators
 */
+
+class PatchEnergy
+    {
+    public:
+        PatchEnergy() { }
+        virtual ~PatchEnergy() { }
+
+    //! Returns the cut-off radius
+    virtual Scalar getRCut()
+        {
+        return 0;
+        }
+
+    //! Returns the geometric extent, per type
+    virtual Scalar getAdditiveCutoff(unsigned int type)
+        {
+        return 0;
+        }
+
+    //! evaluate the energy of the patch interaction
+    /*! \param r_ij Vector pointing from particle i to j
+        \param type_i Integer type index of particle i
+        \param d_i Diameter of particle i
+        \param charge_i Charge of particle i
+        \param q_i Orientation quaternion of particle i
+        \param type_j Integer type index of particle j
+        \param q_j Orientation quaternion of particle j
+        \param d_j Diameter of particle j
+        \param charge_j Charge of particle j
+        \returns Energy of the patch interaction.
+    */
+    virtual float energy(const vec3<float>& r_ij,
+        unsigned int type_i,
+        const quat<float>& q_i,
+        float d_i,
+        float charge_i,
+        unsigned int type_j,
+        const quat<float>& q_j,
+        float d_j,
+        float charge_j)
+        {
+        return 0;
+        }
+
+    };
+
 class IntegratorHPMC : public Integrator
     {
     public:
@@ -182,7 +228,7 @@ class IntegratorHPMC : public Integrator
             }
 
         //! Get the diameter of the largest circumscribing sphere for objects handled by this integrator
-        virtual Scalar getMaxDiameter()
+        virtual Scalar getMaxCoreDiameter()
             {
             return 1.0;
             }
@@ -249,10 +295,52 @@ class IntegratorHPMC : public Integrator
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
 
-        ExternalField* getExternalField() { return m_external_base; }
+        ExternalField* getExternalField()
+            {
+            return m_external_base;
+            }
+
+        //! Returns the patch energy interaction
+        std::shared_ptr<PatchEnergy> getPatchInteraction()
+            {
+            if (!m_patch_log)
+                return m_patch;
+            else
+                return std::shared_ptr<PatchEnergy>();
+            }
+
+        //! Compute the energy due to patch interactions
+        /*! \param timestep the current time step
+         * \returns the total patch energy
+         */
+        virtual float computePatchEnergy(unsigned int timestep)
+            {
+            // base class method returns 0
+            return 0.0;
+            }
 
         //! Enable deterministic simulations
         virtual void setDeterministic(bool deterministic) {};
+
+        //! Prepare for the run
+        virtual void prepRun(unsigned int timestep)
+            {
+            m_past_first_run = true;
+            }
+
+        //! Set the patch energy
+        void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
+            {
+            m_patch = patch;
+            }
+
+        //! Enable the patch energy only for logging
+        /*! \param log if True, only enabled for logging purposes
+         */
+        void disablePatchEnergyLogOnly(bool log)
+            {
+            m_patch_log = log;
+            }
 
     protected:
         unsigned int m_seed;                        //!< Random number seed
@@ -270,6 +358,10 @@ class IntegratorHPMC : public Integrator
 
         ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be used in a more general setting.
 
+        std::shared_ptr< PatchEnergy > m_patch;     //!< Patchy Interaction
+        bool m_patch_log;                           //!< If true, only use patch energy for logging
+
+        bool m_past_first_run;                      //!< Flag to test if the first run() has started
         //! Update the nominal width of the cells
         /*! This method is virtual so that derived classes can set appropriate widths
             (for example, some may want max diameter while others may want a buffer distance).
@@ -321,8 +413,10 @@ class IntegratorHPMC : public Integrator
         hpmc_counters_t m_count_run_start;             //!< Count saved at run() start
         hpmc_counters_t m_count_step_start;            //!< Count saved at the start of the last step
 
+        #ifdef ENABLE_MPI
         bool m_communicator_ghost_width_connected;     //!< True if we have connected to Communicator's ghost layer width signal
         bool m_communicator_flags_connected;           //!< True if we have connected to Communicator's communication flags signal
+        #endif
     };
 
 //! Export the IntegratorHPMC class to python

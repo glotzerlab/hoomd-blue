@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -136,6 +136,8 @@ struct sph_params : param_base
     OverlapReal radius;                 //!< radius of sphere
     unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                         //   First bit is ignore overlaps, Second bit is ignore statistics
+    bool isOriented;                    //!< Flag to specify whether a sphere has orientation or not. Intended for
+                                        //!  for use with anisotropic/patchy pair potentials.
 
     #ifdef ENABLE_CUDA
     //! Attach managed memory to CUDA stream
@@ -153,11 +155,13 @@ struct ShapeSphere
 
     //! Initialize a shape at a given position
     DEVICE ShapeSphere(const quat<Scalar>& _orientation, const param_type& _params)
-        : orientation(_orientation), params(_params)
-        {}
+        : orientation(_orientation), params(_params) {}
 
     //! Does this shape have an orientation
-    DEVICE bool hasOrientation() const { return false; }
+    DEVICE bool hasOrientation() const
+        {
+        return params.isOriented;
+        }
 
     //!Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return params.ignore; }

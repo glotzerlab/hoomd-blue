@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -18,6 +18,7 @@
 #include "ParticleData.h"
 #include <string>
 
+#include "HOOMDMPI.h"
 
 //! Stores integrator variables
 /*! The integration state is necessary for exact restarts.  Extended systems
@@ -26,11 +27,25 @@
     seed.
     \ingroup data_structs
 */
-struct IntegratorVariables
+struct PYBIND11_EXPORT IntegratorVariables
     {
     std::string type;                   //!<The type of integrator (NVT, NPT, etc.)
     std::vector<Scalar> variable;       //!<Variables that define the integration state
     };
+
+#ifdef ENABLE_MPI
+namespace cereal
+    {
+    //! Serialization of IntegratorVariables
+    template<class Archive>
+    void serialize(Archive & ar, IntegratorVariables & iv, const unsigned int version)
+        {
+        // serialize both members
+        ar & iv.type;
+        ar & iv.variable;
+        }
+    }
+#endif
 
 //! Stores all integrator variables in the simulation
 /*! IntegratorData keeps track of the parameters for all of the integrators
@@ -46,7 +61,7 @@ struct IntegratorVariables
 
     \ingroup data_structs
 */
-class IntegratorData
+class PYBIND11_EXPORT IntegratorData
     {
     public:
         //! Constructs an empty list with no integrator variables

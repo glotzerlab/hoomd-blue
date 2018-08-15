@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -775,12 +775,6 @@ struct quat
         {
         quat<Real> q(fast::cos(theta/2.0), (Real)fast::sin(theta/2.0) * axis);
         return q;
-        }
-
-    DEVICE void swap(quat<Real>& q)
-        {
-        std::swap(s, q.s);
-        v.swap(q.v);
         }
 
     Real s;         //!< scalar component

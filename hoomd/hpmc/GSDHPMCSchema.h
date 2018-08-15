@@ -133,6 +133,8 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         for(unsigned int i = 0; i < Ntypes; i++)
             {
             shape[i].radius = data[i];
+            shape[i].isOriented = false;
+            shape[i].ignore = 0;
             }
         return success;
         }
@@ -198,6 +200,7 @@ struct gsd_shape_schema<hpmc::ell_params>: public gsd_schema_hpmc_base
             shape[i].x = a[i];
             shape[i].y = b[i];
             shape[i].z = c[i];
+            shape[i].ignore = 0;
             }
         return success;
         }
@@ -294,6 +297,7 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
             result.N = N[i];
             result.sweep_radius = sweep_radius[i];
             shape[i] = result; // Can we avoid a full copy of the data (move semanitcs?)
+            shape[i].ignore = 0;
             }
         return success;
         }
@@ -384,6 +388,7 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
             shape[i].diameter = 2.0*(sqrt(dsq)+shape[i].sweep_radius);
             shape[i].N = N[i];
             shape[i].sweep_radius = sweep_radius[i];
+            shape[i].ignore = 0;
             }
         return success;
         }

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __HPMC_MONO_IMPLICIT_NEW_H__
@@ -267,7 +267,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::initializePoissonDistribution()
 template< class Shape >
 void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
     {
-    this->m_nominal_width = this->getMaxDiameter();
+    this->m_nominal_width = this->getMaxCoreDiameter();
 
     if (m_n_R > Scalar(0.0))
         {
@@ -275,6 +275,22 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
         quat<Scalar> o;
         Shape tmp(o, this->m_params[m_type]);
         this->m_nominal_width += tmp.getCircumsphereDiameter();
+
+        // extend the image list by the depletant diameter, since we're querying
+        // AABBs that are larger than the shape diameters themselves
+        this->m_extra_image_width = tmp.getCircumsphereDiameter();
+
+        }
+    // Account for patch width
+    if (this->m_patch)
+        {
+        Scalar max_extent = 0.0;
+        for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
+            {
+            max_extent = std::max(max_extent, this->m_patch->getAdditiveCutoff(typ));
+            }
+
+        this->m_nominal_width = std::max(this->m_nominal_width, max_extent+this->m_patch->getRCut());
         }
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
@@ -345,6 +361,36 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
     seed_seq[3] = 0x91baff72;
     std::seed_seq seed(seed_seq.begin(), seed_seq.end());
     std::mt19937 rng_poisson(seed);
+    #else
+    // create one RNG per thread
+    tbb::enumerable_thread_specific< hoomd::detail::Saru > rng_parallel([=]
+        {
+        std::vector<unsigned int> seed_seq(5);
+        seed_seq[0] = this->m_seed;
+        seed_seq[1] = timestep;
+        seed_seq[2] = this->m_exec_conf->getRank();
+        std::hash<std::thread::id> hash;
+        seed_seq[3] = hash(std::this_thread::get_id());
+        seed_seq[4] = 0x6b71abc8;
+        std::seed_seq seed(seed_seq.begin(), seed_seq.end());
+        std::vector<unsigned int> s(1);
+        seed.generate(s.begin(),s.end());
+        return s[0];
+        });
+    tbb::enumerable_thread_specific<std::mt19937> rng_parallel_mt([=]
+        {
+        std::vector<unsigned int> seed_seq(5);
+        seed_seq[0] = this->m_seed;
+        seed_seq[1] = timestep;
+        seed_seq[2] = this->m_exec_conf->getRank();
+        std::hash<std::thread::id> hash;
+        seed_seq[3] = hash(std::this_thread::get_id());
+        seed_seq[4] = 0x91baff72;
+        std::seed_seq seed(seed_seq.begin(), seed_seq.end());
+        std::vector<unsigned int> s(1);
+        seed.generate(s.begin(),s.end());
+        return s[0]; // use a single seed
+        });
     #endif
 
     // loop over local particles nselect times
@@ -353,6 +399,8 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
         // access particle data and system box
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
 
         // access interaction matrix
         ArrayHandle<unsigned int> h_overlaps(this->m_overlaps, access_location::host, access_mode::read);
@@ -387,10 +435,17 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
             unsigned int move_type_select = rng_i.u32() & 0xffff;
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < this->m_move_ratio);
 
+            Shape shape_old(quat<Scalar>(orientation_i), this->m_params[typ_i]);
+            vec3<Scalar> pos_old = pos_i;
+
             if (move_type_translate)
                 {
-                // skip if moves are disabled
-                if (h_d.data[typ_i] == Scalar(0.0)) continue;
+                // skip if no overlap check is required
+                if (h_d.data[typ_i] == 0.0)
+                    {
+                    counters.translate_accept_count++;
+                    continue;
+                    }
 
                 move_translate(pos_i, rng_i, h_d.data[typ_i], ndim);
 
@@ -405,15 +460,28 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                 }
             else
                 {
-                // skip if moves are disabled
-                if (h_a.data[typ_i] == Scalar(0.0)) continue;
+                if (h_a.data[typ_i] == 0.0)
+                    {
+                    counters.rotate_accept_count++;
+                    continue;
+                    }
 
                 move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
                 }
 
             // check for overlaps with neighboring particle's positions
             bool overlap=false;
-            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+            OverlapReal r_cut_patch = 0;
+
+            if (this->m_patch && !this->m_patch_log)
+                {
+                r_cut_patch = this->m_patch->getRCut() + 0.5*this->m_patch->getAdditiveCutoff(typ_i);
+                }
+            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), r_cut_patch-this->getMinCoreDiameter()/(OverlapReal)2.0);
+            detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+            // patch + field interaction deltaU
+            double patch_field_energy_diff = 0;
 
             // All image boxes (including the primary)
             const unsigned int n_images = this->m_image_list.size();
@@ -473,12 +541,29 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
                                 bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
+                                Scalar r_cut_ij = 0.0;
+                                if (this->m_patch)
+                                    r_cut_ij = r_cut_patch + 0.5*this->m_patch->getAdditiveCutoff(typ_j);
+
                                 if (h_overlaps.data[this->m_overlap_idx(typ_i,typ_j)]
                                     && circumsphere_overlap
                                     && test_overlap(r_ij, shape_i, shape_j, counters.overlap_err_count))
                                     {
                                     overlap = true;
                                     break;
+                                    }
+                                // If there is no overlap and m_patch is not NULL, calculate energy
+                                else if (this->m_patch && !this->m_patch_log && rsq <= r_cut_ij*r_cut_ij)
+                                    {
+                                    patch_field_energy_diff -= this->m_patch->energy(r_ij, typ_i,
+                                                               quat<float>(shape_i.orientation),
+                                                               h_diameter.data[i],
+                                                               h_charge.data[i],
+                                                               typ_j,
+                                                               quat<float>(orientation_j),
+                                                               h_diameter.data[j],
+                                                               h_charge.data[j]
+                                                               );
                                     }
                                 }
                             }
@@ -501,7 +586,92 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
             // whether the move is accepted
             bool accept = !overlap;
 
-            if (!overlap)
+            // In most cases checking patch energy should be cheaper than computing
+            // depletants, so do that first. Calculate old patch energy only if
+            // m_patch not NULL and no overlaps. Note that we are computing U_old-U_new
+            // and then exponentiating directly (rather than exp(-(U_new-U_old)))
+            if (this->m_patch && !this->m_patch_log && accept)
+                {
+                for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                    {
+                    vec3<Scalar> pos_i_image = pos_old + this->m_image_list[cur_image];
+                    detail::AABB aabb = aabb_i_local;
+                    aabb.translate(pos_i_image);
+
+                    // stackless search
+                    for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
+                        {
+                        if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                            {
+                            if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
+                                {
+                                for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                    {
+                                    // read in its position and orientation
+                                    unsigned int j = this->m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                    Scalar4 postype_j;
+                                    Scalar4 orientation_j;
+
+                                    // handle j==i situations
+                                    if ( j != i )
+                                        {
+                                        // load the position and orientation of the j particle
+                                        postype_j = h_postype.data[j];
+                                        orientation_j = h_orientation.data[j];
+                                        }
+                                    else
+                                        {
+                                        if (cur_image == 0)
+                                            {
+                                            // in the first image, skip i == j
+                                            continue;
+                                            }
+                                        else
+                                            {
+                                            // If this is particle i and we are in an outside image, use the translated position and orientation
+                                            postype_j = make_scalar4(pos_old.x, pos_old.y, pos_old.z, postype_i.w);
+                                            orientation_j = quat_to_scalar4(shape_old.orientation);
+                                            }
+                                        }
+
+                                    // put particles in coordinate system of particle i
+                                    vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+                                    unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                    Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
+                                    if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
+                                        patch_field_energy_diff += this->m_patch->energy(r_ij,
+                                                                   typ_i,
+                                                                   quat<float>(orientation_i),
+                                                                   h_diameter.data[i],
+                                                                   h_charge.data[i],
+                                                                   typ_j,
+                                                                   quat<float>(orientation_j),
+                                                                   h_diameter.data[j],
+                                                                   h_charge.data[j]);
+                                    }
+                                }
+                            }
+                        else
+                            {
+                            // skip ahead
+                            cur_node_idx += this->m_aabb_tree.getNodeSkip(cur_node_idx);
+                            }
+                        }  // end loop over AABB nodes
+                    } // end loop over images
+
+                // Add external energetic contribution
+                if (this->m_external)
+                    {
+                    patch_field_energy_diff -= this->m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+                    }
+
+                // Update acceptance based on patch, will only be reached if overlap check succeeded
+                accept = rng_i.d() < slow::exp(patch_field_energy_diff);
+                } // end if (m_patch)
+
+            // Depletant check
+            if (accept)
                 {
                 intersect_i.clear();
                 image_i.clear();
@@ -575,38 +745,6 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                 unsigned int insert_count = 0;
                 #endif
 
-                #ifdef ENABLE_TBB
-                // create one RNG per thread
-                tbb::enumerable_thread_specific< hoomd::detail::Saru > rng_parallel([=]
-                    {
-                    std::vector<unsigned int> seed_seq(5);
-                    seed_seq[0] = this->m_seed;
-                    seed_seq[1] = timestep;
-                    seed_seq[2] = this->m_exec_conf->getRank();
-                    std::hash<std::thread::id> hash;
-                    seed_seq[3] = hash(std::this_thread::get_id());
-                    seed_seq[4] = 0x6b71abc8;
-                    std::seed_seq seed(seed_seq.begin(), seed_seq.end());
-                    std::vector<unsigned int> s(1);
-                    seed.generate(s.begin(),s.end());
-                    return s[0];
-                    });
-                tbb::enumerable_thread_specific<std::mt19937> rng_parallel_mt([=]
-                    {
-                    std::vector<unsigned int> seed_seq(5);
-                    seed_seq[0] = this->m_seed;
-                    seed_seq[1] = timestep;
-                    seed_seq[2] = this->m_exec_conf->getRank();
-                    std::hash<std::thread::id> hash;
-                    seed_seq[3] = hash(std::this_thread::get_id());
-                    seed_seq[4] = 0x91baff72;
-                    std::seed_seq seed(seed_seq.begin(), seed_seq.end());
-                    std::vector<unsigned int> s(1);
-                    seed.generate(s.begin(),s.end());
-                    return s[0]; // use a single seed
-                    });
-                #endif
-
                 // for every pairwise intersection
                 #ifdef ENABLE_TBB
                 tbb::parallel_for((unsigned int)0, (unsigned int)intersect_i.size(), [&](unsigned int k)
@@ -625,7 +763,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                     vec3<Scalar> rij(rj-ri - this->m_image_list[image_i[k]]);
                     Scalar d = sqrt(dot(rij,rij));
 
-                    // whether the interesection is the entire (smaller) sphere
+                    // whether the intersection is the entire (smaller) sphere
                     bool sphere = false;
                     Scalar V;
                     Scalar Vcap_i(0.0);
@@ -825,348 +963,6 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                 #ifdef ENABLE_TBB
                     );
                 #endif
-
-                // increment counters
-                counters.overlap_checks += n_overlap_checks;
-                counters.overlap_err_count += overlap_err_count;
-                implicit_counters.insert_count += insert_count;
-
-                if (!accept)
-                    {
-                    // check new configuration
-                    intersect_i.clear();
-                    image_i.clear();
-
-                    // find neighbors whose circumspheres overlap particle i's circumsphere in the old configuration
-                    // Here, circumsphere refers to the sphere around the depletant-excluded volume
-                    detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+m_d_dep);
-
-                    // All image boxes (including the primary)
-                    for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                        {
-                        vec3<Scalar> pos_i_image = pos_i + this->m_image_list[cur_image];
-                        detail::AABB aabb = aabb_local;
-                        aabb.translate(pos_i_image);
-
-                        // stackless search
-                        for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
-                            {
-                            if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
-                                {
-                                if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
-                                    {
-                                    for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
-                                        {
-                                        // read in its position and orientation
-                                        unsigned int j = this->m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                        vec3<Scalar> pos_j;
-                                        unsigned int typ_j;
-                                        if (i == j)
-                                            {
-                                            if (cur_image == 0)
-                                                continue;
-                                            else
-                                                {
-                                                pos_j = pos_i;
-                                                typ_j = typ_i;
-                                                }
-                                            }
-                                        else
-                                            {
-                                            Scalar4 postype_j = h_postype.data[j];
-                                            typ_j = __scalar_as_int(postype_j.w);
-                                            pos_j = vec3<Scalar>(postype_j);
-                                            }
-
-                                        // load the old position and orientation of the j particle
-                                        vec3<Scalar> r_ij = pos_j - pos_i_image;
-
-                                        Shape shape_j(quat<Scalar>(), this->m_params[typ_j]);
-
-                                        // check circumsphere overlap
-                                        OverlapReal rsq = dot(r_ij,r_ij);
-                                        OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter() + 2*m_d_dep;
-                                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                                        if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)] && circumsphere_overlap)
-                                            {
-                                            intersect_i.push_back(j);
-                                            image_i.push_back(cur_image);
-                                            }
-                                        }
-                                    }
-                                }
-                            else
-                                {
-                                // skip ahead
-                                cur_node_idx += this->m_aabb_tree.getNodeSkip(cur_node_idx);
-                                }
-                            }  // end loop over AABB nodes
-                        } // end loop over images
-
-
-                    #ifdef ENABLE_TBB
-                    tbb::atomic<unsigned int> n_overlap_checks = 0;
-                    tbb::atomic<unsigned int> overlap_err_count = 0;
-                    tbb::atomic<unsigned int> insert_count = 0;
-                    #else
-                    unsigned int n_overlap_checks = 0;
-                    unsigned int overlap_err_count = 0;
-                    unsigned int insert_count = 0;
-                    #endif
-
-                    // for every pairwise intersection
-                    #ifdef ENABLE_TBB
-                    tbb::parallel_for((unsigned int)0, (unsigned int)intersect_i.size(), [&](unsigned int k)
-                    #else
-                    for (unsigned int k = 0; k < intersect_i.size(); ++k)
-                    #endif
-                        {
-                        unsigned int j = intersect_i[k];
-                        vec3<Scalar> ri = pos_i;
-                        unsigned int typ_j;
-                        vec3<Scalar> rj;
-                        if (i == j)
-                            {
-                            rj = pos_i;
-                            typ_j = typ_i;
-                            }
-                        else
-                            {
-                            Scalar4 postype_j = h_postype.data[j];
-                            rj = vec3<Scalar>(postype_j);
-                            typ_j = __scalar_as_int(postype_j.w);
-                            }
-                        Scalar Ri = Scalar(0.5)*(shape_i.getCircumsphereDiameter()+m_d_dep);
-                        Shape shape_j(quat<Scalar>(), this->m_params[typ_j]);
-                        Scalar Rj = Scalar(0.5)*(shape_j.getCircumsphereDiameter()+m_d_dep);
-
-                        vec3<Scalar> rij(rj-ri - this->m_image_list[image_i[k]]);
-
-                        Scalar d = sqrt(dot(rij,rij));
-
-                        // whether the interesection is the entire (smaller) sphere
-                        bool sphere = false;
-                        Scalar V;
-                        Scalar Vcap_i(0.0);
-                        Scalar Vcap_j(0.0);
-                        Scalar hi(0.0);
-                        Scalar hj(0.0);
-
-                        if (d + Ri - Rj < 0 || d + Rj - Ri < 0)
-                            {
-                            sphere = true;
-                            V = (Ri < Rj) ? Scalar(M_PI*4.0/3.0)*Ri*Ri*Ri : Scalar(M_PI*4.0/3.0)*Rj*Rj*Rj;
-                            }
-                        else
-                            {
-                            // heights spherical caps that constitute the intersection volume
-                            hi = (Rj*Rj - (d-Ri)*(d-Ri))/(2*d);
-                            hj = (Ri*Ri - (d-Rj)*(d-Rj))/(2*d);
-
-                            // volumes of spherical caps
-                            Vcap_i = Scalar(M_PI/3.0)*hi*hi*(3*Ri-hi);
-                            Vcap_j = Scalar(M_PI/3.0)*hj*hj*(3*Rj-hj);
-
-                            // volume of intersection
-                            V = Vcap_i + Vcap_j;
-                            }
-
-                        // chooose the number of depletants in the intersection volume
-                        std::poisson_distribution<unsigned int> poisson(m_n_R*V);
-                        #ifdef ENABLE_TBB
-                        std::mt19937& rng_poisson = rng_parallel_mt.local();
-                        #endif
-
-                        #ifdef ENABLE_TBB
-                        hoomd::detail::Saru& my_rng = rng_parallel.local();
-                        #else
-                        hoomd::detail::Saru& my_rng = rng_i;
-                        #endif
-                        unsigned int n = poisson(rng_poisson);
-
-                        // for every depletant
-                        for (unsigned int l = 0; l < n; ++l)
-                            {
-                            insert_count++;
-
-                            vec3<Scalar> pos_test;
-                            if (!sphere)
-                                {
-                                // choose one of the two caps randomly, with a weight proportional to their volume
-                                Scalar s = my_rng.template s<Scalar>();
-                                bool cap_i = s < Vcap_i/V;
-
-                                // generate a depletant position in the spherical cap
-                                pos_test = cap_i ? generatePositionInSphericalCap(my_rng, ri, Ri, hi, rij)
-                                    : generatePositionInSphericalCap(my_rng, rj, Rj, hj, -rij)-this->m_image_list[image_i[k]];
-                                }
-                            else
-                                {
-                                // generate a random position in the smaller sphere
-                                if (Ri < Rj)
-                                    pos_test = generatePositionInSphere(my_rng, ri, Ri);
-                                else
-                                    pos_test = generatePositionInSphere(my_rng, rj, Rj) - this->m_image_list[image_i[k]];
-                                }
-
-                            Shape shape_test(quat<Scalar>(), this->m_params[m_type]);
-                            if (shape_test.hasOrientation())
-                                {
-                                shape_test.orientation = generateRandomOrientation(my_rng);
-                                }
-
-                            // check if depletant falls in other intersection volumes
-                            bool active = true;
-                            for (unsigned int m = 0; m < k; ++m)
-                                {
-                                unsigned int p = intersect_i[m];
-                                vec3<Scalar> rp;
-                                unsigned int typ_p;
-                                if (p == i)
-                                    {
-                                    rp = pos_i;
-                                    typ_p = typ_i;
-                                    }
-                                else
-                                    {
-                                    Scalar4 postype_p = h_postype.data[p];
-                                    rp = vec3<Scalar>(postype_p);
-                                    typ_p = __scalar_as_int(postype_p.w);
-                                    }
-                                Shape shape_p(quat<Scalar>(), this->m_params[typ_p]);
-
-                                vec3<Scalar> delta_r(pos_test + this->m_image_list[image_i[m]] - rp);
-                                OverlapReal rsq = dot(delta_r,delta_r);
-                                OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_p.getCircumsphereDiameter();
-                                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                                if (circumsphere_overlap)
-                                    {
-                                    active = false;
-                                    break;
-                                    }
-                                }
-
-                            if (!active) continue;
-
-                            // depletant falls in intersection volume between circumspheres
-
-                            // Check if the new configuration of particle i generates an overlap
-                            bool overlap_new = false;
-                                {
-                                vec3<Scalar> r_ij = pos_i - pos_test;
-
-                                OverlapReal rsq = dot(r_ij,r_ij);
-                                OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
-                                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                                if (h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
-                                    {
-                                    n_overlap_checks++;
-                                    unsigned int err = 0;
-                                    if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i, err))
-                                        {
-                                        overlap_new = true;
-                                        }
-                                    if (err) overlap_err_count+=err;
-                                    }
-                                }
-
-                            if (!overlap_new) continue;
-
-                            // Check if the old configuration of particle i generates an overlap
-                            bool overlap_old = false;
-                                {
-                                vec3<Scalar> r_ij = pos_i_old - pos_test;
-                                Shape shape_i_old(quat<Scalar>(h_orientation.data[i]), this->m_params[typ_i]);
-
-                                OverlapReal rsq = dot(r_ij,r_ij);
-                                OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i_old.getCircumsphereDiameter();
-                                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                                if (h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
-                                    {
-                                    n_overlap_checks++;
-                                    unsigned int err = 0;
-                                    if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i_old, err))
-                                        {
-                                        overlap_old = true;
-                                        }
-                                    if (err) overlap_err_count+=err;
-                                    }
-                                }
-
-                            // if not intersecting ptl i in old config, ignore
-                            if (overlap_old) continue;
-
-                            // does the depletant fall into the overlap volume with other particles?
-                            bool in_intersection_volume = false;
-
-                            for (unsigned int m = 0; m < intersect_i.size(); ++m)
-                                {
-                                // read in its position and orientation
-                                unsigned int j = intersect_i[m];
-
-                                // load the new position and orientation of the j particle
-                                vec3<Scalar> r_j;
-                                quat<Scalar> orientation_j;
-                                unsigned int typ_j;
-                                if (j == i)
-                                    {
-                                    rj = pos_i;
-                                    typ_j = typ_i;
-                                    orientation_j = shape_i.orientation;
-                                    }
-                                else
-                                    {
-                                    Scalar4 postype_j = h_postype.data[j];
-                                    rj = vec3<Scalar>(postype_j);
-                                    typ_j = __scalar_as_int(postype_j.w);
-                                    orientation_j = quat<Scalar>(h_orientation.data[j]);
-                                    }
-
-                                vec3<Scalar> r_ij = r_j - pos_test - this->m_image_list[image_i[m]];
-                                Shape shape_j(orientation_j, this->m_params[typ_j]);
-
-                                n_overlap_checks++;
-
-                                // check circumsphere overlap
-                                OverlapReal rsq = dot(r_ij,r_ij);
-                                OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
-                                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                                unsigned int err = 0;
-                                if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)]
-                                    && circumsphere_overlap
-                                    && test_overlap(r_ij, shape_test, shape_j, err))
-                                    {
-                                    in_intersection_volume = true;
-                                    }
-                                if (err) overlap_err_count+=err;
-                                if (in_intersection_volume)
-                                    break;
-                                } // end loop over intersections
-
-                            // if not part of overlap volume in new config, reject
-                            if (in_intersection_volume)
-                                {
-                                accept = true;
-                                #ifndef ENABLE_TBB
-                                break;
-                                #endif
-                                }
-                            } // end loop over depletants
-
-                        #ifndef ENABLE_TBB
-                        if (accept) break;
-                        #endif
-                        } // end loop over overlapping spheres
-                    #ifdef ENABLE_TBB
-                        );
-                    #endif
-                    } // end if (!accept)
 
                 // increment counters
                 counters.overlap_checks += n_overlap_checks;

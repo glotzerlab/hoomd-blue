@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -30,7 +30,7 @@
     The impropers which forces are computed on are accessed from ParticleData::getImproperData
     \ingroup computes
 */
-class HarmonicImproperForceCompute : public ForceCompute
+class PYBIND11_EXPORT HarmonicImproperForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute

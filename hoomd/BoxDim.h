@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -59,7 +59,7 @@
 
     \note minImage() and wrap() only work for particles that have moved up to 1 box image out of the box.
 */
-struct BoxDim
+struct __attribute__((visibility("default"))) BoxDim
     {
     public:
         //! Constructs a useless box
@@ -472,17 +472,21 @@ struct BoxDim
             return img;
             }
 
+        HOSTDEVICE int3 getImage(const vec3<Scalar>& v) const
+            {
+            return getImage(vec_to_scalar3(v));
+            }
 
         //! Shift a vector by a multiple of the lattice vectors
         /*! \param v The vector to shift
             \param shift The displacement in lattice coordinates
-
-            \note This method only works on boxes for which hi=-lo in all directions
          */
         HOSTDEVICE Scalar3 shift(const Scalar3& v, const int3& shift) const
             {
             Scalar3 r = v;
-            r += makeCoordinates(make_scalar3(0.5,0.5,0.5)+make_scalar3(shift.x,shift.y,shift.z));
+            r += shift.x*getLatticeVector(0);
+            r += shift.y*getLatticeVector(1);
+            r += shift.z*getLatticeVector(2);
             return r;
             }
 

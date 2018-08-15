@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_CALLBACK_H_
@@ -23,7 +23,7 @@ namespace hpmc
 {
 
 template< class Shape>
-class ExternalCallback : public ExternalFieldMono<Shape>
+class __attribute__ ((visibility ("hidden"))) ExternalCallback : public ExternalFieldMono<Shape>
     {
     public:
         ExternalCallback(std::shared_ptr<SystemDefinition> sysdef,
@@ -44,25 +44,24 @@ class ExternalCallback : public ExternalFieldMono<Shape>
         Scalar calculateBoltzmannWeight(unsigned int timestep)
             {
             auto snap = takeSnapshot();
-            Scalar energy = getEnergy(snap);
+            double energy = getEnergy(snap);
             return exp(-energy);
             }
 
-        //! Compute Boltzmann factor exp(-DeltaU) of a trial box resize
+        //! Compute DeltaU = Unew-Uold
         /*! \param position_old_arg Old (local) positions
             \param orientation_old_arg Old (local) orientations
             \param box_old_arg Old (global) box
          */
-        Scalar calculateBoltzmannFactor(const Scalar4 * const position_old_arg,
-                                        const Scalar4 * const orientation_old_arg,
-                                        const BoxDim * const box_old_arg
-                                        )
+        double calculateDeltaE(const Scalar4 * const  position_old_arg,
+                               const Scalar4 * const  orientation_old_arg,
+                               const BoxDim * const  box_old_arg
+                              )
             {
             auto snap = takeSnapshot();
-            Scalar energy_new = getEnergy(snap);
+            double energy_new = getEnergy(snap);
 
             // update snapshot with old configuration
-
             // FIXME: this will not work in MPI, we will have to broadcast to root and modify snapshot there
             snap->global_box = *box_old_arg;
             unsigned int N = this->m_pdata->getN();
@@ -77,31 +76,19 @@ class ExternalCallback : public ExternalFieldMono<Shape>
                 if (orientation_old_arg != NULL)
                     snap->particle_data.orientation[snap_idx] = quat<Scalar>(orientation_old_arg[i]);
                 }
-
-            Scalar energy_old = getEnergy(snap);
-
-            return exp(-energy_new+energy_old);
+            double energy_old = getEnergy(snap);
+            return energy_new-energy_old;
             }
 
         // does nothing
         void compute(unsigned int timestep) { }
 
-        //! Return true if a particle trial move is accepted
-        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru& rng)
-            {
-            // calc boltzmann factor from the external potential
-            Scalar boltz = boltzmann(index, position_old, shape_old, position_new, shape_new);
-            bool reject = false;
-            if(rng.s(Scalar(0.0),Scalar(1.0)) < boltz)
-                reject = false;
-            else
-                reject = true;
-
-            return !reject;
-            }
-
-        Scalar boltzmann(const unsigned int& index, const vec3<Scalar>& position_old,
-            const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
+        // Compute the energy difference for a proposed move on a single particle
+        double energydiff(const unsigned int& index,
+                          const vec3<Scalar>& position_old,
+                          const Shape& shape_old,
+                          const vec3<Scalar>& position_new,
+                          const Shape& shape_new)
             {
             // find index in snapshot
             unsigned int tag;
@@ -118,14 +105,14 @@ class ExternalCallback : public ExternalFieldMono<Shape>
             // update snapshot with old configuration
             snap->particle_data.pos[snap_idx] = position_old;
             snap->particle_data.orientation[snap_idx] = shape_old.orientation;
-            Scalar energy_old = getEnergy(snap);
+            double energy_old = getEnergy(snap);
 
             // update snapshot with new configruation
             snap->particle_data.pos[snap_idx] = position_new;
             snap->particle_data.orientation[snap_idx] = shape_new.orientation;
-            Scalar energy_new = getEnergy(snap);
+            double energy_new = getEnergy(snap);
 
-            return exp(-energy_new+energy_old);
+            return energy_new-energy_old;
             }
 
     protected:
@@ -136,9 +123,9 @@ class ExternalCallback : public ExternalFieldMono<Shape>
             return this->m_sysdef->template takeSnapshot<Scalar>(true);
             }
 
-        Scalar getEnergy(std::shared_ptr<SnapshotSystemData<Scalar> > snap)
+        double getEnergy(std::shared_ptr<SnapshotSystemData<Scalar> > snap)
             {
-            Scalar e = 0.0;
+            double e = 0.0;
             if (callback != pybind11::none())
                 {
                 pybind11::object rv = callback(snap);

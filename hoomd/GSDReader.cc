@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -22,13 +22,15 @@ namespace py = pybind11;
 /*! \param exec_conf The execution configuration
     \param name File name to read
     \param frame Frame index to read from the file
+    \param from_end Count frames back from the end of the file
 
     The GSDReader constructor opens the GSD file, initializes an empty snapshot, and reads the file into
     memory (on the root rank).
 */
 GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                      const std::string &name,
-                     const uint64_t frame)
+                     const uint64_t frame,
+                     bool from_end)
     : m_exec_conf(exec_conf), m_timestep(0), m_name(name), m_frame(frame)
     {
     m_snapshot = std::shared_ptr< SnapshotSystemData<float> >(new SnapshotSystemData<float>);
@@ -87,10 +89,15 @@ GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
         throw runtime_error("Error opening GSD file");
         }
 
+    // set frame from the end of the file if requested
+    uint64_t nframes = gsd_get_nframes(&m_handle);
+    if (from_end && frame <= nframes)
+        m_frame = nframes - frame;
+
     // validate number of frames
-    if (frame >= gsd_get_nframes(&m_handle))
+    if (m_frame >= nframes)
         {
-        m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Cannot read frame " << frame << " " << name << " only has " << gsd_get_nframes(&m_handle) << " frames" << endl;
+        m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Cannot read frame " << m_frame << " " << name << " only has " << gsd_get_nframes(&m_handle) << " frames" << endl;
         throw runtime_error("Error opening GSD file");
         }
 
@@ -356,7 +363,7 @@ void GSDReader::readTopology()
 void export_GSDReader(py::module& m)
     {
     py::class_< GSDReader, std::shared_ptr<GSDReader> >(m,"GSDReader")
-    .def(py::init<std::shared_ptr<const ExecutionConfiguration>, const string&, const uint64_t>())
+    .def(py::init<std::shared_ptr<const ExecutionConfiguration>, const string&, const uint64_t, bool>())
     .def("getTimeStep", &GSDReader::getTimeStep)
     .def("getSnapshot", &GSDReader::getSnapshot)
     .def("clearSnapshot", &GSDReader::clearSnapshot)

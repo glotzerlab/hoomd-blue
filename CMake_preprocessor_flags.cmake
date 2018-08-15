@@ -35,3 +35,8 @@ add_definitions(-DEIGEN_MPL2_ONLY)
 if (CUSOLVER_AVAILABLE)
     add_definitions(-DCUSOLVER_AVAILABLE)
 endif()
+
+# export TBB compile flag
+if (ENABLE_TBB)
+    add_definitions(-DENABLE_TBB)
+endif()

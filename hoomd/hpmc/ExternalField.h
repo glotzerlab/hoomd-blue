@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -38,8 +38,10 @@ class ExternalField : public Compute
             pacc = min(1, bw2/bw1);
         */
         virtual Scalar calculateBoltzmannWeight(unsigned int timestep){return 0;}
-
-        virtual Scalar calculateBoltzmannFactor(const Scalar4 * const  position_old,
+        /*! Calculate deltaE for the whole system
+            Used for box resizing
+        */
+        virtual double calculateDeltaE(const Scalar4 * const  position_old,
                                                 const Scalar4 * const  orientation_old,
                                                 const BoxDim * const  box_old
                                             ){return 0;}
@@ -64,16 +66,10 @@ class ExternalFieldMono : public ExternalField
         //! needed for Compute. currently not used.
         virtual void compute(unsigned int timestep) {}
 
-        //! method to accept or reject the proposed move used by the integrator.
-        virtual bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru& rng){return 0;}
-
-        //! method to calculate the boltzmann factor for the proposed move.
-        virtual Scalar boltzmann(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new){return 0;}
+        //! method to calculate the energy difference for the proposed move.
+        virtual double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new){return 0;}
 
         virtual void reset(unsigned int timestep) {}
-
-    protected:
-        /* Nothing yet */
     };
 
 
@@ -83,10 +79,9 @@ void export_ExternalFieldInterface(pybind11::module& m, std::string name)
    pybind11::class_< ExternalFieldMono<Shape>, std::shared_ptr< ExternalFieldMono<Shape> > >(m, (name + "Interface").c_str(), pybind11::base<Compute>())
     .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
     .def("compute", &ExternalFieldMono<Shape>::compute)
-    .def("accept", &ExternalFieldMono<Shape>::accept)
-    .def("boltzmann", &ExternalFieldMono<Shape>::boltzmann)
+    .def("energydiff", &ExternalFieldMono<Shape>::energydiff)
     .def("calculateBoltzmannWeight", &ExternalFieldMono<Shape>::calculateBoltzmannWeight)
-    .def("calculateBoltzmannFactor", &ExternalFieldMono<Shape>::calculateBoltzmannFactor)
+    .def("calculateDeltaE", &ExternalFieldMono<Shape>::calculateDeltaE)
     ;
     }
 

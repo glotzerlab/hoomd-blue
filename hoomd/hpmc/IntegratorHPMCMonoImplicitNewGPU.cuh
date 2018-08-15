@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _HPMC_IMPLICIT_NEW_CUH_
@@ -1026,4 +1026,3 @@ cudaError_t gpu_hpmc_implicit_accept_reject_new(const hpmc_implicit_args_new_t& 
 } // end namespace hpmc
 
 #endif // _HPMC_IMPLICIT_CUH_
-
