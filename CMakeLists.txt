@@ -71,13 +71,15 @@ if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cereal/include/cereal/ce
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/nano-signal-slot/nano_signal_slot.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/pybind/include/pybind11/pybind11.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h OR
-	NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp
+	  NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/include/Random123/philox.h OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/examples/util.h
     )
 
     if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
         # appropriate message for a git repository
         message(FATAL_ERROR "Submodules not found. Execute `git submodule update --init`. "
-                            "in the source directory to provide them, or clone with the --recurisve option.")
+                            "in the source directory to provide them, or clone with the --recursive option.")
     else()
         # appropriate message for a tarball checkout
         message(FATAL_ERROR "Submodules not found. This is not a git clone. You can either use git to clone hoomd "
@@ -87,6 +89,10 @@ if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cereal/include/cereal/ce
                             "must be provided.")
     endif()
 endif()
+
+### Add project subdirs
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/examples)
 
 find_package(libgetar)
 
