@@ -46,28 +46,16 @@ public:
 
     unsigned int getTotalCount(unsigned int ndx) { return m_count_total[ndx]; }
 
-    unsigned int getAcceptedB1(unsigned int ndx) { return m_b1_accepted[ndx]; }
+    unsigned int getAcceptedBox(unsigned int ndx) { return m_box_accepted[ndx]; }
 
-    unsigned int getAcceptedB2(unsigned int ndx) { return m_b2_accepted[ndx]; }
-
-    unsigned int getAcceptedB3(unsigned int ndx) { return m_b3_accepted[ndx]; }
-
-    unsigned int getTotalB1(unsigned int ndx) { return m_b1_total[ndx]; }
-
-    unsigned int getTotalB2(unsigned int ndx) { return m_b2_total[ndx]; }
-
-    unsigned int getTotalB3(unsigned int ndx) { return m_b3_total[ndx]; }
+    unsigned int getTotalBox(unsigned int ndx) { return m_box_total[ndx]; }
 
     void resetStatistics()
         {
         std::fill(m_count_accepted.begin(), m_count_accepted.end(), 0);
         std::fill(m_count_total.begin(), m_count_total.end(), 0);
-        std::fill(m_b1_accepted.begin(), m_b1_accepted.end(), 0);
-        std::fill(m_b2_accepted.begin(), m_b2_accepted.end(), 0);
-        std::fill(m_b3_accepted.begin(), m_b3_accepted.end(), 0);
-        std::fill(m_b1_total.begin(), m_b1_total.end(), 0);
-        std::fill(m_b2_total.begin(), m_b2_total.end(), 0);
-        std::fill(m_b3_total.begin(), m_b3_total.end(), 0);
+        std::fill(m_box_accepted.begin(), m_box_accepted.end(), 0);
+        std::fill(m_box_total.begin(), m_box_total.end(), 0);
         }
 
     void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
@@ -98,18 +86,14 @@ public:
     bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
 
 private:
-    unsigned int                m_seed;           //!< Random number seed
-    int                m_global_partition;           //!< Random number seed
+    unsigned int                m_seed;               //!< Random number seed
+    int                         m_global_partition;   //!< Random number seed
     unsigned int                m_nselect;
     unsigned int                m_nsweeps;
     std::vector<unsigned int>   m_count_accepted;
     std::vector<unsigned int>   m_count_total;
-    std::vector<unsigned int>   m_b1_accepted;
-    std::vector<unsigned int>   m_b2_accepted;
-    std::vector<unsigned int>   m_b3_accepted;
-    std::vector<unsigned int>   m_b1_total;
-    std::vector<unsigned int>   m_b2_total;
-    std::vector<unsigned int>   m_b3_total;
+    std::vector<unsigned int>   m_box_accepted;
+    std::vector<unsigned int>   m_box_total;
     unsigned int                m_move_ratio;
 
     std::shared_ptr< shape_move_function<Shape, Saru> >   m_move_function;
@@ -147,18 +131,12 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
-    m_b1_accepted.resize(m_pdata->getNTypes(), 0);
-    m_b2_accepted.resize(m_pdata->getNTypes(), 0);
-    m_b3_accepted.resize(m_pdata->getNTypes(), 0);
-    m_b1_total.resize(m_pdata->getNTypes(), 0);
-    m_b2_total.resize(m_pdata->getNTypes(), 0);
-    m_b3_total.resize(m_pdata->getNTypes(), 0);
+    m_box_accepted.resize(m_pdata->getNTypes(), 0);
+    m_box_total.resize(m_pdata->getNTypes(), 0);
     m_nselect = (m_pdata->getNTypes() < m_nselect) ? m_pdata->getNTypes() : m_nselect;
     m_ProvidedQuantities.push_back("shape_move_acceptance_ratio");
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
-    m_ProvidedQuantities.push_back("shape_move_two_phase_box1");
-    m_ProvidedQuantities.push_back("shape_move_two_phase_box2");
-    m_ProvidedQuantities.push_back("shape_move_two_phase_box3");
+    m_ProvidedQuantities.push_back("shape_move_multi_phase_box");
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
@@ -214,7 +192,6 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
     else if(quantity == "shape_move_particle_volume")
         {
         ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
-        // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
         auto params = m_mc->getParams();
         double volume = 0.0;
         for(size_t i = 0; i < m_pdata->getNTypes(); i++)
@@ -224,34 +201,18 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
             }
 		return volume;
 		}
-    else if(quantity == "shape_move_two_phase_box1")
+    else if(quantity == "shape_move_multi_phase_box")
         {
-        unsigned int b1Accepted = 0, b1Total = 0;
-        b1Accepted = std::accumulate(m_b1_accepted.begin(), m_b1_accepted.end(), 0);
-        b1Total = std::accumulate(m_b1_total.begin(), m_b1_total.end(), 0);
-        //std::cout << "it got here";
-        return b1Total ? Scalar(b1Accepted)/Scalar(b1Total) : 0;
-        }
-    else if(quantity == "shape_move_two_phase_box2")
-        {
-        unsigned int b2Accepted = 0, b2Total = 0;
-        b2Accepted = std::accumulate(m_b2_accepted.begin(), m_b2_accepted.end(), 0);
-        b2Total = std::accumulate(m_b2_total.begin(), m_b2_total.end(), 0);
-        return b2Total ? Scalar(b2Accepted)/Scalar(b2Total) : 0;
-        }
-	else if(quantity == "shape_move_two_phase_box3")
-        {
-        unsigned int b3Accepted = 0, b3Total = 0;
-        b3Accepted = std::accumulate(m_b3_accepted.begin(), m_b3_accepted.end(), 0);
-        b3Total = std::accumulate(m_b3_total.begin(), m_b3_total.end(), 0);
-        return b3Total ? Scalar(b3Accepted)/Scalar(b3Total) : 0;
+        unsigned int boxAccepted = 0, boxTotal = 0;
+        boxAccepted = std::accumulate(m_box_accepted.begin(), m_box_accepted.end(), 0);
+        boxTotal = std::accumulate(m_box_total.begin(), m_box_total.end(), 0);
+        return boxTotal ? Scalar(boxAccepted)/Scalar(boxTotal) : 0;
         }
     else if(quantity == "shape_move_energy")
         {
         Scalar energy = 0.0;
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-        // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
         for(unsigned int i = 0; i < m_pdata->getNTypes(); i++)
             {
             energy += m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[i], i, m_mc->getParams()[i], h_det.data[i]);
@@ -278,7 +239,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         initialize();
     if(!m_move_function || !m_log_boltz_function)
         {
-    	if(warn) m_exec_conf->msg->warning() << "update.shape: runing without a move function! " << std::endl;
+    	if(warn) m_exec_conf->msg->warning() << "update.shape: running without a move function! " << std::endl;
     	return;
         }
 
@@ -325,11 +286,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             m_count_total[typ_i]++;
             // access parameters
             typename Shape::param_type param;
-                // { // need to scope because we set at the end of loop
-                // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
             param = params[typ_i];
-                // }
-            // ArrayHandle<typename Shape::param_type> h_param_backup(param_copy, access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_det_backup(determinant_backup, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
@@ -362,10 +319,16 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         
     if(m_multi_phase)
         {
-        //m_exec_conf->msg->notice(8) << " Random (b) seed is " << p << std::endl;
         #ifdef ENABLE_MPI
-        // make sure random seeds are equal
-        //m_exec_conf->msg->notice(8) << " Random seed is " << p << std::endl;
+        std::vector<unsigned int> Zs;
+        all_gather_v(Z, Zs, m_exec_conf->getMPICommunicator());
+        float Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<float>());
+        m_exec_conf->msg->notice(8) 
+            << " UpdaterShape Z0=" << Z_0 
+            << ", Z1 = "<< Z_1 
+            << ", z=" << Z << std::endl;
+
+        /*
         if(m_num_phase == 2)
             {
             Scalar Z_0 = Z;
@@ -387,40 +350,38 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             m_exec_conf->msg->notice(8) << " UpdaterShape Z0=" << Z_0 << ", Z1 = "<< Z_1 << ", Z2 = "<< Z_2 << ", z=" << Z << std::endl;
             }
         #endif
-        }
-
-    if( p < Z)
+        }*/
+    if(p < Z)
         {
         unsigned int overlaps = 1;
         if(m_pdata->getNTypes() == m_pdata->getNGlobal())
             {
             overlaps = m_mc->countOverlapsEx(timestep, true, m_update_order.begin(), m_update_order.begin()+m_nselect);
-            // unsigned int overlaps_check = m_mc->countOverlaps(timestep, false);
-            // if(overlaps != overlaps_check)
-            //     {
-            //     std::cout << "The particles are: ";
-            //     for(size_t i = 0; i < m_nselect; i++)
-            //         {
-            //             std::cout << m_update_order[i] << ", ";
-            //         }
-            //     std::cout << std::endl;
-            //
-            //     std::cout << "ERROR !!!!!! overlaps detected!" << "overlap is "<< overlaps << " check is "<< overlaps_check << std::endl;
-            //     throw std::runtime_error("ERROR !!!!!! overlaps detected!");
-            //     }
             }
         else
             {
             overlaps = m_mc->countOverlaps(timestep, true);
             }
-
         accept = !overlaps;
         m_exec_conf->msg->notice(5) << " UpdaterShape counted " << overlaps << " overlaps" << std::endl;
         if(m_multi_phase)
             {
             #ifdef ENABLE_MPI
             // make sure random seeds are equal
-            if(m_num_phase == 2)
+            if(accept)
+                {
+                for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                    {
+                    int typ_i = m_update_order[cur_type];
+                    m_box_accepted[typ_i]++;
+                    }
+                }
+            std::vector<bool> all_a(numphase);
+            all_gather_v(accept, all_a, m_exec_conf->getMPICommunicator());
+            accept = std::find(all_a.begin(), all_a.end(), false) == all_a.end();
+            m_exec_conf->msg->notice(8) << timestep 
+                <<" UpdaterShape a0=" << a_0 << ", a1 = "<< a_1 << ", a=" << accept << std::endl;
+            /*if(m_num_phase == 2)
                 {
                 bool a_0 = accept, a_1 = accept;
                 MPI_Bcast( &a_0, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD );
@@ -479,7 +440,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                         m_b3_accepted[typ_i]++;
                         }
                     }
-                }
+                }*/
              
             #endif
             }
