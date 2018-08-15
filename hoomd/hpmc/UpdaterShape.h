@@ -322,36 +322,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         #ifdef ENABLE_MPI
         std::vector<Scalar> Zs;
         all_gather_v(Z, Zs, MPI_COMM_WORLD);
-        std::cout << "Z info: " << Z << " " << Zs[0] << " " << Zs[1] << std::endl;
         Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<Scalar>());
-        std::cout << Z << std::endl;
-        std::cout << "-----" << std::endl;
-        /*
-        m_exec_conf->msg->notice(8) 
-            << " UpdaterShape Z0=" << Z_0 
-            << ", Z1 = "<< Z_1 
-            << ", z=" << Z << std::endl;
-
-        if(m_num_phase == 2)
-            {
-            Scalar Z_0 = Z;
-            Scalar Z_1 = Z;
-            MPI_Bcast( &Z_0, 1, MPI_HOOMD_SCALAR, 0, MPI_COMM_WORLD );
-            MPI_Bcast( &Z_1, 1, MPI_HOOMD_SCALAR, 1, MPI_COMM_WORLD );
-            Z = Z_0*Z_1;
-            m_exec_conf->msg->notice(8) << " UpdaterShape Z0=" << Z_0 << ", Z1 = "<< Z_1 << ", z=" << Z << std::endl;
-            }
-        if(m_num_phase == 3)
-            {
-            Scalar Z_0 = Z;
-            Scalar Z_1 = Z;
-            Scalar Z_2 = Z;
-            MPI_Bcast( &Z_0, 1, MPI_HOOMD_SCALAR, 0, MPI_COMM_WORLD );
-            MPI_Bcast( &Z_1, 1, MPI_HOOMD_SCALAR, 1, MPI_COMM_WORLD );
-            MPI_Bcast( &Z_2, 1, MPI_HOOMD_SCALAR, 2, MPI_COMM_WORLD );
-            Z = Z_0*Z_1*Z_2;
-            m_exec_conf->msg->notice(8) << " UpdaterShape Z0=" << Z_0 << ", Z1 = "<< Z_1 << ", Z2 = "<< Z_2 << ", z=" << Z << std::endl;
-            }*/
         #endif
         }
     if(p < Z)
@@ -381,76 +352,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                 }
             std::vector<int> all_a;
             all_gather_v((int)accept, all_a, MPI_COMM_WORLD);
-            std::cout << "accept info " << std::endl; 
-            std::cout << accept << " " << all_a[0] << " " << all_a[1] << std::endl;
-            //accept = std::find(all_a.begin(), all_a.end(), false) == all_a.end();
             accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
-            //accept = (bool)t_accept;
-            std::cout << accept << std::endl;
-            std::cout << "-----" << std::endl;
-            /*m_exec_conf->msg->notice(8) << timestep 
-                <<" UpdaterShape a0=" << a_0 << ", a1 = "<< a_1 << ", a=" << accept << std::endl;
-            if(m_num_phase == 2)
-                {
-                bool a_0 = accept, a_1 = accept;
-                MPI_Bcast( &a_0, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD );
-                MPI_Bcast( &a_1, 1, MPI_C_BOOL, 1, MPI_COMM_WORLD );
-                //m_exec_conf->msg->notice(8) << " a_0 is " << a_0 << std::endl;
-                //m_exec_conf->msg->notice(8) << " a_1 is " << a_1 << std::endl;
-                accept = a_0 && a_1;
-                m_exec_conf->msg->notice(8) << timestep <<" UpdaterShape a0=" << a_0 << ", a1 = "<< a_1 << ", a=" << accept << std::endl;
-                if ( a_0 )
-                    {
-                    for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
-                        {
-                        int typ_i = m_update_order[cur_type];
-                        m_b1_accepted[typ_i]++;
-                        }
-                    }
-                if ( a_1 )
-                    {
-                    for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
-                        {
-                        int typ_i = m_update_order[cur_type];
-                        m_b2_accepted[typ_i]++;
-                        }
-                    }
-                }
-            if(m_num_phase == 3)
-                {
-                bool a_0 = accept, a_1 = accept, a_2 = accept;
-                MPI_Bcast( &a_0, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD );
-                MPI_Bcast( &a_1, 1, MPI_C_BOOL, 1, MPI_COMM_WORLD );
-                MPI_Bcast( &a_2, 1, MPI_C_BOOL, 2, MPI_COMM_WORLD );
-                accept = a_0 && a_1 && a_2;
-                m_exec_conf->msg->notice(8) << timestep <<" UpdaterShape a0=" << a_0 << ", a1 = "<< a_1 << ", a2 = " << a_2 << ", a=" << accept << std::endl;
-                
-                if ( a_0 )
-                    {
-                    for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
-                        {
-                        int typ_i = m_update_order[cur_type];
-                        m_b1_accepted[typ_i]++;
-                        }
-                    }
-                if ( a_1 )
-                    {
-                    for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
-                        {
-                        int typ_i = m_update_order[cur_type];
-                        m_b2_accepted[typ_i]++;
-                        }
-                    }
-                if ( a_2 )
-                    {
-                    for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
-                        {
-                        int typ_i = m_update_order[cur_type];
-                        m_b3_accepted[typ_i]++;
-                        }
-                    }
-                }*/
-             
             #endif
             }
         m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
