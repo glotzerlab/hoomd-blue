@@ -320,15 +320,15 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     if(m_multi_phase)
         {
         #ifdef ENABLE_MPI
-        std::vector<unsigned int> Zs;
-        all_gather_v(Z, Zs, m_exec_conf->getMPICommunicator());
-        float Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<float>());
+        std::vector<Scalar> Zs;
+        all_gather_v(Z, Zs, MPI_COMM_WORLD);
+        Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<float>());
+        /*
         m_exec_conf->msg->notice(8) 
             << " UpdaterShape Z0=" << Z_0 
             << ", Z1 = "<< Z_1 
             << ", z=" << Z << std::endl;
 
-        /*
         if(m_num_phase == 2)
             {
             Scalar Z_0 = Z;
@@ -348,9 +348,9 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             MPI_Bcast( &Z_2, 1, MPI_HOOMD_SCALAR, 2, MPI_COMM_WORLD );
             Z = Z_0*Z_1*Z_2;
             m_exec_conf->msg->notice(8) << " UpdaterShape Z0=" << Z_0 << ", Z1 = "<< Z_1 << ", Z2 = "<< Z_2 << ", z=" << Z << std::endl;
-            }
+            }*/
         #endif
-        }*/
+        }
     if(p < Z)
         {
         unsigned int overlaps = 1;
@@ -376,12 +376,14 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                     m_box_accepted[typ_i]++;
                     }
                 }
-            std::vector<bool> all_a(numphase);
-            all_gather_v(accept, all_a, m_exec_conf->getMPICommunicator());
-            accept = std::find(all_a.begin(), all_a.end(), false) == all_a.end();
-            m_exec_conf->msg->notice(8) << timestep 
+            std::vector<int> all_a;
+            all_gather_v((int)accept, all_a, m_exec_conf->getMPICommunicator());
+            //accept = std::find(all_a.begin(), all_a.end(), false) == all_a.end();
+            int t_accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
+            accept = (bool)t_accept;
+            /*m_exec_conf->msg->notice(8) << timestep 
                 <<" UpdaterShape a0=" << a_0 << ", a1 = "<< a_1 << ", a=" << accept << std::endl;
-            /*if(m_num_phase == 2)
+            if(m_num_phase == 2)
                 {
                 bool a_0 = accept, a_1 = accept;
                 MPI_Bcast( &a_0, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD );
