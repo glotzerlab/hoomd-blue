@@ -33,7 +33,11 @@ CUDA_COMPILE(_CUDA_GENERATED_FILES ${_${PACKAGE_NAME}_cu_sources} OPTIONS ${CUDA
 endif (ENABLE_CUDA)
 
 pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
-set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR};${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR}/md")
+if (APPLE)
+set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path/../md;@loader_path")
+else()
+set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN/../md;\$ORIGIN")
+endif()
 
 # link the library to its dependencies
 target_link_libraries(_${PACKAGE_NAME} PRIVATE _md ${HOOMD_LIBRARIES})

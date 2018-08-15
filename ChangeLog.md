@@ -2,6 +2,44 @@
 
 [TOC]
 
+## v2.3.4
+
+Released 2018/07/30
+
+*Bug fixes*
+
+* ``init.read_gsd`` no longer applies the *time_step* override when reading the *restart* file
+* HPMC: Add ``hpmc_patch_energy`` and ``hpmc_patch_rcut`` loggable quantities to the documentation
+
+## v2.3.3
+
+Released 2018/07/03
+
+*Bug fixes*
+
+* Fix ``libquickhull.so`` not found regression on Mac OS X
+
+## v2.3.2
+
+Released 2018/06/29
+
+*Bug fixes*
+
+* Fix a bug where gsd_snapshot would segfault when called without an execution context.
+* Compile warning free with gcc8.
+* Fix compile error when TBB include files are in non-system directory.
+* Fix ``libquickhull.so`` not found error on additional platforms.
+* HOOMD-blue is now available on **conda-forge** and the **docker hub**.
+* MPCD: Default value for ``kT`` parameter is removed for ``mpcd.collide.at``.
+  Scripts that are correctly running are not affected by this change.
+* MPCD: ``mpcd`` notifies the user of the appropriate citation.
+* MD: Correct force calculation between dipoles and point charge in ``pair.dipole``
+
+*Deprecated*
+
+* The **anaconda** channel **glotzer** will no longer be updated. Use **conda-forge**
+  to upgrade to v2.3.2 and newer versions.
+
 ## v2.3.1
 
 Released 2018/05/25

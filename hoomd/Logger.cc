@@ -202,7 +202,7 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
             Scalar extracted_rv = rv.cast<Scalar>();
             return extracted_rv;
             }
-        catch (py::cast_error)
+        catch (const py::cast_error&)
             {
                 m_exec_conf->msg->warning() << "analyze.log: Log callback " << quantity << " returned invalid value, logging 0." << endl;
                 return Scalar(0.0);

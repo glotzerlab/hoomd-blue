@@ -141,11 +141,7 @@ def cite_depletants():
                                    year='2015',
                                    doi='10.1063/1.4935175',
                                    feature='implicit depletants')
-
-    if hoomd.context.bib is None:
-        hoomd.cite._extra_default_entries.append(_citation)
-    else:
-        hoomd.context.bib.add(_citation)
+    hoomd.cite._ensure_global_bib().add(_citation)
 
 
 class mode_hpmc(_integrator):

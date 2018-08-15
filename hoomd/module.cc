@@ -269,8 +269,9 @@ void abort_mpi(std::shared_ptr<ExecutionConfiguration> exec_conf)
     }
 
 //! broadcast string from root rank to all other ranks
-std::string mpi_bcast_str(const std::string& s, std::shared_ptr<ExecutionConfiguration> exec_conf)
+std::string mpi_bcast_str(pybind11::object string, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
+    std::string s = pybind11::str(string).cast<std::string>();
     #ifdef ENABLE_MPI
     std::string result = s;
     bcast(result, 0, exec_conf->getMPICommunicator());
