@@ -322,7 +322,10 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         #ifdef ENABLE_MPI
         std::vector<Scalar> Zs;
         all_gather_v(Z, Zs, MPI_COMM_WORLD);
-        Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<float>());
+        std::cout << "Z info: " << Z << " " << Zs[0] << " " << Zs[1] << std::endl;
+        Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<Scalar>());
+        std::cout << Z << std::endl;
+        std::cout << "-----" << std::endl;
         /*
         m_exec_conf->msg->notice(8) 
             << " UpdaterShape Z0=" << Z_0 
@@ -377,10 +380,14 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                     }
                 }
             std::vector<int> all_a;
-            all_gather_v((int)accept, all_a, m_exec_conf->getMPICommunicator());
+            all_gather_v((int)accept, all_a, MPI_COMM_WORLD);
+            std::cout << "accept info " << std::endl; 
+            std::cout << accept << " " << all_a[0] << " " << all_a[1] << std::endl;
             //accept = std::find(all_a.begin(), all_a.end(), false) == all_a.end();
-            int t_accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
-            accept = (bool)t_accept;
+            accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
+            //accept = (bool)t_accept;
+            std::cout << accept << std::endl;
+            std::cout << "-----" << std::endl;
             /*m_exec_conf->msg->notice(8) << timestep 
                 <<" UpdaterShape a0=" << a_0 << ", a1 = "<< a_1 << ", a=" << accept << std::endl;
             if(m_num_phase == 2)
