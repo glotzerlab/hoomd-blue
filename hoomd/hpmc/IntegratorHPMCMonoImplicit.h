@@ -10,11 +10,6 @@
 #include <random>
 #include <cfloat>
 
-#ifdef ENABLE_TBB
-#include <tbb/tbb.h>
-#include <thread>
-#endif
-
 /*! \file IntegratorHPMCMonoImplicit.h
     \brief Defines the template class for HPMC with implicit generated depletant solvent
     \note This header cannot be compiled by nvcc
@@ -25,6 +20,11 @@
 #endif
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
+#ifdef ENABLE_TBB
+#include <tbb/tbb.h>
+#include <thread>
+#endif
 
 namespace hpmc
 {
@@ -112,12 +112,15 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
             this->m_exec_conf->msg->notice(2) << "-- Implicit depletants stats:" << "\n";
             this->m_exec_conf->msg->notice(2) << "Depletant insertions per second:          "
                 << double(result.insert_count)/cur_time << "\n";
-            this->m_exec_conf->msg->notice(2) << "Configurational bias attempts per second: "
-                << double(result.reinsert_count)/cur_time << "\n";
-            this->m_exec_conf->msg->notice(2) << "Fraction of depletants in free volume:    "
-                << result.getFreeVolumeFraction() << "\n";
-            this->m_exec_conf->msg->notice(2) << "Fraction of overlapping depletants:       "
-                << result.getOverlapFraction()<< "\n";
+            if (m_method == circumsphere)
+                {
+                this->m_exec_conf->msg->notice(2) << "Configurational bias attempts per second: "
+                    << double(result.reinsert_count)/cur_time << "\n";
+                this->m_exec_conf->msg->notice(2) << "Fraction of depletants in free volume:    "
+                    << result.getFreeVolumeFraction() << "\n";
+                this->m_exec_conf->msg->notice(2) << "Fraction of overlapping depletants:       "
+                    << result.getOverlapFraction()<< "\n";
+                }
             }
 
         //! Get the current counter values
@@ -132,12 +135,15 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
 
             // then add ours
             result.push_back("hpmc_fugacity");
-            result.push_back("hpmc_ntrial");
             result.push_back("hpmc_insert_count");
-            result.push_back("hpmc_reinsert_count");
-            result.push_back("hpmc_free_volume_fraction");
-            result.push_back("hpmc_overlap_fraction");
-            result.push_back("hpmc_configurational_bias_ratio");
+            if (m_method == circumsphere)
+                {
+                result.push_back("hpmc_ntrial");
+                result.push_back("hpmc_reinsert_count");
+                result.push_back("hpmc_free_volume_fraction");
+                result.push_back("hpmc_overlap_fraction");
+                result.push_back("hpmc_configurational_bias_ratio");
+                }
 
             return result;
             }
@@ -159,17 +165,21 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         hpmc_implicit_counters_t m_implicit_count_run_start;     //!< Counter of active cell cluster moves at run start
         hpmc_implicit_counters_t m_implicit_count_step_start;    //!< Counter of active cell cluster moves at run start
 
-        std::vector<std::poisson_distribution<unsigned int> > m_poisson;   //!< Poisson distribution
         std::vector<Scalar> m_lambda;                            //!< Poisson distribution parameters per type
         Scalar m_d_dep;                                          //!< Depletant circumsphere diameter
         GPUArray<Scalar> m_d_min;                                //!< Minimum sphere from which test depletant is excluded
         GPUArray<Scalar> m_d_max;                                //!< Maximum sphere for test depletant insertion
 
-        std::vector<hoomd::detail::Saru> m_rng_depletant;                       //!< RNGs for depletant insertion
-        bool m_rng_initialized;                                  //!< True if RNGs have been initialized
         unsigned int m_n_trial;                                 //!< Number of trial re-insertions per depletant
 
         bool m_need_initialize_poisson;                             //!< Flag to tell if we need to initialize the poisson distribution
+
+        unsigned int m_method;                                   //!< Whether to use the "overlap_regions" or "circumsphere" integrator
+        enum integrator_types                                    //!< Whether to use the "overlap_regions" or "circumsphere" integrator
+            {
+            circumsphere,
+            overlap_regions = 0,
+            };
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
@@ -184,9 +194,6 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
 
         //! Initalize Poisson distribution parameters
         virtual void updatePoissonParameters();
-
-        //! Initialize the Poisson distributions
-        virtual void initializePoissonDistribution();
 
         //! Set the nominal width appropriate for depletion interaction
         virtual void updateCellWidth();
@@ -221,8 +228,8 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
 template< class Shape >
 IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<SystemDefinition> sysdef,
                                                                    unsigned int seed)
-    : IntegratorHPMCMono<Shape>(sysdef, seed), m_n_R(0), m_type(0), m_d_dep(0.0), m_rng_initialized(false), m_n_trial(0),
-      m_need_initialize_poisson(true)
+    : IntegratorHPMCMono<Shape>(sysdef, seed), m_n_R(0), m_type(0), m_d_dep(0.0), m_n_trial(0),
+      m_need_initialize_poisson(true), m_method(circumsphere)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCImplicit" << std::endl;
 
@@ -297,25 +304,6 @@ void IntegratorHPMCMonoImplicit< Shape >::updatePoissonParameters()
         }
     }
 
-template<class Shape>
-void IntegratorHPMCMonoImplicit< Shape >::initializePoissonDistribution()
-    {
-    m_poisson.resize(this->m_pdata->getNTypes());
-
-    for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
-        {
-        // parameter for Poisson distribution
-        Scalar lambda = m_lambda[i_type];
-        if (lambda <= Scalar(0.0))
-            {
-            // guard against invalid parameters
-            continue;
-            }
-        m_poisson[i_type] = std::poisson_distribution<unsigned int>(lambda);
-        }
-    }
-
-
 template< class Shape >
 void IntegratorHPMCMonoImplicit< Shape >::updateCellWidth()
     {
@@ -343,6 +331,8 @@ void IntegratorHPMCMonoImplicit< Shape >::updateCellWidth()
 
         this->m_nominal_width = std::max(this->m_nominal_width, this->m_patch->getRCut() + max_extent);
         }
+    this->m_image_list_valid = false;
+    this->m_aabb_tree_invalid = true;
 
     this->m_exec_conf->msg->notice(5) << "IntegratorHPMCMonoImplicit: updating nominal width to " << this->m_nominal_width << std::endl;
     }
@@ -357,20 +347,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
     if (m_need_initialize_poisson)
         {
         updatePoissonParameters();
-        initializePoissonDistribution();
         m_need_initialize_poisson = false;
-        }
-
-    if (!m_rng_initialized)
-        {
-        unsigned int n_omp_threads = 1;
-
-        // initialize a set of random number generators
-        for (unsigned int i = 0; i < n_omp_threads; ++i)
-            {
-            m_rng_depletant.push_back(hoomd::detail::Saru(timestep,this->m_seed+this->m_exec_conf->getRank(), i));
-            }
-        m_rng_initialized = true;
         }
 
     // get needed vars
@@ -496,6 +473,13 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
 
             if (move_type_translate)
                 {
+                // skip if no overlap check is required
+                if (h_d.data[typ_i] == 0.0)
+                    {
+                    counters.translate_accept_count++;
+                    continue;
+                    }
+
                 move_translate(pos_i, rng_i, h_d.data[typ_i], ndim);
 
                 #ifdef ENABLE_MPI
@@ -509,6 +493,12 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 }
             else
                 {
+                if (h_a.data[typ_i] == 0.0)
+                    {
+                    counters.rotate_accept_count++;
+                    continue;
+                    }
+
                 move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
                 }
 
@@ -855,7 +845,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletant(unsigned int i, ve
     unsigned int n = 0;
     if (m_lambda[typ_i] > Scalar(0.0))
         {
-        n = m_poisson[typ_i](rng_poisson);
+        std::poisson_distribution<unsigned int> poisson(m_lambda[typ_i]);
+        n = poisson(rng_poisson);
         }
 
     #ifdef ENABLE_TBB
@@ -1534,7 +1525,10 @@ Scalar IntegratorHPMCMonoImplicit<Shape>::getLogValue(const std::string& quantit
         {
         return (Scalar) m_n_R;
         }
-    if (quantity == "hpmc_ntrial")
+
+
+    // n_trial is only valid when mode=circumsphere
+    if (quantity == "hpmc_ntrial" && m_method == circumsphere)
         {
         return (Scalar) m_n_trial;
         }
@@ -1550,28 +1544,32 @@ Scalar IntegratorHPMCMonoImplicit<Shape>::getLogValue(const std::string& quantit
         else
             return Scalar(0.0);
         }
-    if (quantity == "hpmc_reinsert_count")
+    // These quantities are not logged when mode=overlap_regions
+    if (m_method == circumsphere)
         {
-        // return number of overlapping depletants reinserted per colloid
-        if (counters.getNMoves() > 0)
-            return (Scalar)implicit_counters.reinsert_count/(Scalar)counters.getNMoves();
-        else
-            return Scalar(0.0);
-        }
-    if (quantity == "hpmc_free_volume_fraction")
-        {
-        // return fraction of free volume in depletant insertion sphere
-        return (Scalar) implicit_counters.getFreeVolumeFraction();
-        }
-    if (quantity == "hpmc_overlap_fraction")
-        {
-        // return fraction of overlapping depletants after trial move
-        return (Scalar) implicit_counters.getOverlapFraction();
-        }
-    if (quantity == "hpmc_configurational_bias_ratio")
-        {
-        // return fraction of overlapping depletants after trial move
-        return (Scalar) implicit_counters.getConfigurationalBiasRatio();
+        if (quantity == "hpmc_reinsert_count")
+            {
+            // return number of overlapping depletants reinserted per colloid
+            if (counters.getNMoves() > 0)
+                return (Scalar)implicit_counters.reinsert_count/(Scalar)counters.getNMoves();
+            else
+                return Scalar(0.0);
+            }
+        if (quantity == "hpmc_free_volume_fraction")
+            {
+            // return fraction of free volume in depletant insertion sphere
+            return (Scalar) implicit_counters.getFreeVolumeFraction();
+            }
+        if (quantity == "hpmc_overlap_fraction")
+            {
+            // return fraction of overlapping depletants after trial move
+            return (Scalar) implicit_counters.getOverlapFraction();
+            }
+        if (quantity == "hpmc_configurational_bias_ratio")
+            {
+            // return fraction of overlapping depletants after trial move
+            return (Scalar) implicit_counters.getConfigurationalBiasRatio();
+            }
         }
 
 
@@ -1604,9 +1602,12 @@ hpmc_implicit_counters_t IntegratorHPMCMonoImplicit<Shape>::getImplicitCounters(
         {
         // MPI Reduction to total result values on all ranks
         MPI_Allreduce(MPI_IN_PLACE, &result.insert_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.free_volume_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.overlap_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.reinsert_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+        if (m_method == circumsphere)
+            {
+            MPI_Allreduce(MPI_IN_PLACE, &result.free_volume_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &result.overlap_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &result.reinsert_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+            }
         }
     #endif
 

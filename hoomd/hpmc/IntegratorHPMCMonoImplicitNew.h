@@ -134,11 +134,19 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         hpmc_implicit_counters_t m_implicit_count_run_start;     //!< Counter of active cell cluster moves at run start
         hpmc_implicit_counters_t m_implicit_count_step_start;    //!< Counter of active cell cluster moves at run start
 
+        std::vector<Scalar> m_lambda;                            //!< Poisson distribution parameters per type
         Scalar m_d_dep;                                          //!< Depletant circumsphere diameter
         GPUArray<Scalar> m_d_min;                                //!< Minimum sphere from which test depletant is excluded
         GPUArray<Scalar> m_d_max;                                //!< Maximum sphere for test depletant insertion
 
         bool m_need_initialize_poisson;                             //!< Flag to tell if we need to initialize the poisson distribution
+
+        unsigned int m_method;                                   //!< Whether to use the "overlap_regions" or "circumsphere" integrator
+        enum integrator_types                                    //!< Whether to use the "overlap_regions" or "circumsphere" integrator
+            {
+            circumsphere,
+            overlap_regions = 0,
+            };
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
@@ -172,7 +180,8 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
 template< class Shape >
 IntegratorHPMCMonoImplicitNew< Shape >::IntegratorHPMCMonoImplicitNew(std::shared_ptr<SystemDefinition> sysdef,
                                                                    unsigned int seed)
-    : IntegratorHPMCMono<Shape>(sysdef, seed), m_n_R(0), m_type(0), m_d_dep(0.0), m_need_initialize_poisson(true)
+    : IntegratorHPMCMono<Shape>(sysdef, seed), m_n_R(0), m_type(0), m_d_dep(0.0), m_need_initialize_poisson(true),
+    m_method(overlap_regions)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCImplicit" << std::endl;
 
@@ -184,6 +193,8 @@ IntegratorHPMCMonoImplicitNew< Shape >::IntegratorHPMCMonoImplicitNew(std::share
 
     GPUArray<Scalar> d_max(this->m_pdata->getNTypes(), this->m_exec_conf);
     m_d_max.swap(d_max);
+
+    m_lambda.resize(this->m_pdata->getNTypes(),FLT_MAX);
     }
 
 //! Destructor
@@ -197,6 +208,8 @@ void IntegratorHPMCMonoImplicitNew<Shape>::slotNumTypesChange()
     {
     // call parent class method
     IntegratorHPMCMono<Shape>::slotNumTypesChange();
+
+    m_lambda.resize(this->m_pdata->getNTypes(),FLT_MAX);
 
     GPUArray<Scalar> d_min(this->m_pdata->getNTypes(), this->m_exec_conf);
     m_d_min.swap(d_min);
@@ -237,6 +250,9 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updatePoissonParameters()
 
         // subtract inner sphere from sampling volume
         V -= Scalar(M_PI/6.0)*d*d*d;
+
+        // average number of depletants in volume
+        m_lambda[i_type] = this->m_n_R*V;
         }
     }
 
