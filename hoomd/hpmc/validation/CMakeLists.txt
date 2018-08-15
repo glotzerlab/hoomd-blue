@@ -49,9 +49,9 @@ endmacro()
 
 # format: test_script user_min user_max
 set(TEST_LIST_CPU
-spheres_implicit.py 0
-sphere_eos.py 0
-disk_eos.py 0
+spheres_implicit.py 0 1
+sphere_eos.py 0 0
+disk_eos.py 0 0
 )
 
 if(BUILD_JIT)
@@ -62,7 +62,7 @@ set(TEST_LIST_CPU ${TEST_LIST_CPU}
 endif(BUILD_JIT)
 
 set(TEST_LIST_GPU
-    #spheres_implicit.py 0 1
+spheres_implicit.py 0 1
 sphere_eos.py 0 0
 disk_eos.py 0 0
 )
@@ -73,7 +73,6 @@ set(EXCLUDE_FROM_GPU_MPI
 )
 
 set(EXCLUDE_FROM_MPI
-    spheres_implicit.py
     lj_spheres.py
 )
 
