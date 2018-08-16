@@ -9,6 +9,9 @@
 #include "hoomd/extern/util/mgpucontext.h"
 #include "hoomd/extern/kernels/localitysort.cuh"
 
+#include <thrust/device_vector.h>
+#include <thrust/sort.h>
+
 /*! \file CellListGPU.cu
     \brief Defines GPU kernel code for cell list generation on the GPU
 */
@@ -391,7 +394,7 @@ __global__ void gpu_fill_indices_kernel(
 //! Lexicographic comparison operator on uint2
 struct comp_less_uint2
     {
-    __device__ bool operator()(const uint2 a, const uint2 b)
+    __device__ bool operator()(const uint2& a, const uint2& b)
         {
         return a.x < b.x || (a.x == b.x && a.y < b.y);
         }
@@ -446,8 +449,7 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
                         uint2 *d_sort_idx,
                         unsigned int *d_sort_permutation,
                         const Index3D ci,
-                        const Index2D cli,
-                        mgpu::ContextPtr mgpu_context)
+                        const Index2D cli)
     {
     unsigned int block_size = 256;
 
@@ -466,7 +468,9 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
         cli);
 
     // locality sort on those pairs
-    mgpu::LocalitySortPairs(d_sort_idx, d_sort_permutation, cli.getNumElements(), *mgpu_context, comp_less_uint2());
+    thrust::device_ptr<uint2> d_sort_idx_thrust(d_sort_idx);
+    thrust::device_ptr<unsigned int> d_sort_permutation_thrust(d_sort_permutation);
+    thrust::sort_by_key(d_sort_idx_thrust, d_sort_idx_thrust + cli.getNumElements(), d_sort_permutation_thrust, comp_less_uint2());
 
     // apply sorted order
     gpu_apply_sorted_cell_list_order<<<grid, threads>>>(

@@ -52,6 +52,5 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
                         uint2 *d_sort_idx,
                         unsigned int *d_sort_permutation,
                         const Index3D ci,
-                        const Index2D cli,
-                        mgpu::ContextPtr mgpu_context);
+                        const Index2D cli);
 #endif
