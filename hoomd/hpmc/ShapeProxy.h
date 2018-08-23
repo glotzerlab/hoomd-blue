@@ -303,6 +303,35 @@ poly3d_verts make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, b
     // set the diameter
     result.diameter = 2*(sqrt(radius_sq) + sweep_radius);
 
+    if (len(verts) >= 3)
+        {
+        // compute convex hull of vertices
+        typedef quickhull::Vector3<OverlapReal> vec;
+
+        std::vector<vec> qh_pts;
+        for (unsigned int i = 0; i < len(verts); i++)
+            {
+            pybind11::list v = pybind11::cast<pybind11::list>(verts[i]);
+            vec vert;
+            vert.x = pybind11::cast<OverlapReal>(v[0]);
+            vert.y = pybind11::cast<OverlapReal>(v[1]);
+            vert.z = pybind11::cast<OverlapReal>(v[2]);
+            qh_pts.push_back(vert);
+            }
+
+        quickhull::QuickHull<OverlapReal> qh;
+        // argument 2: CCW orientation of triangles viewed from outside
+        // argument 3: use existing vertex list
+        auto hull = qh.getConvexHull(qh_pts, false, true);
+        auto indexBuffer = hull.getIndexBuffer();
+
+        result.hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), exec_conf->isCUDAEnabled());
+        result.n_hull_verts = indexBuffer.size();
+
+        for (unsigned int i = 0; i < indexBuffer.size(); i++)
+             result.hull_verts[i] = indexBuffer[i];
+        }
+
     return result;
     }
 

@@ -222,6 +222,18 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const
     return true;
     }
 
+//! Get the closest point on the shape to a given point p
+/*! \param shape the shape
+    \param p the point which we want to project onto the shape
+    \returns the closest point on the shape (in a given orientation)
+*/
+template <class Shape>
+DEVICE inline vec3<OverlapReal> closest_pt_on_shape(const Shape& shape, const vec3<OverlapReal>& p)
+    {
+    // default implementation returns the origin, will make it obvious if something calls this
+    return vec3<OverlapReal>(0,0,0);
+    }
+
 //! Sphere-Sphere overlap
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
@@ -247,6 +259,21 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
         return false;
         }
     }
+
+//! Get the closest point on the shape to a given point p
+/*! \param shape the shape
+    \param p the point which we want to project onto the shape
+    \returns the closest point on the shape (in a given orientation)
+*/
+template <>
+DEVICE inline vec3<OverlapReal> closest_pt_on_shape(const ShapeSphere& shape, const vec3<OverlapReal>& p)
+    {
+    if (dot(p,p) <= shape.params.radius*shape.params.radius)
+        return p;
+    else
+        return (shape.params.radius * fast::rsqrt(dot(p,p))) * p;
+    }
+
 
 }; // end namespace hpmc
 

@@ -4,6 +4,8 @@
 #include "hoomd/hpmc/Moves.h"
 #include "hoomd/hpmc/ShapeConvexPolyhedron.h"
 
+#include "hoomd/extern/quickhull/QuickHull.hpp"
+
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN();
@@ -48,6 +50,31 @@ poly3d_verts setup_verts(const vector< vec3<OverlapReal> > vlist)
     // set the diameter
     result.diameter = 2*sqrt(radius_sq);
 
+    if (vlist.size() >= 3)
+        {
+        // compute convex hull of vertices
+        typedef quickhull::Vector3<OverlapReal> vec;
+
+        std::vector<vec> qh_pts;
+        for (unsigned int i = 0; i < vlist.size(); i++)
+            {
+            vec vert;
+            vert.x = vlist[i].x;
+            vert.y = vlist[i].y;
+            vert.z = vlist[i].z;
+            qh_pts.push_back(vert);
+            }
+
+        quickhull::QuickHull<OverlapReal> qh;
+        auto hull = qh.getConvexHull(qh_pts, false, true);
+        auto indexBuffer = hull.getIndexBuffer();
+
+        result.hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), false);
+        result.n_hull_verts = indexBuffer.size();
+
+        for (unsigned int i = 0; i < indexBuffer.size(); i++)
+             result.hull_verts[i] = indexBuffer[i];
+        }
     return result;
     }
 
@@ -86,7 +113,6 @@ UP_TEST( support )
     {
     // Find the support of a tetrahedron
     quat<Scalar> o;
-    BoxDim box(100);
 
     vector< vec3<OverlapReal> > vlist;
     vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
@@ -118,7 +144,6 @@ UP_TEST( composite_support )
     {
     // Find the support of the Minkowski difference of two offset cubes
     quat<Scalar> o;
-    BoxDim box(100);
 
     vector< vec3<OverlapReal> > vlist;
     vlist.push_back(vec3<Scalar>(-0.5, -0.5, -0.5));
@@ -158,7 +183,6 @@ UP_TEST( overlap_octahedron_no_rot )
     // first set of simple overlap checks is two octahedra at unit orientation
     vec3<Scalar> r_ij;
     quat<Scalar> o;
-    BoxDim box(100);
 
     // build a square
     vector< vec3<OverlapReal> > vlist;
@@ -245,7 +269,6 @@ UP_TEST( overlap_cube_no_rot )
     // first set of simple overlap checks is two squares at unit orientation
     vec3<Scalar> r_ij;
     quat<Scalar> o;
-    BoxDim box(100);
 
     // build a square
     vector< vec3<OverlapReal> > vlist;
@@ -350,8 +373,6 @@ UP_TEST( overlap_cube_rot1 )
     Scalar alpha = M_PI/4.0;
     quat<Scalar> o_b(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternion
 
-    BoxDim box(100);
-
     // build a square
     vector< vec3<OverlapReal> > vlist;
     vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,-0.5));
@@ -431,8 +452,6 @@ UP_TEST( overlap_cube_rot2 )
     quat<Scalar> o_a;
     Scalar alpha = M_PI/4.0;
     quat<Scalar> o_b(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternion
-
-    BoxDim box(100);
 
     // build a cube
     vector< vec3<OverlapReal> > vlist;
@@ -516,8 +535,6 @@ UP_TEST( overlap_cube_rot3 )
     const quat<Scalar> q1(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(1,0,0));
     const quat<Scalar> q2(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1));
     quat<Scalar> o_b(q2 * q1);
-
-    BoxDim box(100);
 
     // build a cube
     vector< vec3<OverlapReal> > vlist;
@@ -619,4 +636,94 @@ UP_TEST( overlap_cube_rot3 )
     UP_ASSERT(test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
+    }
+
+UP_TEST( closest_pt_cube_no_rot )
+    {
+    vec3<Scalar> r_ij;
+    quat<Scalar> o;
+
+    // build a cube
+    vector< vec3<OverlapReal> > vlist;
+    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
+    poly3d_verts verts = setup_verts(vlist);
+
+    ShapeConvexPolyhedron a(o, verts);
+
+    // a point inside
+    vec3<OverlapReal> p = closest_pt_on_shape(a,vec3<OverlapReal>(0,0,0));
+    MY_CHECK_CLOSE(p.x,0,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
+
+    // a point out on the x axis
+    p = closest_pt_on_shape(a,vec3<OverlapReal>(1,0,0));
+    MY_CHECK_CLOSE(p.x,0.5,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
+
+    // a point out on the y axis
+    p = closest_pt_on_shape(a,vec3<OverlapReal>(0,2,0));
+    MY_CHECK_CLOSE(p.x,0,tol);
+    MY_CHECK_CLOSE(p.y,0.5,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
+
+    // a point out on the z axis
+    p = closest_pt_on_shape(a,vec3<OverlapReal>(0,0,3));
+    MY_CHECK_CLOSE(p.x,0,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0.5,tol);
+
+    // a point nearest to the +yz face
+    p = closest_pt_on_shape(a,vec3<OverlapReal>(1,.25,.25));
+    MY_CHECK_CLOSE(p.x,0.5,tol);
+    MY_CHECK_CLOSE(p.y,0.25,tol);
+    MY_CHECK_CLOSE(p.z,0.25,tol);
+
+    // a point nearest to a corner
+    p = closest_pt_on_shape(a,vec3<OverlapReal>(1,1,1));
+    MY_CHECK_CLOSE(p.x,0.5,tol);
+    MY_CHECK_CLOSE(p.y,0.5,tol);
+    MY_CHECK_CLOSE(p.z,0.5,tol);
+    }
+
+UP_TEST( closest_pt_cube_rot )
+    {
+    vec3<Scalar> r_ij;
+
+    Scalar alpha = M_PI/4.0;
+    quat<Scalar> o(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternion
+
+    // build a cube
+    vector< vec3<OverlapReal> > vlist;
+    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
+    poly3d_verts verts = setup_verts(vlist);
+
+    ShapeConvexPolyhedron a(o, verts);
+
+    // a point inside
+    vec3<OverlapReal> p = closest_pt_on_shape(a,vec3<OverlapReal>(0,0,0));
+    MY_CHECK_CLOSE(p.x,0,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
+
+    // a point on the edge
+    p = closest_pt_on_shape(a,vec3<OverlapReal>(1,0,0));
+    MY_CHECK_CLOSE(p.x,1/sqrt(2),tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
     }

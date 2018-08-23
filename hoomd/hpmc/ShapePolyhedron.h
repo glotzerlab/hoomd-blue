@@ -200,61 +200,6 @@ DEVICE inline OverlapReal det_4x4(vec3<OverlapReal> a, vec3<OverlapReal> b, vec3
     return dot(cross(c,d),b-a)+dot(cross(a,b),d-c);
     }
 
-// From Real Time Collision Detection (Christer Ericson)
-DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& p,
-     const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c)
-    {
-    vec3<OverlapReal> ab = b - a;
-    vec3<OverlapReal> ac = c - a;
-    vec3<OverlapReal> ap = p - a;
-
-    OverlapReal d1 = dot(ab, ap);
-    OverlapReal d2 = dot(ac, ap);
-    if (d1 <= OverlapReal(0.0) && d2 <= OverlapReal(0.0)) return a; // barycentric coordiantes (1,0,0)
-
-    // Check if P in vertex region outside B
-    vec3<OverlapReal> bp = p - b;
-    OverlapReal d3 = dot(ab, bp);
-    OverlapReal d4 = dot(ac, bp);
-    if (d3 >= OverlapReal(0.0) && d4 <= d3) return b; // barycentric coordinates (0,1,0)
-
-    // Check if P in edge region of AB, if so return projection of P onto AB
-    OverlapReal vc = d1*d4 - d3*d2;
-    if (vc <= OverlapReal(0.0) && d1 >= OverlapReal(0.0) && d3 <= OverlapReal(0.0))
-        {
-        OverlapReal v = d1 / (d1 - d3);
-        return a + v * ab; // barycentric coordinates (1-v,v,0)
-        }
-
-    // Check if P in vertex region outside C
-    vec3<OverlapReal> cp = p - c;
-    OverlapReal d5 = dot(ab, cp);
-    OverlapReal d6 = dot(ac, cp);
-    if (d6 >= OverlapReal(0.0) && d5 <= d6) return c; // barycentric coordinates (0,0,1)
-
-    // Check if P in edge region of AC, if so return projection of P onto AC
-    OverlapReal vb = d5*d2 - d1*d6;
-    if (vb <= OverlapReal(0.0) && d2 >= OverlapReal(0.0) && d6 <= OverlapReal(0.0))
-        {
-        OverlapReal w = d2 / (d2 - d6);
-        return a + w * ac; // barycentric coordinates (1-w,0,w)
-        }
-    // Check if P in edge region of BC, if so return projection of P onto BC
-    OverlapReal va = d3*d6 - d5*d4;
-    if (va <= OverlapReal(0.0) && (d4 - d3) >= OverlapReal(0.0) && (d5 - d6) >= OverlapReal(0.0))
-        {
-        OverlapReal w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-        return b + w * (c - b); // barycentric coordinates (0,1-w,w)
-        }
-
-    // P inside face region. Compute Q through its barycentric coordinates (u,v,w)
-    OverlapReal denom = OverlapReal(1.0) / (va + vb + vc);
-    OverlapReal v = vb * denom;
-    OverlapReal w = vc * denom;
-    return a + ab*v+ac * w; // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
-    }
-
-
 // Clamp n to lie within the range [min, max]
 DEVICE inline OverlapReal clamp(OverlapReal n, OverlapReal min, OverlapReal max) {
     if (n < min) return min;
@@ -492,32 +437,32 @@ DEVICE inline OverlapReal shortest_distance_triangles(
     // six vertex-triangle distances
     vec3<OverlapReal> p;
 
-    p = closestPointToTriangle(a1, a2, b2, c2);
+    p = closestPointOnTriangle(a1, a2, b2, c2);
     dsq = dot(p-a1,p-a1);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointToTriangle(b1, a2, b2, c2);
+    p = closestPointOnTriangle(b1, a2, b2, c2);
     dsq = dot(p-b1,p-b1);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointToTriangle(c1, a2, b2, c2);
+    p = closestPointOnTriangle(c1, a2, b2, c2);
     dsq = dot(p-c1,p-c1);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointToTriangle(a2, a1, b1, c1);
+    p = closestPointOnTriangle(a2, a1, b1, c1);
     dsq = dot(p-a2,p-a2);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointToTriangle(b2, a1, b1, c1);
+    p = closestPointOnTriangle(b2, a1, b1, c1);
     dsq = dot(p-b2,p-b2);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointToTriangle(c2, a1, b1, c1);
+    p = closestPointOnTriangle(c2, a1, b1, c1);
     dsq = dot(p-c2,p-c2);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
@@ -635,7 +580,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                     {
                     // optimization, test vertex against triangle b
                     vec3<OverlapReal> p;
-                    p = closestPointToTriangle(a0, b0, b1, b2);
+                    p = closestPointOnTriangle(a0, b0, b1, b2);
                     dsqmin = dot(p-a0,p-a0);
                     }
 
@@ -658,7 +603,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                     {
                     // optimization, test vertex against triangle a
                     vec3<OverlapReal> p;
-                    p = closestPointToTriangle(b0, a0, a1, a2);
+                    p = closestPointOnTriangle(b0, a0, a1, a2);
                     dsqmin = dot(p-b0,p-b0);
                     }
 

@@ -217,6 +217,31 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     */
     }
 
+//! Get the closest point on the shape to a given point p
+/*! \param shape the shape
+    \param p the point which we want to project onto the shape
+    \returns the closest point on the shape (in a given orientation)
+*/
+template <>
+DEVICE inline vec3<OverlapReal> closest_pt_on_shape(const ShapeSpheropolyhedron& shape, const vec3<OverlapReal>& p)
+    {
+    // find the closest point on the convex hull
+    quat<OverlapReal> q(shape.orientation);
+    vec3<OverlapReal> closest_pt = rotate(q,closestPointConvexHull(shape.verts, rotate(conj(q),p)));
+
+    vec3<OverlapReal> del = p - closest_pt;
+    OverlapReal dsq = dot(del,del);
+    if (dsq <= shape.verts.sweep_radius*shape.verts.sweep_radius)
+        return p;
+    else
+        {
+        // add the sphere radius in direction of closest approach
+        vec3<OverlapReal> max_sphere = (shape.verts.sweep_radius * fast::rsqrt(dot(del,del))) * del;
+
+        return closest_pt + max_sphere;
+        }
+    }
+
 }; // end namespace hpmc
 
 #endif //__SHAPE_SPHEROPOLYHEDRON_H__
