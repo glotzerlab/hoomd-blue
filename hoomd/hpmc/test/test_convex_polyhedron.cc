@@ -658,72 +658,40 @@ UP_TEST( closest_pt_cube_no_rot )
     ShapeConvexPolyhedron a(o, verts);
 
     // a point inside
-    vec3<OverlapReal> p = closest_pt_on_shape(a,vec3<OverlapReal>(0,0,0));
+    ProjectionFuncConvexPolyhedron P(a.verts);
+
+    vec3<OverlapReal> p = P(vec3<OverlapReal>(0,0,0));
     MY_CHECK_CLOSE(p.x,0,tol);
     MY_CHECK_CLOSE(p.y,0,tol);
     MY_CHECK_CLOSE(p.z,0,tol);
 
     // a point out on the x axis
-    p = closest_pt_on_shape(a,vec3<OverlapReal>(1,0,0));
+    p = P(vec3<OverlapReal>(1,0,0));
     MY_CHECK_CLOSE(p.x,0.5,tol);
     MY_CHECK_CLOSE(p.y,0,tol);
     MY_CHECK_CLOSE(p.z,0,tol);
 
     // a point out on the y axis
-    p = closest_pt_on_shape(a,vec3<OverlapReal>(0,2,0));
+    p = P(vec3<OverlapReal>(0,2,0));
     MY_CHECK_CLOSE(p.x,0,tol);
     MY_CHECK_CLOSE(p.y,0.5,tol);
     MY_CHECK_CLOSE(p.z,0,tol);
 
     // a point out on the z axis
-    p = closest_pt_on_shape(a,vec3<OverlapReal>(0,0,3));
+    p = P(vec3<OverlapReal>(0,0,3));
     MY_CHECK_CLOSE(p.x,0,tol);
     MY_CHECK_CLOSE(p.y,0,tol);
     MY_CHECK_CLOSE(p.z,0.5,tol);
 
     // a point nearest to the +yz face
-    p = closest_pt_on_shape(a,vec3<OverlapReal>(1,.25,.25));
+    p = P(vec3<OverlapReal>(1,.25,.25));
     MY_CHECK_CLOSE(p.x,0.5,tol);
     MY_CHECK_CLOSE(p.y,0.25,tol);
     MY_CHECK_CLOSE(p.z,0.25,tol);
 
     // a point nearest to a corner
-    p = closest_pt_on_shape(a,vec3<OverlapReal>(1,1,1));
+    p = P(vec3<OverlapReal>(1,1,1));
     MY_CHECK_CLOSE(p.x,0.5,tol);
     MY_CHECK_CLOSE(p.y,0.5,tol);
     MY_CHECK_CLOSE(p.z,0.5,tol);
-    }
-
-UP_TEST( closest_pt_cube_rot )
-    {
-    vec3<Scalar> r_ij;
-
-    Scalar alpha = M_PI/4.0;
-    quat<Scalar> o(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternion
-
-    // build a cube
-    vector< vec3<OverlapReal> > vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,-0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,-0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5,0.5,-0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,-0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist);
-
-    ShapeConvexPolyhedron a(o, verts);
-
-    // a point inside
-    vec3<OverlapReal> p = closest_pt_on_shape(a,vec3<OverlapReal>(0,0,0));
-    MY_CHECK_CLOSE(p.x,0,tol);
-    MY_CHECK_CLOSE(p.y,0,tol);
-    MY_CHECK_CLOSE(p.z,0,tol);
-
-    // a point on the edge
-    p = closest_pt_on_shape(a,vec3<OverlapReal>(1,0,0));
-    MY_CHECK_CLOSE(p.x,1/sqrt(2),tol);
-    MY_CHECK_CLOSE(p.y,0,tol);
-    MY_CHECK_CLOSE(p.z,0,tol);
     }

@@ -437,32 +437,32 @@ DEVICE inline OverlapReal shortest_distance_triangles(
     // six vertex-triangle distances
     vec3<OverlapReal> p;
 
-    p = closestPointOnTriangle(a1, a2, b2, c2);
+    p = detail::closestPointOnTriangle(a1, a2, b2, c2);
     dsq = dot(p-a1,p-a1);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointOnTriangle(b1, a2, b2, c2);
+    p = detail::closestPointOnTriangle(b1, a2, b2, c2);
     dsq = dot(p-b1,p-b1);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointOnTriangle(c1, a2, b2, c2);
+    p = detail::closestPointOnTriangle(c1, a2, b2, c2);
     dsq = dot(p-c1,p-c1);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointOnTriangle(a2, a1, b1, c1);
+    p = detail::closestPointOnTriangle(a2, a1, b1, c1);
     dsq = dot(p-a2,p-a2);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointOnTriangle(b2, a1, b1, c1);
+    p = detail::closestPointOnTriangle(b2, a1, b1, c1);
     dsq = dot(p-b2,p-b2);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointOnTriangle(c2, a1, b1, c1);
+    p = detail::closestPointOnTriangle(c2, a1, b1, c1);
     dsq = dot(p-c2,p-c2);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
@@ -580,7 +580,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                     {
                     // optimization, test vertex against triangle b
                     vec3<OverlapReal> p;
-                    p = closestPointOnTriangle(a0, b0, b1, b2);
+                    p = detail::closestPointOnTriangle(a0, b0, b1, b2);
                     dsqmin = dot(p-a0,p-a0);
                     }
 
@@ -603,7 +603,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                     {
                     // optimization, test vertex against triangle a
                     vec3<OverlapReal> p;
-                    p = closestPointOnTriangle(b0, a0, a1, a2);
+                    p = detail::closestPointOnTriangle(b0, a0, a1, a2);
                     dsqmin = dot(p-b0,p-b0);
                     }
 

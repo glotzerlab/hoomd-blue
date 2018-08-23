@@ -69,6 +69,50 @@ class SupportFuncSpheropolyhedron
         const poly3d_verts& verts;        //!< Vertices of the polyhedron
     };
 
+//! Projection function for ShapeSpheropolyhedron
+/*! ProjectionFuncConvexPolyhedron is a functor that computes the projection function for ShapePolyhedron. For a given
+    input point in local coordinates, it finds the point on the sphere-swept shape closest to that point.
+
+    \ingroup minkowski
+*/
+class ProjectionFuncSpheropolyhedron
+    {
+    public:
+        //! Construct a support function for a convex spheropolyhedron
+        /*! \param _verts Polyhedron vertices and additional parameters
+        */
+        DEVICE ProjectionFuncSpheropolyhedron(const poly3d_verts& _verts)
+            : verts(_verts)
+            {
+            }
+
+        //! Compute the support function
+        /*! \param n Normal vector input (in the local frame)
+            \returns Local coords of the point furthest in the direction of n
+        */
+        DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& p) const
+            {
+            // get the projection function of the underlying convex polyhedron
+            vec3<OverlapReal> proj_poly3d = ProjectionFuncConvexPolyhedron(verts)(p);
+
+            vec3<OverlapReal> del = p - proj_poly3d;
+            OverlapReal dsq = dot(del,del);
+            if (dsq <= verts.sweep_radius*verts.sweep_radius)
+                return p;
+            else
+                {
+                // add the sphere radius in direction of closest approach
+                vec3<OverlapReal> max_sphere = (verts.sweep_radius * fast::rsqrt(dot(del,del))) * del;
+
+                return proj_poly3d + max_sphere;
+                }
+            }
+
+    private:
+        const poly3d_verts& verts;        //!< Vertices of the polyhedron
+    };
+
+
 }; // end namespace detail
 
 //! Convex (Sphero)Polyhedron shape template
@@ -206,6 +250,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                           conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
                           DaDb/2.0,
                           err);
+
     /*
     return gjke_3d(detail::SupportFuncSpheropolyhedron(a.verts),
                    detail::SupportFuncSpheropolyhedron(b.verts),
@@ -215,31 +260,16 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                           DaDb/2.0,
                           err);
     */
-    }
 
-//! Get the closest point on the shape to a given point p
-/*! \param shape the shape
-    \param p the point which we want to project onto the shape
-    \returns the closest point on the shape (in a given orientation)
-*/
-template <>
-DEVICE inline vec3<OverlapReal> closest_pt_on_shape(const ShapeSpheropolyhedron& shape, const vec3<OverlapReal>& p)
-    {
-    // find the closest point on the convex hull
-    quat<OverlapReal> q(shape.orientation);
-    vec3<OverlapReal> closest_pt = rotate(q,closestPointConvexHull(shape.verts, rotate(conj(q),p)));
-
-    vec3<OverlapReal> del = p - closest_pt;
-    OverlapReal dsq = dot(del,del);
-    if (dsq <= shape.verts.sweep_radius*shape.verts.sweep_radius)
-        return p;
-    else
-        {
-        // add the sphere radius in direction of closest approach
-        vec3<OverlapReal> max_sphere = (shape.verts.sweep_radius * fast::rsqrt(dot(del,del))) * del;
-
-        return closest_pt + max_sphere;
-        }
+    /*
+    return detail::map_two(a,b,
+        detail::SupportFuncSpheropolyhedron(a.verts),
+        detail::SupportFuncSpheropolyhedron(b.verts),
+        detail::ProjectionFuncSpheropolyhedron(a.verts),
+        detail::ProjectionFuncSpheropolyhedron(b.verts),
+        dr,
+        err);
+    */
     }
 
 }; // end namespace hpmc
