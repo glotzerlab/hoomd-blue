@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -34,6 +34,10 @@ __global__ void gpu_scatter_particle_data_kernel(
     const Scalar4 *d_orientation,
     const Scalar4 *d_angmom,
     const Scalar3 *d_inertia,
+    const Scalar4 *d_net_force,
+    const Scalar4 *d_net_torque,
+    const Scalar *d_net_virial,
+    unsigned int net_virial_pitch,
     const unsigned int *d_tag,
     unsigned int *d_rtag,
     Scalar4 *d_pos_alt,
@@ -46,6 +50,9 @@ __global__ void gpu_scatter_particle_data_kernel(
     Scalar4 *d_orientation_alt,
     Scalar4 *d_angmom_alt,
     Scalar3 *d_inertia_alt,
+    Scalar4 *d_net_force_alt,
+    Scalar4 *d_net_torque_alt,
+    Scalar *d_net_virial_alt,
     unsigned int *d_tag_alt,
     pdata_element *d_out,
     unsigned int *d_comm_flags,
@@ -74,6 +81,10 @@ __global__ void gpu_scatter_particle_data_kernel(
         p.orientation = d_orientation[idx];
         p.angmom = d_angmom[idx];
         p.inertia = d_inertia[idx];
+        p.net_force = d_net_force[idx];
+        p.net_torque = d_net_torque[idx];
+        for (unsigned int j = 0; j < 6; ++j)
+            p.net_virial[j] = d_net_virial[j*net_virial_pitch+idx];
         p.tag = d_tag[idx];
         d_out[scan_remove] = p;
         d_comm_flags_out[scan_remove] = d_comm_flags[idx];
@@ -96,6 +107,10 @@ __global__ void gpu_scatter_particle_data_kernel(
         d_orientation_alt[scan_keep] = d_orientation[idx];
         d_angmom_alt[scan_keep] = d_angmom[idx];
         d_inertia_alt[scan_keep] = d_inertia[idx];
+        d_net_force_alt[scan_keep] = d_net_force[idx];
+        d_net_torque_alt[scan_keep] = d_net_torque[idx];
+        for (unsigned int j = 0; j < 6; ++j)
+            d_net_virial_alt[j*net_virial_pitch+scan_keep] = d_net_virial[j*net_virial_pitch+idx];
         unsigned int tag = d_tag[idx];
         d_tag_alt[scan_keep] = tag;
 
@@ -127,6 +142,10 @@ __global__ void gpu_select_sent_particles(
     \param d_orientation Device array of particle orientations
     \param d_angmom Device array of particle angular momenta
     \param d_inertia Device array of particle moments of inertia
+    \param d_net_force Net force
+    \param d_net_torque Net torque
+    \param d_net_virial Net virial
+    \param net_virial_pitch Pitch of net virial array
     \param d_tag Device array of particle tags
     \param d_rtag Device array for reverse-lookup table
     \param d_pos_alt Device array of particle positions (output)
@@ -139,6 +158,9 @@ __global__ void gpu_select_sent_particles(
     \param d_orientation_alt Device array of particle orientations (output)
     \param d_angmom_alt Device array of particle angular momenta (output)
     \param d_inertia Device array of particle moments of inertia (output)
+    \param d_net_force Net force (output)
+    \param d_net_torque Net torque (output)
+    \param d_net_virial Net virial (output)
     \param d_out Output array for packed particle data
     \param max_n_out Maximum number of elements to write to output array
 
@@ -155,6 +177,10 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     const Scalar4 *d_orientation,
                     const Scalar4 *d_angmom,
                     const Scalar3 *d_inertia,
+                    const Scalar4 *d_net_force,
+                    const Scalar4 *d_net_torque,
+                    const Scalar *d_net_virial,
+                    unsigned int net_virial_pitch,
                     const unsigned int *d_tag,
                     unsigned int *d_rtag,
                     Scalar4 *d_pos_alt,
@@ -167,6 +193,9 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     Scalar4 *d_orientation_alt,
                     Scalar4 *d_angmom_alt,
                     Scalar3 *d_inertia_alt,
+                    Scalar4 *d_net_force_alt,
+                    Scalar4 *d_net_torque_alt,
+                    Scalar *d_net_virial_alt,
                     unsigned int *d_tag_alt,
                     pdata_element *d_out,
                     unsigned int *d_comm_flags,
@@ -211,6 +240,10 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             d_orientation,
             d_angmom,
             d_inertia,
+            d_net_force,
+            d_net_torque,
+            d_net_virial,
+            net_virial_pitch,
             d_tag,
             d_rtag,
             d_pos_alt,
@@ -223,6 +256,9 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             d_orientation_alt,
             d_angmom_alt,
             d_inertia_alt,
+            d_net_force_alt,
+            d_net_torque_alt,
+            d_net_virial_alt,
             d_tag_alt,
             d_out,
             d_comm_flags,
@@ -247,6 +283,10 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
                     Scalar4 *d_orientation,
                     Scalar4 *d_angmom,
                     Scalar3 *d_inertia,
+                    Scalar4 *d_net_force,
+                    Scalar4 *d_net_torque,
+                    Scalar *d_net_virial,
+                    unsigned int net_virial_pitch,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
                     const pdata_element *d_in,
@@ -269,6 +309,10 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
     d_orientation[add_idx] = p.orientation;
     d_angmom[add_idx] = p.angmom;
     d_inertia[add_idx] = p.inertia;
+    d_net_force[add_idx] = p.net_force;
+    d_net_torque[add_idx] = p.net_torque;
+    for (unsigned int j = 0; j < 6; ++j)
+        d_net_virial[j*net_virial_pitch+add_idx] = p.net_virial[j];
     d_tag[add_idx] = p.tag;
     d_rtag[p.tag] = add_idx;
     d_comm_flags[add_idx] = 0;
@@ -286,6 +330,9 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
     \param d_orientation Device array of particle orientations
     \param d_angmom Device array of particle angular momenta
     \param d_inertia Device array of particle moments of inertia
+    \param d_net_force Net force
+    \param d_net_torque Net torque
+    \param d_net_virial Net virial
     \param d_tag Device array of particle tags
     \param d_rtag Device array for reverse-lookup table
     \param d_in Device array of packed input particle data
@@ -303,6 +350,10 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     Scalar4 *d_orientation,
                     Scalar4 *d_angmom,
                     Scalar3 *d_inertia,
+                    Scalar4 *d_net_force,
+                    Scalar4 *d_net_torque,
+                    Scalar *d_net_virial,
+                    unsigned int net_virial_pitch,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
                     const pdata_element *d_in,
@@ -323,6 +374,10 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
         d_orientation,
         d_angmom,
         d_inertia,
+        d_net_force,
+        d_net_torque,
+        d_net_virial,
+        net_virial_pitch,
         d_tag,
         d_rtag,
         d_in,

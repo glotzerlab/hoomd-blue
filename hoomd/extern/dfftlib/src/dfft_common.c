@@ -139,20 +139,20 @@ int dfft_create_execution_flow(dfft_plan *plan)
 
             for (i = 0; i< plan->ndim; ++i)
                 {
-                int istride = plan->size_in/plan->inembed[i];
-                int ostride = 1;
-                int idist = 1;
-                int odist = plan->inembed[i];
-                int howmany = plan->size_in/plan->inembed[i];
-
                 /* if at this level, there is no planned FFT along the current
                  * dimension, just proceed  */
-                int dim;
                 if (plan->depth[i] > d)
                     {
+                    #ifdef ENABLE_CUDA
+                    int dim;
+                    int istride = plan->size_in/plan->inembed[i];
+                    int ostride = 1;
+                    int idist = 1;
+                    int odist = plan->inembed[i];
+                    int howmany = plan->size_in/plan->inembed[i];
+
                     dim = plan->gdim[i]/plan->pdim[i];
 
-                    #ifdef ENABLE_CUDA
                     if (plan->device)
                         {
                         int res;
@@ -187,9 +187,10 @@ int dfft_create_execution_flow(dfft_plan *plan)
             for (i = 0; i < plan->ndim; ++i)
                 dim[i] = plan->gdim[i]/plan->pdim[i];
 
-            int howmany = 1;
             /* create multidimensional forward and backward plans */
             #ifdef ENABLE_CUDA
+            int howmany = 1;
+                        
             if (plan->device)
                 {
                 int res;
@@ -243,6 +244,7 @@ int dfft_create_execution_flow(dfft_plan *plan)
         int size = plan->size_in;
         for (i = 0; i < plan->ndim; ++i)
             {
+            #ifdef ENABLE_CUDA
             int s = size/plan->inembed[i] *(plan->gdim[i]/plan->pdim[i]);
             int dim = plan->k0[i];
             int howmany = s/(plan->k0[i]);
@@ -251,7 +253,6 @@ int dfft_create_execution_flow(dfft_plan *plan)
             int ostride = s/(plan->k0[i]);
             int odist = 1;
 
-            #ifdef ENABLE_CUDA
             int res;
             res = dfft_cuda_create_1d_plan(&plan->cuda_plans_final_fw[i],
                 dim, howmany, istride, idist, ostride, odist, 0);
@@ -284,9 +285,10 @@ int dfft_create_execution_flow(dfft_plan *plan)
         for (i = 0; i < plan->ndim; ++i)
             dim[i] = plan->gdim[i]/plan->pdim[i];
 
-        int howmany = 1;
         /* create multidimensional forward and backward plans */
         #ifdef ENABLE_CUDA
+        int howmany = 1;
+                
         if (plan->device)
             {
             int res;

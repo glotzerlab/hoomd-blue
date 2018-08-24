@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -358,5 +358,6 @@ void export_TableDihedralForceCompute(py::module& m)
     py::class_<TableDihedralForceCompute, std::shared_ptr<TableDihedralForceCompute> >(m, "TableDihedralForceCompute", py::base<ForceCompute>())
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
     .def("setTable", &TableDihedralForceCompute::setTable)
+    .def("getEntry", &TableDihedralForceCompute::getEntry)
     ;
     }

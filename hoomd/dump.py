@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 R""" Write system configurations to files.
@@ -146,7 +146,7 @@ class getar(hoomd.analyze._analyzer):
        "improper_all", "improper_type_names, improper_tag, improper_type"
        "particle_all", "angular_momentum, body, charge, diameter, image, mass, moment_inertia, orientation, position, type, type_names, velocity"
        "all", "particle_all, angle_all, bond_all, dihedral_all, improper_all, global_all"
-       "viz_static", "type, type_names"
+       "viz_static", "type, type_names, dimensions"
        "viz_dynamic", "position, box"
        "viz_all", "viz_static, viz_dynamic"
        "viz_aniso_dynamic", "viz_dynamic, orientation"
@@ -212,7 +212,7 @@ class getar(hoomd.analyze._analyzer):
         'improper_all': ['improper_type_names', 'improper_tag', 'improper_type'],
         'global_all': ['box', 'dimensions'],
         'viz_dynamic': ['position', 'box'],
-        'viz_static': ['type', 'type_names'],
+        'viz_static': ['type', 'type_names', 'dimensions'],
         'viz_all': ['viz_static', 'viz_dynamic'],
         'viz_aniso_dynamic': ['viz_dynamic', 'orientation'],
         'viz_aniso_all': ['viz_static', 'viz_aniso_dynamic']};
@@ -577,13 +577,6 @@ class gsd(hoomd.analyze._analyzer):
         dump.gsd(filename="configuration.gsd", overwrite=True, period=None, group=group.all(), time_step=0)
         dump.gsd(filename="momentum_too.gsd", period=1000, group=group.all(), phase=0, dynamic=['momentum'])
         dump.gsd(filename="saveall.gsd", overwrite=True, period=1000, group=group.all(), dynamic=['attribute', 'momentum', 'topology'])
-
-    .. warning::
-
-        **Known issue**: If a non-default quantity is written out to frame 0 and that quantity later becomes default on
-        frame *i*, it will not be written to frame *i*. This results in an invalid configuration because the gsd spec
-        states that quantities not written should be read from frame 0. A reasonable fix for this problem is
-        non-trivial and requires a new version of the gsd spec.
 
     """
     def __init__(self,

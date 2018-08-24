@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -14,7 +13,7 @@ class pair_set_energy_tests (unittest.TestCase):
     def setUp(self):
         print
         self.N=1000;
-        self.s = deprecated.init.create_random(N=self.N, phi_p=0.05);
+        self.s = init.create_lattice(lattice.sc(a=1.5),n=[10,10,10]); # move particles close so they interact
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 
@@ -26,7 +25,7 @@ class pair_set_energy_tests (unittest.TestCase):
 
         all = group.all();
         md.integrate.mode_standard(dt=0.0)
-        md.integrate.nvt(group=all, kT=1.2, tau=0.5)
+        md.integrate.nve(group=all)
         run(1, quiet=True);
 
         t1 = numpy.array([0], dtype=numpy.int32);

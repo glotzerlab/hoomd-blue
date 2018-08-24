@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,6 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/ParticleGroup.h"
 #include <memory>
-#include "hoomd/extern/saruprng.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
@@ -30,7 +29,7 @@
 //! Adds an active force to a number of particles
 /*! \ingroup computes
 */
-class ActiveForceCompute : public ForceCompute
+class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute

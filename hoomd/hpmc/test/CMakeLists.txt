@@ -19,9 +19,6 @@ set(TEST_LIST
     )
 
 foreach (CUR_TEST ${TEST_LIST})
-    # Need to define NO_IMPORT_ARRAY in every file but hoomd_module.cc
-    set_source_files_properties(${CUR_TEST}.cc PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
     # add and link the unit test executable
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
         CUDA_COMPILE(_CUDA_GENERATED_FILES ${CUR_TEST}.cu OPTIONS ${CUDA_ADDITIONAL_OPTIONS})
@@ -33,7 +30,7 @@ foreach (CUR_TEST ${TEST_LIST})
 
     add_dependencies(test_all ${CUR_TEST})
 
-    target_link_libraries(${CUR_TEST} _hoomd _hpmc ${HOOMD_COMMON_LIBS})
+    target_link_libraries(${CUR_TEST} _hpmc ${HOOMD_LIBRARIES} ${PYTHON_LIBRARIES})
     fix_cudart_rpath(${CUR_TEST})
 
     if (ENABLE_MPI)
@@ -50,11 +47,9 @@ endforeach (CUR_TEST)
 # add non-MPI tests to test list first
 foreach (CUR_TEST ${TEST_LIST})
     # add it to the unit test list
-    get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)
-
     if (ENABLE_MPI)
-        add_test(${CUR_TEST} ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} ${CUR_TEST_EXE})
+        add_test(NAME ${CUR_TEST} COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} $<TARGET_FILE:${CUR_TEST}>)
     else()
-        add_test(${CUR_TEST} ${CUR_TEST_EXE})
+        add_test(NAME ${CUR_TEST} COMMAND $<TARGET_FILE:${CUR_TEST}>)
     endif()
 endforeach(CUR_TEST)

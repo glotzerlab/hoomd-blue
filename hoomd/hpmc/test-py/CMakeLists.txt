@@ -62,7 +62,13 @@ set(TEST_LIST_CPU
     external_lattice.py
     map_overlap.py
     hpmc_gsd_state.py
+    faceted_sphere.py
+    test_clusters.py
     )
+
+if (BUILD_JIT)
+    list(APPEND TEST_LIST_CPU enthalpic_interaction.py)
+endif()
 
 set(TEST_LIST_GPU
     shape_union.py
@@ -74,6 +80,8 @@ set(TEST_LIST_GPU
     test_ghost_layer.py
     muvt.py
     shape_proxy.py
+    faceted_sphere.py
+    test_clusters.py
     )
 
 set(EXCLUDE_FROM_MPI
@@ -87,6 +95,8 @@ set(EXCLUDE_FROM_MPI
     create_shapes.py
     test_sdf.py
     map_overlap.py
+    shape_union.py
+    enthalpic_interaction.py
    )
 
 set(MPI_ONLY

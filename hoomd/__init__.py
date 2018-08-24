@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 """ HOOMD-blue python API
@@ -252,14 +252,3 @@ def get_step():
         raise RuntimeError('Error getting step');
 
     return context.current.system.getCurrentTimeStep();
-
-# Check to see if we are built without MPI support and the user used mpirun
-if (not _hoomd.is_MPI_available()
-    and (    'OMPI_COMM_WORLD_RANK' in os.environ
-          or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ
-          or 'PMI_RANK' in os.environ
-          or 'ALPS_APP_PE' in os.environ)
-   ):
-    print('HOOMD-blue is built without MPI support, but seems to have been launched with mpirun');
-    print('exiting now to prevent many sequential jobs from starting');
-    raise RuntimeError('Error launching hoomd')

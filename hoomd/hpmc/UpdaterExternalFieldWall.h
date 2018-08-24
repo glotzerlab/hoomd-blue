@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _UPDATER_EXTERNAL_FIELD_H_
@@ -8,7 +8,7 @@
     \brief Updates ExternalField base class
 */
 #include "hoomd/Updater.h"
-#include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
+#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 
 #include "IntegratorHPMCMono.h"
@@ -23,7 +23,7 @@ namespace hpmc
 {
 
 template< class Shape >
-class UpdaterExternalFieldWall : public Updater
+class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public Updater
     {
     public:
         //! Constructor
@@ -136,7 +136,7 @@ class UpdaterExternalFieldWall : public Updater
         virtual void update(unsigned int timestep)
             {
             // Choose whether or not to update the external field
-            Saru rng(m_seed, timestep, 0xf6a510ab);
+            hoomd::detail::Saru rng(m_seed, timestep, 0xba015a6f);
             unsigned int move_type_select = rng.u32() & 0xffff;
             unsigned int move_ratio = m_move_ratio * 65536;
             // Attempt and evaluate a move

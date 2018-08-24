@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -182,7 +182,7 @@ def read_getar(filename, modes={'any': 'any'}):
     snapshot = initializer.initialize(newModes);
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.exec_conf);
 
     try:
         box = snapshot._global_box;
@@ -216,7 +216,7 @@ def read_snapshot(snapshot):
         snapshot (:py:mod:`hoomd.data` snapshot): The snapshot to initialize the system.
 
     Snapshots temporarily store system data. Snapshots contain the complete simulation state in a
-    single object. They can be used to start or restart a simulation.
+    single object. Snapshots are set to time_step 0, and should not be used to restart a simulation.
 
     Example use cases in which a simulation may be started from a snapshot include user code that generates initial
     particle positions.
@@ -239,7 +239,7 @@ def read_snapshot(snapshot):
         raise RuntimeError("Error initializing");
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.exec_conf);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:
@@ -259,7 +259,7 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     Args:
         filename (str): File to read.
         restart (str): If it exists, read the file *restart* instead of *filename*.
-        frame (int): Index of the frame to read from the GSD file.
+        frame (int): Index of the frame to read from the GSD file. Negative values index from the end of the file.
         time_step (int): (if specified) Time step number to initialize instead of the one stored in the GSD file.
 
     All particles, bonds, angles, dihedrals, impropers, constraints, and box information
@@ -270,7 +270,8 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     :py:func:`hoomd.init.read_gsd` will read the restart file if it exists, otherwise it will read *filename*.
 
     If *time_step* is specified, its value will be used as the initial time
-    step of the simulation instead of the one read from the GSD file.
+    step of the simulation instead of the one read from the GSD file *filename*.
+    *time_step* is not applied when the file *restart* is read.
 
     The result of :py:func:`hoomd.init.read_gsd` can be saved in a variable and later used to read and/or
     change particle properties later in the script. See :py:mod:`hoomd.data` for more information.
@@ -287,16 +288,21 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
         hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
+    filename = _hoomd.mpi_bcast_str(filename, hoomd.context.exec_conf);
+    restart = _hoomd.mpi_bcast_str(restart, hoomd.context.exec_conf);
+
     if restart is not None and os.path.exists(restart):
-        reader = _hoomd.GSDReader(hoomd.context.exec_conf, restart, frame);
-    else:
-        reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, frame);
-    snapshot = reader.getSnapshot();
-    if time_step is None:
+        reader = _hoomd.GSDReader(hoomd.context.exec_conf, restart, abs(frame), frame < 0);
         time_step = reader.getTimeStep();
+    else:
+        reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, abs(frame), frame < 0);
+        if time_step is None:
+            time_step = reader.getTimeStep();
+
+    snapshot = reader.getSnapshot();
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.exec_conf);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:

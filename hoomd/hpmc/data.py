@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 """ Shape data structures.
@@ -121,16 +121,15 @@ class sphere_params(_hpmc.sphere_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.sphere_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['diameter'];
+        self._keys += ['diameter','orientable'];
         self.make_fn = _hpmc.make_sph_params;
 
     def __str__(self):
         # should we put this in the c++ side?
         return "sphere(diameter = {})".format(self.diameter)
 
-    def make_param(self, diameter, ignore_statistics=False):
-        return self.make_fn(float(diameter)/2.0,
-                            ignore_statistics);
+    def make_param(self, diameter, ignore_statistics=False,orientable=False):
+        return self.make_fn(float(diameter)/2.0,ignore_statistics,orientable);
 
 class convex_polygon_params(_hpmc.convex_polygon_param_proxy, _param):
     def __init__(self, mc, index):
@@ -223,18 +222,20 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['vertices', 'faces','sweep_radius', 'capacity','origin','hull_only'];
+        self._keys += ['vertices', 'faces','overlap', 'colors', 'sweep_radius', 'capacity','origin','hull_only'];
         self.make_fn = _hpmc.make_poly3d_data;
+        self.__dict__.update(dict(colors=None));
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {}, capacity = {}, origin = {})".format(self.vertices, self.faces,self.sweep_radius, self.capacity, self.hull_only);
+        string = "polyhedron(vertices = {}, faces = {}, overlap = {}, colors= {}, sweep_radius = {}, capacity = {}, origin = {})".format(self.vertices, self.faces, self.overlap, self.colors, self.sweep_radius, self.capacity, self.hull_only);
         return string;
 
-    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False, origin=(0,0,0), capacity=4, hull_only=True):
+    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False, origin=(0,0,0), capacity=4, hull_only=True, overlap=None, colors=None):
         face_offs = []
         face_verts = []
         offs = 0
+
         for face in faces:
             if len(face) != 3 and len(face) != 1:
                 hoomd.context.msg.error("Only triangulated shapes and spheres are supported.\n")
@@ -247,6 +248,11 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
         # end offset
         face_offs.append(offs)
 
+        self.colors = None if colors is None else self.ensure_list(colors);
+
+        if overlap is None:
+            overlap = [1 for f in faces]
+
         if sweep_radius < 0.0:
             hoomd.context.msg.warning("A rounding radius < 0 does not make sense.\n")
 
@@ -256,6 +262,7 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
         return self.make_fn([self.ensure_list(v) for v in vertices],
                             self.ensure_list(face_verts),
                             self.ensure_list(face_offs),
+                            self.ensure_list(overlap),
                             float(sweep_radius),
                             ignore_statistics,
                             capacity,
@@ -353,7 +360,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
         if overlap is None:
             overlap = [1 for c in centers]
 
-        members = [_hpmc.make_sph_params(float(d)/2.0, False) for d in diameters];
+        members = [_hpmc.make_sph_params(float(d)/2.0, False, False) for d in diameters];
         N = len(diameters)
         if len(centers) != N:
             raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
@@ -361,6 +368,56 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
         return self.make_fn(self.ensure_list(members),
                             self.ensure_list(centers),
                             self.ensure_list([[1,0,0,0] for i in range(N)]),
+                            self.ensure_list(overlap),
+                            ignore_statistics,
+                            capacity,
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
+
+class convex_polyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_param):
+    def __init__(self, mc, index):
+        _hpmc.convex_polyhedron_union_param_proxy.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size templated
+        _param.__init__(self, mc, index);
+        self.__dict__.update(dict(colors=None));
+        self._keys += ['centers', 'orientations', 'vertices', 'colors','overlap'];
+        self.make_fn = _hpmc.make_convex_polyhedron_union_params;
+
+    def __str__(self):
+        # should we put this in the c++ side?
+        string = "convex polyhedron union(centers = {}, orientations = {}, vertices = {}, overlap = {})\n".format(self.centers, self.orientations, self.vertices, self.overlap);
+        ct = 0;
+        members = self.members;
+        for m in members:
+            end = "\n" if ct < (len(members)-1) else "";
+            string+="convex polyhedron-{}(v = {}){}".format(ct, m.vertices, end)
+            ct+=1
+        return string;
+
+    def get_metadata(self):
+        data = {}
+        for key in self._keys:
+            if key == 'vertices':
+                val = [ m.vertices for m in self.members ];
+            else:
+                val = getattr(self, key);
+            data[key] = val;
+        return data;
+
+    def make_param(self, centers, orientations, vertices, overlap=None, ignore_statistics=False, colors=None, capacity=4):
+        if overlap is None:
+            overlap = [1 for c in centers]
+
+        members = []
+        for i, verts in enumerate(vertices):
+            member_fn = _hpmc.make_poly3d_verts
+            members.append(member_fn(self.ensure_list(verts), float(0), ignore_statistics, hoomd.context.current.system_definition.getParticleData().getExecConf()))
+
+        N = len(vertices)
+        if len(centers) != N or len(orientations)!= N:
+            raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
+        self.colors = None if colors is None else self.ensure_list(colors);
+        return self.make_fn(self.ensure_list(members),
+                            self.ensure_list(centers),
+                            self.ensure_list(orientations),
                             self.ensure_list(overlap),
                             ignore_statistics,
                             capacity,

@@ -3,9 +3,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0 FATAL_ERROR)
 if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
 if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
-    cmake_policy(SET CMP0026 OLD)
-    cmake_policy(SET CMP0042 OLD)
-    set(CMAKE_MACOSX_RPATH ON)
+    cmake_policy(SET CMP0042 NEW)
 endif(COMMAND cmake_policy)
 endif()
 
@@ -25,6 +23,26 @@ include (CMake_build_options.cmake)
 include (CMake_install_options.cmake)
 
 #################################
+## update submodules
+set (UPDATE_SUBMODULES 1 CACHE BOOL "Update git submodules for dependency projects")
+
+if ((EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git) AND GIT_EXECUTABLE)
+    # only attempt to update submodules if this is a git repository and we have a git executable
+    if (UPDATE_SUBMODULES)
+      message(STATUS "Updating git submodules")
+      execute_process(COMMAND ${GIT_EXECUTABLE} submodule --quiet sync
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+      execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    endif()
+else()
+    if (UPDATE_SUBMODULES)
+    message(STATUS "UPDATE_SUBMODULES is set, but cmake cannot automatically update the submodules. "
+                   "The source directory is not a git clone or the git executable is not available.")
+    endif()
+endif()
+
+#################################
 ## setup python library and executable
 # setup MPI support
 include (HOOMDMPISetup)
@@ -38,30 +56,12 @@ include (HOOMDCFlagsSetup)
 include (HOOMDOSSpecificSetup)
 # setup common libraries used by all targets in this project
 include (HOOMDCommonLibsSetup)
-# setup numpy
-include (HOOMDNumpySetup)
 # macros
 include (HOOMDMacros)
 # Configure some source files, include directories, and create variables listing all source files
 include (CMake_src_setup.cmake)
 # preprocessor flags
 include (CMake_preprocessor_flags.cmake)
-
-set (UPDATE_SUBMODULES 1 CACHE BOOL "Update git submodules for dependency projects")
-
-if ((EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git) AND GIT_EXECUTABLE)
-    # only attempt to update submodules if this is a git repository and we have a git executable
-    if (UPDATE_SUBMODULES)
-      message(STATUS "Updating git submodules")
-      execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    endif()
-else()
-    if (UPDATE_SUBMODULES)
-    message(STATUS "UPDATE_SUBMODULES is set, but cmake cannot automatically update the submodules. "
-                   "The source directory is not a git clone or the git executable is not available.")
-    endif()
-endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
 
@@ -70,7 +70,8 @@ if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cereal/include/cereal/ce
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cub/cub/cub.cuh OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/nano-signal-slot/nano_signal_slot.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/pybind/include/pybind11/pybind11.h OR
-    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h OR
+	NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp
     )
 
     if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
@@ -154,15 +155,14 @@ add_custom_target(copy_cmake ALL
 # set up unit tests
 enable_testing()
 option(BUILD_TESTING "Build unit tests" ON)
-if (BUILD_TESTING)
-     # add test_all to the ALL target
-     add_custom_target(test_all ALL)
-
-endif (BUILD_TESTING)
 
 ################################
 # set up long validation tests
 option(BUILD_VALIDATION "Build validation tests" OFF)
+if (BUILD_TESTING OR BUILD_VALIDATION)
+     # add test_all to the ALL target
+     add_custom_target(test_all ALL)
+endif (BUILD_TESTING OR BUILD_VALIDATION)
 
 ################################
 ## Process subdirectories

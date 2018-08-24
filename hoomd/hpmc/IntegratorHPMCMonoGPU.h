@@ -178,6 +178,12 @@ IntegratorHPMCMonoGPU< Shape>::~IntegratorHPMCMonoGPU()
 template< class Shape >
 void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     {
+    if (this->m_patch && !this->m_patch_log)
+        {
+        this->m_exec_conf->msg->error() << "GPU simulations with patches are unsupported." << std::endl;
+        throw std::runtime_error("Error during HPMC integration\n");
+        }
+
     IntegratorHPMC::update(timestep);
     // compute the width of the active region
     Scalar3 npd = this->m_pdata->getBox().getNearestPlaneDistance();
@@ -203,7 +209,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC");
 
     // rng for shuffle and grid shift
-    Saru rng(this->m_seed, timestep, 0xf4a3210e);
+    hoomd::detail::Saru rng(this->m_seed, timestep, 0xf4a3210e);
 
     // if the cell list is a different size than last time, reinitialize the cell sets list
     uint3 cur_dim = this->m_cl->getDim();
@@ -455,7 +461,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
 
-    this->m_nominal_width = this->getMaxDiameter();
+    this->m_nominal_width = this->getMaxCoreDiameter();
     this->m_cl->setNominalWidth(this->m_nominal_width);
 
     // attach the parameters to the kernel stream so that they are visible

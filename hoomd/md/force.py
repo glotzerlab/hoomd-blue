@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -189,22 +189,36 @@ class constant(_force):
     Args:
         fvec (tuple): force vector (in force units)
         tvec (tuple): torque vector (in torque units)
-        fx (float): x compent of force, retained for backwards compatibility
-        fy (float): y compent of force, retained for backwards compatibility
-        fz (float): z compent of force, retained for backwards compatibility
+        fx (float): x component of force, retained for backwards compatibility
+        fy (float): y component of force, retained for backwards compatibility
+        fz (float): z component of force, retained for backwards compatibility
         group (:py:mod:`hoomd.group`): Group for which the force will be set.
+        callback (callable): A python callback invoked every time the forces are computed
 
     :py:class:`constant` specifies that a constant force should be added to every
     particle in the simulation or optionally to all particles in a group.
 
+    Note:
+        Forces are kept constant during the simulation. If a callback should re-compute
+        particle forces every time step, it needs to overwrite the old forces of **all**
+        particles with new values.
+
+    Note:
+        Per-particle forces take precedence over a particle group, which takes precedence over constant forces for all particles.
+
     Examples::
 
-        force.constant(fx=1.0, fy=0.5, fz=0.25))
+        force.constant(fx=1.0, fy=0.5, fz=0.25)
         const = force.constant(fvec=(0.4,1.0,0.5))
         const = force.constant(fvec=(0.4,1.0,0.5),group=fluid)
         const = force.constant(fvec=(0.4,1.0,0.5), tvec=(0,0,1) ,group=fluid)
+
+        def update_forces(timestep):
+            global const
+            const.set_force(tag=1, fvec=(1.0*timestep,2.0*timestep,3.0*timestep))
+        const = force.constant(callback=update_forces)
     """
-    def __init__(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None):
+    def __init__(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None, callback=None):
         hoomd.util.print_status_line();
 
         if (fx is not None) and (fy is not None) and (fz is not None):
@@ -219,7 +233,7 @@ class constant(_force):
         else:
             self.tvec = (0,0,0)
 
-        if (self.fvec == (0,0,0)) and (self.tvec == (0,0,0)):
+        if (self.fvec == (0,0,0)) and (self.tvec == (0,0,0) and callback is None):
             hoomd.context.msg.warning("The constant force specified has no non-zero components\n");
 
         # initialize the base class
@@ -227,19 +241,25 @@ class constant(_force):
 
         # create the c++ mirror class
         if (group is not None):
-            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, group.cpp_group, self.fvec[0],
-                                                                                                                self.fvec[1],
-                                                                                                                self.fvec[2],
-                                                                                                                self.tvec[0],
-                                                                                                                self.tvec[1],
-                                                                                                                self.tvec[2]);
+            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition,
+                group.cpp_group,
+                self.fvec[0],
+                self.fvec[1],
+                self.fvec[2],
+                self.tvec[0],
+                self.tvec[1],
+                self.tvec[2]);
         else:
-            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, hoomd.context.current.group_all.cpp_group, self.fvec[0],
-                                                                                                                                          self.fvec[1],
-                                                                                                                                          self.fvec[2],
-                                                                                                                                          self.tvec[0],
-                                                                                                                                          self.tvec[1],
-                                                                                                                                          self.tvec[2]);
+            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition,
+                self.fvec[0],
+                self.fvec[1],
+                self.fvec[2],
+                self.tvec[0],
+                self.tvec[1],
+                self.tvec[2]);
+
+        if callback is not None:
+            self.cpp_force.setCallback(callback)
 
         # store metadata
         self.metadata_fields = ['fvec', 'tvec']
@@ -249,28 +269,28 @@ class constant(_force):
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-    ## Change the value of the force
-    #
-    # \param fx New x-component of the force (in force units)
-    # \param fy New y-component of the force (in force units)
-    # \param fz New z-component of the force (in force units)
-    # \param fvec New force vector
-    # \param tvec New torque vector
+    R""" Change the value of the constant force.
 
-    # \param group Group for which the force will be set
-    #
-    # Using set_force() requires that you saved the created constant force in a variable. i.e.
-    # \code
-    # const = force.constant(fx=0.4, fy=1.0, fz=0.5)
-    # \endcode
-    #
-    # \b Example:
-    # \code
-    # const.set_force(fx=0.2, fy=0.1, fz=-0.5)
-    # const.set_force(fx=0.2, fy=0.1, fz=-0.5, group=fluid)
-    # const.set_force(fvec=(0.2,0.1,-0.5), tvec=(0,0,1), group=fluid)
-    # \endcode
-    def set_force(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None):
+    Args:
+        fx (float) New x-component of the force (in force units)
+        fy (float) New y-component of the force (in force units)
+        fz (float) New z-component of the force (in force units)
+        fvec (tuple) New force vector
+        tvec (tuple) New torque vector
+        group Group for which the force will be set
+        tag (int) Particle tag for which the force will be set
+            .. versionadded:: 2.3
+
+     Using set_force() requires that you saved the created constant force in a variable. i.e.
+
+     Examples:
+        const = force.constant(fx=0.4, fy=1.0, fz=0.5)
+
+        const.set_force(fx=0.2, fy=0.1, fz=-0.5)
+        const.set_force(fx=0.2, fy=0.1, fz=-0.5, group=fluid)
+        const.set_force(fvec=(0.2,0.1,-0.5), tvec=(0,0,1), group=fluid)
+    """
+    def set_force(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None, tag=None):
 
         if (fx is not None) and (fy is not None) and (fx is not None):
             self.fvec = (fx,fy,fz)
@@ -290,9 +310,33 @@ class constant(_force):
         self.check_initialization();
         if (group is not None):
             self.cpp_force.setGroupForce(group.cpp_group, self.fvec[0], self.fvec[1], self.fvec[2],
-                                                          self.tvec[0], self.tvec[1], self.tvec[2]);
+                                                          self.tvec[0], self.tvec[1], self.tvec[2])
+        elif (tag is not None):
+            self.cpp_force.setParticleForce(tag, self.fvec[0], self.fvec[1], self.fvec[2],
+                                                 self.tvec[0], self.tvec[1], self.tvec[2]);
         else:
             self.cpp_force.setForce(self.fvec[0], self.fvec[1], self.fvec[2], self.tvec[0], self.tvec[1], self.tvec[2]);
+
+    R""" Set a python callback to be called before the force is evaluated
+
+    Args:
+        callback (callable) The callback function
+
+     Examples:
+        const = force.constant(fx=0.4, fy=1.0, fz=0.5)
+
+        def update_forces(timestep):
+            global const
+            const.set_force(tag=1, fvec=(1.0*timestep,2.0*timestep,3.0*timestep))
+
+        const.set_callback(update_forces)
+        run(100)
+
+        # Reset the callback
+        const.set_callback(None)
+    """
+    def set_callback(self, callback=None):
+        self.cpp_force.setCallback(callback)
 
     # there are no coeffs to update in the constant force compute
     def update_coeffs(self):
@@ -390,7 +434,7 @@ class active(_force):
 
 
         # store metadata
-        self.metdata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
+        self.metadata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
         self.group = group
         self.seed = seed
         self.orientation_link = orientation_link
@@ -430,7 +474,7 @@ class dipole(_force):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # store metadata
-        self.metdata_fields = ['field_x', 'field_y', 'field_z']
+        self.metadata_fields = ['field_x', 'field_y', 'field_z']
         self.field_x = field_x
         self.field_y = field_y
         self.field_z = field_z

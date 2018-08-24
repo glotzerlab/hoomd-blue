@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -168,7 +168,7 @@ class EvaluatorPairDipole
                 Scalar pre2 = prefactor*q_j*r3inv;
                 Scalar pre3 = prefactor*q_j*r3inv*pidotr*kappa*rinv;
 
-                f += pre2*p_i - pre1*rvec + pre3*rvec;
+                f += pre2*p_i - pre1*rvec - pre3*rvec;
 
                 t_i += pre2*cross(p_i, rvec);
 

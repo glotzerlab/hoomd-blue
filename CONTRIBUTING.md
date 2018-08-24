@@ -101,6 +101,6 @@ how functionality changes from version to version (post-2.0).
 Developers need to be credited for their work. Update the credits documentation to reference what each developer
 contributed to the code.
 
-## Update ChangeLog.md
+## Propose a change log entery in the pull request comments
 
-Propose a short concise entry describing the change to the ChangeLog.md in the PR description.
+Propose a short concise entry describing the change for use in the change log.

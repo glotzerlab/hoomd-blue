@@ -2,22 +2,229 @@
 
 [TOC]
 
-## v2.2.0
+## v2.3.4
 
-Not yet released
+Released 2018/07/30
+
+*Bug fixes*
+
+* ``init.read_gsd`` no longer applies the *time_step* override when reading the *restart* file
+* HPMC: Add ``hpmc_patch_energy`` and ``hpmc_patch_rcut`` loggable quantities to the documentation
+
+## v2.3.3
+
+Released 2018/07/03
+
+*Bug fixes*
+
+* Fix ``libquickhull.so`` not found regression on Mac OS X
+
+## v2.3.2
+
+Released 2018/06/29
+
+*Bug fixes*
+
+* Fix a bug where gsd_snapshot would segfault when called without an execution context.
+* Compile warning free with gcc8.
+* Fix compile error when TBB include files are in non-system directory.
+* Fix ``libquickhull.so`` not found error on additional platforms.
+* HOOMD-blue is now available on **conda-forge** and the **docker hub**.
+* MPCD: Default value for ``kT`` parameter is removed for ``mpcd.collide.at``.
+  Scripts that are correctly running are not affected by this change.
+* MPCD: ``mpcd`` notifies the user of the appropriate citation.
+* MD: Correct force calculation between dipoles and point charge in ``pair.dipole``
+
+*Deprecated*
+
+* The **anaconda** channel **glotzer** will no longer be updated. Use **conda-forge**
+  to upgrade to v2.3.2 and newer versions.
+
+## v2.3.1
+
+Released 2018/05/25
+
+*Bug fixes*
+
+* Fix doxygen documentation syntax errors
+* Fix libquickhull.so not found error on some platforms
+* HPMC: Fix bug that allowed particles to pas through walls
+* HPMC: Check spheropolyhedra with 0 vertices against walls correctly
+* HPMC: Fix plane wall/spheropolyhedra overlap test
+* HPMC: Restore detailed balance in implicit depletant integrator
+* HPMC: Correctly choose between volume and lnV moves in `hpmc.update.boxmc`
+* HPMC: Fix name of log quantity `hpmc_clusters_pivot_acceptance`
+* MD: Fix image list for tree neighbor lists in 2d
+
+## v2.3.0
+
+Released 2018/04/25
 
 *New features*
 
-* Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
-* HPMC: `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
-* HPMC: `hpmc.integrate.convex_polyhedron` and `convex_spheropolyhedron` now support arbitrary numbers of vertices, subject only to memory limitations (`max_verts` is now ignored).
-* `force.constant` and `force.active` can now apply torques
-* `dump.gsd` can now save internal state to gsd files. Call `dump_state(object)` to save the state for a particular object. The following objects are supported:
-    * HPMC integrators save shape and trial move size state
-* HPMC integrators restore state from a gsd file read by `init.read_gsd` when the option `restore_state` is `True`.
-* Add *dynamic* argument to `hoomd.dump.gsd` to specify which quantity categories should be written every frame.
-* Added support for a 3 body potential that is harmonic in the local density.
-* Add generic capability for bidirectional ghost communication, enabling multi body potentials in MPI simulation.
+* General:
+    * Store `BUILD_*` CMake variables in the hoomd cmake cache for use in external plugins.
+    * `init.read_gsd` and `data.gsd_snapshot` now accept negative frame indices to index from the end of the trajectory.
+    * Faster reinitialization from snapshots when done frequently.
+    * New command line option `--single-mpi` allows non-mpi builds of hoomd to launch within mpirun (i.e. for use with mpi4py managed pools of jobs)
+    * For users of the University of Michigan Flux system: A `--mode` option is no longer required to run hoomd.
+
+* MD:
+    * Improve performance with `md.constrain.rigid` in multi-GPU simulations.
+    * New command `integrator.randomize_velocities()` sets a particle group's linear and angular velocities to random values consistent with a given kinetic temperature.
+    * `md.force.constant()` now supports setting the force per particle and inside a callback
+
+* HPMC:
+    * Enabled simulations involving spherical walls and convex spheropolyhedral particle shapes.
+    * Support patchy energetic interactions between particles (CPU only)
+    * New command `hpmc.update.clusters()` supports geometric cluster moves with anisotropic particles and/or depletants and/or patch potentials. Supported move types: pivot and line reflection (geometric), and AB type swap.
+
+* JIT:
+    * Add new experimental `jit` module that uses LLVM to compile and execute user provided C++ code at runtime. (CPU only)
+    * Add `jit.patch.user`: Compute arbitrary patch energy between particles in HPMC (CPU only)
+    * Add `jit.patch.user_union`: Compute arbitrary patch energy between rigid unions of points in HPMC (CPU only)
+    * Patch energies operate with implicit depletant and normal HPMC integration modes.
+    * `jit.patch.user_union` operates efficiently with additive contributions to the cutoff.
+
+* MPCD:
+    * The `mpcd` component adds support for simulating hydrodynamics using the multiparticle collision dynamics method.
+
+*Beta feature*
+
+* Node local parallelism (optional, build with `ENABLE_TBB=on`):
+    * The Intel TBB library is required to enable this feature.
+    * The command line option `--nthreads` limits the number of threads HOOMD will use. The default is all CPU cores in the system.
+    * Only the following methods in HOOMD will take advantage of multiple threads:
+        * `hpmc.update.clusters()`
+        * HPMC integrators with implicit depletants enabled
+        * `jit.patch.user_union`
+
+Node local parallelism is still under development. It is not enabled in builds by default and only a few methods utilize
+multiple threads. In future versions, additional methods in HOOMD may support multiple threads.
+
+To ensure future workflow compatibility as future versions enable threading in more components, explicitly set --nthreads=1.
+
+*Bug fixes*
+
+* Fixed a problem with periodic boundary conditions and implicit depletants when `depletant_mode=circumsphere`
+* Fixed a rare segmentation fault with `hpmc.integrate.*_union()` and `hpmc.integrate.polyhedron`
+* `md.force.active` and `md.force.dipole` now record metadata properly.
+* Fixed a bug where HPMC restore state did not set ignore flags properly.
+* `hpmc_boxmc_ln_volume_acceptance` is now available for logging.
+
+*Other changes*
+
+* Eigen is now provided as a submodule. Plugins that use Eigen headers need to update include paths.
+* HOOMD now builds with pybind 2.2. Minor changes to source and cmake scripts in plugins may be necessary. See the updated example plugin.
+* HOOMD now builds without compiler warnings on modern compilers (gcc6, gcc7, clang5, clang6).
+* HOOMD now uses pybind11 for numpy arrays instead of `num_util`.
+* HOOMD versions v2.3.x will be the last available on the anaconda channel `glotzer`.
+
+## v2.2.5
+
+Released 2018/04/20
+
+*Bug fixes*
+
+* Pin cuda compatible version in conda package to resolve `libcu*.so` not found errors in conda installations.
+
+## v2.2.4
+
+Released 2018/03/05
+
+*Bug fixes*
+
+* Fix a rare error in `md.nlist.tree` when particles are very close to each other.
+* Fix deadlock when `init.read_getar` is given different file names on different ranks.
+* Sample from the correct uniform distribution of depletants in a sphere cap with `depletant_mode='overlap_regions'` on the CPU
+* Fix a bug where ternary (or higher order) mixtures of small and large particles were not correctly handled with `depletant_mode='overlap_regions'` on the CPU
+* Improve acceptance rate in depletant simulations with `depletant_mode='overlap_regions'`
+
+## v2.2.3
+
+Released 2018/01/25
+
+*Bug fixes*
+
+* Write default values to gsd frames when non-default values are present in frame 0.
+* `md.wall.force_shifted_lj` now works.
+* Fix a bug in HPMC where `run()` would not start after `restore_state` unless shape parameters were also set from python.
+* Fix a bug in HPMC Box MC updater where moves were attempted with zero weight.
+* `dump.gsd()` now writes `hpmc` shape state correctly when there are multiple particle types.
+* `hpmc.integrate.polyhedron()` now produces correct results on the GPU.
+* Fix binary compatibility across python minor versions.
+
+## v2.2.2
+
+Released 2017/12/04
+
+*Bug fixes*
+
+* `md.dihedral.table.set_from_file` now works.
+* Fix a critical bug where forces in MPI simulations with rigid bodies or anisotropic particles were incorrectly calculated
+* Ensure that ghost particles are updated after load balancing.
+* `meta.dump_metadata` no longer reports an error when used with `md.constrain.rigid`
+* Miscellaneous documentation fixes
+* `dump.gsd` can now write GSD files with 0 particles in a frame
+* Explicitly report MPI synchronization delays due to load imbalance with `profile=True`
+* Correctly compute net torque of rigid bodies with anisotropic constituent particles in MPI execution on multiple ranks
+* Fix `PotentialPairDPDThermoGPU.h` for use in external plugins
+* Use correct ghost region with `constrain.rigid` in MPI execution on multiple ranks
+* `hpmc.update.muvt()` now works with `depletant_mode='overlap_regions'`
+* Fix the sampling of configurations with in `hpmc.update.muvt` with depletants
+* Fix simulation crash after modifying a snapshot and re-initializing from it
+* The pressure in simulations with rigid bodies (`md.constrain.rigid()`) and MPI on multiple ranks is now computed correctly
+
+## v2.2.1
+
+Released 2017/10/04
+
+*Bug fixes*
+
+* Add special pair headers to install target
+* Fix a bug where `hpmc.integrate.convex_polyhedron`, `hpmc.integrate.convex_spheropolyhedron`, `hpmc.integrate.polyedron`, `hpmc.integrate.faceted_sphere`, `hpmc.integrate.sphere_union` and `hpmc.integrate.convex_polyhedron_union` produced spurious overlaps on the GPU
+
+## v2.2.0
+
+Released 2017/09/08
+
+*New features*
+
+* General:
+    * Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
+    * `dump.gsd` can now save internal state to gsd files. Call `dump_state(object)` to save the state for a particular object. The following objects are supported:
+        * HPMC integrators save shape and trial move size state.
+    * Add *dynamic* argument to `hoomd.dump.gsd` to specify which quantity categories should be written every frame.
+    * HOOMD now inter-operates with other python libraries that set the active CUDA device.
+    * Add generic capability for bidirectional ghost communication, enabling multi body potentials in MPI simulation.
+
+* MD:
+    * Added support for a 3 body potential that is harmonic in the local density.
+    * `force.constant` and `force.active` can now apply torques.
+    * `quiet` option to `nlist.tune` to quiet the output of the embedded `run()` commands.
+    * Add special pairs as exclusions from neighbor lists.
+    * Add cosine squared angle potential `md.angle.cosinesq`.
+    * Add `md.pair.DLVO()` for evaluation of colloidal dispersion and electrostatic forces.
+    * Add Lennard-Jones 12-8 pair potential.
+    * Add Buckingham (exp-6) pair potential.
+    * Add Coulomb 1-4 special_pair potential.
+    * Check that composite body dimensions are consistent with minimum image convention and generate an error if they are not.
+    * `md.integrate.mode.minimize_fire()` now supports anisotropic particles (i.e. composite bodies)
+    * `md.integrate.mode.minimize_fire()` now supports flexible specification of integration methods
+    * `md.integrate.npt()/md.integrate.nph()` now accept a friction parameter (gamma) for damping out box fluctuations during minimization runs
+    * Add new command `integrate.mode_standard.reset_methods()` to clear NVT and NPT integrator variables
+
+
+* HPMC:
+    * `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
+    * `hpmc.integrate.polyhedron()` takes new capacity parameter to optimize performance for different shape sizes
+    * `hpmc.integrate.convex_polyhedron` and `convex_spheropolyhedron` now support arbitrary numbers of vertices, subject only to memory limitations (`max_verts` is now ignored).
+    * HPMC integrators restore state from a gsd file read by `init.read_gsd` when the option `restore_state` is `True`.
+    * Deterministic HPMC integration on the GPU (optional): `mc.set_params(deterministic=True)`.
+    * New `hpmc.update.boxmc.ln_volume()` move allows logarithmic volume moves for fast equilibration.
+    * New shape: `hpmc.integrate.convex_polyhedron_union` performs simulations of unions of convex polyhedra.
+    * `hpmc.field.callback()` now enables MC energy evaluation in a python function
+    * The option `depletant_mode='overlap_regions'` for `hpmc.integrate.*` allows the selection of a new depletion algorithm that restores the diffusivity of dilute colloids in dense depletant baths
 
 *Deprecated*
 
@@ -27,20 +234,63 @@ Not yet released
 
 *Bug fixes*
 
-* hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
-* `hpmc.integrate.sphere_union()` and `hpmc.integrate.polyhedron()` missed overlaps
-* fix alignment error when running implicit depletants on GPU with ntrial > 0
-* `metal.pair.eam` now produces correct results
+* HPMC:
+    * `hpmc.integrate.sphere_union()` and `hpmc.integrate.polyhedron()` missed overlaps.
+    * Fix alignment error when running implicit depletants on GPU with ntrial > 0.
+    * HPMC integrators now behave correctly when the user provides different RNG seeds on different ranks.
+    * Fix a bug where overlapping configurations were produced with `hpmc.integrate.faceted_sphere()`
+
+* MD:
+    * `charge.pppm()` with `order=7` now gives correct results
+    * The PPPM energy for particles excluded as part of rigid bodies now correctly takes into account the periodic boundary conditions
+
+* EAM:
+    * `metal.pair.eam` now produces correct results.
 
 *Other changes*
 
-* Optimized performance of HPMC sphere union overlap check
+* Optimized performance of HPMC sphere union overlap check and polyhedron shape
 * Improved performance of rigid bodies in MPI simulations
 * Support triclinic boxes with rigid bodies
 * Raise an error when an updater is given a period of 0
 * Revised compilation instructions
 * Misc documentation improvements
-* Fully document `contrain.rigid`
+* Fully document `constrain.rigid`
+* `-march=native` is no longer set by default (this is now a suggestion in the documentation)
+* Compiler flags now default to CMake defaults
+* `ENABLE_CUDA` and `ENABLE_MPI` CMake options default OFF. User must explicitly choose to enable optional dependencies.
+* HOOMD now builds on powerpc+CUDA platforms (tested on summitdev)
+* Improve performance of GPU PPPM force calculation
+* Use sphere tree to further improve performance of `hpmc.integrate.sphere_union()`
+
+## v2.1.9
+
+Released 2017/08/22
+
+*Bug fixes*
+
+* Fix a bug where the log quantity `momentum` was incorrectly reported in MPI simulations.
+* Raise an error when the user provides inconsistent  `charge` or `diameter` lists to `md.constrain.rigid`.
+* Fix a bug where `pair.compute_energy()` did not report correct results in MPI parallel simulations.
+* Fix a bug where make rigid bodies with anisotropic constituent particles did not work on the GPU.
+* Fix hoomd compilation after the rebase in the cub repository.
+* `deprecated.dump.xml()` now writes correct results when particles have been added or deleted from the simulation.
+* Fix a critical bug where `charge.pppm()` calculated invalid forces on the GPU
+
+## v2.1.8
+
+Released 2017/07/19
+
+*Bug fixes*
+
+* `init.read_getar` now correctly restores static quantities when given a particular frame.
+* Fix bug where many short calls to `run()` caused incorrect results when using `md.integrate.langevin`.
+* Fix a bug in the Saru pseudo-random number generator that caused some double-precision values to be drawn outside the valid range [0,1) by a small amount. Both floats and doubles are now drawn on [0,1).
+* Fix a bug where coefficients for multi-character unicode type names failed to process in Python 2.
+
+*Other changes*
+
+* The Saru generator has been moved into `hoomd/Saru.h`, and plugins depending on Saru or SaruGPU will need to update their includes. The `SaruGPU` class has been removed. Use `hoomd::detail::Saru` instead for both CPU and GPU plugins.
 
 ## v2.1.7
 

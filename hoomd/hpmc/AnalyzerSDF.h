@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _ANALYZER_SDF_H_
@@ -191,7 +191,7 @@ AnalyzerSDF<Shape>::AnalyzerSDF(std::shared_ptr<SystemDefinition> sysdef,
     m_hist.resize(lmax / dl);
     zeroHistogram();
 
-    Scalar max_diam = m_mc->getMaxDiameter();
+    Scalar max_diam = m_mc->getMaxCoreDiameter();
     m_last_max_diam = max_diam;
     Scalar extra = lmax * max_diam;
     m_mc->setExtraGhostWidth(extra);
@@ -207,7 +207,7 @@ void AnalyzerSDF<Shape>::analyze(unsigned int timestep)
     m_exec_conf->msg->notice(8) << "Analyzing sdf at step " << timestep << std::endl;
 
     // kludge to update the max diameter dynamically if it changes
-    Scalar max_diam = m_mc->getMaxDiameter();
+    Scalar max_diam = m_mc->getMaxCoreDiameter();
     if (max_diam != m_last_max_diam)
         {
         m_last_max_diam = max_diam;
@@ -335,7 +335,7 @@ void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
     // update the image list
     const std::vector<vec3<Scalar> >&image_list = m_mc->updateImageList();
 
-    Scalar extra_width = m_lmax / (1 - m_lmax) * m_mc->getMaxDiameter();
+    Scalar extra_width = m_lmax / (1 - m_lmax) * m_mc->getMaxCoreDiameter();
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);

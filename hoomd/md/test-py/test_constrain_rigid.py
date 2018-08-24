@@ -1,6 +1,5 @@
 from hoomd import *
 from hoomd import md
-from hoomd import deprecated
 import math
 import unittest
 
@@ -9,21 +8,24 @@ context.initialize()
 # test the md.constrain.rigid() functionality
 class test_constrain_rigid(unittest.TestCase):
     def setUp(self):
-        # particle radius
-        N_A = 2000
-        N_B = 2000
-
-        r_rounding = .5
-        species_A = dict(bond_len=2.1, type=['A'], bond="linear", count=N_A)
-        species_B = dict(bond_len=2.1, type=['B'], bond="linear", count=N_B)
+        self.system = init.read_gsd(os.path.join(os.path.dirname(__file__),'test_data_diblock_copolymer_system.gsd'));
 
         # generate a system of N=8 AB diblocks
-        self.system=deprecated.init.create_random_polymers(box=data.boxdim(L=50), polymers=[species_A,species_B], separation=dict(A=1.0, B=1.0));
         self.nl = md.nlist.cell()
 
         for p in self.system.particles:
             p.moment_inertia = (.5,.5,1)
             #p.moment_inertia = (0,0,0)
+
+    def test_unequal_argument_lengths(self):
+        # create constituent particle types
+        self.system.particles.types.add('A_const')
+
+        rigid = md.constrain.rigid()
+        # try passing inconsistent numbers of arguments
+        self.assertRaises(RuntimeError,rigid.set_param,'A', types=['A_const']*3, positions=[(1,2,3),(4,5,6)])
+        self.assertRaises(RuntimeError,rigid.set_param,'A', types=['A_const']*2, positions=[(1,2,3),(4,5,6)], charges=[0])
+        self.assertRaises(RuntimeError,rigid.set_param,'A', types=['A_const']*2, positions=[(1,2,3),(4,5,6)], diameters=[0])
 
     def test_energy_conservation(self):
         # create rigid spherocylinders out of two particles (not including the central particle)
@@ -209,8 +211,112 @@ class test_constrain_rigid(unittest.TestCase):
         update.box_resize(L = variant.linear_interp([(0, 50), (100, 100)]))
         run(100)
 
+    def test_metadata(self):
+        # create rigid spherocylinders out of two particles (not including the central particle)
+        len_cyl = .5
+
+        # create constituent particle types
+        self.system.particles.types.add('A_const')
+        self.system.particles.types.add('B_const')
+
+        rigid = md.constrain.rigid()
+        rigid.set_param('A', types=['A_const','A_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+        rigid.set_param('B', types=['B_const','B_const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+
+        meta.dump_metadata()
+
     def tearDown(self):
         del self.system, self.nl
+        context.initialize();
+
+def test_self_interaction(system,nlist):
+    # create long cylinders slightly shorter than the box dimension
+    # adding the LJ cut-off should make them longer than the box
+    len_cyl = system.box.Lx-1
+
+    # create constituent particle types
+    system.particles.types.add('const')
+
+    md.integrate.mode_standard(dt=0)
+    nve = md.integrate.nve(group=group.rigid_center())
+
+    lj = md.pair.lj(r_cut=False, nlist = nlist)
+
+    # central particles
+    lj.pair_coeff.set(['A'], system.particles.types, epsilon=0, sigma=0, r_cut=False)
+
+    # constituent particle coefficients
+    lj.pair_coeff.set('const','const', epsilon=1.0, sigma=1.0, r_cut=2.5)
+
+    rigid = md.constrain.rigid()
+    rigid.set_param('A', types=['const','const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+    rigid.create_bodies()
+
+    # we should get an error from NeighborList
+    run(1)
+
+# test that self-interactions are not possible
+class test_constrain_rigid_self_interactions(unittest.TestCase):
+    def setUp(self):
+        snap = data.make_snapshot(N=1, particle_types=['A'], box=data.boxdim(L=10))
+        if comm.get_rank() == 0:
+            snap.particles.position[0] = (0,0,0)
+            snap.particles.orientation[0] = (1,0,0,0)
+        self.system = init.read_snapshot(snap)
+
+    def test_self_interaction_nlist_cell(self):
+        nlist = md.nlist.cell()
+        self.assertRaises(RuntimeError,test_self_interaction,self.system,nlist)
+
+    def test_self_interaction_nlist_stencil(self):
+        nlist = md.nlist.stencil()
+        self.assertRaises(RuntimeError,test_self_interaction,self.system,nlist)
+
+    def test_self_interaction_nlist_tree(self):
+        nlist = md.nlist.tree()
+        self.assertRaises(RuntimeError,test_self_interaction,self.system,nlist)
+
+    def tearDown(self):
+        del self.system
+        context.initialize();
+
+# test that mixtures of rigid and nonrigid particles are possible
+class test_constrain_rigid_nonrigid(unittest.TestCase):
+    def setUp(self):
+        self.s = init.create_lattice(lattice.sc(a=2,type_name='A'),n=[10,10,10]);
+
+        # 50% of the particles are B
+        self.s.particles.types.add('B')
+        for i,p in enumerate(self.s.particles):
+            if i % 2:
+                p.type = 'B'
+
+    def test_rigid_nonrigid(self):
+        self.s.particles.types.add('A_const')
+        rigid = md.constrain.rigid()
+        rigid.set_param('A',types=['A_const']*2,positions=[(-.5,0,0),(.5,0,0)])
+
+        rigid.create_bodies()
+
+        nlist = md.nlist.cell()
+        lj = md.pair.lj(r_cut=False, nlist = nlist)
+
+        # central particles
+        lj.pair_coeff.set(['A'], self.s.particles.types, epsilon=0, sigma=0, r_cut=False)
+        lj.pair_coeff.set('B', ['B','A_const'], epsilon=1, sigma=1, r_cut=2.5)
+        lj.pair_coeff.set('A_const','A_const', epsilon=1.0, sigma=1.0, r_cut=2.5)
+
+        center = group.rigid_center()
+        nonrigid = group.nonrigid()
+        g = group.union(a=center,b=nonrigid, name='intgroup')
+
+        md.integrate.mode_standard(dt=0.005)
+        langevin = md.integrate.langevin(group=g,kT=1.0,seed=1234)
+
+        run(1000)
+
+    def tearDown(self):
+        del self.s
         context.initialize();
 
 if __name__ == '__main__':

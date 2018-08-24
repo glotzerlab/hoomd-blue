@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -445,7 +445,6 @@ void NeighborListGPUTree::calcMortonCodes()
         Scalar4 post_i = h_pos.data[morton_conditions-1];
         Scalar3 pos_i = make_scalar3(post_i.x, post_i.y, post_i.z);
         Scalar3 f = box.makeFraction(pos_i);
-        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
         m_exec_conf->msg->error() << "nlist.tree(): Particle " << h_tag.data[morton_conditions-1] << " is out of bounds "
                                   << "(x: " << post_i.x << ", y: " << post_i.y << ", z: " << post_i.z
                                   << ", fx: "<< f.x <<", fy: "<<f.y<<", fz:"<<f.z<<")"<<endl;
@@ -688,6 +687,13 @@ void NeighborListGPUTree::updateImageVectors()
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
 
+    if (m_filter_body)
+        {
+        // add the maximum diameter of all composite particles
+        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
+        rmax += 0.5*max_d_comp;
+        }
+
     if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
         (sys3d && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
@@ -733,7 +739,7 @@ void NeighborListGPUTree::updateImageVectors()
                     // skip any periodic images if we don't have periodicity
                     if (i != 0 && !periodic.x) continue;
                     if (j != 0 && !periodic.y) continue;
-                    if (!sys3d || (k != 0 && !periodic.z)) continue;
+                    if (k != 0 && (!sys3d || !periodic.z)) continue;
 
                     h_image_list.data[n_images] = Scalar(i) * latt_a + Scalar(j) * latt_b + Scalar(k) * latt_c;
                     ++n_images;

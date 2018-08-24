@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -150,6 +150,13 @@ void NeighborListStencil::buildNlist(unsigned int timestep)
     Scalar rmax = getMaxRCut() + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
+
+    if (m_filter_body)
+        {
+        // add the maximum diameter of all composite particles
+        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
+        rmax += 0.5*max_d_comp;
+        }
 
     // get periodic flags
     uchar3 periodic = box.getPeriodic();

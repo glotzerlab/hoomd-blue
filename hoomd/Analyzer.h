@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -54,7 +54,7 @@
 
     \ingroup analyzers
 */
-class Analyzer
+class PYBIND11_EXPORT Analyzer
     {
     public:
         //! Constructs the analyzer and associates it with the ParticleData
@@ -115,7 +115,7 @@ class Analyzer
             m_comm = comm;
             }
 #endif
-        void addSlot(std::shared_ptr<detail::SignalSlot> slot)
+        void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
             {
             m_slots.push_back(slot);
             }
@@ -145,7 +145,7 @@ class Analyzer
 #endif
 
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
-        std::vector< std::shared_ptr<detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
+        std::vector< std::shared_ptr<hoomd::detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
     };
 
 //! Export the Analyzer class to python

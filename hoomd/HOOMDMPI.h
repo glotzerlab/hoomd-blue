@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -29,6 +29,7 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/map.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/utility.hpp> // std::pair
 #include <cereal/archives/binary.hpp>
 
 #ifdef SINGLE_PRECISION
@@ -41,6 +42,12 @@ const MPI_Datatype MPI_HOOMD_SCALAR = MPI_DOUBLE;
 const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_DOUBLE_INT;
 #endif
 
+#ifdef ENABLE_TBB
+// https://www.threadingbuildingblocks.org/docs/help/reference/appendices/known_issues/linux_os.html
+#include <tbb/concurrent_vector.h>
+#include <tbb/concurrent_unordered_set.h>
+#include <tbb/concurrent_unordered_map.h>
+#endif
 
 typedef struct{
     Scalar s;
@@ -50,61 +57,129 @@ typedef struct{
 
 namespace cereal
    {
-    //! Serialization functions for some of our data types
-        //! Serialization of Scalar4
-        template<class Archive>
-        void serialize(Archive & ar, Scalar4 & s, const unsigned int version)
+   //! Serialization functions for some of our data types
+   //! Serialization of Scalar4
+   template<class Archive>
+   void serialize(Archive & ar, Scalar4 & s, const unsigned int version)
+       {
+       ar & s.x;
+       ar & s.y;
+       ar & s.z;
+       ar & s.w;
+       }
+
+    //! Serialization of Scalar3
+    template<class Archive>
+    void serialize(Archive & ar, Scalar3 & s, const unsigned int version)
+        {
+        ar & s.x;
+        ar & s.y;
+        ar & s.z;
+        }
+
+
+    //! Serialization of int3
+    template<class Archive>
+    void serialize(Archive & ar, int3 & i, const unsigned int version)
+        {
+        ar & i.x;
+        ar & i.y;
+        ar & i.z;
+        }
+
+    //! serialization of uint2
+    template<class Archive>
+    void serialize(Archive & ar, uint2 & u, const unsigned int version)
+        {
+        ar & u.x;
+        ar & u.y;
+        }
+
+    //! serialization of uint3
+    template<class Archive>
+    void serialize(Archive & ar, uint3 & u, const unsigned int version)
+        {
+        ar & u.x;
+        ar & u.y;
+        ar & u.z;
+        }
+
+    //! serialization of uchar3
+    template<class Archive>
+    void serialize(Archive & ar, uchar3 & u, const unsigned int version)
+        {
+        ar & u.x;
+        ar & u.y;
+        ar & u.z;
+        }
+
+      #ifdef ENABLE_TBB
+      //! Serialization for tbb::concurrent_vector
+      template <class Archive, class T, class A> inline
+      void save( Archive & ar, tbb::concurrent_vector<T, A> const & vector )
+        {
+        ar( make_size_tag( static_cast<size_type>(vector.size()) ) ); // number of elements
+        for(auto && v : vector)
+            ar( v );
+        }
+
+      template <class Archive, class T, class A> inline
+      void load( Archive & ar, tbb::concurrent_vector<T, A> & vector )
+        {
+        size_type size;
+        ar( make_size_tag( size ) );
+
+        vector.resize( static_cast<std::size_t>( size ) );
+        for(auto && v : vector)
+            ar( v );
+        }
+
+    //! Serialization of tbb::concurrent_unordered_set
+    namespace tbb_unordered_set_detail
+        {
+        //! @internal
+        template <class Archive, class SetT> inline
+        void save( Archive & ar, SetT const & set )
             {
-            ar & s.x;
-            ar & s.y;
-            ar & s.z;
-            ar & s.w;
+            ar( make_size_tag( static_cast<size_type>(set.size()) ) );
+
+            for( const auto & i : set )
+                ar( i );
             }
 
-        //! Serialization of Scalar3
-        template<class Archive>
-        void serialize(Archive & ar, Scalar3 & s, const unsigned int version)
+        //! @internal
+        template <class Archive, class SetT> inline
+        void load( Archive & ar, SetT & set )
             {
-            ar & s.x;
-            ar & s.y;
-            ar & s.z;
-            }
+            size_type size;
+            ar( make_size_tag( size ) );
 
+            set.clear();
 
-        //! Serialization of int3
-        template<class Archive>
-        void serialize(Archive & ar, int3 & i, const unsigned int version)
-            {
-            ar & i.x;
-            ar & i.y;
-            ar & i.z;
-            }
+            for( size_type i = 0; i < size; ++i )
+                {
+                typename SetT::key_type key;
 
-        //! serialization of uint2
-        template<class Archive>
-        void serialize(Archive & ar, uint2 & u, const unsigned int version)
-            {
-            ar & u.x;
-            ar & u.y;
+                ar( key );
+                set.emplace( std::move( key ) );
+                }
             }
+        }
 
-        //! serialization of uint3
-        template<class Archive>
-        void serialize(Archive & ar, uint3 & u, const unsigned int version)
-            {
-            ar & u.x;
-            ar & u.y;
-            ar & u.z;
-            }
+    //! Saving for tbb::concurrent_unordered_set
+    template <class Archive, class K, class H, class KE, class A> inline
+    void save(Archive & ar, tbb::concurrent_unordered_set<K, H, KE, A> const & unordered_set )
+        {
+        tbb_unordered_set_detail::save( ar, unordered_set );
+        }
 
-        //! serialization of uchar3
-        template<class Archive>
-        void serialize(Archive & ar, uchar3 & u, const unsigned int version)
-            {
-            ar & u.x;
-            ar & u.y;
-            ar & u.z;
-            }
+    //! Loading for tbb::concurrent_unordered_set
+    template <class Archive, class K, class H, class KE, class A> inline
+    void load( Archive & ar, tbb::concurrent_unordered_set<K, H, KE, A> & unordered_set )
+        {
+        tbb_unordered_set_detail::load( ar, unordered_set );
+        }
+    #endif
     }
 
 

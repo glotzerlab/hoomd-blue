@@ -3,7 +3,6 @@
 
 from hoomd import *
 import hoomd;
-context.initialize()
 import unittest
 import os
 import numpy
@@ -12,7 +11,7 @@ import tempfile
 # unit tests for dump.gsd
 class gsd_write_tests (unittest.TestCase):
     def setUp(self):
-        print
+        context.initialize()
         if hoomd.comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.gsd');
             self.tmp_file = tmp[1];
@@ -162,20 +161,43 @@ class gsd_write_tests (unittest.TestCase):
 
         context.initialize();
         init.read_gsd(filename=self.tmp_file, frame=4);
+        self.assertEqual(get_step(), 4)
         if comm.get_rank() == 0:
             self.assertRaises(RuntimeError, init.read_gsd, self.tmp_file, frame=5);
+
+    # tests init.read_gsd time_step
+    def test_read_gsd_time_step(self):
+        dump.gsd(filename=self.tmp_file, group=group.all(), period=1, overwrite=True);
+        run(5);
+
+        context.initialize();
+        # test that time_step is set appropriately
+        init.read_gsd(filename=self.tmp_file, frame=4, time_step=1000);
+        self.assertEqual(get_step(), 1000)
+
+        # when restart is present, the time_step field should be ignored
+        context.initialize();
+        init.read_gsd(filename=self.tmp_file, restart=self.tmp_file, frame=4, time_step=1000);
+        self.assertEqual(get_step(), 4)
+
+    # tests with zero particles
+    def test_zero_particles(self):
+        self.s.particles.remove(0)
+        self.s.particles.remove(1)
+        self.s.particles.remove(2)
+        self.s.particles.remove(3)
+        dump.gsd(filename=self.tmp_file, group=group.all(), period=1, overwrite=True);
 
     def tearDown(self):
         if (hoomd.comm.get_rank()==0):
             os.remove(self.tmp_file);
 
         comm.barrier_all();
-        context.initialize();
 
 # unit tests for dump.gsd
 class gsd_read_tests (unittest.TestCase):
     def setUp(self):
-        print
+        context.initialize()
         if hoomd.comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.gsd');
             self.tmp_file = tmp[1];
@@ -384,18 +406,17 @@ class gsd_read_tests (unittest.TestCase):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=None, overwrite=True);
         context.initialize();
 
-        init.read_gsd(filename=self.tmp_file);
+        init.read_gsd(filename=self.tmp_file, frame=-1);
 
     def tearDown(self):
         if comm.get_rank() == 0:
             os.remove(self.tmp_file);
         comm.barrier_all();
-        context.initialize();
 
 # unit tests for dump.gsd with default type
 class gsd_default_type (unittest.TestCase):
     def setUp(self):
-        print
+        context.initialize()
         if hoomd.comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.gsd');
             self.tmp_file = tmp[1];
@@ -422,7 +443,7 @@ class gsd_default_type (unittest.TestCase):
     def test_gsd(self):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=None, overwrite=True);
 
-        snap = data.gsd_snapshot(self.tmp_file, frame=0);
+        snap = data.gsd_snapshot(self.tmp_file, frame=-1);
         if comm.get_rank() == 0:
             self.assertEqual(snap.particles.N, self.snapshot.particles.N);
             self.assertEqual(snap.particles.types, self.snapshot.particles.types);
@@ -438,7 +459,188 @@ class gsd_default_type (unittest.TestCase):
         if comm.get_rank() == 0:
             os.remove(self.tmp_file);
         comm.barrier_all();
+
+class gsd_default_type (unittest.TestCase):
+    def setUp(self):
         context.initialize();
+        if hoomd.comm.get_rank() == 0:
+            tmp = tempfile.mkstemp(suffix='.test.gsd');
+            self.tmp_file = tmp[1];
+        else:
+            self.tmp_file = "invalid";
+
+    def validate_append(self, name, default_val, nondefault_val):
+        self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
+        if comm.get_rank() == 0:
+            # particles
+            self.snapshot.particles.types = ['A', 'B', 'C'];
+            print(dir(self.snapshot.particles))
+            getattr(self.snapshot.particles, name)[:] = nondefault_val
+
+        self.s = init.read_snapshot(self.snapshot);
+        context.current.sorter.set_params(grid=8)
+
+        # write out frame 0
+        dump.gsd(filename=self.tmp_file, group=group.all(), period=None, overwrite=True);
+
+        # reset values to default and write out the second frame
+        if comm.get_rank() == 0:
+            getattr(self.snapshot.particles, name)[:] = default_val
+
+        self.s.restore_snapshot(self.snapshot);
+        run(1)
+        dump.gsd(filename=self.tmp_file, group=group.all(), dynamic=['attribute', 'momentum'], period=None);
+
+        # validate the resulting gsd file
+        snap = data.gsd_snapshot(self.tmp_file, frame=0);
+        if comm.get_rank() == 0:
+            self.assertEqual(snap.particles.N, self.snapshot.particles.N);
+            numpy.testing.assert_array_equal(getattr(snap.particles, name), nondefault_val);
+
+        snap = data.gsd_snapshot(self.tmp_file, frame=1);
+        if comm.get_rank() == 0:
+            self.assertEqual(snap.particles.N, self.snapshot.particles.N);
+            numpy.testing.assert_array_equal(getattr(snap.particles, name), default_val);
+
+
+    def validate_fullwrite(self, name, default_val, nondefault_val):
+        self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
+        if comm.get_rank() == 0:
+            # particles
+            self.snapshot.particles.types = ['A', 'B', 'C'];
+            print(dir(self.snapshot.particles))
+            getattr(self.snapshot.particles, name)[:] = nondefault_val
+
+        self.s = init.read_snapshot(self.snapshot);
+        context.current.sorter.set_params(grid=8)
+
+        # write out frame 0
+        dump.gsd(filename=self.tmp_file, group=group.all(), period=1, overwrite=True, dynamic=['attribute', 'momentum']);
+        run(1)
+
+        # reset values to default and write out the second frame
+        if comm.get_rank() == 0:
+            getattr(self.snapshot.particles, name)[:] = default_val
+
+        self.s.restore_snapshot(self.snapshot);
+        run(1)
+
+        # validate the resulting gsd file
+        snap = data.gsd_snapshot(self.tmp_file, frame=0);
+        if comm.get_rank() == 0:
+            self.assertEqual(snap.particles.N, self.snapshot.particles.N);
+            numpy.testing.assert_array_equal(getattr(snap.particles, name), nondefault_val);
+
+        snap = data.gsd_snapshot(self.tmp_file, frame=1);
+        if comm.get_rank() == 0:
+            self.assertEqual(snap.particles.N, self.snapshot.particles.N);
+            numpy.testing.assert_array_equal(getattr(snap.particles, name), default_val);
+
+    def test_nondefault_typeid(self):
+        self.validate_append(name='typeid',
+                             default_val = [0, 0, 0, 0],
+                             nondefault_val = [2, 1, 0, 2])
+
+    def test_nondefault_typeid2(self):
+        self.validate_fullwrite(name='typeid',
+                                default_val = [0, 0, 0, 0],
+                                nondefault_val = [2, 1, 0, 2])
+
+    def test_nondefault_mass(self):
+        self.validate_append(name='mass',
+                             default_val = [1, 1, 1, 1],
+                             nondefault_val = [3, 2, 1, 3])
+
+    def test_nondefault_mass2(self):
+        self.validate_fullwrite(name='mass',
+                                default_val = [1, 1, 1, 1],
+                                nondefault_val = [3, 2, 1, 3])
+
+    def test_nondefault_charge(self):
+        self.validate_append(name='charge',
+                             default_val = [0, 0, 0, 0],
+                             nondefault_val = [1, -1, 3, -3])
+
+    def test_nondefault_charge2(self):
+        self.validate_fullwrite(name='charge',
+                                default_val = [0, 0, 0, 0],
+                                nondefault_val = [1, -1, 3, -3])
+
+    def test_nondefault_diameter(self):
+        self.validate_append(name='diameter',
+                             default_val = [1, 1, 1, 1],
+                             nondefault_val = [2, 3, 4, 1])
+
+    def test_nondefault_diameter2(self):
+        self.validate_fullwrite(name='diameter',
+                                default_val = [1, 1, 1, 1],
+                                nondefault_val = [2, 3, 4, 1])
+
+    def test_nondefault_body(self):
+        self.validate_append(name='body',
+                             default_val = [4294967295, 4294967295, 4294967295, 4294967295],
+                             nondefault_val = [0, 1, 2, 4294967295])
+
+    def test_nondefault_body2(self):
+        self.validate_fullwrite(name='body',
+                                default_val = [4294967295, 4294967295, 4294967295, 4294967295],
+                                nondefault_val = [0, 1, 2, 4294967295])
+
+    def test_nondefault_moment_inertia(self):
+        self.validate_append(name='moment_inertia',
+                             default_val = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                             nondefault_val = [[1, 0, 0], [1, 2, 0], [1, 1, 1], [2, 3, 4]])
+
+    def test_nondefault_moment_inertia2(self):
+        self.validate_fullwrite(name='moment_inertia',
+                                default_val = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                                nondefault_val = [[1, 0, 0], [1, 2, 0], [1, 1, 1], [2, 3, 4]])
+
+
+    def test_nondefault_velocity(self):
+        self.validate_append(name='velocity',
+                             default_val = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                             nondefault_val = [[1, 0, 0], [1, 2, 0], [1, 1, 1], [2, 3, 4]])
+
+    def test_nondefault_velocity2(self):
+        self.validate_fullwrite(name='velocity',
+                                default_val = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                                nondefault_val = [[1, 0, 0], [1, 2, 0], [1, 1, 1], [2, 3, 4]])
+
+    def test_nondefault_image(self):
+        self.validate_append(name='image',
+                             default_val = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                             nondefault_val = [[1, 0, 0], [1, 2, 0], [1, 1, 1], [2, 3, 4]])
+
+    def test_nondefault_image2(self):
+        self.validate_fullwrite(name='image',
+                                default_val = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                                nondefault_val = [[1, 0, 0], [1, 2, 0], [1, 1, 1], [2, 3, 4]])
+
+    def test_nondefault_orientation(self):
+        self.validate_append(name='orientation',
+                             default_val = [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]],
+                             nondefault_val = [[1, 1, 0, 0], [1, 1, 2, 0], [1, 1, 1, 1], [1, 2, 3, 4]])
+
+    def test_nondefault_orientation2(self):
+        self.validate_fullwrite(name='orientation',
+                                default_val = [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]],
+                                nondefault_val = [[1, 1, 0, 0], [1, 1, 2, 0], [1, 1, 1, 1], [1, 2, 3, 4]])
+
+    def test_nondefault_angmom(self):
+        self.validate_append(name='angmom',
+                             default_val = [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]],
+                             nondefault_val = [[1, 1, 0, 0], [1, 1, 2, 0], [1, 1, 1, 1], [1, 2, 3, 4]])
+
+    def test_nondefault_angmom2(self):
+        self.validate_fullwrite(name='angmom',
+                                default_val = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+                                nondefault_val = [[1, 1, 0, 0], [1, 1, 2, 0], [1, 1, 1, 1], [1, 2, 3, 4]])
+
+    def tearDown(self):
+        if comm.get_rank() == 0:
+            os.remove(self.tmp_file);
+        comm.barrier_all();
 
 
 if __name__ == '__main__':

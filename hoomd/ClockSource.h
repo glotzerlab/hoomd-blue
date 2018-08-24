@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -44,7 +44,7 @@ inline void Sleep(int msec)
     or better. Critical accessor methods are inlined for low overhead
     \ingroup utils
 */
-class ClockSource
+class PYBIND11_EXPORT ClockSource
     {
     public:
         //! Construct a ClockSource

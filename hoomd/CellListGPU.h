@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -25,7 +25,7 @@
     \sa CellList
     \ingroup computes
 */
-class CellListGPU : public CellList
+class PYBIND11_EXPORT CellListGPU : public CellList
     {
     public:
         //! Construct a cell list

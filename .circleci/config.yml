@@ -1,0 +1,218 @@
+version: 2
+
+references:
+  test_container_config: &test_container_config
+    docker:
+      - image: joaander/ci:20171130
+        environment:
+          PYTHONPATH: /home/ci/project/build
+    working_directory: /home/ci/project
+
+  test_container_config-cuda80: &test_container_config-cuda80
+    docker:
+      - image: joaander/ci:20171130-cuda80
+        environment:
+          PYTHONPATH: /home/ci/project/build
+    working_directory: /home/ci/project
+
+  test_container_config-cuda75: &test_container_config-cuda75
+    docker:
+      - image: joaander/ci:20171130-cuda75
+        environment:
+          PYTHONPATH: /home/ci/project/build
+    working_directory: /home/ci/project
+
+  test_container_config-cuda70: &test_container_config-cuda70
+    docker:
+      - image: joaander/ci:20171130-cuda70
+        environment:
+          PYTHONPATH: /home/ci/project/build
+    working_directory: /home/ci/project
+
+  test_container_config-arch: &test_container_config-arch
+    docker:
+      - image: joaander/ci:20171206-arch-2
+        environment:
+          PYTHONPATH: /home/ci/project/build
+    working_directory: /home/ci/project
+
+  load_code: &load_code
+    checkout:
+      path: code
+
+  update_submodules: &update_submodules
+    run:
+      name: Update submodules
+      working_directory: code
+      command: git submodule update --init
+
+  configure: &configure
+    run:
+      name: Configure
+      command: |
+        mkdir build
+        cd build
+        echo cmake_root=${CMAKE_BIN}
+        echo pyver=${PYVER}
+        echo cc=${CC}
+        echo cxx=${CXX}
+        echo enable_cuda=${ENABLE_CUDA}
+        echo enable_mpi=${ENABLE_MPI}
+        echo enable_tbb=${ENABLE_TBB}
+        echo build_validation=${BUILD_VALIDATION}
+        echo build_jit=${BUILD_JIT}
+        ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DBUILD_JIT=${BUILD_JIT} -DBUILD_DEPRECATED=off -GNinja
+
+  compile: &compile
+    run:
+      name: Compile
+      working_directory: build
+      command: ninja -j3
+
+  native_build: &native_build
+    steps:
+      - *load_code
+      - *update_submodules
+      - *configure
+      - *compile
+
+  build_and_test: &build_and_test
+    steps:
+      - *load_code
+      - *update_submodules
+      - *configure
+      - *compile
+      - run:
+          name: Test
+          working_directory: build
+          no_output_timeout: 2h
+          command: ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+      - run:
+          name: Copy test results
+          command: mkdir test-results && cp build/Testing/**/Test.xml test-results/
+      - store_artifacts:
+          path: test-results
+          destination: test-results
+      - store_test_results:
+          path: test-results
+
+jobs:
+  unit-gcc48-py27-cm28-mpi-tbb:
+    <<: *test_container_config
+    environment:
+      CC: /usr/bin/gcc-4.8
+      CXX: /usr/bin/g++-4.8
+      PYVER: "2.7"
+      CMAKE_BIN: /opt/cmake-2.8.12/bin
+      ENABLE_MPI: ON
+      ENABLE_TBB: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: OFF
+    <<: *build_and_test
+
+  gcc48-py27-mpi-cd80:
+    <<: *test_container_config-cuda80
+    environment:
+      CC: /usr/bin/gcc-4.8
+      CXX: /usr/bin/g++-4.8
+      PYVER: "2.7"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: ON
+      ENABLE_TBB: OFF
+      ENABLE_CUDA: ON
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
+    <<: *native_build
+
+  gcc49-py34-mpi-cd75:
+    <<: *test_container_config-cuda75
+    environment:
+      CC: /usr/bin/gcc-4.9
+      CXX: /usr/bin/g++-4.9
+      PYVER: "3.4"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: ON
+      ENABLE_TBB: OFF
+      ENABLE_CUDA: ON
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: OFF
+    <<: *native_build
+
+  gcc48-py34-cm28-mpi-cd70:
+    <<: *test_container_config-cuda70
+    environment:
+      CC: /usr/bin/gcc-4.8
+      CXX: /usr/bin/g++-4.8
+      PYVER: "3.4"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: ON
+      ENABLE_TBB: OFF
+      ENABLE_CUDA: ON
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: OFF
+    <<: *native_build
+
+  gcc54-py35-mpi-cd80:
+    <<: *test_container_config-cuda80
+    environment:
+      CC: /usr/bin/gcc
+      CXX: /usr/bin/g++
+      PYVER: "3.5"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: ON
+      ENABLE_TBB: OFF
+      ENABLE_CUDA: ON
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
+    <<: *native_build
+
+  gcc72-py36-mpi:
+    <<: *test_container_config-arch
+    environment:
+      CC: /usr/bin/gcc
+      CXX: /usr/bin/g++
+      PYVER: "3.6"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: ON
+      ENABLE_TBB: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
+    <<: *native_build
+
+  unit-clang38-py35:
+    <<: *test_container_config
+    environment:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+      PYVER: "3.5"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: OFF
+      ENABLE_TBB: OFF
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
+    <<: *build_and_test
+
+  sphinx-docs:
+    <<: *test_container_config
+    steps:
+      - *load_code
+      - run:
+          name: Run Sphinx
+          working_directory: code/sphinx-doc
+          command: sphinx-build -b html -d _build/doctrees -W -n . build/html
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+      - unit-gcc48-py27-cm28-mpi-tbb
+      - gcc48-py27-mpi-cd80
+      - gcc49-py34-mpi-cd75
+      - gcc54-py35-mpi-cd80
+      - gcc48-py34-cm28-mpi-cd70
+      - unit-clang38-py35
+      - gcc72-py36-mpi
+      - sphinx-docs

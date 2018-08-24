@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -59,7 +59,7 @@ class Profiler;
     concert with the Profiler class.
     \ingroup utils
 */
-class ProfileDataElem
+class PYBIND11_EXPORT ProfileDataElem
     {
     public:
         //! Constructs an element with zeroed counters
@@ -120,7 +120,7 @@ class ProfileDataElem
     These profiles can of course be output via normal ostream operators.
     \ingroup utils
     */
-class Profiler
+class PYBIND11_EXPORT Profiler
     {
     public:
         //! Constructs an empty profiler and starts its timer ticking
@@ -155,7 +155,7 @@ void export_Profiler(pybind11::module& m);
 
 
 //! Output operator for Profiler
-std::ostream& operator<<(std::ostream &o, Profiler& prof);
+PYBIND11_EXPORT std::ostream& operator<<(std::ostream &o, Profiler& prof);
 
 /////////////////////////////////////
 // Profiler inlines

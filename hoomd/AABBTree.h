@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -44,7 +44,7 @@ const unsigned int INVALID_NODE = 0xffffffff;   //!< Invalid node index sentinel
 //! Node in an AABBTree
 /*! Stores data for a node in the AABB tree
 */
-struct AABBNode
+struct PYBIND11_EXPORT AABBNode
     {
     //! Default constructor
     AABBNode()
@@ -90,7 +90,7 @@ struct AABBNode
     tail recursion, or it uses a local stack to traverse the tree. The stack is cached between calls to limit
     the amount of dynamic memory allocation.
 */
-class AABBTree
+class PYBIND11_EXPORT AABBTree
     {
     public:
         //! Construct an AABBTree
@@ -104,6 +104,58 @@ class AABBTree
             {
             if (m_nodes)
                 free(m_nodes);
+            }
+
+        //! Copy constructor
+        AABBTree(const AABBTree& from)
+            {
+            m_num_nodes = from.m_num_nodes;
+            m_node_capacity = from.m_node_capacity;
+            m_root = from.m_root;
+            m_mapping = from.m_mapping;
+
+            m_nodes = NULL;
+
+            if (from.m_nodes)
+                {
+                // allocate memory
+                int retval = posix_memalign((void**)&m_nodes, 32, m_node_capacity*sizeof(AABBNode));
+                if (retval != 0)
+                    {
+                    throw std::runtime_error("Error allocating AABBTree memory");
+                    }
+
+                // copy over data
+                std::copy(from.m_nodes, from.m_nodes + m_num_nodes, m_nodes);
+                }
+            }
+
+        //! Copy assignment
+        AABBTree& operator=(const AABBTree& from)
+            {
+            m_num_nodes = from.m_num_nodes;
+            m_node_capacity = from.m_node_capacity;
+            m_root = from.m_root;
+            m_mapping = from.m_mapping;
+
+            if (m_nodes)
+                free(m_nodes);
+
+            m_nodes = NULL;
+
+            if (from.m_nodes)
+                {
+                // allocate memory
+                int retval = posix_memalign((void**)&m_nodes, 32, m_node_capacity*sizeof(AABBNode));
+                if (retval != 0)
+                    {
+                    throw std::runtime_error("Error allocating AABBTree memory");
+                    }
+
+                // copy over data
+                std::copy(from.m_nodes, from.m_nodes + m_num_nodes, m_nodes);
+                }
+            return *this;
             }
 
         //! Build a tree smartly from a list of AABBs
@@ -544,7 +596,7 @@ inline unsigned int AABBTree::allocateNode()
         // if we have old memory, copy it over
         if (m_nodes != NULL)
             {
-            memcpy(m_new_nodes, m_nodes, sizeof(AABBNode)*m_num_nodes);
+            memcpy((void *)m_new_nodes, (void *)m_nodes, sizeof(AABBNode)*m_num_nodes);
             free(m_nodes);
             }
         m_nodes = m_new_nodes;

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander
@@ -207,6 +207,7 @@ class nlist:
         - **constraint** - Exclude particles that are directly constrained.
         - **angle** - Exclude the two outside particles in all defined angles.
         - **dihedral** - Exclude the two outside particles in all defined dihedrals.
+        - **pair** - Exclude particles in all defined special pairs.
         - **body** - Exclude particles that belong to the same body.
 
         The following types are determined solely by the bond topology. Every chain of particles in the simulation
@@ -265,6 +266,10 @@ class nlist:
         if 'constraint' in exclusions:
             self.cpp_nlist.addExclusionsFromConstraints();
             exclusions.remove('constraint');
+
+        if 'pair' in exclusions:
+            self.cpp_nlist.addExclusionsFromPairs();
+            exclusions.remove('pair');
 
         # exclusions given in 1-2/1-3/1-4 notation.
         if '1-2' in exclusions:

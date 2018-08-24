@@ -1,8 +1,8 @@
 # -*- coding: iso-8859-1 -*-
 # Maintainer: mspells
 
+import math as m
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md
 context.initialize()
 import unittest
@@ -12,7 +12,7 @@ import os
 class pair_dipole_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.system = deprecated.init.create_random(N=100, phi_p=0.05);
+        self.system = init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]);
         snap = self.system.take_snapshot(all=True)
         snap.particles.angmom[:] = 1
         self.system.restore_snapshot(snap)
@@ -73,7 +73,6 @@ class pair_dipole_tests (unittest.TestCase):
     def tearDown(self):
         del self.system,self.nl
         context.initialize();
-
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

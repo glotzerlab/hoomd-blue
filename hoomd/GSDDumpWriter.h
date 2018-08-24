@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -33,7 +33,7 @@
 
     \ingroup analyzers
 */
-class GSDDumpWriter : public Analyzer
+class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
@@ -73,7 +73,7 @@ class GSDDumpWriter : public Analyzer
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
 
-        detail::SharedSignal<int (gsd_handle&)>& getWriteSignal() { return m_write_signal; }
+        hoomd::detail::SharedSignal<int (gsd_handle&)>& getWriteSignal() { return m_write_signal; }
 
     private:
         std::string m_fname;                //!< The file name we are writing to
@@ -87,8 +87,9 @@ class GSDDumpWriter : public Analyzer
         gsd_handle m_handle;                //!< Handle to the file
 
         std::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
+        std::map<std::string, bool> m_nondefault; //!< Map of quantities (true when non-default in frame 0)
 
-        detail::SharedSignal<int (gsd_handle&)> m_write_signal;
+        hoomd::detail::SharedSignal<int (gsd_handle&)> m_write_signal;
 
         //! Write a type mapping out to the file
         void writeTypeMapping(std::string chunk, std::vector< std::string > type_mapping);
@@ -118,6 +119,9 @@ class GSDDumpWriter : public Analyzer
 
         //! Check and raise an exception if an error occurs
         void checkError(int retval);
+
+        //! Populate the non-default map
+        void populateNonDefault();
     };
 
 //! Exports the GSDDumpWriter class to python

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -38,7 +38,7 @@
     \cite Yu2010
     \ingroup updaters
 */
-class TwoStepNPTMTK : public IntegrationMethodTwoStep
+class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     {
     public:
         //! Specify possible couplings between the diagonal elements of the pressure tensor
@@ -136,6 +136,12 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
             m_rescale_all = rescale_all;
             }
 
+        //! Set an optional damping factor for the box degrees of freedom
+        void setGamma(Scalar gamma)
+            {
+            m_gamma = gamma;
+            }
+
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
 
@@ -165,6 +171,16 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         //! Returns logged values
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
+        //! Initialize integrator variables
+        virtual void initializeIntegratorVariables()
+            {
+            IntegratorVariables v = getIntegratorVariables();
+            v.type = "npt_mtk";
+            v.variable.clear();
+            v.variable.resize(10,Scalar(0.0));
+            setIntegratorVariables(v);
+            }
+
     protected:
         std::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
         std::shared_ptr<ComputeThermo> m_thermo_group_t; //!< ComputeThermo operating on the integrated group at t
@@ -184,6 +200,8 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         Scalar m_mat_exp_r_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
 
         bool m_rescale_all;             //!< If true, rescale all particles in the system irrespective of group
+
+        Scalar m_gamma;                 //!< Optional damping factor for box degrees of freedom
 
         std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
 

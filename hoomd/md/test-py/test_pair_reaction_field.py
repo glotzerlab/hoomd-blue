@@ -2,7 +2,6 @@
 # Maintainer: jglaser
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md
 import unittest
 import os
@@ -13,7 +12,7 @@ context.initialize()
 class pair_reaction_field_tests (unittest.TestCase):
     def setUp(self):
         print
-        system = deprecated.init.create_random(N=100, phi_p=0.05);
+        system = init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]); #target a packing fraction of 0.05
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 

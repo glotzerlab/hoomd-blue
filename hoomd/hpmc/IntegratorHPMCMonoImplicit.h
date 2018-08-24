@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __HPMC_MONO_IMPLICIT__H__
@@ -151,7 +151,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         void slotNumTypesChange();
 
     protected:
-        Scalar m_n_R;                                            //!< Averge depletant number density in free volume
+        Scalar m_n_R;                                            //!< Average depletant number density in free volume
         unsigned int m_type;                                     //!< Type of depletant particle to generate
 
         GPUArray<hpmc_implicit_counters_t> m_implicit_count;     //!< Counter of active cell cluster moves
@@ -164,7 +164,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         GPUArray<Scalar> m_d_min;                                //!< Minimum sphere from which test depletant is excluded
         GPUArray<Scalar> m_d_max;                                //!< Maximum sphere for test depletant insertion
 
-        std::vector<Saru> m_rng_depletant;                       //!< RNGs for depletant insertion
+        std::vector<hoomd::detail::Saru> m_rng_depletant;                       //!< RNGs for depletant insertion
         bool m_rng_initialized;                                  //!< True if RNGs have been initialized
         unsigned int m_n_trial;                                 //!< Number of trial re-insertions per depletant
 
@@ -227,11 +227,6 @@ IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<
     m_d_max.swap(d_max);
 
     m_lambda.resize(this->m_pdata->getNTypes(),FLT_MAX);
-
-    if (this->m_sysdef->getNDimensions() == 2)
-        {
-        throw std::runtime_error("2D runs not supported for this integrator.");
-        }
     }
 
 //! Destructor
@@ -315,7 +310,7 @@ void IntegratorHPMCMonoImplicit< Shape >::initializePoissonDistribution()
 template< class Shape >
 void IntegratorHPMCMonoImplicit< Shape >::updateCellWidth()
     {
-    this->m_nominal_width = this->getMaxDiameter();
+    this->m_nominal_width = this->getMaxCoreDiameter();
 
     if (m_n_R > Scalar(0.0))
         {
@@ -323,6 +318,20 @@ void IntegratorHPMCMonoImplicit< Shape >::updateCellWidth()
         quat<Scalar> o;
         Shape tmp(o, this->m_params[m_type]);
         this->m_nominal_width += tmp.getCircumsphereDiameter();
+
+        // update image list range
+        this->m_extra_image_width = tmp.getCircumsphereDiameter();
+        }
+    // Account for patch width
+    if (this->m_patch)
+        {
+        Scalar max_extent = 0.0;
+        for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
+            {
+            max_extent = std::max(max_extent, this->m_patch->getAdditiveCutoff(typ));
+            }
+
+        this->m_nominal_width = std::max(this->m_nominal_width, this->m_patch->getRCut() + max_extent);
         }
 
     this->m_exec_conf->msg->notice(5) << "IntegratorHPMCMonoImplicit: updating nominal width to " << this->m_nominal_width << std::endl;
@@ -353,7 +362,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
         // initialize a set of random number generators
         for (unsigned int i = 0; i < n_omp_threads; ++i)
             {
-            m_rng_depletant.push_back(Saru(timestep,this->m_seed+this->m_exec_conf->getRank(), i));
+            m_rng_depletant.push_back(hoomd::detail::Saru(timestep,this->m_seed+this->m_exec_conf->getRank(), i));
             }
         m_rng_initialized = true;
         }
@@ -409,6 +418,8 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
         // access particle data and system box
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
 
         // access interaction matrix
         ArrayHandle<unsigned int> h_overlaps(this->m_overlaps, access_location::host, access_mode::read);
@@ -437,11 +448,14 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             #endif
 
             // make a trial move for i
-            Saru rng_i(i, this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
+            hoomd::detail::Saru rng_i(i, this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), this->m_params[typ_i]);
             unsigned int move_type_select = rng_i.u32() & 0xffff;
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < this->m_move_ratio);
+
+            Shape shape_old(quat<Scalar>(orientation_i), this->m_params[typ_i]);
+            vec3<Scalar> pos_old = pos_i;
 
             if (move_type_translate)
                 {
@@ -463,7 +477,17 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
 
             // check for overlaps with neighboring particle's positions
             bool overlap=false;
-            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+            OverlapReal r_cut_patch = 0;
+
+            if (this->m_patch && !this->m_patch_log)
+                {
+                r_cut_patch = this->m_patch->getRCut() + 0.5*this->m_patch->getAdditiveCutoff(typ_i);
+                }
+            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), r_cut_patch-this->getMinCoreDiameter()/(OverlapReal)2.0);
+            detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+            // patch + field interaction deltaU
+            double patch_field_energy_diff = 0;
 
             // All image boxes (including the primary)
             const unsigned int n_images = this->m_image_list.size();
@@ -523,12 +547,29 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                                 OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
                                 bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
+                                Scalar r_cut_ij = 0.0;
+                                if (this->m_patch)
+                                    r_cut_ij = r_cut_patch + 0.5*this->m_patch->getAdditiveCutoff(typ_j);
+
                                 if (h_overlaps.data[this->m_overlap_idx(typ_i,typ_j)]
                                     && circumsphere_overlap
                                     && test_overlap(r_ij, shape_i, shape_j, counters.overlap_err_count))
                                     {
                                     overlap = true;
                                     break;
+                                    }
+                                // If there is no overlap and m_patch is not NULL, calculate energy
+                                else if (this->m_patch && !this->m_patch_log && rsq <= r_cut_ij*r_cut_ij)
+                                    {
+                                    patch_field_energy_diff -= this->m_patch->energy(r_ij, typ_i,
+                                                               quat<float>(shape_i.orientation),
+                                                               h_diameter.data[i],
+                                                               h_charge.data[i],
+                                                               typ_j,
+                                                               quat<float>(orientation_j),
+                                                               h_diameter.data[j],
+                                                               h_charge.data[j]
+                                                               );
                                     }
                                 }
                             }
@@ -551,7 +592,92 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             // whether the move is accepted
             bool accept = !overlap;
 
-            if (!overlap)
+            // In most cases checking patch energy should be cheaper than computing
+            // depletants, so do that first. Calculate old patch energy only if
+            // m_patch not NULL and no overlaps. Note that we are computing U_old-U_new
+            // and then exponentiating directly (rather than exp(-(U_new-U_old)))
+            if (this->m_patch && !this->m_patch_log && accept)
+                {
+                for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                    {
+                    vec3<Scalar> pos_i_image = pos_old + this->m_image_list[cur_image];
+                    detail::AABB aabb = aabb_i_local;
+                    aabb.translate(pos_i_image);
+
+                    // stackless search
+                    for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
+                        {
+                        if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                            {
+                            if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
+                                {
+                                for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                    {
+                                    // read in its position and orientation
+                                    unsigned int j = this->m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                    Scalar4 postype_j;
+                                    Scalar4 orientation_j;
+
+                                    // handle j==i situations
+                                    if ( j != i )
+                                        {
+                                        // load the position and orientation of the j particle
+                                        postype_j = h_postype.data[j];
+                                        orientation_j = h_orientation.data[j];
+                                        }
+                                    else
+                                        {
+                                        if (cur_image == 0)
+                                            {
+                                            // in the first image, skip i == j
+                                            continue;
+                                            }
+                                        else
+                                            {
+                                            // If this is particle i and we are in an outside image, use the translated position and orientation
+                                            postype_j = make_scalar4(pos_old.x, pos_old.y, pos_old.z, postype_i.w);
+                                            orientation_j = quat_to_scalar4(shape_old.orientation);
+                                            }
+                                        }
+
+                                    // put particles in coordinate system of particle i
+                                    vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+                                    unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                    Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
+                                    if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
+                                        patch_field_energy_diff += this->m_patch->energy(r_ij,
+                                                                   typ_i,
+                                                                   quat<float>(orientation_i),
+                                                                   h_diameter.data[i],
+                                                                   h_charge.data[i],
+                                                                   typ_j,
+                                                                   quat<float>(orientation_j),
+                                                                   h_diameter.data[j],
+                                                                   h_charge.data[j]);
+                                    }
+                                }
+                            }
+                        else
+                            {
+                            // skip ahead
+                            cur_node_idx += this->m_aabb_tree.getNodeSkip(cur_node_idx);
+                            }
+                        }  // end loop over AABB nodes
+                    } // end loop over images
+
+                // Add external energetic contribution
+                if (this->m_external)
+                    {
+                    patch_field_energy_diff -= this->m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+                    }
+
+                // Update acceptance based on patch, will only be reached if overlap check succeeded
+                accept = rng_i.d() < slow::exp(patch_field_energy_diff);
+                } // end if (m_patch)
+
+            // Depletant check
+            if (accept)
                 {
                 // log of acceptance probability
                 Scalar lnb(0.0);
@@ -920,7 +1046,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
         ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
         // precalculate the grid shift
-        Saru rng(timestep, this->m_seed, 0xf4a3210e);
+        hoomd::detail::Saru rng(timestep, this->m_seed, 0xf4a3210e);
         Scalar3 shift = make_scalar3(0,0,0);
         shift.x = rng.s(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
         shift.y = rng.s(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));

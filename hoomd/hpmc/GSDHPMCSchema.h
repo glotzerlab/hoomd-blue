@@ -133,6 +133,8 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         for(unsigned int i = 0; i < Ntypes; i++)
             {
             shape[i].radius = data[i];
+            shape[i].isOriented = false;
+            shape[i].ignore = 0;
             }
         return success;
         }
@@ -198,6 +200,7 @@ struct gsd_shape_schema<hpmc::ell_params>: public gsd_schema_hpmc_base
             shape[i].x = a[i];
             shape[i].y = b[i];
             shape[i].z = c[i];
+            shape[i].ignore = 0;
             }
         return success;
         }
@@ -227,11 +230,11 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
             {
             for (unsigned int v = 0; v < shape[i].N; v++)
                 {
-                data[v*3+0+count] = float(shape[i].x[v]);
-                data[v*3+1+count] = float(shape[i].y[v]);
-                data[v*3+2+count] = float(shape[i].z[v]);
+                data[count*3+0] = float(shape[i].x[v]);
+                data[count*3+1] = float(shape[i].y[v]);
+                data[count*3+2] = float(shape[i].z[v]);
+                count++;
                 }
-            count += shape[i].N;
             }
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, count, 3, 0, (void *)&data[0]);
         path = name + "sweep_radius";
@@ -284,16 +287,17 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
             hpmc::detail::poly3d_verts result(N[i], m_exec_conf->isCUDAEnabled());
             for (unsigned int v = 0; v < N[i]; v++)
                 {
-                result.x[v] = vertices[v*3+0+count];
-                result.y[v] = vertices[v*3+1+count];
-                result.z[v] = vertices[v*3+2+count];
+                result.x[v] = vertices[count*3+0];
+                result.y[v] = vertices[count*3+1];
+                result.z[v] = vertices[count*3+2];
                 dsq = fmax(result.x[v]*result.x[v] + result.y[v]*result.y[v] + result.z[v]*result.z[v], dsq);
+                count++;
                 }
             result.diameter = 2.0*(sqrt(dsq)+result.sweep_radius);
             result.N = N[i];
             result.sweep_radius = sweep_radius[i];
-            count += N[i];
             shape[i] = result; // Can we avoid a full copy of the data (move semanitcs?)
+            shape[i].ignore = 0;
             }
         return success;
         }
@@ -322,10 +326,10 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
             {
             for (unsigned int v = 0; v < shape[i].N; v++)
                 {
-                data[v*2+0+count] = float(shape[i].x[v]);
-                data[v*2+1+count] = float(shape[i].y[v]);
+                data[count*2+0] = float(shape[i].x[v]);
+                data[count*2+1] = float(shape[i].y[v]);
+                count++;
                 }
-            count += shape[i].N;
             }
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, count, 2, 0, (void *)&data[0]);
         path = name + "sweep_radius";
@@ -376,14 +380,15 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
             float dsq = 0.0;
             for (unsigned int v = 0; v < N[i]; v++)
                 {
-                shape[i].x[v] = vertices[v*2+0+count];
-                shape[i].y[v] = vertices[v*2+1+count];
+                shape[i].x[v] = vertices[count*2+0];
+                shape[i].y[v] = vertices[count*2+1];
                 dsq = fmax(shape[i].x[v]*shape[i].x[v] + shape[i].y[v]*shape[i].y[v], dsq);
+                count++;
                 }
             shape[i].diameter = 2.0*(sqrt(dsq)+shape[i].sweep_radius);
             shape[i].N = N[i];
             shape[i].sweep_radius = sweep_radius[i];
-            count += N[i];
+            shape[i].ignore = 0;
             }
         return success;
         }

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -18,7 +18,7 @@
 #include "CachedAllocator.h"
 #endif
 
-#include "hoomd/extern/num_util.h"
+#include "hoomd/extern/pybind/include/pybind11/numpy.h"
 
 #include <iostream>
 #include <cassert>
@@ -59,7 +59,9 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
           m_nghosts(0),
           m_max_nparticles(0),
           m_nglobal(0),
-          m_resize_factor(9./8.)
+          m_accel_set(false),
+          m_resize_factor(9./8.),
+          m_arrays_allocated(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
@@ -91,6 +93,9 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 
     // initialize box dimensions on all procesors
     setGlobalBox(global_box);
+
+    // initialize rtag array
+    GPUVector<unsigned int>(exec_conf).swap(m_rtag);
 
     // initialize all processors
     initializeFromSnapshot(snap);
@@ -134,7 +139,9 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
       m_nghosts(0),
       m_max_nparticles(0),
       m_nglobal(0),
-      m_resize_factor(9./8.)
+      m_accel_set(false),
+      m_resize_factor(9./8.),
+      m_arrays_allocated(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
@@ -152,6 +159,9 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
         m_exec_conf->msg->warning() << "Not all particles were found inside the given box" << endl;
         throw runtime_error("Error initializing ParticleData");
         }
+
+    // initialize rtag array
+    GPUVector<unsigned int>(exec_conf).swap(m_rtag);
 
     // initialize particle data with snapshot contents
     initializeFromSnapshot(snapshot);
@@ -307,13 +317,6 @@ void ParticleData::setTypeName(unsigned int type, const std::string& name)
 */
 void ParticleData::allocate(unsigned int N)
     {
-    // check the input
-    if (N == 0)
-        {
-        m_exec_conf->msg->error() << "ParticleData is being asked to allocate 0 particles.... this makes no sense whatsoever" << endl;
-        throw runtime_error("Error allocating ParticleData");
-        }
-
     // maximum number is the current particle number
     m_max_nparticles = N;
 
@@ -362,19 +365,16 @@ void ParticleData::allocate(unsigned int N)
     GPUArray< Scalar3 > inertia(N, m_exec_conf);
     m_inertia.swap(inertia);
 
-    #ifdef ENABLE_MPI
-    if (m_decomposition)
-        {
-        GPUArray< unsigned int > comm_flags(N, m_exec_conf);
-        m_comm_flags.swap(comm_flags);
-        }
-    #endif
+    GPUArray< unsigned int > comm_flags(N, m_exec_conf);
+    m_comm_flags.swap(comm_flags);
 
     // allocate alternate particle data arrays (for swapping in-out)
     allocateAlternateArrays(N);
 
     // notify observers
     m_max_particle_num_signal.emit();
+
+    m_arrays_allocated = true;
     }
 
 /*! \param N Number of particles to allocate memory for
@@ -383,8 +383,6 @@ void ParticleData::allocate(unsigned int N)
 */
 void ParticleData::allocateAlternateArrays(unsigned int N)
     {
-    assert(N>0);
-
     // positions
     GPUArray< Scalar4 > pos_alt(N, m_exec_conf);
     m_pos_alt.swap(pos_alt);
@@ -461,6 +459,21 @@ void ParticleData::setNGlobal(unsigned int nglobal)
  */
 void ParticleData::resize(unsigned int new_nparticles)
     {
+    // do nothing if zero size is requested
+
+    if (new_nparticles == 0)
+        {
+        // gurantee that arrays are allocated
+        if (! m_arrays_allocated)
+            allocate(1);
+        m_nparticles = new_nparticles;
+        return;
+        }
+
+    // allocate as necessary
+    if (! m_arrays_allocated)
+        allocate(new_nparticles);
+
     // resize pdata arrays as necessary
     unsigned int max_nparticles = m_max_nparticles;
     if (new_nparticles > max_nparticles)
@@ -485,6 +498,13 @@ void ParticleData::resize(unsigned int new_nparticles)
  */
 void ParticleData::reallocate(unsigned int max_n)
     {
+    if (! m_arrays_allocated)
+        {
+        // allocate instead
+        allocate(max_n);
+        return;
+        }
+
     m_exec_conf->msg->notice(7) << "Resizing particle data arrays "
         << m_max_nparticles << " -> " << max_n << " ptls" << std::endl;
     m_max_nparticles = max_n;
@@ -505,9 +525,7 @@ void ParticleData::reallocate(unsigned int max_n)
     m_angmom.resize(max_n);
     m_inertia.resize(max_n);
 
-    #ifdef ENABLE_MPI
-    if (m_decomposition) m_comm_flags.resize(max_n);
-    #endif
+    m_comm_flags.resize(max_n);
 
     if (! m_pos_alt.isNull())
         {
@@ -783,9 +801,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         // broadcast global number of particles
         bcast(nglobal, root, mpi_comm);
 
-        // allocate array for reverse-lookup tags
-        GPUVector< unsigned int> rtag(nglobal, m_exec_conf);
-        m_rtag.swap(rtag);
+        // resize array for reverse-lookup tags
+        m_rtag.resize(nglobal);
 
         // Local particle data
         std::vector<Scalar3> pos;
@@ -840,12 +857,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         // Now that active tag list has changed, invalidate the cache
         m_invalid_cached_tags = true;
 
-        // we have to allocate even if the number of particles on a processor
-        // is zero, so that the arrays can be resized later
-        if (m_nparticles == 0)
-            allocate(1);
-        else
-            allocate(m_nparticles);
+        // resize particle data
+        resize(m_nparticles);
 
         // Load particle data
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
@@ -891,14 +904,13 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
             }
 
         // allocate array for reverse lookup tags
-        GPUVector< unsigned int> rtag(snapshot.size, m_exec_conf);
-        m_rtag.swap(rtag);
+        m_rtag.resize(snapshot.size);
 
         // Now that active tag list has changed, invalidate the cache
         m_invalid_cached_tags = true;
 
         // allocate particle data such that we can accomodate the particles
-        allocate(snapshot.size);
+        resize(snapshot.size);
 
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::overwrite);
@@ -956,6 +968,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         // initialize type mapping
         m_type_mapping = snapshot.type_mapping;
         }
+
+    // copy over accel_set flag from snapshot
+    m_accel_set = snapshot.is_accel_set;
 
     // set global number of particles
     setNGlobal(nglobal);
@@ -1202,6 +1217,9 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
         }
 
     snapshot.type_mapping = m_type_mapping;
+
+    // copy over acceleration set flag (this is a copy in case users take a snapshot before running)
+    snapshot.is_accel_set = m_accel_set;
 
     return index;
     }
@@ -1622,6 +1640,31 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
     return result;
 }
 
+/*! \param tag Global particle tag
+    \param component Virial component (0=xx, 1=xy, 2=xz, 3=yy, 4=yz, 5=zz)
+    \returns Force of particle referenced by tag
+ */
+Scalar ParticleData::getPNetVirial(unsigned int tag, unsigned int component) const
+    {
+    unsigned int i = getRTag(tag);
+    bool found = (i < getN());
+    Scalar result = Scalar(0.0);
+    if (found)
+        {
+        ArrayHandle<Scalar> h_net_virial(m_net_virial, access_location::host, access_mode::read);
+        result = h_net_virial.data[m_net_virial.getPitch()*component+i];
+        }
+    #ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        unsigned int owner_rank = getOwnerRank(tag);
+        MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return result;
+    }
+
+
 //! Set the current position of a particle
 /* \post In parallel simulations, the particle is moved to a new domain if necessary.
  * \warning Do not call during a simulation (method can overwrite ghost particle data)
@@ -2020,9 +2063,7 @@ unsigned int ParticleData::addParticle(unsigned int type)
         ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
-        #ifdef ENABLE_MPI
         ArrayHandle<unsigned int> h_comm_flag(m_comm_flags, access_location::host, access_mode::readwrite);
-        #endif
 
         unsigned int idx = old_nparticles;
 
@@ -2036,12 +2077,7 @@ unsigned int ParticleData::addParticle(unsigned int type)
         h_body.data[idx] = NO_BODY;
         h_orientation.data[idx] = make_scalar4(1.0,0.0,0.0,0.0);
         h_tag.data[idx] = tag;
-        #ifdef ENABLE_MPI
-        if (m_decomposition)
-            {
-            h_comm_flag.data[idx] = 0;
-            }
-        #endif
+        h_comm_flag.data[idx] = 0;
         }
 
     // update global number of particles
@@ -2128,9 +2164,7 @@ void ParticleData::removeParticle(unsigned int tag)
             ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
-            #ifdef ENABLE_MPI
             ArrayHandle<unsigned int> h_comm_flag(m_comm_flags, access_location::host, access_mode::readwrite);
-            #endif
 
             h_pos.data[idx] = h_pos.data[size-1];
             h_vel.data[idx] = h_vel.data[size-1];
@@ -2141,13 +2175,7 @@ void ParticleData::removeParticle(unsigned int tag)
             h_body.data[idx] = h_body.data[size-1];
             h_orientation.data[idx] = h_orientation.data[size-1];
             h_tag.data[idx] = h_tag.data[size-1];
-
-            #ifdef ENABLE_MPI
-            if (m_decomposition)
-                {
-                h_comm_flag.data[idx] = h_comm_flag.data[size-1];
-                }
-            #endif
+            h_comm_flag.data[idx] = h_comm_flag.data[size-1];
 
             unsigned int last_tag = h_tag.data[size-1];
             h_rtag.data[last_tag] = idx;
@@ -2285,6 +2313,7 @@ void export_ParticleData(py::module& m)
     .def("getAngularMomentum", &ParticleData::getAngularMomentum)
     .def("getPNetForce", &ParticleData::getPNetForce)
     .def("getNetTorque", &ParticleData::getNetTorque)
+    .def("getPNetVirial", &ParticleData::getPNetVirial)
     .def("getMomentsOfInertia", &ParticleData::getMomentsOfInertia)
     .def("setPosition", &ParticleData::setPosition)
     .def("setVelocity", &ParticleData::setVelocity)
@@ -2312,7 +2341,7 @@ void export_ParticleData(py::module& m)
 //! Constructor for SnapshotParticleData
 template <class Real>
 SnapshotParticleData<Real>::SnapshotParticleData(unsigned int N)
-       : size(N)
+       : size(N), is_accel_set(false)
     {
     resize(N);
     }
@@ -2333,6 +2362,7 @@ void SnapshotParticleData<Real>::resize(unsigned int N)
     angmom.resize(N,quat<Real>(0.0,vec3<Real>(0.0,0.0,0.0)));
     inertia.resize(N,vec3<Real>(0.0,0.0,0.0));
     size = N;
+    is_accel_set = false;
     }
 
 template <class Real>
@@ -2352,6 +2382,7 @@ void SnapshotParticleData<Real>::insert(unsigned int i, unsigned int n)
     angmom.insert(angmom.begin()+i,n,quat<Real>(0.0,vec3<Real>(0.0,0.0,0.0)));
     inertia.insert(inertia.begin()+i,n,vec3<Real>(0.0,0.0,0.0));
     size += n;
+    is_accel_set = false;
     }
 
 template <class Real>
@@ -2430,6 +2461,10 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_angmom(getAngularMomentumArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar3> h_inertia(getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_force(getNetForce(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(getNetTorqueArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_net_virial(getNetVirial(), access_location::host, access_mode::readwrite);
+
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
 
         ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::read);
@@ -2446,10 +2481,14 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
         ArrayHandle<Scalar4> h_orientation_alt(m_orientation_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_angmom_alt(m_angmom_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar3> h_inertia_alt(m_inertia_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_force_alt(m_net_force_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_torque_alt(m_net_torque_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_net_virial_alt(m_net_virial_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_tag_alt(m_tag_alt, access_location::host, access_mode::overwrite);
 
         unsigned int n =0;
         unsigned int m = 0;
+        unsigned int net_virial_pitch = m_net_virial.getPitch();
         for (unsigned int i = 0; i < old_nparticles; ++i)
             {
             unsigned int tag = h_tag.data[i];
@@ -2466,6 +2505,10 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
                 h_orientation_alt.data[n] = h_orientation.data[i];
                 h_angmom_alt.data[n] = h_angmom.data[i];
                 h_inertia_alt.data[n] = h_inertia.data[i];
+                h_net_force_alt.data[n] = h_net_force.data[i];
+                h_net_torque_alt.data[n] = h_net_torque.data[i];
+                for (unsigned int j = 0; j < 6; ++j)
+                    h_net_virial_alt.data[net_virial_pitch*j+n] = h_net_virial.data[net_virial_pitch*j+i];
                 h_tag_alt.data[n] = h_tag.data[i];
                 ++n;
                 }
@@ -2483,6 +2526,10 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
                 p.orientation = h_orientation.data[i];
                 p.angmom = h_angmom.data[i];
                 p.inertia = h_inertia.data[i];
+                p.net_force = h_net_force.data[i];
+                p.net_torque = h_net_torque.data[i];
+                for (unsigned int j = 0; j < 6; ++j)
+                    p.net_virial[j] = h_net_virial.data[net_virial_pitch*j+i];
                 p.tag = h_tag.data[i];
                 out[m++] = p;
                 }
@@ -2507,6 +2554,9 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
     swapOrientations();
     swapAngularMomenta();
     swapMomentsOfInertia();
+    swapNetForce();
+    swapNetTorque();
+    swapNetVirial();
     swapTags();
 
         {
@@ -2554,10 +2604,14 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_angmom(getAngularMomentumArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar3> h_inertia(getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_force(getNetForce(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(getNetTorqueArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_net_virial(getNetVirial(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::readwrite);
 
+        unsigned int net_virial_pitch = m_net_virial.getPitch();
         // add new particles at the end
         unsigned int n = old_nparticles;
         for (std::vector<pdata_element>::const_iterator it = in.begin(); it != in.end(); ++it)
@@ -2573,6 +2627,10 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
             h_orientation.data[n] = p.orientation;
             h_angmom.data[n] = p.angmom;
             h_inertia.data[n] = p.inertia;
+            h_net_force.data[n] = p.net_force;
+            h_net_torque.data[n] = p.net_torque;
+            for (unsigned int j = 0; j < 6; ++j)
+                h_net_virial.data[net_virial_pitch*j+n] = p.net_virial[j];
             h_tag.data[n] = p.tag;
             n++;
             }
@@ -2639,6 +2697,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
         ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::read);
         ArrayHandle<Scalar4> d_angmom(getAngularMomentumArray(), access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_inertia(getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_net_force(getNetForce(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_net_torque(getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_net_virial(getNetVirial(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
 
         // access alternate particle data arrays to write to
@@ -2652,6 +2713,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
         ArrayHandle<Scalar4> d_orientation_alt(m_orientation_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_angmom_alt(m_angmom_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar3> d_inertia_alt(m_inertia_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_net_force_alt(m_net_force_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_net_torque_alt(m_net_torque_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_net_virial_alt(m_net_virial_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_tag_alt(m_tag_alt, access_location::device, access_mode::overwrite);
 
         ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
@@ -2678,6 +2742,10 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
                            d_orientation.data,
                            d_angmom.data,
                            d_inertia.data,
+                           d_net_force.data,
+                           d_net_torque.data,
+                           d_net_virial.data,
+                           getNetVirial().getPitch(),
                            d_tag.data,
                            d_rtag.data,
                            d_pos_alt.data,
@@ -2690,6 +2758,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
                            d_orientation_alt.data,
                            d_angmom_alt.data,
                            d_inertia_alt.data,
+                           d_net_force_alt.data,
+                           d_net_torque_alt.data,
+                           d_net_virial_alt.data,
                            d_tag_alt.data,
                            d_out.data,
                            d_comm_flags.data,
@@ -2725,6 +2796,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
     swapOrientations();
     swapAngularMomenta();
     swapMomentsOfInertia();
+    swapNetForce();
+    swapNetTorque();
+    swapNetVirial();
     swapTags();
 
     // notify subscribers
@@ -2757,6 +2831,9 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
         ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar4> d_angmom(getAngularMomentumArray(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar3> d_inertia(getMomentsOfInertiaArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_force(getNetForce(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(getNetTorqueArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_net_virial(getNetVirial(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
@@ -2778,6 +2855,10 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
             d_orientation.data,
             d_angmom.data,
             d_inertia.data,
+            d_net_force.data,
+            d_net_torque.data,
+            d_net_virial.data,
+            getNetVirial().getPitch(),
             d_tag.data,
             d_rtag.data,
             d_in.data,
@@ -2870,129 +2951,177 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getPosNP()
+py::object SnapshotParticleData<Real>::getPosNP(pybind11::object self)
     {
-    std::vector<intp> dims(2);
-    dims[0] = pos.size();
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->pos.size();
     dims[1] = 3;
-    return py::object(num_util::makeNumFromData((Real*)&pos[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->pos[0], self);
     }
 
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getVelNP()
+py::object SnapshotParticleData<Real>::getVelNP(pybind11::object self)
     {
-    std::vector<intp> dims(2);
-    dims[0] = pos.size();
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->pos.size();
     dims[1] = 3;
-    return py::object(num_util::makeNumFromData((Real*)&vel[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->vel[0], self);
     }
 
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getAccelNP()
+py::object SnapshotParticleData<Real>::getAccelNP(pybind11::object self)
     {
-    std::vector<intp> dims(2);
-    dims[0] = pos.size();
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->pos.size();
     dims[1] = 3;
-    return py::object(num_util::makeNumFromData((Real*)&accel[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->accel[0], self);
     }
 
 /*! \returns a numpy array that wraps the type data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getTypeNP()
+py::object SnapshotParticleData<Real>::getTypeNP(pybind11::object self)
     {
-    return py::object(num_util::makeNumFromData(&type[0], type.size()), false);
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    return pybind11::array(self_cpp->type.size(), &self_cpp->type[0], self);
     }
 
 /*! \returns a numpy array that wraps the mass data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getMassNP()
+py::object SnapshotParticleData<Real>::getMassNP(pybind11::object self)
     {
-    return py::object(num_util::makeNumFromData(&mass[0], mass.size()), false);
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    return pybind11::array(self_cpp->mass.size(), &self_cpp->mass[0], self);
     }
 
 /*! \returns a numpy array that wraps the charge data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getChargeNP()
+py::object SnapshotParticleData<Real>::getChargeNP(pybind11::object self)
     {
-    return py::object(num_util::makeNumFromData(&charge[0], charge.size()), false);
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    return pybind11::array(self_cpp->charge.size(), &self_cpp->charge[0], self);
     }
 
 /*! \returns a numpy array that wraps the diameter data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getDiameterNP()
+py::object SnapshotParticleData<Real>::getDiameterNP(pybind11::object self)
     {
-    return py::object(num_util::makeNumFromData(&diameter[0], diameter.size()), false);
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    return pybind11::array(self_cpp->diameter.size(), &self_cpp->diameter[0], self);
     }
 
 /*! \returns a numpy array that wraps the image data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getImageNP()
+py::object SnapshotParticleData<Real>::getImageNP(pybind11::object self)
     {
-    std::vector<intp> dims(2);
-    dims[0] = pos.size();
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->pos.size();
     dims[1] = 3;
-    return py::object(num_util::makeNumFromData((int*)&image[0], dims), false);
+    return pybind11::array(dims, (int*)&self_cpp->image[0], self);
     }
 
 /*! \returns a numpy array that wraps the body data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getBodyNP()
+py::object SnapshotParticleData<Real>::getBodyNP(pybind11::object self)
     {
-    return py::object(num_util::makeNumFromData(&body[0], body.size()), false);
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    return pybind11::array(self_cpp->body.size(), &self_cpp->body[0], self);
     }
 
 /*! \returns a numpy array that wraps the orientation data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getOrientationNP()
+py::object SnapshotParticleData<Real>::getOrientationNP(pybind11::object self)
     {
-    std::vector<intp> dims(2);
-    dims[0] = pos.size();
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->pos.size();
     dims[1] = 4;
-    return py::object(num_util::makeNumFromData((Real*)&orientation[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->orientation[0], self);
     }
 
 /*! \returns a numpy array that wraps the moment of inertia data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getMomentInertiaNP()
+py::object SnapshotParticleData<Real>::getMomentInertiaNP(pybind11::object self)
     {
-    std::vector<intp> dims(2);
-    dims[0] = inertia.size();
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->inertia.size();
     dims[1] = 3;
-    return py::object(num_util::makeNumFromData((Real*)&inertia[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->inertia[0], self);
     }
 
 /*! \returns a numpy array that wraps the angular momentum data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getAngmomNP()
+py::object SnapshotParticleData<Real>::getAngmomNP(pybind11::object self)
     {
-    std::vector<intp> dims(2);
-    dims[0] = angmom.size();
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->angmom.size();
     dims[1] = 4;
-    return py::object(num_util::makeNumFromData((Real*)&angmom[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->angmom[0], self);
     }
 
 /*! \returns A python list of type names
@@ -3013,11 +3142,38 @@ py::list SnapshotParticleData<Real>::getTypes()
 template <class Real>
 void SnapshotParticleData<Real>::setTypes(py::list types)
     {
+    // set dirty
+    is_accel_set = false;
+
     type_mapping.resize(len(types));
 
     for (unsigned int i = 0; i < len(types); i++)
         type_mapping[i] = py::cast<string>(types[i]);
     }
+
+#ifdef ENABLE_MPI
+template <class Real>
+void SnapshotParticleData<Real>::bcast(unsigned int root, MPI_Comm mpi_comm)
+    {
+    // broadcast all member quantities
+    ::bcast(pos, root, mpi_comm);
+    ::bcast(vel, root, mpi_comm);
+    ::bcast(accel, root, mpi_comm);
+    ::bcast(type, root, mpi_comm);
+    ::bcast(mass, root, mpi_comm);
+    ::bcast(charge, root, mpi_comm);
+    ::bcast(diameter, root, mpi_comm);
+    ::bcast(image, root, mpi_comm);
+    ::bcast(body, root, mpi_comm);
+    ::bcast(orientation, root, mpi_comm);
+    ::bcast(angmom, root, mpi_comm);
+    ::bcast(inertia, root, mpi_comm);
+
+    ::bcast(size, root, mpi_comm);
+    ::bcast(type_mapping, root, mpi_comm);
+    ::bcast(is_accel_set, root, mpi_comm);
+    }
+#endif
 
 // instantiate both float and double snapshots
 template struct SnapshotParticleData<float>;
@@ -3027,41 +3183,43 @@ void export_SnapshotParticleData(py::module& m)
     {
     py::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float> > >(m,"SnapshotParticleData_float")
     .def(py::init<unsigned int>())
-    .def_property_readonly("position", &SnapshotParticleData<float>::getPosNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("velocity", &SnapshotParticleData<float>::getVelNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("acceleration", &SnapshotParticleData<float>::getAccelNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("typeid", &SnapshotParticleData<float>::getTypeNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("mass", &SnapshotParticleData<float>::getMassNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("charge", &SnapshotParticleData<float>::getChargeNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("diameter", &SnapshotParticleData<float>::getDiameterNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("image", &SnapshotParticleData<float>::getImageNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("body", &SnapshotParticleData<float>::getBodyNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("orientation", &SnapshotParticleData<float>::getOrientationNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("angmom", &SnapshotParticleData<float>::getAngmomNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("position", &SnapshotParticleData<float>::getPosNP)
+    .def_property_readonly("velocity", &SnapshotParticleData<float>::getVelNP)
+    .def_property_readonly("acceleration", &SnapshotParticleData<float>::getAccelNP)
+    .def_property_readonly("typeid", &SnapshotParticleData<float>::getTypeNP)
+    .def_property_readonly("mass", &SnapshotParticleData<float>::getMassNP)
+    .def_property_readonly("charge", &SnapshotParticleData<float>::getChargeNP)
+    .def_property_readonly("diameter", &SnapshotParticleData<float>::getDiameterNP)
+    .def_property_readonly("image", &SnapshotParticleData<float>::getImageNP)
+    .def_property_readonly("body", &SnapshotParticleData<float>::getBodyNP)
+    .def_property_readonly("orientation", &SnapshotParticleData<float>::getOrientationNP)
+    .def_property_readonly("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP)
+    .def_property_readonly("angmom", &SnapshotParticleData<float>::getAngmomNP)
     .def_property("types", &SnapshotParticleData<float>::getTypes, &SnapshotParticleData<float>::setTypes)
     .def_readonly("N", &SnapshotParticleData<float>::size)
     .def("resize", &SnapshotParticleData<float>::resize)
     .def("insert", &SnapshotParticleData<float>::insert)
+    .def_readonly("is_accel_set", &SnapshotParticleData<float>::is_accel_set)
     ;
 
     py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double> > >(m,"SnapshotParticleData_double")
     .def(py::init<unsigned int>())
-    .def_property_readonly("position", &SnapshotParticleData<double>::getPosNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("velocity", &SnapshotParticleData<double>::getVelNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("acceleration", &SnapshotParticleData<double>::getAccelNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("typeid", &SnapshotParticleData<double>::getTypeNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("mass", &SnapshotParticleData<double>::getMassNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("charge", &SnapshotParticleData<double>::getChargeNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("diameter", &SnapshotParticleData<double>::getDiameterNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("image", &SnapshotParticleData<double>::getImageNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("body", &SnapshotParticleData<double>::getBodyNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("orientation", &SnapshotParticleData<double>::getOrientationNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("angmom", &SnapshotParticleData<double>::getAngmomNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("position", &SnapshotParticleData<double>::getPosNP)
+    .def_property_readonly("velocity", &SnapshotParticleData<double>::getVelNP)
+    .def_property_readonly("acceleration", &SnapshotParticleData<double>::getAccelNP)
+    .def_property_readonly("typeid", &SnapshotParticleData<double>::getTypeNP)
+    .def_property_readonly("mass", &SnapshotParticleData<double>::getMassNP)
+    .def_property_readonly("charge", &SnapshotParticleData<double>::getChargeNP)
+    .def_property_readonly("diameter", &SnapshotParticleData<double>::getDiameterNP)
+    .def_property_readonly("image", &SnapshotParticleData<double>::getImageNP)
+    .def_property_readonly("body", &SnapshotParticleData<double>::getBodyNP)
+    .def_property_readonly("orientation", &SnapshotParticleData<double>::getOrientationNP)
+    .def_property_readonly("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP)
+    .def_property_readonly("angmom", &SnapshotParticleData<double>::getAngmomNP)
     .def_property("types", &SnapshotParticleData<double>::getTypes, &SnapshotParticleData<double>::setTypes)
     .def_readonly("N", &SnapshotParticleData<double>::size)
     .def("resize", &SnapshotParticleData<double>::resize)
     .def("insert", &SnapshotParticleData<double>::insert)
+    .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set)
     ;
-    }
+   }

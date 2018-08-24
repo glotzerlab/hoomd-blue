@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -38,6 +38,9 @@ struct pdata_element
     Scalar4 angmom;            //!< Angular momentum
     Scalar3 inertia;           //!< Moments of inertia
     unsigned int tag;          //!< global tag
+    Scalar4 net_force;         //!< net force
+    Scalar4 net_torque;        //!< net torque
+    Scalar net_virial[6];      //!< net virial
     };
 #else
 //!Forward declaration
@@ -56,6 +59,10 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     const Scalar4 *d_orientation,
                     const Scalar4 *d_angmom,
                     const Scalar3 *d_inertia,
+                    const Scalar4 *d_net_force,
+                    const Scalar4 *d_net_torque,
+                    const Scalar *d_net_virial,
+                    unsigned int net_virial_pitch,
                     const unsigned int *d_tag,
                     unsigned int *d_rtag,
                     Scalar4 *d_pos_alt,
@@ -68,6 +75,9 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     Scalar4 *d_orientation_alt,
                     Scalar4 *d_angmom_alt,
                     Scalar3 *d_inertia_alt,
+                    Scalar4 *d_net_force_alt,
+                    Scalar4 *d_net_torque_alt,
+                    Scalar *d_net_virial_alt,
                     unsigned int *d_tag_alt,
                     pdata_element *d_out,
                     unsigned int *d_comm_flags,
@@ -89,6 +99,10 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     Scalar4 *d_orientation,
                     Scalar4 *d_angmom,
                     Scalar3 *d_inertia,
+                    Scalar4 *d_net_force,
+                    Scalar4 *d_net_torque,
+                    Scalar *d_net_virial,
+                    unsigned int net_virial_pitch,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
                     const pdata_element *d_in,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -668,6 +668,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     unsigned int type = __scalar_as_int(d_postype[idx].w);
 
     d_postype[idx] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, __int_as_scalar(type));
+    d_orientation[idx] = quat_to_scalar4(updated_orientation);
     d_image[idx] = img+imgi;
     }
 

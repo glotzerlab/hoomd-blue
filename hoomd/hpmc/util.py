@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 R""" HPMC utilities
@@ -794,6 +794,8 @@ class tune_npt(tune):
 
     'dV' uses the volume acceptance to call :py:meth:`hoomd.hpmc.update.boxmc.volume`.
 
+    'dlnV' uses the ln_volume acceptance to call :py:meth:`hoomd.hpmc.update.boxmc.ln_volume`.
+
     'dxy', 'dxz', and 'dyz' tunables use the shear acceptance to set
     ``delta[0]``, ``delta[1]``, and ``delta[2]``, respectively in a call to
     :py:meth:`hoomd.hpmc.update.boxmc.shear`.
@@ -844,6 +846,12 @@ class tune_npt(tune):
                           'acceptance': obj.get_volume_acceptance,
                           'maximum': 1.0,
                           'set': lambda x: obj.volume(delta=x)
+                          },
+                    'dlnV': {
+                          'get': lambda: obj.ln_volume()['delta'],
+                          'acceptance': obj.get_ln_volume_acceptance,
+                          'maximum': 1.0,
+                          'set': lambda x: obj.ln_volume(delta=x)
                           },
                     'dxy': {
                           'get': lambda: obj.shear()['delta'][0],

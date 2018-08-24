@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -479,7 +479,9 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
 
         // output groups to send buffer in rank-sorted order
         for (typename group_map_t::iterator it = group_send_map.begin(); it != group_send_map.end(); ++it)
+            {
             m_groups_sendbuf.push_back(it->second);
+            }
 
             {
             ArrayHandle<unsigned int> h_unique_neighbors(m_comm.m_unique_neighbors, access_location::host, access_mode::read);
@@ -944,7 +946,9 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
             // exchange group data, write directly to the particle data arrays
             if (m_comm.m_prof)
+                {
                 m_comm.m_prof->push("MPI send/recv");
+                }
 
                 {
                 MPI_Isend(&plan_copybuf.front(),
@@ -1075,8 +1079,8 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
             m_netvirial_copybuf(m_exec_conf),
             m_netvirial_recvbuf(m_exec_conf),
             m_plan(m_exec_conf),
-            m_plan_reverse(m_exec_conf), 
-            m_tag_reverse(m_exec_conf), 
+            m_plan_reverse(m_exec_conf),
+            m_tag_reverse(m_exec_conf),
             m_netforce_reverse_copybuf(m_exec_conf),
             m_netforce_reverse_recvbuf(m_exec_conf),
             m_r_ghost_max(Scalar(0.0)),
@@ -1615,9 +1619,7 @@ void Communicator::exchangeGhosts()
 
             if (h_body.data[idx] != NO_BODY)
                 {
-                ghost_fraction = make_scalar3(std::max(ghost_fraction.x, ghost_fractions_body[type].x),
-                                              std::max(ghost_fraction.y, ghost_fractions_body[type].y),
-                                              std::max(ghost_fraction.z, ghost_fractions_body[type].z));
+                ghost_fraction += ghost_fractions_body[type];
                 }
 
             Scalar3 f = box.makeFraction(pos);
@@ -1704,7 +1706,9 @@ void Communicator::exchangeGhosts()
             m_velocity_copybuf.resize(max_copy_ghosts);
 
         if (flags[comm_flag::orientation])
+            {
             m_orientation_copybuf.resize(max_copy_ghosts);
+            }
 
             {
             // we fill all fields, but send only those that are requested by the CommFlags bitset
@@ -1798,7 +1802,9 @@ void Communicator::exchangeGhosts()
 
         // exchange particle data, write directly to the particle data arrays
         if (m_prof)
+            {
             m_prof->push("MPI send/recv");
+            }
 
             {
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
@@ -2046,10 +2052,10 @@ void Communicator::exchangeGhosts()
     m_constraint_comm.exchangeGhostGroups(m_plan, mask);
 
     m_last_flags = flags;
-    
+
     /***********************************************************************************************************************************************************
-     * For multi-body force fields we must allow particles to send information back through their ghosts. 
-     * For this purpose, we implement a system for ghosts to be sent back to their original domain with forces on them that can then be added back to the original local particle. 
+     * For multi-body force fields we must allow particles to send information back through their ghosts.
+     * For this purpose, we implement a system for ghosts to be sent back to their original domain with forces on them that can then be added back to the original local particle.
      * In exchangeGhosts, this involves the construction of reverse plans and then the sending of ghosts back to the domains in which they originated
      **********************************************************************************************************************************************************/
 
@@ -2212,7 +2218,7 @@ void Communicator::exchangeGhosts()
 
             if (m_prof)
                 m_prof->pop();
-    
+
             // append ghosts at the end of particle data array
             unsigned int start_idx_plan = n_ghosts_init + n_reverse_ghosts_recv;
             unsigned int start_idx_tag = n_reverse_ghosts_recv;
@@ -2526,7 +2532,7 @@ void Communicator::updateNetForce(unsigned int timestep)
         // resize send buffers as needed
         unsigned int old_size;
         if (flags[comm_flag::net_force])
-            { 
+            {
             old_size = m_netforce_copybuf.size();
             m_netforce_copybuf.resize(old_size+m_num_copy_ghosts[dir]);
             }
@@ -2713,7 +2719,7 @@ void Communicator::updateNetForce(unsigned int timestep)
                     {
                     Scalar4 f = h_netforce_reverse_recvbuf.data[start_idx_reverse + i];
                     Scalar4 cur_F = h_netforce.data[idx];
-                    
+
                     // add net force to particle data
                     cur_F.x += f.x;
                     cur_F.y += f.y;

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -13,7 +13,7 @@
 #include "ParticleData.h"
 #include "Index1D.h"
 
-#include "hoomd/extern/num_util.h"
+#include "hoomd/extern/pybind/include/pybind11/numpy.h"
 
 #ifdef ENABLE_CUDA
 #include "BondedGroupData.cuh"
@@ -1248,8 +1248,8 @@ template<class T, typename Group>
         typedef typename T::Snapshot Snapshot;
         py::class_<Snapshot, std::shared_ptr<Snapshot> >(m, snapshot_name.c_str())
             .def(py::init<unsigned int>())
-            .def_property_readonly("typeid", &Snapshot::getTypeNP, py::return_value_policy::take_ownership)
-            .def_property_readonly("group", &Snapshot::getBondedTagsNP, py::return_value_policy::take_ownership)
+            .def_property_readonly("typeid", &Snapshot::getTypeNP)
+            .def_property_readonly("group", &Snapshot::getBondedTagsNP)
             .def_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
@@ -1261,8 +1261,8 @@ template<class T, typename Group>
         typedef typename T::Snapshot Snapshot;
         py::class_<Snapshot, std::shared_ptr<Snapshot> >(m,snapshot_name.c_str())
             .def(py::init<unsigned int>())
-            .def_property_readonly("value", &Snapshot::getValueNP, py::return_value_policy::take_ownership)
-            .def_property_readonly("group", &Snapshot::getBondedTagsNP, py::return_value_policy::take_ownership)
+            .def_property_readonly("value", &Snapshot::getValueNP)
+            .def_property_readonly("group", &Snapshot::getBondedTagsNP)
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
             ;
@@ -1317,20 +1317,22 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::repli
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypeNP()
+py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypeNP(pybind11::object self)
     {
     assert(has_type_mapping);
-    return py::object(num_util::makeNumFromData(&(this->type_id[0]), this->type_id.size()), false);
+    auto self_cpp = self.cast<BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot *>();
+    return pybind11::array(self_cpp->type_id.size(), &self_cpp->type_id[0], self);
     }
 
 /*! \returns a numpy array that wraps the value data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getValueNP()
+py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getValueNP(pybind11::object self)
     {
     assert(!has_type_mapping);
-    return py::object(num_util::makeNumFromData(&(this->val[0]), this->val.size()), false);
+    auto self_cpp = self.cast<BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot *>();
+    return pybind11::array(self_cpp->val.size(), &self_cpp->val[0], self);
     }
 
 
@@ -1338,12 +1340,13 @@ py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot:
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedTagsNP()
+py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedTagsNP(pybind11::object self)
     {
-    std::vector<intp> dims(2);
-    dims[0] = this->groups.size();
+    auto self_cpp = self.cast<BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot *>();
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->groups.size();
     dims[1] = group_size;
-    return py::object(num_util::makeNumFromData((unsigned int*)&(this->groups[0]), dims), false);
+    return pybind11::array(dims, (unsigned int *)&self_cpp->groups[0], self);
     }
 
 /*! \returns A python list of type names
@@ -1371,20 +1374,20 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTy
     }
 
 //! Explicit template instantiations
-template class BondedGroupData<2, Bond, name_bond_data>;
+template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_bond_data>;
 template void export_BondedGroupData<BondData,Bond>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
-template class BondedGroupData<3, Angle, name_angle_data>;
+template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
 template void export_BondedGroupData<AngleData,Angle>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
-template class BondedGroupData<4, Dihedral, name_dihedral_data>;
+template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
 template void export_BondedGroupData<DihedralData,Dihedral>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
-template class BondedGroupData<4, Dihedral, name_improper_data>;
+template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
 template void export_BondedGroupData<ImproperData,Dihedral>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
-template class BondedGroupData<2, Constraint, name_constraint_data, false>;
+template class PYBIND11_EXPORT BondedGroupData<2, Constraint, name_constraint_data, false>;
 template void export_BondedGroupData<ConstraintData,Constraint>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
-template class BondedGroupData<2, Bond, name_pair_data>;
+template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_pair_data>;
 template void export_BondedGroupData<PairData,Bond>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);

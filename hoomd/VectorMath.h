@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -1214,6 +1214,12 @@ struct rotmat3
     DEVICE static rotmat3 fromAxisAngle(const vec3<Real>& axis, const Real& theta)
         {
         return rotmat3<Real>(quat<Real>::fromAxisAngle(axis, theta));
+        }
+
+    //! Returns the determinant
+    DEVICE Real det()
+        {
+        return row0.x*(row1.y*row2.z-row1.z*row2.y)-row0.y*(row1.x*row2.z-row1.z*row2.x)+row0.z*(row1.x*row2.y-row1.y*row2.x);
         }
 
     vec3<Real> row0;   //!< First row

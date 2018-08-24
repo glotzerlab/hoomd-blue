@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -53,7 +53,7 @@
 
     \ingroup updaters
 */
-class Updater
+class PYBIND11_EXPORT Updater
     {
     public:
         //! Constructs the compute and associates it with the ParticleData
@@ -176,7 +176,7 @@ class Updater
             return m_exec_conf;
             }
 
-        void addSlot(std::shared_ptr<detail::SignalSlot> slot)
+        void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
             {
             m_slots.push_back(slot);
             }
@@ -204,7 +204,7 @@ class Updater
         std::shared_ptr<Communicator> m_comm;             //!< The communicator this updater is to use
 #endif
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
-        std::vector< std::shared_ptr<detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
+        std::vector< std::shared_ptr<hoomd::detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
     };
 
 //! Export the Updater class to python

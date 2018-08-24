@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -41,7 +41,7 @@
 
     \ingroup updaters
 */
-class IntegratorTwoStep : public Integrator
+class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     {
     public:
         //! Anisotropic integration mode: Automatic (detect whether
@@ -111,6 +111,10 @@ class IntegratorTwoStep : public Integrator
 
         //! Set autotuner parameters
         virtual void setAutotunerParams(bool enable, unsigned int period);
+
+        //! (Re-)initialize the integration method
+        void initializeIntegrationMethods();
+
     protected:
         //! Helper method to test if all added methods have valid restart information
         bool isValidRestart();

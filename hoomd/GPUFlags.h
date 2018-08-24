@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -42,7 +42,7 @@ not read or reset the flags more times than is needed.
 
 \ingroup data_structs
 */
-template<class T> class GPUFlags
+template<class T> class PYBIND11_EXPORT GPUFlags
     {
     public:
         //! Constructs a NULL GPUFlags

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <memory>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include "hoomd/extern/num_util.h"
+#include "hoomd/extern/pybind/include/pybind11/numpy.h"
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
@@ -130,8 +130,8 @@ class PotentialPair : public ForceCompute
                                             InputIterator first2, InputIterator last2,
                                             Scalar& energy );
         //! Calculates the energy between two lists of particles.
-        Scalar computeEnergyBetweenSetsPythonList(  pybind11::object tags1,
-                                                    pybind11::object tags2);
+        Scalar computeEnergyBetweenSetsPythonList(  pybind11::array_t<int, pybind11::array::c_style> tags1,
+                                                    pybind11::array_t<int, pybind11::array::c_style> tags2);
 
     protected:
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
@@ -557,6 +557,24 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
     if( first1 == last1 || first2 == last2 )
         return;
 
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // temporarily add tag comm flag
+        CommFlags old_flags = m_comm->getFlags();
+        CommFlags new_flags = old_flags;
+        new_flags[comm_flag::tag] = 1;
+        m_comm->setFlags(new_flags);
+
+        // force communication
+        m_comm->migrateParticles();
+        m_comm->exchangeGhosts();
+
+        // reset the old flags
+        m_comm->setFlags(old_flags);
+        }
+    #endif
+
     energy = Scalar(0.0);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -693,21 +711,19 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
 
 //! Calculates the energy between two lists of particles.
 template < class evaluator >
-Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  pybind11::object tags1,
-                                                                        pybind11::object tags2 )
+Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  pybind11::array_t<int, pybind11::array::c_style> tags1,
+                                                                        pybind11::array_t<int, pybind11::array::c_style> tags2 )
     {
     Scalar eng = 0.0;
-    num_util::check_contiguous(tags1.ptr());
-    num_util::check_rank(tags1.ptr(), 1);
-    num_util::check_type(tags1.ptr(), NPY_INT);
-    unsigned int* itags1 = (unsigned int*)num_util::data(tags1.ptr());
+    if (tags1.ndim() != 1)
+        throw std::domain_error("error: ndim != 2");
+    unsigned int* itags1 = (unsigned int*)tags1.mutable_data();
 
-    num_util::check_contiguous(tags2.ptr());
-    num_util::check_rank(tags2.ptr(), 1);
-    num_util::check_type(tags2.ptr(), NPY_INT);
-    unsigned int* itags2 = (unsigned int*)num_util::data(tags2.ptr());
-    computeEnergyBetweenSets(   itags1, itags1+num_util::size(tags1.ptr()),
-                                itags2, itags2+num_util::size(tags2.ptr()),
+    if (tags2.ndim() != 1)
+        throw std::domain_error("error: ndim != 2");
+    unsigned int* itags2 = (unsigned int*)tags2.mutable_data();
+    computeEnergyBetweenSets(   itags1, itags1 + tags1.size(),
+                                itags2, itags2 + tags2.size(),
                                 eng);
     return eng;
     }

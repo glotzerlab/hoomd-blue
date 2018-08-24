@@ -19,17 +19,19 @@ set(_${PACKAGE_NAME}_cu_sources
      EAMForceGPU.cu
    )
 
-# Need to define NO_IMPORT_ARRAY in every file but module.cc
-set_source_files_properties(${_${PACKAGE_NAME}_sources} ${_${PACKAGE_NAME}_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
 if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_${PACKAGE_NAME}_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_CUDA_GENERATED_FILES})
+pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
+if (APPLE)
+set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path/../md;@loader_path")
+else()
+set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN/../md;$ORIGIN")
+endif()
 
 # link the library to its dependencies
-target_link_libraries(_${PACKAGE_NAME} _hoomd _md ${HOOMD_COMMON_LIBS})
+target_link_libraries(_${PACKAGE_NAME} PRIVATE _md ${HOOMD_LIBRARIES})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -42,15 +44,6 @@ if (ENABLE_MPI)
    endif(MPI_LINK_FLAGS)
 endif(ENABLE_MPI)
 
-##################################
-# change the name of the library to be a valid python module
-# tweak the properties of the output to make a functional python module
-set_target_properties(_${PACKAGE_NAME} PROPERTIES PREFIX "" OUTPUT_NAME "_${PACKAGE_NAME}")
-
-# .dylib is not recognized as a python module by python on Mac OS X
-if(APPLE)
-    set_target_properties(_${PACKAGE_NAME} PROPERTIES SUFFIX ".so")
-endif(APPLE)
 fix_cudart_rpath(_${PACKAGE_NAME})
 
 # install the library

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -1075,6 +1075,127 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
         }
     }
 
+//! Tests for correctness of neighbor search in 2d systems
+template<class NL>
+void neighborlist_2d_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    auto sysdef = std::make_shared<SystemDefinition>(2, BoxDim(10.0, 10.0, 0.01), 1, 0, 0, 0, 0, exec_conf);
+    sysdef->setNDimensions(2);
+    auto pdata = sysdef->getParticleData();
+
+    auto nlist = std::make_shared<NL>(sysdef, 3.0, 0.25);
+    nlist->setRCutPair(0,0,3.0);
+    nlist->setStorageMode(NeighborList::full);
+
+    // non-interacting inside the box
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        h_pos.data[0].x = h_pos.data[0].y = 0.0;
+        h_pos.data[1].x = h_pos.data[1].y = 3.0;
+        h_pos.data[0].z = h_pos.data[1].z = 0.0;
+
+        h_pos.data[0].w = __int_as_scalar(0.0); h_pos.data[1].w = __int_as_scalar(0.0);
+        }
+    nlist->compute(0);
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
+
+        CHECK_EQUAL_UINT(h_n_neigh.data[0], 0);
+        CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
+        }
+
+    // interacting inside the box
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        h_pos.data[0].x = h_pos.data[0].y = 0.0;
+        h_pos.data[1].x = h_pos.data[1].y = 1.0;
+        }
+    nlist->compute(1);
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
+
+        CHECK_EQUAL_UINT(h_n_neigh.data[0], 1);
+        CHECK_EQUAL_UINT(h_n_neigh.data[1], 1);
+
+        ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(), access_location::host, access_mode::read);
+        CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0]], 1);
+        CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1]], 0);
+        }
+
+    // non-interacting through boundary
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        h_pos.data[0].x = h_pos.data[0].y = 4.9;
+        h_pos.data[1].x = h_pos.data[1].y = -2.1;
+        }
+    nlist->compute(2);
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
+
+        CHECK_EQUAL_UINT(h_n_neigh.data[0], 0);
+        CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
+        }
+
+    // interacting through boundary
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        h_pos.data[0].x = h_pos.data[0].y = 4.9;
+        h_pos.data[1].x = h_pos.data[1].y = -4.9;
+        }
+    nlist->compute(3);
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
+
+        CHECK_EQUAL_UINT(h_n_neigh.data[0], 1);
+        CHECK_EQUAL_UINT(h_n_neigh.data[1], 1);
+
+        ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(), access_location::host, access_mode::read);
+        CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0]], 1);
+        CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1]], 0);
+        }
+
+    // non-interacting through other boundary
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        h_pos.data[0].x = -4.9; h_pos.data[0].y = 4.9;
+        h_pos.data[1].x = 2.1; h_pos.data[1].y = -2.1;
+        }
+    nlist->compute(4);
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
+
+        CHECK_EQUAL_UINT(h_n_neigh.data[0], 0);
+        CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
+        }
+
+    // interacting through other boundary
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        h_pos.data[0].x = -4.9; h_pos.data[0].y = 4.9;
+        h_pos.data[1].x = 4.9; h_pos.data[1].y = -4.9;
+        }
+    nlist->compute(5);
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
+
+        CHECK_EQUAL_UINT(h_n_neigh.data[0], 1);
+        CHECK_EQUAL_UINT(h_n_neigh.data[1], 1);
+
+        ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(), access_location::host, access_mode::read);
+        CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0]], 1);
+        CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1]], 0);
+        }
+    }
+
 ///////////////
 // BINNED CPU
 ///////////////
@@ -1117,6 +1238,11 @@ UP_TEST( NeighborListBinned_cutoff_exclude )
 UP_TEST( NeighborListBinned_type )
     {
     neighborlist_type_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! 2d tests for binned class
+UP_TEST( NeighborListBinned_2d )
+    {
+    neighborlist_2d_tests<NeighborListBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 ////////////////////
@@ -1162,6 +1288,11 @@ UP_TEST( NeighborListStencil_cutoff_exclude )
 UP_TEST( NeighborListStencil_type )
     {
     neighborlist_type_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! 2d tests for stencil class
+UP_TEST( NeighborListStencil_2d )
+    {
+    neighborlist_2d_tests<NeighborListStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! comparison test case for stencil class
 UP_TEST( NeighborListStencil_comparison )
@@ -1211,6 +1342,11 @@ UP_TEST( NeighborListTree_cutoff_exclude )
 UP_TEST( NeighborListTree_type )
     {
     neighborlist_type_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! 2d tests for tree class
+UP_TEST( NeighborListTree_2d )
+    {
+    neighborlist_2d_tests<NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! comparison test case for tree class
 UP_TEST( NeighborListTree_comparison )
@@ -1262,6 +1398,11 @@ UP_TEST( NeighborListGPUBinned_type )
     {
     neighborlist_type_tests<NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
+//! 2d tests for GPUBinned class
+UP_TEST( NeighborListGPUBinned_2d )
+    {
+    neighborlist_2d_tests<NeighborListGPUBinned>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
 //! comparison test case for GPUBinned class
 UP_TEST( NeighborListGPUBinned_comparison )
     {
@@ -1310,6 +1451,11 @@ UP_TEST( NeighborListGPUStencil_cutoff_exclude )
 UP_TEST( NeighborListGPUStencil_type )
     {
     neighborlist_type_tests<NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! 2d tests for GPUStencil class
+UP_TEST( NeighborListGPUStencil_2d )
+    {
+    neighborlist_2d_tests<NeighborListGPUStencil>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! comparison test case for GPUStencil class against Stencil on cpu
 UP_TEST( NeighborListGPUStencil_cpu_comparison )
@@ -1423,6 +1569,19 @@ UP_TEST( NeighborListGPUTree_type )
     if (exec_conf->getComputeCapability() >= 300)
         {
         neighborlist_type_tests<NeighborListGPUTree>(exec_conf);
+        }
+    else
+        {
+        exec_conf->msg->notice(1) << "Skipping GPU tree type test, unsupported" << endl;
+        }
+    }
+//! 2d tests for tree class
+UP_TEST( NeighborListGPUTree_2d )
+    {
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    if (exec_conf->getComputeCapability() >= 300)
+        {
+        neighborlist_2d_tests<NeighborListGPUTree>(exec_conf);
         }
     else
         {
