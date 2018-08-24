@@ -66,6 +66,10 @@ Options
 
     specifies a file to write messages (the file is overwritten)
 
+* **--single-mpi**
+
+    allow single-threaded HOOMD builds in MPI jobs
+
 * **--user**
 
     user options
