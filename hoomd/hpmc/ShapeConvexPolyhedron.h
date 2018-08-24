@@ -634,6 +634,31 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     */
     }
 
+//! Test for a common point in the intersection of three convex polyhedra
+/*! \param a First shape to test
+    \param b Second shape to test
+    \param c Third shape to test
+    \param ab_t Position of second shape relative to first
+    \param ac_t Position of third shape relative to first
+    \param err Output variable that is incremented upon non-convergence
+*/
+template<>
+DEVICE inline bool test_overlap_three(const ShapeConvexPolyhedron& a,
+    const ShapeConvexPolyhedron& b, const ShapeConvexPolyhedron& c,
+    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err)
+    {
+    return detail::map_three(a,b,c,
+        detail::SupportFuncConvexPolyhedron(a.verts),
+        detail::SupportFuncConvexPolyhedron(b.verts),
+        detail::SupportFuncConvexPolyhedron(c.verts),
+        detail::ProjectionFuncConvexPolyhedron(a.verts),
+        detail::ProjectionFuncConvexPolyhedron(b.verts),
+        detail::ProjectionFuncConvexPolyhedron(c.verts),
+        vec3<OverlapReal>(ab_t),
+        vec3<OverlapReal>(ac_t),
+        err);
+    }
+
 }; // end namespace hpmc
 
 #endif //__SHAPE_CONVEX_POLYHEDRON_H__

@@ -272,6 +272,32 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     */
     }
 
+//! Test for a common point in the intersection of three spheropolyhedra
+/*! \param a First shape to test
+    \param b Second shape to test
+    \param c Third shape to test
+    \param ab_t Position of second shape relative to first
+    \param ac_t Position of third shape relative to first
+    \param err Output variable that is incremented upon non-convergence
+*/
+template<>
+DEVICE inline bool test_overlap_three(const ShapeSpheropolyhedron& a,
+    const ShapeSpheropolyhedron& b,
+    const ShapeSpheropolyhedron& c,
+    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err)
+    {
+    return detail::map_three(a,b,c,
+        detail::SupportFuncSpheropolyhedron(a.verts),
+        detail::SupportFuncSpheropolyhedron(b.verts),
+        detail::SupportFuncSpheropolyhedron(c.verts),
+        detail::ProjectionFuncSpheropolyhedron(a.verts),
+        detail::ProjectionFuncSpheropolyhedron(b.verts),
+        detail::ProjectionFuncSpheropolyhedron(c.verts),
+        vec3<OverlapReal>(ab_t),
+        vec3<OverlapReal>(ac_t),
+        err);
+    }
+
 }; // end namespace hpmc
 
 #endif //__SHAPE_SPHEROPOLYHEDRON_H__

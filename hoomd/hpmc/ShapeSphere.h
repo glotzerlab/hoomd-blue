@@ -248,19 +248,21 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
         }
     }
 
-//! Get the closest point on the sphere to a given point p
-/*! \param shape the shape
-    \param p the point which we want to project onto the shape
-    \returns the closest point on the shape (in a given orientation)
+//! Test for a common point in the intersection of three shapes
+/*! \param a First shape to test
+    \param b Second shape to test
+    \param c Third shape to test
+    \param ab_t Position of second shape relative to first
+    \param ac_t Position of third shape relative to first
+    \param err Output variable that is incremented upon non-convergence
 */
-DEVICE inline vec3<OverlapReal> closest_pt_on_shape(const ShapeSphere& shape, const vec3<OverlapReal>& p)
+template <class ShapeA, class ShapeB, class ShapeC>
+DEVICE inline bool test_overlap_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
+    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err)
     {
-    if (dot(p,p) <= shape.params.radius*shape.params.radius)
-        return p;
-    else
-        return (shape.params.radius * fast::rsqrt(dot(p,p))) * p;
+    // default returns true, so it is obvious if something calls this
+    return true;
     }
-
 
 }; // end namespace hpmc
 

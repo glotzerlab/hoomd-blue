@@ -640,6 +640,7 @@ UP_TEST( overlap_cube_rot3 )
 
 UP_TEST( closest_pt_cube_no_rot )
     {
+    //! Test that projection of points is working for a cube
     vec3<Scalar> r_ij;
     quat<Scalar> o;
 
@@ -695,3 +696,222 @@ UP_TEST( closest_pt_cube_no_rot )
     MY_CHECK_CLOSE(p.y,0.5,tol);
     MY_CHECK_CLOSE(p.z,0.5,tol);
     }
+
+UP_TEST( overlap_three_cubes_no_rot )
+    {
+    // three cubes with unit orientation
+    vec3<Scalar> r_ab, r_ac;
+    quat<Scalar> o;
+
+    // build a cube
+    vector< vec3<OverlapReal> > vlist;
+    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
+    poly3d_verts verts = setup_verts(vlist);
+
+    ShapeConvexPolyhedron a(o, verts);
+    ShapeConvexPolyhedron b(o, verts);
+    ShapeConvexPolyhedron c(o, verts);
+
+    /*
+     *first, separate them all by a large distance on different axes
+     */
+
+    // test pairwise overlaps
+    r_ab = vec3<Scalar>(10,0,0);
+    bool result = test_overlap(r_ab,a,b,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+    result = test_overlap(-r_ab,b,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    r_ac = vec3<Scalar>(0,10,0);
+    result = test_overlap(r_ac,a,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+    result = test_overlap(-r_ac,c,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    result = test_overlap(r_ac-r_ab,a,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+    result = test_overlap(-r_ac+r_ab,c,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    // test triple overlap
+    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    /*
+     * now two of them overlap pairwise, but the third one is isolated
+     */
+
+    // test pairwise overlaps
+    r_ab = vec3<Scalar>(0.5,0,0);
+    result = test_overlap(r_ab,a,b,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+    result = test_overlap(-r_ab,b,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+
+    r_ac = vec3<Scalar>(0,10,0);
+    result = test_overlap(r_ac,a,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+    result = test_overlap(-r_ac,c,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    result = test_overlap(r_ac-r_ab,b,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+    result = test_overlap(-r_ac+r_ab,c,b,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    // test triple overlap
+    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    // a overlaps with b and c, but b and c don't overlap
+    // test pairwise overlaps
+    r_ab = vec3<Scalar>(0.75,0,0);
+    result = test_overlap(r_ab,a,b,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+    result = test_overlap(-r_ab,b,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+
+    r_ac = vec3<Scalar>(-.75,0,0);
+    result = test_overlap(r_ac,a,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+    result = test_overlap(-r_ac,c,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+
+    result = test_overlap(r_ac-r_ab,b,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+    result = test_overlap(-r_ac+r_ab,c,b,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    // test triple overlap
+    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    // now they are all overlapping in a common point
+    // test pairwise overlaps
+    r_ab = vec3<Scalar>(0.15,0,0);
+    result = test_overlap(r_ab,a,b,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+    result = test_overlap(-r_ab,b,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+
+    r_ac = vec3<Scalar>(-.15,0,0);
+    result = test_overlap(r_ac,a,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+    result = test_overlap(-r_ac,c,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+
+    result = test_overlap(r_ac-r_ab,b,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+    result = test_overlap(-r_ac+r_ab,c,b,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+
+    // test triple overlap
+    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+
+    // put them in an equilateral triangle with pairwise overlap but no common intersection
+    // test pairwise overlaps
+
+    Scalar alpha = M_PI/3.0;
+    // rotation around z
+    const quat<Scalar> qb(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1));
+    const quat<Scalar> qc(cos(alpha/2.0), (Scalar)sin(-alpha/2.0) * vec3<Scalar>(0,0,1));
+    a.orientation = quat<Scalar>();
+    b.orientation = qb;
+    c.orientation = qc;
+
+    OverlapReal t = 0.499; // barely overlapping
+    r_ab = vec3<Scalar>(-0.25-t*sqrt(3.0)/2.0,t+sqrt(3.0)/4+t/2,0);
+    result = test_overlap(r_ab,a,b,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+    result = test_overlap(-r_ab,b,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+
+    r_ac = vec3<Scalar>(0.25+t*sqrt(3.0)/2.0,t+sqrt(3.0)/4+t/2,0);
+    result = test_overlap(r_ac,a,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+    result = test_overlap(-r_ac,c,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+
+    result = test_overlap(r_ac-r_ab,b,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+    result = test_overlap(-r_ac+r_ab,c,b,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+
+    // test triple overlap
+    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    t = 0.501; // barely not overlapping
+    r_ab = vec3<Scalar>(-0.25-t*sqrt(3.0)/2.0,t+sqrt(3.0)/4+t/2,0);
+    result = test_overlap(r_ab,a,b,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+    result = test_overlap(-r_ab,b,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    r_ac = vec3<Scalar>(0.25+t*sqrt(3.0)/2.0,t+sqrt(3.0)/4+t/2,0);
+    result = test_overlap(r_ac,a,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+    result = test_overlap(-r_ac,c,a,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    result = test_overlap(r_ac-r_ab,b,c,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+    result = test_overlap(-r_ac+r_ab,c,b,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+
+    // test triple overlap
+    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
+    }
+
