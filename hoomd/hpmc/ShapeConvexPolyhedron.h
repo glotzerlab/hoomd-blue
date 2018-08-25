@@ -641,11 +641,13 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     \param ab_t Position of second shape relative to first
     \param ac_t Position of third shape relative to first
     \param err Output variable that is incremented upon non-convergence
+    \param sweep_radius Radius of a sphere to sweep all shapes by
 */
 template<>
 DEVICE inline bool test_overlap_three(const ShapeConvexPolyhedron& a,
     const ShapeConvexPolyhedron& b, const ShapeConvexPolyhedron& c,
-    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err)
+    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
+    Scalar sweep_radius)
     {
     return detail::map_three(a,b,c,
         detail::SupportFuncConvexPolyhedron(a.verts),
@@ -656,7 +658,8 @@ DEVICE inline bool test_overlap_three(const ShapeConvexPolyhedron& a,
         detail::ProjectionFuncConvexPolyhedron(c.verts),
         vec3<OverlapReal>(ab_t),
         vec3<OverlapReal>(ac_t),
-        err);
+        err,
+        sweep_radius);
     }
 
 }; // end namespace hpmc

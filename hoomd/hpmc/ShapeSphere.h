@@ -255,10 +255,12 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
     \param ab_t Position of second shape relative to first
     \param ac_t Position of third shape relative to first
     \param err Output variable that is incremented upon non-convergence
+    \param sweep_radius Radius of a sphere to sweep all shapes by
 */
 template <class ShapeA, class ShapeB, class ShapeC>
 DEVICE inline bool test_overlap_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
-    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err)
+    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
+    Scalar sweep_radius = Scalar(0.0))
     {
     // default returns true, so it is obvious if something calls this
     return true;

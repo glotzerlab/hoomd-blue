@@ -913,5 +913,22 @@ UP_TEST( overlap_three_cubes_no_rot )
     result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
+
+    // now sweep them by a sphere, so that they barely overlap inside the triangle
+
+    OverlapReal incircle_r = 1.0/2.0/sqrt(3);
+
+    t = 0.5; // triangles touching
+    r_ab = vec3<Scalar>(-0.25-t*sqrt(3.0)/2.0,t+sqrt(3.0)/4+t/2.0,0);
+    r_ac = vec3<Scalar>(0.25+t*sqrt(3.0)/2.0,t+sqrt(3.0)/4+t/2.0,0);
+
+    // test triple overlap
+    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count, incircle_r+0.0001);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(result);
+
+    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count, incircle_r-0.0001);
+    UP_ASSERT(!err_count);
+    UP_ASSERT(!result);
     }
 
