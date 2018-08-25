@@ -268,6 +268,12 @@ struct ShapeFacetedSphere
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
+
     /*!
      * Generate the intersections points of polyhedron edges with the sphere
      */
@@ -398,12 +404,14 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Additional sphere radius to sweep the shapes with
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
 */
 template <>
-DEVICE inline bool test_overlap<ShapeFacetedSphere, ShapeFacetedSphere>(const vec3<Scalar>& r_ab, const ShapeFacetedSphere& a, const ShapeFacetedSphere& b, unsigned int& err)
+DEVICE inline bool test_overlap<ShapeFacetedSphere, ShapeFacetedSphere>(const vec3<Scalar>& r_ab, const ShapeFacetedSphere& a, const ShapeFacetedSphere& b, unsigned int& err,
+    Scalar sweep_radius)
     {
     vec3<OverlapReal> dr(r_ab);
 

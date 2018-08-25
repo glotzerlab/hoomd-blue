@@ -141,6 +141,12 @@ struct ShapeSphinx
     //!Ignore flag for overlaps
     HOSTDEVICE static bool isParallel() {return false; }
 
+    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
+
     quat<Scalar> orientation;                   //!< Orientation of the sphinx
 
     unsigned int n;              //!< Number of spheres
@@ -180,7 +186,8 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
 template <>
 DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_ab,
                                                           const ShapeSphinx& p,
-                                                          const ShapeSphinx& q, unsigned int& err)
+                                                          const ShapeSphinx& q, unsigned int& err,
+                                                          Scalar sweep_radius)
     {
     vec3<OverlapReal> pv[detail::MAX_SPHERE_CENTERS];           //!< rotated centers of p
     vec3<OverlapReal> qv[detail::MAX_SPHERE_CENTERS];           //!< rotated centers of q

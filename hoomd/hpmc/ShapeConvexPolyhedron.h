@@ -566,6 +566,12 @@ struct ShapeConvexPolyhedron
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return true;
+        }
+
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
     const detail::poly3d_verts& verts;     //!< Vertices
@@ -594,6 +600,7 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Radius of a sphere to sweep the shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
@@ -601,37 +608,47 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapeConvexPolyhedron& a,
                                  const ShapeConvexPolyhedron& b,
-                                 unsigned int& err)
+                                 unsigned int& err,
+                                 Scalar sweep_radius)
     {
     vec3<OverlapReal> dr(r_ab);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts),
-                                  detail::SupportFuncConvexPolyhedron(b.verts),
-                                  rotate(conj(quat<OverlapReal>(a.orientation)), dr),
-                                  conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
-                                  DaDb/2.0,
-                                  err);
+    if (sweep_radius == Scalar(0.0))
+        {
+        OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    /*
-    return detail::gjke_3d(detail::SupportFuncConvexPolyhedron(a.verts),
-                           detail::SupportFuncConvexPolyhedron(b.verts),
-                           vec3<Scalar>(dr.x, dr.y, dr.z),
-                           a.orientation,
-                           b.orientation,
-                           DaDb/2.0,
-                           err);
-    */
+        return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts),
+                                      detail::SupportFuncConvexPolyhedron(b.verts),
+                                      rotate(conj(quat<OverlapReal>(a.orientation)), dr),
+                                      conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
+                                      DaDb/2.0,
+                                      err);
 
-    /*
-    return detail::map_two(a,b,
-        detail::SupportFuncConvexPolyhedron(a.verts),
-        detail::SupportFuncConvexPolyhedron(b.verts),
-        detail::ProjectionFuncConvexPolyhedron(a.verts),
-        detail::ProjectionFuncConvexPolyhedron(b.verts),
-        dr,
-        err);
-    */
+        /*
+        return detail::gjke_3d(detail::SupportFuncConvexPolyhedron(a.verts),
+                               detail::SupportFuncConvexPolyhedron(b.verts),
+                               vec3<Scalar>(dr.x, dr.y, dr.z),
+                               a.orientation,
+                               b.orientation,
+                               DaDb/2.0,
+                               err);
+        */
+        }
+    else
+        {
+        // NOTE: we could fold in the sweeping operation into the support function and still use xenocollide,
+        // leaving this optimization for later
+
+        // it will especially be important to not include avoidable code into the GPU kernels (potentially b/c of register usage)
+        return detail::map_two(a,b,
+            detail::SupportFuncConvexPolyhedron(a.verts),
+            detail::SupportFuncConvexPolyhedron(b.verts),
+            detail::ProjectionFuncConvexPolyhedron(a.verts),
+            detail::ProjectionFuncConvexPolyhedron(b.verts),
+            dr,
+            err,
+            sweep_radius);
+        }
     }
 
 //! Test for a common point in the intersection of three convex polyhedra

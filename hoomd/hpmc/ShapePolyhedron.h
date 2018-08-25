@@ -189,6 +189,12 @@ struct ShapePolyhedron
         #endif
         }
 
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
+
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
     const detail::poly3d_data& data;     //!< Vertices
@@ -736,6 +742,7 @@ inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Additional sphere radius to sweep the shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
@@ -743,7 +750,8 @@ inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapePolyhedron& a,
                                  const ShapePolyhedron& b,
-                                 unsigned int& err)
+                                 unsigned int& err,
+                                 Scalar sweep_radius)
     {
     // test overlap of convex hulls
     if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())

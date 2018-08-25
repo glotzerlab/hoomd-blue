@@ -169,6 +169,12 @@ struct ShapeUnion
         #endif
         }
 
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
+
     quat<Scalar> orientation;    //!< Orientation of the particle
 
     const param_type& members;     //!< member data
@@ -251,7 +257,8 @@ template <class Shape >
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapeUnion<Shape>& a,
                                 const ShapeUnion<Shape>& b,
-                                unsigned int& err)
+                                unsigned int& err,
+                                Scalar sweep_radius)
     {
     const detail::GPUTree& tree_a = a.members.tree;
     const detail::GPUTree& tree_b = b.members.tree;

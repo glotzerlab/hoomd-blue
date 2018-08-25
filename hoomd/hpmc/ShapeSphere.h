@@ -187,6 +187,12 @@ struct ShapeSphere
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
+    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return true;
+        }
+
     quat<Scalar> orientation;    //!< Orientation of the sphere (unused)
 
     const sph_params &params;        //!< Sphere and ignore flags
@@ -213,10 +219,11 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \param a first shape
     \param b second shape
     \param err Incremented if there is an error condition. Left unchanged otherwise.
+    \param sweep_radius Additional radius to sweep both shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 */
 template <class ShapeA, class ShapeB>
-DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const ShapeB& b, unsigned int& err)
+DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const ShapeB& b, unsigned int& err, Scalar sweep_radius=Scalar(0.0))
     {
     // default implementation returns true, will make it obvious if something calls this
     return true;
@@ -227,18 +234,20 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Additional radius to sweep both shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
 */
 template <>
-DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_ab, const ShapeSphere& a, const ShapeSphere& b, unsigned int& err)
+DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_ab, const ShapeSphere& a, const ShapeSphere& b, unsigned int& err,
+    Scalar sweep_radius)
     {
     vec3<OverlapReal> dr(r_ab);
 
     OverlapReal rsq = dot(dr,dr);
 
-    if (rsq < (a.params.radius + b.params.radius)*(a.params.radius + b.params.radius))
+    if (rsq < (a.params.radius + b.params.radius + Scalar(2.0)*sweep_radius)*(a.params.radius + b.params.radius + Scalar(2.0)*sweep_radius))
         {
         return true;
         }

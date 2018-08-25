@@ -326,6 +326,12 @@ struct ShapeConvexPolygon
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
+    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
+
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
     const detail::poly2d_verts& verts;     //!< Vertices
@@ -491,6 +497,7 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Additional radius to sweep both shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
@@ -499,7 +506,8 @@ template <>
 DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec3<Scalar>& r_ab,
                                                                        const ShapeConvexPolygon& a,
                                                                        const ShapeConvexPolygon& b,
-                                                                       unsigned int& err)
+                                                                       unsigned int& err,
+                                                                       Scalar sweep_radius)
     {
     vec2<OverlapReal> dr(r_ab.x,r_ab.y);
     #ifdef NVCC

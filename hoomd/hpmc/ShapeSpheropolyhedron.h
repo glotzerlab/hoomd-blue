@@ -203,6 +203,12 @@ struct ShapeSpheropolyhedron
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return true;
+        }
+
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
     const detail::poly3d_verts& verts;     //!< Vertices
@@ -231,6 +237,7 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Radius of a sphere to sweep the shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
@@ -238,38 +245,43 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapeSpheropolyhedron& a,
                                  const ShapeSpheropolyhedron& b,
-                                 unsigned int& err)
+                                 unsigned int& err,
+                                 Scalar sweep_radius)
     {
     vec3<OverlapReal> dr = r_ab;
 
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    if (sweep_radius == 0.0)
+        {
+        OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return xenocollide_3d(detail::SupportFuncSpheropolyhedron(a.verts),
-                          detail::SupportFuncSpheropolyhedron(b.verts),
-                          rotate(conj(quat<OverlapReal>(a.orientation)),dr),
-                          conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
-                          DaDb/2.0,
-                          err);
+        return xenocollide_3d(detail::SupportFuncSpheropolyhedron(a.verts),
+                              detail::SupportFuncSpheropolyhedron(b.verts),
+                              rotate(conj(quat<OverlapReal>(a.orientation)),dr),
+                              conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
+                              DaDb/2.0,
+                              err);
 
-    /*
-    return gjke_3d(detail::SupportFuncSpheropolyhedron(a.verts),
-                   detail::SupportFuncSpheropolyhedron(b.verts),
-                          dr,
-                          a.orientation,
-                          b.orientation,
-                          DaDb/2.0,
-                          err);
-    */
-
-    /*
-    return detail::map_two(a,b,
-        detail::SupportFuncSpheropolyhedron(a.verts),
-        detail::SupportFuncSpheropolyhedron(b.verts),
-        detail::ProjectionFuncSpheropolyhedron(a.verts),
-        detail::ProjectionFuncSpheropolyhedron(b.verts),
-        dr,
-        err);
-    */
+        /*
+        return gjke_3d(detail::SupportFuncSpheropolyhedron(a.verts),
+                       detail::SupportFuncSpheropolyhedron(b.verts),
+                              dr,
+                              a.orientation,
+                              b.orientation,
+                              DaDb/2.0,
+                              err);
+        */
+        }
+    else
+        {
+        return detail::map_two(a,b,
+            detail::SupportFuncSpheropolyhedron(a.verts),
+            detail::SupportFuncSpheropolyhedron(b.verts),
+            detail::ProjectionFuncSpheropolyhedron(a.verts),
+            detail::ProjectionFuncSpheropolyhedron(b.verts),
+            dr,
+            err,
+            sweep_radius);
+        }
     }
 
 //! Test for a common point in the intersection of three spheropolyhedra
