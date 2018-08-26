@@ -58,6 +58,7 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         void setDepletantType(unsigned int type)
             {
             m_type = type;
+            m_need_initialize_poisson = true;
             }
 
         //! Set the depletant density in the free volume
@@ -71,6 +72,7 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         void setNegativeDepletantType(unsigned int type)
             {
             m_type_negative = type;
+            m_need_initialize_poisson = true;
             }
 
         //! Returns the depletant density
@@ -322,11 +324,11 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
         Shape tmp(o, this->m_params[m_type]);
 
         Shape tmp_negative(o, this->m_params[m_type_negative]);
-        this->m_nominal_width += std::max(tmp.getCircumsphereDiameter(),tmp_negative.getCircumsphereDiameter())+2.0*m_sweep_radius;
+        this->m_nominal_width += m_quermass ? 2.0*m_sweep_radius : std::max(tmp.getCircumsphereDiameter(),tmp_negative.getCircumsphereDiameter());
 
         // extend the image list by the depletant diameter, since we're querying
         // AABBs that are larger than the shape diameters themselves
-        this->m_extra_image_width = std::max(tmp.getCircumsphereDiameter(),tmp_negative.getCircumsphereDiameter())+2.0*m_sweep_radius;
+        this->m_extra_image_width = m_quermass ? 2.0*m_sweep_radius : std::max(tmp.getCircumsphereDiameter(),tmp_negative.getCircumsphereDiameter());
         }
 
     // Account for patch width
@@ -1003,9 +1005,13 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
                                 // check triple overlap with i at new position
                                 r_ij = vec3<Scalar>(postype_j) - pos_i - this->m_image_list[image_i[m]];
+                                r_jk = ((i == j) ? pos_i : vec3<Scalar>(h_postype.data[j])) - pos_test - this->m_image_list[image_i[m]];
+                                rsq = dot(r_jk,r_jk);
+                                circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
                                 if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)]
                                     && circumsphere_overlap
-                                    && test_overlap_three(shape_i, shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius))
+                                    && test_overlap_three(shape_i, (i == j) ? shape_i : shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius))
                                     {
                                     in_intersection_volume = false;
                                     }
@@ -1352,10 +1358,13 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
                                 // check triple overlap with old configuration
                                 r_ij = vec3<Scalar>(h_postype.data[j]) - pos_i_old - this->m_image_list[image_i_new[m]];
+                                r_jk = vec3<Scalar>(h_postype.data[j]) - pos_test - this->m_image_list[image_i_new[m]];
+                                rsq = dot(r_jk,r_jk);
+                                circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
                                 if (h_overlaps.data[this->m_overlap_idx(m_type_negative,typ_j)]
                                     && circumsphere_overlap
-                                    && test_overlap_three(shape_old, shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius))
+                                    && test_overlap_three(shape_old, (i == j) ? shape_old : shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius))
                                     {
                                     in_new_intersection_volume = false;
                                     }
