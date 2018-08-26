@@ -39,6 +39,7 @@ const unsigned int MAP_3D_MAX_ITERATIONS = 1024;
     \param pb second projection function
     \param dr Position of second shape relative to first
     \param err Output variable that is incremented upon non-convergence
+    \param sweep_radius Radius of sphere to sweep the shapes by
  */
 template <class Shape,
           class SupportFuncA, class SupportFuncB,
@@ -46,12 +47,15 @@ template <class Shape,
 DEVICE inline bool map_two(const Shape& a, const Shape& b,
     const SupportFuncA& sa, const SupportFuncB& sb,
     const ProjectionFuncA& pa, const ProjectionFuncB& pb,
-    const vec3<OverlapReal>& dr, unsigned int &err)
+    const vec3<OverlapReal>& dr, unsigned int &err,
+    Scalar sweep_radius)
     {
     quat<OverlapReal> qa(a.orientation);
     quat<OverlapReal> qb(b.orientation);
     quat<OverlapReal> q(conj(qa)* qb);
     vec3<OverlapReal> dr_rot(rotate(conj(qa), dr));
+
+    OverlapReal r = sweep_radius;
 
     CompositeSupportFunc3D<SupportFuncA, SupportFuncB> S(sa, sb, dr_rot, q);
     vec3<OverlapReal> p(0,0,0);
@@ -59,7 +63,7 @@ DEVICE inline bool map_two(const Shape& a, const Shape& b,
     unsigned int it = 0;
     err = 0;
 
-    const OverlapReal root_tol = 3e-4;   // square root of precision tolerance
+    const OverlapReal tol(1e-7);
 
     vec3<OverlapReal> v;
 
@@ -69,7 +73,7 @@ DEVICE inline bool map_two(const Shape& a, const Shape& b,
 
         p = dr+rotate(qb,pb(rotate(conj(qb),proj-dr)));
 
-        if (fabs(p.x - proj.x) <= root_tol && fabs(p.y - proj.y) <= root_tol && fabs(p.z - proj.z) <= root_tol)
+        if (dot(p-proj,p-proj) <= OverlapReal(4.0)*r*r+tol)
             {
             // the point p is in the intersection
             return true;
@@ -77,7 +81,7 @@ DEVICE inline bool map_two(const Shape& a, const Shape& b,
 
         // conversely, check if we found a separating hyperplane
         v = rotate(conj(qa),proj - p);
-        if (dot(S(v), v) < OverlapReal(0.0))
+        if (dot(S(v), v) < -r)
             {
             return false;   // origin is outside v1 support plane
             }

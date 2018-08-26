@@ -241,6 +241,8 @@ class mode_hpmc(_integrator):
             data['depletant_type'] = self.get_depletant_type()
             data['nR_repulsive'] = self.get_nR_repulsive()
             data['depletant_type_repulsive'] = self.get_depletant_type_repulsive()
+            data['quermass'] = self.get_quermass_mode()
+            data['sweep_radius'] = self.get_sweep_radius()
             data['ntrial'] = self.get_ntrial()
         return data
 
@@ -410,6 +412,8 @@ class mode_hpmc(_integrator):
                    depletant_type=None,
                    nR_repulsive=None,
                    depletant_type_repulsive=None,
+                   quermass=None,
+                   sweep_radius=None,
                    ntrial=None,
                    deterministic=None):
         R""" Changes parameters of an existing integration mode.
@@ -423,6 +427,8 @@ class mode_hpmc(_integrator):
             depletant_type (str): (if set) **Implicit depletants only**: Particle type to use as implicit depletant.
             nR_repulsive (int): (if set) **Implicit depletants only**: Number density of implicit depletants in free volume (repulsive depletion)
             depletant_type_repulsive (str): (if set) **Implicit depletants only**: Particle type to use as implicit depletant (repulsive depletion)
+            quermass (bool): (if set) **Implicit depletants only**: Enable/disable quermass integration mode
+            sweep_radius (float): (if set): **Implicit depletants only**: Additional radius of a sphere to sweep the shapes and the depletant by
             ntrial (int): (if set) **Implicit depletants only**: Number of re-insertion attempts per overlapping depletant.
                 (Only supported with **depletant_mode='circumsphere'**)
             deterministic (bool): (if set) Make HPMC integration deterministic on the GPU by sorting the cell list.
@@ -483,6 +489,18 @@ class mode_hpmc(_integrator):
                 self.implicit_params.append('depletant_type_repulsive')
                 itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(depletant_type_repulsive)
                 self.cpp_integrator.setNegativeDepletantType(itype)
+            if quermass is not None:
+                if depletant_mode_circumsphere(self.depletant_mode):
+                    hoomd.context.msg.error("depletant_mode='circumsphere' does not support quermass mode")
+                    raise ValueError("Invalid depletants parameter")
+                self.implicit_params.append('quermass')
+                self.cpp_integrator.setQuermassMode(quermass)
+            if sweep_radius is not None:
+                if depletant_mode_circumsphere(self.depletant_mode):
+                    hoomd.context.msg.error("depletant_mode='circumsphere' does not support setting the sweep radius")
+                    raise ValueError("Invalid depletants parameter")
+                self.implicit_params.append('sweep_radius')
+                self.cpp_integrator.setSweepRadius(sweep_radius)
             if ntrial is not None:
                 if depletant_mode_circumsphere(self.depletant_mode):
                     self.implicit_params.append('ntrial')
@@ -717,6 +735,29 @@ class mode_hpmc(_integrator):
         typeid = self.cpp_integrator.getNegativeDepletantType();
         return hoomd.context.current.system_definition.getParticleData().getNameByType(typeid);
 
+    def get_quermass_mode(self):
+        R""" Get the value of the quermass integration setting
+
+        Returns:
+            The current value of the 'quermass' parameter of the integrator
+        """
+        if not self.implicit or depletant_mode_circumsphere(self.depletant_mode):
+            hoomd.context.msg.warning("quermass only available in simulations with depletant_mode='overlap_regions'. Returning False.\n")
+            return False
+
+        return self.cpp_integrator.getQuermassMode();
+
+    def get_sweep_radius(self):
+        R""" Get the value of the additional sweep radius for depletant simulations
+
+        Returns:
+            The current value of the 'sweep_radius' parameter of the integrator
+        """
+        if not self.implicit or depletant_mode_circumsphere(self.depletant_mode):
+            hoomd.context.msg.warning("sweep_radius only available in simulations with depletant_mode='overlap_regions'. Returning 0.\n")
+            return 0.0
+
+        return self.cpp_integrator.getSweepRadius();
 
     def get_configurational_bias_ratio(self):
         R""" Get the average ratio of configurational bias attempts to depletant insertion moves.
