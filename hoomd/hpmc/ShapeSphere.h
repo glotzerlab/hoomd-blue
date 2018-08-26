@@ -247,7 +247,7 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
 
     OverlapReal rsq = dot(dr,dr);
 
-    if (rsq < (a.params.radius + b.params.radius + Scalar(2.0)*sweep_radius)*(a.params.radius + b.params.radius + Scalar(2.0)*sweep_radius))
+    if (rsq < (a.params.radius + b.params.radius + OverlapReal(2.0)*sweep_radius)*(a.params.radius + b.params.radius + OverlapReal(2.0)*sweep_radius))
         {
         return true;
         }
@@ -289,58 +289,81 @@ DEVICE inline bool test_overlap_three(const ShapeSphere& a, const ShapeSphere& b
     const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
     Scalar sweep_radius)
     {
-    // https://gamedev.stackexchange.com/questions/75756/sphere-sphere-intersection-and-circle-sphere-intersection
     OverlapReal Ra = a.params.radius + sweep_radius;
     OverlapReal Rb = b.params.radius + sweep_radius;
     OverlapReal Rc = c.params.radius + sweep_radius;
 
-    // do a and b intersect?
     vec3<OverlapReal> r_ab(ab_t);
     vec3<OverlapReal> r_ac(ac_t);
+    vec3<OverlapReal> r_bc = r_ac-r_ab;
     OverlapReal rab_sq = dot(r_ab,r_ab);
+    OverlapReal rab = fast::sqrt(rab_sq);
+    OverlapReal rac_sq = dot(r_ac,r_ac);
+    OverlapReal rac = fast::sqrt(rac_sq);
+    OverlapReal rbc_sq = dot(r_bc,r_bc);
+    OverlapReal rbc = fast::sqrt(rbc_sq);
 
+    // first check trivial cases where one sphere is contained in the other
+    if (rab + Rb <= Ra)
+        {
+        // b is in a
+        return rbc_sq <= (Rb + Rc)*(Rb + Rc);
+        }
+    else if (rab + Ra <= Rb)
+        {
+        // a is in b
+        return rac_sq <= (Ra + Rc)*(Ra + Rc);
+        }
+
+    if (rac + Rc <= Ra)
+        {
+        // c is in a
+        return rbc_sq <= (Rb + Rc)*(Rb + Rc);
+        }
+    else if (rac + Ra <= Rc)
+        {
+        // a is in c
+        return rab_sq <= (Ra + Rb)*(Ra + Rb);
+        }
+
+    if (rbc + Rc <= Rb)
+        {
+        // c is in b
+        return rac_sq <= (Ra + Rc)*(Ra + Rc);
+        }
+    else if (rbc + Rb <= Rc)
+        {
+        // b is in c
+        return rab_sq <= (Ra + Rb)*(Ra + Rb);
+        }
+
+    // no volume is entirely contained in the other, surfaces either intersect or don't
+
+    // https://gamedev.stackexchange.com/questions/75756/sphere-sphere-intersection-and-circle-sphere-intersection
+    // do a and b intersect in a circle?
     if (rab_sq <= (Ra + Rb)*(Ra + Rb))
         {
-        // if so, find the center and radius of the circle of intersection
-        if (rab_sq > OverlapReal(0.0))
-            {
-            // center of intersection circle
-            vec3<OverlapReal> c_c = OverlapReal(0.5)*(rab_sq-Rb*Rb+Ra*Ra)/rab_sq*r_ab;
+        // center of intersection circle
+        vec3<OverlapReal> c_c = OverlapReal(0.5)*(rab_sq-Rb*Rb+Ra*Ra)/rab_sq*r_ab;
 
-            // check for circle-sphere intersection
+        // check for circle-sphere intersection
 
-            vec3<OverlapReal> n = r_ab*fast::rsqrt(dot(r_ab,r_ab));
-            OverlapReal d = dot(n,c_c-r_ac);
+        vec3<OverlapReal> n = r_ab*fast::rsqrt(dot(r_ab,r_ab));
+        OverlapReal d = dot(n,c_c-r_ac);
 
-            if (d*d > Rc*Rc)
-                // c does not intersect plane of intersection circle
-                return false;
+        if (d*d > Rc*Rc)
+            // c does not intersect plane of intersection circle
+            return false;
 
-            // center and radius of circle on c
-            vec3<OverlapReal> c_p = r_ac + d*n;
-            OverlapReal r_p = fast::sqrt(Rc*Rc - d*d);
+        // center and radius of circle on c
+        vec3<OverlapReal> c_p = r_ac + d*n;
+        OverlapReal r_p = fast::sqrt(Rc*Rc - d*d);
 
-            // radius of intersection circle
-            OverlapReal r_c=OverlapReal(0.5)*fast::sqrt((OverlapReal(4.0)*rab_sq*Ra*Ra-(rab_sq-Rb*Rb+Ra*Ra)*(rab_sq-Rb*Rb+Ra*Ra))/rab_sq);
+        // radius of intersection circle
+        OverlapReal r_c=OverlapReal(0.5)*fast::sqrt((OverlapReal(4.0)*rab_sq*Ra*Ra-(rab_sq-Rb*Rb+Ra*Ra)*(rab_sq-Rb*Rb+Ra*Ra))/rab_sq);
 
-            // test overlap of circles
-            return dot(c_p-c_c,c_p-c_c) <= (r_c+r_p)*(r_c+r_p);
-            }
-        else
-            {
-            // special case, a and b have a common center
-            // check if c intersects the smaller sphere
-            if (Ra < Rb)
-                {
-                OverlapReal rac_sq = dot(r_ac,r_ac);
-                return rac_sq <= (Ra + Rc)*(Rc + Rc);
-                }
-            else
-                {
-                OverlapReal rbc_sq = dot(r_ac-r_ab,r_ac-r_ab);
-                return rbc_sq <= (Rb + Rc)*(Rc + Rc);
-                }
-            }
+        // test overlap of circles
+        return dot(c_p-c_c,c_p-c_c) <= (r_c+r_p)*(r_c+r_p);
         }
 
     // no intersection
