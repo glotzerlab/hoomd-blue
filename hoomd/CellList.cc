@@ -355,7 +355,16 @@ void CellList::initializeMemory()
         m_orientation.swap(orientation);
         }
 
-    if (m_compute_idx || m_sort_cell_list)
+    bool force_idx = false;
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+        {
+        // always need cell_idx with multi GPU
+        force_idx = true;
+        }
+    #endif
+
+    if (m_compute_idx || m_sort_cell_list || force_idx)
         {
         GlobalArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_idx.swap(idx);

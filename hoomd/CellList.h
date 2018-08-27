@@ -367,7 +367,7 @@ class PYBIND11_EXPORT CellList : public Compute
         void initializeWidth();
 
         //! Initialize indexers and allocate memory
-        void initializeMemory();
+        virtual void initializeMemory();
 
         //! Initializes values in the cell_adj array
         void initializeCellAdj();
