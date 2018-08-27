@@ -747,6 +747,7 @@ inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
 
     \ingroup shape
 */
+template<>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapePolyhedron& a,
                                  const ShapePolyhedron& b,
