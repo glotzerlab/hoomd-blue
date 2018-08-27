@@ -63,7 +63,8 @@ DEVICE inline bool map_two(const Shape& a, const Shape& b,
     unsigned int it = 0;
     err = 0;
 
-    const OverlapReal tol(1e-8);
+    const OverlapReal tol(1e-7); // for squares of distances
+    const OverlapReal root_tol(3e-4); // sqrt of tol
 
     vec3<OverlapReal> v;
 
@@ -81,7 +82,7 @@ DEVICE inline bool map_two(const Shape& a, const Shape& b,
 
         // conversely, check if we found a separating hyperplane
         v = rotate(conj(qa),proj - p);
-        if (dot(S(v), v) < -OverlapReal(2.0)*r*fast::sqrt(dot(v,v)))
+        if (dot(S(v), v) < (-OverlapReal(2.0)*r-root_tol)*fast::sqrt(dot(v,v)))
             {
             return false;   // origin is outside v1 support plane
             }
@@ -137,7 +138,8 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
 
     vec3<OverlapReal> v_a, v_b, v_c;
 
-    const OverlapReal tol(1e-8);
+    const OverlapReal tol(1e-7); // for squares of distances
+    const OverlapReal root_tol(3e-4); // sqrt of tol
 
     while (it++ <= MAP_3D_MAX_ITERATIONS)
         {
@@ -167,7 +169,8 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
         b_diag = (q_a+q_b+q_c)/OverlapReal(3.0);
 
         // test if all closest points lie in the sphere
-        if ((dot(q_a-b_diag,q_a-b_diag) + dot(q_b-b_diag,q_b-b_diag) + dot(q_c-b_diag,q_c-b_diag)) <= tol)
+        OverlapReal dotp = dot(q_a-b_diag,q_a-b_diag) + dot(q_b-b_diag,q_b-b_diag) + dot(q_c-b_diag,q_c-b_diag);
+        if (dotp <= tol)
             return true;
 
         // if not, check if we found a separating hyperplane between C and the linear subspace D
@@ -188,7 +191,8 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
             v_c += (r * fast::rsqrt(dot(n,n))) * n;
             }
 
-        if ( (dot(b_diag-v_a, b_diag - q_a) + dot(b_diag-v_b, b_diag - q_b) + dot(b_diag-v_c, b_diag - q_c)) > 0.0)
+        OverlapReal norm = fast::sqrt(dotp);
+        if ( (dot(b_diag-v_a, b_diag - q_a) + dot(b_diag-v_b, b_diag - q_b) + dot(b_diag-v_c, b_diag - q_c)) > -root_tol*norm)
             return false;   // found a separating plane
         }
 
