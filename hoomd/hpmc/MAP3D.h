@@ -63,7 +63,7 @@ DEVICE inline bool map_two(const Shape& a, const Shape& b,
     unsigned int it = 0;
     err = 0;
 
-    const OverlapReal tol(1e-7);
+    const OverlapReal tol(1e-8);
 
     vec3<OverlapReal> v;
 
@@ -137,7 +137,7 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
 
     vec3<OverlapReal> v_a, v_b, v_c;
 
-    const OverlapReal tol(1e-7);
+    const OverlapReal tol(1e-8);
 
     while (it++ <= MAP_3D_MAX_ITERATIONS)
         {
@@ -146,13 +146,28 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
         q_b = ab_t+rotate(qb,pb(rotate(conj(qb),b_diag-ab_t)));
         q_c = ac_t+rotate(qc,pc(rotate(conj(qc),b_diag-ac_t)));
 
+        if (r != OverlapReal(0.0))
+            {
+            // project on extended shape
+            vec3<OverlapReal> del = b_diag - q_a;
+            OverlapReal d = fast::sqrt(dot(del,del));
+            if (d != OverlapReal(0.0))
+                q_a += detail::min(r,d)/d * del;
+            del = b_diag - q_b;
+            d = fast::sqrt(dot(del,del));
+            if (d != OverlapReal(0.0))
+                q_b += detail::min(r,d)/d * del;
+            del = b_diag - q_c;
+            d = fast::sqrt(dot(del,del));
+            if (d != OverlapReal(0.0))
+                q_c += detail::min(r,d)/d * del;
+            }
+
         // second step: project back into diagonal space (barycenter)
         b_diag = (q_a+q_b+q_c)/OverlapReal(3.0);
 
         // test if all closest points lie in the sphere
-        if ((dot(q_a-b_diag,q_a-b_diag) <= r*r+tol) &&
-            (dot(q_b-b_diag,q_b-b_diag) <= r*r+tol) &&
-            (dot(q_c-b_diag,q_c-b_diag) <= r*r+tol))
+        if ((dot(q_a-b_diag,q_a-b_diag) + dot(q_b-b_diag,q_b-b_diag) + dot(q_c-b_diag,q_c-b_diag)) <= tol)
             return true;
 
         // if not, check if we found a separating hyperplane between C and the linear subspace D
@@ -162,9 +177,18 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
         v_b = ab_t + rotate(qb,sb(rotate(conj(qb),b_diag - q_b)));
         v_c = ac_t + rotate(qc,sc(rotate(conj(qc),b_diag - q_c)));
 
-        const OverlapReal sqrt3(1.7320508075688772935);
-        OverlapReal norm = fast::sqrt(dot(b_diag-q_a,b_diag-q_a)+dot(b_diag-q_b,b_diag-q_b)+dot(b_diag-q_c,b_diag-q_c));
-        if ( (dot(b_diag-v_a, b_diag - q_a) + dot(b_diag-v_b, b_diag - q_b) + dot(b_diag-v_c, b_diag - q_c)) > sqrt3*r*norm)
+        if (r != OverlapReal(0.0))
+            {
+            // extend by sphere radius
+            vec3<OverlapReal> n = b_diag - q_a;
+            v_a += (r * fast::rsqrt(dot(n,n))) * n;
+            n = b_diag - q_b;
+            v_b += (r * fast::rsqrt(dot(n,n))) * n;
+            n = b_diag - q_c;
+            v_c += (r * fast::rsqrt(dot(n,n))) * n;
+            }
+
+        if ( (dot(b_diag-v_a, b_diag - q_a) + dot(b_diag-v_b, b_diag - q_b) + dot(b_diag-v_c, b_diag - q_c)) > 0.0)
             return false;   // found a separating plane
         }
 
