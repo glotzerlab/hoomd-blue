@@ -192,7 +192,17 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
             }
 
         OverlapReal norm = fast::sqrt(dotp);
-        if ( (dot(b_diag-v_a, b_diag - q_a) + dot(b_diag-v_b, b_diag - q_b) + dot(b_diag-v_c, b_diag - q_c)) > -root_tol*norm)
+        OverlapReal sum = OverlapReal(0.0);
+
+        // regularize (when support function is not defined)
+        if (dot(b_diag-q_a,b_diag-q_a) != OverlapReal(0.0))
+            sum += dot(b_diag-v_a, b_diag - q_a);
+        if (dot(b_diag-q_b,b_diag-q_b) != OverlapReal(0.0))
+            sum += dot(b_diag-v_b, b_diag - q_b);
+        if (dot(b_diag-q_c,b_diag-q_c) != OverlapReal(0.0))
+            sum += dot(b_diag-v_c, b_diag - q_c);
+
+        if (sum > -root_tol*norm)
             return false;   // found a separating plane
         }
 
