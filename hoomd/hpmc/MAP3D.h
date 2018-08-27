@@ -81,7 +81,7 @@ DEVICE inline bool map_two(const Shape& a, const Shape& b,
 
         // conversely, check if we found a separating hyperplane
         v = rotate(conj(qa),proj - p);
-        if (dot(S(v), v) < -r)
+        if (dot(S(v), v) < -OverlapReal(2.0)*r*fast::sqrt(dot(v,v)))
             {
             return false;   // origin is outside v1 support plane
             }
