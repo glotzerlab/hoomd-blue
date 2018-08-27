@@ -78,7 +78,7 @@ class SupportFuncSpheropolyhedron
 class ProjectionFuncSpheropolyhedron
     {
     public:
-        //! Construct a support function for a convex spheropolyhedron
+        //! Construct a projection function for a convex spheropolyhedron
         /*! \param _verts Polyhedron vertices and additional parameters
         */
         DEVICE ProjectionFuncSpheropolyhedron(const poly3d_verts& _verts)
@@ -86,9 +86,9 @@ class ProjectionFuncSpheropolyhedron
             {
             }
 
-        //! Compute the support function
-        /*! \param n Normal vector input (in the local frame)
-            \returns Local coords of the point furthest in the direction of n
+        //! Compute the projection
+        /*! \param p Point to compute the projection for
+            \returns Local coords of the point in the shape closest to p
         */
         DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& p) const
             {
@@ -97,15 +97,15 @@ class ProjectionFuncSpheropolyhedron
 
             vec3<OverlapReal> del = p - proj_poly3d;
             OverlapReal dsq = dot(del,del);
-            if (dsq <= verts.sweep_radius*verts.sweep_radius)
-                return p;
-            else
+            if (dsq != OverlapReal(0.0))
                 {
-                // add the sphere radius in direction of closest approach
-                vec3<OverlapReal> max_sphere = (verts.sweep_radius * fast::rsqrt(dot(del,del))) * del;
-
-                return proj_poly3d + max_sphere;
+                // add the sphere radius in direction of closest approach, or the closest point inside the sphere
+                OverlapReal d = fast::sqrt(dsq);
+                return proj_poly3d + detail::min(verts.sweep_radius,d)/d*del;
                 }
+            else
+                // point is inside base shape
+                return proj_poly3d;
             }
 
     private:

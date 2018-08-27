@@ -914,5 +914,11 @@ UP_TEST( closest_pt_rounded_cube_no_rot )
     MY_CHECK_CLOSE(p.x,0.5+0.5/sqrt(3),tol);
     MY_CHECK_CLOSE(p.y,0.5+0.5/sqrt(3),tol);
     MY_CHECK_CLOSE(p.z,0.5+0.5/sqrt(3),tol);
+
+    // a point close to the surface
+    p = P(vec3<OverlapReal>(0.75,0,0));
+    MY_CHECK_CLOSE(p.x,0.75,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
     }
 

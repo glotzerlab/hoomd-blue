@@ -425,9 +425,9 @@ class ProjectionFuncConvexPolyhedron
             {
             }
 
-        //! Compute the support function
-        /*! \param n Normal vector input (in the local frame)
-            \returns Local coords of the point furthest in the direction of n
+        //! Compute the projection
+        /*! \param p Point to compute the projection for
+            \returns Local coords of the point in the shape closest to p
         */
         DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& p) const
             {
