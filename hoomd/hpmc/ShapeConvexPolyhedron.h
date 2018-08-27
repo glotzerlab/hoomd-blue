@@ -482,7 +482,7 @@ class ProjectionFuncConvexPolyhedron
                     OverlapReal t;
                     closest_p = ClosestPtPointSegment(p,
                         vec3<OverlapReal>(verts.x[0], verts.y[0], verts.z[0]),
-                        vec3<OverlapReal>(verts.x[1], verts.y[1], verts.y[1]), t);
+                        vec3<OverlapReal>(verts.x[1], verts.y[1], verts.z[1]), t);
                     }
                 }
 
