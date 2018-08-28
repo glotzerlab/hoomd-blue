@@ -28,6 +28,7 @@
 namespace hpmc
 {
 
+#ifdef ENABLE_HPMC_REINSERT
 //! Template class for HPMC update with implicit depletants
 /*!
     Depletants are generated randomly on the fly according to the semi-grand canonical ensemble.
@@ -1517,6 +1518,7 @@ template < class Shape > void export_IntegratorHPMCMonoImplicit(pybind11::module
         ;
 
     }
+#endif
 
 //! Export the counters for depletants
 inline void export_hpmc_implicit_counters(pybind11::module& m)

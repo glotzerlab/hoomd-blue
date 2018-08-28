@@ -47,15 +47,21 @@ namespace hpmc
 void export_convex_spheropolyhedron(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSpheropolyhedron >(m, "IntegratorHPMCMonoSpheropolyhedron");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicit< ShapeSpheropolyhedron >(m, "IntegratorHPMCMonoImplicitSpheropolyhedron");
+    #endif
     export_IntegratorHPMCMonoImplicitNew< ShapeSpheropolyhedron >(m, "IntegratorHPMCMonoImplicitNewSpheropolyhedron");
     export_ComputeFreeVolume< ShapeSpheropolyhedron >(m, "ComputeFreeVolumeSpheropolyhedron");
     export_AnalyzerSDF< ShapeSpheropolyhedron >(m, "AnalyzerSDFSpheropolyhedron");
     export_UpdaterMuVT< ShapeSpheropolyhedron >(m, "UpdaterMuVTSpheropolyhedron");
     export_UpdaterClusters< ShapeSpheropolyhedron >(m, "UpdaterClustersSpheropolyhedron");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterClustersImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicit<ShapeSpheropolyhedron> >(m, "UpdaterClustersImplicitSpheropolyhedron");
+    #endif
     export_UpdaterClustersImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicitNew<ShapeSpheropolyhedron> >(m, "UpdaterClustersImplicitNewSpheropolyhedron");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterMuVTImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicit<ShapeSpheropolyhedron> >(m, "UpdaterMuVTImplicitSpheropolyhedron");
+    #endif
     export_UpdaterMuVTImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicitNew<ShapeSpheropolyhedron> >(m, "UpdaterMuVTImplicitNewSpheropolyhedron");
 
     export_ExternalFieldInterface<ShapeSpheropolyhedron >(m, "ExternalFieldSpheropolyhedron");
@@ -69,7 +75,9 @@ void export_convex_spheropolyhedron(py::module& m)
     #ifdef ENABLE_CUDA
 
     export_IntegratorHPMCMonoGPU< ShapeSpheropolyhedron >(m, "IntegratorHPMCMonoGPUSpheropolyhedron");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolyhedron >(m, "IntegratorHPMCMonoImplicitGPUSpheropolyhedron");
+    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeSpheropolyhedron >(m, "IntegratorHPMCMonoImplicitNewGPUSpheropolyhedron");
     export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron >(m, "ComputeFreeVolumeGPUSpheropolyhedron");
 

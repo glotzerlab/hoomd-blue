@@ -1610,6 +1610,7 @@ cudaError_t gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, c
     return cudaSuccess;
     }
 
+#ifdef ENABLE_HPMC_REINSERT
 //! Kernel driver for gpu_hpmc_implicit_reinsert_kernel() and gpu_hpmc_implict_accept_reject_kernel()
 /*! \param args Bundled arguments
     \param d_params Per-type shape parameters
@@ -1830,6 +1831,7 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
 
     return cudaSuccess;
     }
+#endif // ENABLE_HPMC_REINSERT
 
 #endif // NVCC
 

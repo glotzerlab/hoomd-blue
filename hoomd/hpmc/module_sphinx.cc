@@ -44,15 +44,21 @@ namespace hpmc
 void export_sphinx(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSphinx >(m, "IntegratorHPMCMonoSphinx");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicit< ShapeSphinx >(m, "IntegratorHPMCMonoImplicitSphinx");
+    #endif
     export_IntegratorHPMCMonoImplicitNew< ShapeSphinx >(m, "IntegratorHPMCMonoImplicitNewSphinx");
     export_ComputeFreeVolume< ShapeSphinx >(m, "ComputeFreeVolumeSphinx");
     export_AnalyzerSDF< ShapeSphinx >(m, "AnalyzerSDFSphinx");
     export_UpdaterMuVT< ShapeSphinx >(m, "UpdaterMuVTSphinx");
     export_UpdaterClusters< ShapeSphinx >(m, "UpdaterClustersSphinx");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterClustersImplicit< ShapeSphinx, IntegratorHPMCMonoImplicit<ShapeSphinx> >(m, "UpdaterClustersImplicitSphinx");
+    #endif
     export_UpdaterClustersImplicit< ShapeSphinx, IntegratorHPMCMonoImplicitNew<ShapeSphinx> >(m, "UpdaterClustersImplicitNewSphinx");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterMuVTImplicit< ShapeSphinx, IntegratorHPMCMonoImplicit<ShapeSphinx> >(m, "UpdaterMuVTImplicitSphinx");
+    #endif
     export_UpdaterMuVTImplicit< ShapeSphinx, IntegratorHPMCMonoImplicitNew<ShapeSphinx> >(m, "UpdaterMuVTImplicitNewSphinx");
 
     export_ExternalFieldInterface<ShapeSphinx>(m, "ExternalFieldSphinx");
@@ -67,7 +73,9 @@ void export_sphinx(py::module& m)
     #ifdef ENABLE_SPHINX_GPU
 
     export_IntegratorHPMCMonoGPU< ShapeSphinx >(m, "IntegratorHPMCMonoGPUSphinx");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeSphinx >(m, "IntegratorHPMCMonoImplicitGPUSphinx");
+    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeSphinx >(m, "IntegratorHPMCMonoImplicitNewGPUSphinx");
     export_ComputeFreeVolumeGPU< ShapeSphinx >(m, "ComputeFreeVolumeGPUSphinx");
 

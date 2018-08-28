@@ -47,15 +47,21 @@ namespace hpmc
 void export_convex_polygon(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeConvexPolygon >(m, "IntegratorHPMCMonoConvexPolygon");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicit< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitConvexPolygon");
+    #endif
     export_IntegratorHPMCMonoImplicitNew< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitNewConvexPolygon");
     export_ComputeFreeVolume< ShapeConvexPolygon >(m, "ComputeFreeVolumeConvexPolygon");
     export_AnalyzerSDF< ShapeConvexPolygon >(m, "AnalyzerSDFConvexPolygon");
     export_UpdaterMuVT< ShapeConvexPolygon >(m, "UpdaterMuVTConvexPolygon");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterMuVTImplicit< ShapeConvexPolygon, IntegratorHPMCMonoImplicit<ShapeConvexPolygon> >(m, "UpdaterMuVTImplicitConvexPolygon");
+    #endif
     export_UpdaterMuVTImplicit< ShapeConvexPolygon, IntegratorHPMCMonoImplicitNew<ShapeConvexPolygon> >(m, "UpdaterMuVTImplicitNewConvexPolygon");
     export_UpdaterClusters< ShapeConvexPolygon >(m, "UpdaterClustersConvexPolygon");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterClustersImplicit< ShapeConvexPolygon, IntegratorHPMCMonoImplicit<ShapeConvexPolygon> >(m, "UpdaterClustersImplicitConvexPolygon");
+    #endif
     export_UpdaterClustersImplicit< ShapeConvexPolygon, IntegratorHPMCMonoImplicitNew<ShapeConvexPolygon> >(m, "UpdaterClustersImplicitNewConvexPolygon");
 
     export_ExternalFieldInterface<ShapeConvexPolygon>(m, "ExternalFieldConvexPolygon");
@@ -68,7 +74,9 @@ void export_convex_polygon(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoGPUConvexPolygon");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitGPUConvexPolygon");
+    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitNewGPUConvexPolygon");
     export_ComputeFreeVolumeGPU< ShapeConvexPolygon >(m, "ComputeFreeVolumeGPUConvexPolygon");
     #endif

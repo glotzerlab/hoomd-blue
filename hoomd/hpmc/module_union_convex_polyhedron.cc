@@ -43,15 +43,21 @@ namespace hpmc
 void export_union_convex_polyhedron(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoConvexPolyhedronUnion");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitConvexPolyhedronUnion");
+    #endif
     export_IntegratorHPMCMonoImplicitNew< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitNewConvexPolyhedronUnion");
     export_ComputeFreeVolume< ShapeUnion<ShapeConvexPolyhedron> >(m, "ComputeFreeVolumeConvexPolyhedronUnion");
     // export_AnalyzerSDF< ShapeUnion<ShapeConvexPolyhedron> >(m, "AnalyzerSDFConvexPolyhedronUnion");
     export_UpdaterMuVT< ShapeUnion<ShapeConvexPolyhedron> >(m, "UpdaterMuVTConvexPolyhedronUnion");
     export_UpdaterClusters<ShapeUnion<ShapeConvexPolyhedron> >(m, "UpdaterClustersConvexPolyhedronUnion");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterClustersImplicit<ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterClustersImplicitConvexPolyhedronUnion");
+    #endif
     export_UpdaterClustersImplicit<ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicitNew<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterClustersImplicitNewConvexPolyhedronUnion");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterMuVTImplicit< ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterMuVTImplicitConvexPolyhedronUnion");
+    #endif
     export_UpdaterMuVTImplicit< ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicitNew<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterMuVTImplicitNewConvexPolyhedronUnion");
 
     export_ExternalFieldInterface<ShapeUnion<ShapeConvexPolyhedron> >(m, "ExternalFieldConvexPolyhedronUnion");
@@ -64,7 +70,9 @@ void export_union_convex_polyhedron(py::module& m)
     #ifdef ENABLE_CUDA
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoGPUConvexPolyhedronUnion");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitGPUConvexPolyhedronUnion");
+    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitNewGPUConvexPolyhedronUnion");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "ComputeFreeVolumeGPUConvexPolyhedronUnion");
 

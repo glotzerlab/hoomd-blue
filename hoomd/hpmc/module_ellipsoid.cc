@@ -44,15 +44,21 @@ namespace hpmc
 void export_ellipsoid(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeEllipsoid >(m, "IntegratorHPMCMonoEllipsoid");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicit< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitEllipsoid");
+    #endif
     export_IntegratorHPMCMonoImplicitNew< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitNewEllipsoid");
     export_ComputeFreeVolume< ShapeEllipsoid >(m, "ComputeFreeVolumeEllipsoid");
     export_AnalyzerSDF< ShapeEllipsoid >(m, "AnalyzerSDFEllipsoid");
     export_UpdaterMuVT< ShapeEllipsoid >(m, "UpdaterMuVTEllipsoid");
     export_UpdaterClusters< ShapeEllipsoid >(m, "UpdaterClustersEllipsoid");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterClustersImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicit<ShapeEllipsoid> >(m, "UpdaterClustersImplicitEllipsoid");
+    #endif
     export_UpdaterClustersImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicitNew<ShapeEllipsoid> >(m, "UpdaterClustersImplicitNewEllipsoid");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterMuVTImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicit<ShapeEllipsoid> >(m, "UpdaterMuVTImplicitEllipsoid");
+    #endif
     export_UpdaterMuVTImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicitNew<ShapeEllipsoid> >(m, "UpdaterMuVTImplicitNewEllipsoid");
 
     export_ExternalFieldInterface<ShapeEllipsoid>(m, "ExternalFieldEllipsoid");
@@ -65,7 +71,9 @@ void export_ellipsoid(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoGPUEllipsoid");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitGPUEllipsoid");
+    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitNewGPUEllipsoid");
     export_ComputeFreeVolumeGPU< ShapeEllipsoid >(m, "ComputeFreeVolumeGPUEllipsoid");
     #endif

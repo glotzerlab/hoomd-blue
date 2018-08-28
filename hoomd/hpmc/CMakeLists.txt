@@ -5,6 +5,11 @@ if (ENABLE_HPMC_SPHINX_GPU)
     add_definitions(-DENABLE_SPHINX_GPU)
 endif()
 
+option(ENABLE_HPMC_REINSERT "Enable depletant_mode='circumsphere'" OFF)
+if (ENABLE_HPMC_REINSERT)
+    add_definitions(-DENABLE_HPMC_REINSERT)
+endif()
+
 set(_hpmc_sources   module.cc
                     module_external_field.cc
                     module_sphere.cc

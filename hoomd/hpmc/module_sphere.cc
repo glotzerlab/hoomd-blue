@@ -44,15 +44,21 @@ namespace hpmc
 void export_sphere(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSphere >(m, "IntegratorHPMCMonoSphere");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicit< ShapeSphere >(m, "IntegratorHPMCMonoImplicitSphere");
+    #endif
     export_IntegratorHPMCMonoImplicitNew< ShapeSphere >(m, "IntegratorHPMCMonoImplicitNewSphere");
     export_ComputeFreeVolume< ShapeSphere >(m, "ComputeFreeVolumeSphere");
     export_AnalyzerSDF< ShapeSphere >(m, "AnalyzerSDFSphere");
     export_UpdaterMuVT< ShapeSphere >(m, "UpdaterMuVTSphere");
     export_UpdaterClusters< ShapeSphere >(m, "UpdaterClustersSphere");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterClustersImplicit< ShapeSphere,IntegratorHPMCMonoImplicit<ShapeSphere> >(m, "UpdaterClustersImplicitSphere");
+    #endif
     export_UpdaterClustersImplicit< ShapeSphere,IntegratorHPMCMonoImplicitNew<ShapeSphere> >(m, "UpdaterClustersImplicitNewSphere");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterMuVTImplicit< ShapeSphere, IntegratorHPMCMonoImplicit<ShapeSphere> >(m, "UpdaterMuVTImplicitSphere");
+    #endif
     export_UpdaterMuVTImplicit< ShapeSphere, IntegratorHPMCMonoImplicitNew<ShapeSphere> >(m, "UpdaterMuVTImplicitNewSphere");
 
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
@@ -65,7 +71,9 @@ void export_sphere(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSphere >(m, "IntegratorHPMCMonoGPUSphere");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeSphere >(m, "IntegratorHPMCMonoImplicitGPUSphere");
+    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeSphere >(m, "IntegratorHPMCMonoImplicitNewGPUSphere");
     export_ComputeFreeVolumeGPU< ShapeSphere >(m, "ComputeFreeVolumeGPUSphere");
     #endif

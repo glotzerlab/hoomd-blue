@@ -47,15 +47,21 @@ namespace hpmc
 void export_faceted_sphere(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeFacetedSphere >(m, "IntegratorHPMCMonoFacetedSphere");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicit< ShapeFacetedSphere >(m, "IntegratorHPMCMonoImplicitFacetedSphere");
+    #endif
     export_IntegratorHPMCMonoImplicitNew< ShapeFacetedSphere >(m, "IntegratorHPMCMonoImplicitNewFacetedSphere");
     export_ComputeFreeVolume< ShapeFacetedSphere >(m, "ComputeFreeVolumeFacetedSphere");
     export_AnalyzerSDF< ShapeFacetedSphere >(m, "AnalyzerSDFFacetedSphere");
     export_UpdaterMuVT< ShapeFacetedSphere >(m, "UpdaterMuVTFacetedSphere");
     export_UpdaterClusters< ShapeFacetedSphere >(m, "UpdaterClustersFacetedSphere");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterClustersImplicit< ShapeFacetedSphere, IntegratorHPMCMonoImplicit<ShapeFacetedSphere> >(m, "UpdaterClustersImplicitFacetedSphere");
+    #endif
     export_UpdaterClustersImplicit< ShapeFacetedSphere, IntegratorHPMCMonoImplicitNew<ShapeFacetedSphere> >(m, "UpdaterClustersImplicitNewFacetedSphere");
+    #ifdef ENABLE_HPMC_REINSERT
     export_UpdaterMuVTImplicit< ShapeFacetedSphere, IntegratorHPMCMonoImplicit<ShapeFacetedSphere> >(m, "UpdaterMuVTImplicitFacetedSphere");
+    #endif
     export_UpdaterMuVTImplicit< ShapeFacetedSphere, IntegratorHPMCMonoImplicitNew<ShapeFacetedSphere> >(m, "UpdaterMuVTImplicitNewFacetedSphere");
 
     export_ExternalFieldInterface<ShapeFacetedSphere>(m, "ExternalFieldFacetedSphere");
@@ -68,7 +74,9 @@ void export_faceted_sphere(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeFacetedSphere >(m, "IntegratorHPMCMonoGPUFacetedSphere");
+    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeFacetedSphere >(m, "IntegratorHPMCMonoImplicitGPUFacetedSphere");
+    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeFacetedSphere >(m, "IntegratorHPMCMonoImplicitNewGPUFacetedSphere");
     export_ComputeFreeVolumeGPU< ShapeFacetedSphere >(m, "ComputeFreeVolumeGPUFacetedSphere");
     #endif

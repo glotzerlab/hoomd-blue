@@ -21,8 +21,10 @@ template cudaError_t gpu_hpmc_update<ShapeSimplePolygon>(const hpmc_args_t& args
                                                   const typename ShapeSimplePolygon::param_type *d_params);
 template cudaError_t gpu_hpmc_implicit_count_overlaps<ShapeSimplePolygon>(const hpmc_implicit_args_t& args,
                                                   const typename ShapeSimplePolygon::param_type *d_params);
+#ifdef ENABLE_HPMC_REINSERT
 template cudaError_t gpu_hpmc_implicit_accept_reject<ShapeSimplePolygon>(const hpmc_implicit_args_t& args,
                                                   const typename ShapeSimplePolygon::param_type *d_params);
+#endif
 template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeSimplePolygon>(const hpmc_implicit_args_new_t& args,
                                                   const typename ShapeSimplePolygon::param_type *d_params);
 template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapeSimplePolygon>(const hpmc_implicit_args_new_t& args,

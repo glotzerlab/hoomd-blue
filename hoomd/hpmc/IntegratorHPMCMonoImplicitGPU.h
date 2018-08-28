@@ -29,6 +29,7 @@
 namespace hpmc
 {
 
+#ifdef ENABLE_HPMC_REINSERT
 //! Template class for HPMC update with implicit depletants on the GPU
 /*!
     Depletants are generated randomly on the fly according to the semi-grand canonical ensemble.
@@ -978,6 +979,7 @@ template < class Shape > void export_IntegratorHPMCMonoImplicitGPU(pybind11::mod
               .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
         ;
     }
+#endif
 
 } // end namespace hpmc
 
