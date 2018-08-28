@@ -2,6 +2,30 @@
 
 [TOC]
 
+## v2.4.0
+
+Not yet released
+
+*New features*
+
+* General:
+
+* MD:
+
+* HPMC:
+
+* API:
+    * Allow external callers of HOOMD to set the MPI communicator
+
+## v2.3.4
+
+Released 2018/07/30
+
+*Bug fixes*
+
+* ``init.read_gsd`` no longer applies the *time_step* override when reading the *restart* file
+* HPMC: Add ``hpmc_patch_energy`` and ``hpmc_patch_rcut`` loggable quantities to the documentation
+
 ## v2.3.3
 
 Released 2018/07/03
