@@ -43,15 +43,7 @@ __global__ void gpu_hpmc_excell_kernel(unsigned int *d_excell_idx,
     {
     // compute the output cell
     unsigned int my_cell = 0;
-    if (gridDim.y > 1)
-        {
-        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
-        my_cell = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
-        }
-    else
-        {
-        my_cell = blockDim.x * blockIdx.x + threadIdx.x;
-        }
+    my_cell = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (my_cell >= ci.getNumElements())
         return;
@@ -97,25 +89,16 @@ cudaError_t gpu_hpmc_excell(unsigned int *d_excell_idx,
 
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
-    static int sm = -1;
     if (max_block_size == -1)
         {
         cudaFuncAttributes attr;
         cudaFuncGetAttributes(&attr, gpu_hpmc_excell_kernel);
         max_block_size = attr.maxThreadsPerBlock;
-        sm = attr.binaryVersion;
         }
 
     // setup the grid to run the kernel
     dim3 threads(min(block_size, (unsigned int)max_block_size), 1, 1);
     dim3 grid(ci.getNumElements() / block_size + 1, 1, 1);
-
-    // hack to enable grids of more than 65k blocks
-    if (sm < 30 && grid.x > 65535)
-        {
-        grid.y = grid.x / 65535 + 1;
-        grid.x = 65535;
-        }
 
     // bind the textures
     cell_idx_tex.normalized = false;

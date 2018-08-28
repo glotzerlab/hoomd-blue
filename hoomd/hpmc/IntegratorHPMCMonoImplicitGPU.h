@@ -209,11 +209,6 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
     cudaDeviceProp dev_prop = this->m_exec_conf->dev_prop;
 
     unsigned int max_tpp = this->m_exec_conf->dev_prop.warpSize;
-    if (this->m_exec_conf->getComputeCapability() < 300)
-        {
-        // no wide parallelism on Fermi
-        max_tpp = 1;
-        }
 
     if (Shape::isParallel())
         {

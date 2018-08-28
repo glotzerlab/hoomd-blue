@@ -376,15 +376,7 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
 
     // determine global CTA index
     unsigned int group_global = 0;
-    if (gridDim.y > 1)
-        {
-        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
-        group_global = (blockIdx.x + blockIdx.y * 65535) * n_groups + group;
-        }
-    else
-        {
-        group_global = blockIdx.x * n_groups + group;
-        }
+    group_global = blockIdx.x * n_groups + group;
 
     // active cell corresponding to this group
     unsigned int active_cell_idx = group_global / groups_per_cell;
@@ -791,15 +783,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
 
     // determine global CTA index
     unsigned int group_global = 0;
-    if (gridDim.y > 1)
-        {
-        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
-        group_global = (blockIdx.x + blockIdx.y * 65535) * n_groups + group;
-        }
-    else
-        {
-        group_global = blockIdx.x * n_groups + group;
-        }
+    group_global = blockIdx.x * n_groups + group;
 
     // is this thread active?
     bool active = true;
@@ -1392,13 +1376,11 @@ struct CountOverlapsKernelLauncher
             {
             // determine the maximum block size and clamp the input block size down
             static int max_block_size = -1;
-            static int sm = -1;
             static cudaFuncAttributes attr;
             if (max_block_size == -1)
                 {
                 cudaFuncGetAttributes(&attr, gpu_hpmc_implicit_count_overlaps_kernel<Shape, group_size>);
                 max_block_size = attr.maxThreadsPerBlock;
-                sm = attr.binaryVersion;
                 }
 
             // setup the grid to run the kernel
@@ -1500,13 +1482,6 @@ struct CountOverlapsKernelLauncher
                 threads = dim3(group_size, n_groups, 1);
                 }
             dim3 grid((args.n_active_cells*args.groups_per_cell)/n_groups+1, 1, 1);
-
-            // hack to enable grids of more than 65k blocks
-            if (sm < 30 && grid.x > 65535)
-                {
-                grid.y = grid.x / 65535 + 1;
-                grid.x = 65535;
-                }
 
             // reset counters
             cudaMemsetAsync(args.d_overlap_cell,0, sizeof(unsigned int)*args.n_active_cells, args.stream);
@@ -1643,13 +1618,11 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
 
         // determine the maximum block size and clamp the input block size down
         static int max_block_size = -1;
-        static int sm = -1;
         static cudaFuncAttributes attr;
         if (max_block_size == -1)
             {
             cudaFuncGetAttributes(&attr, gpu_hpmc_implicit_reinsert_kernel<Shape>);
             max_block_size = attr.maxThreadsPerBlock;
-            sm = attr.binaryVersion;
             }
 
         unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
@@ -1734,13 +1707,6 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
             threads = dim3(group_size, n_groups, 1);
             }
         dim3 grid((args.n_overlaps*2*args.ntrial)/n_groups+1, 1, 1);
-
-        // hack to enable grids of more than 65k blocks
-        if (sm < 30 && grid.x > 65535)
-            {
-            grid.y = grid.x / 65535 + 1;
-            grid.x = 65535;
-            }
 
         // check for newly generated overlaps with depletants
         gpu_hpmc_implicit_reinsert_kernel<Shape><<<grid, threads, shared_bytes, args.stream>>>(args.d_postype,
