@@ -355,16 +355,7 @@ void CellList::initializeMemory()
         m_orientation.swap(orientation);
         }
 
-    bool force_idx = false;
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
-        {
-        // always need cell_idx with multi GPU
-        force_idx = true;
-        }
-    #endif
-
-    if (m_compute_idx || m_sort_cell_list || force_idx)
+    if (m_compute_idx || m_sort_cell_list)
         {
         GlobalArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_idx.swap(idx);
@@ -375,31 +366,6 @@ void CellList::initializeMemory()
         GlobalArray<unsigned int> idx;
         m_idx.swap(idx);
         }
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
-        {
-        // map cell list arrays into memory of all active GPUs
-        auto& gpu_map = m_exec_conf->getGPUIds();
-
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            cudaMemAdvise(m_cell_size.get(), m_cell_size.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-
-            if (! m_idx.isNull())
-                cudaMemAdvise(m_idx.get(), m_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-
-            cudaMemAdvise(m_xyzf.get(), m_xyzf.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-
-            if (! m_tdb.isNull())
-                cudaMemAdvise(m_tdb.get(), m_tdb.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-
-            if (! m_orientation.isNull())
-                cudaMemAdvise(m_orientation.get(), m_orientation.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-            }
-        CHECK_CUDA_ERROR();
-        }
-    #endif
 
     if (m_prof)
         m_prof->pop();
@@ -473,16 +439,15 @@ void CellList::initializeCellAdj()
     #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() >1)
         {
+        // set preferred location to be on the host
+        cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
+
         auto gpu_map = m_exec_conf->getGPUIds();
+        cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
+
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-
-            if (!dev_prop.concurrentManagedAccess)
-                continue;
-
             // pin to that device by prefetching
-            cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, gpu_map[idev]);
             cudaMemPrefetchAsync(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();

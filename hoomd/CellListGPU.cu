@@ -209,13 +209,6 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-        if (d_cell_idx && gpu_partition.getNumActiveGPUs() > 1)
-            {
-            // fill the cell list with dummy entries
-            thrust::device_ptr<unsigned int> cell_idx(d_cell_idx+idev*cli.getNumElements());
-            thrust::fill(cell_idx, cell_idx+cli.getNumElements(), UINT_MAX);
-            }
-
         unsigned int nwork = range.second - range.first;
 
         // process ghosts in final range
@@ -456,11 +449,11 @@ __global__ void gpu_combine_cell_lists_kernel(
     for (unsigned int i = 0; i < ngpu; ++i)
         {
         uint2 p = cli.getPair(idx);
+        unsigned int local_idx = p.x;
         unsigned int bin = p.y;
 
-        unsigned int entry = d_idx_scratch[idx+i*cli.getNumElements()];
-
-        if (entry == UINT_MAX)
+        // is local_idx within bounds?
+        if (local_idx >= d_cell_size_scratch[bin+i*cli.getH()])
             continue;
 
         unsigned int size = atomicInc(&d_cell_size[bin], 0xffffffff);
@@ -475,7 +468,8 @@ __global__ void gpu_combine_cell_lists_kernel(
             unsigned int write_pos = cli(size, bin);
 
             // copy over elements
-            d_idx[write_pos] = entry;
+            if (d_idx)
+                d_idx[write_pos] = d_idx_scratch[idx+i*cli.getNumElements()];
 
             d_xyzf[write_pos] = d_xyzf_scratch[idx+i*cli.getNumElements()];
 

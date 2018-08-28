@@ -89,6 +89,34 @@ void CellListGPU::computeCellList()
     // autotune block sizes
     m_tuner->begin();
 
+    #if 0
+    if (ngpu > 1)
+        {
+        auto& gpu_map = m_exec_conf->getGPUIds();
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            // prefetch to preferred location
+            cudaMemPrefetchAsync(m_cell_size_scratch.get()+idev*m_cell_indexer.getNumElements(),
+                m_cell_indexer.getNumElements()*sizeof(unsigned int), gpu_map[idev]);
+
+            if (! m_idx.isNull())
+                cudaMemPrefetchAsync(m_idx_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
+                    m_cell_list_indexer.getNumElements()*sizeof(unsigned int), gpu_map[idev]);
+
+            cudaMemPrefetchAsync(m_xyzf_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
+                m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[idev]);
+
+            if (! m_tdb.isNull())
+                cudaMemPrefetchAsync(m_tdb_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
+                m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[idev]);
+
+            if (! m_orientation.isNull())
+                cudaMemPrefetchAsync(m_orientation_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
+                m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[idev]);
+            }
+        }
+    #endif
+
     // compute cell list, and write to temporary arrays with multi-GPU
     gpu_compute_cell_list(ngpu == 1 ? d_cell_size.data : d_cell_size_scratch.data,
                           ngpu == 1 ? d_xyzf.data : d_xyzf_scratch.data,
@@ -122,6 +150,21 @@ void CellListGPU::computeCellList()
         {
         // autotune block sizes
         m_tuner_combine->begin();
+
+        #if 0
+        cudaMemPrefetchAsync(m_cell_size_scratch.get(), m_cell_indexer.getNumElements()*sizeof(unsigned int), 0);
+        if (! m_idx.isNull())
+            cudaMemPrefetchAsync(m_idx_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(unsigned int), 0);
+
+        cudaMemPrefetchAsync(m_xyzf_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), 0);
+
+        if (! m_tdb.isNull())
+            cudaMemPrefetchAsync(m_tdb_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), 0);
+
+        if (! m_orientation.isNull())
+            cudaMemPrefetchAsync(m_orientation_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), 0);
+        #endif
+
         gpu_combine_cell_lists(d_cell_size_scratch.data,
                                d_cell_size.data,
                                d_cell_idx_scratch.data,
@@ -232,25 +275,111 @@ void CellListGPU::initializeMemory()
     // map cell list arrays into memory of all active GPUs
     auto& gpu_map = m_exec_conf->getGPUIds();
 
+    // set preferred location for the main cell list to be GPUgpu_map[0]
+    cudaMemAdvise(m_cell_size.get(), m_cell_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+    cudaMemAdvise(m_xyzf.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+    if (! m_idx.isNull())
+        cudaMemAdvise(m_idx.get(), m_cell_list_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+    if (! m_orientation.isNull())
+        cudaMemAdvise(m_orientation.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+    if (! m_tdb.isNull())
+        cudaMemAdvise(m_tdb.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+
+    // prefetch to preferred location
+    cudaMemPrefetchAsync(m_cell_size.get(), m_cell_indexer.getNumElements()*sizeof(unsigned int), gpu_map[0]);
+
+    if (! m_idx.isNull())
+        cudaMemPrefetchAsync(m_idx.get(), m_cell_list_indexer.getNumElements()*sizeof(unsigned int), gpu_map[0]);
+
+    cudaMemPrefetchAsync(m_xyzf.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[0]);
+
+    if (! m_tdb.isNull())
+        cudaMemPrefetchAsync(m_tdb.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4),gpu_map[0]);
+
+    if (! m_orientation.isNull())
+        cudaMemPrefetchAsync(m_orientation.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[0]);
+
+    #if 0
+    // set read-mostly flag for subsequent access by NeighborListBinnedGPU
+    cudaMemAdvise(m_cell_size.get(), m_cell_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
+    cudaMemAdvise(m_xyzf.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetReadMostly, 0);
+    if (! m_idx.isNull())
+        cudaMemAdvise(m_idx.get(), m_cell_list_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
+    if (! m_orientation.isNull())
+        cudaMemAdvise(m_orientation.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetReadMostly, 0);
+    if (! m_tdb.isNull())
+        cudaMemAdvise(m_tdb.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetReadMostly, 0);
+    #endif
+
+
+    #if 0
+
     for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
         {
+        cudaMemAdvise(m_cell_size.get(), m_cell_size.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+
+        if (! m_idx.isNull())
+            cudaMemAdvise(m_idx.get(), m_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+
+        cudaMemAdvise(m_xyzf.get(), m_xyzf.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+
+        if (! m_tdb.isNull())
+            cudaMemAdvise(m_tdb.get(), m_tdb.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+
+        if (! m_orientation.isNull())
+            cudaMemAdvise(m_orientation.get(), m_orientation.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+        }
+        #endif
+
+
+    // set read-only access to temporary arrays for GPU0 to access
+    cudaMemAdvise(m_cell_size_scratch.get(), m_cell_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, gpu_map[0]);
+    cudaMemAdvise(m_xyzf_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetReadMostly, gpu_map[0]);
+    if (! m_idx.isNull())
+        cudaMemAdvise(m_idx_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, gpu_map[0]);
+    if (! m_orientation.isNull())
+        cudaMemAdvise(m_orientation_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetReadMostly, gpu_map[0]);
+    if (! m_tdb.isNull())
+        cudaMemAdvise(m_tdb_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetReadMostly, gpu_map[0]);
+
+    for (unsigned int idev = gpu_map[0]; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+        {
         cudaMemAdvise(m_cell_size_scratch.get()+idev*m_cell_indexer.getNumElements(),
-            m_cell_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            m_cell_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
 
         if (! m_idx.isNull())
             cudaMemAdvise(m_idx_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
-                m_cell_list_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+                m_cell_list_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
 
         cudaMemAdvise(m_xyzf_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
-            m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
 
         if (! m_tdb.isNull())
             cudaMemAdvise(m_tdb_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
-            m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
 
         if (! m_orientation.isNull())
             cudaMemAdvise(m_orientation_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
-            m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+
+        // prefetch to preferred location
+        cudaMemPrefetchAsync(m_cell_size_scratch.get()+idev*m_cell_indexer.getNumElements(),
+            m_cell_indexer.getNumElements()*sizeof(unsigned int), gpu_map[idev]);
+
+        if (! m_idx.isNull())
+            cudaMemPrefetchAsync(m_idx_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
+                m_cell_list_indexer.getNumElements()*sizeof(unsigned int), gpu_map[idev]);
+
+        cudaMemPrefetchAsync(m_xyzf_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
+            m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[idev]);
+
+        if (! m_tdb.isNull())
+            cudaMemPrefetchAsync(m_tdb_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
+            m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[idev]);
+
+        if (! m_orientation.isNull())
+            cudaMemPrefetchAsync(m_orientation_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
+            m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[idev]);
         }
     CHECK_CUDA_ERROR();
 
