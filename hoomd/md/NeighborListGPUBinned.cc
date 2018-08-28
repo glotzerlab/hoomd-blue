@@ -186,6 +186,14 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         }
     #endif
 
+    auto gpu_map = m_exec_conf->getGPUIds();
+    for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+        {
+        // pin to that device by prefetching
+        cudaMemPrefetchAsync(d_cell_adj.data, m_cl->getCellAdjArray().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
+        }
+    CHECK_CUDA_ERROR();
+
     gpu_compute_nlist_binned(d_nlist.data,
                              d_n_neigh.data,
                              d_last_pos.data,
