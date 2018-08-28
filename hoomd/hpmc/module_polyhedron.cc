@@ -70,9 +70,7 @@ void export_polyhedron(py::module& m)
     export_ExternalCallback<ShapePolyhedron>(m, "ExternalCallbackPolyhedron");
 
     #ifdef ENABLE_CUDA
-    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoGPUPolyhedron");
-    #endif
     #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoImplicitGPUPolyhedron");
     #endif
