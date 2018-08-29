@@ -5,7 +5,6 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
-#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 
 #include "ShapeSimplePolygon.h"
@@ -48,15 +47,12 @@ void export_simple_polygon(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSimplePolygon >(m, "IntegratorHPMCMonoSimplePolygon");
     export_IntegratorHPMCMonoImplicit< ShapeSimplePolygon >(m, "IntegratorHPMCMonoImplicitSimplePolygon");
-    export_IntegratorHPMCMonoImplicitNew< ShapeSimplePolygon >(m, "IntegratorHPMCMonoImplicitNewSimplePolygon");
     export_ComputeFreeVolume< ShapeSimplePolygon >(m, "ComputeFreeVolumeSimplePolygon");
     export_AnalyzerSDF< ShapeSimplePolygon >(m, "AnalyzerSDFSimplePolygon");
     export_UpdaterMuVT< ShapeSimplePolygon >(m, "UpdaterMuVTSimplePolygon");
     export_UpdaterClusters< ShapeSimplePolygon >(m, "UpdaterClustersSimplePolygon");
     export_UpdaterClustersImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicit<ShapeSimplePolygon> >(m, "UpdaterClustersImplicitSimplePolygon");
-    export_UpdaterClustersImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicitNew<ShapeSimplePolygon> >(m, "UpdaterClustersImplicitNewSimplePolygon");
     export_UpdaterMuVTImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicit<ShapeSimplePolygon> >(m, "UpdaterMuVTImplicitSimplePolygon");
-    export_UpdaterMuVTImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicitNew<ShapeSimplePolygon> >(m, "UpdaterMuVTImplicitNewSimplePolygon");
 
     export_ExternalFieldInterface<ShapeSimplePolygon>(m, "ExternalFieldSimplePolygon");
     export_LatticeField<ShapeSimplePolygon>(m, "ExternalFieldLatticeSimplePolygon");

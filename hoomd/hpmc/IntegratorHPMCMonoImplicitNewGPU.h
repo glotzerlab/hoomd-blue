@@ -6,7 +6,7 @@
 
 #ifdef ENABLE_CUDA
 
-#include "IntegratorHPMCMonoImplicitNew.h"
+#include "IntegratorHPMCMonoImplicit.h"
 #include "IntegratorHPMCMonoGPU.cuh"
 #include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 #include "hoomd/Autotuner.h"
@@ -38,7 +38,7 @@ namespace hpmc
     \ingroup hpmc_integrators
 */
 template< class Shape >
-class IntegratorHPMCMonoImplicitNewGPU : public IntegratorHPMCMonoImplicitNew<Shape>
+class IntegratorHPMCMonoImplicitNewGPU : public IntegratorHPMCMonoImplicit<Shape>
     {
     public:
         //! Construct the integrator
@@ -131,7 +131,7 @@ template< class Shape >
 IntegratorHPMCMonoImplicitNewGPU< Shape >::IntegratorHPMCMonoImplicitNewGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                                    std::shared_ptr<CellList> cl,
                                                                    unsigned int seed)
-    : IntegratorHPMCMonoImplicitNew<Shape>(sysdef, seed), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
+    : IntegratorHPMCMonoImplicit<Shape>(sysdef, seed, 1), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCImplicitGPU" << std::endl;
 
@@ -780,7 +780,7 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::initializeExcellMem()
 template< class Shape >
 void IntegratorHPMCMonoImplicitNewGPU< Shape >::updateCellWidth()
     {
-    IntegratorHPMCMonoImplicitNew<Shape>::updateCellWidth();
+    IntegratorHPMCMonoImplicit<Shape>::updateCellWidth();
 
     this->m_cl->setNominalWidth(this->m_nominal_width);
 
@@ -807,7 +807,7 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::updateCellWidth()
 */
 template < class Shape > void export_IntegratorHPMCMonoImplicitNewGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<IntegratorHPMCMonoImplicitNewGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicitNewGPU<Shape> > >(m, name.c_str(), pybind11::base< IntegratorHPMCMonoImplicitNew<Shape> >())
+     pybind11::class_<IntegratorHPMCMonoImplicitNewGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicitNewGPU<Shape> > >(m, name.c_str(), pybind11::base< IntegratorHPMCMonoImplicit<Shape> >())
               .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
         ;
     }
