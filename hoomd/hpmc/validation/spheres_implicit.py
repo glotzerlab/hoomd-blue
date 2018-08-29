@@ -142,7 +142,9 @@ class implicit_test (unittest.TestCase):
         def log_callback(timestep):
             v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity')
             eta_p_measure.append(v)
-            #if comm.get_rank() == 0:
+            self.assertEqual(log.query('hpmc_overlap_count'),0)
+
+            # if comm.get_rank() == 0:
             #    print('eta_p =', v);
 
         if use_clusters:
