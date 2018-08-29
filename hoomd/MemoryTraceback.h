@@ -26,6 +26,12 @@ class PYBIND11_EXPORT MemoryTraceback
          */
         void registerAllocation(void *ptr, unsigned int nbytes, const std::string& type_hint = std::string() ) const;
 
+        //! Unregister a memory allocation
+        /*! \param ptr The pointer to the memory address being allocated
+            \param nbytes The size of the allocation in bytes
+         */
+        void unregisterAllocation(void *ptr, unsigned int nbytes ) const;
+
         //! Output the list of pointers along with their stack traces
         void outputTraces(std::shared_ptr<Messenger> msg) const;
 

@@ -779,6 +779,10 @@ void System::printStats()
     map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->printStats();
+
+    // output memory trace information
+    if (m_exec_conf->getMemoryTracer())
+        m_exec_conf->getMemoryTracer()->outputTraces(m_exec_conf->msg);
     }
 
 void System::resetStats()

@@ -28,6 +28,15 @@ void MemoryTraceback::registerAllocation(void *ptr, unsigned int nbytes, const s
     m_traces[idx].resize(num_symbols);
     }
 
+void MemoryTraceback::unregisterAllocation(void *ptr, unsigned int nbytes) const
+    {
+    // remove element from list of allocations
+    std::pair<void *, unsigned int> idx = std::make_pair(ptr, nbytes);
+
+    m_traces.erase(idx);
+    m_type_hints.erase(idx);
+    }
+
 void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
     {
     msg->notice(2) << "List of memory allocations and " << MAX_TRACEBACK-1 << " last functions called at time of allocation" << std::endl;

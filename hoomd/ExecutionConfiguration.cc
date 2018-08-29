@@ -235,10 +235,6 @@ ExecutionConfiguration::~ExecutionConfiguration()
     // enable Messenger to gracefully finish any MPI-IO
     msg->unsetMPICommunicator();
     #endif
-
-    // output memory trace information
-    if (m_memory_traceback)
-        m_memory_traceback->outputTraces(msg);
     }
 
 #ifdef ENABLE_MPI
