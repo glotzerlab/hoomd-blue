@@ -25,7 +25,7 @@
 
 #define REGISTER_ALLOCATION(my_exec_conf, my_array) { \
     if (my_exec_conf && my_exec_conf->getMemoryTracer()) \
-        my_exec_conf->getMemoryTracer()->registerAllocation(my_array.get(), sizeof(T)*my_array.size(), typeid(T).name()); \
+        my_exec_conf->getMemoryTracer()->registerAllocation(my_array.get(), sizeof(T)*my_array.size(), typeid(T).name(), m_tag); \
     }
 
 #define UNREGISTER_ALLOCATION(my_exec_conf, my_array) { \
@@ -46,8 +46,9 @@ class GlobalArray : public GPUArray<T>
             \param num_elements Number of elements in array
             \param exec_conf The current execution configuration
          */
-        GlobalArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf)
-            : m_pitch(num_elements), m_height(1), m_exec_conf(exec_conf), m_acquired(false)
+        GlobalArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf,
+            const std::string& tag = std::string() )
+            : m_pitch(num_elements), m_height(1), m_exec_conf(exec_conf), m_acquired(false), m_tag(tag)
             {
             ManagedArray<T> array(num_elements, exec_conf->isCUDAEnabled());
             std::swap(m_array, array);
@@ -83,6 +84,7 @@ class GlobalArray : public GPUArray<T>
             #endif
 
             m_array = from.m_array;
+            m_tag = from.m_tag;
             REGISTER_ALLOCATION(m_exec_conf, m_array);
             }
 
@@ -111,6 +113,7 @@ class GlobalArray : public GPUArray<T>
             #endif
 
             m_array = rhs.m_array;
+            m_tag = rhs.m_tag;
             REGISTER_ALLOCATION(m_exec_conf, m_array);
 
             return *this;
@@ -122,7 +125,8 @@ class GlobalArray : public GPUArray<T>
               m_pitch(std::move(other.m_pitch)),
               m_height(std::move(other.m_height)),
               m_exec_conf(std::move(other.m_exec_conf)),
-              m_acquired(std::move(other.m_acquired))
+              m_acquired(std::move(other.m_acquired)),
+              m_tag(std::move(other.m_tag))
             {
             checkAcquired(other);
 
@@ -143,6 +147,7 @@ class GlobalArray : public GPUArray<T>
             m_height = std::move(other.m_height);
             m_exec_conf = std::move(other.m_exec_conf);
             m_acquired = std::move(other.m_acquired);
+            m_tag = std::move(other.m_tag);
 
             other.m_pitch = 0;
             other.m_height = 0;
@@ -181,6 +186,7 @@ class GlobalArray : public GPUArray<T>
             std::swap(m_height,from.m_height);
             std::swap(m_array, from.m_array);
             std::swap(m_exec_conf, from.m_exec_conf);
+            std::swap(m_tag, from.m_tag);
             }
 
         //! Swap the pointers of two equally sized GPUArrays
@@ -313,6 +319,8 @@ class GlobalArray : public GPUArray<T>
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Handle to the current execution configuration
 
         mutable bool m_acquired;       //!< Tracks if the array is already acquired
+
+        std::string m_tag;     //!< Name tag of this buffer (optional)
 
         virtual inline T* acquire(const access_location::Enum location, const access_mode::Enum mode
         #ifdef ENABLE_CUDA

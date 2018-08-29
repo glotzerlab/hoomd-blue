@@ -24,7 +24,8 @@ class PYBIND11_EXPORT MemoryTraceback
             \param nbytes The size of the allocation in bytes
             \param type_hint A string describing the data type used
          */
-        void registerAllocation(void *ptr, unsigned int nbytes, const std::string& type_hint = std::string() ) const;
+        void registerAllocation(void *ptr, unsigned int nbytes, const std::string& type_hint = std::string(),
+            const std::string& tag = std::string()) const;
 
         //! Unregister a memory allocation
         /*! \param ptr The pointer to the memory address being allocated
@@ -38,4 +39,5 @@ class PYBIND11_EXPORT MemoryTraceback
     private:
         mutable std::map<std::pair<void *,unsigned int>, std::vector<void *> > m_traces;  //!< A stacktrace per memory allocation
         mutable std::map<std::pair<void *,unsigned int>, std::string > m_type_hints;      //!< Types of memory allocations
+        mutable std::map<std::pair<void *,unsigned int>, std::string > m_tags;            //!< Tags of memory allocations
     };
