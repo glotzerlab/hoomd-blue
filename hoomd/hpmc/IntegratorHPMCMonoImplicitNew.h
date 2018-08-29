@@ -852,17 +852,26 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                     std::mt19937& rng_poisson = rng_parallel_mt.local();
                     #endif
 
-                    #ifdef ENABLE_TBB
-                    hoomd::detail::Saru& my_rng = rng_parallel.local();
-                    #else
-                    hoomd::detail::Saru& my_rng = rng_i;
-                    #endif
-
                     unsigned int n = poisson(rng_poisson);
 
                     // for every depletant
+                    #ifdef ENABLE_TBB
+                    tbb::parallel_for((unsigned int)0, (unsigned int)n, [&](unsigned int l)
+                    #else
                     for (unsigned int l = 0; l < n; ++l)
+                    #endif
                         {
+                        #ifdef ENABLE_TBB
+                        if (!accept)
+                            return;
+                        #endif
+
+                        #ifdef ENABLE_TBB
+                        hoomd::detail::Saru& my_rng = rng_parallel.local();
+                        #else
+                        hoomd::detail::Saru& my_rng = rng_i;
+                        #endif
+
                         insert_count++;
 
                         vec3<Scalar> pos_test;
@@ -912,7 +921,12 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 }
                             }
 
-                        if (!active) continue;
+                        if (!active)
+                        #ifdef ENABLE_TBB
+                            return;
+                        #else
+                            continue;
+                        #endif
 
                         // depletant falls in intersection volume between circumspheres
 
@@ -937,7 +951,12 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             }
 
                         // if not intersecting ptl i in old config, ignore
-                        if (!overlap_old) continue;
+                        if (!overlap_old)
+                        #ifdef ENABLE_TBB
+                            return;
+                        #else
+                            continue;
+                        #endif
 
                         if (!m_quermass)
                             {
@@ -963,7 +982,12 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                     }
                                 }
 
-                            if (overlap_new) continue;
+                            if (overlap_new)
+                            #ifdef ENABLE_TBB
+                                return;
+                            #else
+                                continue;
+                            #endif
                             }
 
                         // does the depletant fall into the overlap volume with other particles?
@@ -1038,9 +1062,14 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                         if (in_intersection_volume)
                             {
                             accept = false;
+                            #ifndef ENABLE_TBB
                             break;
+                            #endif
                             }
                         } // end loop over depletants
+                    #ifdef ENABLE_TBB
+                        );
+                    #endif
 
                     #ifndef ENABLE_TBB
                     if (!accept) break;
@@ -1198,17 +1227,26 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                     std::mt19937& rng_poisson = rng_parallel_mt.local();
                     #endif
 
-                    #ifdef ENABLE_TBB
-                    hoomd::detail::Saru& my_rng = rng_parallel.local();
-                    #else
-                    hoomd::detail::Saru& my_rng = rng_i;
-                    #endif
-
                     unsigned int n = poisson(rng_poisson);
 
                     // for every depletant
+                    #ifdef ENABLE_TBB
+                    tbb::parallel_for((unsigned int)0, (unsigned int)n, [&](unsigned int l)
+                    #else
                     for (unsigned int l = 0; l < n; ++l)
+                    #endif
                         {
+                        #ifdef ENABLE_TBB
+                        if (!accept)
+                            return;
+                        #endif
+
+                        #ifdef ENABLE_TBB
+                        hoomd::detail::Saru& my_rng = rng_parallel.local();
+                        #else
+                        hoomd::detail::Saru& my_rng = rng_i;
+                        #endif
+
                         insert_count++;
 
                         vec3<Scalar> pos_test;
@@ -1262,7 +1300,11 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             }
 
                         if (!active)
+                        #ifdef ENABLE_TBB
+                            return;
+                        #else
                             continue;
+                        #endif
 
                         // depletant falls in intersection volume between circumspheres
 
@@ -1288,7 +1330,12 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 }
                             }
 
-                        if (!overlap_new) continue;
+                        if (!overlap_new)
+                        #ifdef ENABLE_TBB
+                            return;
+                        #else
+                            continue;
+                        #endif
 
                         if (!m_quermass)
                             {
@@ -1314,7 +1361,11 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
                             if (overlap_old)
                                 // all is ok
+                            #ifdef ENABLE_TBB
+                                return;
+                            #else
                                 continue;
+                            #endif
                             }
 
                         bool in_new_intersection_volume = false;
@@ -1387,11 +1438,17 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
                         if (in_new_intersection_volume)
                             {
-                            // early exit
                             accept = false;
+
+                            #ifndef ENABLE_TBB
+                            // early exit
                             break;
+                            #endif
                             }
                         } // end loop over depletants
+                    #ifdef ENABLE_TBB
+                        );
+                    #endif
 
                     #ifndef ENABLE_TBB
                     if (!accept) break;
