@@ -436,23 +436,6 @@ void CellList::initializeCellAdj()
                 copy(adj.begin(), adj.end(), &h_cell_adj.data[m_cell_adj_indexer(0, cur_cell)]);
                 }
 
-    #ifdef ENABLE_CUDA
-    if(m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() >1)
-        {
-        // set preferred location to be on the host
-        cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
-
-        auto gpu_map = m_exec_conf->getGPUIds();
-        cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
-
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            // pin to that device by prefetching
-            cudaMemPrefetchAsync(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), gpu_map[idev]);
-            }
-        CHECK_CUDA_ERROR();
-        }
-    #endif
     if (m_prof)
         m_prof->pop();
     }
