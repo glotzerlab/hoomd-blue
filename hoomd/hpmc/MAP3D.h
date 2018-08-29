@@ -93,7 +93,7 @@ DEVICE inline bool map_two(const Shape& a, const Shape& b,
     return true;
     }
 
-//! Test for a common point in the intersection of three shapes using the method of barycenters
+//! Test for a common point in the intersection of three shapes using the extrapolated parallel projections method
 /*! \param a First shape to test for intersection
     \param b Second shape to test for intersection
     \param sa first support function
@@ -132,6 +132,8 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
 
     // element of the diagonal space D
     vec3<OverlapReal> b_diag(0.0,0.0,0.0);
+    vec3<OverlapReal> b_prime_diag(0.0,0.0,0.0);
+    vec3<OverlapReal> u_diag(0.0,0.0,0.0);
 
     unsigned int it = 0;
     err = 0;
@@ -139,71 +141,98 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
     vec3<OverlapReal> v_a, v_b, v_c;
 
     const OverlapReal tol(1e-7); // for squares of distances
-    const OverlapReal root_tol(3e-4); // sqrt of tol
+
+    /*
+     * Tuning parameters
+     */
+
+    // amount of extrapolation to apply (0 <= lambda <=1)
+    OverlapReal lambda(1.0);
+    const unsigned int k = 10;
+
+    OverlapReal sum;
 
     while (it++ <= MAP_3D_MAX_ITERATIONS)
         {
         // first step: project b onto product space
-        q_a = rotate(qa,pa(rotate(conj(qa),b_diag)));
-        q_b = ab_t+rotate(qb,pb(rotate(conj(qb),b_diag-ab_t)));
-        q_c = ac_t+rotate(qc,pc(rotate(conj(qc),b_diag-ac_t)));
+        q_a = rotate(qa,pa(rotate(conj(qa),u_diag)));
+        q_b = ab_t+rotate(qb,pb(rotate(conj(qb),u_diag-ab_t)));
+        q_c = ac_t+rotate(qc,pc(rotate(conj(qc),u_diag-ac_t)));
 
         if (r != OverlapReal(0.0))
             {
             // project on extended shape
-            vec3<OverlapReal> del = b_diag - q_a;
+            vec3<OverlapReal> del = u_diag - q_a;
             OverlapReal d = fast::sqrt(dot(del,del));
-            if (d != OverlapReal(0.0))
-                q_a += detail::min(r,d)/d * del;
-            del = b_diag - q_b;
+            if (d > r)
+                q_a += r/d * del;
+            else
+                q_a = u_diag;
+
+            del = u_diag - q_b;
             d = fast::sqrt(dot(del,del));
-            if (d != OverlapReal(0.0))
-                q_b += detail::min(r,d)/d * del;
-            del = b_diag - q_c;
+            if (d > r)
+                q_b += r/d * del;
+            else
+                q_b = u_diag;
+
+            del = u_diag - q_c;
             d = fast::sqrt(dot(del,del));
-            if (d != OverlapReal(0.0))
-                q_c += detail::min(r,d)/d * del;
+            if (d > r)
+                q_c += r/d * del;
+            else
+                q_c = u_diag;
             }
 
-        // second step: project back into diagonal space (barycenter)
-        b_diag = (q_a+q_b+q_c)/OverlapReal(3.0);
-
-        // test if all closest points lie in the sphere
-        OverlapReal dotp = dot(q_a-b_diag,q_a-b_diag) + dot(q_b-b_diag,q_b-b_diag) + dot(q_c-b_diag,q_c-b_diag);
-        if (dotp <= tol)
+        // test for common point
+        if (dot(q_a-u_diag,q_a-u_diag) <= tol && dot(q_b-u_diag,q_b-u_diag) <= tol && dot(q_c-u_diag,q_c-u_diag) <= tol)
             return true;
 
-        // if not, check if we found a separating hyperplane between C and the linear subspace D
+        // project back into diagonal space (barycenter)
+        b_prime_diag = (q_a+q_b+q_c)/OverlapReal(3.0);
 
-        // get the support vertex in the direction b - q
-        v_a = rotate(qa,sa(rotate(conj(qa),b_diag - q_a)));
-        v_b = ab_t + rotate(qb,sb(rotate(conj(qb),b_diag - q_b)));
-        v_c = ac_t + rotate(qc,sc(rotate(conj(qc),b_diag - q_c)));
+        //  check if we found a separating hyperplane between C and the linear subspace D
 
-        if (r != OverlapReal(0.0))
+        // get the support vertex in the direction b' - q
+        sum = OverlapReal(0.0);
+
+        vec3<OverlapReal> n;
+        n = b_prime_diag - q_a;
+        if (dot(n,n) > OverlapReal(0.0))
             {
-            // extend by sphere radius
-            vec3<OverlapReal> n = b_diag - q_a;
+            v_a = rotate(qa,sa(rotate(conj(qa),b_prime_diag - q_a)));
             v_a += (r * fast::rsqrt(dot(n,n))) * n;
-            n = b_diag - q_b;
-            v_b += (r * fast::rsqrt(dot(n,n))) * n;
-            n = b_diag - q_c;
-            v_c += (r * fast::rsqrt(dot(n,n))) * n;
+            sum += dot(b_prime_diag-v_a, b_prime_diag - q_a);
             }
 
-        OverlapReal norm = fast::sqrt(dotp);
-        OverlapReal sum = OverlapReal(0.0);
+        n = b_prime_diag - q_b;
+        if (dot(n,n) > OverlapReal(0.0))
+            {
+            v_b = ab_t + rotate(qb,sb(rotate(conj(qb),b_prime_diag - q_b)));
+            v_b += (r * fast::rsqrt(dot(n,n))) * n;
+            sum += dot(b_prime_diag-v_b, b_prime_diag - q_b);
+            }
 
-        // regularize (when support function is not defined)
-        if (dot(b_diag-q_a,b_diag-q_a) != OverlapReal(0.0))
-            sum += dot(b_diag-v_a, b_diag - q_a);
-        if (dot(b_diag-q_b,b_diag-q_b) != OverlapReal(0.0))
-            sum += dot(b_diag-v_b, b_diag - q_b);
-        if (dot(b_diag-q_c,b_diag-q_c) != OverlapReal(0.0))
-            sum += dot(b_diag-v_c, b_diag - q_c);
+        n = b_prime_diag - q_c;
+        if (dot(n,n) > OverlapReal(0.0))
+            {
+            v_c = ac_t + rotate(qc,sc(rotate(conj(qc),b_prime_diag - q_c)));
+            v_c += (r * fast::rsqrt(dot(n,n))) * n;
+            sum += dot(b_prime_diag-v_c, b_prime_diag - q_c);
+            }
 
-        if (sum > -root_tol*norm)
+        if (sum > OverlapReal(0.0))
             return false;   // found a separating plane
+
+        // second step, extrapolation
+        OverlapReal coeff = dot(q_a-u_diag,q_a-u_diag) + dot(q_b-u_diag,q_b-u_diag) + dot(q_c-u_diag,q_c-u_diag);
+        coeff /= OverlapReal(3.0)*dot(b_prime_diag-u_diag,b_prime_diag-u_diag);
+
+        u_diag += (OverlapReal(1.0) + lambda*(coeff-OverlapReal(1.0)))*(b_prime_diag-u_diag);
+
+        //  reduce lambda every k iterations
+        if (it % k == 0)
+            lambda *= OverlapReal(0.9);
         }
 
     // maximum number of iterations reached, return overlap and indicate error

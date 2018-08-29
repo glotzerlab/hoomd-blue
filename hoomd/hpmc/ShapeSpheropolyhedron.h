@@ -97,15 +97,15 @@ class ProjectionFuncSpheropolyhedron
 
             vec3<OverlapReal> del = p - proj_poly3d;
             OverlapReal dsq = dot(del,del);
-            if (dsq != OverlapReal(0.0))
+            if (dsq > verts.sweep_radius*verts.sweep_radius)
                 {
                 // add the sphere radius in direction of closest approach, or the closest point inside the sphere
                 OverlapReal d = fast::sqrt(dsq);
-                return proj_poly3d + detail::min(verts.sweep_radius,d)/d*del;
+                return proj_poly3d + verts.sweep_radius/d*del;
                 }
             else
                 // point is inside base shape
-                return proj_poly3d;
+                return p;
             }
 
     private:
