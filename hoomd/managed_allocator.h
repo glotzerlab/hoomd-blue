@@ -13,6 +13,7 @@
 #endif
 
 #include <iostream>
+#include <memory>
 
 template<class T>
 class managed_allocator
@@ -33,21 +34,18 @@ class managed_allocator
         using propagate_on_container_move_assignment = std::true_type;
         using propagate_on_container_swap = std::true_type;
 
-        value_type *allocate(std::size_t n)
+        value_type *allocate(std::size_t n, size_t align_size)
             {
-            value_type *result = nullptr;
+            void *result = nullptr;
 
             #ifdef ENABLE_CUDA
             if (m_use_device)
                 {
-                int page_size = getpagesize();
-                int allocation_bytes = n*sizeof(T);
-                if ((int)(n*sizeof(T)) % page_size)
-                    {
-                    // round up to a full OS page to ensure unified memory for this allocation does not interfere
-                    // with other allocations
-                    allocation_bytes = ((n*sizeof(T))/page_size + 1)*page_size;
-                    }
+                size_t allocation_bytes = n*sizeof(T);
+
+                // round up to a full OS page to ensure unified memory for this allocation does not interfere
+                // with other allocations
+                allocation_bytes = ((n*sizeof(T))/align_size + 1)*align_size;
 
                 cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
                 if (error != cudaSuccess)
@@ -55,37 +53,40 @@ class managed_allocator
                     std::cerr << cudaGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
                     }
+
+                // align to align_size
+                result = std::align(align_size,n*sizeof(T),result,allocation_bytes);
+
+                if (!result)
+                    throw std::runtime_error("managed_allocator: Error aligning managed memory");
                 }
             else
             #endif
                 {
 
-                int retval = posix_memalign((void **) &result, 32, n*sizeof(T));
+                int retval = posix_memalign(&result, 32, n*sizeof(T));
                 if (retval != 0)
                     {
                     throw std::runtime_error("Error allocating aligned memory");
                     }
                 }
 
-            return result;
+            return (value_type *) result;
             }
 
         // Static version, also constructs objects
-        static value_type *allocate_construct(std::size_t n, bool use_device)
+        static value_type *allocate_construct(std::size_t n, bool use_device, size_t align_size)
             {
-            value_type *result = nullptr;
+            void *result = nullptr;
 
             #ifdef ENABLE_CUDA
             if (use_device)
                 {
-                int page_size = getpagesize();
-                int allocation_bytes = n*sizeof(T);
-                if ((int)(n*sizeof(T)) < page_size)
-                    {
-                    // round up to a full OS page to ensure unified memory for this allocation does not interfere
-                    // with other allocations
-                    allocation_bytes = ((n*sizeof(T))/page_size + 1)*page_size;
-                    }
+                size_t allocation_bytes = n*sizeof(T);
+
+                // round up to a full OS page to ensure unified memory for this allocation does not interfere
+                // with other allocations
+                allocation_bytes = ((n*sizeof(T))/align_size + 1)*align_size;
 
                 cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
                 if (error != cudaSuccess)
@@ -93,6 +94,12 @@ class managed_allocator
                     std::cerr << cudaGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
                     }
+
+                // align to align_size
+                result = std::align(align_size,n*sizeof(T), result,allocation_bytes);
+
+                if (!result)
+                    throw std::runtime_error("managed_allocator: Error aligning managed memory");
                 }
             else
             #endif
@@ -113,13 +120,13 @@ class managed_allocator
                     std::cerr << cudaGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error on device sync during allocate_construct");
                     }
-                } 
+                }
             #endif
 
             // construct objects explicitly using placement new
-            for (std::size_t i = 0; i < n; ++i) ::new ((void **) &result[i]) value_type;
+            for (std::size_t i = 0; i < n; ++i) ::new ((void **) &((value_type *)result)[i]) value_type;
 
-            return result;
+            return (value_type *)result;
             }
 
 
