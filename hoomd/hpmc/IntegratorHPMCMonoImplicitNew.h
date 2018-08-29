@@ -769,7 +769,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                     OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter() + 2*range;
                                     bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-                                    if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)] && circumsphere_overlap)
+                                    if ((m_quermass || h_overlaps.data[this->m_overlap_idx(m_type,typ_j)]) && circumsphere_overlap)
                                         {
                                         intersect_i.push_back(j);
                                         image_i.push_back(cur_image);
@@ -938,7 +938,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_old.getCircumsphereDiameter() + Scalar(4.0)*m_sweep_radius;
                             bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-                            if (h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
+                            if (m_quermass || h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
                                 {
                                 n_overlap_checks++;
                                 unsigned int err = 0;
@@ -970,7 +970,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter() + Scalar(4.0)*m_sweep_radius;
                                 bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-                                if (h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
+                                if (m_quermass || h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
                                     {
                                     n_overlap_checks++;
                                     unsigned int err = 0;
@@ -1019,8 +1019,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                     r_ij, -r_jk+r_ij, m_sweep_radius);
 
                                 // check triple overlap with i at old position
-                                if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)]
-                                    && circumsphere_overlap
+                                if (circumsphere_overlap
                                     && test_overlap_three(shape_old, shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius))
                                     {
                                     in_intersection_volume = true;
@@ -1031,8 +1030,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 r_jk = ((i == j) ? pos_i : vec3<Scalar>(h_postype.data[j])) - pos_test - this->m_image_list[image_i[m]];
                                 circumsphere_overlap = check_circumsphere_overlap_three(shape_i, shape_j, shape_test, r_ij, -r_jk+r_ij, m_sweep_radius);
 
-                                if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)]
-                                    && circumsphere_overlap
+                                if (circumsphere_overlap
                                     && test_overlap_three(shape_i, (i == j) ? shape_i : shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius))
                                     {
                                     in_intersection_volume = false;
@@ -1141,7 +1139,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                     OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter() + 2*range;
                                     bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-                                    if (h_overlaps.data[this->m_overlap_idx(m_type_negative,typ_j)] && circumsphere_overlap)
+                                    if ((m_quermass || h_overlaps.data[this->m_overlap_idx(m_type_negative,typ_j)]) && circumsphere_overlap)
                                         {
                                         intersect_i_new.push_back(j);
                                         image_i_new.push_back(cur_image);
@@ -1318,7 +1316,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter() + OverlapReal(4.0)*m_sweep_radius;
                             bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-                            if (h_overlaps.data[this->m_overlap_idx(m_type_negative, typ_i)])
+                            if (m_quermass || h_overlaps.data[this->m_overlap_idx(m_type_negative, typ_i)])
                                 {
                                 n_overlap_checks++;
                                 unsigned int err = 0;
@@ -1348,7 +1346,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_old.getCircumsphereDiameter() + OverlapReal(4.0)*m_sweep_radius;
                             bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-                            if (h_overlaps.data[this->m_overlap_idx(m_type_negative, typ_i)])
+                            if (m_quermass || h_overlaps.data[this->m_overlap_idx(m_type_negative, typ_i)])
                                 {
                                 n_overlap_checks++;
                                 unsigned int err = 0;
@@ -1394,8 +1392,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
                                 // check triple overlap with new configuration
                                 unsigned int err = 0;
-                                if (h_overlaps.data[this->m_overlap_idx(m_type_negative,typ_j)]
-                                    && circumsphere_overlap
+                                if (circumsphere_overlap
                                     && test_overlap_three(shape_i, shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius))
                                     {
                                     in_new_intersection_volume = true;
@@ -1407,8 +1404,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 r_jk = vec3<Scalar>(h_postype.data[j]) - pos_test - this->m_image_list[image_i_new[m]];
                                 circumsphere_overlap = check_circumsphere_overlap_three(shape_old, shape_j, shape_test, r_ij, r_ij - r_jk, m_sweep_radius);
 
-                                if (h_overlaps.data[this->m_overlap_idx(m_type_negative,typ_j)]
-                                    && circumsphere_overlap
+                                if (circumsphere_overlap
                                     && test_overlap_three(shape_old, (i == j) ? shape_old : shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius))
                                     {
                                     in_new_intersection_volume = false;
