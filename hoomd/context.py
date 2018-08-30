@@ -284,6 +284,10 @@ def _create_exec_conf(mpi_comm):
     if mpi_comm is None:
         exec_conf = _hoomd.ExecutionConfiguration(exec_mode, gpu_id, options.min_cpu, options.ignore_display, msg, nrank);
     else:
+        if not mpi_available:
+            msg.error("mpi_comm provided, but MPI support was disabled at compile time\n");
+            raise RuntimeError("mpi_comm is not supported in serial builds");
+
         handled = False;
 
         # pass in pointer to MPI_Comm object provided by mpi4py
@@ -303,7 +307,7 @@ def _create_exec_conf(mpi_comm):
             handled = True
 
         if not handled:
-            msg.error("Error: unknown mpi_comm object: {}.\n".format(mpi_comm));
+            msg.error("unknown mpi_comm object: {}.\n".format(mpi_comm));
             raise RuntimeError("Invalid mpi_comm object");
 
     # if gpu_error_checking is set, enable it on the GPU
