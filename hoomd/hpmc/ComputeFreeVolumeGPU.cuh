@@ -223,16 +223,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
 
     // determine sample idx
     unsigned int i;
-    if (gridDim.y > 1)
-        {
-        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
-        i = (blockIdx.x + blockIdx.y * 65535) * n_groups + group;
-        }
-    else
-        {
-        i = blockIdx.x * n_groups + group;
-        }
-
+    i = blockIdx.x * n_groups + group;
 
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];
@@ -429,13 +420,11 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
 
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
-    static int sm = -1;
     static cudaFuncAttributes attr;
     if (max_block_size == -1)
         {
         cudaFuncGetAttributes(&attr, gpu_hpmc_free_volume_kernel<Shape>);
         max_block_size = attr.maxThreadsPerBlock;
-        sm = attr.binaryVersion;
         }
 
     // setup the grid to run the kernel
@@ -443,13 +432,6 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
 
     dim3 threads(args.stride, args.group_size, n_groups);
     dim3 grid( args.n_sample / n_groups + 1, 1, 1);
-
-    // hack to enable grids of more than 65k blocks
-    if (sm < 30 && grid.x > 65535)
-        {
-        grid.y = grid.x / 65535 + 1;
-        grid.x = 65535;
-        }
 
     unsigned int shared_bytes = args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
         + args.overlap_idx.getNumElements()*sizeof(unsigned int);

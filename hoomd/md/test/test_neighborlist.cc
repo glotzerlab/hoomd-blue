@@ -1475,143 +1475,66 @@ UP_TEST( NeighborListGPUStencil_binned_comparison )
 UP_TEST( NeighborListGPUTree_basic )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() >= 300)
-        {
-        neighborlist_basic_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree basic test, unsupported" << endl;
-        }
+    neighborlist_basic_tests<NeighborListGPUTree>(exec_conf);
     }
 //! exclusion test case for GPUTree class
 UP_TEST( NeighborListGPUTree_exclusion )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() >= 300)
-        {
-        neighborlist_exclusion_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree exclusion test, unsupported" << endl;
-        }
+    neighborlist_exclusion_tests<NeighborListGPUTree>(exec_conf);
     }
 //! large exclusion test case for GPUTree class
 UP_TEST( NeighborListGPUTree_large_ex )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() >= 300)
-        {
-        neighborlist_large_ex_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree large exclusion test, unsupported" << endl;
-        }
+    neighborlist_large_ex_tests<NeighborListGPUTree>(exec_conf);
     }
 //! body filter test case for GPUTree class
 UP_TEST( NeighborListGPUTree_body_filter)
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() >= 300)
-        {
-        neighborlist_body_filter_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree body filter test, unsupported" << endl;
-        }
+    neighborlist_body_filter_tests<NeighborListGPUTree>(exec_conf);
     }
 //! diameter filter test case for GPUTree class
 UP_TEST( NeighborListGPUTree_diameter_shift )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() >= 300)
-        {
-        neighborlist_diameter_shift_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree diameter shift test, unsupported" << endl;
-        }
+    neighborlist_diameter_shift_tests<NeighborListGPUTree>(exec_conf);
     }
 //! particle asymmetry test case for GPUTree class
 UP_TEST( NeighborListGPUTree_particle_asymm )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() >= 300)
-        {
-        neighborlist_particle_asymm_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree particle asymm test, unsupported" << endl;
-        }
+    neighborlist_particle_asymm_tests<NeighborListGPUTree>(exec_conf);
     }
 //! cutoff exclusion test case for GPUTree class
 UP_TEST( NeighborListGPUTree_cutoff_exclude )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() >= 300)
-        {
-        neighborlist_cutoff_exclude_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree cutoff exclusion test, unsupported" << endl;
-        }
+    neighborlist_cutoff_exclude_tests<NeighborListGPUTree>(exec_conf);
     }
 //! type test case for tree class
 UP_TEST( NeighborListGPUTree_type )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() >= 300)
-        {
-        neighborlist_type_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree type test, unsupported" << endl;
-        }
+    neighborlist_type_tests<NeighborListGPUTree>(exec_conf);
     }
 //! 2d tests for tree class
 UP_TEST( NeighborListGPUTree_2d )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() >= 300)
-        {
-        neighborlist_2d_tests<NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree type test, unsupported" << endl;
-        }
+    neighborlist_2d_tests<NeighborListGPUTree>(exec_conf);
     }
 //! comparison test case for GPUTree class with itself
 UP_TEST( NeighborListGPUTree_cpu_comparison )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() >= 300)
-        {
-        neighborlist_comparison_test<NeighborListTree, NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree CPU comparison test, unsupported" << endl;
-        }
+    neighborlist_comparison_test<NeighborListTree, NeighborListGPUTree>(exec_conf);
     }
 //! comparison test case for GPUTree class with GPUBinned
 UP_TEST( NeighborListGPUTree_binned_comparison )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    if (exec_conf->getComputeCapability() >= 300)
-        {
-        neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUTree>(exec_conf);
-        }
-    else
-        {
-        exec_conf->msg->notice(1) << "Skipping GPU tree GPU comparison test, unsupported" << endl;
-        }
+    neighborlist_comparison_test<NeighborListGPUBinned, NeighborListGPUTree>(exec_conf);
     }
 #endif

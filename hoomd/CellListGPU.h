@@ -60,8 +60,6 @@ class PYBIND11_EXPORT CellListGPU : public CellList
 
         std::unique_ptr<Autotuner> m_tuner;         //!< Autotuner for block size
         std::unique_ptr<Autotuner> m_tuner_combine; //!< Autotuner for block size of combine cell lists kernel
-
-        mgpu::ContextPtr m_mgpu_context;      //!< moderngpu context
     };
 
 //! Exports CellListGPU to python

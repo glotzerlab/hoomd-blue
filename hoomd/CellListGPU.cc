@@ -29,13 +29,6 @@ CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "cell_list", this->m_exec_conf));
     m_tuner_combine.reset(new Autotuner(32, 1024, 32, 5, 100000, "cell_list_combine", this->m_exec_conf));
 
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
     }
 
 void CellListGPU::computeCellList()
@@ -210,8 +203,7 @@ void CellListGPU::computeCellList()
                            d_sort_idx.data,
                            d_sort_permutation.data,
                            m_cell_indexer,
-                           m_cell_list_indexer,
-                           m_mgpu_context);
+                           m_cell_list_indexer);
 
         if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

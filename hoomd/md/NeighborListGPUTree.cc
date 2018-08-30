@@ -27,13 +27,6 @@ NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysde
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUTree" << endl;
 
-    // fermi cards are currently buggy, disable them
-    if (m_exec_conf->getComputeCapability() < 300)
-        {
-        m_exec_conf->msg->error() << "nlist: BVH tree neighbor lists are not supported on Fermi (sm_20) devices." << endl;
-        throw runtime_error("BVH tree neighbor list not supported by device");
-        }
-
     m_pdata->getNumTypesChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotNumTypesChanged>(this);
     m_pdata->getBoxChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
     m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);

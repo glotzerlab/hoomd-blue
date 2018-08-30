@@ -13,93 +13,6 @@ context.initialize()
 #
 # Per default, it will only be checked that the simulation runs, i.e. does not crash
 #
-class implicit_test_sphere (unittest.TestCase):
-    def setUp(self):
-        # setup the MC integration
-        self.system = init.create_lattice(lattice.sc(a=1.3782337338022654),n=[10,10,10]) #target a packing fraction of 0.2
-        self.long = False
-        self.num_samples = 0
-        self.steps = 10
-
-        if len(option.get_user()) > 0 and option.get_user()[0]=="long":
-            self.long = True
-            self.num_samples = 10
-            self.steps = 1000
-
-        self.mc = hpmc.integrate.sphere(seed=123,implicit=True, depletant_mode='circumsphere')
-        self.mc.set_params(d=0.1)
-
-        q=1.0
-        etap=1.0
-        self.nR = etap/(math.pi/6.0*math.pow(q,3.0))
-
-        self.system.particles.types.add('B')
-        self.mc.set_params(nR=self.nR,depletant_type='B')
-
-        self.mc.shape_param.set('A', diameter=1.0)
-        self.mc.shape_param.set('B', diameter=q)
-
-        import tempfile
-        tmp = tempfile.mkstemp(suffix='.hpmc-test-implicit');
-        self.tmp_file = tmp[1];
-
-        nsample = 10000
-        self.free_volume = hpmc.compute.free_volume(mc=self.mc, seed=987, nsample=nsample, test_type='B')
-        self.log=analyze.log(filename=self.tmp_file, quantities=['volume','hpmc_free_volume'], overwrite=True,period=100)
-
-    def test_implicit(self):
-        # warm up
-        run(self.steps)
-
-        avg_eta_p = 0
-
-        for i in range(self.num_samples):
-            run(self.steps)
-            n_overlap = self.mc.count_overlaps()
-            self.assertEqual(n_overlap,0)
-            vol = self.log.query('volume')
-            free_vol = self.log.query('hpmc_free_volume')
-            eta_p = math.pi/6.0*free_vol/vol*self.nR
-            avg_eta_p += eta_p/self.num_samples
-
-        context.msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
-
-        if self.long:
-            # check equation of state with rough tolerance (only for long-running tests)
-            self.assertAlmostEqual(avg_eta_p,0.15,delta=0.01)
-
-    def test_implicit_ntrial(self):
-        self.mc.set_params(ntrial=5)
-        # warm up
-        run(self.steps)
-
-        avg_eta_p = 0
-        for i in range(self.num_samples):
-            run(self.steps)
-            n_overlap = self.mc.count_overlaps()
-            self.assertEqual(n_overlap,0)
-            vol = self.log.query('volume')
-            free_vol = self.log.query('hpmc_free_volume')
-            eta_p = math.pi/6.0*free_vol/vol*self.nR
-            avg_eta_p += eta_p/self.num_samples
-
-        context.msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
-
-        if self.long:
-            # check equation of state with rough tolerance
-            self.assertAlmostEqual(avg_eta_p,0.15,delta=0.01)
-
-
-    def tearDown(self):
-        if comm.get_rank() == 0:
-            os.remove(self.tmp_file);
-
-        del self.free_volume
-        del self.log
-        del self.mc
-        del self.system
-        context.initialize();
-
 class implicit_test_cube(unittest.TestCase):
     def setUp(self):
         # setup the MC integration
@@ -122,7 +35,7 @@ class implicit_test_cube(unittest.TestCase):
 
         self.system = init.create_lattice(lattice.sc(a=L_ini/float(n[0])),n=n)
 
-        self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True,depletant_mode='circumsphere')
+        self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True,depletant_mode='overlap_regions')
         self.mc.set_params(d=0.1,a=0.15)
 
         etap=1.0
@@ -190,33 +103,6 @@ class implicit_test_cube(unittest.TestCase):
         context.msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
         if self.long:
             self.assertAlmostEqual(avg_eta_p,0.4,delta=0.1)
-
-    def test_implicit_ntrial(self):
-        # use depletants
-        self.mc.set_params(nR=self.nR)
-
-        # set ntrial
-        self.mc.set_params(ntrial=5)
-
-        # warm up
-        run(self.steps)
-
-        avg_eta_p = 0
-        for i in range(self.num_samples):
-            run(self.steps)
-            n_overlap = self.mc.count_overlaps()
-            self.assertEqual(n_overlap,0)
-            vol = self.log.query('volume')
-            free_vol = self.log.query('hpmc_free_volume')
-            eta_p = self.V_cube*free_vol/vol*self.nR
-            avg_eta_p += eta_p/self.num_samples
-
-        # check equation of state with very rough tolerance
-        context.msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
-
-        if self.long:
-            self.assertAlmostEqual(avg_eta_p,0.4,delta=0.1)
-
 
     def tearDown(self):
         if comm.get_rank() == 0:

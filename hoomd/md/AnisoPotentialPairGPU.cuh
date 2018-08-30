@@ -210,15 +210,7 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
 
     // start by identifying which particle we are to handle
     unsigned int idx;
-    if (gridDim.y > 1)
-        {
-        // if we have blocks in the y-direction, the fermi-workaround is in place
-        idx = (blockIdx.x + blockIdx.y * 65535) * (blockDim.x/tpp) + threadIdx.x/tpp;
-        }
-    else
-        {
-        idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
-        }
+    idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
 
     if (idx >= N)
         return;
@@ -488,11 +480,6 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
 
                     block_size = block_size < max_block_size ? block_size : max_block_size;
                     dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
-                    if (sm < 30 && grid.x > 65535)
-                        {
-                        grid.y = grid.x/65535 + 1;
-                        grid.x = 65535;
-                        }
 
                     shared_bytes += sizeof(Scalar)*block_size;
 
@@ -530,11 +517,6 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
 
                     block_size = block_size < max_block_size ? block_size : max_block_size;
                     dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
-                    if (sm < 30 && grid.x > 65535)
-                        {
-                        grid.y = grid.x/65535 + 1;
-                        grid.x = 65535;
-                        }
 
                     shared_bytes += sizeof(Scalar)*block_size;
 
@@ -580,11 +562,6 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
 
                     block_size = block_size < max_block_size ? block_size : max_block_size;
                     dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
-                    if (sm < 30 && grid.x > 65535)
-                        {
-                        grid.y = grid.x/65535 + 1;
-                        grid.x = 65535;
-                        }
 
                     shared_bytes += sizeof(Scalar)*block_size;
 

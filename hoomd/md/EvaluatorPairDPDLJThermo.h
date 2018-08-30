@@ -261,6 +261,6 @@ class EvaluatorPairDPDLJThermo
         Scalar m_deltaT;   //!<  timestep size stored from constructor
     };
 
-#undef SARU
+#undef DEVICE
 
 #endif // __PAIR_EVALUATOR_DPDLJ_H__

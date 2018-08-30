@@ -7,17 +7,18 @@ The HOOMD examples and tutorials complement this documentation. `Read the HOOMD-
 
 On laptops/workstations, you can install `stable binaries <http://glotzerlab.engin.umich.edu/hoomd-blue/download.html>`_
 with conda. If you haven't already, download and install `miniconda <http://conda.pydata.org/miniconda.html>`_. Then
-add the glotzer channel and install HOOMD-blue::
+add the conda-forge channel and install HOOMD-blue::
 
-    $ conda config --add channels glotzer
+    $ conda config --add channels conda-forge
     $ conda install hoomd
 
 If you have already installed hoomd in conda, you can upgrade to the latest version::
 
     $ conda update --all
 
-On clusters, compile HOOMD from source so that you are using the right MPI version to take advantage
-of the high performance network. Your cluster may also require a specific version of CUDA.
+On clusters, use `singularity containers <https://hub.docker.com/r/glotzerlab/software/>`_ or compile HOOMD from source so
+that you are using the right MPI version to take advantage of the high performance network. Your cluster may also require
+a specific version of CUDA.
 
 .. toctree::
     :maxdepth: 2

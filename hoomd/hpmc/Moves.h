@@ -263,4 +263,6 @@ inline vec3<Scalar> lineReflection(vec3<Scalar> pos, vec3<Scalar> p, quat<Scalar
 
 }; // end namespace hpmc
 
+#undef DEVICE
+
 #endif //__MOVES_H__

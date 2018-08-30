@@ -115,19 +115,6 @@ struct poly3d_data : param_base
 
 }; // end namespace detail
 
-#if defined(NVCC) && (__CUDA_ARCH__ >= 300)
-//! CTA allreduce
-static __device__ int warp_reduce(int val, int width)
-    {
-    #pragma unroll
-    for (int i = 1; i < width; i *= 2)
-        {
-        val += __shfl_xor(val,i,width);
-        }
-    return val;
-    }
-#endif
-
 //!  Polyhedron shape template
 /*! ShapePolyhedron implements IntegragorHPMC's shape protocol.
 

@@ -123,7 +123,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.addAnalyzer(analyzer2, "analyzer1", 1, -1);
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -137,7 +137,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.getAnalyzer("analyzer3");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -151,7 +151,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.getAnalyzerPeriod("analyzer3");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -170,7 +170,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.getAnalyzer("analyzer1");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -182,7 +182,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.getAnalyzer("analyzer2");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -203,7 +203,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.addUpdater(updater2, "updater1", 1, -1);
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -217,7 +217,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.getUpdater("updater3");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -231,7 +231,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.getUpdaterPeriod("updater3");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -250,7 +250,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.getUpdater("updater1");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -262,7 +262,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.getUpdater("updater2");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -283,7 +283,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.addCompute(compute2, "compute1");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -297,7 +297,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.getCompute("compute3");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -311,7 +311,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.getCompute("compute1");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
@@ -323,7 +323,7 @@ UP_TEST( getter_setter_tests )
         {
         sys.getCompute("compute2");
         }
-    catch (runtime_error)
+    catch (const std::runtime_error&)
         {
         except = true;
         }
