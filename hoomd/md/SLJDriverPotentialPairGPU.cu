@@ -1,10 +1,7 @@
 // Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander / Everyone is free to add additional potentials
-
-/*! \file AllDriverPotentialPairGPU.cu
+/*! \file SLJDriverPotentialPairGPU.cu
     \brief Defines the driver functions for computing all types of pair forces on the GPU
 */
 
