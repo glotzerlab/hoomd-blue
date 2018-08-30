@@ -43,9 +43,8 @@ class managed_allocator
                 {
                 size_t allocation_bytes = n*sizeof(T);
 
-                // round up to a full OS page to ensure unified memory for this allocation does not interfere
-                // with other allocations
-                allocation_bytes = ((n*sizeof(T))/align_size + 1)*align_size;
+                if (align_size)
+                    allocation_bytes = ((n*sizeof(T))/align_size + 1)*align_size;
 
                 cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
                 if (error != cudaSuccess)
@@ -54,11 +53,14 @@ class managed_allocator
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
                     }
 
-                // align to align_size
-                result = std::align(align_size,n*sizeof(T),result,allocation_bytes);
+                if (align_size)
+                    {
+                    // align to align_size
+                    result = std::align(align_size,n*sizeof(T),result,allocation_bytes);
 
-                if (!result)
-                    throw std::runtime_error("managed_allocator: Error aligning managed memory");
+                    if (!result)
+                        throw std::runtime_error("managed_allocator: Error aligning managed memory");
+                    }
                 }
             else
             #endif
@@ -84,9 +86,8 @@ class managed_allocator
                 {
                 size_t allocation_bytes = n*sizeof(T);
 
-                // round up to a full OS page to ensure unified memory for this allocation does not interfere
-                // with other allocations
-                allocation_bytes = ((n*sizeof(T))/align_size + 1)*align_size;
+                if (align_size)
+                    allocation_bytes = ((n*sizeof(T))/align_size + 1)*align_size;
 
                 cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
                 if (error != cudaSuccess)
@@ -95,11 +96,14 @@ class managed_allocator
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
                     }
 
-                // align to align_size
-                result = std::align(align_size,n*sizeof(T), result,allocation_bytes);
+                if (align_size)
+                    {
+                    // align to align_size
+                    result = std::align(align_size,n*sizeof(T), result,allocation_bytes);
 
-                if (!result)
-                    throw std::runtime_error("managed_allocator: Error aligning managed memory");
+                    if (!result)
+                        throw std::runtime_error("managed_allocator: Error aligning managed memory");
+                    }
                 }
             else
             #endif
