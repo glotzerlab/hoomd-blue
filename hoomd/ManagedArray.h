@@ -31,12 +31,12 @@ class ManagedArray
     public:
         //! Default constructor
         DEVICE ManagedArray()
-            : data(nullptr), N(0), managed(0)
+            : data(nullptr), N(0), managed(0), align(0)
             { }
 
         #ifndef NVCC
-        ManagedArray(unsigned int _N, bool _managed)
-            : data(nullptr), N(_N), managed(_managed)
+        ManagedArray(unsigned int _N, bool _managed, size_t _align = 0)
+            : data(nullptr), N(_N), managed(_managed), align(_align)
             {
             if (N > 0)
                 {
@@ -45,8 +45,8 @@ class ManagedArray
             }
 
         //! Convenience constructor to fill array with values
-        ManagedArray(unsigned int _N, bool _managed, const T& value)
-            : data(nullptr), N(_N), managed(_managed)
+        ManagedArray(unsigned int _N, bool _managed, const T& value, size_t _align = 0)
+            : data(nullptr), N(_N), managed(_managed), align(_align)
             {
             if (N > 0)
                 {
@@ -69,7 +69,7 @@ class ManagedArray
                   needs to be ensured
          */
         DEVICE ManagedArray(const ManagedArray<T>& other)
-            : data(nullptr), N(other.N), managed(other.managed)
+            : data(nullptr), N(other.N), managed(other.managed), align(other.align)
             {
             #ifndef NVCC
             if (N > 0)
@@ -88,12 +88,14 @@ class ManagedArray
         ManagedArray(ManagedArray<T>&& other)
             : data(std::move(other.data)),
               N(std::move(other.N)),
-              managed(std::move(other.managed))
+              managed(std::move(other.managed)),
+              align(std::move(other.align))
             {
             // set the other array's values to 0 so it is no longer free'd upon destruction
             other.data = nullptr;
             other.N = 0;
             other.managed = 0;
+            other.align = 0;
             }
 
         //! Move assignment operator
@@ -102,11 +104,13 @@ class ManagedArray
             data = std::move(other.data);
             N = std::move(other.N);
             managed = std::move(other.managed);
+            align = std::move(other.align);
 
             // set the other array's values to 0 so it is no longer free'd upon destruction
             other.data = nullptr;
             other.N = 0;
             other.managed = 0;
+            other.align = 0;
 
             return *this;
             }
@@ -125,6 +129,7 @@ class ManagedArray
 
             N = other.N;
             managed = other.managed;
+            align = other.align;
 
             #ifndef NVCC
             if (N > 0)
@@ -239,7 +244,7 @@ class ManagedArray
         #ifndef NVCC
         void allocate()
             {
-            data = managed_allocator<T>::allocate_construct(N, managed);
+            data = managed_allocator<T>::allocate_construct(N, managed, align);
             }
 
         void deallocate()
@@ -255,6 +260,7 @@ class ManagedArray
         mutable T *data;       //!< Data pointer
         unsigned int N;        //!< Number of data elements
         unsigned int managed;  //!< True if we are CUDA managed
+        size_t align;          //!< Alignment size
     };
 
 #undef DEVICE

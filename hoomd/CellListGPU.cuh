@@ -57,7 +57,8 @@ cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
                                 unsigned int ngpu,
                                 const unsigned int block_size,
                                 const unsigned int Nmax,
-                                uint3 *d_conditions);
+                                uint3 *d_conditions,
+                                const GPUPartition& gpu_partition);
 
 cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
                         Scalar4 *d_xyzf,
