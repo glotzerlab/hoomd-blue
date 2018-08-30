@@ -101,7 +101,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
     __syncthreads();
 
     // each set of threads_per_particle threads is going to compute the neighbor list for a single particle
-    const int my_pidx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
+    int my_pidx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
 
     // one thread per particle
     if (my_pidx >= nwork) return;

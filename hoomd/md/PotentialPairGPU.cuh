@@ -204,7 +204,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
     __syncthreads();
 
     // start by identifying which particle we are to handle
-    const unsigned int idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
+    unsigned int idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
     bool active = true;
     if (idx >= N)
         {
@@ -527,7 +527,7 @@ struct PairForceComputeKernel
 template<class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned int use_gmem_nlist>
 struct PairForceComputeKernel<evaluator, shift_mode, compute_virial, use_gmem_nlist, 0>
     {
-    static void launch(const pair_args_t& pair_args, std::pair<unsined int, unsigned int> range, const typename evaluator::param_type *d_params)
+    static void launch(const pair_args_t& pair_args, std::pair<unsigned int, unsigned int> range, const typename evaluator::param_type *d_params)
         {
         // do nothing
         }
@@ -560,36 +560,46 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                 {
                 switch (pair_args.shift_mode)
                     {
-                    PairForceComputeKernel<evaluator, 0, 1, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
-                    }
-                case 1:
-                    {
-                    PairForceComputeKernel<evaluator, 1, 1, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
-                    }
-                case 2:
-                    {
-                    PairForceComputeKernel<evaluator, 2, 1, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
+                    case 0:
+                        {
+                        PairForceComputeKernel<evaluator, 0, 1, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    case 1:
+                        {
+                        PairForceComputeKernel<evaluator, 1, 1, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    case 2:
+                        {
+                        PairForceComputeKernel<evaluator, 2, 1, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    default:
+                        break;
                     }
                 }
             else
                 {
-                case 0:
+                switch (pair_args.shift_mode)
                     {
-                    PairForceComputeKernel<evaluator, 0, 0, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
-                    }
-                case 1:
-                    {
-                    PairForceComputeKernel<evaluator, 1, 0, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
-                    }
-                case 2:
-                    {
-                    PairForceComputeKernel<evaluator, 2, 0, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
+                    case 0:
+                        {
+                        PairForceComputeKernel<evaluator, 0, 0, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    case 1:
+                        {
+                        PairForceComputeKernel<evaluator, 1, 0, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    case 2:
+                        {
+                        PairForceComputeKernel<evaluator, 2, 0, 1, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    default:
+                        break;
                     }
                 }
             }
@@ -597,38 +607,48 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             {
             if (pair_args.compute_virial)
                 {
-                case 0:
+                switch (pair_args.shift_mode)
                     {
-                    PairForceComputeKernel<evaluator, 0, 1, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
-                    }
-                case 1:
-                    {
-                    PairForceComputeKernel<evaluator, 1, 1, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
-                    }
-                case 2:
-                    {
-                    PairForceComputeKernel<evaluator, 2, 1, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
+                    case 0:
+                        {
+                        PairForceComputeKernel<evaluator, 0, 1, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    case 1:
+                        {
+                        PairForceComputeKernel<evaluator, 1, 1, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    case 2:
+                        {
+                        PairForceComputeKernel<evaluator, 2, 1, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    default:
+                        break;
                     }
                 }
             else
                 {
-                case 0:
+                switch (pair_args.shift_mode)
                     {
-                    PairForceComputeKernel<evaluator, 0, 0, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
-                    }
-                case 1:
-                    {
-                    PairForceComputeKernel<evaluator, 1, 0, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
-                    }
-                case 2:
-                    {
-                    PairForceComputeKernel<evaluator, 2, 0, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
-                    break;
+                    case 0:
+                        {
+                        PairForceComputeKernel<evaluator, 0, 0, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    case 1:
+                        {
+                        PairForceComputeKernel<evaluator, 1, 0, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    case 2:
+                        {
+                        PairForceComputeKernel<evaluator, 2, 0, 0, gpu_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                        break;
+                        }
+                    default:
+                        break;
                     }
                 }
             }
