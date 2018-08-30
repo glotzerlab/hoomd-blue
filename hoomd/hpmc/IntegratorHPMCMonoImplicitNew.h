@@ -990,6 +990,15 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                         // does the depletant fall into the overlap volume with other particles?
                         bool in_intersection_volume = false;
 
+                        quat<Scalar> orientation_negative;
+                        if (m_type_negative != UINT_MAX)
+                            {
+                            // generate test orientation for positive depletant shape
+                            Shape shape_test_negative(quat<Scalar>(), this->m_params[m_type_negative]);
+                            if (shape_test_negative.hasOrientation())
+                                orientation_negative = generateRandomOrientation(my_rng);
+                            }
+
                         for (unsigned int m = 0; m < intersect_i.size(); ++m)
                             {
                             // read in its position and orientation
@@ -1025,11 +1034,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 if (in_intersection_volume && m_type_negative != UINT_MAX)
                                     {
                                     // check triple overlap with other depletant type at old position
-                                    Shape shape_test_negative(quat<Scalar>(), this->m_params[m_type_negative]);
-                                    if (shape_test_negative.hasOrientation())
-                                        {
-                                        shape_test_negative.orientation = shape_test.orientation;
-                                        }
+                                    Shape shape_test_negative(orientation_negative, this->m_params[m_type_negative]);
 
                                     circumsphere_overlap = check_circumsphere_overlap_three(shape_old, shape_j, shape_test_negative,
                                         r_ij, -r_jk+r_ij, m_sweep_radius);
@@ -1387,6 +1392,15 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
                         bool in_new_intersection_volume = false;
 
+                        quat<Scalar> orientation_positive;
+                        if (m_type != UINT_MAX)
+                            {
+                            Shape shape_test_positive(quat<Scalar>(), this->m_params[m_type]);
+                            if (shape_test_positive.hasOrientation())
+                                // generate test orientation for positive depletant shape
+                                orientation_positive = generateRandomOrientation(my_rng);
+                            }
+
                         vec3<Scalar> pos_i_old(h_postype.data[i]);
 
                         for (unsigned int m = 0; m < intersect_i_new.size(); ++m)
@@ -1420,11 +1434,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 if (in_new_intersection_volume && m_type != UINT_MAX)
                                     {
                                     // check triple overlap with other depletant type at new position
-                                    Shape shape_test_positive(quat<Scalar>(), this->m_params[m_type]);
-                                    if (shape_test_positive.hasOrientation())
-                                        {
-                                        shape_test_positive.orientation = shape_test.orientation;
-                                        }
+                                    Shape shape_test_positive(orientation_positive, this->m_params[m_type]);
 
                                     circumsphere_overlap = check_circumsphere_overlap_three(shape_i, shape_j, shape_test_positive,
                                         r_ij, -r_jk+r_ij, m_sweep_radius);
