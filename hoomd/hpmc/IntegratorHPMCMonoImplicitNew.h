@@ -1398,7 +1398,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 this->m_image_list[image_i_new[m]];
 
                             unsigned int typ_j = (i == j) ? typ_i : __scalar_as_int(h_postype.data[j].w);
-                            Shape shape_j(quat<Scalar>((i == j) ? orientation_i : h_orientation.data[i]), this->m_params[typ_j]);
+                            Shape shape_j(quat<Scalar>((i == j) ? orientation_i : h_orientation.data[j]), this->m_params[typ_j]);
 
                             n_overlap_checks++;
 
