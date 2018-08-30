@@ -229,6 +229,14 @@ void CellListGPU::initializeMemory()
     if (m_prof)
         m_prof->push("init");
 
+    #ifdef ENABLE_CUDA
+    if(m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() >1)
+        {
+        cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
+        }
+    #endif
+
     // allocate memory
     GlobalArray<unsigned int> cell_size_scratch(m_cell_indexer.getNumElements()*ngpu, m_exec_conf);
     m_cell_size_scratch.swap(cell_size_scratch);
@@ -275,6 +283,7 @@ void CellListGPU::initializeMemory()
     // map cell list arrays into memory of all active GPUs
     auto& gpu_map = m_exec_conf->getGPUIds();
 
+    #if 0
     // set preferred location for the main cell list to be GPUgpu_map[0]
     cudaMemAdvise(m_cell_size.get(), m_cell_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
     cudaMemAdvise(m_xyzf.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
@@ -298,6 +307,7 @@ void CellListGPU::initializeMemory()
 
     if (! m_orientation.isNull())
         cudaMemPrefetchAsync(m_orientation.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[0]);
+    #endif
 
     #if 0
     // set read-mostly flag for subsequent access by NeighborListBinnedGPU
@@ -312,8 +322,7 @@ void CellListGPU::initializeMemory()
     #endif
 
 
-    #if 0
-
+    #if 1
     for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
         {
         cudaMemAdvise(m_cell_size.get(), m_cell_size.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
@@ -329,9 +338,9 @@ void CellListGPU::initializeMemory()
         if (! m_orientation.isNull())
             cudaMemAdvise(m_orientation.get(), m_orientation.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
         }
-        #endif
+    #endif
 
-
+    #if 0
     // set read-only access to temporary arrays for GPU0 to access
     cudaMemAdvise(m_cell_size_scratch.get(), m_cell_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, gpu_map[0]);
     cudaMemAdvise(m_xyzf_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetReadMostly, gpu_map[0]);
@@ -341,8 +350,9 @@ void CellListGPU::initializeMemory()
         cudaMemAdvise(m_orientation_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetReadMostly, gpu_map[0]);
     if (! m_tdb.isNull())
         cudaMemAdvise(m_tdb_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetReadMostly, gpu_map[0]);
+    #endif
 
-    for (unsigned int idev = gpu_map[0]; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+    for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
         {
         cudaMemAdvise(m_cell_size_scratch.get()+idev*m_cell_indexer.getNumElements(),
             m_cell_indexer.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);

@@ -170,9 +170,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
+    auto& gpu_map = m_exec_conf->getGPUIds();
     #if 0
     // prefetch cell list
-    auto& gpu_map = m_exec_conf->getGPUIds();
     for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
         {
         cudaMemPrefetchAsync(d_cell_size.data, m_cl->getCellIndexer().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
@@ -186,10 +186,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         }
     #endif
 
-    auto gpu_map = m_exec_conf->getGPUIds();
     for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
         {
-        // pin to that device by prefetching
+        // prefetch cell adjacency
         cudaMemPrefetchAsync(d_cell_adj.data, m_cl->getCellAdjArray().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
         }
     CHECK_CUDA_ERROR();

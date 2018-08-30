@@ -446,40 +446,47 @@ __global__ void gpu_combine_cell_lists_kernel(
     if (idx >= cli.getNumElements())
         return;
 
+    unsigned int offset = 0;
+
+    uint2 p = cli.getPair(idx);
+    unsigned int local_idx = p.x;
+    unsigned int bin = p.y;
+
     for (unsigned int i = 0; i < ngpu; ++i)
         {
-        uint2 p = cli.getPair(idx);
-        unsigned int local_idx = p.x;
-        unsigned int bin = p.y;
+        unsigned int local_size = d_cell_size_scratch[bin+i*cli.getH()];
 
-        // is local_idx within bounds?
-        if (local_idx >= d_cell_size_scratch[bin+i*cli.getH()])
-            continue;
+        unsigned int out_idx = offset + local_idx;
+        offset += local_size;
 
-        unsigned int size = atomicInc(&d_cell_size[bin], 0xffffffff);
-        if (size >= Nmax)
-            {
+        if (local_idx < local_size && out_idx >= Nmax)
+             {
             // handle overflow
-            atomicMax(&(*d_conditions).x, size+1);
+            atomicMax(&(*d_conditions).x, out_idx+1);
             return;
             }
-        else
-            {
-            unsigned int write_pos = cli(size, bin);
 
-            // copy over elements
-            if (d_idx)
-                d_idx[write_pos] = d_idx_scratch[idx+i*cli.getNumElements()];
+        unsigned int write_pos = cli(out_idx, bin);
 
-            d_xyzf[write_pos] = d_xyzf_scratch[idx+i*cli.getNumElements()];
+        // is local_idx within bounds?
+        if (local_idx >= local_size)
+            continue;
 
-            if (d_tdb)
-                d_tdb[write_pos] = d_tdb_scratch[idx+i*cli.getNumElements()];
+        // copy over elements
+        if (d_idx)
+            d_idx[write_pos] = d_idx_scratch[idx+i*cli.getNumElements()];
 
-            if (d_cell_orientation)
-                d_cell_orientation[write_pos] = d_cell_orientation_scratch[idx+i*cli.getNumElements()];
-            }
+        d_xyzf[write_pos] = d_xyzf_scratch[idx+i*cli.getNumElements()];
+
+        if (d_tdb)
+            d_tdb[write_pos] = d_tdb_scratch[idx+i*cli.getNumElements()];
+
+        if (d_cell_orientation)
+            d_cell_orientation[write_pos] = d_cell_orientation_scratch[idx+i*cli.getNumElements()];
         }
+
+    if (local_idx == 0)
+        d_cell_size[bin] = offset;
     }
 
 /*! Driver function to sort the cell lists from different GPUs into one
