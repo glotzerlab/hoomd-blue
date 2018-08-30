@@ -61,13 +61,6 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
             m_need_initialize_poisson = true;
             }
 
-        //! Set the depletant density in the free volume
-        void setNegativeDepletantDensity(Scalar n_R)
-            {
-            m_n_R_negative = n_R;
-            m_need_initialize_poisson = true;
-            }
-
         //! Set the type of depletant particle
         void setNegativeDepletantType(unsigned int type)
             {
@@ -85,12 +78,6 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         unsigned int getDepletantType()
             {
             return m_type;
-            }
-
-        //! Returns the depletant density for repulsive depletion
-        Scalar getNegativeDepletantDensity()
-            {
-            return m_n_R_negative;
             }
 
         //! Return the depletant type
@@ -186,7 +173,6 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         Scalar m_n_R;                                            //!< Average depletant number density in free volume
         unsigned int m_type;                                     //!< Type of depletant particle to generate
 
-        Scalar m_n_R_negative;                                   //!< Average depletant number density in free volume for repulsive process
         unsigned int m_type_negative;                            //!< Type of depletant particle to generate for repulsive process
 
         GPUArray<hpmc_implicit_counters_t> m_implicit_count;     //!< Counter of active cell cluster moves
@@ -232,7 +218,7 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
 template< class Shape >
 IntegratorHPMCMonoImplicitNew< Shape >::IntegratorHPMCMonoImplicitNew(std::shared_ptr<SystemDefinition> sysdef,
                                                                    unsigned int seed)
-    : IntegratorHPMCMono<Shape>(sysdef, seed), m_n_R(0), m_type(0), m_n_R_negative(0), m_type_negative(0),
+    : IntegratorHPMCMono<Shape>(sysdef, seed), m_n_R(0), m_type(0), m_type_negative(UINT_MAX),
         m_d_dep(0.0), m_d_dep_negative(0.0), m_need_initialize_poisson(true),
         m_quermass(false), m_sweep_radius(0.0)
     {
@@ -281,8 +267,11 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updatePoissonParameters()
     Shape shape_depletant(o, this->m_params[this->m_type]);
     m_d_dep = shape_depletant.getCircumsphereDiameter();
 
-    Shape shape_depletant_negative(o, this->m_params[this->m_type_negative]);
-    m_d_dep_negative = shape_depletant_negative.getCircumsphereDiameter();
+    if (m_type_negative != UINT_MAX)
+        {
+        Shape shape_depletant_negative(o, this->m_params[this->m_type_negative]);
+        m_d_dep_negative = shape_depletant_negative.getCircumsphereDiameter();
+        }
 
     // access GPUArrays
     ArrayHandle<Scalar> h_d_min(m_d_min, access_location::host, access_mode::overwrite);
@@ -317,18 +306,26 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
     {
     this->m_nominal_width = this->getMaxCoreDiameter();
 
-    if (m_n_R > Scalar(0.0) || m_n_R_negative > Scalar(0.0))
+    if (m_n_R > Scalar(0.0))
         {
         // add range of depletion interaction
         quat<Scalar> o;
         Shape tmp(o, this->m_params[m_type]);
 
-        Shape tmp_negative(o, this->m_params[m_type_negative]);
-        this->m_nominal_width += m_quermass ? 2.0*m_sweep_radius : std::max(tmp.getCircumsphereDiameter(),tmp_negative.getCircumsphereDiameter());
+        Scalar interaction_range;
+        if (m_type_negative != UINT_MAX)
+            {
+            Shape tmp_negative(o, this->m_params[m_type_negative]);
+            interaction_range = m_quermass ? 2.0*m_sweep_radius : std::max(tmp.getCircumsphereDiameter(),tmp_negative.getCircumsphereDiameter());
+            }
+        else
+            interaction_range = m_quermass ? 2.0*m_sweep_radius : tmp.getCircumsphereDiameter();
+
+        this->m_nominal_width += interaction_range;
 
         // extend the image list by the depletant diameter, since we're querying
         // AABBs that are larger than the shape diameters themselves
-        this->m_extra_image_width = m_quermass ? 2.0*m_sweep_radius : std::max(tmp.getCircumsphereDiameter(),tmp_negative.getCircumsphereDiameter());
+        this->m_extra_image_width = interaction_range;
         }
 
     // Account for patch width
@@ -1025,15 +1022,37 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                     in_intersection_volume = true;
                                     }
 
-                                // check triple overlap with i at new position
-                                r_ij = vec3<Scalar>(postype_j) - pos_i - this->m_image_list[image_i[m]];
-                                r_jk = ((i == j) ? pos_i : vec3<Scalar>(h_postype.data[j])) - pos_test - this->m_image_list[image_i[m]];
-                                circumsphere_overlap = check_circumsphere_overlap_three(shape_i, shape_j, shape_test, r_ij, -r_jk+r_ij, m_sweep_radius);
-
-                                if (circumsphere_overlap
-                                    && test_overlap_three(shape_i, (i == j) ? shape_i : shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius))
+                                if (in_intersection_volume && m_type_negative != UINT_MAX)
                                     {
-                                    in_intersection_volume = false;
+                                    // check triple overlap with other depletant type at old position
+                                    Shape shape_test_negative(quat<Scalar>(), this->m_params[m_type_negative]);
+                                    if (shape_test_negative.hasOrientation())
+                                        {
+                                        shape_test_negative.orientation = shape_test.orientation;
+                                        }
+
+                                    circumsphere_overlap = check_circumsphere_overlap_three(shape_old, shape_j, shape_test_negative,
+                                        r_ij, -r_jk+r_ij, m_sweep_radius);
+
+                                    if (circumsphere_overlap
+                                        && test_overlap_three(shape_old, shape_j, shape_test_negative, r_ij, -r_jk+r_ij, err, m_sweep_radius))
+                                        {
+                                        in_intersection_volume = false;
+                                        }
+                                    }
+
+                                if (in_intersection_volume)
+                                    {
+                                    // check triple overlap with i at new position
+                                    r_ij = vec3<Scalar>(postype_j) - pos_i - this->m_image_list[image_i[m]];
+                                    r_jk = ((i == j) ? pos_i : vec3<Scalar>(h_postype.data[j])) - pos_test - this->m_image_list[image_i[m]];
+                                    circumsphere_overlap = check_circumsphere_overlap_three(shape_i, shape_j, shape_test, r_ij, -r_jk+r_ij, m_sweep_radius);
+
+                                    if (circumsphere_overlap
+                                        && test_overlap_three(shape_i, (i == j) ? shape_i : shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius))
+                                        {
+                                        in_intersection_volume = false;
+                                        }
                                     }
                                 }
                             else
@@ -1084,7 +1103,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                 } // end depletant placement
 
             // Depletant check for negative fugacity
-            if (accept && m_n_R_negative > 0)
+            if (accept && m_type_negative != UINT_MAX)
                 {
                 // find neighbors whose circumspheres overlap particle i's excluded volume circumsphere in the new configuration
                 Scalar range = m_quermass ? Scalar(2.0)*m_sweep_radius : m_d_dep_negative;
@@ -1220,7 +1239,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                         }
 
                     // chooose the number of depletants in the intersection volume
-                    std::poisson_distribution<unsigned int> poisson(m_n_R_negative*V);
+                    std::poisson_distribution<unsigned int> poisson(m_n_R*V);
                     #ifdef ENABLE_TBB
                     std::mt19937& rng_poisson = rng_parallel_mt.local();
                     #endif
@@ -1399,17 +1418,39 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                     }
                                 if (err) overlap_err_count+=err;
 
-                                // check triple overlap with old configuration
-                                r_ij = vec3<Scalar>(h_postype.data[j]) - pos_i_old - this->m_image_list[image_i_new[m]];
-                                r_jk = vec3<Scalar>(h_postype.data[j]) - pos_test - this->m_image_list[image_i_new[m]];
-                                circumsphere_overlap = check_circumsphere_overlap_three(shape_old, shape_j, shape_test, r_ij, r_ij - r_jk, m_sweep_radius);
-
-                                if (circumsphere_overlap
-                                    && test_overlap_three(shape_old, (i == j) ? shape_old : shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius))
+                                if (in_new_intersection_volume && m_type != UINT_MAX)
                                     {
-                                    in_new_intersection_volume = false;
+                                    // check triple overlap with other depletant type at new position
+                                    Shape shape_test_positive(quat<Scalar>(), this->m_params[m_type]);
+                                    if (shape_test_positive.hasOrientation())
+                                        {
+                                        shape_test_positive.orientation = shape_test.orientation;
+                                        }
+
+                                    circumsphere_overlap = check_circumsphere_overlap_three(shape_i, shape_j, shape_test_positive,
+                                        r_ij, -r_jk+r_ij, m_sweep_radius);
+
+                                    if (circumsphere_overlap
+                                        && test_overlap_three(shape_i, shape_j, shape_test_positive, r_ij, -r_jk+r_ij, err, m_sweep_radius))
+                                        {
+                                        in_new_intersection_volume = false;
+                                        }
                                     }
-                                if (err) overlap_err_count+=err;
+
+                                if (in_new_intersection_volume)
+                                    {
+                                    // check triple overlap with old configuration
+                                    r_ij = vec3<Scalar>(h_postype.data[j]) - pos_i_old - this->m_image_list[image_i_new[m]];
+                                    r_jk = vec3<Scalar>(h_postype.data[j]) - pos_test - this->m_image_list[image_i_new[m]];
+                                    circumsphere_overlap = check_circumsphere_overlap_three(shape_old, shape_j, shape_test, r_ij, r_ij - r_jk, m_sweep_radius);
+
+                                    if (circumsphere_overlap
+                                        && test_overlap_three(shape_old, (i == j) ? shape_old : shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius))
+                                        {
+                                        in_new_intersection_volume = false;
+                                        }
+                                    if (err) overlap_err_count+=err;
+                                    }
                                 }
                             else
                                 {
@@ -1665,12 +1706,10 @@ template < class Shape > void export_IntegratorHPMCMonoImplicitNew(pybind11::mod
         .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
         .def("setDepletantDensity", &IntegratorHPMCMonoImplicitNew<Shape>::setDepletantDensity)
         .def("setDepletantType", &IntegratorHPMCMonoImplicitNew<Shape>::setDepletantType)
-        .def("setNegativeDepletantDensity", &IntegratorHPMCMonoImplicitNew<Shape>::setNegativeDepletantDensity)
         .def("setNegativeDepletantType", &IntegratorHPMCMonoImplicitNew<Shape>::setNegativeDepletantType)
         .def("getImplicitCounters", &IntegratorHPMCMonoImplicitNew<Shape>::getImplicitCounters)
         .def("getDepletantDensity", &IntegratorHPMCMonoImplicitNew<Shape>::getDepletantDensity)
         .def("getDepletantType", &IntegratorHPMCMonoImplicitNew<Shape>::getDepletantType)
-        .def("getNegativeDepletantDensity", &IntegratorHPMCMonoImplicitNew<Shape>::getNegativeDepletantDensity)
         .def("getNegativeDepletantType", &IntegratorHPMCMonoImplicitNew<Shape>::getNegativeDepletantType)
         .def("setQuermassMode", &IntegratorHPMCMonoImplicitNew<Shape>::setQuermassMode)
         .def("setSweepRadius", &IntegratorHPMCMonoImplicitNew<Shape>::setSweepRadius)

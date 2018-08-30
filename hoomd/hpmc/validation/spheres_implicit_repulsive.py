@@ -83,9 +83,6 @@ class depletion_test(unittest.TestCase):
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
         self.mc.set_params(nR=nR)
 
-        # set negative fugacity to same amount to cancel
-        self.mc.set_params(nR_repulsive=nR)
-
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
         log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume'], overwrite=True,period=1000)
 
@@ -158,9 +155,6 @@ class depletion_test(unittest.TestCase):
         # set depletant fugacity
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
         self.mc.set_params(nR=nR)
-
-        # set negative fugacity to same amount to cancel
-        self.mc.set_params(nR_repulsive=nR)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='C')
         log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume'], overwrite=True,period=1000)
