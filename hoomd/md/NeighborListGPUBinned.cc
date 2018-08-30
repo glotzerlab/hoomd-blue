@@ -32,6 +32,10 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
     m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
 
+    // with multiple GPUs, use indirect access via particle data arrays
+    m_use_index = m_exec_conf->getNumActiveGPUs() > 1;
+    m_cl->setComputeIdx(m_use_index);
+
     CHECK_CUDA_ERROR();
 
     // initialize autotuner
@@ -121,6 +125,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_cell_xyzf(m_cl->getXYZFArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_cell_idx(m_cl->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cell_adj(m_cl->getCellAdjArray(), access_location::device, access_mode::read);
 
@@ -168,6 +173,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
         cudaMemPrefetchAsync(d_cell_xyzf.data, m_cl->getCellListIndexer().getNumElements()*sizeof(Scalar4), gpu_map[idev]);
 
+        if (d_cell_idx.data)
+            cudaMemPrefetchAsync(d_cell_idx.data, m_cl->getCellListIndexer().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
+
         if (d_cell_tdb.data)
             cudaMemPrefetchAsync(d_cell_tdb.data, m_cl->getCellListIndexer().getNumElements()*sizeof(Scalar4), gpu_map[idev]);
         }
@@ -191,6 +199,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                              m_pdata->getN(),
                              d_cell_size.data,
                              d_cell_xyzf.data,
+                             d_cell_idx.data,
                              d_cell_tdb.data,
                              d_cell_adj.data,
                              m_cl->getCellIndexer(),
@@ -206,7 +215,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                              m_diameter_shift,
                              m_cl->getGhostWidth(),
                              m_exec_conf->getComputeCapability()/10,
-                             m_pdata->getGPUPartition());
+                             m_pdata->getGPUPartition(),
+                             m_use_index);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     this->m_tuner->end();

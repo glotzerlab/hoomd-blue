@@ -70,6 +70,7 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         std::shared_ptr<CellList> m_cl;   //!< The cell list
         unsigned int m_block_size;          //!< Block size to execute on the GPU
         unsigned int m_param;               //!< Kernel tuning parameter
+        bool m_use_index;                 //!< True for indirect lookup of particle data via index
 
         std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
 
