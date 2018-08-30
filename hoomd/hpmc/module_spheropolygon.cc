@@ -61,9 +61,7 @@ void export_spheropolygon(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoGPUSpheropolygon");
-    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoImplicitGPUSpheropolygon");
-    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoImplicitNewGPUSpheropolygon");
     export_ComputeFreeVolumeGPU< ShapeSpheropolygon >(m, "ComputeFreeVolumeGPUSpheropolygon");
     #endif

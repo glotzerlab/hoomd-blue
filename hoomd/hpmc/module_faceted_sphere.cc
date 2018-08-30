@@ -64,9 +64,7 @@ void export_faceted_sphere(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeFacetedSphere >(m, "IntegratorHPMCMonoGPUFacetedSphere");
-    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeFacetedSphere >(m, "IntegratorHPMCMonoImplicitGPUFacetedSphere");
-    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeFacetedSphere >(m, "IntegratorHPMCMonoImplicitNewGPUFacetedSphere");
     export_ComputeFreeVolumeGPU< ShapeFacetedSphere >(m, "ComputeFreeVolumeGPUFacetedSphere");
     #endif

@@ -21,10 +21,8 @@ template cudaError_t gpu_hpmc_update<ShapeEllipsoid>(const hpmc_args_t& args,
                                                   const typename ShapeEllipsoid::param_type *d_params);
 template cudaError_t gpu_hpmc_implicit_count_overlaps<ShapeEllipsoid>(const hpmc_implicit_args_t& args,
                                                   const typename ShapeEllipsoid::param_type *d_params);
-#ifdef ENABLE_HPMC_REINSERT
 template cudaError_t gpu_hpmc_implicit_accept_reject<ShapeEllipsoid>(const hpmc_implicit_args_t& args,
                                                   const typename ShapeEllipsoid::param_type *d_params);
-#endif
 template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeEllipsoid>(const hpmc_implicit_args_new_t& args,
                                                   const typename ShapeEllipsoid::param_type *d_params);
 template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapeEllipsoid>(const hpmc_implicit_args_new_t& args,

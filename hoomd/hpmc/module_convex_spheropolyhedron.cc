@@ -65,9 +65,7 @@ void export_convex_spheropolyhedron(py::module& m)
     #ifdef ENABLE_CUDA
 
     export_IntegratorHPMCMonoGPU< ShapeSpheropolyhedron >(m, "IntegratorHPMCMonoGPUSpheropolyhedron");
-    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolyhedron >(m, "IntegratorHPMCMonoImplicitGPUSpheropolyhedron");
-    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeSpheropolyhedron >(m, "IntegratorHPMCMonoImplicitNewGPUSpheropolyhedron");
     export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron >(m, "ComputeFreeVolumeGPUSpheropolyhedron");
 

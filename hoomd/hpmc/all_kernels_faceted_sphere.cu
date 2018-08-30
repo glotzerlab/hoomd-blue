@@ -21,10 +21,8 @@ template cudaError_t gpu_hpmc_update<ShapeFacetedSphere>(const hpmc_args_t& args
                                                   const typename ShapeFacetedSphere::param_type *d_params);
 template cudaError_t gpu_hpmc_implicit_count_overlaps<ShapeFacetedSphere>(const hpmc_implicit_args_t& args,
                                                   const typename ShapeFacetedSphere::param_type *d_params);
-#ifdef ENABLE_HPMC_REINSERT
 template cudaError_t gpu_hpmc_implicit_accept_reject<ShapeFacetedSphere>(const hpmc_implicit_args_t& args,
                                                   const typename ShapeFacetedSphere::param_type *d_params);
-#endif
 template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeFacetedSphere>(const hpmc_implicit_args_new_t& args,
                                                   const typename ShapeFacetedSphere::param_type *d_params);
 template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapeFacetedSphere>(const hpmc_implicit_args_new_t& args,

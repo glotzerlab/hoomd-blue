@@ -64,9 +64,7 @@ void export_convex_polygon(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoGPUConvexPolygon");
-    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitGPUConvexPolygon");
-    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitNewGPUConvexPolygon");
     export_ComputeFreeVolumeGPU< ShapeConvexPolygon >(m, "ComputeFreeVolumeGPUConvexPolygon");
     #endif

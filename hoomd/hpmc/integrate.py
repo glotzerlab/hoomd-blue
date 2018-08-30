@@ -721,7 +721,7 @@ def setA(cpp_integrator,a):
 def depletant_mode_circumsphere(depletant_mode):
     if depletant_mode == 'circumsphere':
         if hoomd.context.current.on_gpu():
-            hoomd.context.msg.warning("depletant_mode='circumsphere' is deprecated on the GPU. Compile with ENABLE_HPMC_REINSERT enabled to use this feature.\n")
+            hoomd.context.msg.warning("depletant_mode='circumsphere' is deprecated on the GPU if using ntrial>0. Compile with ENABLE_HPMC_REINSERT enabled to use this feature.\n")
         return True
     elif depletant_mode == 'overlap_regions':
         return False

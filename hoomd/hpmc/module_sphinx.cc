@@ -63,9 +63,7 @@ void export_sphinx(py::module& m)
     #ifdef ENABLE_SPHINX_GPU
 
     export_IntegratorHPMCMonoGPU< ShapeSphinx >(m, "IntegratorHPMCMonoGPUSphinx");
-    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeSphinx >(m, "IntegratorHPMCMonoImplicitGPUSphinx");
-    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeSphinx >(m, "IntegratorHPMCMonoImplicitNewGPUSphinx");
     export_ComputeFreeVolumeGPU< ShapeSphinx >(m, "ComputeFreeVolumeGPUSphinx");
 

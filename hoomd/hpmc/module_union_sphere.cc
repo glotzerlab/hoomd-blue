@@ -62,9 +62,7 @@ void export_union_sphere(py::module& m)
     #ifdef ENABLE_CUDA
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoGPUSphereUnion");
-    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoImplicitGPUSphereUnion");
-    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoImplicitNewGPUSphereUnion");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSphere> >(m, "ComputeFreeVolumeGPUSphereUnion");
 

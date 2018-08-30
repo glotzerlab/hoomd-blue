@@ -29,7 +29,6 @@
 namespace hpmc
 {
 
-#ifdef ENABLE_HPMC_REINSERT
 //! Template class for HPMC update with implicit depletants on the GPU
 /*!
     Depletants are generated randomly on the fly according to the semi-grand canonical ensemble.
@@ -345,6 +344,13 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
         ArrayHandle<hpmc_implicit_counters_t> h_implicit_counters(this->m_implicit_count, access_location::host, access_mode::readwrite);
         this->m_implicit_count_step_start = h_implicit_counters.data[0];
         }
+
+    #ifndef ENABLE_HPMC_REINSERT
+    if (this->m_n_trial)
+        {
+        throw std::runtime_error("ntrial > 0 not supported on the GPU. For CUDA architecture <=6.0, recompile with ENABLE_HPMC_REINSERT=ON.");
+        }
+    #endif
 
     // check if we are below a minimum image convention box size
     BoxDim box = this->m_pdata->getBox();
@@ -974,7 +980,6 @@ template < class Shape > void export_IntegratorHPMCMonoImplicitGPU(pybind11::mod
               .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
         ;
     }
-#endif
 
 } // end namespace hpmc
 

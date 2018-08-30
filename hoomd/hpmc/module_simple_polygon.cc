@@ -64,9 +64,7 @@ void export_simple_polygon(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoGPUSimplePolygon");
-    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoImplicitGPUSimplePolygon");
-    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoImplicitNewGPUSimplePolygon");
     export_ComputeFreeVolumeGPU< ShapeSimplePolygon >(m, "ComputeFreeVolumeGPUSimplePolygon");
     #endif

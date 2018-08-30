@@ -61,9 +61,7 @@ void export_ellipsoid(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoGPUEllipsoid");
-    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitGPUEllipsoid");
-    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitNewGPUEllipsoid");
     export_ComputeFreeVolumeGPU< ShapeEllipsoid >(m, "ComputeFreeVolumeGPUEllipsoid");
     #endif

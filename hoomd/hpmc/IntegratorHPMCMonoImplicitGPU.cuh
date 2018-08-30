@@ -1585,7 +1585,6 @@ cudaError_t gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, c
     return cudaSuccess;
     }
 
-#ifdef ENABLE_HPMC_REINSERT
 //! Kernel driver for gpu_hpmc_implicit_reinsert_kernel() and gpu_hpmc_implict_accept_reject_kernel()
 /*! \param args Bundled arguments
     \param d_params Per-type shape parameters
@@ -1609,6 +1608,7 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
     assert(args.group_size >= 1);
     assert(args.group_size <= 32);  // note, really should be warp size of the device
 
+    #ifdef ENABLE_HPMC_REINSERT
     if (args.n_overlaps && args.ntrial > 0)
         {
         // construct the lookup of active cell idx per depletant
@@ -1770,6 +1770,7 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
         mgpu::SegReduceCsr(args.d_depletant_lnb, args.d_overlap_cell_scan, args.n_overlaps,
             args.n_active_cells, true, args.d_lnb, 0.0f, mgpu::plus<float>(), *args.mgpu_context);
         }
+    #endif
 
     // accept-reject on a per cell basis
     unsigned int block_size = 256;
@@ -1797,7 +1798,6 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
 
     return cudaSuccess;
     }
-#endif // ENABLE_HPMC_REINSERT
 
 #endif // NVCC
 

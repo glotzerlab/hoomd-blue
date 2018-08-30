@@ -61,9 +61,7 @@ void export_sphere(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSphere >(m, "IntegratorHPMCMonoGPUSphere");
-    #ifdef ENABLE_HPMC_REINSERT
     export_IntegratorHPMCMonoImplicitGPU< ShapeSphere >(m, "IntegratorHPMCMonoImplicitGPUSphere");
-    #endif
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeSphere >(m, "IntegratorHPMCMonoImplicitNewGPUSphere");
     export_ComputeFreeVolumeGPU< ShapeSphere >(m, "ComputeFreeVolumeGPUSphere");
     #endif

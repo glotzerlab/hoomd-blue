@@ -5,7 +5,7 @@ if (ENABLE_HPMC_SPHINX_GPU)
     add_definitions(-DENABLE_SPHINX_GPU)
 endif()
 
-option(ENABLE_HPMC_REINSERT "Enable depletant_mode='circumsphere'" OFF)
+option(ENABLE_HPMC_REINSERT "Enable ntrial>0 with depletant_mode='circumsphere' on the GPU" OFF)
 if (ENABLE_HPMC_REINSERT)
     add_definitions(-DENABLE_HPMC_REINSERT)
 endif()
