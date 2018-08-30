@@ -148,6 +148,9 @@ void CellListGPU::computeCellList()
 
     if (ngpu > 1)
         {
+        // have to wait for all GPUs to sync up, to have cell sizes available
+        m_exec_conf->beginMultiGPU();
+
         // autotune block sizes
         m_tuner_combine->begin();
 
@@ -179,8 +182,11 @@ void CellListGPU::computeCellList()
                                ngpu,
                                m_tuner_combine->getParam(),
                                m_Nmax,
-                               d_conditions.data);
+                               d_conditions.data,
+                               m_pdata->getGPUPartition());
         m_tuner_combine->end();
+
+        m_exec_conf->endMultiGPU();
         }
 
     if (m_sort_cell_list)

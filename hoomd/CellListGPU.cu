@@ -424,7 +424,7 @@ struct comp_less_uint2
         }
     };
 
-//! Kernel to add up cell sizes
+//! Kernel to combine ngpu cell lists into one, in parallel
 __global__ void gpu_combine_cell_lists_kernel(
     const unsigned int *d_cell_size_scratch,
     unsigned int *d_cell_size,
@@ -437,6 +437,7 @@ __global__ void gpu_combine_cell_lists_kernel(
     const Scalar4 *d_cell_orientation_scratch,
     Scalar4 *d_cell_orientation,
     const Index2D cli,
+    unsigned int igpu,
     unsigned int ngpu,
     const unsigned int Nmax,
     uint3 *d_conditions)
@@ -446,47 +447,62 @@ __global__ void gpu_combine_cell_lists_kernel(
     if (idx >= cli.getNumElements())
         return;
 
-    unsigned int offset = 0;
-
     uint2 p = cli.getPair(idx);
     unsigned int local_idx = p.x;
     unsigned int bin = p.y;
 
+    // reduce cell sizes for 0..igpu
+    unsigned int local_size;
+    unsigned int offset = 0;
+    unsigned int total_size = 0;
+
     for (unsigned int i = 0; i < ngpu; ++i)
         {
-        unsigned int local_size = d_cell_size_scratch[bin+i*cli.getH()];
+        unsigned int sz = d_cell_size_scratch[bin+i*cli.getH()];
 
-        unsigned int out_idx = offset + local_idx;
-        offset += local_size;
+        if (i == igpu)
+            local_size = sz;
 
-        if (local_idx < local_size && out_idx >= Nmax)
-             {
-            // handle overflow
-            atomicMax(&(*d_conditions).x, out_idx+1);
-            return;
-            }
+        if (i < igpu)
+            offset += sz;
 
-        unsigned int write_pos = cli(out_idx, bin);
-
-        // is local_idx within bounds?
-        if (local_idx >= local_size)
-            continue;
-
-        // copy over elements
-        if (d_idx)
-            d_idx[write_pos] = d_idx_scratch[idx+i*cli.getNumElements()];
-
-        d_xyzf[write_pos] = d_xyzf_scratch[idx+i*cli.getNumElements()];
-
-        if (d_tdb)
-            d_tdb[write_pos] = d_tdb_scratch[idx+i*cli.getNumElements()];
-
-        if (d_cell_orientation)
-            d_cell_orientation[write_pos] = d_cell_orientation_scratch[idx+i*cli.getNumElements()];
+        total_size += sz;
         }
 
-    if (local_idx == 0)
-        d_cell_size[bin] = offset;
+    // write out cell size total on GPU 0
+    if (igpu == 0 && local_idx == 0)
+        d_cell_size[bin] = total_size;
+
+    // is local_idx within bounds?
+    if (local_idx >= local_size)
+        return;
+
+    unsigned int out_idx = offset + local_idx;
+
+    if (out_idx >= Nmax)
+        {
+        // handle overflow
+        #if (__CUDA_ARCH__ >= 600)
+        atomicMax_system(&(*d_conditions).x, out_idx+1);
+        #else
+        atomicMax(&(*d_conditions).x, out_idx+1);
+        #endif
+        return;
+        }
+
+    unsigned int write_pos = cli(out_idx, bin);
+
+    // copy over elements
+    if (d_idx)
+        d_idx[write_pos] = d_idx_scratch[idx+igpu*cli.getNumElements()];
+
+    d_xyzf[write_pos] = d_xyzf_scratch[idx+igpu*cli.getNumElements()];
+
+    if (d_tdb)
+        d_tdb[write_pos] = d_tdb_scratch[idx+igpu*cli.getNumElements()];
+
+    if (d_cell_orientation)
+        d_cell_orientation[write_pos] = d_cell_orientation_scratch[idx+igpu*cli.getNumElements()];
     }
 
 /*! Driver function to sort the cell lists from different GPUs into one
@@ -517,28 +533,35 @@ cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
                                 unsigned int ngpu,
                                 const unsigned int block_size,
                                 const unsigned int Nmax,
-                                uint3 *d_conditions)
+                                uint3 *d_conditions,
+                                const GPUPartition& gpu_partition)
     {
-    // fill indices table with cell idx/particle idx pairs
     dim3 threads(block_size);
     dim3 grid(cli.getNumElements()/block_size + 1);
 
-    gpu_combine_cell_lists_kernel<<<grid, threads>>>
-        (
-        d_cell_size_scratch,
-        d_cell_size,
-        d_idx_scratch,
-        d_idx,
-        d_xyzf_scratch,
-        d_xyzf,
-        d_tdb_scratch,
-        d_tdb,
-        d_cell_orientation_scratch,
-        d_cell_orientation,
-        cli,
-        ngpu,
-        Nmax,
-        d_conditions);
+    // copy together cell lists in parallel
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        gpu_partition.getRangeAndSetGPU(idev);
+
+        gpu_combine_cell_lists_kernel<<<grid, threads>>>
+            (
+            d_cell_size_scratch,
+            d_cell_size,
+            d_idx_scratch,
+            d_idx,
+            d_xyzf_scratch,
+            d_xyzf,
+            d_tdb_scratch,
+            d_tdb,
+            d_cell_orientation_scratch,
+            d_cell_orientation,
+            cli,
+            idev,
+            ngpu,
+            Nmax,
+            d_conditions);
+        }
 
     return cudaSuccess;
     }
