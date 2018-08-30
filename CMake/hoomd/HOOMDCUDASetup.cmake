@@ -61,8 +61,8 @@ if (ENABLE_CUDA)
     list(GET _cuda_arch_list_sorted -1 _cuda_max_arch)
     add_definitions(-DCUDA_ARCH=${_cuda_min_arch})
 
-    if (_cuda_min_arch LESS 20)
-        message(SEND_ERROR "SM1x builds are not supported")
+    if (_cuda_min_arch LESS 30)
+        message(SEND_ERROR "HOOMD requires compute 3.0 or newer")
     endif ()
 
     # only generage ptx code for the maximum supported CUDA_ARCH (saves on file size)
