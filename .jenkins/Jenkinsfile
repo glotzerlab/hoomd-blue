@@ -5,67 +5,6 @@ pipeline
 
     stages
         {
-        stage('unit-gcc49-py27-cd75')
-            {
-            agent { label 'gpu' }
-
-            environment
-                {
-                CC = '/usr/bin/gcc-4.9'
-                CXX = '/usr/bin/g++-4.9'
-                PYVER = '2.7'
-                CMAKE_BIN = '/usr/bin'
-                ENABLE_CUDA = 'ON'
-                ENABLE_MPI = 'ON'
-                ENABLE_TBB = 'OFF'
-                BUILD_VALIDATION = 'OFF'
-                CONTAINER = '/nfs/glotzer/containers/ci-20171130-cuda75.img'
-                BUILD_JIT = 'OFF'
-                OMP_NUM_THREADS = '1'
-                }
-
-            steps
-                {
-                sh 'echo ${NODE_NAME}'
-
-                dir('code')
-                    {
-                    checkout scm
-                    sh 'git submodule update --init'
-                    }
-
-                dir('build')
-                    {
-                    timeout(time: 1, unit: 'HOURS')
-                        {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
-                           '''
-
-                        sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
-                        }
-
-                    timeout(time: 1, unit: 'HOURS')
-                        {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
-                           '''
-                        }
-                    }
-
-                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
-
-                junit 'test.xml'
-                }
-            post
-                {
-                always
-                    {
-                    archive 'build/Testing/**/Test.xml'
-                    deleteDir()
-                    }
-                }
-            }
         stage('unit-clang38-py35-cd80')
             {
             agent { label 'gpu' }

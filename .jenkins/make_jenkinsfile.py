@@ -4,21 +4,6 @@ env = jinja2.Environment(loader=jinja2.FileSystemLoader('.'))
 template = env.get_template('Jenkinsfile.jinja')
 
 tests = []
-tests.append(dict(name='unit-gcc49-py27-cd75',
-                  agent='gpu',
-                  CC = '/usr/bin/gcc-4.9',
-                  CXX = '/usr/bin/g++-4.9',
-                  PYVER = '2.7',
-                  CMAKE_BIN = '/usr/bin',
-                  ENABLE_CUDA = 'ON',
-                  ENABLE_MPI = 'ON',
-                  ENABLE_TBB = 'OFF',
-                  BUILD_VALIDATION = 'OFF',
-                  CONTAINER = 'ci-20171130-cuda75.img',
-                  BUILD_JIT = 'OFF',
-                  OMP_NUM_THREADS = '1',
-                  timeout=1))
-
 tests.append(dict(name='unit-clang38-py35-cd80',
                   agent='gpu',
                   CC = '/usr/bin/clang',
