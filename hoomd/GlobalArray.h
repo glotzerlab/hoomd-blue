@@ -51,11 +51,13 @@ class GlobalArray : public GPUArray<T>
             : m_pitch(num_elements), m_height(1), m_exec_conf(exec_conf), m_acquired(false), m_tag(tag)
             {
             size_t align = 0;
+            #ifdef ENABLE_CUDA
             if (m_exec_conf->getNumActiveGPUs() > 1)
                 {
                 // use OS page size as minimum alignment
                 align = getpagesize();
                 }
+            #endif
 
             ManagedArray<T> array(num_elements, exec_conf->isCUDAEnabled(), align);
             std::swap(m_array, array);
@@ -177,11 +179,13 @@ class GlobalArray : public GPUArray<T>
             unsigned int num_elements = m_pitch * m_height;
 
             size_t align = 0;
+            #ifdef ENABLE_CUDA
             if (m_exec_conf->getNumActiveGPUs() > 1)
                 {
                 // use OS page size as minimum alignment
                 align = getpagesize();
                 }
+            #endif
 
             ManagedArray<T> array(num_elements, exec_conf->isCUDAEnabled(), align);
             std::swap(m_array, array);
@@ -260,11 +264,13 @@ class GlobalArray : public GPUArray<T>
             checkAcquired(*this);
 
             size_t align = 0;
+            #ifdef ENABLE_CUDA
             if (m_exec_conf->getNumActiveGPUs() > 1)
                 {
                 // use OS page size as minimum alignment
                 align = getpagesize();
                 }
+            #endif
 
             ManagedArray<T> new_array(num_elements, m_exec_conf->isCUDAEnabled(), align);
 
@@ -303,11 +309,13 @@ class GlobalArray : public GPUArray<T>
             assert(num_elements > 0);
 
             size_t align = 0;
+            #ifdef ENABLE_CUDA
             if (m_exec_conf->getNumActiveGPUs() > 1)
                 {
                 // use OS page size as minimum alignment
                 align = getpagesize();
                 }
+            #endif
 
             ManagedArray<T> new_array(num_elements, m_exec_conf->isCUDAEnabled(), align);
 
