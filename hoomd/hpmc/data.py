@@ -373,7 +373,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
 
-class convex_polyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_param):
+class convex_spheropolyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_param):
     def __init__(self, mc, index):
         _hpmc.convex_polyhedron_union_param_proxy.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size templated
         _param.__init__(self, mc, index);
