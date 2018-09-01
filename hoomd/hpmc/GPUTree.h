@@ -165,6 +165,41 @@ class GPUTree
             return leaf;
             }
 
+        //! Fetch the next node in the tree and test against simultaneous overlap with two OBBs
+        /*! The method maintains it internal state in a user-supplied variable cur_node
+         *
+         * \param obb First query bounding box
+         * \param obb2 Second query bounding box
+         * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous call
+         * \returns true if the current node overlaps and is a leaf node
+         */
+        DEVICE inline bool queryNode_three(const OBB& obb, const OBB& obb2, unsigned int &cur_node) const
+            {
+            OBB node_obb(getOBB(cur_node));
+
+            bool leaf = false;
+            if (overlap(node_obb, obb) && overlap(node_obb, obb2))
+                {
+                unsigned int left_child = getLeftChild(cur_node);
+
+                // is this node a leaf node?
+                if (left_child == OBB_INVALID_NODE)
+                    {
+                    leaf = true;
+                    }
+                else
+                    {
+                    cur_node = left_child;
+                    return false;
+                    }
+                }
+
+            // escape
+            cur_node = m_escape[cur_node];
+
+            return leaf;
+            }
+
         //! Fetch the next node in the tree and test against overlap with a ray
         /*! The method maintains it internal state in a user-supplied variable cur_node
          * The ray equation is R(t) = p + t*d (t>=0)
