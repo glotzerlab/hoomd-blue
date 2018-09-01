@@ -1986,7 +1986,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         this->m_image_list[m_image_i[m]];
 
                     unsigned int typ_j = (i == j) ? typ_i : __scalar_as_int(h_postype[j].w);
-                    Shape shape_j(quat<Scalar>((i == j) ? shape_i.orientation : h_orientation[j]), this->m_params[typ_j]);
+                    Shape shape_j((i == j) ? shape_i.orientation : quat<Scalar>(h_orientation[j]), this->m_params[typ_j]);
 
                     n_overlap_checks++;
 
