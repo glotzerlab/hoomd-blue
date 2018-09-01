@@ -15,20 +15,6 @@ references:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
-  test_container_config-cuda75: &test_container_config-cuda75
-    docker:
-      - image: joaander/ci:20171130-cuda75
-        environment:
-          PYTHONPATH: /home/ci/project/build
-    working_directory: /home/ci/project
-
-  test_container_config-cuda70: &test_container_config-cuda70
-    docker:
-      - image: joaander/ci:20171130-cuda70
-        environment:
-          PYTHONPATH: /home/ci/project/build
-    working_directory: /home/ci/project
-
   test_container_config-arch: &test_container_config-arch
     docker:
       - image: joaander/ci:20171206-arch-2
@@ -126,34 +112,6 @@ jobs:
       BUILD_JIT: ON
     <<: *native_build
 
-  gcc49-py34-mpi-cd75:
-    <<: *test_container_config-cuda75
-    environment:
-      CC: /usr/bin/gcc-4.9
-      CXX: /usr/bin/g++-4.9
-      PYVER: "3.4"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: ON
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: OFF
-    <<: *native_build
-
-  gcc48-py34-cm28-mpi-cd70:
-    <<: *test_container_config-cuda70
-    environment:
-      CC: /usr/bin/gcc-4.8
-      CXX: /usr/bin/g++-4.8
-      PYVER: "3.4"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: ON
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: OFF
-    <<: *native_build
-
   gcc54-py35-mpi-cd80:
     <<: *test_container_config-cuda80
     environment:
@@ -211,9 +169,7 @@ workflows:
     jobs:
       - unit-gcc48-py27-cm28-mpi-tbb
       - gcc48-py27-mpi-cd80
-      - gcc49-py34-mpi-cd75
       - gcc54-py35-mpi-cd80
-      - gcc48-py34-cm28-mpi-cd70
       - unit-clang38-py35
       - gcc72-py36-mpi
       - sphinx-docs
