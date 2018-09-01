@@ -427,3 +427,9 @@ class convex_spheropolyhedron_union_params(_hpmc.convex_polyhedron_union_param_p
                             ignore_statistics,
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
+
+class convex_polyhedron_union_params(convex_spheropolyhedron_union_params):
+    # provided for backward compatibility
+    def __init__(self, mc, index):
+        # call base class constructor
+        convex_spheropolyhedron_union_params.__init__(self,mc, index)
