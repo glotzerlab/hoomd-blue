@@ -2176,20 +2176,34 @@ class convex_spheropolyhedron_union(mode_hpmc):
         orientations = param.orientations
         centers = param.centers
         colors = param.colors
+        sweep_radii = [m.sweep_radius for m in param.members]
         if param.colors is None:
             # default
             colors = ["ff5984ff" for c in centers]
         N = len(centers);
-        shape_def = 'poly3d_union {0} '.format(N);
 
+        if N == 1:
+            verts = vertices[0]
+            R = sweep_radii[0]
+            if len(verts) == 1:
+                shape_def = 'sphere {0} '.format(2*R);
 
-        for verts,q,p,c in zip(vertices, orientations, centers, colors):
-            shape_def += '{0} '.format(len(verts));
-            for v in verts:
-                shape_def += '{0} {1} {2} '.format(*v);
-            shape_def += '{0} {1} {2} '.format(*p);
-            shape_def += '{0} {1} {2} {3} '.format(*q);
-            shape_def += '{0} '.format(c);
+            else:
+                shape_def = 'spoly3d {0} {1} '.format(R, len(verts));
+
+                for v in verts:
+                    shape_def += '{0} {1} 0 '.format(*v);
+        else:
+            shape_def = 'poly3d_union {0} '.format(N);
+
+            # sweep radius is ignored for now
+            for verts,q,p,c in zip(vertices, orientations, centers, colors):
+                shape_def += '{0} '.format(len(verts));
+                for v in verts:
+                    shape_def += '{0} {1} {2} '.format(*v);
+                shape_def += '{0} {1} {2} '.format(*p);
+                shape_def += '{0} {1} {2} {3} '.format(*q);
+                shape_def += '{0} '.format(c);
 
         return shape_def
 
