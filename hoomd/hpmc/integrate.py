@@ -239,6 +239,7 @@ class mode_hpmc(_integrator):
             data['depletant_mode'] = self.depletant_mode
             data['nR'] = self.get_nR()
             data['depletant_type'] = self.get_depletant_type()
+            data['nR_repulsive'] = self.get_nR_repulsive()
             data['depletant_type_repulsive'] = self.get_depletant_type_repulsive()
             data['quermass'] = self.get_quermass_mode()
             data['sweep_radius'] = self.get_sweep_radius()
@@ -409,6 +410,7 @@ class mode_hpmc(_integrator):
                    nselect=None,
                    nR=None,
                    depletant_type=None,
+                   nR_repulsive=None,
                    depletant_type_repulsive=None,
                    quermass=None,
                    sweep_radius=None,
@@ -423,6 +425,7 @@ class mode_hpmc(_integrator):
             nselect (int): (if set) New value for the number of particles to select for trial moves in one cell.
             nR (int): (if set) **Implicit depletants only**: Number density of implicit depletants in free volume.
             depletant_type (str): (if set) **Implicit depletants only**: Particle type to use as implicit depletant.
+            nR_repulsive (int): (if set) **Implicit depletants only**: Number density of implicit depletants in free volume (repulsive depletion)
             depletant_type_repulsive (str): (if set) **Implicit depletants only**: Particle type to use as implicit depletant (repulsive depletion)
             quermass (bool): (if set) **Implicit depletants only**: Enable/disable quermass integration mode
             sweep_radius (float): (if set): **Implicit depletants only**: Additional radius of a sphere to sweep the shapes and the depletant by
@@ -471,6 +474,13 @@ class mode_hpmc(_integrator):
                 self.implicit_params.append('depletant_type')
                 itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(depletant_type)
                 self.cpp_integrator.setDepletantType(itype)
+            if nR_repulsive is not None:
+                if depletant_mode_circumsphere(self.depletant_mode):
+                    hoomd.context.msg.error("depletant_mode='circumsphere' does not support repulsive depletion")
+                    raise ValueError("Invalid depletants parameter")
+
+                self.implicit_params.append('nR_repulsive')
+                self.cpp_integrator.setNegativeDepletantDensity(nR_repulsive)
             if depletant_type_repulsive is not None:
                 if depletant_mode_circumsphere(self.depletant_mode):
                     hoomd.context.msg.error("depletant_mode='circumsphere' does not support repulsive depletion")
@@ -497,7 +507,7 @@ class mode_hpmc(_integrator):
                     self.cpp_integrator.setNTrial(ntrial)
                 else:
                     hoomd.context.msg.warning("ntrial is only supported with depletant_mode='circumsphere'. Ignoring.\n")
-        elif any([p is not None for p in [nR,depletant_type,ntrial, depletant_type_repulsive, quermass, sweep_radius]]):
+        elif any([p is not None for p in [nR,depletant_type,ntrial, nR_repulsive, depletant_type_repulsive]]):
             hoomd.context.msg.warning("Implicit depletant parameters not supported by this integrator.\n")
 
         if deterministic is not None:
@@ -697,6 +707,19 @@ class mode_hpmc(_integrator):
 
         typeid = self.cpp_integrator.getDepletantType();
         return hoomd.context.current.system_definition.getParticleData().getNameByType(typeid);
+
+    def get_nR_repulsive(self):
+        R""" Get depletant density for repulsive depletion
+
+        Returns:
+            The current value of the 'nR_repulsive' parameter of the integrator.
+
+        """
+        if not self.implicit or depletant_mode_circumsphere(self.depletant_mode):
+            hoomd.context.msg.warning("nR_repulsive only available in simulations with depletant_mode='overlap_regions'. Returning 0.\n")
+            return 0;
+
+        return self.cpp_integrator.getNegativeDepletantDensity();
 
     def get_depletant_type_repulsive(self):
         R""" Get the depletant type for repulsive depletion
