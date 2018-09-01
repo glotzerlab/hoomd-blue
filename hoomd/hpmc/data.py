@@ -383,7 +383,7 @@ class convex_polyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "convex polyhedron union(centers = {}, orientations = {}, overlap = {})\n".format(self.centers, self.orientations, self.vertices, self.overlap, self.sweep_radii);
+        string = "convex polyhedron union(centers = {}, orientations = {}, overlap = {})\n".format(self.centers, self.orientations, self.overlap);
         ct = 0;
         members = self.members;
         for m in members:

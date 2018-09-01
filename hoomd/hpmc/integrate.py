@@ -2015,7 +2015,7 @@ class convex_polyhedron_union(mode_hpmc):
     * *centers* (**required**) - list of centers of constituent polyhedra in particle coordinates.
     * *orientations* (**required**) - list of orientations of constituent polyhedra.
     * *overlap* (**default: 1 for all particles**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
-    * *sweep_radii* (**default: 0 for all particle**) - radii of a sphere sweeping the convex polyhedron
+    * *sweep_radii* (**default: 0 for all particle**) - radii of spheres sweeping out each constituent polyhedron
         * .. versionadded:: 2.4
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
