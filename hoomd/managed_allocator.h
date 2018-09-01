@@ -15,6 +15,29 @@
 #include <iostream>
 #include <memory>
 
+#ifdef __GNUC__
+#define GCC_VERSION (__GNUC__ * 10000 \
+                     + __GNUC_MINOR__ * 100 \
+                     + __GNUC_PATCHLEVEL__)
+/* Test for GCC < 5.0 */
+#if GCC_VERSION < 50000
+// work around GCC missing feature
+
+#define NO_STD_ALIGN
+// https://stackoverflow.com/questions/27064791/stdalign-not-supported-by-g4-9
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57350
+inline void *my_align( std::size_t alignment, std::size_t size,
+                    void *&ptr, std::size_t &space ) {
+    std::uintptr_t pn = reinterpret_cast< std::uintptr_t >( ptr );
+    std::uintptr_t aligned = ( pn + alignment - 1 ) & - alignment;
+    std::size_t padding = aligned - pn;
+    if ( space < size + padding ) return nullptr;
+    space -= padding;
+    return ptr = reinterpret_cast< void * >( aligned );
+    }
+#endif
+#endif
+
 template<class T>
 class managed_allocator
     {
@@ -56,7 +79,11 @@ class managed_allocator
                 if (m_align_size)
                     {
                     // align to align_size
+                    #ifndef NO_STD_ALIGN
                     result = std::align(m_align_size,n*sizeof(T),result,allocation_bytes);
+                    #else
+                    result = my_align(m_align_size,n*sizeof(T),result,allocation_bytes);
+                    #endif
 
                     if (!result)
                         throw std::runtime_error("managed_allocator: Error aligning managed memory");
@@ -99,7 +126,11 @@ class managed_allocator
                 if (align_size)
                     {
                     // align to align_size
-                    result = std::align(align_size,n*sizeof(T), result,allocation_bytes);
+                    #ifndef NO_STD_ALIGN
+                    result = std::align(align_size,n*sizeof(T),result,allocation_bytes);
+                    #else
+                    result = my_align(align_size,n*sizeof(T),result,allocation_bytes);
+                    #endif
 
                     if (!result)
                         throw std::runtime_error("managed_allocator: Error aligning managed memory");
