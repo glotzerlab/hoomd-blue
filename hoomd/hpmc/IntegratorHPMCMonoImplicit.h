@@ -711,6 +711,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 {
                 if (m_method == 0)
                     {
+                    // check free volume in circumsphere
                     #ifndef ENABLE_TBB
                     accept = checkDepletantCircumsphere(i, pos_i, shape_i, typ_i, h_d_max.data[typ_i], h_d_min.data[typ_i], h_postype.data, h_orientation.data, h_overlaps.data, counters, implicit_counters, rng_poisson, rng_i);
                     #else
@@ -719,10 +720,11 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                     }
                 else
                     {
+                    // check overlap volume only
                     #ifndef ENABLE_TBB
-                    accept = checkDepletantCircumsphere(i, pos_i, shape_i, typ_i, h_d_max.data[typ_i], h_d_min.data[typ_i], h_postype.data, h_orientation.data, h_overlaps.data, counters, implicit_counters, rng_poisson, rng_i);
+                    accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_d_max.data[typ_i], h_d_min.data[typ_i], h_postype.data, h_orientation.data, h_overlaps.data, counters, implicit_counters, rng_poisson, rng_i);
                     #else
-                    accept = checkDepletantCircumsphere(i, pos_i, shape_i, typ_i, h_d_max.data[typ_i], h_d_min.data[typ_i], h_postype.data, h_orientation.data, h_overlaps.data, counters, implicit_counters, rng_i, rng_parallel, rng_parallel_mt);
+                    accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_d_max.data[typ_i], h_d_min.data[typ_i], h_postype.data, h_orientation.data, h_overlaps.data, counters, implicit_counters, rng_i, rng_parallel, rng_parallel_mt);
                     #endif
                     }
                 } // end depletant placement
