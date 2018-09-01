@@ -779,10 +779,11 @@ class sphere(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewSphere(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphere(hoomd.context.current.system_definition, seed);
         else:
@@ -1235,10 +1236,11 @@ class polyhedron(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewPolyhedron(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoPolyhedron(hoomd.context.current.system_definition, seed);
         else:
@@ -1349,10 +1351,11 @@ class convex_polyhedron(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedron(hoomd.context.current.system_definition, seed);
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedron(hoomd.context.current.system_definition, seed, 0);
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewConvexPolyhedron(hoomd.context.current.system_definition, seed);
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedron(hoomd.context.current.system_definition, seed, 1);
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedron(hoomd.context.current.system_definition, seed);
         else:
@@ -1479,10 +1482,11 @@ class faceted_sphere(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewFacetedSphere(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedSphere(hoomd.context.current.system_definition, seed);
         else:
@@ -1579,10 +1583,11 @@ class sphinx(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoNewImplicitSphinx(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphinx(hoomd.context.current.system_definition, seed);
         else:
@@ -1702,10 +1707,11 @@ class convex_spheropolyhedron(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolyhedron(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolyhedron(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewSpheropolyhedron(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolyhedron(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolyhedron(hoomd.context.current.system_definition, seed);
         else:
@@ -1823,10 +1829,11 @@ class ellipsoid(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewEllipsoid(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoEllipsoid(hoomd.context.current.system_definition, seed);
         else:
@@ -1929,10 +1936,11 @@ class sphere_union(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewSphereUnion(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed)
         else:
@@ -2037,10 +2045,11 @@ class convex_polyhedron_union(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
         else:
