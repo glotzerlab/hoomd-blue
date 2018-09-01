@@ -88,7 +88,7 @@ def dimer_overlap_union(system, verts, Ap, Aq, Bp, Bq):
     # for restoration later
     backup = system.take_snapshot()
 
-    mc = hpmc.integrate.convex_polyhedron_union(seed=27);
+    mc = hpmc.integrate.convex_spheropolyhedron_union(seed=27);
     mc.shape_param.set("A", vertices=[verts, verts], centers=Ap, orientations=Aq);
     mc.shape_param.set("B", vertices=[verts, verts], centers=Bp, orientations=Bq);
 
@@ -390,7 +390,7 @@ class shape_union(unittest.TestCase):
             #self.system.restore_snapshot(backup)
             cube_overlaps = overlaps
 
-            self.mc = hpmc.integrate.convex_polyhedron_union(seed=self.seed);
+            self.mc = hpmc.integrate.convex_spheropolyhedron_union(seed=self.seed);
             self.mc.shape_param.set("A", vertices=[cube_verts, cube_verts], centers=cubes, orientations=cube_ors);
 
             # use HPMC overlap check
@@ -422,7 +422,7 @@ class shape_union(unittest.TestCase):
         # use fixed seed
         numpy.random.seed(self.seed)
 
-        self.mc = hpmc.integrate.convex_polyhedron_union(seed=self.seed);
+        self.mc = hpmc.integrate.convex_spheropolyhedron_union(seed=self.seed);
         self.mc.shape_param.set("A", sweep_radii=[0.5, 0.5], centers=spheres, orientations=[(1,0,0,0),(1,0,0,0)], vertices=[[(0,0,0)],[(0,0,0)]]);
 
         num_iter = 50 # number of times to generate new configurations

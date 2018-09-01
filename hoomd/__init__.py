@@ -8,13 +8,20 @@ simulations using HOOMD::
 
     import hoomd
     from hoomd import md
-    hoomd.context.initialize("")
-    hoomd.init.create_random(N=100, phi_p=0.1)
-    lj = md.pair.lj(r_cut=2.5)
+    hoomd.context.initialize()
+
+    # create a 10x10x10 square lattice of particles with name A
+    hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=2.0, type_name='A'), n=10)
+    # specify Lennard-Jones interactions between particle pairs
+    nl = md.nlist.cell()
+    lj = md.pair.lj(r_cut=3.0, nlist=nl)
     lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-    hoomd.md.integrate.mode_standard(dt=0.005)
-    hoomd.md.integrate.nvt(group=hoomd.group.all(), T=1.2, tau=0.5)
-    hoomd.run(100)
+    # integrate at constant temperature
+    all = hoomd.group.all();
+    md.integrate.mode_standard(dt=0.005)
+    hoomd.md.integrate.langevin(group=all, kT=1.2, seed=4)
+    # run 10,000 time steps
+    hoomd.run(10e3)
 
 .. rubric:: Stability
 

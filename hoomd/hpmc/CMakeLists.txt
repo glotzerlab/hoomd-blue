@@ -39,7 +39,6 @@ set(_hpmc_headers
     IntegratorHPMCMono.h
     IntegratorHPMCMonoImplicitGPU.h
     IntegratorHPMCMonoImplicit.h
-    IntegratorHPMCMonoImplicitNew.h
     IntegratorHPMCMonoImplicitNewGPU.h
     MAP3D.h
     MinkowskiMath.h
@@ -84,7 +83,7 @@ set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      all_kernels_ellipsoid.cu
                      all_kernels_faceted_sphere.cu
                      all_kernels_sphinx.cu
-                     all_kernels_union_convex_polyhedron.cu
+                     all_kernels_union_spheropolyhedron.cu
                      all_kernels_union_sphere.cu
                      all_kernels_convex_polyhedron.cu
                      all_kernels_convex_spheropolyhedron.cu

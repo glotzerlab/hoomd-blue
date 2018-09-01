@@ -5,7 +5,6 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
-#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 #include "AnalyzerSDF.h"
 
@@ -45,15 +44,12 @@ void export_union_convex_polyhedron(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoConvexPolyhedronUnion");
     export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoImplicitConvexPolyhedronUnion");
-    export_IntegratorHPMCMonoImplicitNew< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoImplicitNewConvexPolyhedronUnion");
     export_ComputeFreeVolume< ShapeUnion<ShapeSpheropolyhedron> >(m, "ComputeFreeVolumeConvexPolyhedronUnion");
     // export_AnalyzerSDF< ShapeUnion<ShapeSpheropolyhedron> >(m, "AnalyzerSDFConvexPolyhedronUnion");
     export_UpdaterMuVT< ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterMuVTConvexPolyhedronUnion");
     export_UpdaterClusters<ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterClustersConvexPolyhedronUnion");
     export_UpdaterClustersImplicit<ShapeUnion<ShapeSpheropolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeSpheropolyhedron> > >(m, "UpdaterClustersImplicitConvexPolyhedronUnion");
-    export_UpdaterClustersImplicit<ShapeUnion<ShapeSpheropolyhedron>, IntegratorHPMCMonoImplicitNew<ShapeUnion<ShapeSpheropolyhedron> > >(m, "UpdaterClustersImplicitNewConvexPolyhedronUnion");
     export_UpdaterMuVTImplicit< ShapeUnion<ShapeSpheropolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeSpheropolyhedron> > >(m, "UpdaterMuVTImplicitConvexPolyhedronUnion");
-    export_UpdaterMuVTImplicit< ShapeUnion<ShapeSpheropolyhedron>, IntegratorHPMCMonoImplicitNew<ShapeUnion<ShapeSpheropolyhedron> > >(m, "UpdaterMuVTImplicitNewConvexPolyhedronUnion");
 
     export_ExternalFieldInterface<ShapeUnion<ShapeSpheropolyhedron> >(m, "ExternalFieldConvexPolyhedronUnion");
     export_LatticeField<ShapeUnion<ShapeSpheropolyhedron> >(m, "ExternalFieldLatticeConvexPolyhedronUnion");

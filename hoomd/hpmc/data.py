@@ -373,7 +373,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
 
-class convex_polyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_param):
+class convex_spheropolyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_param):
     def __init__(self, mc, index):
         _hpmc.convex_polyhedron_union_param_proxy.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size templated
         _param.__init__(self, mc, index);
@@ -383,7 +383,7 @@ class convex_polyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "convex polyhedron union(centers = {}, orientations = {}, overlap = {})\n".format(self.centers, self.orientations, self.vertices, self.overlap, self.sweep_radii);
+        string = "convex polyhedron union(centers = {}, orientations = {}, overlap = {})\n".format(self.centers, self.orientations, self.overlap);
         ct = 0;
         members = self.members;
         for m in members:
@@ -427,3 +427,9 @@ class convex_polyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_
                             ignore_statistics,
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
+
+class convex_polyhedron_union_params(convex_spheropolyhedron_union_params):
+    # provided for backward compatibility
+    def __init__(self, mc, index):
+        # call base class constructor
+        convex_spheropolyhedron_union_params.__init__(self,mc, index)
