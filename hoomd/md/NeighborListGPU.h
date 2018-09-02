@@ -6,7 +6,7 @@
 
 #include "NeighborList.h"
 #include "NeighborListGPU.cuh"
-#include "hoomd/GPUFlags.h"
+#include "hoomd/GlobalArray.h"
 #include "hoomd/Autotuner.h"
 
 /*! \file NeighborListGPU.h
@@ -37,17 +37,17 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         NeighborListGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
             : NeighborList(sysdef, r_cut, r_buff)
             {
-            GPUFlags<unsigned int> flags(exec_conf);
-            m_flags.swap(flags);
-            m_flags.resetFlags(0);
+            GlobalArray<unsigned int> flags(1,exec_conf);
+            std::swap(m_flags, flags);
+            *m_flags.get() = 0;
 
             // default to full mode
             m_storage_mode = full;
             m_checkn = 1;
 
             // flag to say how big to resize
-            GPUFlags<unsigned int> req_size_nlist(exec_conf);
-            m_req_size_nlist.swap(req_size_nlist);
+            GlobalArray<unsigned int> req_size_nlist(1,exec_conf);
+            std::swap(m_req_size_nlist,req_size_nlist);
 
             // create cuda event
             m_tuner_filter.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_filter", this->m_exec_conf));
@@ -79,9 +79,9 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         virtual void updateExListIdx();
 
     protected:
-        GPUFlags<unsigned int> m_flags;   //!< Storage for device flags on the GPU
+        GlobalArray<unsigned int> m_flags;   //!< Storage for device flags on the GPU
 
-        GPUFlags<unsigned int> m_req_size_nlist;    //!< Flag to hold the required size of the neighborlist
+        GlobalArray<unsigned int> m_req_size_nlist;    //!< Flag to hold the required size of the neighborlist
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);

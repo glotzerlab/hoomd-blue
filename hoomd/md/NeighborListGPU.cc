@@ -91,27 +91,31 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
 
     ArrayHandle<Scalar> d_rcut_max(m_rcut_max, access_location::device, access_mode::read);
 
-    m_exec_conf->beginMultiGPU();
+        {
+        ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
-    gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
-                                     d_last_pos.data,
-                                     d_pos.data,
-                                     m_pdata->getN(),
-                                     box,
-                                     d_rcut_max.data,
-                                     m_r_buff,
-                                     m_pdata->getNTypes(),
-                                     lambda_min,
-                                     lambda,
-                                     ++m_checkn,
-                                     m_pdata->getGPUPartition());
+        m_exec_conf->beginMultiGPU();
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+        gpu_nlist_needs_update_check_new(d_flags.data,
+                                         d_last_pos.data,
+                                         d_pos.data,
+                                         m_pdata->getN(),
+                                         box,
+                                         d_rcut_max.data,
+                                         m_r_buff,
+                                         m_pdata->getNTypes(),
+                                         lambda_min,
+                                         lambda,
+                                         ++m_checkn,
+                                         m_pdata->getGPUPartition());
 
-    m_exec_conf->endMultiGPU();
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
 
-    bool result = m_flags.readFlags() == m_checkn;
+        m_exec_conf->endMultiGPU();
+        }
+
+    bool result = *m_flags.get() == m_checkn;
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -213,11 +217,14 @@ void NeighborListGPU::buildHeadList()
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
 
-        m_req_size_nlist.resetFlags(0);
+        // reset flags
+        *m_req_size_nlist.get() = 0;
+
+        ArrayHandle<unsigned int> d_req_size_nlist(m_req_size_nlist, access_location::device, access_mode::readwrite);
 
         m_tuner_head_list->begin();
         gpu_nlist_build_head_list(d_head_list.data,
-                                  m_req_size_nlist.getDeviceFlags(),
+                                  d_req_size_nlist.data,
                                   d_Nmax.data,
                                   d_pos.data,
                                   m_pdata->getN(),
@@ -228,7 +235,7 @@ void NeighborListGPU::buildHeadList()
         m_tuner_head_list->end();
         }
 
-    unsigned int req_size_nlist = m_req_size_nlist.readFlags();
+    unsigned int req_size_nlist = *m_req_size_nlist.get();
     resizeNlist(req_size_nlist);
 
     // now that the head list is complete and the neighbor list has been allocated, update memory advice

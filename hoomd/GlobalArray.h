@@ -216,6 +216,19 @@ class GlobalArray : public GPUArray<T>
 
         T *get() const
             {
+            #ifdef ENABLE_CUDA
+            if (m_exec_conf->isCUDAEnabled())
+                {
+                // synchronize all active GPUs
+                auto gpu_map = m_exec_conf->getGPUIds();
+                for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                    {
+                    cudaSetDevice(gpu_map[idev]);
+                    cudaDeviceSynchronize();
+                    }
+                }
+            #endif
+
             return m_array.get();
             }
 
@@ -382,7 +395,7 @@ class GlobalArray : public GPUArray<T>
 
             m_acquired = true;
 
-            return get();
+            return m_array.get();
             }
 
         //! Release the data pointer
