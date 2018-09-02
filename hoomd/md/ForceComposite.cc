@@ -20,6 +20,7 @@ namespace py = pybind11;
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false),
          m_global_max_d(0.0),
+         m_memory_initialized(false),
          #ifdef ENABLE_MPI
          m_comm_ghost_layer_connected(false),
          #endif
@@ -32,38 +33,6 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
 
     // connect to box change signal
     m_pdata->getCompositeParticlesSignal().connect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
-
-    GlobalArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
-    m_body_types.swap(body_types);
-
-    GlobalArray<Scalar3> body_pos(m_pdata->getNTypes(), 1, m_exec_conf);
-    m_body_pos.swap(body_pos);
-
-    GlobalArray<Scalar4> body_orientation(m_pdata->getNTypes(), 1, m_exec_conf);
-    m_body_orientation.swap(body_orientation);
-
-    GlobalArray<unsigned int> body_len(m_pdata->getNTypes(), m_exec_conf);
-    m_body_len.swap(body_len);
-
-    // reset elements to zero
-    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
-    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
-        {
-        h_body_len.data[i] = 0;
-        }
-
-    #ifdef ENABLE_CUDA
-    GlobalVector<unsigned int> rigid_center(m_exec_conf);
-    m_rigid_center.swap(rigid_center);
-    #endif
-
-    m_body_charge.resize(m_pdata->getNTypes());
-    m_body_diameter.resize(m_pdata->getNTypes());
-
-    m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
-    m_d_max_changed.resize(m_pdata->getNTypes(), false);
-
-    m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
     }
 
 //! Destructor
@@ -79,6 +48,51 @@ ForceComposite::~ForceComposite()
     #endif
     }
 
+void ForceComposite::lazyInitMem()
+    {
+    if (m_memory_initialized)
+        return;
+
+    GlobalArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
+    m_body_types.swap(body_types);
+    TAG_ALLOCATION(m_body_types);
+
+    GlobalArray<Scalar3> body_pos(m_pdata->getNTypes(), 1, m_exec_conf);
+    m_body_pos.swap(body_pos);
+    TAG_ALLOCATION(m_body_pos);
+
+    GlobalArray<Scalar4> body_orientation(m_pdata->getNTypes(), 1, m_exec_conf);
+    m_body_orientation.swap(body_orientation);
+    TAG_ALLOCATION(m_body_orientation);
+
+    GlobalArray<unsigned int> body_len(m_pdata->getNTypes(), m_exec_conf);
+    m_body_len.swap(body_len);
+    TAG_ALLOCATION(m_body_len);
+
+    // reset elements to zero
+    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        {
+        h_body_len.data[i] = 0;
+        }
+
+    #ifdef ENABLE_CUDA
+    GlobalVector<unsigned int> rigid_center(m_exec_conf);
+    m_rigid_center.swap(rigid_center);
+    TAG_ALLOCATION(m_rigid_center);
+    #endif
+
+    m_body_charge.resize(m_pdata->getNTypes());
+    m_body_diameter.resize(m_pdata->getNTypes());
+
+    m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
+    m_d_max_changed.resize(m_pdata->getNTypes(), false);
+
+    m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
+
+    m_memory_initialized = true;
+    }
+
 void ForceComposite::setParam(unsigned int body_typeid,
     std::vector<unsigned int>& type,
     std::vector<Scalar3>& pos,
@@ -91,6 +105,8 @@ void ForceComposite::setParam(unsigned int body_typeid,
     assert(m_body_orientation.getPitch() >= m_pdata->getNTypes());
     assert(m_body_charge.size() >= m_pdata->getNTypes());
     assert(m_body_diameter.size() >= m_pdata->getNTypes());
+
+    lazyInitMem();
 
     if (body_typeid >= m_pdata->getNTypes())
         {
@@ -166,6 +182,9 @@ void ForceComposite::setParam(unsigned int body_typeid,
             m_body_orientation.resize(m_pdata->getNTypes(), type.size());
 
             m_body_idx = Index2D(m_body_types.getPitch(), m_body_types.getHeight());
+
+            // set memory hints
+            lazyInitMem();
             }
         }
 
@@ -277,6 +296,9 @@ void ForceComposite::slotNumTypesChange()
     m_d_max_changed.resize(new_ntypes, false);
 
     m_body_max_diameter.resize(new_ntypes,0.0);
+
+    //! update memory hints
+    lazyInitMem();
     }
 
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)

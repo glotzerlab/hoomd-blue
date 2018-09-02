@@ -76,14 +76,21 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     unsigned int nmol = molecule_indexer.getW();
 
     const GlobalVector<unsigned int>& molecule_list = getMoleculeList();
+    const GlobalVector<unsigned int>& molecule_length = getMoleculeLengths();
 
-    ArrayHandle<unsigned int> d_molecule_length(getMoleculeLengths(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_length(molecule_length, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_molecule_list(molecule_list, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_molecule_idx(getMoleculeIndex(), access_location::device, access_mode::read);
 
     auto gpu_map = m_exec_conf->getGPUIds();
     for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+        {
+        cudaMemPrefetchAsync(molecule_length.get(), sizeof(unsigned int)*molecule_length.getNumElements(), gpu_map[idev]);
         cudaMemPrefetchAsync(molecule_list.get(), sizeof(unsigned int)*molecule_list.getNumElements(), gpu_map[idev]);
+        cudaMemPrefetchAsync(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), gpu_map[idev]);
+        cudaMemPrefetchAsync(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), gpu_map[idev]);
+        cudaMemPrefetchAsync(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), gpu_map[idev]);
+        }
 
     // access particle data
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
@@ -245,6 +252,9 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
         {
         cudaMemPrefetchAsync(molecule_length.get(), sizeof(unsigned int)*molecule_length.getNumElements(), gpu_map[idev]);
+        cudaMemPrefetchAsync(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), gpu_map[idev]);
+        cudaMemPrefetchAsync(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), gpu_map[idev]);
+        cudaMemPrefetchAsync(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), gpu_map[idev]);
         }
 
         {
@@ -340,6 +350,17 @@ void ForceCompositeGPU::sortRigidBodies()
 
     m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     m_gpu_partition.setN(n_rigid);
+    }
+
+void ForceCompositeGPU::lazyInitMem()
+    {
+    // call base class method
+    ForceComposite::lazyInitMem();
+
+    cudaMemAdvise(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+    cudaMemAdvise(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+    cudaMemAdvise(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+    cudaMemAdvise(m_body_types.get(), sizeof(unsigned int)*m_body_types.getNumElements(), cudaMemAdviseSetReadMostly, 0);
     }
 
 void export_ForceCompositeGPU(py::module& m)

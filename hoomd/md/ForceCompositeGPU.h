@@ -79,6 +79,9 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
                 }
             }
 
+        //! Update GPU Mappings
+        virtual void lazyInitMem();
+
         std::unique_ptr<Autotuner> m_tuner_force;  //!< Autotuner for block size and threads per particle
         std::unique_ptr<Autotuner> m_tuner_virial; //!< Autotuner for block size and threads per particle
         std::unique_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel

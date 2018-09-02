@@ -93,6 +93,8 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         std::vector<Scalar> m_body_max_diameter;                  //!< List of diameters for all body types
         Scalar m_global_max_d;                                    //!< Maximum over all body diameters
 
+        bool m_memory_initialized;                  //!< True if arrays are allocated
+
         #ifdef ENABLE_CUDA
         GPUPartition m_gpu_partition;               //!< Partition of the rigid bodies
         GlobalVector<unsigned int> m_rigid_center;  //!< Contains particle indices of all central particles
@@ -158,6 +160,9 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
         //! Helper method to calculate the body diameter
         Scalar getBodyDiameter(unsigned int body_type);
+
+        //! Initialize memory
+        virtual void lazyInitMem();
 
     private:
         #ifdef ENABLE_MPI
