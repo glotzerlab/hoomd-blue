@@ -33,6 +33,10 @@
         my_exec_conf->getMemoryTracer()->unregisterAllocation(my_array.get(), sizeof(T)*my_array.size()); \
     }
 
+#define TAG_ALLOCATION(array) { \
+    array.setTag(std::string(#array)); \
+    }
+
 template<class T>
 class GlobalArray : public GPUArray<T>
     {
@@ -364,6 +368,17 @@ class GlobalArray : public GPUArray<T>
             std::swap(m_array,new_array);
             REGISTER_ALLOCATION(m_exec_conf, m_array);
             UNREGISTER_ALLOCATION(m_exec_conf, new_array);
+            }
+
+        //! Set an optional tag for memory profiling
+        /*! tag The name of this allocation
+         */
+        void setTag(const std::string& tag)
+            {
+            // update the tag
+            m_tag = tag;
+            if (m_exec_conf && m_exec_conf->getMemoryTracer())
+                m_exec_conf->getMemoryTracer()->updateTag(m_array.get(), sizeof(T)*m_array.size(), m_tag);
             }
 
     protected:

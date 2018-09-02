@@ -42,10 +42,10 @@ template<class T> class GlobalVector : public GlobalArray<T>
         GlobalVector();
 
         //! Constructs an empty GlobalVector
-        GlobalVector(std::shared_ptr<const ExecutionConfiguration> exec_conf);
+        GlobalVector(std::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& tag = std::string());
 
         //! Constructs a GlobalVector
-        GlobalVector(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf);
+        GlobalVector(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& tag = std::string());
 
         //! Frees memory
         virtual ~GlobalVector() {}
@@ -168,16 +168,18 @@ template<class T> GlobalVector<T>::GlobalVector()
 
 /*! \param exec_conf Shared pointer to the execution configuration
  */
-template<class T> GlobalVector<T>::GlobalVector(std::shared_ptr<const ExecutionConfiguration> exec_conf)
-    : GlobalArray<T>(0,exec_conf), m_size(0)
+template<class T> GlobalVector<T>::GlobalVector(std::shared_ptr<const ExecutionConfiguration> exec_conf,
+    const std::string& tag)
+    : GlobalArray<T>(0,exec_conf,tag), m_size(0)
     {
     }
 
 /*! \param size Number of elements to allocate initial memory for in the array
     \param exec_conf Shared pointer to the execution configuration
 */
-template<class T> GlobalVector<T>::GlobalVector(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf)
-     : GlobalArray<T>(size, exec_conf), m_size(size)
+template<class T> GlobalVector<T>::GlobalVector(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf,
+    const std::string& tag)
+     : GlobalArray<T>(size, exec_conf,tag), m_size(size)
     {
     }
 

@@ -36,6 +36,11 @@ class PYBIND11_EXPORT MemoryTraceback
         //! Output the list of pointers along with their stack traces
         void outputTraces(std::shared_ptr<Messenger> msg) const;
 
+        //! Update the name of an allocation
+        /*! \param tag The new tag
+         */
+        void updateTag(void *ptr, unsigned int nbytes, const std::string& tag) const;
+
     private:
         mutable std::map<std::pair<void *,unsigned int>, std::vector<void *> > m_traces;  //!< A stacktrace per memory allocation
         mutable std::map<std::pair<void *,unsigned int>, std::string > m_type_hints;      //!< Types of memory allocations
