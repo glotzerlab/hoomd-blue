@@ -45,11 +45,11 @@ class EvaluatorPairGB
             \param _q_j Quaterion of j^th particle
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairGB(Scalar3& _dr,
-                               Scalar4& _qi,
-                               Scalar4& _qj,
-                               Scalar _rcutsq,
-                               param_type& _params)
+        DEVICE EvaluatorPairGB(const Scalar3& _dr,
+                               const Scalar4& _qi,
+                               const Scalar4& _qj,
+                               const Scalar _rcutsq,
+                               const param_type& _params)
             : dr(_dr),rcutsq(_rcutsq),qi(_qi),qj(_qj),
               epsilon(_params.x), lperp(_params.y), lpar(_params.z)
             {
