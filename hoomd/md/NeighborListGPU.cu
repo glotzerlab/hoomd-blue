@@ -112,7 +112,7 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
         auto range = gpu_partition.getRangeAndSetGPU(idev);
         unsigned int nwork = range.second - range.first;
 
-        int n_blocks = N/block_size+1;
+        int n_blocks = nwork/block_size+1;
         gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size, shared_bytes>>>(d_result,
                                                                                         d_last_pos,
                                                                                         d_pos,
