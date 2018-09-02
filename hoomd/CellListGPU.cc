@@ -227,13 +227,16 @@ void CellListGPU::initializeMemory()
     if (m_prof)
         m_prof->push("init");
 
-    #ifdef ENABLE_CUDA
-    if(m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() >1)
+    if (m_compute_adj_list)
         {
-        cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
-        CHECK_CUDA_ERROR();
+        #ifdef ENABLE_CUDA
+        if(m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() >1)
+            {
+            cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
+            CHECK_CUDA_ERROR();
+            }
+        #endif
         }
-    #endif
 
     // allocate memory
     GlobalArray<unsigned int> cell_size_scratch(m_cell_indexer.getNumElements()*ngpu, m_exec_conf);
