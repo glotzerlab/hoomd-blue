@@ -138,7 +138,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
             if (k < mol_len)
                 {
                 // determine the particle idx of the particle
-                unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
+                unsigned int pidx = d_molecule_list[molecule_indexer(k,mol_idx[m])];
 
                 // if this particle is not the central particle
                 if (body_type[m] != 0xffffffff && pidx != central_idx[m])
@@ -292,7 +292,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
             mol_idx[m] = group_idx;
 
             // first ptl is central ptl
-            central_idx[m] = d_molecule_list[molecule_indexer(group_idx, 0)];
+            central_idx[m] = d_molecule_list[molecule_indexer(0,group_idx)];
 
             if (d_tag[central_idx[m]] != d_body[central_idx[m]])
                 {
@@ -330,7 +330,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
             if (k < mol_len)
                 {
                 // determine the particle idx of the particle
-                unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
+                unsigned int pidx = d_molecule_list[molecule_indexer(k,mol_idx[m])];
 
                 if (body_type[m] != 0xffffffff && pidx != central_idx[m])
                     {

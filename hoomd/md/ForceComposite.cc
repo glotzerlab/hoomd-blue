@@ -782,7 +782,7 @@ void ForceComposite::computeForces(unsigned int timestep)
 
         // get central ptl tag from first ptl in molecule
         assert(len>0);
-        unsigned int first_idx = h_molecule_list.data[molecule_indexer(ibody,0)];
+        unsigned int first_idx = h_molecule_list.data[molecule_indexer(0,ibody)];
 
         assert(first_idx < m_pdata->getN() + m_pdata->getNGhosts());
         unsigned int central_tag = h_body.data[first_idx];
@@ -805,7 +805,7 @@ void ForceComposite::computeForces(unsigned int timestep)
         // sum up forces and torques from constituent particles
         for (unsigned int jptl = 0; jptl < len; ++jptl)
             {
-            unsigned int idxj = h_molecule_list.data[molecule_indexer(ibody, jptl)];
+            unsigned int idxj = h_molecule_list.data[molecule_indexer(jptl,ibody)];
             assert(idxj < m_pdata->getN() + m_pdata->getNGhosts());
 
             assert(idxj == central_idx || jptl > 0);
