@@ -19,7 +19,7 @@
     assert(!(a).m_acquired); \
     if ((a).m_acquired) \
         { \
-        throw std::runtime_error("GlobalArray already acquired in "+std::string(__FILE__)+" line "+std::to_string(__LINE__)+" - ArrayHandle scoping mistake?"); \
+        throw std::runtime_error("GlobalArray already acquired - ArrayHandle scoping mistake?"); \
         } \
     }
 
@@ -51,6 +51,8 @@ class GlobalArray : public GPUArray<T>
             : m_pitch(num_elements), m_height(1), m_exec_conf(exec_conf), m_acquired(false), m_tag(tag)
             {
             size_t align = 0;
+
+            assert(m_exec_conf);
             #ifdef ENABLE_CUDA
             if (m_exec_conf->getNumActiveGPUs() > 1)
                 {
@@ -80,7 +82,7 @@ class GlobalArray : public GPUArray<T>
             checkAcquired(from);
 
             #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled())
+            if (m_exec_conf && m_exec_conf->isCUDAEnabled())
                 {
                 // synchronize all active GPUs
                 auto gpu_map = m_exec_conf->getGPUIds();
@@ -109,7 +111,7 @@ class GlobalArray : public GPUArray<T>
             m_acquired = false;
 
             #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled())
+            if (m_exec_conf && m_exec_conf->isCUDAEnabled())
                 {
                 // synchronize all active GPUs
                 auto gpu_map = m_exec_conf->getGPUIds();
@@ -219,7 +221,7 @@ class GlobalArray : public GPUArray<T>
             checkAcquired(*this);
 
             #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled())
+            if (m_exec_conf && m_exec_conf->isCUDAEnabled())
                 {
                 // synchronize all active GPUs
                 auto gpu_map = m_exec_conf->getGPUIds();
@@ -279,6 +281,7 @@ class GlobalArray : public GPUArray<T>
             checkAcquired(*this);
 
             size_t align = 0;
+            assert(m_exec_conf);
             #ifdef ENABLE_CUDA
             if (m_exec_conf->getNumActiveGPUs() > 1)
                 {
@@ -324,6 +327,7 @@ class GlobalArray : public GPUArray<T>
             assert(num_elements > 0);
 
             size_t align = 0;
+            assert(m_exec_conf);
             #ifdef ENABLE_CUDA
             if (m_exec_conf->getNumActiveGPUs() > 1)
                 {
