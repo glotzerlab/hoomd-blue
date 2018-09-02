@@ -135,13 +135,17 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         m_cuda_error_checking = cuda_error_checking;
         }
 
-    #ifdef ENABLE_CUDA
     //! Get the number of active GPUs
     unsigned int getNumActiveGPUs() const
         {
+        #ifdef ENABLE_CUDA
         return m_gpu_id.size();
+        #else
+        return 0;
+        #endif
         }
 
+    #ifdef ENABLE_CUDA
     //! Get the IDs of the active GPUs
     const std::vector<unsigned int>& getGPUIds() const
         {

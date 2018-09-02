@@ -846,10 +846,10 @@ void export_ExecutionConfiguration(py::module& m)
     executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, std::vector<unsigned int>, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
+        .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
 #ifdef ENABLE_CUDA
-         .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
-         .def("cudaProfileStart", &ExecutionConfiguration::cudaProfileStart)
-         .def("cudaProfileStop", &ExecutionConfiguration::cudaProfileStop)
+        .def("cudaProfileStart", &ExecutionConfiguration::cudaProfileStart)
+        .def("cudaProfileStop", &ExecutionConfiguration::cudaProfileStop)
 #endif
         .def("getGPUName", &ExecutionConfiguration::getGPUName)
         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
