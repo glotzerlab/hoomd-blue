@@ -39,7 +39,11 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
             {
             GlobalArray<unsigned int> flags(1,exec_conf);
             std::swap(m_flags, flags);
-            *m_flags.get() = 0;
+
+                {
+                ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
+                *h_flags.data = 0;
+                }
 
             // default to full mode
             m_storage_mode = full;

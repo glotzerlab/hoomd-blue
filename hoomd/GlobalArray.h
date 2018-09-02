@@ -220,23 +220,16 @@ class GlobalArray : public GPUArray<T>
             throw std::runtime_error("GlobalArray::swap() not supported with GPUArray()");
             }
 
-        T *get() const
+        //! Get the underlying raw pointer
+        /*! \returns the data pointer of the ManagedArray
+
+            \warning This method doesn't sync the device, so if you are using the pointer to read from while a kernel is
+                  writing to it on some stream, this may cause undefined behavior
+
+            It may be used to pass the pointer to API functions, e.g., to set memory hints or prefetch data asynchronously
+         */
+        const T *get() const
             {
-            checkAcquired(*this);
-
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf && m_exec_conf->isCUDAEnabled())
-                {
-                // synchronize all active GPUs
-                auto gpu_map = m_exec_conf->getGPUIds();
-                for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                    {
-                    cudaSetDevice(gpu_map[idev]);
-                    cudaDeviceSynchronize();
-                    }
-                }
-            #endif
-
             return m_array.get();
             }
 

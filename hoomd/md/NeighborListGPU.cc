@@ -115,7 +115,12 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
         m_exec_conf->endMultiGPU();
         }
 
-    bool result = *m_flags.get() == m_checkn;
+    bool result;
+        {
+        // read back flags
+        ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
+        result = m_checkn == *h_flags.data;
+        }
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -213,12 +218,15 @@ void NeighborListGPU::buildHeadList()
     if (m_prof) m_prof->push(exec_conf, "head-list");
 
         {
+        ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist, access_location::host, access_mode::overwrite);
+        // reset flags
+        *h_req_size_nlist.data = 0;
+        }
+
+        {
         ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
-
-        // reset flags
-        *m_req_size_nlist.get() = 0;
 
         ArrayHandle<unsigned int> d_req_size_nlist(m_req_size_nlist, access_location::device, access_mode::readwrite);
 
