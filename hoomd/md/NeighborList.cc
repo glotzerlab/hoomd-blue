@@ -225,7 +225,18 @@ void NeighborList::reallocateTypes()
     #endif
 
     m_r_listsq.resize(m_typpair_idx.getNumElements());
+    unsigned int old_ntypes = m_Nmax.getNumElements();
     m_Nmax.resize(m_pdata->getNTypes());
+
+    // flood Nmax with 8s initially
+        {
+        ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::readwrite);
+        for (unsigned int i=old_ntypes; i < m_pdata->getNTypes(); ++i)
+            {
+            h_Nmax.data[i] = 8;
+            }
+        }
+
     m_conditions.resize(m_pdata->getNTypes());
 
     #ifdef ENABLE_CUDA
@@ -237,6 +248,8 @@ void NeighborList::reallocateTypes()
         CHECK_CUDA_ERROR();
         }
     #endif
+
+    resetConditions();
 
     m_rcut_signal.emit();
     forceUpdate();
@@ -1436,7 +1449,7 @@ void NeighborList::resizeNlist(unsigned int size)
     {
     if (size > m_nlist.getNumElements())
         {
-        m_exec_conf->msg->notice(6) << "nlist: (Re-)allocating neighbor list" << endl;
+        m_exec_conf->msg->notice(6) << "nlist: (Re-)allocating neighbor list, new size " << size << " uints " << endl;
 
         unsigned int alloc_size = m_nlist.getNumElements() ? m_nlist.getNumElements() : 1;
 

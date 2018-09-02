@@ -216,6 +216,8 @@ class GlobalArray : public GPUArray<T>
 
         T *get() const
             {
+            checkAcquired(*this);
+
             #ifdef ENABLE_CUDA
             if (m_exec_conf->isCUDAEnabled())
                 {
