@@ -105,6 +105,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 
     // initialize rtag array
     GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
+    TAG_ALLOCATION(m_rtag);
 
     // initialize all processors
     initializeFromSnapshot(snap);
@@ -179,6 +180,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
 
     // initialize rtag array
     GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
+    TAG_ALLOCATION(m_rtag);
 
     // initialize particle data with snapshot contents
     initializeFromSnapshot(snapshot);
@@ -348,50 +350,65 @@ void ParticleData::allocate(unsigned int N)
     // positions
     GlobalArray< Scalar4 > pos(N, m_exec_conf);
     m_pos.swap(pos);
+    TAG_ALLOCATION(m_pos);
 
     // velocities
     GlobalArray< Scalar4 > vel(N, m_exec_conf);
     m_vel.swap(vel);
+    TAG_ALLOCATION(m_vel);
 
     // accelerations
     GlobalArray< Scalar3 > accel(N, m_exec_conf);
     m_accel.swap(accel);
+    TAG_ALLOCATION(m_accel);
 
     // charge
     GlobalArray< Scalar > charge(N, m_exec_conf);
     m_charge.swap(charge);
+    TAG_ALLOCATION(m_charge);
 
     // diameter
     GlobalArray< Scalar > diameter(N, m_exec_conf);
     m_diameter.swap(diameter);
+    TAG_ALLOCATION(m_diameter);
 
     // image
     GlobalArray< int3 > image(N, m_exec_conf);
     m_image.swap(image);
+    TAG_ALLOCATION(m_image);
 
     // global tag
     GlobalArray< unsigned int> tag(N, m_exec_conf);
     m_tag.swap(tag);
+    TAG_ALLOCATION(m_tag);
 
     // body ID
     GlobalArray< unsigned int > body(N, m_exec_conf);
     m_body.swap(body);
+    TAG_ALLOCATION(m_body);
 
     GlobalArray< Scalar4 > net_force(N, m_exec_conf);
     m_net_force.swap(net_force);
+    TAG_ALLOCATION(m_net_force);
     GlobalArray< Scalar > net_virial(N,6, m_exec_conf);
     m_net_virial.swap(net_virial);
+    TAG_ALLOCATION(m_net_virial);
     GlobalArray< Scalar4 > net_torque(N, m_exec_conf);
     m_net_torque.swap(net_torque);
+    TAG_ALLOCATION(m_net_torque);
     GlobalArray< Scalar4 > orientation(N, m_exec_conf);
     m_orientation.swap(orientation);
+    TAG_ALLOCATION(m_orientation);
     GlobalArray< Scalar4 > angmom(N, m_exec_conf);
     m_angmom.swap(angmom);
+    TAG_ALLOCATION(m_angmom);
     GlobalArray< Scalar3 > inertia(N, m_exec_conf);
     m_inertia.swap(inertia);
+    TAG_ALLOCATION(m_inertia);
 
     GlobalArray< unsigned int > comm_flags(N, m_exec_conf);
     m_comm_flags.swap(comm_flags);
+    TAG_ALLOCATION(m_comm_flags);
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
@@ -439,58 +456,72 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
     // positions
     GlobalArray< Scalar4 > pos_alt(N, m_exec_conf);
     m_pos_alt.swap(pos_alt);
+    TAG_ALLOCATION(m_pos_alt);
 
     // velocities
     GlobalArray< Scalar4 > vel_alt(N, m_exec_conf);
     m_vel_alt.swap(vel_alt);
+    TAG_ALLOCATION(m_vel_alt);
 
     // accelerations
     GlobalArray< Scalar3 > accel_alt(N, m_exec_conf);
     m_accel_alt.swap(accel_alt);
+    TAG_ALLOCATION(m_accel_alt);
 
     // charge
     GlobalArray< Scalar > charge_alt(N, m_exec_conf);
     m_charge_alt.swap(charge_alt);
+    TAG_ALLOCATION(m_charge_alt);
 
     // diameter
     GlobalArray< Scalar > diameter_alt(N, m_exec_conf);
     m_diameter_alt.swap(diameter_alt);
+    TAG_ALLOCATION(m_diameter_alt);
 
     // image
     GlobalArray< int3 > image_alt(N, m_exec_conf);
     m_image_alt.swap(image_alt);
+    TAG_ALLOCATION(m_image_alt);
 
     // global tag
     GlobalArray< unsigned int> tag_alt(N, m_exec_conf);
     m_tag_alt.swap(tag_alt);
+    TAG_ALLOCATION(m_tag_alt);
 
     // body ID
     GlobalArray< unsigned int > body_alt(N, m_exec_conf);
     m_body_alt.swap(body_alt);
+    TAG_ALLOCATION(m_body_alt);
 
     // orientation
     GlobalArray< Scalar4 > orientation_alt(N, m_exec_conf);
     m_orientation_alt.swap(orientation_alt);
+    TAG_ALLOCATION(m_orientation_alt);
 
     // angular momentum
     GlobalArray< Scalar4 > angmom_alt(N, m_exec_conf);
     m_angmom_alt.swap(angmom_alt);
+    TAG_ALLOCATION(m_angmom_alt);
 
     // moments of inertia
     GlobalArray< Scalar3 > inertia_alt(N, m_exec_conf);
     m_inertia_alt.swap(inertia_alt);
+    TAG_ALLOCATION(m_inertia_alt);
 
     // Net force
     GlobalArray< Scalar4 > net_force_alt(N, m_exec_conf);
     m_net_force_alt.swap(net_force_alt);
+    TAG_ALLOCATION(m_net_force_alt);
 
     // Net virial
     GlobalArray< Scalar > net_virial_alt(N,6, m_exec_conf);
     m_net_virial_alt.swap(net_virial_alt);
+    TAG_ALLOCATION(m_net_virial_alt);
 
     // Net torque
     GlobalArray< Scalar4 > net_torque_alt(N, m_exec_conf);
     m_net_torque_alt.swap(net_torque_alt);
+    TAG_ALLOCATION(m_net_torque_alt);
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
