@@ -221,7 +221,7 @@ template<class T> class GPUArray
         virtual GPUArray& operator=(const GPUArray& rhs);
 
         //! Swap the pointers in two GPUArrays
-        virtual inline void swap(GPUArray& from);
+        inline void swap(GPUArray& from);
 
         //! Swap the pointers of two equally sized GPUArrays
         inline void swap(GPUArray& from) const;
