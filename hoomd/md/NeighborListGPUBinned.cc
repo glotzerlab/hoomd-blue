@@ -166,26 +166,30 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     auto& gpu_map = m_exec_conf->getGPUIds();
 
-    // prefetch cell list
-    for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+    if (m_exec_conf->getNumActiveGPUs() > 1)
         {
-        cudaMemPrefetchAsync(d_cell_size.data, m_cl->getCellIndexer().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
+        // prefetch cell list
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaMemPrefetchAsync(d_cell_size.data, m_cl->getCellIndexer().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
 
-        cudaMemPrefetchAsync(d_cell_xyzf.data, m_cl->getCellListIndexer().getNumElements()*sizeof(Scalar4), gpu_map[idev]);
+            cudaMemPrefetchAsync(d_cell_xyzf.data, m_cl->getCellListIndexer().getNumElements()*sizeof(Scalar4), gpu_map[idev]);
 
-        if (d_cell_idx.data)
-            cudaMemPrefetchAsync(d_cell_idx.data, m_cl->getCellListIndexer().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
+            if (d_cell_idx.data)
+                cudaMemPrefetchAsync(d_cell_idx.data, m_cl->getCellListIndexer().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
 
-        if (d_cell_tdb.data)
-            cudaMemPrefetchAsync(d_cell_tdb.data, m_cl->getCellListIndexer().getNumElements()*sizeof(Scalar4), gpu_map[idev]);
+            if (d_cell_tdb.data)
+                cudaMemPrefetchAsync(d_cell_tdb.data, m_cl->getCellListIndexer().getNumElements()*sizeof(Scalar4), gpu_map[idev]);
+            }
+
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            // prefetch cell adjacency
+            cudaMemPrefetchAsync(d_cell_adj.data, m_cl->getCellAdjArray().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
+            }
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
-
-    for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-        {
-        // prefetch cell adjacency
-        cudaMemPrefetchAsync(d_cell_adj.data, m_cl->getCellAdjArray().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
-        }
-    CHECK_CUDA_ERROR();
 
     gpu_compute_nlist_binned(d_nlist.data,
                              d_n_neigh.data,
