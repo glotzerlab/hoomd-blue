@@ -3150,8 +3150,6 @@ void ParticleData::updateGPUPartition()
 
             CHECK_CUDA_ERROR();
             }
-
-        cudaMemAdvise(m_rtag.get(), sizeof(unsigned int)*m_rtag.getNumElements(), cudaMemAdviseSetReadMostly, 0);
         }
     #endif
     }
