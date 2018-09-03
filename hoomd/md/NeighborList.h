@@ -6,7 +6,7 @@
 
 #include "hoomd/Compute.h"
 #include "hoomd/GlobalArray.h"
-#include "hoomd/GPUVector.h"
+#include "hoomd/GlobalVector.h"
 #include "hoomd/GPUFlags.h"
 #include "hoomd/Index1D.h"
 
@@ -478,7 +478,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
 
         GlobalArray<unsigned int> m_ex_list_tag;  //!< List of excluded particles referenced by tag
         GlobalArray<unsigned int> m_ex_list_idx;  //!< List of excluded particles referenced by index
-        GPUVector<unsigned int> m_n_ex_tag;    //!< Number of exclusions for a given particle tag
+        GlobalVector<unsigned int> m_n_ex_tag;    //!< Number of exclusions for a given particle tag
         GlobalArray<unsigned int> m_n_ex_idx;     //!< Number of exclusions for a given particle index
         Index2D m_ex_list_indexer;             //!< Indexer for accessing the exclusion list
         Index2D m_ex_list_indexer_tag;         //!< Indexer for accessing the by-tag exclusion list
