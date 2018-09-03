@@ -3042,7 +3042,7 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
 void ParticleData::updateGPUPartition()
     {
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+    if (m_exec_conf->isCUDAEnabled())
         {
         // update the partition information
         m_gpu_partition.setN(getN());
