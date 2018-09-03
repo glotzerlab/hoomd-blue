@@ -262,6 +262,9 @@ Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
 
 void ForceComposite::slotNumTypesChange()
     {
+    //! initial allocation if necessary
+    lazyInitMem();
+
     unsigned int old_ntypes = m_body_len.getNumElements();
     unsigned int new_ntypes = m_pdata->getNTypes();
 
@@ -291,7 +294,7 @@ void ForceComposite::slotNumTypesChange()
 
     m_body_max_diameter.resize(new_ntypes,0.0);
 
-    //! update memory hints
+    //! update memory hints, after re-allocation
     lazyInitMem();
     }
 
