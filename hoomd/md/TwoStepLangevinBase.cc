@@ -54,15 +54,27 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
     m_seed = m_seed*0x12345677 + 0x12345 ; m_seed^=(m_seed>>16); m_seed*= 0x45679;
 
     // allocate memory for the per-type gamma storage and initialize them to 1.0
-    GPUVector<Scalar> gamma(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar> gamma(m_pdata->getNTypes(), m_exec_conf);
     m_gamma.swap(gamma);
+    TAG_ALLOCATION(m_gamma);
+
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.size(); i++)
         h_gamma.data[i] = Scalar(1.0);
 
     // allocate memory for the per-type gamma_r storage and initialize them to 0.0 (no rotational noise by default)
-    GPUVector<Scalar> gamma_r(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar> gamma_r(m_pdata->getNTypes(), m_exec_conf);
     m_gamma_r.swap(gamma_r);
+    TAG_ALLOCATION(m_gamma_r);
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        cudaMemAdvise(m_gamma.get(), sizeof(Scalar)*m_gamma.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_gamma_r.get(), sizeof(Scalar)*m_gamma_r.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        }
+    #endif
+
     ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma_r.size(); i++)
         h_gamma_r.data[i] = Scalar(1.0);
