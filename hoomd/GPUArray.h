@@ -223,9 +223,6 @@ template<class T> class GPUArray
         //! Swap the pointers in two GPUArrays
         inline void swap(GPUArray& from);
 
-        //! Swap the pointers of two equally sized GPUArrays
-        inline void swap(GPUArray& from) const;
-
         //! Get the number of elements
         /*!
          - For 1-D allocated GPUArrays, this is the number of elements allocated.
@@ -565,25 +562,6 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
     std::swap(m_acquired, from.m_acquired);
     std::swap(m_data_location, from.m_data_location);
     std::swap(m_exec_conf, from.m_exec_conf);
-#ifdef ENABLE_CUDA
-    std::swap(d_data, from.d_data);
-    std::swap(m_mapped, from.m_mapped);
-#endif
-    std::swap(h_data, from.h_data);
-    }
-
-//! Swap the pointers of two GPUArrays (const version)
-template<class T> void GPUArray<T>::swap(GPUArray& from) const
-    {
-    assert(!m_acquired && !from.m_acquired);
-    assert(&from != this);
-
-    std::swap(m_num_elements, from.m_num_elements);
-    std::swap(m_pitch, from.m_pitch);
-    std::swap(m_height, from.m_height);
-    std::swap(m_exec_conf, from.m_exec_conf);
-    std::swap(m_acquired, from.m_acquired);
-    std::swap(m_data_location, from.m_data_location);
 #ifdef ENABLE_CUDA
     std::swap(d_data, from.d_data);
     std::swap(m_mapped, from.m_mapped);
