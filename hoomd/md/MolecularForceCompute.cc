@@ -145,31 +145,31 @@ void MolecularForceCompute::initMoleculesGPU()
         m_tuner_fill->end();
         }
 
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->getNumActiveGPUs() > 1)
         {
         auto gpu_map = m_exec_conf->getGPUIds();
 
-        if (m_exec_conf->getNumActiveGPUs() > 1)
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-                {
-                auto range = m_pdata->getGPUPartition().getRange(idev);
-                unsigned int nelem =  range.second - range.first;
-
-                // skip if no hint set
-                if (!nelem)
-                    continue;
-
-                cudaMemAdvise(m_molecule_idx.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-                cudaMemPrefetchAsync(m_molecule_idx.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
-                }
-
-            CHECK_CUDA_ERROR();
+            cudaMemAdvise(m_molecule_list.get(), sizeof(unsigned int)*m_molecule_list.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_molecule_length.get(), sizeof(unsigned int)*m_molecule_length.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             }
-        }
-    #endif
 
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            auto range = m_pdata->getGPUPartition().getRange(idev);
+            unsigned int nelem =  range.second - range.first;
+
+            // skip if no hint set
+            if (!nelem)
+                continue;
+
+            cudaMemAdvise(m_molecule_idx.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_molecule_idx.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+            }
+
+        CHECK_CUDA_ERROR();
+        }
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
