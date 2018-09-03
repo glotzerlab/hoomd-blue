@@ -152,9 +152,6 @@ void MolecularForceCompute::initMoleculesGPU()
 
         if (m_exec_conf->getNumActiveGPUs() > 1)
             {
-            cudaMemAdvise(m_molecule_list.get(), sizeof(unsigned int)*m_molecule_list.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-            cudaMemAdvise(m_molecule_length.get(), sizeof(unsigned int)*m_molecule_length.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {
                 auto range = m_pdata->getGPUPartition().getRange(idev);
