@@ -202,7 +202,7 @@ class GlobalArray : public GPUArray<T>
 
 
         //! Swap the pointers of two GlobalArrays
-        inline void swap(GlobalArray &from)
+        virtual inline void swap(GlobalArray &from)
             {
             checkAcquired(from);
             checkAcquired(*this);

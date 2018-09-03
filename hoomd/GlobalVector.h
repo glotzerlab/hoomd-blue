@@ -56,7 +56,7 @@ template<class T> class GlobalVector : public GlobalArray<T>
         GlobalVector& operator=(const GlobalVector& rhs);
 
         //! swap this GlobalVector with another
-        inline void swap(GlobalVector &from);
+        virtual inline void swap(GlobalVector &from);
 
         /*!
           \returns the current size of the vector
