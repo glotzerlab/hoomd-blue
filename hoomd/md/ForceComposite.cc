@@ -750,7 +750,7 @@ void ForceComposite::computeForces(unsigned int timestep)
     // access local molecule data
     // need to move this on top because of scoping issues
     Index2D molecule_indexer = getMoleculeIndexer();
-    unsigned int nmol = molecule_indexer.getW();
+    unsigned int nmol = molecule_indexer.getH();
 
     ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(), access_location::host, access_mode::read);

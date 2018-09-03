@@ -73,7 +73,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
 
     // access local molecule data (need to move this on top because of GPUArray scoping issues)
     const Index2D& molecule_indexer = getMoleculeIndexer();
-    unsigned int nmol = molecule_indexer.getW();
+    unsigned int nmol = molecule_indexer.getH();
 
     const GlobalVector<unsigned int>& molecule_list = getMoleculeList();
     const GlobalVector<unsigned int>& molecule_length = getMoleculeLengths();
