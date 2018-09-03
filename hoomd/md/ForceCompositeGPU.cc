@@ -82,16 +82,6 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     ArrayHandle<unsigned int> d_molecule_list(molecule_list, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_molecule_idx(getMoleculeIndex(), access_location::device, access_mode::read);
 
-    auto gpu_map = m_exec_conf->getGPUIds();
-    for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-        {
-        cudaMemPrefetchAsync(molecule_length.get(), sizeof(unsigned int)*molecule_length.getNumElements(), gpu_map[idev]);
-        cudaMemPrefetchAsync(molecule_list.get(), sizeof(unsigned int)*molecule_list.getNumElements(), gpu_map[idev]);
-        cudaMemPrefetchAsync(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), gpu_map[idev]);
-        cudaMemPrefetchAsync(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), gpu_map[idev]);
-        cudaMemPrefetchAsync(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), gpu_map[idev]);
-        }
-
     // access particle data
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -120,7 +110,6 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
         {
         compute_virial = true;
         }
-
 
         {
         ArrayHandle<uint2> d_flag(m_flag, access_location::device, access_mode::overwrite);
@@ -247,15 +236,6 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
 
     // lookup table
     ArrayHandle<unsigned int> d_lookup_center(m_lookup_center, access_location::device, access_mode::read);
-
-    auto gpu_map = m_exec_conf->getGPUIds();
-    for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-        {
-        cudaMemPrefetchAsync(molecule_length.get(), sizeof(unsigned int)*molecule_length.getNumElements(), gpu_map[idev]);
-        cudaMemPrefetchAsync(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), gpu_map[idev]);
-        cudaMemPrefetchAsync(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), gpu_map[idev]);
-        cudaMemPrefetchAsync(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), gpu_map[idev]);
-        }
 
         {
         ArrayHandle<uint2> d_flag(m_flag, access_location::device, access_mode::overwrite);
