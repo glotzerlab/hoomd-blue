@@ -241,7 +241,8 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    const GlobalArray<unsigned int> &rtag = m_pdata->getRTags();
+    ArrayHandle<unsigned int> d_rtag(rtag, access_location::device, access_mode::read);
 
     // access body positions and orientations
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
@@ -255,6 +256,7 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         cudaMemPrefetchAsync(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), gpu_map[idev]);
         cudaMemPrefetchAsync(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), gpu_map[idev]);
         cudaMemPrefetchAsync(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), gpu_map[idev]);
+        cudaMemPrefetchAsync(rtag.get(), sizeof(unsigned int)*rtag.getNumElements(), gpu_map[idev]);
         }
 
         {
