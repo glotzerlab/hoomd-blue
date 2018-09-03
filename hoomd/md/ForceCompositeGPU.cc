@@ -240,14 +240,13 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
-    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
-    const GlobalArray<unsigned int> &rtag = m_pdata->getRTags();
-    ArrayHandle<unsigned int> d_rtag(rtag, access_location::device, access_mode::read);
-
     // access body positions and orientations
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
+
+    // lookup table
+    ArrayHandle<unsigned int> d_lookup_center(m_lookup_center, access_location::device, access_mode::read);
 
     auto gpu_map = m_exec_conf->getGPUIds();
     for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
@@ -256,7 +255,6 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         cudaMemPrefetchAsync(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), gpu_map[idev]);
         cudaMemPrefetchAsync(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), gpu_map[idev]);
         cudaMemPrefetchAsync(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), gpu_map[idev]);
-        cudaMemPrefetchAsync(rtag.get(), sizeof(unsigned int)*rtag.getNumElements(), gpu_map[idev]);
         }
 
         {
@@ -269,11 +267,10 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
 
         gpu_update_composite(m_pdata->getN(),
             m_pdata->getNGhosts(),
-            d_body.data,
-            d_rtag.data,
             d_postype.data,
             d_orientation.data,
             m_body_idx,
+            d_lookup_center.data,
             d_body_pos.data,
             d_body_orientation.data,
             d_body_len.data,
@@ -334,30 +331,50 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void ForceCompositeGPU::sortRigidBodies()
+void ForceCompositeGPU::findRigidCenters()
     {
     ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
     m_rigid_center.resize(m_pdata->getN());
+    m_lookup_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
-    ArrayHandle<unsigned int> d_rigid_center(m_rigid_center, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rigid_center(m_rigid_center, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_lookup_center(m_lookup_center, access_location::device, access_mode::overwrite);
 
     unsigned int n_rigid = 0;
-    gpu_sort_rigid_bodies(d_body.data,
+    gpu_find_rigid_centers(d_body.data,
                         d_tag.data,
+                        d_rtag.data,
                         m_pdata->getN(),
+                        m_pdata->getNGhosts(),
                         d_rigid_center.data,
+                        d_lookup_center.data,
                         n_rigid);
 
+    // distribute rigid body centers over GPUs
     m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     m_gpu_partition.setN(n_rigid);
     }
 
 void ForceCompositeGPU::lazyInitMem()
     {
+    bool initialized = m_memory_initialized;
+
     // call base class method
     ForceComposite::lazyInitMem();
+
+    if (!initialized)
+        {
+        GlobalVector<unsigned int> rigid_center(m_exec_conf);
+        m_rigid_center.swap(rigid_center);
+        TAG_ALLOCATION(m_rigid_center);
+
+        GlobalVector<unsigned int> lookup_center(m_exec_conf);
+        m_lookup_center.swap(lookup_center);
+        TAG_ALLOCATION(m_lookup_center);
+        }
 
     cudaMemAdvise(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), cudaMemAdviseSetReadMostly, 0);
     cudaMemAdvise(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), cudaMemAdviseSetReadMostly, 0);

@@ -63,7 +63,7 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
         virtual void computeForces(unsigned int timestep);
 
         //! Helper kernel to sort rigid bodies by their center particles
-        virtual void sortRigidBodies();
+        virtual void findRigidCenters();
 
         //! Helper function to check if particles have been sorted and rebuild indices if necessary
         virtual void checkParticlesSorted()
@@ -73,10 +73,8 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
             MolecularForceCompute::checkParticlesSorted();
 
             if (dirty)
-                {
-                // sort center particles for use in GPU kernel
-                sortRigidBodies();
-                }
+                // identify center particles for use in GPU kernel
+                findRigidCenters();
             }
 
         //! Update GPU Mappings
@@ -87,6 +85,10 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
         std::unique_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel
 
         GlobalArray<uint2> m_flag;                 //!< Flag to read out error condition
+
+        GPUPartition m_gpu_partition;               //!< Partition of the rigid bodies
+        GlobalVector<unsigned int> m_rigid_center;  //!< Contains particle indices of all central particles
+        GlobalVector<unsigned int> m_lookup_center; //!< Lookup particle index -> central particle index
     };
 
 //! Exports the ForceCompositeGPU to python

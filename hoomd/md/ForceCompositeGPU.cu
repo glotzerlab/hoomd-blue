@@ -8,6 +8,7 @@
 
 #include "ForceCompositeGPU.cuh"
 #include <thrust/copy.h>
+#include <thrust/transform.h>
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
@@ -608,8 +609,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     unsigned int nwork,
     unsigned int offset,
     unsigned int n_ghost,
-    const unsigned int *d_body,
-    const unsigned int *d_rtag,
+    const unsigned int *d_lookup_center,
     Scalar4 *d_postype,
     Scalar4 *d_orientation,
     Index2D body_indexer,
@@ -632,11 +632,9 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 
     idx += offset;
 
-    unsigned int central_tag = d_body[idx];
-
-    if (central_tag == NO_BODY) return;
-
-    unsigned int central_idx = d_rtag[central_tag];
+    unsigned int central_idx = d_lookup_center[idx];
+    if (central_idx == NO_BODY)
+        return;
 
     if (central_idx >= N + n_ghost)
         {
@@ -702,11 +700,10 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 
 void gpu_update_composite(unsigned int N,
     unsigned int n_ghost,
-    const unsigned int *d_body,
-    const unsigned int *d_rtag,
     Scalar4 *d_postype,
     Scalar4 *d_orientation,
     Index2D body_indexer,
+    const unsigned int *d_lookup_center,
     const Scalar3 *d_body_pos,
     const Scalar4 *d_body_orientation,
     const unsigned int *d_body_len,
@@ -751,8 +748,7 @@ void gpu_update_composite(unsigned int N,
             nwork,
             range.first,
             n_ghost,
-            d_body,
-            d_rtag,
+            d_lookup_center,
             d_postype,
             d_orientation,
             body_indexer,
@@ -778,16 +774,36 @@ struct is_center
         }
     };
 
-cudaError_t gpu_sort_rigid_bodies(const unsigned int *d_body,
+// create a lookup table ptl idx -> center idx
+struct lookup_op : thrust::unary_function<unsigned int, unsigned int>
+    {
+    __host__ __device__ lookup_op(const unsigned int *_d_rtag)
+        : d_rtag(_d_rtag) {}
+
+    __device__ unsigned int operator()(const unsigned int& body)
+        {
+        return (body != NO_BODY) ? d_rtag[body] : NO_BODY;
+        }
+
+    const unsigned int *d_rtag;
+    };
+
+
+cudaError_t gpu_find_rigid_centers(const unsigned int *d_body,
                                 const unsigned int *d_tag,
+                                const unsigned int *d_rtag,
                                 const unsigned int N,
+                                const unsigned int nghost,
                                 unsigned int *d_rigid_center,
+                                unsigned int *d_lookup_center,
                                 unsigned int &n_rigid)
     {
     thrust::device_ptr<const unsigned int> body(d_body);
     thrust::device_ptr<const unsigned int> tag(d_tag);
     thrust::device_ptr<unsigned int> rigid_center(d_rigid_center);
     thrust::counting_iterator<unsigned int> count(0);
+
+    // create a contiguos list of rigid center indicies
     auto it = thrust::copy_if(count,
                     count + N,
                     thrust::make_zip_iterator(thrust::make_tuple(body, tag)),
@@ -795,6 +811,12 @@ cudaError_t gpu_sort_rigid_bodies(const unsigned int *d_body,
                     is_center());
 
     n_rigid = it - rigid_center;
+
+    thrust::device_ptr<unsigned int> lookup_center(d_lookup_center);
+    thrust::transform(body,
+        body + N + nghost,
+        lookup_center,
+        lookup_op(d_rtag));
 
     return cudaSuccess;
     }

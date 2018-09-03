@@ -76,12 +76,6 @@ void ForceComposite::lazyInitMem()
         h_body_len.data[i] = 0;
         }
 
-    #ifdef ENABLE_CUDA
-    GlobalVector<unsigned int> rigid_center(m_exec_conf);
-    m_rigid_center.swap(rigid_center);
-    TAG_ALLOCATION(m_rigid_center);
-    #endif
-
     m_body_charge.resize(m_pdata->getNTypes());
     m_body_diameter.resize(m_pdata->getNTypes());
 
@@ -1025,32 +1019,6 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
         h_image.data[iptl] = img+imgi;
         }
     }
-
-#ifdef ENABLE_CUDA
-void ForceComposite::sortRigidBodies()
-    {
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-
-    //Get size of Array
-    unsigned int size = m_pdata->getN();
-
-    //locate center particle and add to list
-    m_rigid_center.clear();
-
-    for(unsigned int i = 0; i < size; ++i)
-        {
-        if(h_tag.data[i] == h_body.data[i])
-            {
-            m_rigid_center.push_back(i);
-            }
-        }
-    unsigned int nRigid = m_rigid_center.size();
-
-    m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
-    m_gpu_partition.setN(nRigid);
-    }
-#endif
 
 void export_ForceComposite(py::module& m)
     {

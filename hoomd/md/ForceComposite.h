@@ -95,14 +95,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
         bool m_memory_initialized;                  //!< True if arrays are allocated
 
-        #ifdef ENABLE_CUDA
-        GPUPartition m_gpu_partition;               //!< Partition of the rigid bodies
-        GlobalVector<unsigned int> m_rigid_center;  //!< Contains particle indices of all central particles
-
-        //! Helper function to identify center particle indices
-        virtual void sortRigidBodies();
-        #endif
-
         //! Helper function to be called when the number of types changes
         void slotNumTypesChange();
 
