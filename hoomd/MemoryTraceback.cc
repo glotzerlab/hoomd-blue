@@ -11,6 +11,7 @@
 
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <execinfo.h>
 #include <cxxabi.h>
 #include <dlfcn.h>
@@ -51,15 +52,48 @@ void MemoryTraceback::updateTag(void *ptr, unsigned int nbytes, const std::strin
         m_tags[idx] = tag;
     }
 
+//! Pretty print number of bytes
+inline std::string pretty_bytes(double size_bytes)
+    {
+    int i = 0;
+    const char* units[] = {"B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"};
+    std::string unit = units[0];
+    std::ostringstream oss;
+    while (size_bytes > 1024)
+        {
+        size_bytes /= 1024;
+        i++;
+        if (i >= 9)
+            {
+            unit = std::string("?B");
+            break;
+            }
+        else
+            unit = std::string(units[i]);
+        }
+
+    oss << std::setprecision(3) << size_bytes << unit;
+    return oss.str();
+    }
+
 void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
     {
+    // reduce total memory
+    unsigned long int nbytes_tot = 0;
+
+    for (auto it_trace = m_traces.begin(); it_trace != m_traces.end(); ++it_trace)
+        {
+        nbytes_tot += it_trace->first.second;
+        }
+
+    msg->notice(2) << "Total amount of memory allocated in Global[Array,Vector]: " << pretty_bytes(nbytes_tot) << std::endl;
     msg->notice(2) << "List of memory allocations and last " << MAX_TRACEBACK-1 << " functions called at time of (re-)allocation" << std::endl;
 
     for (auto it_trace = m_traces.begin(); it_trace != m_traces.end(); ++it_trace)
         {
         std::ostringstream oss;
 
-        oss << "** Address " << it_trace->first.first << ", " << it_trace->first.second << " bytes";
+        oss << "** Address " << it_trace->first.first << ", " << pretty_bytes(it_trace->first.second);
 
         char *realname;
         int status;
