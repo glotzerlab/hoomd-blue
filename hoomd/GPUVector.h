@@ -63,7 +63,7 @@ template<class T> class GPUVector : public GPUArray<T>
         GPUVector& operator=(const GPUVector& rhs);
 
         //! swap this GPUVector with another
-        virtual inline void swap(GPUVector &from);
+        inline void swap(GPUVector &from);
 
         /*!
           \returns the current size of the vector

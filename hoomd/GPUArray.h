@@ -224,7 +224,7 @@ template<class T> class GPUArray
         virtual inline void swap(GPUArray& from);
 
         //! Swap the pointers of two equally sized GPUArrays
-        virtual inline void swap(GPUArray& from) const;
+        inline void swap(GPUArray& from) const;
 
         //! Get the number of elements
         /*!
