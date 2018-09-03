@@ -307,15 +307,15 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     void setMemoryTracing(bool enable)
         {
         if (enable)
-            m_memory_traceback = std::shared_ptr<MemoryTraceback>(new MemoryTraceback);
+            m_memory_traceback = std::unique_ptr<MemoryTraceback>(new MemoryTraceback);
         else
-            m_memory_traceback = std::shared_ptr<MemoryTraceback>();
+            m_memory_traceback = std::unique_ptr<MemoryTraceback>();
         }
 
     //! Returns the memory tracer
-    std::shared_ptr<MemoryTraceback> getMemoryTracer() const
+    const MemoryTraceback *getMemoryTracer() const
         {
-        return m_memory_traceback;
+        return m_memory_traceback.get();
         }
 
 private:
@@ -369,7 +369,7 @@ private:
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();
 
-    std::shared_ptr<MemoryTraceback> m_memory_traceback;    //!< Keeps track of allocations
+    std::unique_ptr<MemoryTraceback> m_memory_traceback;    //!< Keeps track of allocations
     };
 
 // Macro for easy checking of CUDA errors - enabled all the time
