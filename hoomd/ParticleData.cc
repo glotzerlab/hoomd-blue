@@ -396,6 +396,16 @@ void ParticleData::allocate(unsigned int N)
     GlobalArray< Scalar4 > net_torque(N, m_exec_conf);
     m_net_torque.swap(net_torque);
     TAG_ALLOCATION(m_net_torque);
+
+        {
+        ArrayHandle<Scalar4> h_net_force(m_net_force, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_net_torque, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_net_virial(m_net_virial, access_location::host, access_mode::overwrite);
+        memset(h_net_force.data, 0, sizeof(Scalar4)*m_net_force.getNumElements());
+        memset(h_net_torque.data, 0, sizeof(Scalar4)*m_net_torque.getNumElements());
+        memset(h_net_virial.data, 0, sizeof(Scalar)*m_net_virial.getNumElements());
+        }
+
     GlobalArray< Scalar4 > orientation(N, m_exec_conf);
     m_orientation.swap(orientation);
     TAG_ALLOCATION(m_orientation);
@@ -519,6 +529,16 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
     m_net_torque_alt.swap(net_torque_alt);
     TAG_ALLOCATION(m_net_torque_alt);
 
+        {
+        ArrayHandle<Scalar4> h_net_force_alt(m_net_force_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_torque_alt(m_net_torque_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_net_virial_alt(m_net_virial_alt, access_location::host, access_mode::overwrite);
+        memset(h_net_force_alt.data, 0, sizeof(Scalar4)*m_net_force_alt.getNumElements());
+        memset(h_net_torque_alt.data, 0, sizeof(Scalar4)*m_net_torque_alt.getNumElements());
+        memset(h_net_virial_alt.data, 0, sizeof(Scalar)*m_net_virial_alt.getNumElements());
+        }
+
+
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
@@ -624,6 +644,15 @@ void ParticleData::reallocate(unsigned int max_n)
     m_net_force.resize(max_n);
     m_net_virial.resize(max_n,6);
     m_net_torque.resize(max_n);
+        {
+        ArrayHandle<Scalar4> h_net_force(m_net_force, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_net_torque, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_net_virial(m_net_virial, access_location::host, access_mode::readwrite);
+        memset(h_net_force.data, 0, sizeof(Scalar4)*m_net_force.getNumElements());
+        memset(h_net_torque.data, 0, sizeof(Scalar4)*m_net_torque.getNumElements());
+        memset(h_net_virial.data, 0, sizeof(Scalar)*m_net_virial.getNumElements());
+        }
+
     m_orientation.resize(max_n);
     m_angmom.resize(max_n);
     m_inertia.resize(max_n);
@@ -666,9 +695,19 @@ void ParticleData::reallocate(unsigned int max_n)
         m_orientation_alt.resize(max_n);
         m_angmom_alt.resize(max_n);
         m_inertia_alt.resize(max_n);
+
         m_net_force_alt.resize(max_n);
         m_net_torque_alt.resize(max_n);
         m_net_virial_alt.resize(max_n, 6);
+
+            {
+            ArrayHandle<Scalar4> h_net_force_alt(m_net_force_alt, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> h_net_torque_alt(m_net_torque_alt, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar> h_net_virial_alt(m_net_virial_alt, access_location::host, access_mode::overwrite);
+            memset(h_net_force_alt.data, 0, sizeof(Scalar4)*m_net_force_alt.getNumElements());
+            memset(h_net_torque_alt.data, 0, sizeof(Scalar4)*m_net_torque_alt.getNumElements());
+            memset(h_net_virial_alt.data, 0, sizeof(Scalar)*m_net_virial_alt.getNumElements());
+            }
 
         #ifdef ENABLE_CUDA
         if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())

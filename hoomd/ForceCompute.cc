@@ -43,6 +43,15 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     m_virial.swap(virial);
     m_torque.swap(torque);
 
+        {
+        ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
+        memset(h_force.data, 0, sizeof(Scalar4)*m_force.getNumElements());
+        memset(h_torque.data, 0, sizeof(Scalar4)*m_torque.getNumElements());
+        memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
+        }
+
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
@@ -83,6 +92,15 @@ void ForceCompute::reallocate()
     m_force.resize(m_pdata->getMaxN());
     m_virial.resize(m_pdata->getMaxN(),6);
     m_torque.resize(m_pdata->getMaxN());
+
+        {
+        ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
+        memset(h_force.data, 0, sizeof(Scalar4)*m_force.getNumElements());
+        memset(h_torque.data, 0, sizeof(Scalar4)*m_torque.getNumElements());
+        memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
+        }
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
