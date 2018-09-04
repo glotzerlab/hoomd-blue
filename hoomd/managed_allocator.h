@@ -8,8 +8,6 @@
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
-
-#include <unistd.h>
 #endif
 
 #include <iostream>

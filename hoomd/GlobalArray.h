@@ -14,6 +14,7 @@
 #include "GPUArray.h"
 #include <type_traits>
 #include <string>
+#include <unistd.h>
 
 #define checkAcquired(a) { \
     assert(!(a).m_acquired); \
@@ -58,7 +59,7 @@ class GlobalArray : public GPUArray<T>
 
             assert(m_exec_conf);
             #ifdef ENABLE_CUDA
-            if (m_exec_conf->getNumActiveGPUs() > 1)
+            if (m_exec_conf->isCUDAEnabled())
                 {
                 // use OS page size as minimum alignment
                 align = getpagesize();
@@ -186,7 +187,7 @@ class GlobalArray : public GPUArray<T>
 
             size_t align = 0;
             #ifdef ENABLE_CUDA
-            if (m_exec_conf->getNumActiveGPUs() > 1)
+            if (m_exec_conf->isCUDAEnabled())
                 {
                 // use OS page size as minimum alignment
                 align = getpagesize();
@@ -280,7 +281,7 @@ class GlobalArray : public GPUArray<T>
             size_t align = 0;
             assert(m_exec_conf);
             #ifdef ENABLE_CUDA
-            if (m_exec_conf->getNumActiveGPUs() > 1)
+            if (m_exec_conf->isCUDAEnabled())
                 {
                 // use OS page size as minimum alignment
                 align = getpagesize();
@@ -326,7 +327,7 @@ class GlobalArray : public GPUArray<T>
             size_t align = 0;
             assert(m_exec_conf);
             #ifdef ENABLE_CUDA
-            if (m_exec_conf->getNumActiveGPUs() > 1)
+            if (m_exec_conf->isCUDAEnabled())
                 {
                 // use OS page size as minimum alignment
                 align = getpagesize();
