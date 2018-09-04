@@ -201,7 +201,14 @@ void NeighborList::reallocate()
     {
     // resize the exclusions
     m_last_pos.resize(m_pdata->getMaxN());
+    unsigned int old_n_ex = m_n_ex_idx.getNumElements();
     m_n_ex_idx.resize(m_pdata->getMaxN());
+
+        {
+        ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::readwrite);
+        memset(h_n_ex_idx.data+old_n_ex, 0, sizeof(unsigned int)*(m_n_ex_idx.getNumElements()-old_n_ex));
+        }
+
     unsigned int ex_list_height = m_ex_list_indexer.getH();
     m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
