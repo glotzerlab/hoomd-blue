@@ -44,12 +44,12 @@ class managed_allocator
     public:
         //! Default constructor
         managed_allocator()
-            : m_use_device(false), m_align_size(0)
+            : m_use_device(false)
             { }
 
         //! Ctor
-        managed_allocator(bool use_device, size_t align_size=0)
-            : m_use_device(use_device), m_align_size(align_size)
+        managed_allocator(bool use_device)
+            : m_use_device(use_device)
             { }
 
         using value_type = T;
@@ -66,27 +66,11 @@ class managed_allocator
                 {
                 size_t allocation_bytes = n*sizeof(T);
 
-                if (m_align_size)
-                    allocation_bytes = ((n*sizeof(T))/m_align_size + 1)*m_align_size;
-
                 cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
                 if (error != cudaSuccess)
                     {
                     std::cerr << cudaGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
-                    }
-
-                if (m_align_size)
-                    {
-                    // align to align_size
-                    #ifndef NO_STD_ALIGN
-                    result = std::align(m_align_size,n*sizeof(T),result,allocation_bytes);
-                    #else
-                    result = my_align(m_align_size,n*sizeof(T),result,allocation_bytes);
-                    #endif
-
-                    if (!result)
-                        throw std::runtime_error("managed_allocator: Error aligning managed memory");
                     }
                 }
             else
@@ -104,14 +88,21 @@ class managed_allocator
             }
 
         // Static version, also constructs objects
-        static value_type *allocate_construct(std::size_t n, bool use_device, size_t align_size)
+        /*! \param n Number of elements to allote
+            \param use_device Whether to use cudaMallocManaged
+            \param align_size Number of bytes to align start of allocation to
+            \param allocation_bytes (Return value) Size of total allocation (including aligned part)
+            \param allocation_ptr (Return value) Start of un-aligned allocation
+         */
+        static value_type *allocate_construct_aligned(std::size_t n, bool use_device, size_t align_size,
+            size_t &allocation_bytes, void *&allocation_ptr)
             {
             void *result = nullptr;
 
             #ifdef ENABLE_CUDA
             if (use_device)
                 {
-                size_t allocation_bytes = n*sizeof(T);
+                allocation_bytes = n*sizeof(T);
 
                 if (align_size)
                     allocation_bytes = ((n*sizeof(T))/align_size + 1)*align_size;
@@ -122,6 +113,8 @@ class managed_allocator
                     std::cerr << cudaGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
                     }
+
+                allocation_ptr = result;
 
                 if (align_size)
                     {
@@ -144,6 +137,8 @@ class managed_allocator
                     {
                     throw std::runtime_error("Error allocating aligned memory");
                     }
+                allocation_bytes = n*sizeof(T);
+                allocation_ptr = result;
                 }
 
             #ifdef ENABLE_CUDA
@@ -185,7 +180,13 @@ class managed_allocator
             }
 
         //! Static version, also destroys objects
-        static void deallocate_destroy(value_type *ptr, std::size_t N, bool use_device)
+        /*! \param ptr Start of aligned memory allocation
+            \param N Number elements allocated
+            \param use_device Whether this is a CUDA managed memory allocation
+            \param allocation_ptr address of unaligned allocation that includes the aligned portion
+         */
+        static void deallocate_destroy_aligned(value_type *ptr, std::size_t N, bool use_device,
+            void *allocation_ptr)
             {
             #ifdef ENABLE_CUDA
             if (use_device)
@@ -208,7 +209,7 @@ class managed_allocator
             #ifdef ENABLE_CUDA
             if (use_device)
                 {
-                cudaError_t error = cudaFree(ptr);
+                cudaError_t error = cudaFree(allocation_ptr);
                 if (error != cudaSuccess)
                     {
                     std::cerr << cudaGetErrorString(error) << std::endl;
@@ -218,28 +219,25 @@ class managed_allocator
             else
             #endif
                 {
-                free(ptr);
+                free(allocation_ptr);
                 }
             }
 
 
         bool usesDevice() const { return m_use_device; };
 
-        size_t getAlignBytes() { return m_align_size; }
-
     private:
         bool m_use_device;   //!< Whether to use cudaMallocManaged
-        size_t m_align_size; //!< Alignment size in bytes
     };
 
 template<class T, class U>
 bool operator==(const managed_allocator<T>& lhs, const managed_allocator<U>& rhs)
     {
-    return lhs.usesDevice() == rhs.usesDevice() && lhs.getAlignBytes() == rhs.getAlignBytes();
+    return lhs.usesDevice() == rhs.usesDevice();
     }
 
 template<class T, class U>
 bool operator!=(const managed_allocator<T>& lhs, const managed_allocator<U>& rhs)
     {
-    return lhs.usesDevice() != rhs.usesDevice() || lhs.getAlignBytes() != rhs.getAlignBytes();
+    return lhs.usesDevice() != rhs.usesDevice();
     }

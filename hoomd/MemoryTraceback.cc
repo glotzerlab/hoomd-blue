@@ -87,6 +87,7 @@ void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
         }
 
     msg->notice(2) << "Total amount of memory allocated in Global[Array,Vector]: " << pretty_bytes(nbytes_tot) << std::endl;
+    msg->notice(2) << "Actual allocation sizes may be larger by up to the OS page size due to alignment." << std::endl;
     msg->notice(2) << "List of memory allocations and last " << MAX_TRACEBACK-1 << " functions called at time of (re-)allocation" << std::endl;
 
     for (auto it_trace = m_traces.begin(); it_trace != m_traces.end(); ++it_trace)
