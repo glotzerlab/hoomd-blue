@@ -278,7 +278,7 @@ def _create_exec_conf():
     else:
         nrank = int(options.nrank);
 
-    gpu_vec = _hoomd.std_vector_uint()
+    gpu_vec = _hoomd.std_vector_int()
     for gpuid in gpu_id:
         gpu_vec.append(gpuid)
 
