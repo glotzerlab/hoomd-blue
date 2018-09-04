@@ -851,7 +851,7 @@ void ExecutionConfiguration::endMultiGPU() const
 void export_ExecutionConfiguration(py::module& m)
     {
     py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration> > executionconfiguration(m,"ExecutionConfiguration");
-    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, std::vector<unsigned int>, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
+    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, std::vector<int>, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
         .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
