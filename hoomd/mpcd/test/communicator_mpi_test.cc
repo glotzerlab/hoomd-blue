@@ -774,7 +774,7 @@ UP_TEST( mpcd_communicator_overdecompose_test )
     // two ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<unsigned int>(),
+                                                                  std::vector<int>(),
                                                                   false,
                                                                   false,
                                                                   std::shared_ptr<Messenger>(),
@@ -786,7 +786,7 @@ UP_TEST( mpcd_communicator_overdecompose_test )
     // four ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<unsigned int>(),
+                                                                  std::vector<int>(),
                                                                   false,
                                                                   false,
                                                                   std::shared_ptr<Messenger>(),
@@ -798,7 +798,7 @@ UP_TEST( mpcd_communicator_overdecompose_test )
     // eight ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<unsigned int>(),
+                                                                  std::vector<int>(),
                                                                   false,
                                                                   false,
                                                                   std::shared_ptr<Messenger>(),
