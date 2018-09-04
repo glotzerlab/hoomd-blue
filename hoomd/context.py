@@ -278,8 +278,12 @@ def _create_exec_conf():
     else:
         nrank = int(options.nrank);
 
+    gpu_vec = _hoomd.std_vector_uint()
+    for gpuid in gpu_id:
+        gpu_vec.append(gpuid)
+
     # create the specified configuration
-    exec_conf = _hoomd.ExecutionConfiguration(exec_mode, gpu_id, options.min_cpu, options.ignore_display, msg, nrank);
+    exec_conf = _hoomd.ExecutionConfiguration(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, msg, nrank);
 
     # if gpu_error_checking is set, enable it on the GPU
     if options.gpu_error_checking:
