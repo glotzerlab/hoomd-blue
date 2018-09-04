@@ -184,12 +184,14 @@ class SimulationContext(object):
 
         current = self.prev;
 
-def initialize(args=None, memory_traceback=False):
+def initialize(args=None, memory_traceback=False, mpi_comm=None):
     R""" Initialize the execution context
 
     Args:
         args (str): Arguments to parse. When *None*, parse the arguments passed on the command line.
         memory_traceback (bool): If true, enable memory allocation tracking (*only for debugging/profiling purposes*)
+        mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
+                  where you communicate between those simulations using your own mpi4py code.
 
     :py:func:`hoomd.context.initialize()` parses the command line arguments given, sets the options and initializes MPI and GPU execution
     (if any). By default, :py:func:`hoomd.context.initialize()` reads arguments given on the command line. Provide a string to :py:func:`hoomd.context.initialize()`
@@ -206,6 +208,10 @@ def initialize(args=None, memory_traceback=False):
         context.initialize();
         context.initialize("--mode=gpu --nrank=64");
         context.initialize("--mode=cpu --nthreads=64");
+
+        world = MPI.COMM_WORLD
+        comm = world.Split(world.Get_rank(), 0)
+        hoomd.context.initialize(mpi_comm=comm)
 
     """
     global exec_conf, msg, options, current, _prev_args
@@ -238,7 +244,7 @@ def initialize(args=None, memory_traceback=False):
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()
 
-    exec_conf = _create_exec_conf();
+    exec_conf = _create_exec_conf(mpi_comm);
 
     # set memory tracing option
     exec_conf.setMemoryTracing(memory_traceback)
@@ -249,7 +255,7 @@ def initialize(args=None, memory_traceback=False):
 ## Initializes the execution configuration
 #
 # \internal
-def _create_exec_conf():
+def _create_exec_conf(mpi_comm):
     global exec_conf, options, msg
 
     # use a cached execution configuration if available
@@ -283,7 +289,34 @@ def _create_exec_conf():
         gpu_vec.append(gpuid)
 
     # create the specified configuration
-    exec_conf = _hoomd.ExecutionConfiguration(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, msg, nrank);
+    if mpi_comm is None:
+        exec_conf = _hoomd.ExecutionConfiguration(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, msg, nrank);
+    else:
+        if not mpi_available:
+            msg.error("mpi_comm provided, but MPI support was disabled at compile time\n");
+            raise RuntimeError("mpi_comm is not supported in serial builds");
+
+        handled = False;
+
+        # pass in pointer to MPI_Comm object provided by mpi4py
+        try:
+            import mpi4py
+            if isinstance(mpi_comm, mpi4py.MPI.Comm):
+                addr = mpi4py.MPI._addressof(mpi_comm);
+                exec_conf = _hoomd.ExecutionConfiguration._make_exec_conf_mpi_comm(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, msg, nrank, addr);
+                handled = True
+        except ImportError:
+            # silently ignore when mpi4py is missing
+            pass
+
+        # undocumented case: handle plain integers as pointers to MPI_Comm objects
+        if not handled and isinstance(mpi_comm, int):
+            exec_conf = _hoomd.ExecutionConfiguration._make_exec_conf_mpi_comm(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, msg, nrank, mpi_comm);
+            handled = True
+
+        if not handled:
+            msg.error("unknown mpi_comm object: {}.\n".format(mpi_comm));
+            raise RuntimeError("Invalid mpi_comm object");
 
     # if gpu_error_checking is set, enable it on the GPU
     if options.gpu_error_checking:
