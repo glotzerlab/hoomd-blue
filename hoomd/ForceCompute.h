@@ -156,7 +156,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
             m_particles_sorted = true;
 
             #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+            if (m_exec_conf->isCUDAEnabled())
                 updateGPUMapping();
             #endif
             }
