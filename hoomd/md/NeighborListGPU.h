@@ -39,6 +39,9 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
             {
             GlobalArray<unsigned int> flags(1,exec_conf);
             std::swap(m_flags, flags);
+            TAG_ALLOCATION(m_flags);
+
+            cudaMemAdvise(m_flags.get(), m_flags.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
 
                 {
                 ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
@@ -52,6 +55,9 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
             // flag to say how big to resize
             GlobalArray<unsigned int> req_size_nlist(1,exec_conf);
             std::swap(m_req_size_nlist,req_size_nlist);
+            TAG_ALLOCATION(m_req_size_nlist);
+
+            cudaMemAdvise(m_req_size_nlist.get(), m_req_size_nlist.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
 
             // create cuda event
             m_tuner_filter.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_filter", this->m_exec_conf));

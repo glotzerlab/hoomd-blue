@@ -35,6 +35,7 @@ ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
     assert(m_pdata);
     GlobalArray< Scalar > properties(thermo_index::num_quantities, m_exec_conf);
     m_properties.swap(properties);
+    TAG_ALLOCATION(m_properties);
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
