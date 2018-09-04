@@ -94,13 +94,13 @@ void ForceComposite::setParam(unsigned int body_typeid,
     std::vector<Scalar>& charge,
     std::vector<Scalar>& diameter)
     {
+    lazyInitMem();
+
     assert(m_body_types.getPitch() >= m_pdata->getNTypes());
     assert(m_body_pos.getPitch() >= m_pdata->getNTypes());
     assert(m_body_orientation.getPitch() >= m_pdata->getNTypes());
     assert(m_body_charge.size() >= m_pdata->getNTypes());
     assert(m_body_diameter.size() >= m_pdata->getNTypes());
-
-    lazyInitMem();
 
     if (body_typeid >= m_pdata->getNTypes())
         {
