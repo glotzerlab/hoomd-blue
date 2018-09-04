@@ -360,6 +360,7 @@ void ForceCompositeGPU::lazyInitMem()
     cudaMemAdvise(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), cudaMemAdviseSetReadMostly, 0);
     cudaMemAdvise(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), cudaMemAdviseSetReadMostly, 0);
     cudaMemAdvise(m_body_types.get(), sizeof(unsigned int)*m_body_types.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+    CHECK_CUDA_ERROR();
     }
 
 void export_ForceCompositeGPU(py::module& m)

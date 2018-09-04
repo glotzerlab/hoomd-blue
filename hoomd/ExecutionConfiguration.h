@@ -192,6 +192,12 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         return m_dev_prop[idev];
         }
 
+    bool allConcurrentManagedAccess() const
+        {
+        // return cached value
+        return m_concurrent;
+        }
+
     cudaDeviceProp dev_prop;              //!< Cached device properties of the first GPU
     std::vector<unsigned int> m_gpu_id;   //!< IDs of active GPUs
     std::vector<cudaDeviceProp> m_dev_prop; //!< Device configuration of active GPUs
@@ -345,6 +351,7 @@ private:
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
     std::vector< cudaEvent_t > m_events;      //!< A list of events to synchronize between GPUs
+    bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 #endif
 
 #ifdef ENABLE_MPI

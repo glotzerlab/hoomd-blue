@@ -85,6 +85,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             exec_mode = CPU;
         }
 
+    m_concurrent = exec_mode==GPU;
+
     // now, exec_mode should be either CPU or GPU - proceed with initialization
 
     // initialize the GPU if that mode was requested
@@ -97,6 +99,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             msg->notice(2) << "This system is not compute exclusive, using local rank to select GPUs" << std::endl;
             gpu_id.push_back((guessLocalRank() % dev_count));
             }
+
+        cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
 
         if (! gpu_id.size())
             {
@@ -393,11 +397,10 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         }
 
     cudaSetDeviceFlags(flags | cudaDeviceMapHost);
-    cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
 
     if (gpu_id != -1)
         {
-        cudaSetDevice(gpu_id);
+        cudaSetDevice(m_gpu_list[gpu_id]);
         }
     else
         {
@@ -449,6 +452,14 @@ void ExecutionConfiguration::printGPUStats()
         // follow up with some flags to signify device features
         if (m_dev_prop[idev].kernelExecTimeoutEnabled)
             s << ", DIS";
+
+        // follow up with some flags to signify device features
+        if (m_dev_prop[idev].concurrentManagedAccess)
+            {
+            s << ", MNG";
+            }
+        else
+            m_concurrent = false;
 
         s << std::endl;
         }

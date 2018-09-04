@@ -145,7 +145,7 @@ void MolecularForceCompute::initMoleculesGPU()
         m_tuner_fill->end();
         }
 
-    if (m_exec_conf->getNumActiveGPUs() > 1)
+    if (m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
 

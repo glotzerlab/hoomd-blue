@@ -132,7 +132,6 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
         {
         // store in host memory for faster access from CPU
         cudaMemAdvise(m_conditions.get(), m_conditions.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
-        cudaMemPrefetchAsync(m_conditions.get(), m_conditions.getNumElements()*sizeof(unsigned int), cudaCpuDeviceId);
         CHECK_CUDA_ERROR();
         }
     #endif
@@ -259,7 +258,6 @@ void NeighborList::reallocateTypes()
         {
         // store in host memory for faster access from CPU
         cudaMemAdvise(m_conditions.get(), m_conditions.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
-        cudaMemPrefetchAsync(m_conditions.get(), m_conditions.getNumElements()*sizeof(unsigned int), cudaCpuDeviceId);
         CHECK_CUDA_ERROR();
         }
     #endif
@@ -1559,7 +1557,7 @@ bool NeighborList::peekUpdate(unsigned int timestep)
 //! Update GPU memory locality
 void NeighborList::updateMemoryMapping()
     {
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
 
@@ -1574,11 +1572,6 @@ void NeighborList::updateMemoryMapping()
 
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {
-                cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-
-                if (!dev_prop.concurrentManagedAccess)
-                    continue;
-
                 auto range = gpu_partition.getRange(idev);
 
                 unsigned int start = h_head_list.data[range.first];
@@ -1594,11 +1587,6 @@ void NeighborList::updateMemoryMapping()
 
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-
-            if (!dev_prop.concurrentManagedAccess)
-                continue;
-
             // set preferred location
             auto range = gpu_partition.getRange(idev);
             unsigned int nelem =  range.second - range.first;

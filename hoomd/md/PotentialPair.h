@@ -177,20 +177,18 @@ class PotentialPair : public ForceCompute
                 cudaMemAdvise(m_ronsq.get(), m_ronsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
                 cudaMemAdvise(m_params.get(), m_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
 
-                // prefetch
-                auto& gpu_map = m_exec_conf->getGPUIds();
-
-                for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                if (m_exec_conf->allConcurrentManagedAccess())
                     {
-                    cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
+                    // prefetch
+                    auto& gpu_map = m_exec_conf->getGPUIds();
 
-                    if (!dev_prop.concurrentManagedAccess)
-                        continue;
-
-                    // prefetch data on all GPUs
-                    cudaMemPrefetchAsync(m_rcutsq.get(), sizeof(Scalar)*m_rcutsq.getNumElements(), gpu_map[idev]);
-                    cudaMemPrefetchAsync(m_ronsq.get(), sizeof(Scalar)*m_ronsq.getNumElements(),gpu_map[idev]);
-                    cudaMemPrefetchAsync(m_params.get(), sizeof(param_type)*m_params.getNumElements(), gpu_map[idev]);
+                    for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                        {
+                        // prefetch data on all GPUs
+                        cudaMemPrefetchAsync(m_rcutsq.get(), sizeof(Scalar)*m_rcutsq.getNumElements(), gpu_map[idev]);
+                        cudaMemPrefetchAsync(m_ronsq.get(), sizeof(Scalar)*m_ronsq.getNumElements(),gpu_map[idev]);
+                        cudaMemPrefetchAsync(m_params.get(), sizeof(param_type)*m_params.getNumElements(), gpu_map[idev]);
+                        }
                     }
                 }
             #endif
@@ -226,20 +224,18 @@ PotentialPair< evaluator >::PotentialPair(std::shared_ptr<SystemDefinition> sysd
         cudaMemAdvise(m_ronsq.get(), m_ronsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
         cudaMemAdvise(m_params.get(), m_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
 
-        // prefetch
-        auto& gpu_map = m_exec_conf->getGPUIds();
-
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+        if (m_exec_conf->allConcurrentManagedAccess())
             {
-            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
+            // prefetch
+            auto& gpu_map = m_exec_conf->getGPUIds();
 
-            if (!dev_prop.concurrentManagedAccess)
-                continue;
-
-            // prefetch data on all GPUs
-            cudaMemPrefetchAsync(m_rcutsq.get(), sizeof(Scalar)*m_rcutsq.getNumElements(), gpu_map[idev]);
-            cudaMemPrefetchAsync(m_ronsq.get(), sizeof(Scalar)*m_ronsq.getNumElements(),gpu_map[idev]);
-            cudaMemPrefetchAsync(m_params.get(), sizeof(param_type)*m_params.getNumElements(), gpu_map[idev]);
+            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                {
+                // prefetch data on all GPUs
+                cudaMemPrefetchAsync(m_rcutsq.get(), sizeof(Scalar)*m_rcutsq.getNumElements(), gpu_map[idev]);
+                cudaMemPrefetchAsync(m_ronsq.get(), sizeof(Scalar)*m_ronsq.getNumElements(),gpu_map[idev]);
+                cudaMemPrefetchAsync(m_params.get(), sizeof(param_type)*m_params.getNumElements(), gpu_map[idev]);
+                }
             }
         }
     #endif

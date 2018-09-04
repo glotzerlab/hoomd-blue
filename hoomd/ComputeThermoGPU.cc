@@ -80,17 +80,13 @@ void ComputeThermoGPU::computeProperties()
 
     if (m_scratch.size() != old_size)
         {
-        if (m_exec_conf->getNumActiveGPUs() > 1)
+        if (m_exec_conf->allConcurrentManagedAccess())
             {
             auto& gpu_map  = m_exec_conf->getGPUIds();
 
             // map scratch array into memory of all GPUs
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {
-                cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-                if (!dev_prop.concurrentManagedAccess)
-                    continue;
-
                 cudaMemAdvise(m_scratch.get(), sizeof(Scalar4)*m_scratch.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
                 cudaMemAdvise(m_scratch_pressure_tensor.get(), sizeof(Scalar)*m_scratch_pressure_tensor.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
                 cudaMemAdvise(m_scratch_rot.get(), sizeof(Scalar)*m_scratch_rot.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);

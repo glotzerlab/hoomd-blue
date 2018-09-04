@@ -82,34 +82,6 @@ void CellListGPU::computeCellList()
     // autotune block sizes
     m_tuner->begin();
 
-    #if 0
-    if (ngpu > 1)
-        {
-        auto& gpu_map = m_exec_conf->getGPUIds();
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            // prefetch to preferred location
-            cudaMemPrefetchAsync(m_cell_size_scratch.get()+idev*m_cell_indexer.getNumElements(),
-                m_cell_indexer.getNumElements()*sizeof(unsigned int), gpu_map[idev]);
-
-            if (! m_idx.isNull())
-                cudaMemPrefetchAsync(m_idx_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
-                    m_cell_list_indexer.getNumElements()*sizeof(unsigned int), gpu_map[idev]);
-
-            cudaMemPrefetchAsync(m_xyzf_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
-                m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[idev]);
-
-            if (! m_tdb.isNull())
-                cudaMemPrefetchAsync(m_tdb_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
-                m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[idev]);
-
-            if (! m_orientation.isNull())
-                cudaMemPrefetchAsync(m_orientation_scratch.get()+idev*m_cell_list_indexer.getNumElements(),
-                m_cell_list_indexer.getNumElements()*sizeof(Scalar4), gpu_map[idev]);
-            }
-        }
-    #endif
-
     // compute cell list, and write to temporary arrays with multi-GPU
     gpu_compute_cell_list(ngpu == 1 ? d_cell_size.data : d_cell_size_scratch.data,
                           ngpu == 1 ? d_xyzf.data : d_xyzf_scratch.data,
@@ -146,20 +118,6 @@ void CellListGPU::computeCellList()
 
         // autotune block sizes
         m_tuner_combine->begin();
-
-        #if 0
-        cudaMemPrefetchAsync(m_cell_size_scratch.get(), m_cell_indexer.getNumElements()*sizeof(unsigned int), 0);
-        if (! m_idx.isNull())
-            cudaMemPrefetchAsync(m_idx_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(unsigned int), 0);
-
-        cudaMemPrefetchAsync(m_xyzf_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), 0);
-
-        if (! m_tdb.isNull())
-            cudaMemPrefetchAsync(m_tdb_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), 0);
-
-        if (! m_orientation.isNull())
-            cudaMemPrefetchAsync(m_orientation_scratch.get(), m_cell_list_indexer.getNumElements()*sizeof(Scalar4), 0);
-        #endif
 
         gpu_combine_cell_lists(d_cell_size_scratch.data,
                                d_cell_size.data,
@@ -275,6 +233,9 @@ void CellListGPU::initializeMemory()
         GlobalArray<unsigned int> idx_scratch;
         m_idx_scratch.swap(idx_scratch);
         }
+
+    if (! m_exec_conf->allConcurrentManagedAccess())
+        return;
 
     // map cell list arrays into memory of all active GPUs
     auto& gpu_map = m_exec_conf->getGPUIds();

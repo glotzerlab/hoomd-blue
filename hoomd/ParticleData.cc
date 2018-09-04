@@ -411,17 +411,13 @@ void ParticleData::allocate(unsigned int N)
     TAG_ALLOCATION(m_comm_flags);
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
 
         // set up GPU memory mappings
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-            if (!dev_prop.concurrentManagedAccess)
-                continue;
-
             // only optimize access for those fields used in force computation
             // (i.e. no net_force/virial/torque, also angmom and inertia are only used by the integrator)
             cudaMemAdvise(m_pos.get(), sizeof(Scalar4)*m_pos.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
@@ -524,18 +520,13 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
     TAG_ALLOCATION(m_net_torque_alt);
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
 
         // set up GPU memory mappings
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-
-            if (!dev_prop.concurrentManagedAccess)
-                continue;
-
             cudaMemAdvise(m_pos_alt.get(), sizeof(Scalar4)*m_pos_alt.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_vel_alt.get(), sizeof(Scalar4)*m_vel_alt.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_accel_alt.get(), sizeof(Scalar3)*m_accel_alt.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
@@ -640,17 +631,13 @@ void ParticleData::reallocate(unsigned int max_n)
     m_comm_flags.resize(max_n);
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
 
         // set up GPU memory mappings
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-            if (!dev_prop.concurrentManagedAccess)
-                continue;
-
             cudaMemAdvise(m_pos.get(), sizeof(Scalar4)*m_pos.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_vel.get(), sizeof(Scalar4)*m_vel.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_accel.get(), sizeof(Scalar3)*m_accel.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
@@ -684,17 +671,13 @@ void ParticleData::reallocate(unsigned int max_n)
         m_net_virial_alt.resize(max_n, 6);
 
         #ifdef ENABLE_CUDA
-        if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+        if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
             {
             auto gpu_map = m_exec_conf->getGPUIds();
 
             // set up GPU memory mappings
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {
-                cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-                if (!dev_prop.concurrentManagedAccess)
-                    continue;
-
                 cudaMemAdvise(m_pos_alt.get(), sizeof(Scalar4)*m_pos_alt.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
                 cudaMemAdvise(m_vel_alt.get(), sizeof(Scalar4)*m_vel_alt.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
                 cudaMemAdvise(m_accel_alt.get(), sizeof(Scalar3)*m_accel_alt.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
@@ -3055,14 +3038,12 @@ void ParticleData::updateGPUPartition()
 
         auto gpu_map = m_exec_conf->getGPUIds();
 
+        if (! m_exec_conf->allConcurrentManagedAccess())
+            return;
+
         // split preferred location of particle data across GPUs
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-
-            if (!dev_prop.concurrentManagedAccess)
-                continue;
-
             auto range = m_gpu_partition.getRange(idev);
             unsigned int nelem =  range.second - range.first;
 
@@ -3102,7 +3083,6 @@ void ParticleData::updateGPUPartition()
                 cudaMemPrefetchAsync(m_net_virial.get()+i*m_net_virial.getPitch()+range.first, sizeof(Scalar)*nelem, gpu_map[idev]);
             cudaMemPrefetchAsync(m_net_torque.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
             }
-
         CHECK_CUDA_ERROR();
 
         if (! m_pos_alt.isNull())

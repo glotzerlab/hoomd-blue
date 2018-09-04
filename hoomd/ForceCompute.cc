@@ -44,18 +44,13 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     m_torque.swap(torque);
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
 
         // set up GPU memory mappings
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-
-            if (!dev_prop.concurrentManagedAccess)
-                continue;
-
             cudaMemAdvise(m_force.get(), sizeof(Scalar4)*m_force.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_virial.get(), sizeof(Scalar)*m_virial.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
@@ -90,17 +85,13 @@ void ForceCompute::reallocate()
     m_torque.resize(m_pdata->getMaxN());
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
 
         // set up GPU memory mappings
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-            if (!dev_prop.concurrentManagedAccess)
-                continue;
-
             cudaMemAdvise(m_force.get(), sizeof(Scalar4)*m_force.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_virial.get(), sizeof(Scalar)*m_virial.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
@@ -120,17 +111,13 @@ void ForceCompute::updateGPUMapping()
     if (m_last_gpu_partition == m_pdata->getGPUPartition())
         return;
 
-    auto gpu_map = m_exec_conf->getGPUIds();
-
-    if (m_exec_conf->getNumActiveGPUs() == 1)
+    if (!m_exec_conf->allConcurrentManagedAccess())
         return;
+
+    auto gpu_map = m_exec_conf->getGPUIds();
 
     for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
         {
-        cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-        if (!dev_prop.concurrentManagedAccess)
-            continue;
-
         // reset previous hints
         auto range = m_last_gpu_partition.getRange(idev);
         unsigned int nelem =  range.second - range.first;
@@ -152,10 +139,6 @@ void ForceCompute::updateGPUMapping()
 
     for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
         {
-        cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-        if (!dev_prop.concurrentManagedAccess)
-            continue;
-
         // set preferred location
         auto range = gpu_partition.getRange(idev);
         unsigned int nelem =  range.second - range.first;
