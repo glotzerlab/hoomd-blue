@@ -27,14 +27,14 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
     if (!m_cl)
         m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
 
-    m_cl->setRadius(1);
-    // types are always required now
-    m_cl->setComputeTDB(true);
-    m_cl->setFlagIndex();
-
     // with multiple GPUs, use indirect access via particle data arrays
     m_use_index = m_exec_conf->getNumActiveGPUs() > 1;
     m_cl->setComputeIdx(m_use_index);
+
+    m_cl->setRadius(1);
+    // types are always required now
+    m_cl->setComputeTDB(!m_use_index);
+    m_cl->setFlagIndex();
 
     CHECK_CUDA_ERROR();
 
@@ -172,7 +172,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
             cudaMemPrefetchAsync(d_cell_size.data, m_cl->getCellIndexer().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
-            cudaMemPrefetchAsync(d_cell_xyzf.data, m_cl->getCellListIndexer().getNumElements()*sizeof(Scalar4), gpu_map[idev]);
+
+            if (! m_use_index)
+                cudaMemPrefetchAsync(d_cell_xyzf.data, m_cl->getCellListIndexer().getNumElements()*sizeof(Scalar4), gpu_map[idev]);
 
             if (d_cell_idx.data)
                 cudaMemPrefetchAsync(d_cell_idx.data, m_cl->getCellListIndexer().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
