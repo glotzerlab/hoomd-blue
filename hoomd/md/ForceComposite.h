@@ -107,6 +107,8 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         //! Returns the maximum diameter over all rigid bodies
         Scalar getMaxBodyDiameter()
             {
+            lazyInitMem();
+
             if (m_global_max_d_changed)
                 {
                 // find maximum diameter over all bodies

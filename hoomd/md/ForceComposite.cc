@@ -53,6 +53,8 @@ void ForceComposite::lazyInitMem()
     if (m_memory_initialized)
         return;
 
+    m_exec_conf->msg->notice(7) << "ForceComposite initialize memory" << std::endl;
+
     GlobalArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_types.swap(body_types);
     TAG_ALLOCATION(m_body_types);
@@ -225,6 +227,8 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
 Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
     {
+    lazyInitMem();
+
     m_exec_conf->msg->notice(7) << "ForceComposite: calculating body diameter for type " << m_pdata->getNameByType(body_type) << std::endl;
 
     // get maximum pairwise distance
@@ -300,6 +304,8 @@ void ForceComposite::slotNumTypesChange()
 
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
     {
+    lazyInitMem();
+
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     if (m_d_max_changed[type])
@@ -368,6 +374,8 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
 
 void ForceComposite::validateRigidBodies(bool create)
     {
+    lazyInitMem();
+
     if (m_bodies_changed || m_ptls_added_removed)
         {
         // check validity of rigid body types: no nested rigid bodies
