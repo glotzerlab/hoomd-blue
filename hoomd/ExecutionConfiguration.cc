@@ -42,7 +42,7 @@ using namespace std;
     is made by not calling cudaSetDevice.
 */
 ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
-                                               std::vector<unsigned int> gpu_id,
+                                               std::vector<int> gpu_id,
                                                bool min_cpu,
                                                bool ignore_display,
                                                std::shared_ptr<Messenger> _msg,
