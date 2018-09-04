@@ -826,7 +826,7 @@ class shape_update(_updater):
                         the acceptance statistics will be updated correctly
         pos (:py:mod:`hoomd.deprecated.dump.pos`): HOOMD POS analyzer object used to update the shape definitions on the fly
         setup_pos (bool): When True the updater will automatically update the POS analyzer if it is provided
-        setup_callback (function): will override the default pos callback. will be called everytime the pos file is written
+        setup_callback (callable): will override the default pos callback. will be called everytime the pos file is written
         nselect (int): number of types to change every time the updater is called.
         nsweeps (int): number of times to change nselect types every time the updater is called.
         multi_phase (bool): when True MPI is enforced and shapes are updated together for two boxes.
@@ -838,7 +838,7 @@ class shape_update(_updater):
         - :py:meth:`python_shape_move` - supply a python call back that will take a list of parameters between 0 and 1 and return a shape param object.
         - :py:meth:`vertex_shape_move` - make changes to the the vertices of the shape definition. Currently only defined for convex polyhedra.
         - :py:meth:`constant_shape_move` - make a single move to a shape i.e. shape_old -> shape_new. Useful when pretend is set to True.
-        - :py:meth:`scale_shear_shape_move` - scale and shear the particle definitions. Currently only defined for ellipsoids and convex polyhedra.
+        - :py:meth:`elastic_shape_move` - scale and shear the particle definitions. Currently only defined for ellipsoids and convex polyhedra.
 
         See the documentation for the individual moves for more usage information.
 
@@ -921,7 +921,7 @@ class shape_update(_updater):
         the call arguments and returns a shape parameter definition.
 
         Args:
-            callback (callable object): The python function that will be called each update.
+            callback (callable): The python function that will be called each update.
             params (dict): dictionary of types and the corresponding list parameters ({'A' : [1.0], 'B': [0.0]})
             stepsize (float): step size in parameter space.
             param_ratio (float): average fraction of parameters to change each update
@@ -1056,7 +1056,7 @@ class shape_update(_updater):
         a spcific transition probability and derived thermodynamic quantities.
 
         Args:
-            shape parameters required to define the reference shape. Depends on the
+            shape_parameters: arguments required to define the reference shape. Depends on the
             integrator.
 
         Example::
@@ -1120,12 +1120,12 @@ class shape_update(_updater):
         Example::
 
             shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
-            shape_up.scale_shear_shape_move(stepsize=0.01)
+            shape_up.elastic_shape_move(stepsize=0.01)
 
         """
         hoomd.util.print_status_line();
         if(self.move_cpp):
-            hoomd.context.msg.error("update.shape_update.scale_shear_shape_move: Cannot change the move once initialized.\n");
+            hoomd.context.msg.error("update.shape_update.elastic_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
         move_cls = None;
         if isinstance(self.mc, integrate.sphere):
@@ -1156,11 +1156,11 @@ class shape_update(_updater):
             pass;
             # move_cls = _hpmc.ScaleShearShapeMoveSphereUnion;
         else:
-            hoomd.context.msg.error("update.shape_update.scale_shear_shape_move: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update.elastic_shape_move: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
         if not move_cls:
-            hoomd.context.msg.error("update.shape_update.scale_shear_shape_move: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update.elastic_shape_move: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
@@ -1176,7 +1176,7 @@ class shape_update(_updater):
         Example::
 
             shape_up = hpmc.update.elastic_shape(mc=mc, move_ratio=0.1, seed=3832765, stiffness=100.0, reference=dict(vertices=v), nselect=3)
-            shape_up.scale_shear_shape_move(stepsize=0.1);
+            shape_up.elastic_shape_move(stepsize=0.1);
             tuner = shape_up.get_tuner(average=True); # average stats over all particle types.
             for _ in range(100):
                 hoomd.run(1000, quiet=True);
@@ -1420,7 +1420,7 @@ class elastic_shape(shape_update):
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
         elastic = hpmc.update.elastic_shape(mc, move_ratio=0.25, seed=9876, stiffness=10.0, reference=dict(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]))
         # Add a shape move.
-        elastic.scale_shear_move(stepsize=0.1, move_ratio=0.5);
+        elastic.elastic_shape_move(stepsize=0.1, move_ratio=0.5);
     """
 
     def __init__(   self,
