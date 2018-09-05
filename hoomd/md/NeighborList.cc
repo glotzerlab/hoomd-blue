@@ -90,6 +90,14 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_r_listsq.swap(r_listsq);
     TAG_ALLOCATION(m_r_listsq);
 
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        cudaMemAdvise(m_r_listsq.get(), m_r_listsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
+        }
+    #endif
+
     // default initialization of the rcut for all pairs
     setRCut(_r_cut, r_buff);
 
@@ -121,6 +129,14 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
             h_Nmax.data[i] = 8;
             }
         }
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        cudaMemAdvise(m_Nmax.get(), m_Nmax.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
+        }
+    #endif
 
     // allocate overflow flags for the number of neighbors per type
     GlobalArray<unsigned int> conditions(m_pdata->getNTypes(), exec_conf);

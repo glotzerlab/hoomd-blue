@@ -28,7 +28,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
         m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
 
     // with multiple GPUs, use indirect access via particle data arrays
-    m_use_index = m_exec_conf->getNumActiveGPUs() > 1;
+    m_use_index = m_exec_conf->allConcurrentManagedAccess();
     m_cl->setComputeIdx(m_use_index);
 
     m_cl->setRadius(1);
@@ -159,11 +159,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         throw std::runtime_error("Error updating neighborlist bins");
         }
 
-    this->m_tuner->begin();
-    unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
-    unsigned int block_size = param / 10000;
-    unsigned int threads_per_particle = param % 10000;
-
     auto& gpu_map = m_exec_conf->getGPUIds();
 
     // prefetch cell list
@@ -195,6 +190,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    this->m_tuner->begin();
+    unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
+    unsigned int block_size = param / 10000;
+    unsigned int threads_per_particle = param % 10000;
 
     gpu_compute_nlist_binned(d_nlist.data,
                              d_n_neigh.data,
