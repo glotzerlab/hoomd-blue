@@ -410,6 +410,20 @@ class PYBIND11_EXPORT NeighborList : public Compute
         //! Computes the NeighborList if it needs updating
         void compute(unsigned int timestep);
 
+        //! Return the distance check flag
+        virtual const GlobalArray<unsigned int>& getDistanceCheckFlags()
+            {
+            // return the empty array in the base class, should not be used
+            return m_flags;
+            }
+
+        //! Return the compare value for the distance check flags
+        virtual unsigned int getDistanceCheckCompare(unsigned int timestep)
+            {
+            // base class returns zero
+            return 0;
+            }
+
         //! Benchmark the neighbor list
         virtual double benchmark(unsigned int num_iters);
 
@@ -484,6 +498,8 @@ class PYBIND11_EXPORT NeighborList : public Compute
         Index2D m_ex_list_indexer_tag;         //!< Indexer for accessing the by-tag exclusion list
         bool m_exclusions_set;                 //!< True if any exclusions have been set
         bool m_need_reallocate_exlist;         //!< True if global exclusion list needs to be reallocated
+
+        GlobalArray<unsigned int> m_flags;   //!< Storage for device flags on the GPU
 
         //! Return true if we are supposed to do a distance check in this time step
         bool shouldCheckDistance(unsigned int timestep);
