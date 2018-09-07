@@ -2016,7 +2016,9 @@ class convex_spheropolyhedron_union(mode_hpmc):
     * *orientations* (**required**) - list of orientations of constituent polyhedra.
     * *overlap* (**default: 1 for all particles**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
     * *sweep_radii* (**default: 0 for all particle**) - radii of spheres sweeping out each constituent polyhedron
+
         * .. versionadded:: 2.4
+
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
 
@@ -2120,8 +2122,8 @@ class convex_spheropolyhedron_union(mode_hpmc):
 class convex_polyhedron_union(convex_spheropolyhedron_union):
     R""" HPMC integration for unions of convex polyhedra (3D).
 
-        * .. deprecated:: 2.4
-             Replaced by :py:class:`convex_spheropolyhedron_union`. This class stays in place for compatibility with older scripts.
+     .. deprecated:: 2.4
+        Replaced by :py:class:`convex_spheropolyhedron_union`. This class stays in place for compatibility with older scripts.
 
     Args:
         seed (int): Random number seed.
@@ -2144,7 +2146,9 @@ class convex_polyhedron_union(convex_spheropolyhedron_union):
     * *orientations* (**required**) - list of orientations of constituent polyhedra.
     * *overlap* (**default: 1 for all particles**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
     * *sweep_radii* (**default: 0 for all particle**) - radii of spheres sweeping out each constituent polyhedron
+
         * .. versionadded:: 2.4
+
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
 
