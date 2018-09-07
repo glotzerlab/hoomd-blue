@@ -93,10 +93,10 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
         tsteps (int): Number of time steps to advance the simulation.
         profile (bool): Set to True to enable high level profiling output at the end of the run.
-        profile limit_hours (float): If not None, limit this run to a given number of hours.
+        limit_hours (float): If not None, limit this run to a given number of hours.
         limit_multiple (int): When stopping the run due to walltime limits, only stop when the time step is a
                               multiple of limit_multiple.
-        callback (callable): Sets a Python function to be called regularly during a run.
+        callback (`callable`): Sets a Python function to be called regularly during a run.
         callback_period (int): Sets the period, in time steps, between calls made to ``callback``.
         quiet (bool): Set to True to disable the status information printed to the screen by the run.
 
@@ -121,7 +121,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     cases, :py:func:`run()` should only be called after after pair forces, bond forces,
     and an integrator are specified.
 
-    When ``profile`` is **True**, a detailed breakdown of how much time was spent in each
+    When `profile` is **True**, a detailed breakdown of how much time was spent in each
     portion of the calculation is printed at the end of the run. Collecting this timing information
     slows the simulation.
 
