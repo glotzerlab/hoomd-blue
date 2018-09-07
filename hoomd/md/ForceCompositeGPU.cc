@@ -356,11 +356,14 @@ void ForceCompositeGPU::lazyInitMem()
         TAG_ALLOCATION(m_lookup_center);
         }
 
-    cudaMemAdvise(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-    cudaMemAdvise(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-    cudaMemAdvise(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-    cudaMemAdvise(m_body_types.get(), sizeof(unsigned int)*m_body_types.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-    CHECK_CUDA_ERROR();
+    if (m_exec_conf->allConcurrentManagedAccess())
+        {
+        cudaMemAdvise(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_body_types.get(), sizeof(unsigned int)*m_body_types.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
+        }
     }
 
 void export_ForceCompositeGPU(py::module& m)
