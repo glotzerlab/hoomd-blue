@@ -86,7 +86,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
         virtual void computeForces(unsigned int timestep);
 
         //! Actually compute the forces
-        virtual void enqueueKernel(unsigned int timestep, bool always_compute);
+        virtual void enqueueKernel(unsigned int timestep);
     };
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
@@ -129,17 +129,19 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
 
+    #if 0
     // enqueue distance check kernel
     this->m_nlist->prefetch(timestep);
 
     // compute the pair forces and return early if it does not need to be computed
-    enqueueKernel(timestep,false);
+    enqueueKernel(timestep);
+    #endif
 
     this->m_nlist->compute(timestep);
 
-    if (this->m_nlist->hasBeenUpdated(timestep))
+    //if (this->m_nlist->hasBeenUpdated(timestep))
         // call kernel with updated NeighborList
-        enqueueKernel(timestep,true);
+        enqueueKernel(timestep);
 
     // check the precomputed result of the neighbor list
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
@@ -147,7 +149,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
-void PotentialPairGPU< evaluator, gpu_cgpf >::enqueueKernel(unsigned int timestep, bool always_compute)
+void PotentialPairGPU< evaluator, gpu_cgpf >::enqueueKernel(unsigned int timestep)
     {
     const GlobalArray<unsigned int>& nlist_flag = this->m_nlist->getDistanceCheckFlags();
     unsigned int flag_compare = this->m_nlist->getDistanceCheckCompare(timestep);
@@ -218,7 +220,6 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::enqueueKernel(unsigned int timeste
                          this->m_exec_conf->dev_prop.maxTexture1DLinear,
                          d_nlist_flag.data,
                          flag_compare,
-                         !always_compute,
                          this->m_pdata->getGPUPartition()),
              d_params.data);
 

@@ -139,8 +139,8 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
             CHECK_CUDA_ERROR();
         }
 
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep+1);
+    // advance thermostat
+    advanceThermostat(timestep, false);
 
     // done profiling
     if (m_prof)
@@ -159,9 +159,6 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push(m_exec_conf, "NVT MTK step 2");
-
-    // advance thermostat
-    advanceThermostat(timestep, false);
 
     m_exec_conf->beginMultiGPU();
 

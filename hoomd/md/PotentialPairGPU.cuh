@@ -57,7 +57,6 @@ struct pair_args_t
               const unsigned int _max_tex1d_width,
               const unsigned int *_d_nlist_flag,
               const unsigned int _flag_compare,
-              const bool _check_flag,
               const GPUPartition& _gpu_partition)
                 : d_force(_d_force),
                   d_virial(_d_virial),
@@ -83,7 +82,6 @@ struct pair_args_t
                   max_tex1d_width(_max_tex1d_width),
                   d_nlist_flag(_d_nlist_flag),
                   flag_compare(_flag_compare),
-                  check_flag(_check_flag),
                   gpu_partition(_gpu_partition)
         {
         };
@@ -112,7 +110,6 @@ struct pair_args_t
     const unsigned int max_tex1d_width;     //!< Maximum width of a linear 1D texture
     const unsigned int *d_nlist_flag;   //!< pointer to neighbor list update flag
     const unsigned int flag_compare;    //!< Value to compare flag to
-    const bool check_flag;          //!< If true, check neighbor list flag
     const GPUPartition& gpu_partition;      //!< The load balancing partition of particles between GPUs
     };
 
@@ -189,11 +186,10 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                                                const unsigned int ntypes,
                                                const unsigned int *d_nlist_flag,
                                                const unsigned int flag_compare,
-                                               const bool check_flag,
                                                const unsigned int offset)
     {
     // exit early if computation is not needed
-    if (check_flag && *d_nlist_flag == flag_compare)
+    if (*d_nlist_flag == flag_compare)
         return;
 
     Index2D typpair_idx(ntypes);
@@ -529,7 +525,7 @@ struct PairForceComputeKernel
               pair_args.virial_pitch, N, pair_args.d_pos, pair_args.d_diameter,
               pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
               pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-              pair_args.d_nlist_flag, pair_args.flag_compare, pair_args.check_flag, offset);
+              pair_args.d_nlist_flag, pair_args.flag_compare, offset);
 
             if (pair_args.compute_capability < 35) gpu_pair_force_unbind_textures(pair_args);
             }

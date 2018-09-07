@@ -45,9 +45,6 @@ class GlobalArray : public GPUArray<T>
         //! Empty constructor
         GlobalArray()
             : m_pitch(0), m_height(0), m_acquired(false)
-            #ifdef ENABLE_CUDA
-             , m_prefetch_event(false)
-            #endif
             { }
 
         /*! Allocate a 1D array in managed memory
@@ -57,9 +54,6 @@ class GlobalArray : public GPUArray<T>
         GlobalArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf,
             const std::string& tag = std::string() )
             : m_pitch(num_elements), m_height(1), m_exec_conf(exec_conf), m_acquired(false), m_tag(tag)
-            #ifdef ENABLE_CUDA
-             , m_prefetch_event(false)
-            #endif
             {
             size_t align = 0;
 
@@ -69,14 +63,6 @@ class GlobalArray : public GPUArray<T>
                 {
                 // use OS page size as minimum alignment
                 align = getpagesize();
-                }
-            #endif
-
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-                {
-                // create CUDA event
-                cudaEventCreateWithFlags(&m_event, cudaEventDisableTiming);
                 }
             #endif
 
@@ -90,11 +76,6 @@ class GlobalArray : public GPUArray<T>
         //! Destructor
         virtual ~GlobalArray()
             {
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf && m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-                cudaEventDestroy(m_event);
-            #endif
-
             // unregister from MemoryTraceback
             UNREGISTER_ALLOCATION(m_exec_conf,m_array);
             }
@@ -102,9 +83,6 @@ class GlobalArray : public GPUArray<T>
         //! Copy constructor
         GlobalArray(const GlobalArray& from)
             : m_pitch(from.m_pitch), m_height(from.m_height), m_exec_conf(from.m_exec_conf), m_acquired(false)
-            #ifdef ENABLE_CUDA
-             , m_prefetch_event(false)
-            #endif
             {
             checkAcquired(from);
 
@@ -118,14 +96,6 @@ class GlobalArray : public GPUArray<T>
                     cudaSetDevice(gpu_map[idev]);
                     cudaDeviceSynchronize();
                     }
-                }
-            #endif
-
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf && m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-                {
-                // create CUDA event
-                cudaEventCreateWithFlags(&m_event, cudaEventDisableTiming);
                 }
             #endif
 
@@ -156,8 +126,6 @@ class GlobalArray : public GPUArray<T>
                     cudaDeviceSynchronize();
                     }
                 }
-
-            m_prefetch_event = false;
             #endif
 
             m_array = rhs.m_array;
@@ -175,10 +143,6 @@ class GlobalArray : public GPUArray<T>
               m_exec_conf(std::move(other.m_exec_conf)),
               m_acquired(std::move(other.m_acquired)),
               m_tag(std::move(other.m_tag))
-            #ifdef ENABLE_CUDA
-             , m_event(std::move(other.m_event)),
-             m_prefetch_event(std::move(other.m_prefetch_event))
-            #endif
             {
             checkAcquired(other);
 
@@ -201,11 +165,6 @@ class GlobalArray : public GPUArray<T>
             m_acquired = std::move(other.m_acquired);
             m_tag = std::move(other.m_tag);
 
-            #ifdef ENABLE_CUDA
-            m_event = std::move(other.m_event);
-            m_prefetch_event = std::move(other.m_prefetch_event);
-            #endif
-
             other.m_pitch = 0;
             other.m_height = 0;
             other.m_acquired = false;
@@ -220,9 +179,6 @@ class GlobalArray : public GPUArray<T>
          */
         GlobalArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf) :
             m_height(height), m_exec_conf(exec_conf), m_acquired(false)
-            #ifdef ENABLE_CUDA
-             , m_prefetch_event(false)
-            #endif
             {
             // make m_pitch the next multiple of 16 larger or equal to the given width
             m_pitch = (width + (16 - (width & 15)));
@@ -235,14 +191,6 @@ class GlobalArray : public GPUArray<T>
                 {
                 // use OS page size as minimum alignment
                 align = getpagesize();
-                }
-            #endif
-
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-                {
-                // create CUDA event
-                cudaEventCreateWithFlags(&m_event, cudaEventDisableTiming);
                 }
             #endif
 
@@ -265,11 +213,6 @@ class GlobalArray : public GPUArray<T>
             std::swap(m_array, from.m_array);
             std::swap(m_exec_conf, from.m_exec_conf);
             std::swap(m_tag, from.m_tag);
-
-            #ifdef ENABLE_CUDA
-            std::swap(m_event, from.m_event);
-            std::swap(m_prefetch_event, from.m_prefetch_event);
-            #endif
             }
 
         //! Swap the pointers of two equally sized GPUArrays
@@ -444,11 +387,6 @@ class GlobalArray : public GPUArray<T>
 
         std::string m_tag;     //!< Name tag of this buffer (optional)
 
-        #ifdef ENABLE_CUDA
-        mutable cudaEvent_t m_event;   // CUDA event to skip explicit sync when available
-        mutable bool m_prefetch_event; //!< True if event has been recorded
-        #endif
-
         virtual inline T* acquire(const access_location::Enum location, const access_mode::Enum mode
         #ifdef ENABLE_CUDA
                          , bool async = false
@@ -460,32 +398,13 @@ class GlobalArray : public GPUArray<T>
             #ifdef ENABLE_CUDA
             if (!isNull() && m_array.isManaged() && location == access_location::host)
                 {
-                if (!m_prefetch_event)
+                // synchronize all active GPUs
+                auto gpu_map = m_exec_conf->getGPUIds();
+                for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
                     {
-                    // synchronize all active GPUs
-                    auto gpu_map = m_exec_conf->getGPUIds();
-                    for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                        {
-                        cudaSetDevice(gpu_map[idev]);
-                        cudaDeviceSynchronize();
-                        }
-                    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                        CHECK_CUDA_ERROR();
+                    cudaSetDevice(gpu_map[idev]);
+                    cudaDeviceSynchronize();
                     }
-                else
-                    {
-                    // simply synchronize CPU with event
-                    cudaEventSynchronize(m_event);
-
-                    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                        CHECK_CUDA_ERROR();
-                    }
-                }
-
-            if (!isNull() && m_array.isManaged() && location == access_location::device && mode != access_mode::read)
-                {
-                // invalidate event upon device write access
-                m_prefetch_event = false;
                 }
             #endif
 
@@ -497,30 +416,6 @@ class GlobalArray : public GPUArray<T>
         //! Release the data pointer
         virtual inline void release() const
             {
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf && m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess() && !m_prefetch_event)
-                {
-                int preferred;
-                cudaMemRangeGetAttribute(&preferred, sizeof(int), cudaMemRangeAttributePreferredLocation,
-                    m_array.get(), sizeof(T)*m_array.size());
-
-                if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                    CHECK_CUDA_ERROR();
-
-                if (preferred==cudaCpuDeviceId)
-                    {
-                    // record a synchronization event on GPU 0
-                    if (m_exec_conf->inMultiGPUBlock())
-                        throw std::runtime_error("Synchronization error - multiGPU block must end inside ArrayHandle scope.\n");
-                    cudaEventRecord(m_event);
-
-                    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                        CHECK_CUDA_ERROR();
-
-                    m_prefetch_event = true;
-                    }
-                }
-            #endif
             m_acquired = false;
             }
 

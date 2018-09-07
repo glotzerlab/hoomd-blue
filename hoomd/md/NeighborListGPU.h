@@ -41,17 +41,7 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
             std::swap(m_flags, flags);
             TAG_ALLOCATION(m_flags);
 
-            if (m_exec_conf->allConcurrentManagedAccess())
-                {
-                auto gpu_map = m_exec_conf->getGPUIds();
-
-                cudaMemAdvise(m_flags.get(), m_flags.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
-
-                for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-                    {
-                    cudaMemAdvise(m_flags.get(), sizeof(unsigned int)*m_flags.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-                    }
-                }
+            cudaMemAdvise(m_flags.get(), m_flags.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
 
                 {
                 ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);

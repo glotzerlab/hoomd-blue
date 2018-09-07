@@ -68,12 +68,10 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
 void NeighborListGPU::prefetch(unsigned int timestep)
     {
     // prevent against unnecessary calls
-    if (hasBeenUpdated(timestep) && ! shouldCheckDistance(timestep))
+    if (! shouldCheckDistance(timestep))
         {
-        m_checkn++;
         return;
         }
-
     if (m_prof) m_prof->push(m_exec_conf, "dist-check");
 
     // scan through the particle data arrays and calculate distances
@@ -93,7 +91,9 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(m_exec_conf, "dist-check");
 
-    enqueueDistanceCheck(timestep);
+    if (m_prefetch_timestep != timestep)
+        // enqueue the GPU kernel
+        enqueueDistanceCheck(timestep);
 
     // check the result
     bool result;
@@ -128,8 +128,6 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
 
 void NeighborListGPU::enqueueDistanceCheck(unsigned timestep)
     {
-    if (m_prefetch_timestep == timestep)
-        return;
     m_prefetch_timestep = timestep;
 
     // access data
