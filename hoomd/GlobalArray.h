@@ -16,9 +16,6 @@
 #include <string>
 #include <unistd.h>
 
-// fall back on standard cudaMalloc on single GPU
-#define SINGLE_GPU_GPUARRAY_FALLBACK
-
 #define checkAcquired(a) { \
     assert(!(a).m_acquired); \
     if ((a).m_acquired) \
@@ -57,7 +54,7 @@ class GlobalArray : public GPUArray<T>
         GlobalArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf,
             const std::string& tag = std::string() )
             :
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             // use move constructor
             GPUArray<T>(std::move(exec_conf->allConcurrentManagedAccess() ? GPUArray<T>() : GPUArray<T>(num_elements, exec_conf))),
             #endif
@@ -65,7 +62,7 @@ class GlobalArray : public GPUArray<T>
             {
             size_t align = 0;
 
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!m_exec_conf->allConcurrentManagedAccess())
                 return;
             #endif
@@ -89,7 +86,7 @@ class GlobalArray : public GPUArray<T>
         //! Destructor
         virtual ~GlobalArray()
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (m_exec_conf && !m_exec_conf->allConcurrentManagedAccess())
                 return;
             #endif
@@ -101,14 +98,14 @@ class GlobalArray : public GPUArray<T>
         //! Copy constructor
         GlobalArray(const GlobalArray& from)
             :
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             //use move constructor
             GPUArray<T>(std::move((!from.m_exec_conf || from.m_exec_conf->allConcurrentManagedAccess()) ? GPUArray<T>() :
                 GPUArray<T>(from))),
             #endif
             m_pitch(from.m_pitch), m_height(from.m_height), m_exec_conf(from.m_exec_conf), m_acquired(false)
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (m_exec_conf && !m_exec_conf->allConcurrentManagedAccess())
                 return;
             #endif
@@ -136,7 +133,7 @@ class GlobalArray : public GPUArray<T>
         //! = operator
         GlobalArray& operator=(const GlobalArray& rhs)
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (rhs.m_exec_conf && !rhs.m_exec_conf->allConcurrentManagedAccess())
                 GPUArray<T>::operator=(rhs);
             #endif
@@ -175,7 +172,7 @@ class GlobalArray : public GPUArray<T>
         //! Move constructor, provided for convenience, so std::swap can be used
         GlobalArray(GlobalArray&& other)
             :
-              #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+              #ifndef ALWAYS_USE_MANAGED_MEMORY
               // use move constructor
               GPUArray<T>((!other.m_exec_conf || other.m_exec_conf->allConcurrentManagedAccess()) ? std::move(GPUArray<T>()) : other),
               #endif
@@ -186,7 +183,7 @@ class GlobalArray : public GPUArray<T>
               m_acquired(std::move(other.m_acquired)),
               m_tag(std::move(other.m_tag))
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (other.m_exec_conf && !m_exec_conf->allConcurrentManagedAccess())
                 return;
             #endif
@@ -202,7 +199,7 @@ class GlobalArray : public GPUArray<T>
         //! Move assignment operator
         GlobalArray& operator=(GlobalArray&& other)
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (other.m_exec_conf && !other.m_exec_conf->allConcurrentManagedAccess())
                 GPUArray<T>::operator=(other);
             #endif
@@ -234,13 +231,13 @@ class GlobalArray : public GPUArray<T>
          */
         GlobalArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             :
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             // use move constructor
             GPUArray<T>(std::move(exec_conf->allConcurrentManagedAccess() ? GPUArray<T>() : GPUArray<T>(width, height, exec_conf))),
             #endif
             m_height(height), m_exec_conf(exec_conf), m_acquired(false)
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!m_exec_conf->allConcurrentManagedAccess())
                 return;
             #endif
@@ -270,7 +267,7 @@ class GlobalArray : public GPUArray<T>
         //! Swap the pointers of two GlobalArrays
         inline void swap(GlobalArray &from)
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if ((from.m_exec_conf && !from.m_exec_conf->allConcurrentManagedAccess())
                 || (m_exec_conf && !m_exec_conf->allConcurrentManagedAccess()))
                 GPUArray<T>::swap(from);
@@ -312,7 +309,7 @@ class GlobalArray : public GPUArray<T>
         */
         virtual unsigned int getNumElements() const
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
                 return GPUArray<T>::getNumElements();
             #endif
@@ -323,7 +320,7 @@ class GlobalArray : public GPUArray<T>
         //! Test if the GPUArray is NULL
         virtual bool isNull() const
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
                 return GPUArray<T>::isNull();
             #endif
@@ -338,7 +335,7 @@ class GlobalArray : public GPUArray<T>
         */
         virtual unsigned int getPitch() const
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
                 return GPUArray<T>::isNull();
             #endif
@@ -353,7 +350,7 @@ class GlobalArray : public GPUArray<T>
         */
         virtual unsigned int getHeight() const
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
                 return GPUArray<T>::getHeight();
             #endif
@@ -369,7 +366,7 @@ class GlobalArray : public GPUArray<T>
             {
             assert(m_exec_conf);
 
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (! m_exec_conf->allConcurrentManagedAccess())
                 {
                 GPUArray<T>::resize(num_elements);
@@ -418,7 +415,7 @@ class GlobalArray : public GPUArray<T>
             {
             assert(m_exec_conf);
 
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (! m_exec_conf->allConcurrentManagedAccess())
                 {
                 GPUArray<T>::resize(width, height);
@@ -479,7 +476,7 @@ class GlobalArray : public GPUArray<T>
          */
         void setTag(const std::string& tag)
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
                 return;
             #endif
@@ -508,7 +505,7 @@ class GlobalArray : public GPUArray<T>
         #endif
                         ) const
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
                 return GPUArray<T>::acquire(location, mode
                     #ifdef ENABLE_CUDA
@@ -540,7 +537,7 @@ class GlobalArray : public GPUArray<T>
         //! Release the data pointer
         virtual inline void release() const
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
                 {
                 GPUArray<T>::release();
@@ -554,7 +551,7 @@ class GlobalArray : public GPUArray<T>
         //! Returns the acquire state
         virtual inline bool isAcquired() const
             {
-            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
                 return GPUArray<T>::isAcquired();
             #endif

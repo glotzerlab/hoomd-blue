@@ -68,7 +68,7 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
     TAG_ALLOCATION(m_gamma_r);
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_gamma.get(), sizeof(Scalar)*m_gamma.getNumElements(), cudaMemAdviseSetReadMostly, 0);
         cudaMemAdvise(m_gamma_r.get(), sizeof(Scalar)*m_gamma_r.getNumElements(), cudaMemAdviseSetReadMostly, 0);
