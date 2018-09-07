@@ -218,7 +218,12 @@ template<class T> class GPUArray
         //! Copy constructor
         GPUArray(const GPUArray& from);
         //! = operator
-        virtual GPUArray& operator=(const GPUArray& rhs);
+        GPUArray& operator=(const GPUArray& rhs);
+
+        //! Move constructor
+        GPUArray(GPUArray&& from);
+        //! move assignment operator
+        GPUArray& operator=(GPUArray&& rhs);
 
         //! Swap the pointers in two GPUArrays
         inline void swap(GPUArray& from);
@@ -533,6 +538,59 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
             ArrayHandle<T> h_handle(rhs, access_location::host, access_mode::read);
             memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
             }
+        }
+
+    return *this;
+    }
+
+//! Move constructor
+template<class T> GPUArray<T>::GPUArray(GPUArray&& from)
+    : m_num_elements(std::move(from.m_num_elements)),
+      m_pitch(std::move(from.m_pitch)),
+      m_height(std::move(from.m_height)),
+      m_acquired(std::move(from.m_acquired)),
+      m_data_location(std::move(from.m_data_location)),
+#ifdef ENABLE_CUDA
+      m_mapped(std::move(from.m_mapped)),
+      d_data(std::move(from.d_data)),
+#endif
+      h_data(std::move(from.h_data)),
+      m_exec_conf(std::move(from.m_exec_conf))
+    {
+    // prevent deallocation
+    from.m_num_elements = 0;
+    #ifdef ENABLE_CUDA
+    from.d_data = nullptr;
+    #endif
+    from.h_data = nullptr;
+    }
+
+//! Move assignment operator
+template<class T> GPUArray<T>& GPUArray<T>::operator=(GPUArray&& rhs)
+    {
+    if (this != &rhs) // protect against invalid self-assignment
+        {
+        // copy over basic elements
+        m_num_elements = std::move(rhs.m_num_elements);
+        m_pitch = std::move(rhs.m_pitch);
+        m_height = std::move(rhs.m_height);
+        m_exec_conf = std::move(rhs.m_exec_conf);
+#ifdef ENABLE_CUDA
+        m_mapped = std::move(rhs.m_mapped);
+        d_data = std::move(rhs.d_data);
+#endif
+        // initialize state variables
+        m_data_location = std::move(rhs.m_data_location);
+        h_data = std::move(rhs.h_data);
+        assert(rhs.m_acquired && !m_acquired);
+        m_acquired = std::move(rhs.m_acquired);
+
+        // prevent deallocation
+        rhs.m_num_elements = 0;
+        #ifdef ENABLE_CUDA
+        rhs.d_data = nullptr;
+        #endif
+        rhs.h_data = nullptr;
         }
 
     return *this;

@@ -16,6 +16,9 @@
 #include <string>
 #include <unistd.h>
 
+// fall back on standard cudaMalloc on single GPU
+#define SINGLE_GPU_GPUARRAY_FALLBACK
+
 #define checkAcquired(a) { \
     assert(!(a).m_acquired); \
     if ((a).m_acquired) \
@@ -53,9 +56,19 @@ class GlobalArray : public GPUArray<T>
          */
         GlobalArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf,
             const std::string& tag = std::string() )
-            : m_pitch(num_elements), m_height(1), m_exec_conf(exec_conf), m_acquired(false), m_tag(tag)
+            :
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            // use move constructor
+            GPUArray<T>(std::move(exec_conf->allConcurrentManagedAccess() ? GPUArray<T>() : GPUArray<T>(num_elements, exec_conf))),
+            #endif
+            m_pitch(num_elements), m_height(1), m_exec_conf(exec_conf), m_acquired(false), m_tag(tag)
             {
             size_t align = 0;
+
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (!m_exec_conf->allConcurrentManagedAccess())
+                return;
+            #endif
 
             assert(m_exec_conf);
             #ifdef ENABLE_CUDA
@@ -76,14 +89,30 @@ class GlobalArray : public GPUArray<T>
         //! Destructor
         virtual ~GlobalArray()
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (m_exec_conf && !m_exec_conf->allConcurrentManagedAccess())
+                return;
+            #endif
+
             // unregister from MemoryTraceback
             UNREGISTER_ALLOCATION(m_exec_conf,m_array);
             }
 
         //! Copy constructor
         GlobalArray(const GlobalArray& from)
-            : m_pitch(from.m_pitch), m_height(from.m_height), m_exec_conf(from.m_exec_conf), m_acquired(false)
+            :
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            //use move constructor
+            GPUArray<T>(std::move((!from.m_exec_conf || from.m_exec_conf->allConcurrentManagedAccess()) ? GPUArray<T>() :
+                GPUArray<T>(from))),
+            #endif
+            m_pitch(from.m_pitch), m_height(from.m_height), m_exec_conf(from.m_exec_conf), m_acquired(false)
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (m_exec_conf && !m_exec_conf->allConcurrentManagedAccess())
+                return;
+            #endif
+
             checkAcquired(from);
 
             #ifdef ENABLE_CUDA
@@ -107,43 +136,61 @@ class GlobalArray : public GPUArray<T>
         //! = operator
         GlobalArray& operator=(const GlobalArray& rhs)
             {
-            checkAcquired(rhs);
-            checkAcquired(*this);
-
-            m_pitch = rhs.m_pitch;
-            m_height = rhs.m_height;
-            m_exec_conf = rhs.m_exec_conf;
-            m_acquired = false;
-
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf && m_exec_conf->isCUDAEnabled())
-                {
-                // synchronize all active GPUs
-                auto gpu_map = m_exec_conf->getGPUIds();
-                for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                    {
-                    cudaSetDevice(gpu_map[idev]);
-                    cudaDeviceSynchronize();
-                    }
-                }
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (rhs.m_exec_conf && !rhs.m_exec_conf->allConcurrentManagedAccess())
+                GPUArray<T>::operator=(rhs);
             #endif
 
-            m_array = rhs.m_array;
-            m_tag = rhs.m_tag;
-            REGISTER_ALLOCATION(m_exec_conf, m_array);
+            if (&rhs != this)
+                {
+                checkAcquired(rhs);
+                checkAcquired(*this);
+
+                m_pitch = rhs.m_pitch;
+                m_height = rhs.m_height;
+                m_exec_conf = rhs.m_exec_conf;
+                m_acquired = false;
+
+                #ifdef ENABLE_CUDA
+                if (m_exec_conf && m_exec_conf->isCUDAEnabled())
+                    {
+                    // synchronize all active GPUs
+                    auto gpu_map = m_exec_conf->getGPUIds();
+                    for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                        {
+                        cudaSetDevice(gpu_map[idev]);
+                        cudaDeviceSynchronize();
+                        }
+                    }
+                #endif
+
+                m_array = rhs.m_array;
+                m_tag = rhs.m_tag;
+                REGISTER_ALLOCATION(m_exec_conf, m_array);
+                }
 
             return *this;
             }
 
         //! Move constructor, provided for convenience, so std::swap can be used
         GlobalArray(GlobalArray&& other)
-            : m_array(std::move(other.m_array)),
+            :
+              #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+              // use move constructor
+              GPUArray<T>((!other.m_exec_conf || other.m_exec_conf->allConcurrentManagedAccess()) ? std::move(GPUArray<T>()) : other),
+              #endif
+              m_array(std::move(other.m_array)),
               m_pitch(std::move(other.m_pitch)),
               m_height(std::move(other.m_height)),
               m_exec_conf(std::move(other.m_exec_conf)),
               m_acquired(std::move(other.m_acquired)),
               m_tag(std::move(other.m_tag))
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (other.m_exec_conf && !m_exec_conf->allConcurrentManagedAccess())
+                return;
+            #endif
+
             checkAcquired(other);
 
             // reset the other array's values
@@ -155,19 +202,27 @@ class GlobalArray : public GPUArray<T>
         //! Move assignment operator
         GlobalArray& operator=(GlobalArray&& other)
             {
-            checkAcquired(*this);
-            checkAcquired(other);
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (other.m_exec_conf && !other.m_exec_conf->allConcurrentManagedAccess())
+                GPUArray<T>::operator=(other);
+            #endif
 
-            m_array = std::move(other.m_array);
-            m_pitch = std::move(other.m_pitch);
-            m_height = std::move(other.m_height);
-            m_exec_conf = std::move(other.m_exec_conf);
-            m_acquired = std::move(other.m_acquired);
-            m_tag = std::move(other.m_tag);
+            if (&other != this)
+                {
+                checkAcquired(*this);
+                checkAcquired(other);
 
-            other.m_pitch = 0;
-            other.m_height = 0;
-            other.m_acquired = false;
+                m_array = std::move(other.m_array);
+                m_pitch = std::move(other.m_pitch);
+                m_height = std::move(other.m_height);
+                m_exec_conf = std::move(other.m_exec_conf);
+                m_acquired = std::move(other.m_acquired);
+                m_tag = std::move(other.m_tag);
+
+                other.m_pitch = 0;
+                other.m_height = 0;
+                other.m_acquired = false;
+                }
 
             return *this;
             }
@@ -177,9 +232,19 @@ class GlobalArray : public GPUArray<T>
             \param height Number of rows to allocate in the 2D array
             \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
          */
-        GlobalArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf) :
+        GlobalArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+            :
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            // use move constructor
+            GPUArray<T>(std::move(exec_conf->allConcurrentManagedAccess() ? GPUArray<T>() : GPUArray<T>(width, height, exec_conf))),
+            #endif
             m_height(height), m_exec_conf(exec_conf), m_acquired(false)
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (!m_exec_conf->allConcurrentManagedAccess())
+                return;
+            #endif
+
             // make m_pitch the next multiple of 16 larger or equal to the given width
             m_pitch = (width + (16 - (width & 15)));
 
@@ -205,6 +270,12 @@ class GlobalArray : public GPUArray<T>
         //! Swap the pointers of two GlobalArrays
         inline void swap(GlobalArray &from)
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if ((from.m_exec_conf && !from.m_exec_conf->allConcurrentManagedAccess())
+                || (m_exec_conf && !m_exec_conf->allConcurrentManagedAccess()))
+                GPUArray<T>::swap(from);
+            #endif
+
             checkAcquired(from);
             checkAcquired(*this);
 
@@ -241,12 +312,22 @@ class GlobalArray : public GPUArray<T>
         */
         virtual unsigned int getNumElements() const
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
+                return GPUArray<T>::getNumElements();
+            #endif
+
             return m_array.size();
             }
 
         //! Test if the GPUArray is NULL
         virtual bool isNull() const
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
+                return GPUArray<T>::isNull();
+            #endif
+
             return m_array.size() == 0;
             }
 
@@ -257,6 +338,11 @@ class GlobalArray : public GPUArray<T>
         */
         virtual unsigned int getPitch() const
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
+                return GPUArray<T>::isNull();
+            #endif
+
             return m_pitch;
             }
 
@@ -267,6 +353,11 @@ class GlobalArray : public GPUArray<T>
         */
         virtual unsigned int getHeight() const
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
+                return GPUArray<T>::getHeight();
+            #endif
+
             return m_height;
             }
 
@@ -276,10 +367,19 @@ class GlobalArray : public GPUArray<T>
         */
         virtual void resize(unsigned int num_elements)
             {
+            assert(m_exec_conf);
+
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (! m_exec_conf->allConcurrentManagedAccess())
+                {
+                GPUArray<T>::resize(num_elements);
+                return;
+                }
+            #endif
+
             checkAcquired(*this);
 
             size_t align = 0;
-            assert(m_exec_conf);
             #ifdef ENABLE_CUDA
             if (m_exec_conf->isCUDAEnabled())
                 {
@@ -316,6 +416,16 @@ class GlobalArray : public GPUArray<T>
         //! Resize a 2D GlobalArray
         virtual void resize(unsigned int width, unsigned int height)
             {
+            assert(m_exec_conf);
+
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (! m_exec_conf->allConcurrentManagedAccess())
+                {
+                GPUArray<T>::resize(width, height);
+                return;
+                }
+            #endif
+
             checkAcquired(*this);
 
             // make m_pitch the next multiple of 16 larger or equal to the given width
@@ -369,6 +479,11 @@ class GlobalArray : public GPUArray<T>
          */
         void setTag(const std::string& tag)
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
+                return;
+            #endif
+
             // update the tag
             m_tag = tag;
             if (m_exec_conf && m_exec_conf->getMemoryTracer())
@@ -393,6 +508,15 @@ class GlobalArray : public GPUArray<T>
         #endif
                         ) const
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
+                return GPUArray<T>::acquire(location, mode
+                    #ifdef ENABLE_CUDA
+                                     , async
+                    #endif
+                    );
+            #endif
+
             checkAcquired(*this);
 
             #ifdef ENABLE_CUDA
@@ -416,12 +540,25 @@ class GlobalArray : public GPUArray<T>
         //! Release the data pointer
         virtual inline void release() const
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
+                {
+                GPUArray<T>::release();
+                return;
+                }
+            #endif
+
             m_acquired = false;
             }
 
         //! Returns the acquire state
         virtual inline bool isAcquired() const
             {
+            #ifdef SINGLE_GPU_GPUARRAY_FALLBACK
+            if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
+                return GPUArray<T>::isAcquired();
+            #endif
+
             return m_acquired;
             }
     };
