@@ -65,21 +65,6 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     throw runtime_error("Error updating neighborlist bins");
     }
 
-void NeighborListGPU::prefetch(unsigned int timestep)
-    {
-    // prevent against unnecessary calls
-    if (! shouldCheckDistance(timestep))
-        {
-        return;
-        }
-    if (m_prof) m_prof->push(m_exec_conf, "dist-check");
-
-    // scan through the particle data arrays and calculate distances
-    enqueueDistanceCheck(timestep);
-
-    if (m_prof) m_prof->pop(m_exec_conf);
-    }
-
 bool NeighborListGPU::distanceCheck(unsigned int timestep)
     {
     // prevent against unnecessary calls
@@ -90,45 +75,6 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
 
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(m_exec_conf, "dist-check");
-
-    if (m_prefetch_timestep != timestep)
-        // enqueue the GPU kernel
-        enqueueDistanceCheck(timestep);
-
-    // check the result
-    bool result;
-        {
-        // read back flags
-        ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
-        result = m_checkn == *h_flags.data;
-        }
-
-    #ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        if (m_prof) m_prof->push(m_exec_conf,"MPI allreduce");
-        // check if migrate criterium is fulfilled on any rank
-        int local_result = result ? 1 : 0;
-        int global_result = 0;
-        MPI_Allreduce(&local_result,
-            &global_result,
-            1,
-            MPI_INT,
-            MPI_MAX,
-            m_exec_conf->getMPICommunicator());
-        result = (global_result > 0);
-        if (m_prof) m_prof->pop();
-        }
-    #endif
-
-    if (m_prof) m_prof->pop(m_exec_conf);
-
-    return result;
-    }
-
-void NeighborListGPU::enqueueDistanceCheck(unsigned timestep)
-    {
-    m_prefetch_timestep = timestep;
 
     // access data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -168,6 +114,35 @@ void NeighborListGPU::enqueueDistanceCheck(unsigned timestep)
 
         m_exec_conf->endMultiGPU();
         }
+
+    bool result;
+        {
+        // read back flags
+        ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
+        result = m_checkn == *h_flags.data;
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        if (m_prof) m_prof->push(m_exec_conf,"MPI allreduce");
+        // check if migrate criterium is fulfilled on any rank
+        int local_result = result ? 1 : 0;
+        int global_result = 0;
+        MPI_Allreduce(&local_result,
+            &global_result,
+            1,
+            MPI_INT,
+            MPI_MAX,
+            m_exec_conf->getMPICommunicator());
+        result = (global_result > 0);
+        if (m_prof) m_prof->pop();
+        }
+    #endif
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+
+    return result;
     }
 
 /*! Calls gpu_nlsit_filter() to filter the neighbor list on the GPU

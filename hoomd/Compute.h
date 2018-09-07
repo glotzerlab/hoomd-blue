@@ -65,16 +65,6 @@ class PYBIND11_EXPORT Compute
         Compute(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~Compute() {};
 
-        //! Abstract method that prefetches data for computation
-        /*! \param timestep Current time step
-            Derived classes will implement this method to calculate their results
-
-            This method is called optionally before a call to compute() and can be used
-            to speed up the computation. The implementation of compute() is not allowed to depend
-            on the fact that prefetch has been called, but can take advantage of it for optimiation
-        */
-        virtual void prefetch(unsigned int timestep){}
-
         //! Abstract method that performs the computation
         /*! \param timestep Current time step
             Derived classes will implement this method to calculate their results

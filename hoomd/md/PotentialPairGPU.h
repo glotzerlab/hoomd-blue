@@ -85,8 +85,6 @@ class PotentialPairGPU : public PotentialPair<evaluator>
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
 
-        //! Actually compute the forces
-        virtual void enqueueKernel(unsigned int timestep);
     };
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
@@ -126,33 +124,10 @@ template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
 void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {
-    // start the profile
-    if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
-
-    #if 0
-    // enqueue distance check kernel
-    this->m_nlist->prefetch(timestep);
-
-    // compute the pair forces and return early if it does not need to be computed
-    enqueueKernel(timestep);
-    #endif
-
     this->m_nlist->compute(timestep);
 
-    //if (this->m_nlist->hasBeenUpdated(timestep))
-        // call kernel with updated NeighborList
-        enqueueKernel(timestep);
-
-    // check the precomputed result of the neighbor list
-    if (this->m_prof) this->m_prof->pop(this->exec_conf);
-    }
-
-template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params)>
-void PotentialPairGPU< evaluator, gpu_cgpf >::enqueueKernel(unsigned int timestep)
-    {
-    const GlobalArray<unsigned int>& nlist_flag = this->m_nlist->getDistanceCheckFlags();
-    unsigned int flag_compare = this->m_nlist->getDistanceCheckCompare(timestep);
+    // start the profile
+    if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
 
     this->m_exec_conf->beginMultiGPU();
 
@@ -185,9 +160,6 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::enqueueKernel(unsigned int timeste
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
 
-    // NeighborList update flags
-    ArrayHandle<unsigned int> d_nlist_flag(nlist_flag, access_location::device, access_mode::read);
-
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
@@ -218,8 +190,6 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::enqueueKernel(unsigned int timeste
                          threads_per_particle,
                          this->m_exec_conf->getComputeCapability()/10,
                          this->m_exec_conf->dev_prop.maxTexture1DLinear,
-                         d_nlist_flag.data,
-                         flag_compare,
                          this->m_pdata->getGPUPartition()),
              d_params.data);
 
@@ -228,6 +198,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::enqueueKernel(unsigned int timeste
     if (!m_param) this->m_tuner->end();
 
     this->m_exec_conf->endMultiGPU();
+
+    if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
 
 //! Export this pair potential to python

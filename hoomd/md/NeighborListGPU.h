@@ -52,9 +52,6 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
             m_storage_mode = full;
             m_checkn = 1;
 
-            // initialize prefetching counter
-            m_prefetch_timestep = 0;
-
             // flag to say how big to resize
             GlobalArray<unsigned int> req_size_nlist(1,exec_conf);
             std::swap(m_req_size_nlist,req_size_nlist);
@@ -91,25 +88,9 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         //! Update the exclusion list on the GPU
         virtual void updateExListIdx();
 
-        //! Prequeue the kernel for the distance check
-        virtual void prefetch(unsigned int timestep);
-
-        //! Return the distance check flag
-        virtual const GlobalArray<unsigned int>& getDistanceCheckFlags()
-            {
-            return m_flags;
-            }
-
-        //! Return the compare value for the distance check flags
-        virtual unsigned int getDistanceCheckCompare(unsigned int timestep)
-            {
-            if (m_prefetch_timestep != timestep)
-                prefetch(timestep);
-
-            return m_checkn;
-            }
-
     protected:
+        GlobalArray<unsigned int> m_flags;   //!< Storage for device flags on the GPU
+
         GlobalArray<unsigned int> m_req_size_nlist;    //!< Flag to hold the required size of the neighborlist
 
         //! Builds the neighbor list
@@ -117,9 +98,6 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
 
         //! Perform the nlist distance check on the GPU
         virtual bool distanceCheck(unsigned int timestep);
-
-        //! Perform the nlist distance check on the GPU
-        virtual void enqueueDistanceCheck(unsigned int timestep);
 
         //! GPU nlists set their last updated pos in the compute kernel, this call only resets the last box length
         virtual void setLastUpdatedPos()
@@ -138,8 +116,6 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         /*! \param timestep Current time step
          */
         unsigned int m_checkn;              //!< Internal counter to assign when checking if the nlist needs an update
-
-        unsigned int m_prefetch_timestep;    //!< Time step for which the prefetch was placed in the queue
 
     private:
         std::unique_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size
