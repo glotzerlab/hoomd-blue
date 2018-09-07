@@ -185,7 +185,7 @@ void CellListGPU::initializeMemory()
     if (m_prof)
         m_prof->push("init");
 
-    if (m_compute_adj_list)
+    if (m_compute_adj_list && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
         CHECK_CUDA_ERROR();

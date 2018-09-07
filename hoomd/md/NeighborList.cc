@@ -64,7 +64,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     TAG_ALLOCATION(m_r_cut);
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
         CHECK_CUDA_ERROR();
@@ -77,7 +77,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     TAG_ALLOCATION(m_rcut_max);
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
         cudaMemAdvise(m_rcut_max.get(), m_rcut_max.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -91,7 +91,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     TAG_ALLOCATION(m_r_listsq);
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_listsq.get(), m_r_listsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
         CHECK_CUDA_ERROR();
@@ -131,7 +131,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
         }
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_Nmax.get(), m_Nmax.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
         CHECK_CUDA_ERROR();
@@ -144,7 +144,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     TAG_ALLOCATION(m_conditions);
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
         cudaMemAdvise(m_conditions.get(), m_conditions.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
@@ -243,7 +243,7 @@ void NeighborList::reallocateTypes()
     m_r_cut.resize(m_typpair_idx.getNumElements());
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
         CHECK_CUDA_ERROR();
@@ -253,7 +253,7 @@ void NeighborList::reallocateTypes()
     m_rcut_max.resize(m_pdata->getNTypes());
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
         cudaMemAdvise(m_rcut_max.get(), m_rcut_max.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -277,7 +277,7 @@ void NeighborList::reallocateTypes()
     m_conditions.resize(m_pdata->getNTypes());
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
         cudaMemAdvise(m_conditions.get(), m_conditions.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);

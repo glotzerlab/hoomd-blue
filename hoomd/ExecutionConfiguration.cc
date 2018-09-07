@@ -132,6 +132,16 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
         {
+        if (! m_concurrent && gpu_id.size() > 1)
+            {
+            msg->error() << "Multi-GPU execution requested, but not all GPUs support concurrent managed access" << endl;
+            throw runtime_error("Error initializing execution configuration");
+            }
+
+        // disable managed memory when running on single GPU
+        if (gpu_id.size() == 1)
+            m_concurrent = false;
+
         // select first device by default
         cudaSetDevice(m_gpu_id[0]);
 

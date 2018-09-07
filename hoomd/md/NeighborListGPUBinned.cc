@@ -178,13 +178,10 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                 cudaMemPrefetchAsync(d_cell_tdb.data, m_cl->getCellListIndexer().getNumElements()*sizeof(Scalar4), gpu_map[idev]);
             }
 
-        if (m_exec_conf->allConcurrentManagedAccess())
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-                {
-                // prefetch cell adjacency
-                cudaMemPrefetchAsync(d_cell_adj.data, m_cl->getCellAdjArray().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
-                }
+            // prefetch cell adjacency
+            cudaMemPrefetchAsync(d_cell_adj.data, m_cl->getCellAdjArray().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
             }
         }
 

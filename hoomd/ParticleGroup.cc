@@ -376,7 +376,7 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
     m_member_idx.swap(member_idx);
 
     #ifdef ENABLE_CUDA
-    if (m_pdata->getExecConf()->isCUDAEnabled() && m_member_idx.getNumElements())
+    if (m_pdata->getExecConf()->isCUDAEnabled() && m_pdata->getExecConf()->allConcurrentManagedAccess() && m_member_idx.getNumElements())
         {
         cudaMemAdvise(m_member_idx.get(), m_member_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
         CHECK_CUDA_ERROR();
@@ -483,7 +483,7 @@ void ParticleGroup::updateMemberTags(bool force_update) const
         m_member_idx.swap(member_idx);
 
         #ifdef ENABLE_CUDA
-        if (m_pdata->getExecConf()->isCUDAEnabled() && m_member_idx.getNumElements())
+        if (m_pdata->getExecConf()->isCUDAEnabled() && m_pdata->getExecConf()->allConcurrentManagedAccess() && m_member_idx.getNumElements())
             {
             cudaMemAdvise(m_member_idx.get(), m_member_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
             CHECK_CUDA_ERROR();

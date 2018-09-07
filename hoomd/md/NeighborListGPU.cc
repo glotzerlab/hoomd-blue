@@ -243,7 +243,12 @@ void NeighborListGPU::buildHeadList()
         m_tuner_head_list->end();
         }
 
-    unsigned int req_size_nlist = *m_req_size_nlist.get();
+    unsigned int req_size_nlist;
+        {
+        ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist, access_location::host, access_mode::read);
+        req_size_nlist = *h_req_size_nlist.data;
+        }
+
     resizeNlist(req_size_nlist);
 
     // now that the head list is complete and the neighbor list has been allocated, update memory advice

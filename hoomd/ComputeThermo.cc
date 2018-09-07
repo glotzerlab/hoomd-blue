@@ -38,7 +38,7 @@ ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
     TAG_ALLOCATION(m_properties);
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
         cudaMemAdvise(m_properties.get(), m_properties.getNumElements()*sizeof(Scalar), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
