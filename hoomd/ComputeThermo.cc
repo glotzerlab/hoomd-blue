@@ -43,6 +43,15 @@ ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
         // store in host memory for faster access from CPU
         cudaMemAdvise(m_properties.get(), m_properties.getNumElements()*sizeof(Scalar), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
         CHECK_CUDA_ERROR();
+
+        if (m_exec_conf->allConcurrentManagedAccess())
+            {
+            auto gpu_map = m_exec_conf->getGPUIds();
+
+            cudaMemAdvise(m_properties.get(), m_properties.getNumElements()*sizeof(Scalar), cudaMemAdviseSetAccessedBy, gpu_map[0]);
+            cudaMemPrefetchAsync(m_properties.get(), m_properties.getNumElements()*sizeof(Scalar), cudaCpuDeviceId);
+            }
+
         }
     #endif
 

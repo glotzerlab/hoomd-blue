@@ -281,8 +281,8 @@ void TwoStepNVTMTK::integrateStepOne(unsigned int timestep)
             }
         }
 
-    // get temperature and advance thermostat
-    advanceThermostat(timestep);
+    // compute the current thermodynamic properties
+    m_thermo->compute(timestep+1);
 
     // done profiling
     if (m_prof)
@@ -301,6 +301,9 @@ void TwoStepNVTMTK::integrateStepTwo(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push("NVT step 2");
+
+    // get temperature and advance thermostat
+    advanceThermostat(timestep);
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
@@ -391,9 +394,6 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
     Scalar& eta = v.variable[1];
-
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep+1);
 
     Scalar curr_T_trans = m_thermo->getTranslationalTemperature();
 

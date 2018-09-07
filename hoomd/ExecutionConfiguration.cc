@@ -212,6 +212,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         cudaSetDevice(m_gpu_id[idev]);
         cudaEventCreateWithFlags(&m_events[idev],cudaEventDisableTiming);
         }
+    m_in_multigpu_block = false;
     #endif
     }
 
@@ -797,6 +798,9 @@ void ExecutionConfiguration::beginMultiGPU() const
     // implement a one-to-n barrier
     if (getNumActiveGPUs() > 1)
         {
+        // track state for proper synchronization
+        m_in_multigpu_block = true;
+
         // record a syncrhonization point on GPU 0
         cudaEventRecord(m_events[0], 0);
 
@@ -825,6 +829,8 @@ void ExecutionConfiguration::endMultiGPU() const
     // implement an n-to-one barrier
     if (getNumActiveGPUs() > 1)
         {
+        assert(m_in_multi_gpu_block);
+
         // record the synchronization point on every GPU, except GPU 0 
         for (int idev = m_gpu_id.size() - 1; idev >= 1; --idev)
             {
@@ -844,6 +850,8 @@ void ExecutionConfiguration::endMultiGPU() const
             cudaError_t err_sync = cudaGetLastError();
             handleCUDAError(err_sync, __FILE__, __LINE__);
             }
+
+        m_in_multigpu_block = false;
         }
     #endif
     }
