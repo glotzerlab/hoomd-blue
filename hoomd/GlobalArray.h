@@ -25,12 +25,12 @@
     }
 
 #define REGISTER_ALLOCATION(my_exec_conf, my_array) { \
-    if (my_exec_conf && my_exec_conf->getMemoryTracer()) \
+    if (my_exec_conf && my_exec_conf->getMemoryTracer() && my_array.get()) \
         my_exec_conf->getMemoryTracer()->registerAllocation(my_array.get(), sizeof(T)*my_array.size(), typeid(T).name(), m_tag); \
     }
 
 #define UNREGISTER_ALLOCATION(my_exec_conf, my_array) { \
-    if (my_exec_conf && my_exec_conf->getMemoryTracer()) \
+    if (my_exec_conf && my_exec_conf->getMemoryTracer() && my_array.get()) \
         my_exec_conf->getMemoryTracer()->unregisterAllocation(my_array.get(), sizeof(T)*my_array.size()); \
     }
 
@@ -86,30 +86,14 @@ class GlobalArray : public GPUArray<T>
         //! Destructor
         virtual ~GlobalArray()
             {
-            #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (m_exec_conf && !m_exec_conf->allConcurrentManagedAccess())
-                return;
-            #endif
-
             // unregister from MemoryTraceback
             UNREGISTER_ALLOCATION(m_exec_conf,m_array);
             }
 
         //! Copy constructor
         GlobalArray(const GlobalArray& from)
-            :
-            #ifndef ALWAYS_USE_MANAGED_MEMORY
-            //use move constructor
-            GPUArray<T>(std::move((!from.m_exec_conf || from.m_exec_conf->allConcurrentManagedAccess()) ? GPUArray<T>() :
-                GPUArray<T>(from))),
-            #endif
-            m_pitch(from.m_pitch), m_height(from.m_height), m_exec_conf(from.m_exec_conf), m_acquired(false)
+            : GPUArray<T>(from), m_pitch(from.m_pitch), m_height(from.m_height), m_exec_conf(from.m_exec_conf), m_acquired(false)
             {
-            #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (m_exec_conf && !m_exec_conf->allConcurrentManagedAccess())
-                return;
-            #endif
-
             checkAcquired(from);
 
             #ifdef ENABLE_CUDA
@@ -133,10 +117,7 @@ class GlobalArray : public GPUArray<T>
         //! = operator
         GlobalArray& operator=(const GlobalArray& rhs)
             {
-            #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (rhs.m_exec_conf && !rhs.m_exec_conf->allConcurrentManagedAccess())
-                GPUArray<T>::operator=(rhs);
-            #endif
+            GPUArray<T>::operator=(rhs);
 
             if (&rhs != this)
                 {
@@ -171,11 +152,7 @@ class GlobalArray : public GPUArray<T>
 
         //! Move constructor, provided for convenience, so std::swap can be used
         GlobalArray(GlobalArray&& other)
-            :
-              #ifndef ALWAYS_USE_MANAGED_MEMORY
-              // use move constructor
-              GPUArray<T>((!other.m_exec_conf || other.m_exec_conf->allConcurrentManagedAccess()) ? std::move(GPUArray<T>()) : other),
-              #endif
+            : GPUArray<T>(other),
               m_array(std::move(other.m_array)),
               m_pitch(std::move(other.m_pitch)),
               m_height(std::move(other.m_height)),
@@ -183,11 +160,6 @@ class GlobalArray : public GPUArray<T>
               m_acquired(std::move(other.m_acquired)),
               m_tag(std::move(other.m_tag))
             {
-            #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (other.m_exec_conf && !m_exec_conf->allConcurrentManagedAccess())
-                return;
-            #endif
-
             checkAcquired(other);
 
             // reset the other array's values
@@ -199,10 +171,8 @@ class GlobalArray : public GPUArray<T>
         //! Move assignment operator
         GlobalArray& operator=(GlobalArray&& other)
             {
-            #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (other.m_exec_conf && !other.m_exec_conf->allConcurrentManagedAccess())
-                GPUArray<T>::operator=(other);
-            #endif
+            // call base clas method
+            GPUArray<T>::operator=(other);
 
             if (&other != this)
                 {
@@ -265,13 +235,10 @@ class GlobalArray : public GPUArray<T>
 
 
         //! Swap the pointers of two GlobalArrays
-        inline void swap(GlobalArray &from)
+        inline virtual void swap(GlobalArray &from)
             {
-            #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if ((from.m_exec_conf && !from.m_exec_conf->allConcurrentManagedAccess())
-                || (m_exec_conf && !m_exec_conf->allConcurrentManagedAccess()))
-                GPUArray<T>::swap(from);
-            #endif
+            // call base class method
+            GPUArray<T>::swap(from);
 
             checkAcquired(from);
             checkAcquired(*this);
@@ -281,12 +248,6 @@ class GlobalArray : public GPUArray<T>
             std::swap(m_array, from.m_array);
             std::swap(m_exec_conf, from.m_exec_conf);
             std::swap(m_tag, from.m_tag);
-            }
-
-        //! Swap the pointers of two equally sized GPUArrays
-        inline void swap(GPUArray<T>& from)
-            {
-            throw std::runtime_error("GlobalArray::swap() not supported with GPUArray()");
             }
 
         //! Get the underlying raw pointer
@@ -337,7 +298,7 @@ class GlobalArray : public GPUArray<T>
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
-                return GPUArray<T>::isNull();
+                return GPUArray<T>::getPitch();
             #endif
 
             return m_pitch;
@@ -476,14 +437,9 @@ class GlobalArray : public GPUArray<T>
          */
         void setTag(const std::string& tag)
             {
-            #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (m_exec_conf && ! m_exec_conf->allConcurrentManagedAccess())
-                return;
-            #endif
-
             // update the tag
             m_tag = tag;
-            if (m_exec_conf && m_exec_conf->getMemoryTracer())
+            if (m_exec_conf && m_exec_conf->getMemoryTracer() && m_array.get() )
                 m_exec_conf->getMemoryTracer()->updateTag(m_array.get(), sizeof(T)*m_array.size(), m_tag);
             }
 
