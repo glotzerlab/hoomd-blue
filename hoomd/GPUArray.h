@@ -201,6 +201,9 @@ template<class T> class GPUArray
     public:
         //! Constructs a NULL GPUArray
         GPUArray();
+        //! Constructs a NULL GPUArray with an execution configuration
+        GPUArray(std::shared_ptr<const ExecutionConfiguration> exec_conf);
+
         //! Constructs a 1-D GPUArray
         GPUArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Constructs a 2-D GPUArray
@@ -221,9 +224,9 @@ template<class T> class GPUArray
         GPUArray& operator=(const GPUArray& rhs);
 
         //! Move constructor
-        GPUArray(GPUArray&& from);
+        GPUArray(GPUArray&& from) noexcept;
         //! move assignment operator
-        GPUArray& operator=(GPUArray&& rhs);
+        GPUArray& operator=(GPUArray&& rhs) noexcept;
 
         //! Swap the pointers in two GPUArrays
         inline virtual void swap(GPUArray& from);
@@ -399,6 +402,18 @@ template<class T> GPUArray<T>::GPUArray() :
     {
     }
 
+template<class T> GPUArray<T>::GPUArray(std::shared_ptr<const ExecutionConfiguration> exec_conf) :
+        m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_data_location(data_location::host),
+#ifdef ENABLE_CUDA
+        m_mapped(false),
+        d_data(NULL),
+#endif
+        h_data(NULL),
+        m_exec_conf(exec_conf)
+    {
+    }
+
+
 /*! \param num_elements Number of elements to allocate in the array
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
@@ -544,7 +559,7 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
     }
 
 //! Move constructor
-template<class T> GPUArray<T>::GPUArray(GPUArray&& from)
+template<class T> GPUArray<T>::GPUArray(GPUArray&& from) noexcept
     : m_num_elements(std::move(from.m_num_elements)),
       m_pitch(std::move(from.m_pitch)),
       m_height(std::move(from.m_height)),
@@ -566,7 +581,7 @@ template<class T> GPUArray<T>::GPUArray(GPUArray&& from)
     }
 
 //! Move assignment operator
-template<class T> GPUArray<T>& GPUArray<T>::operator=(GPUArray&& rhs)
+template<class T> GPUArray<T>& GPUArray<T>::operator=(GPUArray&& rhs) noexcept
     {
     if (this != &rhs) // protect against invalid self-assignment
         {
@@ -582,7 +597,7 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(GPUArray&& rhs)
         // initialize state variables
         m_data_location = std::move(rhs.m_data_location);
         h_data = std::move(rhs.h_data);
-        assert(rhs.m_acquired && !m_acquired);
+        assert(!rhs.m_acquired && !m_acquired);
         m_acquired = std::move(rhs.m_acquired);
 
         // prevent deallocation

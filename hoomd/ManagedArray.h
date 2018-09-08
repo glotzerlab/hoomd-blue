@@ -77,7 +77,7 @@ class ManagedArray
 
         #ifndef NVCC
         //! Move constructor
-        ManagedArray(ManagedArray<T>&& other)
+        ManagedArray(ManagedArray<T>&& other) noexcept
             : data(std::move(other.data)),
               N(std::move(other.N)),
               managed(std::move(other.managed)),
@@ -91,7 +91,7 @@ class ManagedArray
             }
 
         //! Move assignment operator
-        ManagedArray& operator=(ManagedArray&& other)
+        ManagedArray& operator=(ManagedArray&& other) noexcept
             {
             data = std::move(other.data);
             N = std::move(other.N);
