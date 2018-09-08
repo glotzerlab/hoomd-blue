@@ -119,6 +119,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         }
     // "auto-select" the CPU
     exec_mode = CPU;
+    m_concurrent = false;
 #endif
 
     #ifdef ENABLE_MPI
@@ -138,9 +139,13 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             throw runtime_error("Error initializing execution configuration");
             }
 
+        #ifndef ALWAYS_USE_MANAGED_MEMORY
         // disable managed memory when running on single GPU
-        if (gpu_id.size() == 1)
+        if (m_gpu_id.size() == 1)
+            {
             m_concurrent = false;
+            }
+        #endif
 
         // select first device by default
         cudaSetDevice(m_gpu_id[0]);
