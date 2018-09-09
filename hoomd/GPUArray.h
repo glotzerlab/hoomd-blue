@@ -332,7 +332,7 @@ template<class T> class GPUArray
         GPUArray& operator=(GPUArray&& rhs) noexcept;
 
         //! Swap the pointers in two GPUArrays
-        inline virtual void swap(GPUArray& from);
+        inline void swap(GPUArray& from);
 
         //! Get the number of elements
         /*!

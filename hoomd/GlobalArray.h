@@ -357,7 +357,7 @@ class GlobalArray : public GPUArray<T>
 
 
         //! Swap the pointers of two GlobalArrays
-        inline virtual void swap(GlobalArray &from)
+        inline void swap(GlobalArray &from)
             {
             // call base class method
             GPUArray<T>::swap(from);
