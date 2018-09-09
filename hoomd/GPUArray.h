@@ -831,7 +831,8 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
         }
 
     if (m_exec_conf)
-        m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB device->host" <<  std::endl;
+        m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB device->host " <<
+           (async ? std::string("async") : std::string()) << std::endl;
     if (async)
         cudaMemcpyAsync(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, cudaMemcpyDeviceToHost);
     else
@@ -857,7 +858,8 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
         }
 
     if (m_exec_conf)
-        m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB host->device" <<  std::endl;
+        m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB host->device " <<
+           (async ? std::string("async") : std::string()) << std::endl;
     if (async)
         cudaMemcpyAsync(d_data.get(), h_data.get(), sizeof(T)*m_num_elements, cudaMemcpyHostToDevice);
     else
