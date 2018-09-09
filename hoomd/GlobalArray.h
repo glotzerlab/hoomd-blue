@@ -448,8 +448,6 @@ class GlobalArray : public GPUArray<T>
         */
         virtual void resize(unsigned int num_elements)
             {
-            assert(this->m_exec_conf);
-
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (! this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
                 {
