@@ -70,7 +70,7 @@ template<class evaluator>
 void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
     {
     // start the profile
-    if (this->m_prof) this->m_prof->push(this->exec_conf, "PotentialExternalGPU");
+    if (this->m_prof) this->m_prof->push(this->m_exec_conf, "PotentialExternalGPU");
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);

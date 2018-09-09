@@ -178,9 +178,9 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
     assert(m_pdata);
     assert(m_nlist);
 
-    GlobalArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf);
+    GlobalArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
-    GlobalArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf);
+    GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
     #ifdef ENABLE_CUDA

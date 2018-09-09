@@ -34,7 +34,7 @@ CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     m_box_changed = false;
     m_multiple = 1;
 
-    GlobalArray<uint3> conditions(1, exec_conf);
+    GlobalArray<uint3> conditions(1, m_exec_conf);
     std::swap(m_conditions, conditions);
 
         {

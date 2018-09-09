@@ -215,7 +215,7 @@ void NeighborListGPU::buildHeadList()
     if (!m_pdata->getN())
         return;
 
-    if (m_prof) m_prof->push(exec_conf, "head-list");
+    if (m_prof) m_prof->push(m_exec_conf, "head-list");
 
         {
         ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist, access_location::host, access_mode::overwrite);
@@ -254,7 +254,7 @@ void NeighborListGPU::buildHeadList()
     // now that the head list is complete and the neighbor list has been allocated, update memory advice
     updateMemoryMapping();
 
-    if (m_prof) m_prof->pop(exec_conf);
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_NeighborListGPU(py::module& m)

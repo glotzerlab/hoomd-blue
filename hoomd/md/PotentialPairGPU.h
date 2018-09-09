@@ -94,7 +94,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(std::shared_ptr<System
     : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_param(0)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!this->exec_conf->isCUDAEnabled())
+    if (!this->m_exec_conf->isCUDAEnabled())
         {
         this->m_exec_conf->msg->error() << "Creating a PotentialPairGPU with no GPU in the execution configuration"
                   << std::endl;
@@ -127,7 +127,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     this->m_nlist->compute(timestep);
 
     // start the profile
-    if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
+    if (this->m_prof) this->m_prof->push(this->m_exec_conf, this->m_prof_name);
 
     this->m_exec_conf->beginMultiGPU();
 
@@ -193,13 +193,13 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          this->m_pdata->getGPUPartition()),
              d_params.data);
 
-    if (this->exec_conf->isCUDAErrorCheckingEnabled())
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     if (!m_param) this->m_tuner->end();
 
     this->m_exec_conf->endMultiGPU();
 
-    if (this->m_prof) this->m_prof->pop(this->exec_conf);
+    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
     }
 
 //! Export this pair potential to python
