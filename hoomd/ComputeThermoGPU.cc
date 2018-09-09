@@ -181,8 +181,6 @@ void ComputeThermoGPU::computeProperties()
     #ifdef ENABLE_MPI
     // in MPI, reduce extensive quantities only when they're needed
     m_properties_reduced = !m_pdata->getDomainDecomposition();
-
-    if (!m_properties_reduced) cudaEventRecord(m_event);
     #endif // ENABLE_MPI
 
     if (m_prof) m_prof->pop(m_exec_conf);
@@ -193,8 +191,7 @@ void ComputeThermoGPU::reduceProperties()
     {
     if (m_properties_reduced) return;
 
-    ArrayHandleAsync<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
-    cudaEventSynchronize(m_event);
+    ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
 
     // reduce properties
     MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR,
