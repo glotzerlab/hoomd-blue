@@ -742,9 +742,6 @@ template<class T> void GPUArray<T>::allocate()
     if (m_exec_conf)
         m_exec_conf->msg->notice(7) << "GPUArray: Allocating " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
 
-    // sanity check
-    assert(!h_data);
-
     void *host_ptr = nullptr;
 
     // allocate host memory
