@@ -660,7 +660,7 @@ class GlobalArray : public GPUArray<T>
                     #ifndef NO_STD_ALIGN
                     ptr = std::align(m_align_bytes,m_num_elements*sizeof(T),ptr,allocation_bytes);
                     #else
-                    ptr = my_align(m_align_bytes,m_num_elements*sizeof(T),ptr,allocation_bytes);
+                    ptr = hoomd::detail::my_align(m_align_bytes,m_num_elements*sizeof(T),ptr,allocation_bytes);
                     #endif
 
                     if (!ptr)
