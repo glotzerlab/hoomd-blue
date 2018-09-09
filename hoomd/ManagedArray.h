@@ -75,39 +75,6 @@ class ManagedArray
             #endif
             }
 
-        #ifndef NVCC
-        //! Move constructor
-        ManagedArray(ManagedArray<T>&& other) noexcept
-            : data(std::move(other.data)),
-              N(std::move(other.N)),
-              managed(std::move(other.managed)),
-              align(std::move(other.align)),
-              allocation_ptr(std::move(other.allocation_ptr)),
-              allocation_bytes(std::move(other.allocation_bytes))
-            {
-            // set the other array's values to 0 so it is no longer free'd upon destruction
-            other.data = nullptr;
-            other.N = 0;
-            }
-
-        //! Move assignment operator
-        ManagedArray& operator=(ManagedArray&& other) noexcept
-            {
-            data = std::move(other.data);
-            N = std::move(other.N);
-            managed = std::move(other.managed);
-            align = std::move(other.align);
-            allocation_ptr = std::move(other.allocation_ptr);
-            allocation_bytes = std::move(other.allocation_bytes);
-
-            // set the other array's values to 0 so it is no longer free'd upon destruction
-            other.data = nullptr;
-            other.N = 0;
-
-            return *this;
-            }
-        #endif
-
         //! Assignment operator
         /*! \warn the copy assignment constructor reads from the other array and assumes that array is available on the
                   host. If the GPU isn't synced up, this can lead to erros, so proper multi-GPU synchronization
