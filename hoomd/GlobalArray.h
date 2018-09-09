@@ -18,6 +18,10 @@
     back on GPUArray (and whenever it doesn't have an ExecutionConfiguration). This behavior is controlled
     by the result of ExecutionConfiguration::allConcurrentManagedAccess().
 
+    One difference to GPUArray is that GlobalArray doesn't zero its memory space, so don't forget to initialize
+    the data explicitly. However, if the items are objects that have a constructur, GlobalArray takes
+    care of calling constructors and destructors.
+
     Internally, GlobalArray<> uses a smart pointer to comply with RAII semantics.
 
     As for GPUArray, access to the data is provided through ArrayHandle<> objects, with proper access_mode
@@ -101,13 +105,15 @@ class managed_deleter
             m_allocation_ptr(allocation_ptr), m_allocation_bytes(allocation_bytes)
             { }
 
-        //! Delete the managed array
+        //! Destroy the items and delete the managed array
         /*! \param ptr Start of aligned memory allocation
          */
         void operator()(T *ptr)
             {
-            if (! m_exec_conf)
+            if (ptr == nullptr)
                 return;
+
+            assert(m_exec_conf);
 
             #ifdef ENABLE_CUDA
             if (m_use_device)
@@ -173,7 +179,7 @@ class GlobalArray : public GPUArray<T>
             const std::string& tag = std::string() )
             :
             #ifndef ALWAYS_USE_MANAGED_MEMORY
-            // copy semantics should be optimized out using copy elision
+            // explicit copy should be elided
             GPUArray<T>(exec_conf->allConcurrentManagedAccess() ?
                 GPUArray<T>(exec_conf) : GPUArray<T>(num_elements, exec_conf)),
             #else
@@ -269,6 +275,10 @@ class GlobalArray : public GPUArray<T>
 
                     std::copy(rhs.m_data.get(), rhs.m_data.get()+rhs.m_num_elements, m_data.get());
                     }
+                else
+                    {
+                    m_data.release();
+                    }
                 }
 
             return *this;
@@ -313,7 +323,7 @@ class GlobalArray : public GPUArray<T>
         GlobalArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             :
             #ifndef ALWAYS_USE_MANAGED_MEMORY
-            // copy semantics should be optimized out using copy elision
+            // explicit copy should be elided
             GPUArray<T>(exec_conf->allConcurrentManagedAccess() ?
                 GPUArray<T>(exec_conf) : GPUArray<T>(width, height, exec_conf)),
             #else
@@ -618,8 +628,11 @@ class GlobalArray : public GPUArray<T>
 
         unsigned int m_align_bytes; //!< Size of alignment in bytes
 
+        //! Allocate the managed array and construct the items
         void allocate()
             {
+            assert(m_num_elements);
+
             void *ptr = nullptr;
             void *allocation_ptr = nullptr;
             bool use_device = this->m_exec_conf && this->m_exec_conf->isCUDAEnabled();
