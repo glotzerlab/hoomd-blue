@@ -495,17 +495,17 @@ template<class T> ArrayHandleAsync<T>::~ArrayHandleAsync()
 // *****************************************
 
 template<class T> GPUArray<T>::GPUArray() :
-        m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_data_location(data_location::host),
+        m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_data_location(data_location::host)
 #ifdef ENABLE_CUDA
-        m_mapped(false)
+        , m_mapped(false)
 #endif
     {
     }
 
 template<class T> GPUArray<T>::GPUArray(std::shared_ptr<const ExecutionConfiguration> exec_conf) :
-        m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_data_location(data_location::host),
+        m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_data_location(data_location::host)
 #ifdef ENABLE_CUDA
-        m_mapped(false),
+        , m_mapped(false),
 #endif
         m_exec_conf(exec_conf)
     {
