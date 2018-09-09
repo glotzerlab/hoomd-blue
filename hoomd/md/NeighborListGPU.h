@@ -37,13 +37,16 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         NeighborListGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
             : NeighborList(sysdef, r_cut, r_buff)
             {
-            GlobalArray<unsigned int> flags(1,exec_conf);
+            m_exec_conf->msg->notice(5) << "Constructing NeighborlistGPU" << std::endl;
+
+            GlobalArray<unsigned int> flags(1,m_exec_conf);
             std::swap(m_flags, flags);
             TAG_ALLOCATION(m_flags);
 
             if (m_exec_conf->allConcurrentManagedAccess())
                 {
                 cudaMemAdvise(m_flags.get(), m_flags.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
+                CHECK_CUDA_ERROR();
                 }
 
                 {
@@ -56,13 +59,14 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
             m_checkn = 1;
 
             // flag to say how big to resize
-            GlobalArray<unsigned int> req_size_nlist(1,exec_conf);
+            GlobalArray<unsigned int> req_size_nlist(1,m_exec_conf);
             std::swap(m_req_size_nlist,req_size_nlist);
             TAG_ALLOCATION(m_req_size_nlist);
 
             if (m_exec_conf->allConcurrentManagedAccess())
                 {
                 cudaMemAdvise(m_req_size_nlist.get(), m_req_size_nlist.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
+                CHECK_CUDA_ERROR();
                 }
 
             // create cuda event
