@@ -199,7 +199,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         return m_concurrent;
         }
 
-#ifdef ENABLE_CDUA
+#ifdef ENABLE_CUDA
     cudaDeviceProp dev_prop;              //!< Cached device properties of the first GPU
     std::vector<unsigned int> m_gpu_id;   //!< IDs of active GPUs
     std::vector<cudaDeviceProp> m_dev_prop; //!< Device configuration of active GPUs
