@@ -288,6 +288,7 @@ class GlobalArray : public GPUArray<T>
         GlobalArray(GlobalArray&& other) noexcept
             : GPUArray<T>(std::move(other)),
               m_data(std::move(other.m_data)),
+              m_num_elements(std::move(other.m_num_elements)),
               m_pitch(std::move(other.m_pitch)),
               m_height(std::move(other.m_height)),
               m_acquired(std::move(other.m_acquired)),
@@ -305,6 +306,7 @@ class GlobalArray : public GPUArray<T>
             if (&other != this)
                 {
                 m_data = std::move(other.m_data);
+                m_num_elements = std::move(other.m_num_elements);
                 m_pitch = std::move(other.m_pitch);
                 m_height = std::move(other.m_height);
                 m_acquired = std::move(other.m_acquired);
