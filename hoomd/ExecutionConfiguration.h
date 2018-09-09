@@ -353,8 +353,8 @@ private:
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
     std::vector< cudaEvent_t > m_events;      //!< A list of events to synchronize between GPUs
-    bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 #endif
+    bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 
 #ifdef ENABLE_MPI
     void splitPartitions(const MPI_Comm mpi_comm); //!< Create partitioned communicators
