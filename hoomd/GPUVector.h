@@ -21,7 +21,6 @@
 // The factor with which the array size is incremented
 #define RESIZE_FACTOR 9.f/8.f
 
-template<class T> class GPUArray;
 //! Class for managing a vector of elements on the GPU mirrored to the CPU
 /*! The GPUVector class is a simple container for a variable number of elements. Its interface is inspired
     by std::vector and it offers methods to insert new elements at the end of the list, and to remove

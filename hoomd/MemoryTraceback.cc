@@ -19,10 +19,10 @@
 //! Maximum number of symbols to trace back
 #define MAX_TRACEBACK 4
 
-void MemoryTraceback::registerAllocation(void *ptr, unsigned int nbytes, const std::string& type_hint, const std::string& tag) const
+void MemoryTraceback::registerAllocation(const void *ptr, unsigned int nbytes, const std::string& type_hint, const std::string& tag) const
     {
     // insert element into list of allocations
-    std::pair<void *, unsigned int> idx = std::make_pair(ptr, nbytes);
+    std::pair<const void *, unsigned int> idx = std::make_pair(ptr, nbytes);
 
     m_traces[idx] = std::vector<void *>(MAX_TRACEBACK, nullptr);
     m_type_hints[idx] = type_hint;
@@ -34,19 +34,19 @@ void MemoryTraceback::registerAllocation(void *ptr, unsigned int nbytes, const s
     m_traces[idx].resize(num_symbols);
     }
 
-void MemoryTraceback::unregisterAllocation(void *ptr, unsigned int nbytes) const
+void MemoryTraceback::unregisterAllocation(const void *ptr, unsigned int nbytes) const
     {
     // remove element from list of allocations
-    std::pair<void *, unsigned int> idx = std::make_pair(ptr, nbytes);
+    std::pair<const void *, unsigned int> idx = std::make_pair(ptr, nbytes);
 
     m_traces.erase(idx);
     m_type_hints.erase(idx);
     m_tags.erase(idx);
     }
 
-void MemoryTraceback::updateTag(void *ptr, unsigned int nbytes, const std::string& tag) const
+void MemoryTraceback::updateTag(const void *ptr, unsigned int nbytes, const std::string& tag) const
     {
-    std::pair<void *, unsigned int> idx = std::make_pair(ptr, nbytes);
+    std::pair<const void *, unsigned int> idx = std::make_pair(ptr, nbytes);
 
     if (m_tags.find(idx) != m_tags.end())
         m_tags[idx] = tag;
