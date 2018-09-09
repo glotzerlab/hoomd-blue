@@ -228,6 +228,3 @@ class ManagedArray
         void *allocation_ptr;    //!< Pointer to un-aligned start of allocation
         size_t allocation_bytes; //!< Total size of allocation, including aligned part
     };
-
-#undef DEVICE
-#undef HOSTDEVICE
