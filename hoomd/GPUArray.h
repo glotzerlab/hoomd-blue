@@ -1123,7 +1123,7 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        cudaHostRegister(h_tmp, size, cudaHostRegisterDefault);
+        cudaHostRegister(h_tmp, size*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
         }
 #endif
 
