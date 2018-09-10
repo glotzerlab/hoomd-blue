@@ -363,24 +363,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const
     return true;
     }
 
-//! Define the general function to determine if a shape is contained in the other
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \param err Incremented if there is an error condition. Left unchanged otherwise.
-    \param sweep_radius Additional radius to sweep both shapes by
-    \returns true when *a* is contained in *b*, and false when if not
-
-    \pre a and b have to be intersecting when calling this function (test_overlap == true)
-*/
-template <class ShapeA, class ShapeB>
-DEVICE inline bool test_contained_in(const vec3<Scalar>& r_ab, const ShapeA &a, const ShapeB& b, unsigned int& err, Scalar sweep_radius=Scalar(0.0))
-    {
-    // default implementation returns true, will make it obvious if something calls this
-    return true;
-    }
-
-
 //! Sphere-Sphere overlap
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
@@ -407,28 +389,6 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
         {
         return false;
         }
-    }
-
-//! Define the function to test if sphere is strictly contained in another sphere
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shere
-    \param b second sphere
-    \param err Incremented if there is an error condition. Left unchanged otherwise.
-    \param sweep_radius Additional radius to sweep both shapes by
-    \returns true when *a* is contained in *b*, and false when if not
-
-    \pre a and b have to be intersecting when calling this function (test_overlap == true)
-*/
-template <>
-DEVICE inline bool test_contained_in(const vec3<Scalar>& r_ab, const ShapeSphere &a, const ShapeSphere& b,
-    unsigned int& err, Scalar sweep_radius)
-    {
-    OverlapReal Ra = a.params.radius + sweep_radius;
-    OverlapReal Rb = b.params.radius + sweep_radius;
-
-    OverlapReal r = fast::sqrt(dot(r_ab,r_ab));
-
-    return r + Ra < Rb;
     }
 
 //! Test for a common point in the intersection *volume* of three shapes

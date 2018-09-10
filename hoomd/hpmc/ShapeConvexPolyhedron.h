@@ -595,29 +595,6 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
     }
 
-//! Define the function to test if a convex polyhedron is contained in another one
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shere
-    \param b second sphere
-    \param err Incremented if there is an error condition. Left unchanged otherwise.
-    \param sweep_radius Additional radius to sweep both shapes by
-    \returns true when *a* is contained in *b*, and false when if not
-
-    \pre a and b have to be intersecting when calling this function (test_overlap == true)
-*/
-template <>
-DEVICE inline bool test_contained_in(const vec3<Scalar>& r_ab, const ShapeSphere &a, const ShapeSphere& b,
-    unsigned int& err, Scalar sweep_radius)
-    {
-    OverlapReal Ra = a.params.radius + sweep_radius;
-    OverlapReal Rb = b.params.radius + sweep_radius;
-
-    OverlapReal r = fast::sqrt(dot(r_ab,r_ab));
-
-    return r + Ra < Rb;
-    }
-
-
 //! Convex polyhedron overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape

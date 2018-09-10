@@ -1630,22 +1630,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         if (circumsphere_overlap
                             && test_overlap_three(shape_i, (i == j) ? shape_i : shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius))
                             {
-                            // check pairwise overlap
-                            bool overlap_ik = h_overlaps[this->m_overlap_idx(m_type,typ_i)]
-                                && test_overlap(r_ij-r_jk, shape_i, shape_test,err, m_sweep_radius);
-                            bool overlap_jk = h_overlaps[this->m_overlap_idx(m_type,typ_j)]
-                                && test_overlap(-r_jk, shape_j, shape_test, err, m_sweep_radius);
+                            // check pairwise overlap, allowing for non-additivity
+                            bool overlap_ik = test_overlap(r_ij-r_jk, shape_i, shape_test,err, m_sweep_radius);
+                            bool overlap_jk = test_overlap(-r_jk, shape_j, shape_test, err, m_sweep_radius);
 
-                            if (!overlap_ik && !overlap_jk)
-                                continue;
-
-                            // the depletant is overlapping with the intersection volume of i and j's sphere-swept volumes,
-                            // and individually with either i or j or both (taking into account non-additivity)
-
-                            // if it is not contained in either shape, it must intersect its boundary
-                            bool intersects_i_new = overlap_ik && !test_contained_in(r_ij-r_jk, shape_test, shape_i, err, m_sweep_radius);
-                            bool intersects_j = overlap_jk && !test_contained_in(r_jk, shape_test, shape_j, err, m_sweep_radius);
-                            if (intersects_i_new || intersects_j)
+                            if (overlap_ik || overlap_jk)
                                 continue;
                             }
 
@@ -1658,18 +1647,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             && test_overlap_three(shape_old, shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius))
                             {
                             // check pairwise overlap
-                            bool overlap_ik = h_overlaps[this->m_overlap_idx(m_type,typ_i)]
-                                && test_overlap(r_ij-r_jk, shape_old, shape_test, err, m_sweep_radius);
+                            bool overlap_ik_old = test_overlap(r_ij-r_jk, shape_old, shape_test, err, m_sweep_radius);
 
-                            if (!overlap_ik)
-                                continue;
-
-                            // we know the depletant does not intersect j (it may be contained in it)
-
-                            // if the depletant is not contained in i, it intersects it
-                            bool intersects_i_old = h_overlaps[this->m_overlap_idx(m_type,typ_i)]
-                                && !test_contained_in(r_ij-r_jk, shape_test, shape_old, err, m_sweep_radius);
-                            in_intersection_volume = intersects_i_old;
+                            in_intersection_volume = overlap_ik_old;
                             }
                         }
                     else
@@ -1942,37 +1922,37 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                 // depletant falls in intersection volume between circumspheres
 
-                // Check if the new configuration of particle i generates an overlap
-                bool overlap_new = false;
-
-                    {
-                    vec3<Scalar> r_ij = pos_i - pos_test;
-
-                    OverlapReal rsq = dot(r_ij,r_ij);
-                    OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter() + OverlapReal(4.0)*m_sweep_radius;
-                    bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                    if (m_quermass || h_overlaps[this->m_overlap_idx(m_type_negative, typ_i)])
-                        {
-                        n_overlap_checks++;
-                        unsigned int err = 0;
-                        if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i, err, m_sweep_radius))
-                            {
-                            overlap_new = true;
-                            }
-                        if (err) overlap_err_count += err;
-                        }
-                    }
-
-                if (!overlap_new)
-                #ifdef ENABLE_TBB
-                    return;
-                #else
-                    continue;
-                #endif
-
                 if (!m_quermass)
                     {
+                    // Check if the new configuration of particle i generates an overlap
+                    bool overlap_new = false;
+
+                        {
+                        vec3<Scalar> r_ij = pos_i - pos_test;
+
+                        OverlapReal rsq = dot(r_ij,r_ij);
+                        OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter() + OverlapReal(4.0)*m_sweep_radius;
+                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                        if (m_quermass || h_overlaps[this->m_overlap_idx(m_type_negative, typ_i)])
+                            {
+                            n_overlap_checks++;
+                            unsigned int err = 0;
+                            if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i, err, m_sweep_radius))
+                                {
+                                overlap_new = true;
+                                }
+                            if (err) overlap_err_count += err;
+                            }
+                        }
+
+                    if (!overlap_new)
+                    #ifdef ENABLE_TBB
+                        return;
+                    #else
+                        continue;
+                    #endif
+
                     // Check if the old configuration of particle i generates an overlap
                     bool overlap_old = false;
 
@@ -2031,21 +2011,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             && test_overlap_three(shape_old, (i == j) ? shape_old : shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius))
                             {
                             // check pairwise overlap
-                            bool overlap_ik = h_overlaps[this->m_overlap_idx(m_type_negative,typ_i)]
-                                && test_overlap(r_ij-r_jk, shape_old, shape_test, err, m_sweep_radius);
-                            bool overlap_jk = h_overlaps[this->m_overlap_idx(m_type_negative,typ_j)]
-                                && test_overlap(-r_jk, shape_j, shape_test, err, m_sweep_radius);
+                            bool overlap_ik = test_overlap(r_ij-r_jk, shape_old, shape_test, err, m_sweep_radius);
+                            bool overlap_jk = test_overlap(-r_jk, shape_j, shape_test, err, m_sweep_radius);
 
-                            if (!overlap_ik && !overlap_jk)
-                                continue;
-
-                            // the depletant is overlapping with the intersection volume of i and j's sphere-swept volumes,
-                            // and individually with either i or j or both (taking into account non-additivity)
-
-                            // if it is not contained in either shape, it must intersect its boundary
-                            bool intersects_i_old = overlap_ik && !test_contained_in(r_ij-r_jk, shape_test, shape_old, err, m_sweep_radius);
-                            bool intersects_j = overlap_jk && !test_contained_in(r_jk, shape_test, shape_j, err, m_sweep_radius);
-                            if (intersects_i_old || intersects_j)
+                            if (overlap_ik || overlap_jk)
                                 continue;
                             }
 
@@ -2059,18 +2028,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             && test_overlap_three(shape_i, shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius))
                             {
                             // check pairwise overlap
-                            bool overlap_ik = h_overlaps[this->m_overlap_idx(m_type_negative,typ_i)]
-                                && test_overlap(r_ij-r_jk, shape_i, shape_test, err, m_sweep_radius);
+                            bool overlap_ik_new = test_overlap(r_ij-r_jk, shape_i, shape_test, err, m_sweep_radius);
 
-                            if (!overlap_ik)
-                                continue;
-
-                            // we know the depletant does not intersect j (it may be contained in it)
-
-                            // if the depletant is not contained in i, it intersects it
-                            bool intersects_i_new = h_overlaps[this->m_overlap_idx(m_type_negative,typ_i)]
-                                && !test_contained_in(r_ij-r_jk, shape_test, shape_i, err, m_sweep_radius);
-                            in_new_intersection_volume = intersects_i_new;
+                            in_new_intersection_volume = overlap_ik_new;
                             }
                         if (err) overlap_err_count+=err;
                         }
