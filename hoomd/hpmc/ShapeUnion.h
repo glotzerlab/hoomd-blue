@@ -259,7 +259,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapeUnion<Shape>& a,
                                 const ShapeUnion<Shape>& b,
                                 unsigned int& err,
-                                Scalar sweep_radius)
+                                Scalar sweep_radius = Scalar(0.0))
     {
     const detail::GPUTree& tree_a = a.members.tree;
     const detail::GPUTree& tree_b = b.members.tree;
@@ -447,7 +447,7 @@ DEVICE inline bool test_overlap_three(const ShapeUnion<Shape>& a,
                                 const vec3<Scalar>& ab_t,
                                 const vec3<Scalar>& ac_t,
                                 unsigned int& err,
-                                Scalar sweep_radius)
+                                Scalar sweep_radius = Scalar(0.0))
     {
     const detail::GPUTree& tree_a = a.members.tree;
     const detail::GPUTree& tree_b = b.members.tree;
