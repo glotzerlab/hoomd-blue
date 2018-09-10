@@ -1601,6 +1601,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 bool in_intersection_volume = false;
 
                 bool overlap_ik = false;
+                bool checked_overlap_ik = false;
 
                 for (unsigned int m = 0; m < m_intersect_i.size(); ++m)
                     {
@@ -1632,11 +1633,12 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         if (circumsphere_overlap
                             && test_overlap_three(shape_i, (i == j) ? shape_i : shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius))
                             {
-                            if (overlap_ik)
-                                continue;
-
                             // check pairwise overlap, allowing for non-additivity
-                            overlap_ik = test_overlap(r_ij-r_jk, shape_i, shape_test,err, m_sweep_radius);
+                            if (! checked_overlap_ik)
+                                {
+                                overlap_ik = test_overlap(r_ij-r_jk, shape_i, shape_test,err, m_sweep_radius);
+                                checked_overlap_ik = true;
+                                }
 
                             if (overlap_ik)
                                 continue;
@@ -1996,6 +1998,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 vec3<Scalar> pos_i_old(h_postype[i]);
 
                 bool overlap_ik = false;
+                bool checked_overlap_ik = false;
 
                 for (unsigned int m = 0; m < m_intersect_i.size(); ++m)
                     {
@@ -2021,11 +2024,12 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         if (circumsphere_overlap
                             && test_overlap_three(shape_old, (i == j) ? shape_old : shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius))
                             {
-                            if (overlap_ik)
-                                continue;
-
-                            // check pairwise overlap
-                            overlap_ik = test_overlap(r_ij-r_jk, shape_old, shape_test, err, m_sweep_radius);
+                            if (!checked_overlap_ik)
+                                {
+                                // check pairwise overlap
+                                overlap_ik = test_overlap(r_ij-r_jk, shape_old, shape_test, err, m_sweep_radius);
+                                checked_overlap_ik = true;
+                                }
 
                             if (overlap_ik)
                                 continue;
