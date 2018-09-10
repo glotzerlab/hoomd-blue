@@ -595,7 +595,7 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
     }
 
-//! Define the function to test if a convex polyhedron is strictly contained in another one
+//! Define the function to test if a convex polyhedron is contained in another one
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shere
     \param b second sphere
@@ -606,58 +606,15 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \pre a and b have to be intersecting when calling this function (test_overlap == true)
 */
 template <>
-DEVICE inline bool test_contained_in(const vec3<Scalar>& r_ab, const ShapeConvexPolyhedron &a, const ShapeConvexPolyhedron& b,
+DEVICE inline bool test_contained_in(const vec3<Scalar>& r_ab, const ShapeSphere &a, const ShapeSphere& b,
     unsigned int& err, Scalar sweep_radius)
     {
-    detail::ProjectionFuncConvexPolyhedron pb(b.verts);
+    OverlapReal Ra = a.params.radius + sweep_radius;
+    OverlapReal Rb = b.params.radius + sweep_radius;
 
-    // loop over all vertices of a's convex hull and check if they are in b
-    unsigned int n_hull_verts = a.verts.n_hull_verts;
+    OverlapReal r = fast::sqrt(dot(r_ab,r_ab));
 
-    if (n_hull_verts > 0)
-        {
-        for (unsigned int i = 0; i < n_hull_verts; i+=3)
-            {
-            unsigned int k = a.verts.hull_verts[i];
-            unsigned int l = a.verts.hull_verts[i+1];
-            unsigned int m = a.verts.hull_verts[i+2];
-
-            vec3<OverlapReal> p(a.verts.x[k], a.verts.y[k], a.verts.z[k]);
-            vec3<OverlapReal> q(a.verts.x[l], a.verts.y[l], a.verts.z[l]);
-            vec3<OverlapReal> r(a.verts.x[m], a.verts.y[m], a.verts.z[m]);
-
-            if (pb(p) == p && pb(q) == q && pb(r) == r)
-                // the projections of p, q and r are pqr themselves
-                continue;
-
-            return false;
-            }
-        }
-        else
-            {
-            // handle special cases
-            if (a.verts.N == 0)
-                {
-                // check if origin is in b
-                return pb(vec3<OverlapReal>(0,0,0)) == vec3<OverlapReal>(0,0,0);
-                }
-            else if (a.verts.N == 1)
-                {
-                // check the only point there is
-                vec3<OverlapReal> p(a.verts.x[0], a.verts.y[0], a.verts.z[0]);
-                return pb(p) == p;
-                }
-            else if (a.verts.N == 2)
-                {
-                // line segment
-                vec3<OverlapReal> p(a.verts.x[0], a.verts.y[0], a.verts.z[0]);
-                vec3<OverlapReal> q(a.verts.x[1], a.verts.y[1], a.verts.z[1]);
-
-                return pb(p) == p && pb(q) == q;
-                }
-            }
-
-    return true;
+    return r + Ra < Rb;
     }
 
 
