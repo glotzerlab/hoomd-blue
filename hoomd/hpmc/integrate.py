@@ -2186,24 +2186,36 @@ class convex_spheropolyhedron_union(mode_hpmc):
             verts = vertices[0]
             R = sweep_radii[0]
             if len(verts) == 1:
-                shape_def = 'sphere {0} '.format(2*R);
+                shape_def = 'sphere {0} {1}'.format(2*R,colors[0]);
 
             else:
-                shape_def = 'spoly3d {0} {1} '.format(R, len(verts));
+                shape_def = 'spoly3d {0} {1} {2}'.format(R, len(verts),colors[0]);
 
                 for v in verts:
-                    shape_def += '{0} {1} 0 '.format(*v);
+                    shape_def += ' {0} {1} 0'.format(*v);
         else:
-            shape_def = 'poly3d_union {0} '.format(N);
-
-            # sweep radius is ignored for now
-            for verts,q,p,c in zip(vertices, orientations, centers, colors):
-                shape_def += '{0} '.format(len(verts));
-                for v in verts:
-                    shape_def += '{0} {1} {2} '.format(*v);
-                shape_def += '{0} {1} {2} '.format(*p);
-                shape_def += '{0} {1} {2} {3} '.format(*q);
-                shape_def += '{0} '.format(c);
+            # two special cases
+            if all(v == [[0,0,0]] for v in vertices):
+                # all constituent particles are spheres
+                shape_def = 'sphere_union {0} '.format(N)
+                for r,p,c in zip(sweep_radii, centers, colors):
+                    shape_def += '{0} '.format(2*r);
+                    shape_def += '{0} {1} {2} '.format(*p);
+                    shape_def += '{0} '.format(c);
+                    # No need to use stored value for member sphere orientations
+            elif all(r == 0 for r in sweep_radii):
+                # all constituent particles are convex polyhedra
+                shape_def = 'poly3d_union {0} '.format(N);
+                for verts,q,p,c in zip(vertices, orientations, centers, colors):
+                    shape_def += '{0} '.format(len(verts));
+                    for v in verts:
+                        shape_def += '{0} {1} {2} '.format(*v);
+                    shape_def += '{0} {1} {2} '.format(*p);
+                    shape_def += '{0} {1} {2} {3} '.format(*q);
+                    shape_def += '{0} '.format(c);
+            else:
+                hoomd.context.msg.warning("Don't know how to export this spheropolyhedron union to .pos. Falling back on shpere.\n");
+                shape_def = 'sphere 1.0 ff5984ff'
 
         return shape_def
 
