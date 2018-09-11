@@ -6,8 +6,9 @@
 #include "hoomd/TextureTools.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#include "PotentialPairGPU.cuh"
-
+#ifdef NVCC
+#include "hoomd/WarpTools.cuh"
+#endif // NVCC
 #include <assert.h>
 
 /*! \file PotentialTersoffGPU.cuh
@@ -16,6 +17,9 @@
 
 #ifndef __POTENTIAL_TERSOFF_GPU_CUH__
 #define __POTENTIAL_TERSOFF_GPU_CUH__
+
+//! Maximum number of threads (width of a warp)
+const int gpu_tersoff_max_tpp = 32;
 
 //! Wraps arguments to gpu_cgpf
 struct tersoff_args_t
@@ -85,18 +89,13 @@ struct tersoff_args_t
 
 
 #ifdef NVCC
+//! Texture for reading particle positions
+scalar4_tex_t pdata_pos_tex;
+
 //! Texture for reading neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
 #if !defined(SINGLE_PRECISION)
-__device__ inline
-double __my_shfl(double var, unsigned int srcLane, int width=32)
-    {
-    int2 a = *reinterpret_cast<int2*>(&var);
-    a.x = __shfl(a.x, srcLane, width);
-    a.y = __shfl(a.y, srcLane, width);
-    return *reinterpret_cast<double*>(&a);
-    }
 
 #if (__CUDA_ARCH__ < 600)
 //! atomicAdd function for double-precision floating point numbers
@@ -125,12 +124,6 @@ __device__ double myAtomicAdd(double* address, double val)
     return atomicAdd(address, val);
     }
 #endif
-#else // (!defined(SINGLE_PRECISION))
-__device__ inline
-float __my_shfl(float var, unsigned int srcLane, int width=32)
-    {
-    return __shfl(var, srcLane, width);
-    }
 #endif
 
 __device__ float myAtomicAdd(float* address, float val)
@@ -169,7 +162,7 @@ __device__ float myAtomicAdd(float* address, float val)
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator , unsigned char use_gmem_nlist, unsigned char compute_virial>
+template< class evaluator , unsigned char use_gmem_nlist, unsigned char compute_virial, int tpp>
 __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const unsigned int N,
                                                   Scalar *d_virial,
@@ -182,8 +175,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const typename evaluator::param_type *d_params,
                                                   const Scalar *d_rcutsq,
                                                   const Scalar *d_ronsq,
-                                                  const unsigned int ntypes,
-                                                  const unsigned int tpp)
+                                                  const unsigned int ntypes)
     {
     Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
@@ -305,10 +297,10 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
             #if (__CUDA_ARCH__ >= 300)
             // reduce in warp
-            phi = warp_reduce(tpp, threadIdx.x % tpp, phi, (Scalar *)0);
+            phi = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(phi);
 
             // broadcast into shared mem
-            s_phi_ab[threadIdx.x*ntypes+typ_b] = __my_shfl(phi, 0, tpp);
+            s_phi_ab[threadIdx.x*ntypes+typ_b] = hoomd::detail::WarpScan<Scalar, tpp>().Broadcast(phi, 0);
             #endif
 
             if (threadIdx.x % tpp == 0)
@@ -701,6 +693,117 @@ __global__ void gpu_zero_forces_kernel(Scalar4 *d_force,
     d_virial[5*virial_pitch+idx] = Scalar(0.0);
     }
 
+template<typename T>
+void get_max_block_size(T func, const tersoff_args_t& pair_args, unsigned int& max_block_size, unsigned int& kernel_shared_bytes)
+    {
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void *)func);
+
+    max_block_size = attr.maxThreadsPerBlock;
+    max_block_size &= ~(pair_args.devprop.warpSize - 1);
+
+    kernel_shared_bytes = attr.sharedSizeBytes;
+    }
+
+//! Tersoff compute kernel launcher
+/*!
+ * \tparam evaluator Evaluator class
+ * \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
+ *                        is used depending on architecture.
+ * \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
+ * \tparam tpp Number of threads to use per particle, must be power of 2 and smaller than warp size
+ *
+ * Partial function template specialization is not allowed in C++, so instead we have to wrap this with a struct that
+ * we are allowed to partially specialize.
+ */
+template<class evaluator, unsigned int use_gmem_nlist, unsigned int compute_virial, int tpp>
+struct TersoffComputeKernel
+    {
+    //! Launcher for the tersoff triplet kernel
+    /*!
+     * \param pair_args Other arugments to pass onto the kernel
+     * \param d_params Parameters for the potential, stored per type pair
+     */
+    static void launch(const tersoff_args_t& pair_args, const typename evaluator::param_type *d_params)
+        {
+        if (tpp == pair_args.tpp)
+            {
+            static unsigned int max_block_size = UINT_MAX;
+            static unsigned int kernel_shared_bytes = 0;
+            if (max_block_size == UINT_MAX)
+                get_max_block_size(gpu_compute_triplet_forces_kernel<evaluator, use_gmem_nlist, compute_virial, tpp>, pair_args, max_block_size, kernel_shared_bytes);
+            int run_block_size = min(pair_args.block_size, max_block_size);
+
+            // bind to texture
+            if (pair_args.compute_capability < 35)
+                {
+                pdata_pos_tex.normalized = false;
+                pdata_pos_tex.filterMode = cudaFilterModePoint;
+                cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * (pair_args.N+pair_args.Nghosts));
+
+                if (pair_args.size_nlist <= (unsigned int) pair_args.devprop.maxTexture1DLinear)
+                    {
+                    nlist_tex.normalized = false;
+                    nlist_tex.filterMode = cudaFilterModePoint;
+                    cudaBindTexture(0, nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_nlist);
+                    }
+                }
+
+            // size shared bytes
+            Index2D typpair_idx(pair_args.ntypes);
+            unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                        * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
+
+            while (shared_bytes + kernel_shared_bytes >= pair_args.devprop.sharedMemPerBlock)
+                {
+                run_block_size -= pair_args.devprop.warpSize;
+
+                shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                               * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
+                }
+
+            // zero the forces
+            gpu_zero_forces_kernel<<<(pair_args.N + pair_args.Nghosts)/run_block_size + 1, run_block_size>>>(pair_args.d_force,
+                                                    pair_args.d_virial,
+                                                    pair_args.virial_pitch,
+                                                    pair_args.N + pair_args.Nghosts);
+
+            // setup the grid to run the kernel
+            dim3 grid( pair_args.N / (run_block_size/pair_args.tpp) + 1, 1, 1);
+            dim3 threads(run_block_size, 1, 1);
+
+            gpu_compute_triplet_forces_kernel<evaluator, use_gmem_nlist, compute_virial, tpp>
+              <<<grid, threads, shared_bytes>>>(pair_args.d_force,
+                                                pair_args.N,
+                                                pair_args.d_virial,
+                                                pair_args.virial_pitch,
+                                                pair_args.d_pos,
+                                                pair_args.box,
+                                                pair_args.d_n_neigh,
+                                                pair_args.d_nlist,
+                                                pair_args.d_head_list,
+                                                d_params,
+                                                pair_args.d_rcutsq,
+                                                pair_args.d_ronsq,
+                                                pair_args.ntypes);
+            }
+        else
+            {
+            TersoffComputeKernel<evaluator, use_gmem_nlist, compute_virial, tpp/2>::launch(pair_args, d_params);
+            }
+        }
+    };
+
+//! Template specialization to do nothing for the tpp = 0 case
+template<class evaluator, unsigned int use_gmem_nlist,  unsigned int compute_virial>
+struct TersoffComputeKernel<evaluator, use_gmem_nlist, compute_virial, 0>
+    {
+    static void launch(const tersoff_args_t& pair_args, const typename evaluator::param_type *d_params)
+        {
+        // do nothing
+        }
+    };
+
 //! Kernel driver that computes the three-body forces
 /*! \param pair_args Other arugments to pass onto the kernel
     \param d_params Parameters for the potential, stored per type pair
@@ -716,186 +819,27 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     assert(pair_args.d_ronsq);
     assert(pair_args.ntypes > 0);
 
-    unsigned int run_block_size = 0;
-
-    static unsigned int kernel_shared_bytes = 0;
-
-    if (pair_args.compute_virial)
-        {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-            if (pair_args.compute_capability < 35 && pair_args.size_nlist > (unsigned int) pair_args.devprop.maxTexture1DLinear)
-                {
-                cudaFuncAttributes attr;
-                cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1, 1>);
-                max_block_size = attr.maxThreadsPerBlock;
-                max_block_size &= ~(pair_args.devprop.warpSize - 1);
-                kernel_shared_bytes = attr.sharedSizeBytes;
-                }
-            else
-                {
-                cudaFuncAttributes attr;
-                cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 0, 1>);
-                max_block_size = attr.maxThreadsPerBlock;
-                max_block_size &= ~(pair_args.devprop.warpSize - 1);
-                kernel_shared_bytes = attr.sharedSizeBytes;
-                }
-            }
-
-        run_block_size = min(pair_args.block_size, max_block_size);
-        }
-    else
-        {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-            if (pair_args.compute_capability < 35 && pair_args.size_nlist > (unsigned int) pair_args.devprop.maxTexture1DLinear)
-                {
-                cudaFuncAttributes attr;
-                cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1, 0>);
-                max_block_size = attr.maxThreadsPerBlock;
-                max_block_size &= ~(pair_args.devprop.warpSize - 1);
-                kernel_shared_bytes = attr.sharedSizeBytes;
-                }
-            else
-                {
-                cudaFuncAttributes attr;
-                cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 0, 0>);
-                max_block_size = attr.maxThreadsPerBlock;
-                max_block_size &= ~(pair_args.devprop.warpSize - 1);
-                kernel_shared_bytes = attr.sharedSizeBytes;
-                }
-            }
-
-        run_block_size = min(pair_args.block_size, max_block_size);
-        }
-
-    // bind to texture
-    if (pair_args.compute_capability < 35)
-        {
-        pdata_pos_tex.normalized = false;
-        pdata_pos_tex.filterMode = cudaFilterModePoint;
-        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * (pair_args.N+pair_args.Nghosts));
-        if (error != cudaSuccess)
-            return error;
-
-        if (pair_args.size_nlist <= (unsigned int) pair_args.devprop.maxTexture1DLinear)
-            {
-            nlist_tex.normalized = false;
-            nlist_tex.filterMode = cudaFilterModePoint;
-            error = cudaBindTexture(0, nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_nlist);
-            if (error != cudaSuccess)
-                return error;
-            }
-        }
-
-    Index2D typpair_idx(pair_args.ntypes);
-    unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
-
-    while (shared_bytes + kernel_shared_bytes >= pair_args.devprop.sharedMemPerBlock)
-        {
-        run_block_size -= pair_args.devprop.warpSize;
-
-        shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                       * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
-        }
-
-    // zero the forces
-    gpu_zero_forces_kernel<<<(pair_args.N + pair_args.Nghosts)/run_block_size + 1, run_block_size>>>(pair_args.d_force,
-                                            pair_args.d_virial,
-                                            pair_args.virial_pitch,
-                                            pair_args.N + pair_args.Nghosts);
-
-    // setup the grid to run the kernel
-    dim3 grid( pair_args.N / (run_block_size/pair_args.tpp) + 1, 1, 1);
-
-    if (pair_args.compute_capability < 30 && grid.x > 65535)
-        {
-        grid.y = grid.x/65535 + 1;
-        grid.x = 65535;
-        }
-
-    dim3 threads(run_block_size, 1, 1);
-
     // compute the new forces
     if (!pair_args.compute_virial)
         {
         if (pair_args.compute_capability < 35 && pair_args.size_nlist > (unsigned int) pair_args.devprop.maxTexture1DLinear)
             {
-            gpu_compute_triplet_forces_kernel<evaluator, 1, 0>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force,
-                                                pair_args.N,
-                                                pair_args.d_virial,
-                                                pair_args.virial_pitch,
-                                                pair_args.d_pos,
-                                                pair_args.box,
-                                                pair_args.d_n_neigh,
-                                                pair_args.d_nlist,
-                                                pair_args.d_head_list,
-                                                d_params,
-                                                pair_args.d_rcutsq,
-                                                pair_args.d_ronsq,
-                                                pair_args.ntypes,
-                                                pair_args.tpp);
+            TersoffComputeKernel<evaluator, 1, 0, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
             }
         else
             {
-            gpu_compute_triplet_forces_kernel<evaluator, 0, 0>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force,
-                                                pair_args.N,
-                                                pair_args.d_virial,
-                                                pair_args.virial_pitch,
-                                                pair_args.d_pos,
-                                                pair_args.box,
-                                                pair_args.d_n_neigh,
-                                                pair_args.d_nlist,
-                                                pair_args.d_head_list,
-                                                d_params,
-                                                pair_args.d_rcutsq,
-                                                pair_args.d_ronsq,
-                                                pair_args.ntypes,
-                                                pair_args.tpp);
+            TersoffComputeKernel<evaluator, 0, 0, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
             }
         }
     else
         {
         if (pair_args.compute_capability < 35 && pair_args.size_nlist > (unsigned int) pair_args.devprop.maxTexture1DLinear)
             {
-            gpu_compute_triplet_forces_kernel<evaluator, 1, 1>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force,
-                                                pair_args.N,
-                                                pair_args.d_virial,
-                                                pair_args.virial_pitch,
-                                                pair_args.d_pos,
-                                                pair_args.box,
-                                                pair_args.d_n_neigh,
-                                                pair_args.d_nlist,
-                                                pair_args.d_head_list,
-                                                d_params,
-                                                pair_args.d_rcutsq,
-                                                pair_args.d_ronsq,
-                                                pair_args.ntypes,
-                                                pair_args.tpp);
+            TersoffComputeKernel<evaluator, 1, 1, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
             }
         else
             {
-            gpu_compute_triplet_forces_kernel<evaluator, 0, 1>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force,
-                                                pair_args.N,
-                                                pair_args.d_virial,
-                                                pair_args.virial_pitch,
-                                                pair_args.d_pos,
-                                                pair_args.box,
-                                                pair_args.d_n_neigh,
-                                                pair_args.d_nlist,
-                                                pair_args.d_head_list,
-                                                d_params,
-                                                pair_args.d_rcutsq,
-                                                pair_args.d_ronsq,
-                                                pair_args.ntypes,
-                                                pair_args.tpp);
+            TersoffComputeKernel<evaluator, 0, 1, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
             }
         }
     return cudaSuccess;

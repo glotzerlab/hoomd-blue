@@ -37,7 +37,7 @@ set(_md_sources module-md.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
                    ZeroMomentumUpdater.cc
-		   MuellerPlatheFlow.cc
+                   MuellerPlatheFlow.cc
                    )
 
 set(_md_headers ActiveForceComputeGPU.h
@@ -119,16 +119,16 @@ set(_md_headers ActiveForceComputeGPU.h
                 OPLSDihedralForceComputeGPU.h
                 OPLSDihedralForceCompute.h
                 PotentialBondGPU.h
-		PotentialBondGPU.cuh
+                PotentialBondGPU.cuh
                 PotentialBond.h
                 PotentialExternalGPU.h
                 PotentialExternalGPU.cuh
                 PotentialExternal.h
                 PotentialPairDPDThermoGPU.h
-		PotentialPairDPDThermoGPU.cuh
+                PotentialPairDPDThermoGPU.cuh
                 PotentialPairDPDThermo.h
                 PotentialPairGPU.h
-		PotentialPairGPU.cuh
+                PotentialPairGPU.cuh
                 PotentialPair.h
                 PotentialSpecialPairGPU.h
                 PotentialSpecialPair.h
@@ -191,8 +191,8 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepNPTMTKGPU.cc
                            TwoStepNVEGPU.cc
                            TwoStepNVTMTKGPU.cc
-			   MuellerPlatheFlowGPU.cc
-               CosineSqAngleForceComputeGPU.cc
+                           MuellerPlatheFlowGPU.cc
+                           CosineSqAngleForceComputeGPU.cc
                            )
 endif()
 
@@ -200,7 +200,22 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AllDriverAnisoPotentialPairGPU.cu
                       AllDriverPotentialBondGPU.cu
                       AllDriverPotentialSpecialPairGPU.cu
-                      AllDriverPotentialPairGPU.cu
+                      BuckinghamDriverPotentialPairGPU.cu
+                      DLVODriverPotentialPairGPU.cu
+                      DPDLJThermoDriverPotentialPairGPU.cu
+                      DPDThermoDriverPotentialPairGPU.cu
+                      EwaldDriverPotentialPairGPU.cu
+                      ForceShiftedLJDriverPotentialPairGPU.cu
+                      GaussDriverPotentialPairGPU.cu
+                      LJDriverPotentialPairGPU.cu
+                      MieDriverPotentialPairGPU.cu
+                      MoliereDriverPotentialPairGPU.cu
+                      MorseDriverPotentialPairGPU.cu
+                      PairLJ1208DriverPotentialPairGPU.cu
+                      ReactionFieldDriverPotentialPairGPU.cu
+                      SLJDriverPotentialPairGPU.cu
+                      YukawaDriverPotentialPairGPU.cu
+                      ZBLDriverPotentialPairGPU.cu
                       BondTablePotentialGPU.cu
                       CommunicatorGridGPU.cu
                       ConstraintEllipsoidGPU.cu
@@ -231,8 +246,8 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepNVTMTKGPU.cu
-		      MuellerPlatheFlowGPU.cu
-              CosineSqAngleForceGPU.cu
+                      MuellerPlatheFlowGPU.cu
+                      CosineSqAngleForceGPU.cu
                       )
 
 if (ENABLE_CUDA)

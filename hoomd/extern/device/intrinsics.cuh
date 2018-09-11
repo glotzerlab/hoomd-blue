@@ -135,7 +135,7 @@ MGPU_DEVICE uint prmt_ptx(uint a, uint b, uint index) {
 ////////////////////////////////////////////////////////////////////////////////
 // shfl_up
 
-__device__ __forceinline__ float shfl_up(float var, 
+/*__device__ __forceinline__ float shfl_up(float var, 
 	unsigned int delta, int width = 32) {
 
 #if __CUDA_ARCH__ >= 300
@@ -155,7 +155,7 @@ __device__ __forceinline__ double shfl_up(double var,
 #endif
 	
 	return var;
-}
+}*/
 
 ////////////////////////////////////////////////////////////////////////////////
 // shfl_add
