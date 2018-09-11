@@ -6,6 +6,7 @@
 
 #include "NeighborListGPUBinned.cuh"
 #include "hoomd/TextureTools.h"
+#include "hoomd/WarpTools.cuh"
 
 /*! \file NeighborListGPUBinned.cu
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU
@@ -13,36 +14,6 @@
 
 //! Texture for reading d_cell_xyzf
 scalar4_tex_t cell_xyzf_1d_tex;
-
-//! Warp-centric scan (Kepler and later)
-template<int NT>
-struct warp_scan_sm30
-    {
-    __device__ static int Scan(int tid, unsigned char x, unsigned char* total)
-        {
-        unsigned int laneid;
-        //This command gets the lane ID within the current warp
-        asm("mov.u32 %0, %%laneid;" : "=r"(laneid));
-
-        int first = laneid - tid;
-
-        #pragma unroll
-        for(int offset = 1; offset < NT; offset += offset)
-            {
-            int y = __shfl(x,(first + tid - offset) &(WARP_SIZE -1));
-            if(tid >= offset) x += y;
-            }
-
-        // all threads get the total from the last thread in the cta
-        *total = __shfl(x,first + NT - 1);
-
-        // shift by one (exclusive scan)
-        int y = __shfl(x,(first + tid - 1) &(WARP_SIZE-1));
-        x = tid ? y : 0;
-
-        return x;
-        }
-    };
 
 //! Kernel call for generating neighbor list on the GPU (Kepler optimized version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
@@ -126,16 +97,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
     __syncthreads();
 
     // each set of threads_per_particle threads is going to compute the neighbor list for a single particle
-    int my_pidx;
-    if (gridDim.y > 1)
-        {
-        // fermi workaround
-        my_pidx = (blockIdx.x + blockIdx.y*65535) * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
-        }
-    else
-        {
-        my_pidx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
-        }
+    const int my_pidx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
 
     // one thread per particle
     if (my_pidx >= N) return;
@@ -201,13 +163,13 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                 neigh_size = d_cell_size[neigh_cell];
                 }
             else
+                {
                 // we are past the end of the cell neighbors
                 done = true;
+                }
             }
 
-        // if the first thread in the cta has no work, terminate the loop
-        if (done && !(threadIdx.x % threads_per_particle)) break;
-
+        // check for a neighbor if thread is still working
         if (!done)
             {
             Scalar4 cur_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
@@ -263,25 +225,22 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                 }
             }
 
-        // no syncthreads here, we assume threads_per_particle < warp size
+        // now that possible neighbor checks are finished, done (for the cta) depends only on first thread
+        // neighbor list only needs to get written into if thread 0 is not done
+        done = hoomd::detail::WarpScan<bool, threads_per_particle>().Broadcast(done, 0);
+        if (!done)
+            {
+            // scan over flags
+            unsigned char k(0), n(0);
+            hoomd::detail::WarpScan<unsigned char, threads_per_particle>().ExclusiveSum(has_neighbor, k, n);
 
-        // scan over flags
-        int k = 0;
-        #if (__CUDA_ARCH__ >= 300)
-        unsigned char n = 1;
-        k = warp_scan_sm30<threads_per_particle>::Scan(threadIdx.x % threads_per_particle, has_neighbor, &n);
-        #endif
+            // write neighbor if it fits in list
+            if (has_neighbor && (nneigh + k) < s_Nmax[my_type])
+                d_nlist[my_head + nneigh + k] = neighbor;
 
-        if (has_neighbor && (nneigh + k) < s_Nmax[my_type])
-            d_nlist[my_head + nneigh + k] = neighbor;
-
-        // increment total neighbor count
-        #if (__CUDA_ARCH__ >= 300)
-        nneigh += n;
-        #else
-        if (has_neighbor)
-            nneigh++;
-        #endif
+            // increment total neighbor count
+            nneigh += n;
+            }
         } // end while
 
     if (threadIdx.x % threads_per_particle == 0)
@@ -361,12 +320,6 @@ inline void launcher(unsigned int *d_nlist,
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
-            if (compute_capability < 30 && grid.x > 65535)
-                {
-                grid.y = grid.x/65535 + 1;
-                grid.x = 65535;
-                }
-
             gpu_compute_nlist_binned_kernel<0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                                          d_n_neigh,
                                                                                          d_last_updated_pos,
@@ -399,12 +352,6 @@ inline void launcher(unsigned int *d_nlist,
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
-            if (compute_capability < 30 && grid.x > 65535)
-                {
-                grid.y = grid.x/65535 + 1;
-                grid.x = 65535;
-                }
-
             gpu_compute_nlist_binned_kernel<1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                                          d_n_neigh,
                                                                                          d_last_updated_pos,
@@ -437,11 +384,6 @@ inline void launcher(unsigned int *d_nlist,
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
-            if (compute_capability < 30 && grid.x > 65535)
-                {
-                grid.y = grid.x/65535 + 1;
-                grid.x = 65535;
-                }
             gpu_compute_nlist_binned_kernel<2,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                                          d_n_neigh,
                                                                                          d_last_updated_pos,
@@ -474,11 +416,6 @@ inline void launcher(unsigned int *d_nlist,
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
-            if (compute_capability < 30 && grid.x > 65535)
-                {
-                grid.y = grid.x/65535 + 1;
-                grid.x = 65535;
-                }
             gpu_compute_nlist_binned_kernel<3,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                                          d_n_neigh,
                                                                                          d_last_updated_pos,

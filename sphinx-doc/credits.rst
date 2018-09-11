@@ -132,6 +132,7 @@ Michael P. Howard, Princeton University
  * XML dump by particle group
  * Fix references when disabling/enabling objects
  * Misc. bug fixes
+ * CUDA9+V100 compatibility
 
 James Antonaglia, University of Michigan
  * pair.mie

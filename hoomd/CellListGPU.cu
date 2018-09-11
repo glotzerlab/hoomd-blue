@@ -9,6 +9,9 @@
 #include "hoomd/extern/util/mgpucontext.h"
 #include "hoomd/extern/kernels/localitysort.cuh"
 
+#include <thrust/device_vector.h>
+#include <thrust/sort.h>
+
 /*! \file CellListGPU.cu
     \brief Defines GPU kernel code for cell list generation on the GPU
 */
@@ -218,137 +221,6 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
     return cudaSuccess;
     }
 
-// ********************* Following are helper functions, structs, etc for the 1x optimized cell list build
-//! \internal
-/*! \param a First element
-    \param b Second element
-    The two elements are swapped
-*/
-template<class T> __device__ inline void swap(T & a, T & b)
-    {
-    T tmp = a;
-    a = b;
-    b = tmp;
-    }
-
-//! \internal
-/*! \param shared Pointer to shared memory to bitonic sort
-*/
-template<class T, unsigned int block_size> __device__ inline void bitonic_sort(T *shared)
-    {
-    unsigned int tid = threadIdx.x;
-
-    // Parallel bitonic sort.
-    for (int k = 2; k <= block_size; k *= 2)
-        {
-        // Bitonic merge:
-        for (int j = k / 2; j>0; j /= 2)
-            {
-            int ixj = tid ^ j;
-
-            if (ixj > tid)
-                {
-                if ((tid & k) == 0)
-                    {
-                    if (shared[tid] > shared[ixj])
-                        {
-                        swap(shared[tid], shared[ixj]);
-                        }
-                    }
-                else
-                    {
-                    if (shared[tid] < shared[ixj])
-                        {
-                        swap(shared[tid], shared[ixj]);
-                        }
-                    }
-                }
-
-            __syncthreads();
-            }
-        }
-    }
-
-//! \internal
-/*! \brief Pair a particle and its assigned bin together for sorting
-*/
-struct bin_id_pair
-    {
-    unsigned int bin;   //!< Cell index
-    unsigned int id;    //!< Particle id
-    unsigned int start_offset;  //!< Write offset
-    };
-
-//! \internal
-/*! \param bin Cell index
-    \param id Particle id
-*/
-__device__ inline bin_id_pair make_bin_id_pair(unsigned int bin, unsigned int id)
-    {
-    bin_id_pair res;
-    res.bin = bin;
-    res.id = id;
-    res.start_offset = 0;
-    return res;
-    }
-
-//! \internal
-/*! \param a First element
-    \param b Second element
-*/
-__device__ inline bool operator< (const bin_id_pair& a, const bin_id_pair& b)
-    {
-    if (a.bin == b.bin)
-        return (a.id < b.id);
-    else
-        return (a.bin < b.bin);
-    }
-
-//! \internal
-/*! \param a First element
-    \param b Second element
-*/
-__device__ inline bool operator> (const bin_id_pair& a, const bin_id_pair& b)
-    {
-    if (a.bin == b.bin)
-        return (a.id > b.id);
-    else
-        return (a.bin > b.bin);
-    }
-
-//! \internal
-/*! \param temp Temporary array in shared memory to scan
-*/
-template<class T, unsigned int block_size> __device__ inline void scan_naive(T *temp)
-    {
-    int thid = threadIdx.x;
-
-    int pout = 0;
-    int pin = 1;
-
-    for (int offset = 1; offset < block_size; offset *= 2)
-        {
-        pout = 1 - pout;
-        pin  = 1 - pout;
-        __syncthreads();
-
-        temp[pout*block_size+thid] = temp[pin*block_size+thid];
-
-        if (thid >= offset)
-            temp[pout*block_size+thid] += temp[pin*block_size+thid - offset];
-        }
-
-    __syncthreads();
-    // bring the data back to the initial array
-    if (pout == 1)
-        {
-        pout = 1 - pout;
-        pin  = 1 - pout;
-        temp[pout*block_size+thid] = temp[pin*block_size+thid];
-        __syncthreads();
-        }
-    }
-
 __global__ void gpu_fill_indices_kernel(
     unsigned int cl_size,
     uint2 *d_idx,
@@ -391,7 +263,7 @@ __global__ void gpu_fill_indices_kernel(
 //! Lexicographic comparison operator on uint2
 struct comp_less_uint2
     {
-    __device__ bool operator()(const uint2 a, const uint2 b)
+    __device__ bool operator()(const uint2& a, const uint2& b)
         {
         return a.x < b.x || (a.x == b.x && a.y < b.y);
         }
@@ -446,8 +318,7 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
                         uint2 *d_sort_idx,
                         unsigned int *d_sort_permutation,
                         const Index3D ci,
-                        const Index2D cli,
-                        mgpu::ContextPtr mgpu_context)
+                        const Index2D cli)
     {
     unsigned int block_size = 256;
 
@@ -466,7 +337,9 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
         cli);
 
     // locality sort on those pairs
-    mgpu::LocalitySortPairs(d_sort_idx, d_sort_permutation, cli.getNumElements(), *mgpu_context, comp_less_uint2());
+    thrust::device_ptr<uint2> d_sort_idx_thrust(d_sort_idx);
+    thrust::device_ptr<unsigned int> d_sort_permutation_thrust(d_sort_permutation);
+    thrust::sort_by_key(d_sort_idx_thrust, d_sort_idx_thrust + cli.getNumElements(), d_sort_permutation_thrust, comp_less_uint2());
 
     // apply sorted order
     gpu_apply_sorted_cell_list_order<<<grid, threads>>>(

@@ -21,6 +21,10 @@ set(TEST_LIST
     test_vec3
     )
 
+if (ENABLE_CUDA)
+list(APPEND TEST_LIST test_warp_tools)
+endif()
+
 option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)
 
 if(ENABLE_MPI)
