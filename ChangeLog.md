@@ -9,13 +9,24 @@ Not yet released
 *New features*
 
 * General:
-
+    * Misc documentation updates
+    * Accept `mpi4py` communicators in `context.initialize`.
 * MD:
 
 * HPMC:
 
 * API:
     * Allow external callers of HOOMD to set the MPI communicator
+    * Removed all custom warp reduction and scan operations. These are now performed by CUB.
+    * Separate compilation of pair potentials into multiple files.
+    * Removed compute 2.0 workaround implementations. Compute 3.0 is now a hard minimum requirement to run HOOMD.
+    * Support and enable compilation for sm70 with CUDA 9 and newer.
+
+
+* Deprecated:
+    * HPMC: The implicit depletant mode `circumsphere` with `ntrial > 0` does not support compute 7.0 (Volta) and newer GPUs and is now disabled by default.
+            To enable this functionality, configure HOOMD with option the `-DENABLE_HPMC_REINSERT=ON`, which will not function properly on compute 7.0 (Volta)
+            and newer GPUs.
 
 ## v2.3.4
 
