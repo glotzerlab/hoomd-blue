@@ -33,6 +33,7 @@ set(_hpmc_headers
     ExternalFieldWall.h
     GPUTree.h
     HPMCCounters.h
+    HPMCMiscFunctions.h
     HPMCPrecisionSetup.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.h

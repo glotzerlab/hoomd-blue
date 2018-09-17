@@ -135,6 +135,13 @@ struct ShapeSphinx
         return detail::AABB(pos, getCircumsphereDiameter()/Scalar(2.0));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
+        }
+
     //!Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return spheres.ignore; }
 

@@ -7,6 +7,8 @@
 #include "hoomd/VectorMath.h"
 #include "Moves.h"
 #include "hoomd/AABB.h"
+#include "hoomd/hpmc/OBB.h"
+#include "hoomd/hpmc/HPMCMiscFunctions.h"
 
 #include <stdexcept>
 
@@ -31,46 +33,6 @@
 
 namespace hpmc
 {
-
-// put a few misc math functions here as they don't have any better home
-namespace detail
-    {
-    // !helper to call CPU or GPU signbit
-    template <class T> HOSTDEVICE inline int signbit(const T& a)
-        {
-        #ifdef __CUDA_ARCH__
-        return ::signbit(a);
-        #else
-        return std::signbit(a);
-        #endif
-        }
-
-    template <class T> HOSTDEVICE inline T min(const T& a, const T& b)
-        {
-        #ifdef __CUDA_ARCH__
-        return ::min(a,b);
-        #else
-        return std::min(a,b);
-        #endif
-        }
-
-    template <class T> HOSTDEVICE inline T max(const T& a, const T& b)
-        {
-        #ifdef __CUDA_ARCH__
-        return ::max(a,b);
-        #else
-        return std::max(a,b);
-        #endif
-        }
-
-    template<class T> HOSTDEVICE inline void swap(T& a, T&b)
-        {
-        T c;
-        c = a;
-        a = b;
-        b = c;
-        }
-    }
 
 //! Base class for parameter structure data types
 struct param_base
@@ -182,6 +144,13 @@ struct ShapeSphere
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return detail::AABB(pos, params.radius);
+        }
+
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x

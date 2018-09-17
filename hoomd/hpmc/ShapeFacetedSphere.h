@@ -265,6 +265,13 @@ struct ShapeFacetedSphere
         return detail::AABB(pos, params.diameter/Scalar(2.0));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
+        }
+
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 

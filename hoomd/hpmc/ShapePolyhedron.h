@@ -179,6 +179,13 @@ struct ShapePolyhedron
         return detail::AABB(pos, data.convex_hull_verts.diameter/Scalar(2));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
+        }
+
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel()
         {

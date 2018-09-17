@@ -476,7 +476,7 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
         Scalar d = sqrt(dot(pos,pos));
         diameter = max(diameter, OverlapReal(2*d + dummy.getCircumsphereDiameter()));
 
-        obbs[i] = detail::OBB(pos,dummy.getCircumsphereDiameter()/2.0);
+        obbs[i] = dummy.getOBB(pos);
         obbs[i].mask = result.moverlap[i];
         }
 
