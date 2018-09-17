@@ -2050,7 +2050,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                 m_sweep_radius, m_sweep_radius, 0.0);
 
                             if (circumsphere_overlap
-                                && test_overlap_three(shape_old, (i == j) ? shape_old : shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius, 0.0))
+                                && test_overlap_three(shape_old, (i == j) ? shape_old : shape_j, shape_test, r_ij, r_ij - r_jk, err,
+                                    m_sweep_radius, m_sweep_radius, 0.0))
                                 {
                                 if (!checked_overlap_ik)
                                     {
