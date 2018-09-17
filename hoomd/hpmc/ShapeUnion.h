@@ -409,7 +409,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
             if (shape_j.hasOrientation())
                 shape_j.orientation = b.members.morientation[jshape];
 
-            vec3<OverlapReal> pos_ij(rotate(quat<OverlapReal>(b.orientation),b.members.mpos[jshape]) - pos_i);
+            vec3<OverlapReal> pos_ij(rotate(quat<OverlapReal>(b.orientation),b.members.mpos[jshape]) + ab_t - pos_i);
 
             // loop through shapes of cur_node_c
             for (unsigned int k= 0; k < nc; k++)
@@ -421,7 +421,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
                 if (shape_k.hasOrientation())
                     shape_k.orientation = c.members.morientation[kshape];
 
-                vec3<OverlapReal> pos_ik(rotate(quat<OverlapReal>(c.orientation),c.members.mpos[kshape]) - pos_i);
+                vec3<OverlapReal> pos_ik(rotate(quat<OverlapReal>(c.orientation),c.members.mpos[kshape]) + ac_t - pos_i);
 
                 if (test_overlap_three(shape_i, shape_j, shape_k, pos_ij, pos_ik, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
                     {
