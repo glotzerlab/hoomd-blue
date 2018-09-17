@@ -1635,8 +1635,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             {
                             // check pairwise overlap
                             bool overlap_ik_old = test_overlap(r_ij-r_jk, shape_old, shape_test, err, m_sweep_radius, 0.0);
+                            bool overlap_jk = test_overlap(-r_jk, shape_j, shape_test, err, m_sweep_radius, 0.0);
 
-                            in_intersection_volume = overlap_ik_old;
+                            in_intersection_volume = overlap_ik_old && overlap_jk;
                             }
 
                         if (in_intersection_volume)
@@ -1663,11 +1664,6 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                     in_intersection_volume = false;
                                     continue;
                                     }
-
-                                bool overlap_jk = test_overlap(-r_jk, shape_j, shape_test, err, m_sweep_radius, 0.0);
-
-                                if (overlap_jk)
-                                    in_intersection_volume = false;
                                 }
                             }
                         }
@@ -2032,13 +2028,15 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                         // check triple overlap with new configuration
                         unsigned int err = 0;
+
                         if (circumsphere_overlap
                             && test_overlap_three(shape_i, shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius, m_sweep_radius, 0.0))
                             {
                             // check pairwise overlap
                             bool overlap_ik_new = test_overlap(r_ij-r_jk, shape_i, shape_test, err, m_sweep_radius, 0.0);
+                            bool overlap_jk = test_overlap(-r_jk, shape_j, shape_test, err, m_sweep_radius, 0.0);
 
-                            in_new_intersection_volume = overlap_ik_new;
+                            in_new_intersection_volume = overlap_ik_new && overlap_jk;
                             }
 
                         if (in_new_intersection_volume)
@@ -2065,11 +2063,6 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                     in_new_intersection_volume = false;
                                     continue;
                                     }
-
-                                bool overlap_jk = test_overlap(-r_jk, shape_j, shape_test, err, m_sweep_radius, 0.0);
-
-                                if (overlap_jk)
-                                    in_new_intersection_volume = false;
                                 }
                             }
                         if (err) overlap_err_count+=err;
