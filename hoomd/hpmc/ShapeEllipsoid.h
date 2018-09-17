@@ -429,7 +429,8 @@ DEVICE inline bool test_overlap<ShapeEllipsoid,ShapeEllipsoid>(const vec3<Scalar
                                                                const ShapeEllipsoid& a,
                                                                const ShapeEllipsoid& b,
                                                                unsigned int& err,
-                                                               Scalar sweep_radius)
+                                                               Scalar sweep_radius_a,
+                                                               Scalar sweep_radius_b)
     {
 
     // matrix representations of the two ellipsoids

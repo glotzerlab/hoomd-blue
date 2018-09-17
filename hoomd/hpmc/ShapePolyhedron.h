@@ -752,7 +752,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapePolyhedron& a,
                                  const ShapePolyhedron& b,
                                  unsigned int& err,
-                                 Scalar sweep_radius)
+                                 Scalar sweep_radius_a,
+                                 Scalar sweep_radius_b)
     {
     // test overlap of convex hulls
     if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())

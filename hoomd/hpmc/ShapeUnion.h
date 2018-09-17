@@ -206,7 +206,8 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                                              unsigned int cur_node_a,
                                              unsigned int cur_node_b,
                                              unsigned int &err,
-                                             OverlapReal sweep_radius)
+                                             OverlapReal sweep_radius_a,
+                                             OverlapReal sweep_radius_b)
     {
     vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(dr));
 
@@ -244,7 +245,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
             if (overlap_i & overlap_j)
                 {
                 vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
-                if (test_overlap(r_ij, shape_i, shape_j, err, sweep_radius))
+                if (test_overlap(r_ij, shape_i, shape_j, err, sweep_radius_a, sweep_radius_b))
                     {
                     return true;
                     }
@@ -259,7 +260,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapeUnion<Shape>& a,
                                 const ShapeUnion<Shape>& b,
                                 unsigned int& err,
-                                Scalar sweep_radius = Scalar(0.0))
+                                Scalar sweep_radius_a = Scalar(0.0),
+                                Scalar sweep_radius_b = Scalar(0.0))
     {
     const detail::GPUTree& tree_a = a.members.tree;
     const detail::GPUTree& tree_b = b.members.tree;
@@ -274,6 +276,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     unsigned int stride = 1;
     #endif
 
+    OverlapReal sab = sweep_radius_a + sweep_radius_b;
+
     if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {
         for (unsigned int cur_leaf_a = offset; cur_leaf_a < tree_a.getNumLeaves(); cur_leaf_a += stride)
@@ -285,15 +289,16 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                 rotate(conj(b.orientation),-r_ab));
 
             // extend OBB
-            obb_a.lengths.x += OverlapReal(2.0)*sweep_radius;
-            obb_a.lengths.y += OverlapReal(2.0)*sweep_radius;
-            obb_a.lengths.z += OverlapReal(2.0)*sweep_radius;
+            obb_a.lengths.x += sab;
+            obb_a.lengths.y += sab;
+            obb_a.lengths.z += sab;
 
             unsigned cur_node_b = 0;
             while (cur_node_b < tree_b.getNumNodes())
                 {
                 unsigned int query_node = cur_node_b;
-                if (tree_b.queryNode(obb_a, cur_node_b) && test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err, sweep_radius))
+                if (tree_b.queryNode(obb_a, cur_node_b) &&
+                    test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err, sweep_radius_a,sweep_radius_b))
                     return true;
                 }
             }
@@ -310,15 +315,16 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                 rotate(conj(a.orientation),r_ab));
 
             // extend OBB
-            obb_b.lengths.x += OverlapReal(2.0)*sweep_radius;
-            obb_b.lengths.y += OverlapReal(2.0)*sweep_radius;
-            obb_b.lengths.z += OverlapReal(2.0)*sweep_radius;
+            obb_b.lengths.x += sab;
+            obb_b.lengths.y += sab;
+            obb_b.lengths.z += sab;
 
             unsigned cur_node_a = 0;
             while (cur_node_a < tree_a.getNumNodes())
                 {
                 unsigned int query_node = cur_node_a;
-                if (tree_a.queryNode(obb_b, cur_node_a) && test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err, sweep_radius))
+                if (tree_a.queryNode(obb_b, cur_node_a) &&
+                    test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err, sweep_radius_a,sweep_radius_b))
                     return true;
                 }
             }
@@ -340,19 +346,19 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
         // extend OBBs
-        obb_a.lengths.x += sweep_radius;
-        obb_a.lengths.y += sweep_radius;
-        obb_a.lengths.z += sweep_radius;
+        obb_a.lengths.x += sweep_radius_a;
+        obb_a.lengths.y += sweep_radius_a;
+        obb_a.lengths.z += sweep_radius_a;
 
-        obb_b.lengths.x += sweep_radius;
-        obb_b.lengths.y += sweep_radius;
-        obb_b.lengths.z += sweep_radius;
+        obb_b.lengths.x += sweep_radius_b;
+        obb_b.lengths.y += sweep_radius_b;
+        obb_b.lengths.z += sweep_radius_b;
 
         unsigned int query_node_a = cur_node_a;
         unsigned int query_node_b = cur_node_b;
 
         if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot)
-            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err, sweep_radius))
+            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err, sweep_radius_a, sweep_radius_b))
             return true;
         }
     #endif
@@ -370,7 +376,9 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
                                              unsigned int cur_node_b,
                                              unsigned int cur_node_c,
                                              unsigned int &err,
-                                             OverlapReal sweep_radius)
+                                             OverlapReal sweep_radius_a,
+                                             OverlapReal sweep_radius_b,
+                                             OverlapReal sweep_radius_c)
     {
     //! Param type of the member shapes
     typedef typename Shape::param_type mparam_type;
@@ -415,7 +423,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
 
                 vec3<OverlapReal> pos_ik(rotate(quat<OverlapReal>(c.orientation),c.members.mpos[kshape]) - pos_i);
 
-                if (test_overlap_three(shape_i, shape_j, shape_k, pos_ij, pos_ik, err, sweep_radius))
+                if (test_overlap_three(shape_i, shape_j, shape_k, pos_ij, pos_ik, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
                     {
                     return true;
                     }
@@ -432,7 +440,9 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
     \param ab_t Position of second shape relative to first
     \param ac_t Position of third shape relative to first
     \param err Output variable that is incremented upon non-convergence
-    \param sweep_radius Radius of a sphere to sweep all shapes by
+    \param sweep_radius_a Radius of a sphere to sweep the first shape by
+    \param sweep_radius_b Radius of a sphere to sweep the second shape by
+    \param sweep_radius_c Radius of a sphere to sweep the third shape by
 */
 template <class Shape >
 DEVICE inline bool test_overlap_three(const ShapeUnion<Shape>& a,
@@ -441,7 +451,9 @@ DEVICE inline bool test_overlap_three(const ShapeUnion<Shape>& a,
                                 const vec3<Scalar>& ab_t,
                                 const vec3<Scalar>& ac_t,
                                 unsigned int& err,
-                                Scalar sweep_radius = Scalar(0.0))
+                                Scalar sweep_radius_a = Scalar(0.0),
+                                Scalar sweep_radius_b = Scalar(0.0),
+                                Scalar sweep_radius_c = Scalar(0.0))
     {
     const detail::GPUTree& tree_a = a.members.tree;
     const detail::GPUTree& tree_b = b.members.tree;
@@ -460,19 +472,22 @@ DEVICE inline bool test_overlap_three(const ShapeUnion<Shape>& a,
 
     detail::OBB obb_b = tree_b.getOBB(cur_node_b);
 
+    OverlapReal sac = sweep_radius_a + sweep_radius_c;
+    OverlapReal sbc = sweep_radius_b + sweep_radius_c;
+
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
         unsigned int query_node_a = cur_node_a;
         unsigned int query_node_b = cur_node_b;
 
         // extend OBBs
-        obb_a.lengths.x += sweep_radius;
-        obb_a.lengths.y += sweep_radius;
-        obb_a.lengths.z += sweep_radius;
+        obb_a.lengths.x += sweep_radius_a;
+        obb_a.lengths.y += sweep_radius_a;
+        obb_a.lengths.z += sweep_radius_a;
 
-        obb_b.lengths.x += sweep_radius;
-        obb_b.lengths.y += sweep_radius;
-        obb_b.lengths.z += sweep_radius;
+        obb_b.lengths.x += sweep_radius_b;
+        obb_b.lengths.y += sweep_radius_b;
+        obb_b.lengths.z += sweep_radius_b;
 
         if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot))
             {
@@ -487,13 +502,13 @@ DEVICE inline bool test_overlap_three(const ShapeUnion<Shape>& a,
                     rotate(conj(c.orientation),-ac_t+ab_t));
 
             // extend OBBs
-            obb_a_intersect.lengths.x += OverlapReal(2.0)*sweep_radius;
-            obb_a_intersect.lengths.y += OverlapReal(2.0)*sweep_radius;
-            obb_a_intersect.lengths.z += OverlapReal(2.0)*sweep_radius;
+            obb_a_intersect.lengths.x += sac;
+            obb_a_intersect.lengths.y += sac;
+            obb_a_intersect.lengths.z += sac;
 
-            obb_b_intersect.lengths.x += OverlapReal(2.0)*sweep_radius;
-            obb_b_intersect.lengths.y += OverlapReal(2.0)*sweep_radius;
-            obb_b_intersect.lengths.z += OverlapReal(2.0)*sweep_radius;
+            obb_b_intersect.lengths.x += sbc;
+            obb_b_intersect.lengths.y += sbc;
+            obb_b_intersect.lengths.z += sbc;
 
             unsigned cur_node_c = 0;
             while (cur_node_c < tree_c.getNumNodes())
@@ -501,7 +516,7 @@ DEVICE inline bool test_overlap_three(const ShapeUnion<Shape>& a,
                 unsigned int query_node_c = cur_node_c;
                 if (tree_c.queryNode_three(obb_a_intersect, obb_b_intersect, cur_node_c) &&
                     test_narrow_phase_overlap_three(a, b, c, ab_t, ac_t,
-                        query_node_a, query_node_b, query_node_c, err, sweep_radius))
+                        query_node_a, query_node_b, query_node_c, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
                     return true;
                 }
             }

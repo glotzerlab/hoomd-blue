@@ -295,19 +295,23 @@ DEVICE inline bool check_three_spheres_overlap(OverlapReal Ra, OverlapReal Rb, O
     \param c third shape
     \param ab_t Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param ac_t Vector defining the position of shape c relative to shape a (r_c - r_a)
-    \param sweep_radius Additional radius to sweep shapes by
+    \param sweep_radius_a Additional radius to sweep shape a by
+    \param sweep_radius_b Additional radius to sweep shape b by
+    \param sweep_radius_c Additional radius to sweep shape c by
     \returns true if the circumspheres of both shapes overlap
 
     \ingroup shape
 */
 template<class ShapeA, class ShapeB, class ShapeC>
 DEVICE inline bool check_circumsphere_overlap_three(const ShapeA& a, const ShapeB& b, const ShapeC &c,
-    const vec3<OverlapReal>& ab_t, const vec3<OverlapReal>& ac_t, OverlapReal sweep_radius=OverlapReal(0.0))
+    const vec3<OverlapReal>& ab_t, const vec3<OverlapReal>& ac_t,
+    OverlapReal sweep_radius_a=OverlapReal(0.0), OverlapReal sweep_radius_b=OverlapReal(0.0),
+    OverlapReal sweep_radius_c=OverlapReal(0.0))
     {
     // Default implementation
-    OverlapReal Ra = OverlapReal(0.5)*a.getCircumsphereDiameter() + sweep_radius;
-    OverlapReal Rb = OverlapReal(0.5)*b.getCircumsphereDiameter() + sweep_radius;
-    OverlapReal Rc = OverlapReal(0.5)*c.getCircumsphereDiameter() + sweep_radius;
+    OverlapReal Ra = OverlapReal(0.5)*a.getCircumsphereDiameter() + sweep_radius_a;
+    OverlapReal Rb = OverlapReal(0.5)*b.getCircumsphereDiameter() + sweep_radius_b;
+    OverlapReal Rc = OverlapReal(0.5)*c.getCircumsphereDiameter() + sweep_radius_c;
 
     return detail::check_three_spheres_overlap(Ra,Rb,Rc,ab_t,ac_t);
     }
@@ -333,14 +337,17 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \param c third shape
     \param ab_t Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param ac_t Vector defining the position of shape c relative to shape a (r_c - r_a)
-    \param sweep_radius additional sweep radius
+    \param sweep_radius_a additional sweep radius
+    \param sweep_radius_b additional sweep radius
+    \param sweep_radius_c additional sweep radius
     \returns true if the circumspheres of both shapes overlap
 
     \ingroup shape
 */
 template<>
 DEVICE inline bool check_circumsphere_overlap_three(const ShapeSphere& a, const ShapeSphere& b, const ShapeSphere &c,
-    const vec3<OverlapReal>& ab_t, const vec3<OverlapReal>& ac_t, OverlapReal sweep_radius)
+    const vec3<OverlapReal>& ab_t, const vec3<OverlapReal>& ac_t, OverlapReal sweep_radius_a, OverlapReal sweep_radius_b,
+    OverlapReal sweep_radius_c)
     {
     // for spheres, always return true
     return true;
@@ -353,11 +360,13 @@ DEVICE inline bool check_circumsphere_overlap_three(const ShapeSphere& a, const 
     \param a first shape
     \param b second shape
     \param err Incremented if there is an error condition. Left unchanged otherwise.
-    \param sweep_radius Additional radius to sweep both shapes by
+    \param sweep_radius_a Additional radius to sweep both shapes by
+    \param sweep_radius_b Additional radius to sweep both shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 */
 template <class ShapeA, class ShapeB>
-DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const ShapeB& b, unsigned int& err, Scalar sweep_radius=Scalar(0.0))
+DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const ShapeB& b, unsigned int& err,
+    Scalar sweep_radius_a=Scalar(0.0), Scalar sweep_radius_b=Scalar(0.0))
     {
     // default implementation returns true, will make it obvious if something calls this
     return true;
@@ -368,20 +377,22 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius Additional radius to sweep both shapes by
+    \param sweep_radius_a Additional radius to sweep the first shape by
+    \param sweep_radius_b Additional radius to sweep the second shape by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
 */
 template <>
 DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_ab, const ShapeSphere& a, const ShapeSphere& b, unsigned int& err,
-    Scalar sweep_radius)
+    Scalar sweep_radius_a, Scalar sweep_radius_b)
     {
     vec3<OverlapReal> dr(r_ab);
 
     OverlapReal rsq = dot(dr,dr);
 
-    if (rsq < (a.params.radius + b.params.radius + OverlapReal(2.0)*sweep_radius)*(a.params.radius + b.params.radius + OverlapReal(2.0)*sweep_radius))
+    OverlapReal RaRb = a.params.radius + b.params.radius + sweep_radius_a + sweep_radius_b;
+    if (rsq < RaRb*RaRb)
         {
         return true;
         }
@@ -398,12 +409,15 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
     \param ab_t Position of second shape relative to first
     \param ac_t Position of third shape relative to first
     \param err Output variable that is incremented upon non-convergence
-    \param sweep_radius Radius of a sphere to sweep all shapes by
+    \param sweep_radius_a Radius of a sphere to sweep the first shape py
+    \param sweep_radius_b Radius of a sphere to sweep the second shape by
+    \param sweep_radius_c Radius of a sphere to sweep the third shape by
 */
 template <class ShapeA, class ShapeB, class ShapeC>
 DEVICE inline bool test_overlap_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
     const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
-    Scalar sweep_radius = Scalar(0.0))
+    Scalar sweep_radius_a = Scalar(0.0), Scalar sweep_radius_b = Scalar(0.0),
+    Scalar sweep_radius_c = Scalar(0.0))
     {
     // default returns true, so it is obvious if something calls this
     return true;
@@ -416,16 +430,18 @@ DEVICE inline bool test_overlap_three(const ShapeA& a, const ShapeB& b, const Sh
     \param ab_t Position of second shape relative to first
     \param ac_t Position of third shape relative to first
     \param err Output variable that is incremented upon non-convergence
-    \param sweep_radius Radius of a sphere to sweep all shapes by
+    \param sweep_radius_a Radius of a sphere to sweep the first sphere by
+    \param sweep_radius_b Radius of a sphere to sweep the second sphere by
+    \param sweep_radius_c Radius of a sphere to sweep the third sphere by
 */
 template<>
 DEVICE inline bool test_overlap_three(const ShapeSphere& a, const ShapeSphere& b, const ShapeSphere& c,
     const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
-    Scalar sweep_radius)
+    Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
     {
-    OverlapReal Ra = a.params.radius + sweep_radius;
-    OverlapReal Rb = b.params.radius + sweep_radius;
-    OverlapReal Rc = c.params.radius + sweep_radius;
+    OverlapReal Ra = a.params.radius + sweep_radius_a;
+    OverlapReal Rb = b.params.radius + sweep_radius_b;
+    OverlapReal Rc = c.params.radius + sweep_radius_c;
 
     return detail::check_three_spheres_overlap(Ra,Rb,Rc,ab_t,ac_t);
     }

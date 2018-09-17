@@ -237,7 +237,8 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius Radius of a sphere to sweep the shapes by
+    \param sweep_radius_a Radius of a sphere to sweep the first shape by
+    \param sweep_radius_b Radius of a sphere to sweep the second shape by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
@@ -247,11 +248,12 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapeSpheropolyhedron& a,
                                  const ShapeSpheropolyhedron& b,
                                  unsigned int& err,
-                                 Scalar sweep_radius)
+                                 Scalar sweep_radius_a,
+                                 Scalar sweep_radius_b)
     {
     vec3<OverlapReal> dr = r_ab;
 
-    if (sweep_radius == 0.0)
+    if (sweep_radius_a == Scalar(0.0) && sweep_radius_b == Scalar(0.0))
         {
         OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
@@ -281,7 +283,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             detail::ProjectionFuncSpheropolyhedron(b.verts),
             dr,
             err,
-            sweep_radius);
+            sweep_radius_a,
+            sweep_radius_b);
         }
     }
 
@@ -292,14 +295,15 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     \param ab_t Position of second shape relative to first
     \param ac_t Position of third shape relative to first
     \param err Output variable that is incremented upon non-convergence
-    \param sweep_radius Radius of a sphere to sweep all shapes by
+    \param sweep_radius_a Radius of a sphere to sweep the first shape by
+    \param sweep_radius_b Radius of a sphere to sweep the second shape by
 */
 template<>
 DEVICE inline bool test_overlap_three(const ShapeSpheropolyhedron& a,
     const ShapeSpheropolyhedron& b,
     const ShapeSpheropolyhedron& c,
     const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
-    Scalar sweep_radius)
+    Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
     {
     return detail::map_three(a,b,c,
         detail::SupportFuncSpheropolyhedron(a.verts),
@@ -311,7 +315,9 @@ DEVICE inline bool test_overlap_three(const ShapeSpheropolyhedron& a,
         vec3<OverlapReal>(ab_t),
         vec3<OverlapReal>(ac_t),
         err,
-        sweep_radius);
+        sweep_radius_a,
+        sweep_radius_b,
+        sweep_radius_c);
     }
 
 }; // end namespace hpmc

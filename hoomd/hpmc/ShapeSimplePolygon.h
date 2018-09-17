@@ -302,7 +302,8 @@ DEVICE inline bool test_overlap<ShapeSimplePolygon,ShapeSimplePolygon>(const vec
                                                                        const ShapeSimplePolygon& a,
                                                                        const ShapeSimplePolygon& b,
                                                                        unsigned int& err,
-                                                                       Scalar sweep_radius)
+                                                                       Scalar sweep_radius_a,
+                                                                       Scalar sweep_radius_b)
     {
     // trivial rejection: first check if the circumscribing spheres overlap
     vec2<OverlapReal> dr(r_ab.x, r_ab.y);

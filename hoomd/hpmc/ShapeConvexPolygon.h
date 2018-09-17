@@ -507,7 +507,8 @@ DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec
                                                                        const ShapeConvexPolygon& a,
                                                                        const ShapeConvexPolygon& b,
                                                                        unsigned int& err,
-                                                                       Scalar sweep_radius)
+                                                                       Scalar sweep_radius_a,
+                                                                       Scalar sweep_radius_b)
     {
     vec2<OverlapReal> dr(r_ab.x,r_ab.y);
     #ifdef NVCC

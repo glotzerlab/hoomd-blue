@@ -410,8 +410,8 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \ingroup shape
 */
 template <>
-DEVICE inline bool test_overlap<ShapeFacetedSphere, ShapeFacetedSphere>(const vec3<Scalar>& r_ab, const ShapeFacetedSphere& a, const ShapeFacetedSphere& b, unsigned int& err,
-    Scalar sweep_radius)
+DEVICE inline bool test_overlap<ShapeFacetedSphere, ShapeFacetedSphere>(const vec3<Scalar>& r_ab, const ShapeFacetedSphere& a, const ShapeFacetedSphere& b,
+    unsigned int& err, Scalar sweep_radius_a, Scalar sweep_radius_b)
     {
     vec3<OverlapReal> dr(r_ab);
 

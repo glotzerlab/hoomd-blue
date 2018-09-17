@@ -187,7 +187,8 @@ template <>
 DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_ab,
                                                           const ShapeSphinx& p,
                                                           const ShapeSphinx& q, unsigned int& err,
-                                                          Scalar sweep_radius)
+                                                          Scalar sweep_radius_a,
+                                                          Scalar sweep_radius_b)
     {
     vec3<OverlapReal> pv[detail::MAX_SPHERE_CENTERS];           //!< rotated centers of p
     vec3<OverlapReal> qv[detail::MAX_SPHERE_CENTERS];           //!< rotated centers of q
