@@ -167,6 +167,7 @@ class nvt(_integration_method):
         group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the Nosé-Hoover thermostat. (in energy units).
         tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time units).
+        allow_constituent_integration (bool): If set true, the integrator will independently integrate particles with the same body flag.
 
     :py:class:`nvt` performs constant volume, constant temperature simulations using the Nosé-Hoover thermostat,
     using the MTK equations described in Refs. `G. J. Martyna, D. J. Tobias, M. L. Klein  1994 <http://dx.doi.org/10.1063/1.467468>`_ and
@@ -198,11 +199,12 @@ class nvt(_integration_method):
         typeA = group.type('A')
         integrator = integrate.nvt(group=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     """
-    def __init__(self, group, kT, tau):
+    def __init__(self, group, kT, tau, allow_constituent_integration=False):
         hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
+        self.allow_constituent_integration = allow_constituent_integration
 
         # setup the variant inputs
         kT = hoomd.variant._setup_variant_input(kT);
@@ -234,7 +236,7 @@ class nvt(_integration_method):
         else:
             self.cpp_method = _md.TwoStepNVTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, kT.cpp_variant, suffix);
 
-        self.cpp_method.validateGroup()
+        self.cpp_method.validateGroup(self.allow_constituent_integration)
 
     def set_params(self, kT=None, tau=None):
         R""" Changes parameters of an existing integrator.
@@ -306,6 +308,7 @@ class npt(_integration_method):
         nph (bool): if True, integrate without a thermostat, i.e. in the NPH ensemble
         rescale_all (bool): if True, rescale all particles, not only those in the group
         gamma: (:py:obj:`float`): Dimensionless damping factor for the box degrees of freedom (default: 0)
+        allow_constituent_integration (bool): If set true, the integrator will independently integrate particles with the same body flag.
 
     :py:class:`npt` performs constant pressure, constant temperature simulations, allowing for a fully deformable
     simulation box.
@@ -403,7 +406,7 @@ class npt(_integration_method):
         # triclinic symmetry
         integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none", rescale_all=True)
     """
-    def __init__(self, group, kT=None, tau=None, S=None, P=None, tauP=None, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, rescale_all=None, gamma=None):
+    def __init__(self, group, kT=None, tau=None, S=None, P=None, tauP=None, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, rescale_all=None, gamma=None, allow_constituent_integration=False):
         hoomd.util.print_status_line();
 
         # check the input
@@ -422,6 +425,7 @@ class npt(_integration_method):
 
         # initialize base class
         _integration_method.__init__(self);
+        self.allow_constituent_integration = allow_constituent_integration
 
         # setup the variant inputs
         kT = hoomd.variant._setup_variant_input(kT);
@@ -537,7 +541,7 @@ class npt(_integration_method):
         if gamma is not None:
             self.cpp_method.setGamma(gamma)
 
-        self.cpp_method.validateGroup()
+        self.cpp_method.validateGroup(self.allow_constituent_integration)
 
         # store metadata
         self.group  = group
@@ -734,6 +738,7 @@ class nve(_integration_method):
         limit (bool): (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
         zero_force (bool): When set to true, particles in the \a group are integrated forward in time with constant
           velocity and any net force on them is ignored.
+        allow_constituent_integration (bool): If set true, the integrator will independently integrate particles with the same body flag.
 
 
     :py:class:`nve` performs constant volume, constant energy simulations using the standard
@@ -766,11 +771,12 @@ class nve(_integration_method):
         integrate.nve(group=typeA, zero_force=True)
 
     """
-    def __init__(self, group, limit=None, zero_force=False):
+    def __init__(self, group, limit=None, zero_force=False, allow_constituent_integration=False):
         hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
+        self.allow_constituent_integration = allow_constituent_integration
 
         # create the compute thermo
         hoomd.compute._get_unique_thermo(group=group);
@@ -787,7 +793,7 @@ class nve(_integration_method):
 
         self.cpp_method.setZeroForce(zero_force);
 
-        self.cpp_method.validateGroup()
+        self.cpp_method.validateGroup(self.allow_constituent_integration)
 
         # store metadata
         self.group = group
@@ -854,6 +860,7 @@ class langevin(_integration_method):
                             ``langevin_reservoir_energy_groupname`` to the logged quantities.
         noiseless_t (bool): If set true, there will be no translational noise (random force)
         noiseless_r (bool): If set true, there will be no rotational noise (random torque)
+        allow_constituent_integration (bool): If set true, the integrator will independently integrate particles with the same body flag.
 
     .. rubric:: Translational degrees of freedom
 
@@ -916,11 +923,12 @@ class langevin(_integration_method):
         integrator = integrate.langevin(group=typeA, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
 
     """
-    def __init__(self, group, kT, seed, dscale=False, tally=False, noiseless_t=False, noiseless_r=False):
+    def __init__(self, group, kT, seed, dscale=False, tally=False, noiseless_t=False, noiseless_r=False, allow_constituent_integration=False):
         hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
+        self.allow_constituent_integration = allow_constituent_integration
 
         # setup the variant inputs
         kT = hoomd.variant._setup_variant_input(kT);
@@ -954,7 +962,7 @@ class langevin(_integration_method):
 
         self.cpp_method.setTally(tally);
 
-        self.cpp_method.validateGroup()
+        self.cpp_method.validateGroup(self.allow_constituent_integration)
 
         # store metadata
         self.group = group
@@ -1069,6 +1077,7 @@ class brownian(_integration_method):
         dscale (bool): Control :math:`\lambda` options. If 0 or False, use :math:`\gamma` values set per type. If non-zero, :math:`\gamma = \lambda d_i`.
         noiseless_t (bool): If set true, there will be no translational noise (random force)
         noiseless_r (bool): If set true, there will be no rotational noise (random torque)
+        allow_constituent_integration (bool): If set true, the integrator will independently integrate particles with the same body flag.
 
     :py:class:`brownian` integrates particles forward in time according to the overdamped Langevin equations of motion,
     sometimes called Brownian dynamics, or the diffusive limit.
@@ -1136,11 +1145,12 @@ class brownian(_integration_method):
         integrator = integrate.brownian(group=typeA, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
 
     """
-    def __init__(self, group, kT, seed, dscale=False, noiseless_t=False, noiseless_r=False):
+    def __init__(self, group, kT, seed, dscale=False, noiseless_t=False, noiseless_r=False, allow_constituent_integration=False):
         hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
+        self.allow_constituent_integration = allow_constituent_integration
 
         # setup the variant inputs
         kT = hoomd.variant._setup_variant_input(kT);
@@ -1168,7 +1178,7 @@ class brownian(_integration_method):
                                    noiseless_t,
                                    noiseless_r);
 
-        self.cpp_method.validateGroup()
+        self.cpp_method.validateGroup(self.allow_constituent_integration)
 
         # store metadata
         self.group = group

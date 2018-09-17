@@ -183,7 +183,10 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
             }
 
         //! Validate that all members in the particle group are valid (throw an exception if they are not)
-        virtual void validateGroup();
+        /*! \param allow_constituent_integration Whether or not to allow independent integration of rigid
+             body constituents
+        */
+        virtual void validateGroup(bool allow_constituent_integration=false);
 
 #ifdef ENABLE_MPI
         //! Set the communicator to use
