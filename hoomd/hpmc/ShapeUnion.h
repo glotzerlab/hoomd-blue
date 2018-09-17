@@ -395,7 +395,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
-            shape_i.orientation = a.members.morientation[ishape];
+            shape_i.orientation = quat<OverlapReal>(a.orientation)*a.members.morientation[ishape];
 
         vec3<OverlapReal> pos_i(rotate(quat<OverlapReal>(a.orientation),a.members.mpos[ishape]));
 
@@ -407,7 +407,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
             const mparam_type& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);
             if (shape_j.hasOrientation())
-                shape_j.orientation = b.members.morientation[jshape];
+                shape_j.orientation = quat<OverlapReal>(b.orientation)*b.members.morientation[jshape];
 
             vec3<OverlapReal> pos_ij(rotate(quat<OverlapReal>(b.orientation),b.members.mpos[jshape]) + ab_t - pos_i);
 
@@ -419,7 +419,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
                 const mparam_type& params_k = c.members.mparams[kshape];
                 Shape shape_k(quat<Scalar>(), params_k);
                 if (shape_k.hasOrientation())
-                    shape_k.orientation = c.members.morientation[kshape];
+                    shape_k.orientation = quat<OverlapReal>(c.orientation)*c.members.morientation[kshape];
 
                 vec3<OverlapReal> pos_ik(rotate(quat<OverlapReal>(c.orientation),c.members.mpos[kshape]) + ac_t - pos_i);
 
