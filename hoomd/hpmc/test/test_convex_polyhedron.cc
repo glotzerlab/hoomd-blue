@@ -923,11 +923,11 @@ UP_TEST( overlap_three_cubes_no_rot )
     r_ac = vec3<Scalar>(0.25+t*sqrt(3.0)/2.0,t+sqrt(3.0)/4+t/2.0,0);
 
     // test triple overlap
-    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count, incircle_r+0.001);
+    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count, incircle_r+0.001, incircle_r+0.001, incircle_r+0.001);
     UP_ASSERT(!err_count);
     UP_ASSERT(result);
 
-    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count, incircle_r-0.001);
+    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count, incircle_r-0.001, incircle_r-0.001, incircle_r-0.001);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
     }
@@ -958,28 +958,28 @@ UP_TEST( overlap_two_cubes_no_rot_sphere_sweep )
 
     // first, separate them by a large distance
     r_ab = vec3<Scalar>(10,0,0);
-    bool result = test_overlap(r_ab,a,b,err_count,sweep_radius);
+    bool result = test_overlap(r_ab,a,b,err_count,sweep_radius, sweep_radius);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
-    result = test_overlap(-r_ab,b,a,err_count,sweep_radius);
+    result = test_overlap(-r_ab,b,a,err_count,sweep_radius, sweep_radius);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
 
     // slightly overlapping
     r_ab = vec3<Scalar>(1.99,0,0);
-    result = test_overlap(r_ab,a,b,err_count,sweep_radius);
+    result = test_overlap(r_ab,a,b,err_count,sweep_radius, sweep_radius);
     UP_ASSERT(!err_count);
     UP_ASSERT(result);
-    result = test_overlap(-r_ab,b,a,err_count,sweep_radius);
+    result = test_overlap(-r_ab,b,a,err_count,sweep_radius, sweep_radius);
     UP_ASSERT(!err_count);
     UP_ASSERT(result);
 
     // slightly not overlapping
     r_ab = vec3<Scalar>(2.01,0,0);
-    result = test_overlap(r_ab,a,b,err_count,sweep_radius);
+    result = test_overlap(r_ab,a,b,err_count,sweep_radius, sweep_radius);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
-    result = test_overlap(-r_ab,b,a,err_count,sweep_radius);
+    result = test_overlap(-r_ab,b,a,err_count,sweep_radius, sweep_radius);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
     }
