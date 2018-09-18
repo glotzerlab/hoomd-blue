@@ -486,7 +486,7 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
     // build tree and store GPU accessible version in parameter structure
     typedef typename ShapeUnion<Shape>::param_type::gpu_tree_type gpu_tree_type;
     OBBTree tree;
-    tree.buildTree(obbs, result.N, leaf_capacity, true);
+    tree.buildTree(obbs, result.N, leaf_capacity, false);
     delete [] obbs;
     result.tree = gpu_tree_type(tree,exec_conf->isCUDAEnabled());
 
