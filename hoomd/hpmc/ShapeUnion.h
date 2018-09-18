@@ -405,6 +405,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
             shape_i.orientation = quat<OverlapReal>(a.orientation)*a.members.morientation[ishape];
 
         vec3<OverlapReal> pos_i(rotate(quat<OverlapReal>(a.orientation),a.members.mpos[ishape]));
+        unsigned int overlap_i = a.members.moverlap[ishape];
 
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
@@ -417,6 +418,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
                 shape_j.orientation = quat<OverlapReal>(b.orientation)*b.members.morientation[jshape];
 
             vec3<OverlapReal> pos_ij(rotate(quat<OverlapReal>(b.orientation),b.members.mpos[jshape]) + ab_t - pos_i);
+            unsigned int overlap_j = b.members.moverlap[jshape];
 
             // loop through shapes of cur_node_c
             for (unsigned int k= 0; k < nc; k++)
@@ -429,8 +431,10 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
                     shape_k.orientation = quat<OverlapReal>(c.orientation)*c.members.morientation[kshape];
 
                 vec3<OverlapReal> pos_ik(rotate(quat<OverlapReal>(c.orientation),c.members.mpos[kshape]) + ac_t - pos_i);
+                unsigned int overlap_k = c.members.moverlap[kshape];
 
-                if (test_overlap_three(shape_i, shape_j, shape_k, pos_ij, pos_ik, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
+                if ((overlap_i & overlap_j & overlap_k) &&
+                    test_overlap_three(shape_i, shape_j, shape_k, pos_ij, pos_ik, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
                     {
                     return true;
                     }
