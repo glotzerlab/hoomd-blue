@@ -491,7 +491,7 @@ inline OverlapReal eigen_sphere(const std::vector< vec3<OverlapReal> >& verts, v
         }
 
     center= OverlapReal(0.5)*(max_pt+min_pt);
-    return OverlapReal(0.5)*(max_extent-min_extent);
+    return OverlapReal(0.5)*sqrt(dot(max_pt-min_pt,max_pt-min_pt));
     }
 
 // https://stackoverflow.com/questions/33532860/merge-two-spheres-to-get-a-new-one
