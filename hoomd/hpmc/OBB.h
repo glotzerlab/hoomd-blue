@@ -470,7 +470,7 @@ inline OverlapReal eigen_sphere(const std::vector< vec3<OverlapReal> >& verts, v
         max_eval = eigen_val(2).real();
         }
 
-    max_evec /= sqrt(dot(max_evec,max_evec));
+    max_evec /= (OverlapReal)sqrt(dot(max_evec,max_evec));
 
     vec3<OverlapReal> min_pt;
     vec3<OverlapReal> max_pt;
