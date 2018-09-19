@@ -407,6 +407,28 @@ inline double MinAreaRect(vec2<double> pt[], int numPts, vec2<double> &c, vec2<d
     return minArea;
     }
 
+// https://stackoverflow.com/questions/33532860/merge-two-spheres-to-get-a-new-one
+inline OverlapReal merge_two_spheres(vec3<OverlapReal>& c, OverlapReal r, vec3<OverlapReal> p, OverlapReal r_pt)
+    {
+    vec3<OverlapReal> d = p - c;
+    OverlapReal dist = sqrt(dot(d,d));
+
+    if (dist + r <= r_pt)
+        {
+        c = p;
+        return r_pt;
+        }
+    else if (dist + r_pt <= r)
+        {
+        return r;
+        }
+
+    OverlapReal r_new = OverlapReal(0.5)*(r + r_pt + dist);
+    c = c + d*(r_new - r)/dist;
+    return r_new;
+    }
+
+
 inline OverlapReal eigen_sphere(const std::vector< vec3<OverlapReal> >& verts, vec3<OverlapReal>& center,
     const std::vector<OverlapReal>& vertex_radii)
     {
@@ -476,43 +498,26 @@ inline OverlapReal eigen_sphere(const std::vector< vec3<OverlapReal> >& verts, v
     vec3<OverlapReal> max_pt;
     OverlapReal min_extent = FLT_MAX;
     OverlapReal max_extent = -FLT_MAX;
+    OverlapReal max_vertex_radius = 0.0;
+    OverlapReal min_vertex_radius = 0.0;
     for (unsigned int i = 0; i < verts.size(); ++i)
         {
         if (dot(max_evec, verts[i])-vertex_radii[i] < min_extent)
             {
             min_extent = dot(max_evec, verts[i])-vertex_radii[i];
             min_pt = verts[i];
+            min_vertex_radius = vertex_radii[i];
             }
         if (dot(max_evec, verts[i])+vertex_radii[i] > max_extent)
             {
             max_extent = dot(max_evec, verts[i])+vertex_radii[i];
             max_pt = verts[i];
+            max_vertex_radius = vertex_radii[i];
             }
         }
 
-    center= OverlapReal(0.5)*(max_pt+min_pt);
-    return OverlapReal(0.5)*sqrt(dot(max_pt-min_pt,max_pt-min_pt));
-    }
-
-// https://stackoverflow.com/questions/33532860/merge-two-spheres-to-get-a-new-one
-inline OverlapReal merge_two_spheres(vec3<OverlapReal>& c, OverlapReal r, vec3<OverlapReal> p, OverlapReal r_pt)
-    {
-    vec3<OverlapReal> d = p - c;
-    OverlapReal dist = sqrt(dot(d,d));
-
-    if (dist + r <= r_pt)
-        {
-        c = p;
-        return r_pt;
-        }
-    else if (dist + r_pt <= r)
-        {
-        return r;
-        }
-
-    OverlapReal r_new = OverlapReal(0.5)*(r + r_pt + dist);
-    c = c + d*(r_new - r)/dist;
-    return r_new;
+    center = min_pt;
+    return merge_two_spheres(center, min_vertex_radius, max_pt, max_vertex_radius);
     }
 
 inline OverlapReal ritter_eigen_sphere(const std::vector<vec3<OverlapReal> >& verts, vec3<OverlapReal>& c,
