@@ -545,15 +545,15 @@ inline OverlapReal ritter_iterative(std::vector<vec3<OverlapReal> > verts, vec3<
 
         for (unsigned int i = 0; i < verts.size(); ++i)
             {
-            unsigned int j = i;
             if (i < verts.size() - 1)
                 {
+                unsigned int j;
                 std::uniform_int_distribution<> dis(i+1, verts.size()-1);
                 j = dis(g);
                 std::swap(verts[i],verts[j]);
                 std::swap(vertex_radii[i],vertex_radii[j]);
                 }
-            r2 = merge_two_spheres(c2, r2, verts[j], vertex_radii[j]);
+            r2 = merge_two_spheres(c2, r2, verts[i], vertex_radii[i]);
             }
 
         if (r2 < r)
