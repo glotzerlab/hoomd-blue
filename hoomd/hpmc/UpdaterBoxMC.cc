@@ -499,7 +499,22 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
     // Volume change
 
     // Choose a lattice vector if non-isotropic volume changes
-    unsigned int i = rand_select(rng, Ndim - 1);
+    unsigned int nonzero_dim = 0;
+    for (unsigned int i = 0; i < Ndim; ++i)
+        if (m_Length_delta[i] != 0.0)
+            nonzero_dim++;
+
+    unsigned int i = rand_select(rng, nonzero_dim-1);
+    for (unsigned int j = 0; j < Ndim; ++j)
+        if (m_Length_delta[j] == 0.0 && i == j)
+            ++i;
+
+    if (i == Ndim)
+        {
+        // all dimensions have delta==0, just count as accepted and return
+        m_count_total.volume_accept_count++;
+        }
+
     Scalar dL_max(m_Length_delta[i]);
 
     // Choose a length change
