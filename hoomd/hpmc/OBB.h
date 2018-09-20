@@ -424,7 +424,10 @@ inline OverlapReal merge_two_spheres(vec3<OverlapReal>& c, OverlapReal r, vec3<O
         }
 
     OverlapReal r_new = OverlapReal(0.5)*(r + r_pt + dist);
-    c = c + d*(r_new - r)/dist;
+
+    if (dist > 0)
+        c+= d*(r_new - r)/dist;
+
     return r_new;
     }
 
