@@ -219,7 +219,7 @@ struct ShapeSpheropolyhedron
             return detail::compute_obb(pts, vertex_radii, false);
             }
         else
-            return detail::OBB(vec3<OverlapReal>(pos), 0);
+            return detail::OBB(vec3<OverlapReal>(pos), verts.sweep_radius);
         }
     #endif
 
