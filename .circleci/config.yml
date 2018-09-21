@@ -1,37 +1,16 @@
 version: 2
 
 references:
-  test_container_config: &test_container_config
+  ubuntu16: &ubuntu16
     docker:
-      - image: joaander/ci:20171130
+      - image: glotzerlab/ci:2018.09-ubuntu16.04
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
-  test_container_config-cuda80: &test_container_config-cuda80
+  ubuntu18: &ubuntu18
     docker:
-      - image: joaander/ci:20171130-cuda80
-        environment:
-          PYTHONPATH: /home/ci/project/build
-    working_directory: /home/ci/project
-
-  test_container_config-cuda75: &test_container_config-cuda75
-    docker:
-      - image: joaander/ci:20171130-cuda75
-        environment:
-          PYTHONPATH: /home/ci/project/build
-    working_directory: /home/ci/project
-
-  test_container_config-cuda70: &test_container_config-cuda70
-    docker:
-      - image: joaander/ci:20171130-cuda70
-        environment:
-          PYTHONPATH: /home/ci/project/build
-    working_directory: /home/ci/project
-
-  test_container_config-arch: &test_container_config-arch
-    docker:
-      - image: joaander/ci:20171206-arch-2
+      - image: glotzerlab/ci:2018.09-ubuntu18.04
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
@@ -97,8 +76,8 @@ references:
           path: test-results
 
 jobs:
-  unit-gcc48-py27-cm28-mpi-tbb:
-    <<: *test_container_config
+  gcc48-py27-cm28-mpi-tbb3:
+    <<: *ubuntu16
     environment:
       CC: /usr/bin/gcc-4.8
       CXX: /usr/bin/g++-4.8
@@ -112,92 +91,128 @@ jobs:
       OMP_NUM_THREADS: 3
     <<: *build_and_test
 
-  gcc48-py27-mpi-cd80:
-    <<: *test_container_config-cuda80
-    environment:
-      CC: /usr/bin/gcc-4.8
-      CXX: /usr/bin/g++-4.8
-      PYVER: "2.7"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: ON
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: ON
-    <<: *native_build
-
-  gcc49-py34-mpi-cd75:
-    <<: *test_container_config-cuda75
-    environment:
-      CC: /usr/bin/gcc-4.9
-      CXX: /usr/bin/g++-4.9
-      PYVER: "3.4"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: ON
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: OFF
-    <<: *native_build
-
-  gcc48-py34-cm28-mpi-cd70:
-    <<: *test_container_config-cuda70
-    environment:
-      CC: /usr/bin/gcc-4.8
-      CXX: /usr/bin/g++-4.8
-      PYVER: "3.4"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: ON
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: OFF
-    <<: *native_build
-
-  gcc54-py35-mpi-cd80:
-    <<: *test_container_config-cuda80
+  gcc54-py35-cm35-mpi-tbb3:
+    <<: *ubuntu16
     environment:
       CC: /usr/bin/gcc
       CXX: /usr/bin/g++
       PYVER: "3.5"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: ON
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: ON
-    <<: *native_build
-
-  gcc72-py36-mpi:
-    <<: *test_container_config-arch
-    environment:
-      CC: /usr/bin/gcc
-      CXX: /usr/bin/g++
-      PYVER: "3.6"
-      CMAKE_BIN: /usr/bin
+      CMAKE: /usr/bin/cmake
       ENABLE_MPI: ON
       ENABLE_TBB: ON
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
       BUILD_JIT: ON
-    <<: *native_build
+      OMP_NUM_THREADS: 3
+    <<: *build_and_test
 
-  unit-clang38-py35:
-    <<: *test_container_config
+  clang38-py35-cm35-mpi-tbb3:
+    <<: *ubuntu16
     environment:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
       PYVER: "3.5"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: OFF
+      CMAKE: /usr/bin/cmake
+      ENABLE_MPI: ON
+      ENABLE_TBB: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
+      OMP_NUM_THREADS: 3
+    <<: *build_and_test
+
+  gcc6-py36-cm310-mpi:
+    <<: *ubuntu18
+    environment:
+      CC: /usr/bin/gcc-6
+      CXX: /usr/bin/g++-6
+      PYVER: "3.6"
+      CMAKE: /usr/bin/cmake
+      ENABLE_MPI: ON
       ENABLE_TBB: OFF
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
       BUILD_JIT: ON
+      OMP_NUM_THREADS: 3
+    <<: *build_and_test
+
+  gcc7-py36-cm310-mpi-tbb3:
+    <<: *ubuntu18
+    environment:
+      CC: /usr/bin/gcc-7
+      CXX: /usr/bin/g++-7
+      PYVER: "3.6"
+      CMAKE: /usr/bin/cmake
+      ENABLE_MPI: ON
+      ENABLE_TBB: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
+      OMP_NUM_THREADS: 3
+    <<: *build_and_test
+
+  gcc8-py36-cm310-mpi-tbb3:
+    <<: *ubuntu18
+    environment:
+      CC: /usr/bin/gcc-8
+      CXX: /usr/bin/g++-8
+      PYVER: "3.6"
+      CMAKE: /usr/bin/cmake
+      ENABLE_MPI: ON
+      ENABLE_TBB: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
+      OMP_NUM_THREADS: 3
+    <<: *build_and_test
+
+  clang4-py36-cm310-tbb3:
+    <<: *ubuntu18
+    environment:
+      CC: /usr/bin/clang-4.0
+      CXX: /usr/bin/clang++-4.0
+      PYVER: "3.6"
+      CMAKE: /usr/bin/cmake
+      ENABLE_MPI: OFF
+      ENABLE_TBB: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
+      OMP_NUM_THREADS: 3
+    <<: *build_and_test
+
+  clang5-py36-cm310-mpi-tbb3:
+    <<: *ubuntu18
+    environment:
+      CC: /usr/bin/clang-5.0
+      CXX: /usr/bin/clang++-5.0
+      PYVER: "3.6"
+      CMAKE: /usr/bin/cmake
+      ENABLE_MPI: ON
+      ENABLE_TBB: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
+      OMP_NUM_THREADS: 3
+    <<: *build_and_test
+
+  clang6-py36-cm310-mpi-tbb3:
+    <<: *ubuntu18
+    environment:
+      CC: /usr/bin/clang-6.0
+      CXX: /usr/bin/clang++-6.0
+      PYVER: "3.6"
+      CMAKE: /usr/bin/cmake
+      ENABLE_MPI: ON
+      ENABLE_TBB: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
+      OMP_NUM_THREADS: 3
     <<: *build_and_test
 
   sphinx-docs:
-    <<: *test_container_config
+    <<: *ubuntu18
     steps:
       - *load_code
       - run:
@@ -209,11 +224,13 @@ workflows:
   version: 2
   workflow:
     jobs:
-      - unit-gcc48-py27-cm28-mpi-tbb
-      - gcc48-py27-mpi-cd80
-      - gcc49-py34-mpi-cd75
-      - gcc54-py35-mpi-cd80
-      - gcc48-py34-cm28-mpi-cd70
-      - unit-clang38-py35
-      - gcc72-py36-mpi
+      - gcc48-py27-cm28-mpi-tbb3
+      - gcc54-py35-cm35-mpi-tbb3
+      - clang38-py35-cm35-mpi-tbb3
+      - gcc6-py36-cm310-mpi
+      - gcc7-py36-cm310-mpi-tbb3
+      - gcc8-py36-cm310-mpi-tbb3
+      - clang4-py36-cm310-tbb3
+      - clang5-py36-cm310-mpi-tbb3
+      - clang6-py36-cm310-mpi-tbb3
       - sphinx-docs
