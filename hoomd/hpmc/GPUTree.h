@@ -165,41 +165,6 @@ class GPUTree
             return leaf;
             }
 
-        //! Fetch the next node in the tree and test against simultaneous overlap with two OBBs
-        /*! The method maintains it internal state in a user-supplied variable cur_node
-         *
-         * \param obb First query bounding box
-         * \param obb2 Second query bounding box
-         * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous call
-         * \returns true if the current node overlaps and is a leaf node
-         */
-        DEVICE inline bool queryNode_three(const OBB& obb, const OBB& obb2, unsigned int &cur_node) const
-            {
-            OBB node_obb(getOBB(cur_node));
-
-            bool leaf = false;
-            if (overlap(node_obb, obb) && overlap(node_obb, obb2))
-                {
-                unsigned int left_child = getLeftChild(cur_node);
-
-                // is this node a leaf node?
-                if (left_child == OBB_INVALID_NODE)
-                    {
-                    leaf = true;
-                    }
-                else
-                    {
-                    cur_node = left_child;
-                    return false;
-                    }
-                }
-
-            // escape
-            cur_node = m_escape[cur_node];
-
-            return leaf;
-            }
-
         //! Fetch the next node in the tree and test against overlap with a ray
         /*! The method maintains it internal state in a user-supplied variable cur_node
          * The ray equation is R(t) = p + t*d (t>=0)
@@ -506,6 +471,115 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
 
     return leaf;
     }
+
+//! Traverse a binary hierachy, subject to interestion with a third OBB
+/*! Returns true if an intersecting pair of leaf OBB's has been found, where at least one of the two
+ * OBBs intersects with the third OBB
+ *
+ * \param a First tree
+ * \param b Second tree
+ * \param cur_node_a Current node in first tree
+ * \param cur_node_b Current node in second tree
+ * \param a binary stack realized as an integer
+ * \param obb_a OBB from first tree corresponding to cur_node_a, in the reference frame of b
+ * \param obb_b OBB from second tree corresponding to cur_node_b
+ * \param q Rotation that is applied to a's OBBs to bring them into b's reference frame
+ * \param dr translation that is applied to a's OBBs to bring them into b's reference frame
+ * \param obb_c OBB to test the first two OBB's against, in the reference frame of b
+ *
+ * This function prefetches OBBs from trees a and b and is supposed to be called from a while-loop:
+ *
+ * unsigned long int stack = 0;
+ * // the third OBB
+ * obb_c = ..
+ *
+ * // load initial OBBs for the two nodes
+ * obb_a = ...
+ * // transform OBB a into B's frame
+ * ...
+ * obb_b = ...
+ *
+ *
+ * while (cur_node_a != a.tree.getNumNodes() && cur_node_b != b.tree.getNumNodes())
+ *     {
+ *     query_node_a = cur_node_a;
+ *     query_node_b = cur_node_b;
+ *     if (traverseBinaryStack(a, b, cur_node_a, cur_node_b, stack, obb_a, obb_b, obb..))
+ *            test_narrow_phase(a, b, query_node_a, query_node_b, ...)
+ *     }
+ */
+DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a, const GPUTree &b, unsigned int& cur_node_a, unsigned int& cur_node_b,
+    unsigned long int &stack, OBB& obb_a, OBB& obb_b, const quat<OverlapReal>& q, const vec3<OverlapReal>& dr, const OBB& obb_c)
+    {
+    bool leaf = false;
+    bool ascend = true;
+
+    unsigned int old_a = cur_node_a;
+    unsigned int old_b = cur_node_b;
+
+    if (overlap(obb_a, obb_b) && (overlap(obb_a, obb_c) || overlap(obb_b, obb_c)) )
+        {
+        if (a.isLeaf(cur_node_a) && b.isLeaf(cur_node_b))
+            {
+            leaf = true;
+            }
+        else
+            {
+            // descend into subtree with larger volume first (unless there are no children)
+            bool descend_A = obb_a.getVolume() > obb_b.getVolume() ? !a.isLeaf(cur_node_a) : b.isLeaf(cur_node_b);
+
+            if (descend_A)
+                {
+                cur_node_a = a.getLeftChild(cur_node_a);
+                stack <<= 1; // push A
+                }
+            else
+                {
+                cur_node_b = b.getLeftChild(cur_node_b);
+                stack <<= 1; stack |= 1; // push B
+                }
+            ascend = false;
+            }
+        }
+
+    if (ascend)
+        {
+        // ascend in tree
+        unsigned int a_count = a.getNumAncestors(cur_node_a);
+        unsigned int b_count = b.getNumAncestors(cur_node_b);
+
+        unsigned int a_ascent, b_ascent;
+        findAscent(a_count, b_count, stack, a_ascent, b_ascent);
+
+        if ((stack & 1) == 0) // top of stack == A
+            {
+            cur_node_a = a.getEscapeIndex(cur_node_a);
+
+            // ascend in B, using post-order indexing
+            cur_node_b -= b_ascent;
+            }
+        else
+            {
+            // ascend in A, using post-order indexing
+            cur_node_a -= a_ascent;
+            cur_node_b = b.getEscapeIndex(cur_node_b);
+            }
+        }
+    if (cur_node_a < a.getNumNodes() && cur_node_b < b.getNumNodes())
+        {
+        // pre-fetch OBBs
+        if (old_a != cur_node_a)
+            {
+            obb_a = a.getOBB(cur_node_a);
+            obb_a.affineTransform(q, dr);
+            }
+        if (old_b != cur_node_b)
+            obb_b = b.getOBB(cur_node_b);
+        }
+
+    return leaf;
+    }
+
 
 }; // end namespace detail
 

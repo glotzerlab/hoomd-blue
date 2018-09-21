@@ -374,7 +374,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     }
 
 template<class Shape>
-DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
+DEVICE inline bool test_narrow_phase_overlap_intersection(const ShapeUnion<Shape>& a,
                                              const ShapeUnion<Shape>& b,
                                              const ShapeUnion<Shape>& c,
                                              vec3<OverlapReal> ab_t,
@@ -433,7 +433,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
                 vec3<OverlapReal> pos_ik(rotate(quat<OverlapReal>(c.orientation),c.members.mpos[kshape]) + ac_t - pos_i);
                 unsigned int overlap_k = c.members.moverlap[kshape];
 
-                if ((overlap_i & overlap_j & overlap_k) &&
+                if (((overlap_i & overlap_k) || (overlap_j & overlap_k)) &&
                     test_overlap_intersection(shape_i, shape_j, shape_k, pos_ij, pos_ik, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
                     {
                     return true;
@@ -470,66 +470,56 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
     const detail::GPUTree& tree_b = b.members.tree;
     const detail::GPUTree& tree_c = c.members.tree;
 
-    // perform a tandem tree traversal between trees a and b
-    unsigned long int stack = 0;
-    unsigned int cur_node_a = 0;
-    unsigned int cur_node_b = 0;
+    quat<OverlapReal> qbc(conj(b.orientation)*c.orientation);
+    vec3<OverlapReal> rbc_rot(rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(-ab_t+ac_t)));
 
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-ab_t));
-    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
+    vec3<OverlapReal> rab_rot(rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(-ab_t)));
+    quat<OverlapReal> qab(conj(b.orientation)*a.orientation);
 
-    detail::OBB obb_a = tree_a.getOBB(cur_node_a);
-    obb_a.affineTransform(q, dr_rot);
-
-    detail::OBB obb_b = tree_b.getOBB(cur_node_b);
-
-    OverlapReal sac = sweep_radius_a + sweep_radius_c;
-    OverlapReal sbc = sweep_radius_b + sweep_radius_c;
-
-    while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
+    for (unsigned int cur_leaf_c = 0; cur_leaf_c < tree_c.getNumLeaves(); cur_leaf_c++)
         {
-        unsigned int query_node_a = cur_node_a;
-        unsigned int query_node_b = cur_node_b;
+        unsigned int cur_node_c = tree_c.getLeafNode(cur_leaf_c);
+        detail::OBB obb_c = tree_c.getOBB(cur_node_c);
 
-        // extend OBBs
-        obb_a.lengths.x += sweep_radius_a;
-        obb_a.lengths.y += sweep_radius_a;
-        obb_a.lengths.z += sweep_radius_a;
+        obb_c.lengths.x += sweep_radius_c;
+        obb_c.lengths.y += sweep_radius_c;
+        obb_c.lengths.z += sweep_radius_c;
 
-        obb_b.lengths.x += sweep_radius_b;
-        obb_b.lengths.y += sweep_radius_b;
-        obb_b.lengths.z += sweep_radius_b;
+        // transform into b's reference frame
+        obb_c.affineTransform(qbc, rbc_rot);
 
-        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot))
+        // perform a tandem tree traversal between trees a and b, subject to overlap with c
+        unsigned long int stack = 0;
+        unsigned int cur_node_a = 0;
+        unsigned int cur_node_b = 0;
+
+        detail::OBB obb_a = tree_a.getOBB(cur_node_a);
+        obb_a.affineTransform(qab, rab_rot);
+
+        detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
+        while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
             {
-            // found a pair of intersecting OBBs to test against c's tree
-
-            // move into c's reference frame
-            detail::OBB obb_a_intersect = tree_a.getOBB(query_node_a);
-            detail::OBB obb_b_intersect = tree_b.getOBB(query_node_b);
-            obb_a_intersect.affineTransform(conj(c.orientation)*a.orientation,
-                    rotate(conj(c.orientation),-ac_t));
-            obb_b_intersect.affineTransform(conj(c.orientation)*b.orientation,
-                    rotate(conj(c.orientation),-ac_t+ab_t));
+            unsigned int query_node_a = cur_node_a;
+            unsigned int query_node_b = cur_node_b;
 
             // extend OBBs
-            obb_a_intersect.lengths.x += sac;
-            obb_a_intersect.lengths.y += sac;
-            obb_a_intersect.lengths.z += sac;
+            obb_a.lengths.x += sweep_radius_a;
+            obb_a.lengths.y += sweep_radius_a;
+            obb_a.lengths.z += sweep_radius_a;
 
-            obb_b_intersect.lengths.x += sbc;
-            obb_b_intersect.lengths.y += sbc;
-            obb_b_intersect.lengths.z += sbc;
+            obb_b.lengths.x += sweep_radius_b;
+            obb_b.lengths.y += sweep_radius_b;
+            obb_b.lengths.z += sweep_radius_b;
 
-            unsigned cur_node_c = 0;
-            while (cur_node_c < tree_c.getNumNodes())
-                {
-                unsigned int query_node_c = cur_node_c;
-                if (tree_c.queryNode_three(obb_a_intersect, obb_b_intersect, cur_node_c) &&
-                    test_narrow_phase_overlap_three(a, b, c, ab_t, ac_t,
-                        query_node_a, query_node_b, query_node_c, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
-                    return true;
-                }
+            // combine masks
+            unsigned int combined_mask = obb_a.mask | obb_b.mask;
+            obb_a.mask = obb_b.mask = combined_mask;
+
+            if (detail::traverseBinaryStackIntersection(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, qab, rab_rot, obb_c)
+                && test_narrow_phase_overlap_intersection(a, b, c, ab_t, ac_t,
+                    query_node_a, query_node_b, cur_node_c, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
+                        return true;
             }
         }
 
