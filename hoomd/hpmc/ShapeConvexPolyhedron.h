@@ -678,7 +678,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         }
     }
 
-//! Test for a common point in the intersection of three convex polyhedra
+//! Test for the overlap of a third convex polyhedron with the intersection of two convex polyhedra
 /*! \param a First shape to test
     \param b Second shape to test
     \param c Third shape to test
@@ -688,7 +688,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     \param sweep_radius Radius of a sphere to sweep all shapes by
 */
 template<>
-DEVICE inline bool test_overlap_three(const ShapeConvexPolyhedron& a,
+DEVICE inline bool test_overlap_intersection(const ShapeConvexPolyhedron& a,
     const ShapeConvexPolyhedron& b, const ShapeConvexPolyhedron& c,
     const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
     Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)

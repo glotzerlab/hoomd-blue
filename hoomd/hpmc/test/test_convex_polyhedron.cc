@@ -748,7 +748,7 @@ UP_TEST( overlap_three_cubes_no_rot )
     UP_ASSERT(!result);
 
     // test triple overlap
-    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    result = test_overlap_intersection(a,b,c,r_ab,r_ac,err_count);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
 
@@ -781,7 +781,7 @@ UP_TEST( overlap_three_cubes_no_rot )
     UP_ASSERT(!result);
 
     // test triple overlap
-    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    result = test_overlap_intersection(a,b,c,r_ab,r_ac,err_count);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
 
@@ -811,7 +811,7 @@ UP_TEST( overlap_three_cubes_no_rot )
     UP_ASSERT(!result);
 
     // test triple overlap
-    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    result = test_overlap_intersection(a,b,c,r_ab,r_ac,err_count);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
 
@@ -841,7 +841,7 @@ UP_TEST( overlap_three_cubes_no_rot )
     UP_ASSERT(result);
 
     // test triple overlap
-    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    result = test_overlap_intersection(a,b,c,r_ab,r_ac,err_count);
     UP_ASSERT(!err_count);
     UP_ASSERT(result);
 
@@ -881,7 +881,7 @@ UP_TEST( overlap_three_cubes_no_rot )
     UP_ASSERT(result);
 
     // test triple overlap
-    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    result = test_overlap_intersection(a,b,c,r_ab,r_ac,err_count);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
 
@@ -910,7 +910,7 @@ UP_TEST( overlap_three_cubes_no_rot )
     UP_ASSERT(!result);
 
     // test triple overlap
-    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count);
+    result = test_overlap_intersection(a,b,c,r_ab,r_ac,err_count);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
 
@@ -923,11 +923,11 @@ UP_TEST( overlap_three_cubes_no_rot )
     r_ac = vec3<Scalar>(0.25+t*sqrt(3.0)/2.0,t+sqrt(3.0)/4+t/2.0,0);
 
     // test triple overlap
-    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count, incircle_r+0.001, incircle_r+0.001, incircle_r+0.001);
+    result = test_overlap_intersection(a,b,c,r_ab,r_ac,err_count, incircle_r+0.001, incircle_r+0.001, incircle_r+0.001);
     UP_ASSERT(!err_count);
     UP_ASSERT(result);
 
-    result = test_overlap_three(a,b,c,r_ab,r_ac,err_count, incircle_r-0.001, incircle_r-0.001, incircle_r-0.001);
+    result = test_overlap_intersection(a,b,c,r_ab,r_ac,err_count, incircle_r-0.001, incircle_r-0.001, incircle_r-0.001);
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
     }

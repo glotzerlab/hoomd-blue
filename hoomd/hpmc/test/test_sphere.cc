@@ -125,7 +125,7 @@ UP_TEST( overlap_boundaries )
     ShapeSphere a(o, par);
     ShapeSphere b(o, par);
     ShapeSphere c(o, par);
-    UP_ASSERT(!test_overlap_three(a,b,c,r_ab,r_ac,err_count));
+    UP_ASSERT(!test_overlap_intersection(a,b,c,r_ab,r_ac,err_count));
 
     // place three circles with pairwise, but no joint overlap
     sph_params par2;
@@ -139,20 +139,20 @@ UP_TEST( overlap_boundaries )
     UP_ASSERT(test_overlap(r_ab,a,b,err_count));
     UP_ASSERT(test_overlap(r_ad,a,d,err_count));
     UP_ASSERT(test_overlap(r_ad-r_ab,b,d,err_count));
-    UP_ASSERT(!test_overlap_three(a,b,d,r_ab,r_ad,err_count));
+    UP_ASSERT(!test_overlap_intersection(a,b,d,r_ab,r_ad,err_count));
 
     // move one of the spheres slightly so as to create triple overlap
     r_ad.x = 0.5;
     UP_ASSERT(test_overlap(r_ab,a,b,err_count));
     UP_ASSERT(test_overlap(r_ad,a,d,err_count));
     UP_ASSERT(test_overlap(r_ad-r_ab,b,d,err_count));
-    UP_ASSERT(test_overlap_three(a,b,d,r_ab,r_ad,err_count));
+    UP_ASSERT(test_overlap_intersection(a,b,d,r_ab,r_ad,err_count));
 
     // place one of the spheres on top of the other
     r_ad.x = r_ad.y = 0;
     UP_ASSERT(test_overlap(r_ab,a,b,err_count));
     UP_ASSERT(test_overlap(r_ad,a,d,err_count));
     UP_ASSERT(test_overlap(r_ad-r_ab,b,d,err_count));
-    UP_ASSERT(test_overlap_three(a,b,d,r_ab,r_ad,err_count));
+    UP_ASSERT(test_overlap_intersection(a,b,d,r_ab,r_ad,err_count));
     }
 

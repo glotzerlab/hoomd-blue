@@ -1628,7 +1628,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             r_ij, -r_jk+r_ij, m_sweep_radius, m_sweep_radius, 0.0);
 
                         if (circumsphere_overlap
-                            && test_overlap_three(shape_old, shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius, m_sweep_radius, 0.0))
+                            && test_overlap_intersection(shape_old, shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius, m_sweep_radius, 0.0))
                             in_intersection_volume = true;
 
                         if (in_intersection_volume)
@@ -1640,7 +1640,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                 m_sweep_radius, m_sweep_radius, 0.0);
 
                             if (circumsphere_overlap
-                                && test_overlap_three(shape_i, (i == j) ? shape_i : shape_j, shape_test, r_ij, -r_jk+r_ij, err,
+                                && test_overlap_intersection(shape_i, (i == j) ? shape_i : shape_j, shape_test, r_ij, -r_jk+r_ij, err,
                                     m_sweep_radius, m_sweep_radius, 0.0))
                                 in_intersection_volume = false;
                             }
@@ -2005,7 +2005,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         unsigned int err = 0;
 
                         if (circumsphere_overlap
-                            && test_overlap_three(shape_i, shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius, m_sweep_radius, 0.0))
+                            && test_overlap_intersection(shape_i, shape_j, shape_test, r_ij, r_ij - r_jk, err, m_sweep_radius, m_sweep_radius, 0.0))
                             in_new_intersection_volume = true;
 
                         if (in_new_intersection_volume)
@@ -2017,7 +2017,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                 m_sweep_radius, m_sweep_radius, 0.0);
 
                             if (circumsphere_overlap
-                                && test_overlap_three(shape_old, (i == j) ? shape_old : shape_j, shape_test, r_ij, r_ij - r_jk, err,
+                                && test_overlap_intersection(shape_old, (i == j) ? shape_old : shape_j, shape_test, r_ij, r_ij - r_jk, err,
                                     m_sweep_radius, m_sweep_radius, 0.0))
                                 in_new_intersection_volume = false;
                             }

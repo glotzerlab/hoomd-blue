@@ -434,7 +434,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
                 unsigned int overlap_k = c.members.moverlap[kshape];
 
                 if ((overlap_i & overlap_j & overlap_k) &&
-                    test_overlap_three(shape_i, shape_j, shape_k, pos_ij, pos_ik, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
+                    test_overlap_intersection(shape_i, shape_j, shape_k, pos_ij, pos_ik, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
                     {
                     return true;
                     }
@@ -444,7 +444,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
     return false;
     }
 
-//! Test for a common point in the intersection of three union shapes
+//! Test for overlap of a third particle with the intersection of two shapes
 /*! \param a First shape to test
     \param b Second shape to test
     \param c Third shape to test
@@ -456,7 +456,7 @@ DEVICE inline bool test_narrow_phase_overlap_three(const ShapeUnion<Shape>& a,
     \param sweep_radius_c Radius of a sphere to sweep the third shape by
 */
 template <class Shape >
-DEVICE inline bool test_overlap_three(const ShapeUnion<Shape>& a,
+DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
                                 const ShapeUnion<Shape>& b,
                                 const ShapeUnion<Shape>& c,
                                 const vec3<Scalar>& ab_t,

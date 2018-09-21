@@ -311,7 +311,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         }
     }
 
-//! Test for a common point in the intersection of three spheropolyhedra
+//! Test for overlap of a third particle with the intersection of two shapes
 /*! \param a First shape to test
     \param b Second shape to test
     \param c Third shape to test
@@ -322,7 +322,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     \param sweep_radius_b Radius of a sphere to sweep the second shape by
 */
 template<>
-DEVICE inline bool test_overlap_three(const ShapeSpheropolyhedron& a,
+DEVICE inline bool test_overlap_intersection(const ShapeSpheropolyhedron& a,
     const ShapeSpheropolyhedron& b,
     const ShapeSpheropolyhedron& c,
     const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,

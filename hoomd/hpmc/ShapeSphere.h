@@ -371,7 +371,7 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
         }
     }
 
-//! Test for a common point in the intersection *volume* of three shapes
+//! Test for overlap of a third particle with the intersection of two shapes
 /*! \param a First shape to test
     \param b Second shape to test
     \param c Third shape to test
@@ -383,7 +383,7 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
     \param sweep_radius_c Radius of a sphere to sweep the third shape by
 */
 template <class ShapeA, class ShapeB, class ShapeC>
-DEVICE inline bool test_overlap_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
+DEVICE inline bool test_overlap_intersection(const ShapeA& a, const ShapeB& b, const ShapeC& c,
     const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
     Scalar sweep_radius_a = Scalar(0.0), Scalar sweep_radius_b = Scalar(0.0),
     Scalar sweep_radius_c = Scalar(0.0))
@@ -404,7 +404,7 @@ DEVICE inline bool test_overlap_three(const ShapeA& a, const ShapeB& b, const Sh
     \param sweep_radius_c Radius of a sphere to sweep the third sphere by
 */
 template<>
-DEVICE inline bool test_overlap_three(const ShapeSphere& a, const ShapeSphere& b, const ShapeSphere& c,
+DEVICE inline bool test_overlap_intersection(const ShapeSphere& a, const ShapeSphere& b, const ShapeSphere& c,
     const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
     Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
     {
