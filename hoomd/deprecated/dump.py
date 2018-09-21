@@ -281,7 +281,7 @@ class pos(hoomd.analyze._analyzer):
                              is continuous. The center of mass of the body remains in the simulation box, but
                              some particles may be written just outside it.
         phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
-        addInfo (callable): A user-defined python function that returns a string of additional information when it is called. This
+        addInfo (`callable`): A user-defined python function that returns a string of additional information when it is called. This
                             information will be printed in the pos file beneath the shape definitions. The information returned by addInfo
                             may dynamically change over the course of the simulation; addInfo is a function of the simulation timestep only.
 
