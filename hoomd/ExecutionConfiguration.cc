@@ -705,7 +705,6 @@ unsigned int ExecutionConfiguration::getNRanks() const
     }
 #endif
 
-
 void export_ExecutionConfiguration(py::module& m)
     {
     py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration> > executionconfiguration(m,"ExecutionConfiguration");
@@ -726,6 +725,17 @@ void export_ExecutionConfiguration(py::module& m)
         .def("barrier", &ExecutionConfiguration::barrier)
         .def_static("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
         .def_static("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
+        .def_static("_make_exec_conf_mpi_comm",  [](ExecutionConfiguration::executionMode mode,
+                                                    int gpu_id,
+                                                    bool min_cpu,
+                                                    bool ignore_display,
+                                                    std::shared_ptr<Messenger> _msg,
+                                                    unsigned int n_ranks,
+                                                    py::object mpi_comm) -> std::shared_ptr<ExecutionConfiguration>
+            {
+            MPI_Comm *comm = (MPI_Comm*)PyLong_AsVoidPtr(mpi_comm.ptr());
+            return std::make_shared<ExecutionConfiguration>(mode, gpu_id, min_cpu, ignore_display, _msg, n_ranks, *comm);
+            })
 #endif
 #ifdef ENABLE_TBB
         .def("setNumThreads", &ExecutionConfiguration::setNumThreads)

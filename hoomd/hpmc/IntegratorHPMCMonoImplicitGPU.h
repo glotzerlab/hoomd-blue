@@ -208,11 +208,6 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
     cudaDeviceProp dev_prop = this->m_exec_conf->dev_prop;
 
     unsigned int max_tpp = this->m_exec_conf->dev_prop.warpSize;
-    if (this->m_exec_conf->getComputeCapability() < 300)
-        {
-        // no wide parallelism on Fermi
-        max_tpp = 1;
-        }
 
     if (Shape::isParallel())
         {
@@ -349,6 +344,13 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
         ArrayHandle<hpmc_implicit_counters_t> h_implicit_counters(this->m_implicit_count, access_location::host, access_mode::readwrite);
         this->m_implicit_count_step_start = h_implicit_counters.data[0];
         }
+
+    #ifndef ENABLE_HPMC_REINSERT
+    if (this->m_n_trial)
+        {
+        throw std::runtime_error("ntrial > 0 not supported on the GPU. For CUDA architecture <=6.0, recompile with ENABLE_HPMC_REINSERT=ON.");
+        }
+    #endif
 
     // check if we are below a minimum image convention box size
     BoxDim box = this->m_pdata->getBox();
