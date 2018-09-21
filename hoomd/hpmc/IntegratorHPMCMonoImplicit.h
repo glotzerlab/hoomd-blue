@@ -1414,6 +1414,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
         for (unsigned int k = 0; k < m_intersect_i.size(); ++k)
         #endif
             {
+            #ifdef ENABLE_TBB
+            if (!accept)
+                return;
+            #endif
+
             unsigned int j = m_intersect_i[k];
             vec3<Scalar> ri = pos_i_old;
             Scalar4 postype_j = h_postype[j];
