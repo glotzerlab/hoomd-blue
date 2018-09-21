@@ -473,8 +473,8 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
     }
 
 //! Traverse a binary hierachy, subject to interestion with a third OBB
-/*! Returns true if an intersecting pair of leaf OBB's has been found, where at least one of the two
- * OBBs intersects with the third OBB
+/*! Returns true if an intersecting pair of leaf OBB's has been found, where both
+ * OBBs intersect with the third OBB
  *
  * \param a First tree
  * \param b Second tree
@@ -518,7 +518,7 @@ DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a, const GPUTr
     unsigned int old_a = cur_node_a;
     unsigned int old_b = cur_node_b;
 
-    if (overlap(obb_a, obb_b) && (overlap(obb_a, obb_c) || overlap(obb_b, obb_c)) )
+    if (overlap(obb_a, obb_b) && overlap(obb_a, obb_c) && overlap(obb_b, obb_c))
         {
         if (a.isLeaf(cur_node_a) && b.isLeaf(cur_node_b))
             {
