@@ -2226,22 +2226,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
 class convex_polyhedron_union(convex_spheropolyhedron_union):
     R""" HPMC integration for unions of convex polyhedra (3D).
 
-        * .. deprecated:: 2.4
-             Replaced by :py:class:`convex_spheropolyhedron_union`. This class stays in place for compatibility with older scripts.
-
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        implicit (bool): Flag to enable implicit depletants.
-
-        return shape_def
-
-class convex_polyhedron_union(convex_spheropolyhedron_union):
-    R""" HPMC integration for unions of convex polyhedra (3D).
-
      .. deprecated:: 2.4
         Replaced by :py:class:`convex_spheropolyhedron_union`. This class stays in place for compatibility with older scripts.
 
