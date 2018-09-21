@@ -1624,8 +1624,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                         // check triple overlap with i at old position
                         vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_old - this->m_image_list[m_image_i[m]];
-                        bool circumsphere_overlap = check_circumsphere_overlap_three(shape_old, shape_j, shape_test,
-                            r_ij, -r_jk+r_ij, m_sweep_radius, m_sweep_radius, 0.0);
+
+                        // need to enable later when we have a better way of excluding particles from the image list calculation
+                        bool circumsphere_overlap = true || (h_overlaps[this->m_overlap_idx(m_type,typ_i)] && h_overlaps[this->m_overlap_idx(m_type,typ_j)]);
+                        circumsphere_overlap = circumsphere_overlap && check_circumsphere_overlap_three(shape_old, shape_j, shape_test,
+                                r_ij, -r_jk+r_ij, m_sweep_radius, m_sweep_radius, 0.0);
 
                         if (circumsphere_overlap
                             && test_overlap_intersection(shape_old, shape_j, shape_test, r_ij, -r_jk+r_ij, err, m_sweep_radius, m_sweep_radius, 0.0))
@@ -1636,7 +1639,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             // check triple overlap with i at new position
                             r_ij = vec3<Scalar>(postype_j) - pos_i - this->m_image_list[m_image_i[m]];
                             r_jk = ((i == j) ? pos_i : vec3<Scalar>(h_postype[j])) - pos_test - this->m_image_list[m_image_i[m]];
-                            circumsphere_overlap = check_circumsphere_overlap_three(shape_i, shape_j, shape_test, r_ij, -r_jk+r_ij,
+
+                            // need to enable later when we have a better way of excluding particles from the image list calculation
+                            bool circumsphere_overlap = true || (h_overlaps[this->m_overlap_idx(m_type,typ_i)] && h_overlaps[this->m_overlap_idx(m_type,typ_j)]);
+                            circumsphere_overlap = circumsphere_overlap && check_circumsphere_overlap_three(shape_i, shape_j, shape_test, r_ij, -r_jk+r_ij,
                                 m_sweep_radius, m_sweep_radius, 0.0);
 
                             if (circumsphere_overlap
@@ -1998,7 +2004,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         // check triple overlap of circumspheres
                         vec3<Scalar> r_ij = ( (i==j) ? pos_i : vec3<Scalar>(h_postype[j])) - pos_i -
                             this->m_image_list[m_image_i[m]];
-                        bool circumsphere_overlap = check_circumsphere_overlap_three(shape_i, shape_j, shape_test, r_ij, r_ij - r_jk,
+
+                        // need to enable later when we have a better way of excluding particles from the image list calculation
+                        bool circumsphere_overlap = true || (h_overlaps[this->m_overlap_idx(m_type,typ_i)] && h_overlaps[this->m_overlap_idx(m_type,typ_j)]);
+                        circumsphere_overlap = circumsphere_overlap && check_circumsphere_overlap_three(shape_i, shape_j, shape_test, r_ij, r_ij - r_jk,
                             m_sweep_radius, m_sweep_radius, 0.0);
 
                         // check triple overlap with new configuration
@@ -2013,7 +2022,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             // check triple overlap with old configuration
                             r_ij = vec3<Scalar>(h_postype[j]) - pos_i_old - this->m_image_list[m_image_i[m]];
                             r_jk = vec3<Scalar>(h_postype[j]) - pos_test - this->m_image_list[m_image_i[m]];
-                            circumsphere_overlap = check_circumsphere_overlap_three(shape_old, shape_j, shape_test, r_ij, r_ij - r_jk,
+
+                            // need to enable later when we have a better way of excluding particles from the image list calculation
+                            bool circumsphere_overlap = true || (h_overlaps[this->m_overlap_idx(m_type,typ_i)] && h_overlaps[this->m_overlap_idx(m_type,typ_j)]);
+                            circumsphere_overlap = circumsphere_overlap && check_circumsphere_overlap_three(shape_old, shape_j, shape_test, r_ij, r_ij - r_jk,
                                 m_sweep_radius, m_sweep_radius, 0.0);
 
                             if (circumsphere_overlap
