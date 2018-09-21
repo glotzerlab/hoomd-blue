@@ -407,7 +407,7 @@ class wall(_updater):
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
         walls (:py:class:`hoomd.hpmc.field.wall`): the wall class instance to be updated
-        py_updater (callable): the python callback that performs the update moves. This must be a python method that is a function of the timestep of the simulation.
+        py_updater (`callable`): the python callback that performs the update moves. This must be a python method that is a function of the timestep of the simulation.
                It must actually update the :py:class:`hoomd.hpmc.field.wall`) managed object.
         move_ratio (float): the probability with which an update move is attempted
         seed (int): the seed of the pseudo-random number generator that determines whether or not an update move is attempted

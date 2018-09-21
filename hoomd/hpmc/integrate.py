@@ -1994,7 +1994,7 @@ class sphere_union(mode_hpmc):
 
         return shape_def
 
-class convex_polyhedron_union(mode_hpmc):
+class convex_spheropolyhedron_union(mode_hpmc):
     R""" HPMC integration for unions of convex polyhedra (3D).
 
     Args:
@@ -2017,6 +2017,10 @@ class convex_polyhedron_union(mode_hpmc):
     * *centers* (**required**) - list of centers of constituent polyhedra in particle coordinates.
     * *orientations* (**required**) - list of orientations of constituent polyhedra.
     * *overlap* (**default: 1 for all particles**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
+    * *sweep_radii* (**default: 0 for all particle**) - radii of spheres sweeping out each constituent polyhedron
+
+        * .. versionadded:: 2.4
+
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
 
@@ -2025,8 +2029,8 @@ class convex_polyhedron_union(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.convex_polyhedron_union(seed=27)
-        mc = hpmc.integrate.convex_polyhedron_union(seed=27, d=0.3, a=0.4)
+        mc = hpmc.integrate.convex_spheropolyhedron_union(seed=27)
+        mc = hpmc.integrate.convex_spheropolyhedron_union(seed=27, d=0.3, a=0.4)
         cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
                      [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
         mc.shape_param.set('A', vertices=[cube_verts, cube_verts],
@@ -2086,19 +2090,89 @@ class convex_polyhedron_union(mode_hpmc):
         orientations = param.orientations
         centers = param.centers
         colors = param.colors
+        sweep_radii = [m.sweep_radius for m in param.members]
         if param.colors is None:
             # default
             colors = ["ff5984ff" for c in centers]
         N = len(centers);
-        shape_def = 'poly3d_union {0} '.format(N);
 
+        if N == 1:
+            verts = vertices[0]
+            R = sweep_radii[0]
+            if len(verts) == 1:
+                shape_def = 'sphere {0} '.format(2*R);
 
-        for verts,q,p,c in zip(vertices, orientations, centers, colors):
-            shape_def += '{0} '.format(len(verts));
-            for v in verts:
-                shape_def += '{0} {1} {2} '.format(*v);
-            shape_def += '{0} {1} {2} '.format(*p);
-            shape_def += '{0} {1} {2} {3} '.format(*q);
-            shape_def += '{0} '.format(c);
+            else:
+                shape_def = 'spoly3d {0} {1} '.format(R, len(verts));
+
+                for v in verts:
+                    shape_def += '{0} {1} 0 '.format(*v);
+        else:
+            shape_def = 'poly3d_union {0} '.format(N);
+
+            # sweep radius is ignored for now
+            for verts,q,p,c in zip(vertices, orientations, centers, colors):
+                shape_def += '{0} '.format(len(verts));
+                for v in verts:
+                    shape_def += '{0} {1} {2} '.format(*v);
+                shape_def += '{0} {1} {2} '.format(*p);
+                shape_def += '{0} {1} {2} {3} '.format(*q);
+                shape_def += '{0} '.format(c);
 
         return shape_def
+
+class convex_polyhedron_union(convex_spheropolyhedron_union):
+    R""" HPMC integration for unions of convex polyhedra (3D).
+
+     .. deprecated:: 2.4
+        Replaced by :py:class:`convex_spheropolyhedron_union`. This class stays in place for compatibility with older scripts.
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): The number of trial moves to perform in each cell.
+        implicit (bool): Flag to enable implicit depletants.
+        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
+            (added in version 2.2)
+        max_members (int): Set the maximum number of members in the convex polyhedron union
+        capacity (int): Set to the number of constituent convex polyhedra per leaf node
+
+    .. versionadded:: 2.2
+
+    Convex polyhedron union parameters:
+
+    * *vertices* (**required**) - list of vertex lists of the polyhedra in particle coordinates.
+    * *centers* (**required**) - list of centers of constituent polyhedra in particle coordinates.
+    * *orientations* (**required**) - list of orientations of constituent polyhedra.
+    * *overlap* (**default: 1 for all particles**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
+    * *sweep_radii* (**default: 0 for all particle**) - radii of spheres sweeping out each constituent polyhedron
+
+        * .. versionadded:: 2.4
+
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
+
+    Example::
+
+        mc = hpmc.integrate.convex_polyhedron_union(seed=27)
+        mc = hpmc.integrate.convex_polyhedron_union(seed=27, d=0.3, a=0.4)
+        cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
+                     [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
+        mc.shape_param.set('A', vertices=[cube_verts, cube_verts],
+                                centers=[[-1,0,0],[1,0,0]],orientations=[[1,0,0,0],[1,0,0,0]]);
+        print('vertices of the first cube = ', mc.shape_param['A'].members[0].vertices)
+        print('center of the first cube = ', mc.shape_param['A'].centers[0])
+        print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
+    """
+
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere'):
+        hoomd.util.print_status_line();
+
+        # just fall back on base class
+        convex_spheropolyhedron_union.__init__(self,seed,d,a,move_ratio,nselect, implicit, depletant_mode)
+

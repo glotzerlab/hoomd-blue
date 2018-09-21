@@ -508,7 +508,7 @@ class log(_analyzer):
 
         Args:
             name (str): Name of the quantity
-            callback (callable): A python callable object (i.e. a lambda, function, or class that implements __call__)
+            callback (`callable`): A python callable object (i.e. a lambda, function, or class that implements __call__)
 
         The callback method must take a single argument, the current
         timestep, and return a single floating point value to be
@@ -577,7 +577,7 @@ class callback(_analyzer):
     R""" Callback analyzer.
 
     Args:
-        callback (callable): The python callback object
+        callback (`callable`): The python callback object
         period (int): The callback is called every \a period time steps
         phase (int): When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
 
