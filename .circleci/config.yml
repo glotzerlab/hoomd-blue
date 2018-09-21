@@ -114,7 +114,7 @@ jobs:
       PYVER: "3.5"
       CMAKE_BIN: /usr/bin
       ENABLE_MPI: ON
-      ENABLE_TBB: ON
+      ENABLE_TBB: OFF
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
       BUILD_JIT: ON
