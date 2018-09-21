@@ -487,7 +487,8 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
  * \param dr translation that is applied to a's OBBs to bring them into b's reference frame
  * \param obb_c OBB to test the first two OBB's against, in the reference frame of b
  *
- * This function prefetches OBBs from trees a and b and is supposed to be called from a while-loop:
+ * This function prefetches OBBs from trees a and b (only when the nodes change)
+ * and is supposed to be called from a while-loop:
  *
  * unsigned long int stack = 0;
  * // the third OBB

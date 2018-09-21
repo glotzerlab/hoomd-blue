@@ -350,19 +350,27 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
     detail::OBB obb_b = tree_b.getOBB(cur_node_b);
 
+    unsigned int query_node_a = UINT_MAX;
+    unsigned int query_node_b = UINT_MAX;
+
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
         // extend OBBs
-        obb_a.lengths.x += sweep_radius_a;
-        obb_a.lengths.y += sweep_radius_a;
-        obb_a.lengths.z += sweep_radius_a;
+        if (query_node_a != cur_node_a)
+            {
+            obb_a.lengths.x += sweep_radius_a;
+            obb_a.lengths.y += sweep_radius_a;
+            obb_a.lengths.z += sweep_radius_a;
+            query_node_a = cur_node_a;
+            }
 
-        obb_b.lengths.x += sweep_radius_b;
-        obb_b.lengths.y += sweep_radius_b;
-        obb_b.lengths.z += sweep_radius_b;
-
-        unsigned int query_node_a = cur_node_a;
-        unsigned int query_node_b = cur_node_b;
+        if (query_node_b != cur_node_b)
+            {
+            obb_b.lengths.x += sweep_radius_b;
+            obb_b.lengths.y += sweep_radius_b;
+            obb_b.lengths.z += sweep_radius_b;
+            query_node_b = cur_node_b;
+            }
 
         if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot)
             && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err, sweep_radius_a, sweep_radius_b))
@@ -498,22 +506,34 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
 
         detail::OBB obb_b = tree_b.getOBB(cur_node_b);
 
+        unsigned int query_node_a = UINT_MAX;
+        unsigned int query_node_b = UINT_MAX;
+
+        unsigned int mask_a = 0;
+        unsigned int mask_b = 0;
         while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
             {
-            unsigned int query_node_a = cur_node_a;
-            unsigned int query_node_b = cur_node_b;
+            if (query_node_a != cur_node_a)
+                {
+                // extend OBBs
+                obb_a.lengths.x += sweep_radius_a;
+                obb_a.lengths.y += sweep_radius_a;
+                obb_a.lengths.z += sweep_radius_a;
+                query_node_a = cur_node_a;
+                mask_a = obb_a.mask;
+                }
 
-            // extend OBBs
-            obb_a.lengths.x += sweep_radius_a;
-            obb_a.lengths.y += sweep_radius_a;
-            obb_a.lengths.z += sweep_radius_a;
-
-            obb_b.lengths.x += sweep_radius_b;
-            obb_b.lengths.y += sweep_radius_b;
-            obb_b.lengths.z += sweep_radius_b;
+            if (query_node_b != cur_node_b)
+                {
+                obb_b.lengths.x += sweep_radius_b;
+                obb_b.lengths.y += sweep_radius_b;
+                obb_b.lengths.z += sweep_radius_b;
+                query_node_b = cur_node_b;
+                mask_b = obb_b.mask;
+                }
 
             // combine masks
-            unsigned int combined_mask = obb_a.mask | obb_b.mask;
+            unsigned int combined_mask = mask_a | mask_b;
             obb_a.mask = obb_b.mask = combined_mask;
 
             if (detail::traverseBinaryStackIntersection(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, qab, rab_rot, obb_c)
