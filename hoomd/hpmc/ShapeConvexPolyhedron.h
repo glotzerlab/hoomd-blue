@@ -454,6 +454,10 @@ class ProjectionFuncConvexPolyhedron
                     vec3<OverlapReal> b(verts.x[l], verts.y[l], verts.z[l]);
                     vec3<OverlapReal> c(verts.x[m], verts.y[m], verts.z[m]);
 
+                    // is the point on the outside of the plane?
+                    /* For this to work correctly in the degenerate case, i.e. planar facet and 1d line, we
+                       require that the convex hull always is a complete mesh
+                     */
                     if (PointOutsideOfPlane(p, a, b, c))
                         {
                         vec3<OverlapReal> q = closestPointOnTriangle(p, a, b, c);
