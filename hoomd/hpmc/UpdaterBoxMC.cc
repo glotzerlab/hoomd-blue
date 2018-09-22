@@ -513,6 +513,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
         {
         // all dimensions have delta==0, just count as accepted and return
         m_count_total.volume_accept_count++;
+        return;
         }
 
     Scalar dL_max(m_Length_delta[i]);
