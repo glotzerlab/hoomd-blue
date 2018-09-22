@@ -2193,10 +2193,12 @@ class convex_spheropolyhedron_union(mode_hpmc):
                 shape_def = 'sphere {0} {1}'.format(2*R,colors[0]);
 
             else:
-                shape_def = 'spoly3d {0} {1} {2}'.format(R, len(verts),colors[0]);
+                shape_def = 'spoly3d {0} {1}'.format(R, len(verts));
 
                 for v in verts:
-                    shape_def += ' {0} {1} 0'.format(*v);
+                    shape_def += ' {0} {1} {2}'.format(*v);
+
+                shape_def += ' {}'.format(colors[0])
         else:
             # two special cases
             if all(v == [[0,0,0]] for v in vertices):
