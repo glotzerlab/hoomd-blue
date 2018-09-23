@@ -759,60 +759,6 @@ class mode_hpmc(_integrator):
 
         return self.cpp_integrator.getSweepRadius();
 
-    def get_attractive_depletion_acceptance(self):
-        R""" Get the average ratio of accepted attractive depletion moves to total attrative depletion moves with depletant insertions
-
-        Only supported with **depletant_mode=='overlap_regions'**.
-
-        Returns:
-            The average depletant acceptance during last :py:func:`hoomd.run()`.
-
-        Example::
-
-            mc = hpmc.integrate.shape(..,implicit=True);
-            mc.shape_param.set(....);
-            run(100)
-            acceptance = mc.get_attractive_depletion_acceptance();
-
-        """
-        if not self.implicit:
-            hoomd.context.msg.warning("Quantity only available in simulations with non-interacting depletants. Returning 0.\n")
-            return 0;
-
-        if not self.depletant_mode == 'overlap_regions':
-            hoomd.context.msg.warning("Quantity only available in simulations with depletant mode 'overlap_regions'. Returning 0.\n")
-            return 0;
-
-        counters = self.cpp_integrator.getImplicitCounters(1);
-        return counters.getAttractiveDepletionAcceptance();
-
-    def get_repulsive_depletion_acceptance(self):
-        R""" Get the average ratio of accepted repulsive depletion moves to total attrative depletion moves with depletant insertions
-
-        Only supported with **depletant_mode=='overlap_regions'**.
-
-        Returns:
-            The average depletant acceptance during last :py:func:`hoomd.run()`.
-
-        Example::
-
-            mc = hpmc.integrate.shape(..,implicit=True);
-            mc.shape_param.set(....);
-            run(100)
-            acceptance = mc.get_repulsive_depletion_acceptance();
-
-        """
-        if not self.implicit:
-            hoomd.context.msg.warning("Quantity only available in simulations with non-interacting depletants. Returning 0.\n")
-            return 0;
-
-        if not self.depletant_mode == 'overlap_regions':
-            hoomd.context.msg.warning("Quantity only available in simulations with depletant mode 'overlap_regions'. Returning 0.\n")
-            return 0;
-
-        counters = self.cpp_integrator.getImplicitCounters(1);
-        return counters.getRepulsiveDepletionAcceptance();
-
     def get_configurational_bias_ratio(self):
         R""" Get the average ratio of configurational bias attempts to depletant insertion moves.
 

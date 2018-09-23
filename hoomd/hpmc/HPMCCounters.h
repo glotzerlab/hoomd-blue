@@ -191,10 +191,6 @@ struct hpmc_implicit_counters_t
     unsigned long long int free_volume_count;           //!< Count of depletants in free volume
     unsigned long long int overlap_count;               //!< Count of depletants in free volume which overlap
     unsigned long long int reinsert_count;              //!< Count of resinserted depletants
-    unsigned long long int depletant_plus_accept;       //!< Number of trial moves with depletant insertions (attractive)
-    unsigned long long int depletant_plus_reject;       //!< Number of rejected trial moves with depletants (attractive)
-    unsigned long long int depletant_minus_accept;       //!< Number of trial moves with depletant insertions (attractive)
-    unsigned long long int depletant_minus_reject;       //!< Number of rejected trial moves with depletants (attractive)
 
     //! Construct a zero set of counters
     hpmc_implicit_counters_t()
@@ -203,10 +199,6 @@ struct hpmc_implicit_counters_t
         free_volume_count = 0;
         overlap_count = 0;
         reinsert_count = 0;
-        depletant_plus_accept = 0;
-        depletant_plus_reject = 0;
-        depletant_minus_accept = 0;
-        depletant_minus_reject = 0;
         }
 
     //! Get the fraction of the free volume to the insertion sphere
@@ -241,41 +233,6 @@ struct hpmc_implicit_counters_t
         else
             return double(reinsert_count) / double(insert_count);
         }
-
-    //! Get the attractive depletion move acceptance
-    /*! \returns The ratio of depletant insertion moves that are accepted, or 0 if there are no insertion moves
-    */
-    DEVICE double getAttractiveDepletionAcceptance()
-        {
-        if (depletant_plus_reject + depletant_plus_accept == 0)
-            return 0.0;
-        else
-            return double(depletant_plus_accept) / double(depletant_plus_reject + depletant_plus_accept);
-        }
-
-    //! Get the total number of attractive depletion moves attempted
-    DEVICE unsigned long long int getNAttractiveDepletionMoves()
-        {
-        return depletant_plus_reject + depletant_plus_accept;
-        }
-
-    //! Get the repulsive depletion move acceptance
-    /*! \returns The ratio of depletant insertion moves that are accepted, or 0 if there are no insertion moves
-    */
-    DEVICE double getRepulsiveDepletionAcceptance()
-        {
-        if (depletant_minus_reject + depletant_minus_accept == 0)
-            return 0.0;
-        else
-            return double(depletant_minus_accept) / double(depletant_minus_reject + depletant_minus_accept);
-        }
-
-    //! Get the total number of repulsive depletion moves attempted
-    DEVICE unsigned long long int getNRepulsiveDepletionMoves()
-        {
-        return depletant_minus_reject + depletant_minus_accept;
-        }
-
     };
 
 //! Storage for muVT acceptance counters
@@ -457,10 +414,6 @@ DEVICE inline hpmc_implicit_counters_t operator-(const hpmc_implicit_counters_t&
     result.free_volume_count = a.free_volume_count - b.free_volume_count;
     result.overlap_count = a.overlap_count - b.overlap_count;
     result.reinsert_count = a.reinsert_count - b.reinsert_count;
-    result.depletant_plus_accept = a.depletant_plus_accept - b.depletant_plus_accept;
-    result.depletant_plus_reject = a.depletant_plus_reject - b.depletant_plus_reject;
-    result.depletant_minus_accept = a.depletant_minus_accept - b.depletant_minus_accept;
-    result.depletant_minus_reject = a.depletant_minus_reject - b.depletant_minus_reject;
     return result;
     }
 
