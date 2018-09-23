@@ -2,6 +2,8 @@
 #ifndef _UPDATER_HPMC_CLUSTERS_IMPLICIT_
 #define _UPDATER_HPMC_CLUSTERS_IMPLICIT_
 
+#if 0 // currently disabled
+
 /*! \file UpdaterBoxClusters.h
     \brief Declaration of UpdaterBoxClusters
 */
@@ -414,17 +416,18 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
     }
 
-
+} // end namespace hpmc
+#endif
 
 template < class Shape, class Integrator > void export_UpdaterClustersImplicit(pybind11::module& m, const std::string& name)
     {
+    #if 0
     pybind11::class_< UpdaterClustersImplicit<Shape,Integrator>, std::shared_ptr< UpdaterClustersImplicit<Shape,Integrator> > >(m, name.c_str(), pybind11::base<UpdaterClusters<Shape> >())
           .def( pybind11::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr< Integrator >,
                          unsigned int >())
     ;
+    #endif
     }
-
-} // end namespace hpmc
 
 #endif // _UPDATER_HPMC_CLUSTERS_IMPLICIT_

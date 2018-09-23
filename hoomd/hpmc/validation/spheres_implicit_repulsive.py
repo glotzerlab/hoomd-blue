@@ -59,94 +59,15 @@ class depletion_test(unittest.TestCase):
         self.system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
 
         self.system.particles.types.add('B')
+        self.system.particles.types.add('C')
 
     def test_measure_etap(self):
-        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True, depletant_mode='overlap_regions')
+        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True)
         self.mc.set_params(d=0.1,a=0.1)
-        self.mc.set_params(depletant_type='B')
-        self.mc.set_params(depletant_type_repulsive='B')
         self.mc.shape_param.set('A', diameter=d_sphere)
         self.mc.shape_param.set('B', diameter=d_sphere*q)
-
-        # no depletants during tuning
-        self.mc.set_params(nR=0)
-
-        self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
-        for i in range(10):
-            run(100, quiet=True)
-            self.mc_tune.update()
-        # warm up
-        run(2000);
-
-
-        # set depletant fugacity
-        nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
-        self.mc.set_params(nR=nR)
-
-        # set negative fugacity to same amount to cancel
-        self.mc.set_params(nR_repulsive=nR)
-
-        free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
-        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume'], overwrite=True,period=1000)
-
-        alpha_measure = []
-        def log_callback(timestep):
-            v = log.query('hpmc_free_volume')/log.query('volume')
-            alpha_measure.append(v)
-            self.assertEqual(log.query('hpmc_overlap_count'),0)
-
-            if comm.get_rank() == 0:
-                print('alpha =', v);
-
-        run(4e5,callback=log_callback,callback_period=100)
-
-        import BlockAverage
-        block = BlockAverage.BlockAverage(alpha_measure)
-        alpha_avg = np.mean(np.array(alpha_measure))
-        i, alpha_err = block.get_error_estimate()
-
-        if comm.get_rank() == 0:
-            print(i)
-            (n, num, err, err_err) = block.get_hierarchical_errors()
-
-            print('Hierarchical error analysis:')
-            for (i, num_samples, e, ee) in zip(n, num, err, err_err):
-                print('{0} {1} {2} {3}'.format(i,num_samples,e,ee))
-
-        if comm.get_rank() == 0:
-            print('avg: {:.6f} +- {:.6f}'.format(alpha_avg, alpha_err))
-            print('tgt: {:.6f} +- {:.6f}'.format(alpha_ref[(phi_c,eta_p_r)][0], alpha_ref[(phi_c,eta_p_r)][1]))
-
-        # max error 0.5%
-        self.assertLessEqual(alpha_err/alpha_avg,0.005)
-
-        # confidence interval, 0.95 quantile of the normal distribution
-        ci = 1.96
-
-        # check against reference value within reference error + measurement error
-        self.assertLessEqual(math.fabs(alpha_avg-alpha_ref[(phi_c,eta_p_r)][0]),ci*(alpha_ref[(phi_c,eta_p_r)][1]+alpha_err))
-
-    def test_measure_etap_quermass(self):
-        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True, depletant_mode='overlap_regions')
-        self.mc.set_params(d=0.1,a=0.1)
-        self.mc.set_params(depletant_type='B')
-        self.mc.set_params(depletant_type_repulsive='B')
-        self.mc.shape_param.set('A', diameter=d_sphere)
-
-        # quermass integration mode is equivalent to depletion when the sphere-swept depletant is a point
-        # hence the negative radius
-        self.mc.shape_param.set('B', diameter=-d_sphere*q)
-
-        # add a test particle type for compute.free_volume()
-        self.system.particles.types.add('C')
         self.mc.shape_param.set('C', diameter=d_sphere*q)
 
-        self.mc.set_params(quermass=True)
-        self.mc.set_params(sweep_radius=0.5*d_sphere*q)
-
-        # no depletants during tuning
-        self.mc.set_params(nR=0)
-
         self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
         for i in range(10):
             run(100, quiet=True)
@@ -157,12 +78,12 @@ class depletion_test(unittest.TestCase):
 
         # set depletant fugacity
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
-        self.mc.set_params(nR=nR)
+        self.mc.set_fugacity('B',nR)
 
         # set negative fugacity to same amount to cancel
-        self.mc.set_params(nR_repulsive=nR)
+        self.mc.set_params('C',-nR)
 
-        free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='C')
+        free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
         log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume'], overwrite=True,period=1000)
 
         alpha_measure = []

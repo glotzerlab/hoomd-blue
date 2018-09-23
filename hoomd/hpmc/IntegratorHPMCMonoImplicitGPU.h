@@ -1,8 +1,11 @@
 // Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#if 0 // currently disabled
+
 #ifndef __HPMC_MONO_IMPLICIT_GPU_H__
 #define __HPMC_MONO_IMPLICIT_GPU_H__
+
 
 #ifdef ENABLE_CUDA
 
@@ -986,3 +989,5 @@ template < class Shape > void export_IntegratorHPMCMonoImplicitGPU(pybind11::mod
 #endif // ENABLE_CUDA
 
 #endif // __HPMC_MONO_IMPLICIT_GPU_H__
+
+#endif

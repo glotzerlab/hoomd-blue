@@ -35,14 +35,13 @@ class implicit_test_cube(unittest.TestCase):
 
         self.system = init.create_lattice(lattice.sc(a=L_ini/float(n[0])),n=n)
 
-        self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True,depletant_mode='overlap_regions')
+        self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True)
         self.mc.set_params(d=0.1,a=0.15)
 
         etap=1.0
         self.nR = etap/self.V_cube
 
         self.system.particles.types.add('B')
-        self.mc.set_params(nR=0,depletant_type='B')
 
         cube_verts=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)]
         self.mc.shape_param.set('A', vertices=cube_verts)
@@ -84,7 +83,7 @@ class implicit_test_cube(unittest.TestCase):
 
     def test_implicit(self):
         # use depletants
-        self.mc.set_params(nR=self.nR)
+        self.mc.set_fugacity('B',self.nR)
 
         # warm up
         run(self.steps)
@@ -122,7 +121,7 @@ class implicit_test_sphere_new (unittest.TestCase):
         self.num_samples = 0
         self.steps = 10
 
-        self.mc = hpmc.integrate.sphere(seed=123,implicit=True, depletant_mode='overlap_regions')
+        self.mc = hpmc.integrate.sphere(seed=123,implicit=True)
         self.mc.set_params(d=0.1)
 
         q=1.0
@@ -130,7 +129,7 @@ class implicit_test_sphere_new (unittest.TestCase):
         self.nR = etap/(math.pi/6.0*math.pow(q,3.0))
 
         self.system.particles.types.add('B')
-        self.mc.set_params(nR=self.nR,depletant_type='B')
+        self.mc.set_fugacity('B',self.nR)
 
         self.mc.shape_param.set('A', diameter=1.0)
         self.mc.shape_param.set('B', diameter=q)

@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#if 0 // Currently disabled
+
 #ifndef __UPDATER_MUVT_IMPLICIT_H__
 #define __UPDATER_MUVT_IMPLICIT_H__
 
@@ -147,20 +149,6 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
         virtual unsigned int getNumDepletants(unsigned int timestep, Scalar V, bool local);
 
     };
-
-//! Export the UpdaterMuVT class to python
-/*! \param name Name of the class in the exported python module
-    \tparam Shape An instantiation of UpdaterMuVTImplicit<Shape,Integrator> will be exported
-*/
-template < class Shape, class Integrator >
-void export_UpdaterMuVTImplicit(pybind11::module& m, const std::string& name)
-    {
-    pybind11::class_< UpdaterMuVTImplicit<Shape, Integrator>, std::shared_ptr< UpdaterMuVTImplicit<Shape, Integrator> > >(m, name.c_str(),
-          pybind11::base<UpdaterMuVT<Shape> >())
-          .def(pybind11::init< std::shared_ptr<SystemDefinition>,
-            std::shared_ptr< Integrator >, unsigned int, unsigned int>())
-          ;
-    }
 
 /*! Constructor
     \param sysdef The system defintion
@@ -1646,3 +1634,22 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::boxResizeAndScale(unsigned int times
 } // end namespace
 
 #endif
+#endif
+
+//! Export the UpdaterMuVT class to python
+/*! \param name Name of the class in the exported python module
+    \tparam Shape An instantiation of UpdaterMuVTImplicit<Shape,Integrator> will be exported
+*/
+template < class Shape, class Integrator >
+void export_UpdaterMuVTImplicit(pybind11::module& m, const std::string& name)
+    {
+    #if 0
+    pybind11::class_< UpdaterMuVTImplicit<Shape, Integrator>, std::shared_ptr< UpdaterMuVTImplicit<Shape, Integrator> > >(m, name.c_str(),
+          pybind11::base<UpdaterMuVT<Shape> >())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition>,
+            std::shared_ptr< Integrator >, unsigned int, unsigned int>())
+          ;
+    #endif
+    }
+
+

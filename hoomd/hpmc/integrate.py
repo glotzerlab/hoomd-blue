@@ -186,21 +186,21 @@ class mode_hpmc(_integrator):
     to the colloids, and mutually interpenetrable. The main idea is described in
     See `J. Glaser et. al. 2015 <http://dx.doi.org/10.1063/1.4935175>`_ .
 
-    As of version 2.2, hoomd.hpmc supports a new acceptance rule for depletants which is enabled
-    with the **depletant_mode='overlap_regions'** argument. The new mode results in
-    free diffusion of colloids that do not share any overlap volume with other colloids. This
-    speeds up equilibration of dilute systems of colloids in a dense depletant bath. Both modes
-    yield the same equilibrium statistics, but different dynamics (Glaser, to be published).
+    As of version 2.2, the acceptance rule has been improved and has been made
+    the default acceptance rule for implicit depletants in 3.0. The new
+    criterion results in free diffusion of colloids that do not share any
+    overlap volume with other colloids. This speeds up equilibration of dilute
+    systems of colloids in a dense depletant bath. Both modes yield the same
+    equilibrium statistics, but different dynamics (Glaser, to be published).
     """
 
     ## \internal
     # \brief Initialize an empty integrator
     #
     # \post the member shape_param is created
-    def __init__(self, implicit, depletant_mode=None):
+    def __init__(self, implicit):
         _integrator.__init__(self);
         self.implicit=implicit
-        self.depletant_mode=depletant_mode
 
         # setup the shape parameters
         self.shape_param = data.param_dict(self); # must call initialize_shape_params() after the cpp_integrator is created.
@@ -236,14 +236,8 @@ class mode_hpmc(_integrator):
         data['shape_param'] = shape_dict;
         data['overlap_checks'] = self.overlap_checks.get_metadata()
         if self.implicit:
-            data['depletant_mode'] = self.depletant_mode
-            data['nR'] = self.get_nR()
-            data['depletant_type'] = self.get_depletant_type()
-            data['nR_repulsive'] = self.get_nR_repulsive()
-            data['depletant_type_repulsive'] = self.get_depletant_type_repulsive()
             data['quermass'] = self.get_quermass_mode()
             data['sweep_radius'] = self.get_sweep_radius()
-            data['ntrial'] = self.get_ntrial()
         return data
 
     ## \internal
@@ -311,10 +305,6 @@ class mode_hpmc(_integrator):
         # check that particle orientations are normalized
         if not self.cpp_integrator.checkParticleOrientations():
            hoomd.context.msg.warning("Particle orientations are not normalized\n");
-
-        #make sure all the required parameters for implicit depletant simulations have been supplied
-        if self.implicit:
-            self.check_implicit_params()
 
     # Declare the GSD state schema.
     @classmethod
@@ -408,13 +398,8 @@ class mode_hpmc(_integrator):
                    a=None,
                    move_ratio=None,
                    nselect=None,
-                   nR=None,
-                   depletant_type=None,
-                   nR_repulsive=None,
-                   depletant_type_repulsive=None,
                    quermass=None,
                    sweep_radius=None,
-                   ntrial=None,
                    deterministic=None):
         R""" Changes parameters of an existing integration mode.
 
@@ -423,14 +408,8 @@ class mode_hpmc(_integrator):
             a (float): (if set) Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
             move_ratio (float): (if set) New value for the move ratio.
             nselect (int): (if set) New value for the number of particles to select for trial moves in one cell.
-            nR (int): (if set) **Implicit depletants only**: Number density of implicit depletants in free volume.
-            depletant_type (str): (if set) **Implicit depletants only**: Particle type to use as implicit depletant.
-            nR_repulsive (int): (if set) **Implicit depletants only**: Number density of implicit depletants in free volume (repulsive depletion)
-            depletant_type_repulsive (str): (if set) **Implicit depletants only**: Particle type to use as implicit depletant (repulsive depletion)
             quermass (bool): (if set) **Implicit depletants only**: Enable/disable quermass integration mode
             sweep_radius (float): (if set): **Implicit depletants only**: Additional radius of a sphere to sweep the shapes and the depletant by
-            ntrial (int): (if set) **Implicit depletants only**: Number of re-insertion attempts per overlapping depletant.
-                (Only supported with **depletant_mode='circumsphere'**)
             deterministic (bool): (if set) Make HPMC integration deterministic on the GPU by sorting the cell list.
 
         .. note:: Simulations are only deterministic with respect to the same execution configuration (CPU or GPU) and
@@ -467,47 +446,13 @@ class mode_hpmc(_integrator):
             self.cpp_integrator.setNSelect(nselect);
 
         if self.implicit:
-            if nR is not None:
-                self.implicit_params.append('nR')
-                self.cpp_integrator.setDepletantDensity(nR)
-            if depletant_type is not None:
-                self.implicit_params.append('depletant_type')
-                itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(depletant_type)
-                self.cpp_integrator.setDepletantType(itype)
-            if nR_repulsive is not None:
-                if depletant_mode_circumsphere(self.depletant_mode):
-                    hoomd.context.msg.error("depletant_mode='circumsphere' does not support repulsive depletion")
-                    raise ValueError("Invalid depletants parameter")
-
-                self.implicit_params.append('nR_repulsive')
-                self.cpp_integrator.setNegativeDepletantDensity(nR_repulsive)
-            if depletant_type_repulsive is not None:
-                if depletant_mode_circumsphere(self.depletant_mode):
-                    hoomd.context.msg.error("depletant_mode='circumsphere' does not support repulsive depletion")
-                    raise ValueError("Invalid depletants parameter")
-
-                self.implicit_params.append('depletant_type_repulsive')
-                itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(depletant_type_repulsive)
-                self.cpp_integrator.setNegativeDepletantType(itype)
             if quermass is not None:
-                if depletant_mode_circumsphere(self.depletant_mode):
-                    hoomd.context.msg.error("depletant_mode='circumsphere' does not support quermass mode")
-                    raise ValueError("Invalid depletants parameter")
                 self.implicit_params.append('quermass')
                 self.cpp_integrator.setQuermassMode(quermass)
             if sweep_radius is not None:
-                if depletant_mode_circumsphere(self.depletant_mode):
-                    hoomd.context.msg.error("depletant_mode='circumsphere' does not support setting the sweep radius")
-                    raise ValueError("Invalid depletants parameter")
                 self.implicit_params.append('sweep_radius')
                 self.cpp_integrator.setSweepRadius(sweep_radius)
-            if ntrial is not None:
-                if depletant_mode_circumsphere(self.depletant_mode):
-                    self.implicit_params.append('ntrial')
-                    self.cpp_integrator.setNTrial(ntrial)
-                else:
-                    hoomd.context.msg.warning("ntrial is only supported with depletant_mode='circumsphere'. Ignoring.\n")
-        elif any([p is not None for p in [nR,depletant_type,ntrial, nR_repulsive, depletant_type_repulsive]]):
+        elif any([p is not None for p in [quermass,sweep_radius]]):
             hoomd.context.msg.warning("Implicit depletant parameters not supported by this integrator.\n")
 
         if deterministic is not None:
@@ -681,59 +626,33 @@ class mode_hpmc(_integrator):
 
         return self.cpp_integrator.getNTrial();
 
-    def get_nR(self):
-        R""" Get depletant density
+    def set_fugacity(self,type,fugacity):
+        R""" Set depletant fugacity of a given type
+            * .. versionadded:: 3.0
 
-        Returns:
-            The current value of the 'nR' parameter of the integrator.
-
-        """
-        if not self.implicit:
-            hoomd.context.msg.warning("nR only available in simulations with non-interacting depletants. Returning 0.\n")
-            return 0;
-
-        return self.cpp_integrator.getDepletantDensity();
-
-    def get_depletant_type(self):
-        R""" Get the depletant type
-
-        Returns:
-            The type of particle used as depletant (the 'depletant_type' argument of the integrator).
+        Args:
+            type (string): Type for which fugacity is returned
+            fugacity (Scalar): Ideal gas density of the depletant, can take any scalar value
 
         """
         if not self.implicit:
-            hoomd.context.msg.warning("nR only available in simulations with non-interacting depletants. Returning 0.\n")
-            return 0;
+            hoomd.context.msg.warning("set_fugacity only available in simulations with non-interacting depletants. Ignoring.\n")
+            return
 
-        typeid = self.cpp_integrator.getDepletantType();
-        return hoomd.context.current.system_definition.getParticleData().getNameByType(typeid);
+        return self.cpp_integrator.setDepletantFugacity(hoomd.context.current.system_definition.getParticleData().getTypeByName(type),fugacity)
 
-    def get_nR_repulsive(self):
-        R""" Get depletant density for repulsive depletion
+    def get_fugacity(self,type):
+        R""" Get depletant fugacity of a given type
+            * .. versionadded:: 3.0
 
-        Returns:
-            The current value of the 'nR_repulsive' parameter of the integrator.
-
+        Args:
+            type (string): Type for which fugacity is returned
         """
-        if not self.implicit or depletant_mode_circumsphere(self.depletant_mode):
-            hoomd.context.msg.warning("nR_repulsive only available in simulations with depletant_mode='overlap_regions'. Returning 0.\n")
+        if not self.implicit:
+            hoomd.context.msg.warning("get_fugacity only available in simulations with non-interacting depletants. Returning 0.\n")
             return 0;
 
-        return self.cpp_integrator.getNegativeDepletantDensity();
-
-    def get_depletant_type_repulsive(self):
-        R""" Get the depletant type for repulsive depletion
-
-        Returns:
-            The type of particle used as depletant (the 'depletant_type' argument of the integrator).
-
-        """
-        if not self.implicit or depletant_mode_circumsphere(self.depletant_mode):
-            hoomd.context.msg.warning("depletant type only available in simulations with depletant_mode='overlap_regions's. Returning 0.\n")
-            return 0;
-
-        typeid = self.cpp_integrator.getNegativeDepletantType();
-        return hoomd.context.current.system_definition.getParticleData().getNameByType(typeid);
+        return self.cpp_integrator.getDepletantFugacity(hoomd.context.current.system_definition.getParticleData().getTypeByName(type))
 
     def get_quermass_mode(self):
         R""" Get the value of the quermass integration setting
@@ -741,8 +660,8 @@ class mode_hpmc(_integrator):
         Returns:
             The current value of the 'quermass' parameter of the integrator
         """
-        if not self.implicit or depletant_mode_circumsphere(self.depletant_mode):
-            hoomd.context.msg.warning("quermass only available in simulations with depletant_mode='overlap_regions'. Returning False.\n")
+        if not self.implicit:
+            hoomd.context.msg.warning("quermass only available in simulations with implicit depletants. Returning False.\n")
             return False
 
         return self.cpp_integrator.getQuermassMode();
@@ -753,42 +672,11 @@ class mode_hpmc(_integrator):
         Returns:
             The current value of the 'sweep_radius' parameter of the integrator
         """
-        if not self.implicit or depletant_mode_circumsphere(self.depletant_mode):
-            hoomd.context.msg.warning("sweep_radius only available in simulations with depletant_mode='overlap_regions'. Returning 0.\n")
+        if not self.implicit:
+            hoomd.context.msg.warning("sweep_radius only available in simulations with implicit depletants. Returning 0.\n")
             return 0.0
 
         return self.cpp_integrator.getSweepRadius();
-
-    def get_configurational_bias_ratio(self):
-        R""" Get the average ratio of configurational bias attempts to depletant insertion moves.
-
-        Only supported with **depletant_mode=='circumsphere'**.
-
-        Returns:
-            The average configurational bias ratio during the last :py:func:`hoomd.run()`.
-
-        Example::
-
-            mc = hpmc.integrate.shape(..,implicit=True);
-            mc.shape_param.set(....);
-            run(100)
-            cb_ratio = mc.get_configurational_bias_ratio();
-
-        """
-        if not self.implicit:
-            hoomd.context.msg.warning("Quantity only available in simulations with non-interacting depletants. Returning 0.\n")
-            return 0;
-
-        counters = self.cpp_integrator.getImplicitCounters(1);
-        return counters.getConfigurationalBiasRatio();
-
-    ## Check that the required implicit depletant parameters have been supplied
-    # \returns Nothing
-    #
-    def check_implicit_params(self):
-        for p in self.implicit_required_params:
-            if not p in self.implicit_params:
-                raise RuntimeError("Implicit depletant integrator is missing required parameter '%s.'"%(p))
 
 ## Helper methods to set rotation and translation moves by type
 def setD(cpp_integrator,d):
@@ -807,17 +695,6 @@ def setA(cpp_integrator,a):
         for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes()):
             cpp_integrator.setA(a,i);
 
-# Helper method to parse depletant mode
-def depletant_mode_circumsphere(depletant_mode):
-    if depletant_mode == 'circumsphere':
-        if hoomd.context.current.on_gpu():
-            hoomd.context.msg.warning("depletant_mode='circumsphere' is deprecated on the GPU if using ntrial>0. Compile with ENABLE_HPMC_REINSERT enabled to use this feature.\n")
-        return True
-    elif depletant_mode == 'overlap_regions':
-        return False
-    else:
-        raise RuntimeError('integrate.*: Unknown argument for depletant_mode')
-
 class sphere(mode_hpmc):
     R""" HPMC integration for spheres (2D/3D).
 
@@ -828,8 +705,6 @@ class sphere(mode_hpmc):
         move_ratio (float, only used with **orientable=True**): Ratio of translation moves to rotation moves. (added in version 2.3)
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -856,38 +731,30 @@ class sphere(mode_hpmc):
 
     Depletants Example::
 
-        mc = hpmc.integrate.sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=8,nR=3,depletant_type='B')
+        mc = hpmc.integrate.sphere(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=8)
         mc.shape_param.set('A', diameter=1.0)
         mc.shape_param.set('B', diameter=.1)
+        mc.set_fugacity('B',fugacity=3.0)
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere',restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(hoomd.context.current.system_definition, seed, 1)
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphere(hoomd.context.current.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphere(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphere(hoomd.context.current.system_definition, cl_c, seed);
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUSphere(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphere(hoomd.context.current.system_definition, cl_c, seed);
 
         # set the default parameters
         setD(self.cpp_integrator,d);
@@ -899,9 +766,6 @@ class sphere(mode_hpmc):
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
         self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
         if restore_state:
             self.restore_state()
@@ -1262,8 +1126,6 @@ class polyhedron(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1311,28 +1173,25 @@ class polyhedron(mode_hpmc):
 
     Depletants Example::
 
-        mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1)
         faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)];
         mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
             (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)], faces = faces);
         mc.shape_param.set('B', vertices=[(-0.05, -0.05, -0.05), (-0.05, -0.05, 0.05), (-0.05, 0.05, -0.05), (-0.05, 0.05, 0.05), \
             (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces, origin = (0,0,0));
+        mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere', restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+        mode_hpmc.__init__(self,implicit)
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(hoomd.context.current.system_definition, seed, 1)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoPolyhedron(hoomd.context.current.system_definition, seed);
         else:
@@ -1341,10 +1200,7 @@ class polyhedron(mode_hpmc):
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUPolyhedron(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1354,9 +1210,6 @@ class polyhedron(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
         if restore_state:
             self.restore_state()
@@ -1393,8 +1246,6 @@ class convex_polyhedron(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         max_verts (int): Set the maximum number of vertices in a polyhedron. (deprecated in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
@@ -1426,38 +1277,32 @@ class convex_polyhedron(mode_hpmc):
 
     Depletants Example::
 
-        mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1)
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
+        mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere', max_verts=None, restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=None, restore_state=False):
         hoomd.util.print_status_line();
 
         if max_verts is not None:
             hoomd.context.msg.warning("max_verts is deprecated. Ignoring.\n")
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedron(hoomd.context.current.system_definition, seed, 0);
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedron(hoomd.context.current.system_definition, seed, 1);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedron(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if implicit:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUConvexPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
 
@@ -1470,9 +1315,6 @@ class convex_polyhedron(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
         if restore_state:
             self.restore_state()
@@ -1519,8 +1361,6 @@ class faceted_sphere(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1560,25 +1400,22 @@ class faceted_sphere(mode_hpmc):
 
     Depletants Example::
 
-        mc = hpmc.integrate.pathcy_sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc = hpmc.integrate.pathcy_sphere(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1)
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
         mc.shape_param.set('B', normals=[],diameter=0.1);
+        mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere', restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed, 1)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedSphere(hoomd.context.current.system_definition, seed);
         else:
@@ -1587,10 +1424,7 @@ class faceted_sphere(mode_hpmc):
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1600,9 +1434,6 @@ class faceted_sphere(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
         if restore_state:
             self.restore_state()
@@ -1635,8 +1466,6 @@ class sphinx(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1661,25 +1490,22 @@ class sphinx(mode_hpmc):
 
     Depletants Example::
 
-        mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1)
         mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,-.25])
         mc.shape_param.set('B', centers=[(0,0,0)], diameters=[.15])
+        mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere', restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+        mode_hpmc.__init__(self,implicit)
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(hoomd.context.current.system_definition, seed, 1)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphinx(hoomd.context.current.system_definition, seed);
         else:
@@ -1689,10 +1515,7 @@ class sphinx(mode_hpmc):
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphinx(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphinx(hoomd.context.current.system_definition, cl_c, seed);
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUSphinx(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphinx(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1703,9 +1526,6 @@ class sphinx(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
         if restore_state:
             self.restore_state()
@@ -1742,8 +1562,6 @@ class convex_spheropolyhedron(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         max_verts (int): Set the maximum number of vertices in a polyhedron. (deprecated in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
@@ -1781,29 +1599,25 @@ class convex_spheropolyhedron(mode_hpmc):
 
     Depletants example::
 
-        mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nR=3,depletant_type='SphericalDepletant')
+        mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4, implicit=True)
         mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
+        mc.set_fugacity('B',fugacity=3.0)
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere', max_verts=None, restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=None, restore_state=False):
         hoomd.util.print_status_line();
 
         if max_verts is not None:
             hoomd.context.msg.warning("max_verts is deprecated. Ignoring.\n")
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+        mode_hpmc.__init__(self,implicit)
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolyhedron(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolyhedron(hoomd.context.current.system_definition, seed, 1)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolyhedron(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolyhedron(hoomd.context.current.system_definition, seed);
         else:
@@ -1812,10 +1626,7 @@ class convex_spheropolyhedron(mode_hpmc):
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSpheropolyhedron(hoomd.context.current.system_definition, cl_c, seed);
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUSpheropolyhedron(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSpheropolyhedron(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1826,9 +1637,6 @@ class convex_spheropolyhedron(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
         if restore_state:
             self.restore_state()
@@ -1882,8 +1690,6 @@ class ellipsoid(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1907,25 +1713,22 @@ class ellipsoid(mode_hpmc):
 
     Depletants Example::
 
-        mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=50,depletant_type='B')
+        mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1)
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
         mc.shape_param.set('B', a=0.05, b=0.05, c=0.05);
+        mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere',restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(hoomd.context.current.system_definition, seed, 1)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoEllipsoid(hoomd.context.current.system_definition, seed);
         else:
@@ -1934,10 +1737,7 @@ class ellipsoid(mode_hpmc):
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1948,9 +1748,6 @@ class ellipsoid(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
         if restore_state:
             self.restore_state()
@@ -1976,8 +1773,6 @@ class sphere_union(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         max_members (int): Set the maximum number of members in the sphere union
             * .. deprecated:: 2.2
         capacity (int): Set to the number of constituent spheres per leaf node. (added in version 2.2)
@@ -2010,29 +1805,26 @@ class sphere_union(mode_hpmc):
 
     Depletants Example::
 
-        mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=50,depletant_type='B')
+        mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4, implicit=True)
+        mc.set_param(nselect=1)
         mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
+        mc.set_fugacity('B',fugacity=3.0)
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere', max_members=None, restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None, restore_state=False):
         hoomd.util.print_status_line();
 
         if max_members is not None:
             hoomd.context.msg.warning("max_members is deprecated. Ignoring.\n")
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed, 1)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed)
         else:
@@ -2041,10 +1833,7 @@ class sphere_union(mode_hpmc):
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
             else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -2054,9 +1843,6 @@ class sphere_union(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
         if restore_state:
             self.restore_state()
@@ -2094,8 +1880,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         max_members (int): Set the maximum number of members in the convex polyhedron union
         capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
@@ -2130,20 +1914,16 @@ class convex_spheropolyhedron_union(mode_hpmc):
         print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere'):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+        mode_hpmc.__init__(self,implicit)
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed, 1)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
         else:
@@ -2152,10 +1932,7 @@ class convex_spheropolyhedron_union(mode_hpmc):
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
             else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -2168,9 +1945,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
 
         # meta data
         self.metadata_fields = ['capacity']
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -2238,8 +2012,6 @@ class convex_polyhedron_union(convex_spheropolyhedron_union):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         max_members (int): Set the maximum number of members in the convex polyhedron union
         capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
@@ -2274,9 +2046,9 @@ class convex_polyhedron_union(convex_spheropolyhedron_union):
         print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere'):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
         hoomd.util.print_status_line();
 
         # just fall back on base class
-        convex_spheropolyhedron_union.__init__(self,seed,d,a,move_ratio,nselect, implicit, depletant_mode)
+        convex_spheropolyhedron_union.__init__(self,seed,d,a,move_ratio,nselect, implicit)
 

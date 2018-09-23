@@ -115,14 +115,10 @@ class implicit_test (unittest.TestCase):
         self.system.particles.types.add('B')
 
     def test_measure_etap_new(self):
-        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True, depletant_mode='overlap_regions')
+        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True)
         self.mc.set_params(d=0.1,a=0.1)
-        self.mc.set_params(depletant_type='B')
         self.mc.shape_param.set('A', diameter=d_sphere)
         self.mc.shape_param.set('B', diameter=d_sphere*q)
-
-        # no depletants during tuning
-        self.mc.set_params(nR=0)
 
         self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
         for i in range(10):
@@ -133,14 +129,14 @@ class implicit_test (unittest.TestCase):
 
         # set depletant fugacity
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
-        self.mc.set_params(nR=nR)
+        self.mc.set_fugacity('B',nR)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
-        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity'], overwrite=True,period=1000)
+        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=1000)
 
         eta_p_measure = []
         def log_callback(timestep):
-            v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity')
+            v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity_B')
             eta_p_measure.append(v)
             self.assertEqual(log.query('hpmc_overlap_count'),0)
 
@@ -180,9 +176,8 @@ class implicit_test (unittest.TestCase):
         del self.mc
 
     def test_measure_etap_quermass(self):
-        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True, depletant_mode='overlap_regions')
+        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True)
         self.mc.set_params(d=0.1,a=0.1)
-        self.mc.set_params(depletant_type='B')
         self.mc.shape_param.set('A', diameter=d_sphere)
 
         # the quermass interaction process with a negative depletant radius that cancels the sweep_radius
@@ -198,9 +193,6 @@ class implicit_test (unittest.TestCase):
         self.mc.set_params(quermass=True)
         self.mc.set_params(sweep_radius=0.5*d_sphere*q)
 
-        # no depletants during tuning
-        self.mc.set_params(nR=0)
-
         self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
         for i in range(10):
             run(100, quiet=True)
@@ -210,14 +202,14 @@ class implicit_test (unittest.TestCase):
 
         # set depletant fugacity
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
-        self.mc.set_params(nR=nR)
+        self.mc.set_fugacity('B',nR)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='C')
-        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity'], overwrite=True,period=1000)
+        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=1000)
 
         eta_p_measure = []
         def log_callback(timestep):
-            v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity')
+            v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity_B')
             eta_p_measure.append(v)
             if comm.get_rank() == 0:
                 print('eta_p =', v);
