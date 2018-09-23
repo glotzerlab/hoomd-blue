@@ -179,6 +179,15 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
                 this->m_exec_conf->msg->notice(2) << "Fraction of overlapping depletants:       "
                     << result.getOverlapFraction()<< "\n";
                 }
+            else if (m_method == 1)
+                {
+                if (result.getNAttractiveDepletionMoves())
+                    this->m_exec_conf->msg->notice(2) << "Attractive depletion acceptance:          "
+                        << result.getAttractiveDepletionAcceptance() << std::endl;
+                if (result.getNRepulsiveDepletionMoves())
+                    this->m_exec_conf->msg->notice(2) << "Repulsive depletion acceptance:           "
+                        << result.getRepulsiveDepletionAcceptance() << std::endl;
+                }
             }
 
         //! Get the current counter values
@@ -1701,6 +1710,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
         counters.overlap_checks += n_overlap_checks;
         counters.overlap_err_count += overlap_err_count;
         implicit_counters.insert_count += insert_count;
+
+        if (accept)
+            implicit_counters.depletant_plus_accept++;
+        else
+            implicit_counters.depletant_plus_reject++;
         }
 
     // Depletant check for negative fugacity
@@ -2086,6 +2100,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
         counters.overlap_checks += n_overlap_checks;
         counters.overlap_err_count += overlap_err_count;
         implicit_counters.insert_count += insert_count;
+
+        if (accept)
+            implicit_counters.depletant_minus_accept++;
+        else
+            implicit_counters.depletant_minus_reject++;
         } // end depletant placement
 
     return accept;
@@ -2502,6 +2521,10 @@ hpmc_implicit_counters_t IntegratorHPMCMonoImplicit<Shape>::getImplicitCounters(
             MPI_Allreduce(MPI_IN_PLACE, &result.free_volume_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
             MPI_Allreduce(MPI_IN_PLACE, &result.overlap_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
             MPI_Allreduce(MPI_IN_PLACE, &result.reinsert_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &result.depletant_plus_accept, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &result.depletant_plus_reject, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &result.depletant_minus_accept, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &result.depletant_minus_reject, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
             }
         }
     #endif
@@ -2560,6 +2583,8 @@ inline void export_hpmc_implicit_counters(pybind11::module& m)
     .def("getFreeVolumeFraction", &hpmc_implicit_counters_t::getFreeVolumeFraction)
     .def("getOverlapFraction", &hpmc_implicit_counters_t::getOverlapFraction)
     .def("getConfigurationalBiasRatio", &hpmc_implicit_counters_t::getConfigurationalBiasRatio)
+    .def("getAttractiveDepletionAcceptance", &hpmc_implicit_counters_t::getAttractiveDepletionAcceptance)
+    .def("getRepulsiveDepletionAcceptance", &hpmc_implicit_counters_t::getRepulsiveDepletionAcceptance)
     ;
     }
 } // end namespace hpmc
