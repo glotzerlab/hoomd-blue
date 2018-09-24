@@ -462,7 +462,7 @@ inline OverlapReal eigen_sphere(const std::vector< vec3<OverlapReal> >& verts, v
 
     rotmat3<OverlapReal> r;
 
-    Eigen::VectorXcd eigen_val;
+    Eigen::VectorXd eigen_val;
     if (es.info() != Eigen::Success)
         {
         // numerical issue, set r to identity matrix
@@ -473,26 +473,29 @@ inline OverlapReal eigen_sphere(const std::vector< vec3<OverlapReal> >& verts, v
         }
     else
         {
-        Eigen::MatrixXcd eigen_vec = es.eigenvectors();
-        r.row0 = vec3<OverlapReal>(eigen_vec(0,0).real(),eigen_vec(0,1).real(),eigen_vec(0,2).real());
-        r.row1 = vec3<OverlapReal>(eigen_vec(1,0).real(),eigen_vec(1,1).real(),eigen_vec(1,2).real());
-        r.row2 = vec3<OverlapReal>(eigen_vec(2,0).real(),eigen_vec(2,1).real(),eigen_vec(2,2).real());
+        // get the orthonormal basis
+        Eigen::HouseholderQR<Eigen::MatrixXd> qr(es.eigenvectors());
+        Eigen::MatrixXd eigenvec_ortho = qr.householderQ();
+
+        r.row0 = vec3<OverlapReal>(eigenvec_ortho(0,0),eigenvec_ortho(0,1),eigenvec_ortho(0,2));
+        r.row1 = vec3<OverlapReal>(eigenvec_ortho(1,0),eigenvec_ortho(1,1),eigenvec_ortho(1,2));
+        r.row2 = vec3<OverlapReal>(eigenvec_ortho(2,0),eigenvec_ortho(2,1),eigenvec_ortho(2,2));
         eigen_val = es.eigenvalues();
         }
 
 
     // maximum eigenvalue
     vec3<OverlapReal> max_evec(r.row0.x,r.row1.x,r.row2.x);
-    OverlapReal max_eval = eigen_val(0).real();
-    if (eigen_val(1).real() > max_eval)
+    OverlapReal max_eval = eigen_val(0);
+    if (eigen_val(1) > max_eval)
         {
         max_evec = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
-        max_eval = eigen_val(1).real();
+        max_eval = eigen_val(1);
         }
-    if (eigen_val(2).real() > max_eval)
+    if (eigen_val(2) > max_eval)
         {
         max_evec = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z);
-        max_eval = eigen_val(2).real();
+        max_eval = eigen_val(2);
         }
 
     max_evec /= (OverlapReal)sqrt(dot(max_evec,max_evec));
@@ -672,7 +675,8 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
             }
 
         // compute normalized eigenvectors
-        Eigen::EigenSolver<Eigen::MatrixXd> es;
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
+
         es.compute(m);
 
         rotmat3<OverlapReal> r;
