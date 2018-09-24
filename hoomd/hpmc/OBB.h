@@ -74,6 +74,8 @@ struct OBB
     //! Construct an OBB from a sphere
     /*! \param _position Position of the sphere
         \param radius Radius of the sphere
+
+        This constructor internally sets the 'is_sphere' flag to accelerate overlap checks
     */
     DEVICE OBB(const vec3<OverlapReal>& _position, OverlapReal radius)
         {
@@ -135,6 +137,53 @@ struct OBB
 
     };
 
+// from Christer Ericsen, Real-time collision detection
+DEVICE inline bool SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const OBB& b,
+    const OverlapReal max_sq)
+    {
+    vec3<OverlapReal> v = p - b.center;
+
+    OverlapReal sqDist(0.0);
+
+    rotmat3<OverlapReal> u(conj(b.rotation));
+
+    // Project vector from box center to p on each axis, getting the distance
+    // of p along that axis, and count any excess distance outside box extents
+
+    OverlapReal d = dot(v, u.row0);
+    OverlapReal excess(0.0);
+
+    if (d < -b.lengths.x)
+        excess = d + b.lengths.x;
+    else if (d > b.lengths.x)
+        excess = d - b.lengths.x;
+    sqDist += excess*excess;
+
+    if (sqDist > max_sq)
+        return false;
+
+    d = dot(v,u.row1);
+    excess = OverlapReal(0.0);
+    if (d < -b.lengths.y)
+        excess = d + b.lengths.y;
+    else if (d > b.lengths.y)
+        excess = d - b.lengths.y;
+    sqDist += excess*excess;
+
+    if (sqDist > max_sq)
+        return false;
+
+    d = dot(v,u.row2);
+    excess = OverlapReal(0.0);
+    if (d < -b.lengths.z)
+        excess = d + b.lengths.z;
+    else if (d > b.lengths.z)
+        excess = d - b.lengths.z;
+    sqDist += excess*excess;
+
+    return sqDist <= max_sq;
+    }
+
 //! Check if two OBBs overlap
 /*! \param a First OBB
     \param b Second OBB
@@ -153,13 +202,19 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     // translation vector
     vec3<OverlapReal> t = b.center - a.center;
 
-    // if both OBBs are spheres, simplify overlap check
+    // if one or both of the OBB are spheres, simplify overlap check
     if (a.isSphere() && b.isSphere())
         {
         OverlapReal rsq = dot(t,t);
         OverlapReal RaRb = a.lengths.x + b.lengths.x;
         return rsq <= RaRb*RaRb;
         }
+    else if (a.isSphere() && !b.isSphere())
+        return SqDistPointOBBSmallerThan(a.center, b, a.lengths.x*a.lengths.x);
+    else if (!a.isSphere() && b.isSphere())
+        return SqDistPointOBBSmallerThan(b.center, a, b.lengths.x*b.lengths.x);
+
+    // check two OBBs
 
     // rotate B in A's coordinate frame
     rotmat3<OverlapReal> r(conj(a.rotation) * b.rotation);
