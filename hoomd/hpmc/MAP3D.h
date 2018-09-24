@@ -78,9 +78,7 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
 
     vec3<OverlapReal> v_a, v_b, v_c;
 
-    // this seems to be a reasonable lower bound on the single-precision error, when
-    // reducing further one should see an increased number of forced loop terminations
-    const OverlapReal tol(4e-7); // for squares of distances
+    const OverlapReal tol(4e-7); // for squares of distances, in *double* precision
 
     /*
      * Tuning parameters
