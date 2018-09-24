@@ -131,6 +131,48 @@ class GPUTree
             }
         #endif
 
+        //! Fetch the next node in the tree and test against overlap with two OBBs
+        /*! The method maintains it internal state in a user-supplied variable cur_node
+         *
+         * \param obb Query bounding box
+         * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous call
+         * \param sweep_radius Radius by which to extend the obb
+         * \param other_obb A second OBB
+         * \returns true if the current node overlaps and is a leaf node
+         */
+        DEVICE inline bool queryNodeIntersection(const OBB& obb, unsigned int &cur_node, const OverlapReal sweep_radius,
+            const OBB& other_obb) const
+            {
+            OBB node_obb(getOBB(cur_node));
+
+            node_obb.lengths.x += sweep_radius;
+            node_obb.lengths.y += sweep_radius;
+            node_obb.lengths.z += sweep_radius;
+
+            bool leaf = false;
+            if (((node_obb.mask & other_obb.mask) || (obb.mask & other_obb.mask)) &&
+                overlap(node_obb, obb) && overlap(node_obb, other_obb) && overlap(obb,other_obb))
+                {
+                unsigned int left_child = getLeftChild(cur_node);
+
+                // is this node a leaf node?
+                if (left_child == OBB_INVALID_NODE)
+                    {
+                    leaf = true;
+                    }
+                else
+                    {
+                    cur_node = left_child;
+                    return false;
+                    }
+                }
+
+            // escape
+            cur_node = m_escape[cur_node];
+
+            return leaf;
+            }
+
         //! Fetch the next node in the tree and test against overlap
         /*! The method maintains it internal state in a user-supplied variable cur_node
          *
@@ -143,7 +185,8 @@ class GPUTree
             OBB node_obb(getOBB(cur_node));
 
             bool leaf = false;
-            if (overlap(node_obb, obb))
+
+            if ((node_obb.mask & obb.mask) && overlap(node_obb, obb))
                 {
                 unsigned int left_child = getLeftChild(cur_node);
 
@@ -409,7 +452,7 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
     unsigned int old_a = cur_node_a;
     unsigned int old_b = cur_node_b;
 
-    if (overlap(obb_a, obb_b))
+    if ((obb_a.mask & obb_b.mask) && overlap(obb_a, obb_b))
         {
         if (a.isLeaf(cur_node_a) && b.isLeaf(cur_node_b))
             {
@@ -518,7 +561,8 @@ DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a, const GPUTr
     unsigned int old_a = cur_node_a;
     unsigned int old_b = cur_node_b;
 
-    if (overlap(obb_a, obb_b) && overlap(obb_a, obb_c) && overlap(obb_b, obb_c))
+    if (((obb_a.mask & obb_c.mask) || (obb_b.mask & obb_c.mask)) &&
+        overlap(obb_a, obb_b) && overlap(obb_a, obb_c) && overlap(obb_b, obb_c))
         {
         if (a.isLeaf(cur_node_a) && b.isLeaf(cur_node_b))
             {

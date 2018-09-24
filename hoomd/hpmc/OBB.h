@@ -200,9 +200,6 @@ DEVICE inline bool SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const O
 */
 DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     {
-    // exit early if the masks don't match
-    if (! (a.mask & b.mask)) return false;
-
     // translation vector
     vec3<OverlapReal> t = b.center - a.center;
 
