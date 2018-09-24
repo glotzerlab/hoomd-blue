@@ -154,12 +154,6 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         bool m_quermass;                                         //!< True if quermass integration mode is enabled
         Scalar m_sweep_radius;                                   //!< Radius of sphere to sweep shapes by
 
-        // List of particles whose circumspheres intersect particle i's excluded-volume circumsphere
-        std::vector<unsigned int> m_intersect_i;
-
-        // List of particle images that intersect
-        std::vector<unsigned int> m_image_i;
-
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
@@ -737,16 +731,34 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
     Shape shape_old(quat<Scalar>(h_orientation[i]), this->m_params[typ_i]);
 
+    #ifdef ENABLE_TBB
+    tbb::atomic<unsigned int> n_overlap_checks = 0;
+    tbb::atomic<unsigned int> overlap_err_count = 0;
+    tbb::atomic<unsigned int> insert_count = 0;
+    #else
+    unsigned int n_overlap_checks = 0;
+    unsigned int overlap_err_count = 0;
+    unsigned int insert_count = 0;
+    #endif
+
+    #ifdef ENABLE_TBB
+    tbb::parallel_for((unsigned int)0, (unsigned int)this->m_pdata->getNTypes(), [&](unsigned int type)
+    #else
     for (unsigned int type = 0; type < this->m_pdata->getNTypes(); ++type)
+    #endif
         {
         if (!h_overlaps[this->m_overlap_idx(type, typ_i)] && !m_quermass)
+            #ifdef ENABLE_TBB
+            return;
+            #else
             continue;
+            #endif
+
+        std::vector<unsigned int> intersect_i;
+        std::vector<unsigned int> image_i;
 
         if (accept && m_fugacity[type] > 0.0)
             {
-            m_intersect_i.clear();
-            m_image_i.clear();
-
             // find neighbors whose circumspheres overlap particle i's circumsphere in the old configuration
             // Here, circumsphere refers to the sphere around the depletant-excluded volume
 
@@ -793,8 +805,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                                 if ((m_quermass || h_overlaps[this->m_overlap_idx(type,typ_j)]) && circumsphere_overlap)
                                     {
-                                    m_intersect_i.push_back(j);
-                                    m_image_i.push_back(cur_image);
+                                    intersect_i.push_back(j);
+                                    image_i.push_back(cur_image);
                                     }
                                 }
                             }
@@ -811,21 +823,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             // we sample from their union by checking if any generated position falls in the intersection
             // between two 'lenses' and if so, only accepting it if it was generated from neighbor j_min
 
-            #ifdef ENABLE_TBB
-            tbb::atomic<unsigned int> n_overlap_checks = 0;
-            tbb::atomic<unsigned int> overlap_err_count = 0;
-            tbb::atomic<unsigned int> insert_count = 0;
-            #else
-            unsigned int n_overlap_checks = 0;
-            unsigned int overlap_err_count = 0;
-            unsigned int insert_count = 0;
-            #endif
-
             // for every pairwise intersection
             #ifdef ENABLE_TBB
-            tbb::parallel_for((unsigned int)0, (unsigned int)m_intersect_i.size(), [&](unsigned int k)
+            tbb::parallel_for((unsigned int)0, (unsigned int)intersect_i.size(), [&](unsigned int k)
             #else
-            for (unsigned int k = 0; k < m_intersect_i.size(); ++k)
+            for (unsigned int k = 0; k < intersect_i.size(); ++k)
             #endif
                 {
                 #ifdef ENABLE_TBB
@@ -833,7 +835,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     return;
                 #endif
 
-                unsigned int j = m_intersect_i[k];
+                unsigned int j = intersect_i[k];
                 vec3<Scalar> ri = pos_i_old;
                 Scalar4 postype_j = h_postype[j];
                 vec3<Scalar> rj = vec3<Scalar>(postype_j);
@@ -842,7 +844,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 Shape shape_j(quat<Scalar>(), this->m_params[__scalar_as_int(postype_j.w)]);
                 Scalar Rj = Scalar(0.5)*(shape_j.getCircumsphereDiameter()+d_dep)+m_sweep_radius;
 
-                vec3<Scalar> rij(rj-ri - this->m_image_list[m_image_i[k]]);
+                vec3<Scalar> rij(rj-ri - this->m_image_list[image_i[k]]);
                 Scalar d = sqrt(dot(rij,rij));
 
                 // whether the intersection is the entire (smaller) sphere
@@ -909,7 +911,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                         // generate a depletant position in the spherical cap
                         pos_test = cap_i ? generatePositionInSphericalCap(my_rng, ri, Ri, hi, rij)
-                            : generatePositionInSphericalCap(my_rng, rj, Rj, hj, -rij)-this->m_image_list[m_image_i[k]];
+                            : generatePositionInSphericalCap(my_rng, rj, Rj, hj, -rij)-this->m_image_list[image_i[k]];
                         }
                     else
                         {
@@ -917,7 +919,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         if (Ri < Rj)
                             pos_test = generatePositionInSphere(my_rng, ri, Ri);
                         else
-                            pos_test = generatePositionInSphere(my_rng, rj, Rj) - this->m_image_list[m_image_i[k]];
+                            pos_test = generatePositionInSphere(my_rng, rj, Rj) - this->m_image_list[image_i[k]];
                         }
 
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
@@ -930,12 +932,12 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     bool active = true;
                     for (unsigned int m = 0; m < k; ++m)
                         {
-                        unsigned int p = m_intersect_i[m];
+                        unsigned int p = intersect_i[m];
                         Scalar4 postype_p = h_postype[p];
                         vec3<Scalar> rp = vec3<Scalar>(postype_p);
                         Shape shape_p(quat<Scalar>(), this->m_params[__scalar_as_int(postype_p.w)]);
 
-                        vec3<Scalar> delta_r(pos_test + this->m_image_list[m_image_i[m]] - rp);
+                        vec3<Scalar> delta_r(pos_test + this->m_image_list[image_i[m]] - rp);
                         OverlapReal rsq = dot(delta_r,delta_r);
                         OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_p.getCircumsphereDiameter() + Scalar(2.0)*m_sweep_radius;
                         bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
@@ -1019,16 +1021,16 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     // does the depletant fall into the overlap volume with other particles?
                     bool in_intersection_volume = false;
 
-                    for (unsigned int m = 0; m < m_intersect_i.size(); ++m)
+                    for (unsigned int m = 0; m < intersect_i.size(); ++m)
                         {
                         // read in its position and orientation
-                        unsigned int j = m_intersect_i[m];
+                        unsigned int j = intersect_i[m];
 
                         // load the old position and orientation of the j particle
                         Scalar4 postype_j = h_postype[j];
                         Scalar4 orientation_j = h_orientation[j];
 
-                        vec3<Scalar> r_jk = vec3<Scalar>(postype_j) - pos_test - this->m_image_list[m_image_i[m]];
+                        vec3<Scalar> r_jk = vec3<Scalar>(postype_j) - pos_test - this->m_image_list[image_i[m]];
 
                         unsigned int typ_j = __scalar_as_int(postype_j.w);
                         Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
@@ -1042,7 +1044,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             // check triple overlap of circumspheres
 
                             // check triple overlap with i at old position
-                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_old - this->m_image_list[m_image_i[m]];
+                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_old - this->m_image_list[image_i[m]];
 
                             // need to enable later when we have a better way of excluding particles from the image list calculation
                             bool circumsphere_overlap = true || (h_overlaps[this->m_overlap_idx(type,typ_i)] && h_overlaps[this->m_overlap_idx(type,typ_j)]);
@@ -1056,8 +1058,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             if (in_intersection_volume)
                                 {
                                 // check triple overlap with i at new position
-                                r_ij = vec3<Scalar>(postype_j) - pos_i - this->m_image_list[m_image_i[m]];
-                                r_jk = ((i == j) ? pos_i : vec3<Scalar>(h_postype[j])) - pos_test - this->m_image_list[m_image_i[m]];
+                                r_ij = vec3<Scalar>(postype_j) - pos_i - this->m_image_list[image_i[m]];
+                                r_jk = ((i == j) ? pos_i : vec3<Scalar>(h_postype[j])) - pos_test - this->m_image_list[image_i[m]];
 
                                 // need to enable later when we have a better way of excluding particles from the image list calculation
                                 bool circumsphere_overlap = true || (h_overlaps[this->m_overlap_idx(type,typ_i)] && h_overlaps[this->m_overlap_idx(type,typ_j)]);
@@ -1110,11 +1112,6 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             #ifdef ENABLE_TBB
                 );
             #endif
-
-            // increment counters
-            counters.overlap_checks += n_overlap_checks;
-            counters.overlap_err_count += overlap_err_count;
-            implicit_counters.insert_count += insert_count;
             }
         // Depletant check for negative fugacity
         else if (accept && m_fugacity[type] < 0.0)
@@ -1125,9 +1122,6 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             // find neighbors whose circumspheres overlap particle i's excluded volume circumsphere in the new configuration
             Scalar range = m_quermass ? Scalar(2.0)*m_sweep_radius : d_dep;
             detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+range);
-
-            m_intersect_i.clear();
-            m_image_i.clear();
 
             // All image boxes (including the primary)
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -1177,8 +1171,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                                 if ((m_quermass || h_overlaps[this->m_overlap_idx(type,typ_j)]) && circumsphere_overlap)
                                     {
-                                    m_intersect_i.push_back(j);
-                                    m_image_i.push_back(cur_image);
+                                    intersect_i.push_back(j);
+                                    image_i.push_back(cur_image);
                                     }
                                 }
                             }
@@ -1196,21 +1190,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             // we sample from their union by checking if any generated position falls in the intersection
             // between two 'lenses' and if so, only accepting it if it was generated from neighbor j_min
 
-            #ifdef ENABLE_TBB
-            tbb::atomic<unsigned int> n_overlap_checks = 0;
-            tbb::atomic<unsigned int> overlap_err_count = 0;
-            tbb::atomic<unsigned int> insert_count = 0;
-            #else
-            unsigned int n_overlap_checks = 0;
-            unsigned int overlap_err_count = 0;
-            unsigned int insert_count = 0;
-            #endif
-
             // for every pairwise intersection
             #ifdef ENABLE_TBB
-            tbb::parallel_for((unsigned int)0, (unsigned int)m_intersect_i.size(), [&](unsigned int k)
+            tbb::parallel_for((unsigned int)0, (unsigned int)intersect_i.size(), [&](unsigned int k)
             #else
-            for (unsigned int k = 0; k < m_intersect_i.size(); ++k)
+            for (unsigned int k = 0; k < intersect_i.size(); ++k)
             #endif
                 {
                 #ifdef ENABLE_TBB
@@ -1218,14 +1202,14 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     return;
                 #endif
 
-                unsigned int j = m_intersect_i[k];
+                unsigned int j = intersect_i[k];
                 vec3<Scalar> ri = pos_i;
                 vec3<Scalar> rj = (j == i) ? pos_i : vec3<Scalar>(h_postype[j]);
                 Scalar Ri = Scalar(0.5)*(shape_i.getCircumsphereDiameter()+d_dep)+m_sweep_radius;
                 Shape shape_j(quat<Scalar>(), this->m_params[(j == i) ? typ_i : __scalar_as_int(h_postype[j].w)]);
                 Scalar Rj = Scalar(0.5)*(shape_j.getCircumsphereDiameter()+d_dep)+m_sweep_radius;
 
-                vec3<Scalar> rij(rj-ri - this->m_image_list[m_image_i[k]]);
+                vec3<Scalar> rij(rj-ri - this->m_image_list[image_i[k]]);
                 Scalar d = sqrt(dot(rij,rij));
 
                 // whether the intersection is the entire (smaller) sphere
@@ -1293,7 +1277,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         // generate a depletant position in the spherical cap
                         pos_test = cap_i ? generatePositionInSphericalCap(my_rng, ri, Ri, hi, rij)
                             : generatePositionInSphericalCap(my_rng, rj, Rj, hj, -rij)-
-                            this->m_image_list[m_image_i[k]];
+                            this->m_image_list[image_i[k]];
                         }
                     else
                         {
@@ -1302,7 +1286,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             pos_test = generatePositionInSphere(my_rng, ri, Ri);
                         else
                             pos_test = generatePositionInSphere(my_rng, rj, Rj) -
-                                this->m_image_list[m_image_i[k]];
+                                this->m_image_list[image_i[k]];
                         }
 
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
@@ -1317,11 +1301,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     // check against any other lens preceding this
                     for (unsigned int m = 0; m < k; ++m)
                         {
-                        unsigned int p = m_intersect_i[m];
+                        unsigned int p = intersect_i[m];
                         vec3<Scalar> rp = (p == i) ? pos_i : vec3<Scalar>(h_postype[p]);
                         Shape shape_p(quat<Scalar>(), this->m_params[(p == i) ? typ_i : __scalar_as_int(h_postype[p].w)]);
 
-                        vec3<Scalar> delta_r(pos_test + this->m_image_list[m_image_i[m]] - rp);
+                        vec3<Scalar> delta_r(pos_test + this->m_image_list[image_i[m]] - rp);
                         OverlapReal rsq = dot(delta_r,delta_r);
                         OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_p.getCircumsphereDiameter() + OverlapReal(2.0)*m_sweep_radius;
                         bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
@@ -1406,13 +1390,13 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                     vec3<Scalar> pos_i_old(h_postype[i]);
 
-                    for (unsigned int m = 0; m < m_intersect_i.size(); ++m)
+                    for (unsigned int m = 0; m < intersect_i.size(); ++m)
                         {
                         // read in its position and orientation
-                        unsigned int j = m_intersect_i[m];
+                        unsigned int j = intersect_i[m];
 
                         vec3<Scalar> r_jk = ((i == j) ? pos_i : vec3<Scalar>(h_postype[j])) - pos_test -
-                            this->m_image_list[m_image_i[m]];
+                            this->m_image_list[image_i[m]];
 
                         unsigned int typ_j = (i == j) ? typ_i : __scalar_as_int(h_postype[j].w);
                         Shape shape_j((i == j) ? shape_i.orientation : quat<Scalar>(h_orientation[j]), this->m_params[typ_j]);
@@ -1424,7 +1408,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             {
                             // check triple overlap of circumspheres
                             vec3<Scalar> r_ij = ( (i==j) ? pos_i : vec3<Scalar>(h_postype[j])) - pos_i -
-                                this->m_image_list[m_image_i[m]];
+                                this->m_image_list[image_i[m]];
 
                             // need to enable later when we have a better way of excluding particles from the image list calculation
                             bool circumsphere_overlap = true || (h_overlaps[this->m_overlap_idx(type,typ_i)] && h_overlaps[this->m_overlap_idx(type,typ_j)]);
@@ -1441,8 +1425,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             if (in_new_intersection_volume)
                                 {
                                 // check triple overlap with old configuration
-                                r_ij = vec3<Scalar>(h_postype[j]) - pos_i_old - this->m_image_list[m_image_i[m]];
-                                r_jk = vec3<Scalar>(h_postype[j]) - pos_test - this->m_image_list[m_image_i[m]];
+                                r_ij = vec3<Scalar>(h_postype[j]) - pos_i_old - this->m_image_list[image_i[m]];
+                                r_jk = vec3<Scalar>(h_postype[j]) - pos_test - this->m_image_list[image_i[m]];
 
                                 // need to enable later when we have a better way of excluding particles from the image list calculation
                                 bool circumsphere_overlap = true || (h_overlaps[this->m_overlap_idx(type,typ_i)] && h_overlaps[this->m_overlap_idx(type,typ_j)]);
@@ -1504,6 +1488,15 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             implicit_counters.insert_count += insert_count;
             } // end depletant placement
         }
+    #ifdef ENABLE_TBB
+        );
+    #endif
+
+    // increment counters
+    counters.overlap_checks += n_overlap_checks;
+    counters.overlap_err_count += overlap_err_count;
+    implicit_counters.insert_count += insert_count;
+
     return accept;
     }
 
