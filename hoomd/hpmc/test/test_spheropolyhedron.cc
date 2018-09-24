@@ -126,7 +126,7 @@ UP_TEST( support )
     poly3d_verts verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o, verts);
-    SupportFuncSpheropolyhedron sa = SupportFuncSpheropolyhedron(verts);
+    SupportFuncConvexPolyhedron sa = SupportFuncConvexPolyhedron(verts,verts.sweep_radius);
     vec3<OverlapReal> v1, v2;
 
     v1 = sa(vec3<OverlapReal>(-0.5, -0.5, -0.5));
@@ -877,7 +877,7 @@ UP_TEST( closest_pt_rounded_cube_no_rot )
 
     ShapeSpheropolyhedron a(o, verts);
 
-    ProjectionFuncSpheropolyhedron P(verts);
+    ProjectionFuncConvexPolyhedron P(verts,verts.sweep_radius);
 
     // a point inside
     vec3<OverlapReal> p = P(vec3<OverlapReal>(0,0,0));
@@ -915,8 +915,9 @@ UP_TEST( closest_pt_rounded_cube_no_rot )
     MY_CHECK_CLOSE(p.y,0.5+0.5/sqrt(3),tol);
     MY_CHECK_CLOSE(p.z,0.5+0.5/sqrt(3),tol);
 
-    // a point close to the surface
+    // a point close to, but inside, the surface
     p = P(vec3<OverlapReal>(0.75,0,0));
+    std::cout << p.x << " " << p.y << " " << p.z << std::endl;
     MY_CHECK_CLOSE(p.x,0.75,tol);
     MY_CHECK_CLOSE(p.y,0,tol);
     MY_CHECK_CLOSE(p.z,0,tol);

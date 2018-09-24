@@ -43,9 +43,6 @@ const unsigned int MAP_3D_MAX_ITERATIONS = 1024;
     \param ab_t Position of second shape relative to first
     \param ac_t Position of third shape relative to first
     \param err Output variable that is incremented upon non-convergence
-    \param sweep_radius_a Radius of sphere to sweep the first shape by
-    \param sweep_radius_b Radius of sphere to sweep the second shape by
-    \param sweep_radius_c Radius of sphere to sweep the third shape by
 
     see Pierra, G. Mathematical Programming (1984) 28: 96. http://doi.org/10.1007/BF02612715
 
@@ -58,8 +55,7 @@ template <class ShapeA, class ShapeB, class ShapeC,
 DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
     const SupportFuncA& sa, const SupportFuncB& sb, const SupportFuncC& sc,
     const ProjectionFuncA& pa, const ProjectionFuncB& pb, const ProjectionFuncC& pc,
-    const vec3<OverlapReal>& ab_t, const vec3<OverlapReal>& ac_t, unsigned int &err,
-    OverlapReal sweep_radius_a, OverlapReal sweep_radius_b, OverlapReal sweep_radius_c)
+    const vec3<OverlapReal>& ab_t, const vec3<OverlapReal>& ac_t, unsigned int &err)
     {
     quat<OverlapReal> qa(a.orientation);
     quat<OverlapReal> qb(b.orientation);
@@ -99,37 +95,6 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
         q_b = ab_t+rotate(qb,pb(rotate(conj(qb),u_diag-ab_t)));
         q_c = ac_t+rotate(qc,pc(rotate(conj(qc),u_diag-ac_t)));
 
-        if (sweep_radius_a != OverlapReal(0.0))
-            {
-            // project on extended shape
-            vec3<OverlapReal> del = u_diag - q_a;
-            OverlapReal d = fast::sqrt(dot(del,del));
-            if (d > sweep_radius_a)
-                q_a += sweep_radius_a/d * del;
-            else
-                q_a = u_diag;
-            }
-
-        if (sweep_radius_b != OverlapReal(0.0))
-            {
-            vec3<OverlapReal> del = u_diag - q_b;
-            OverlapReal d = fast::sqrt(dot(del,del));
-            if (d > sweep_radius_b)
-                q_b += sweep_radius_b/d * del;
-            else
-                q_b = u_diag;
-            }
-
-        if (sweep_radius_c != OverlapReal(0.0))
-            {
-            vec3<OverlapReal> del = u_diag - q_c;
-            OverlapReal d = fast::sqrt(dot(del,del));
-            if (d > sweep_radius_c)
-                q_c += sweep_radius_c/d * del;
-            else
-                q_c = u_diag;
-            }
-
         // test for common point
         if (dot(q_a-u_diag,q_a-u_diag) + dot(q_b-u_diag,q_b-u_diag) + dot(q_c-u_diag,q_c-u_diag) <= tol)
             return true;
@@ -147,7 +112,6 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
         if (dot(n,n) > OverlapReal(0.0))
             {
             v_a = rotate(qa,sa(rotate(conj(qa),b_prime_diag - q_a)));
-            v_a += (sweep_radius_a * fast::rsqrt(dot(n,n))) * n;
             sum += dot(b_prime_diag-v_a, b_prime_diag - q_a);
             }
 
@@ -155,7 +119,6 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
         if (dot(n,n) > OverlapReal(0.0))
             {
             v_b = ab_t + rotate(qb,sb(rotate(conj(qb),b_prime_diag - q_b)));
-            v_b += (sweep_radius_b * fast::rsqrt(dot(n,n))) * n;
             sum += dot(b_prime_diag-v_b, b_prime_diag - q_b);
             }
 
@@ -163,7 +126,6 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
         if (dot(n,n) > OverlapReal(0.0))
             {
             v_c = ac_t + rotate(qc,sc(rotate(conj(qc),b_prime_diag - q_c)));
-            v_c += (sweep_radius_c * fast::rsqrt(dot(n,n))) * n;
             sum += dot(b_prime_diag-v_c, b_prime_diag - q_c);
             }
 
@@ -198,8 +160,6 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
     \param pb second projection function
     \param ab_t Position of second shape relative to first
     \param err Output variable that is incremented upon non-convergence
-    \param sweep_radius_a Radius of sphere to sweep the first shape by
-    \param sweep_radius_b Radius of sphere to sweep the second shape by
  */
 template <class ShapeA, class ShapeB,
           class SupportFuncA, class SupportFuncB,
@@ -207,8 +167,7 @@ template <class ShapeA, class ShapeB,
 DEVICE inline bool map_two(const ShapeA& a, const ShapeB& b,
     const SupportFuncA& sa, const SupportFuncB& sb,
     const ProjectionFuncA& pa, const ProjectionFuncB& pb,
-    const vec3<OverlapReal>& ab_t, unsigned int &err,
-    OverlapReal sweep_radius_a, OverlapReal sweep_radius_b)
+    const vec3<OverlapReal>& ab_t, unsigned int &err)
     {
     quat<OverlapReal> qa(a.orientation);
     quat<OverlapReal> qb(b.orientation);
@@ -247,27 +206,6 @@ DEVICE inline bool map_two(const ShapeA& a, const ShapeB& b,
         q_a = rotate(qa,pa(rotate(conj(qa),u_diag)));
         q_b = ab_t+rotate(qb,pb(rotate(conj(qb),u_diag-ab_t)));
 
-        if (sweep_radius_a != OverlapReal(0.0))
-            {
-            // project on extended shape
-            vec3<OverlapReal> del = u_diag - q_a;
-            OverlapReal d = fast::sqrt(dot(del,del));
-            if (d > sweep_radius_a)
-                q_a += sweep_radius_a/d * del;
-            else
-                q_a = u_diag;
-            }
-
-        if (sweep_radius_b != OverlapReal(0.0))
-            {
-            vec3<OverlapReal> del = u_diag - q_b;
-            OverlapReal d = fast::sqrt(dot(del,del));
-            if (d > sweep_radius_b)
-                q_b += sweep_radius_b/d * del;
-            else
-                q_b = u_diag;
-            }
-
         // test for common point
         if (dot(q_a-u_diag,q_a-u_diag) + dot(q_b-u_diag,q_b-u_diag) <= tol)
             return true;
@@ -285,7 +223,6 @@ DEVICE inline bool map_two(const ShapeA& a, const ShapeB& b,
         if (dot(n,n) > OverlapReal(0.0))
             {
             v_a = rotate(qa,sa(rotate(conj(qa),b_prime_diag - q_a)));
-            v_a += (sweep_radius_a * fast::rsqrt(dot(n,n))) * n;
             sum += dot(b_prime_diag-v_a, b_prime_diag - q_a);
             }
 
@@ -293,7 +230,6 @@ DEVICE inline bool map_two(const ShapeA& a, const ShapeB& b,
         if (dot(n,n) > OverlapReal(0.0))
             {
             v_b = ab_t + rotate(qb,sb(rotate(conj(qb),b_prime_diag - q_b)));
-            v_b += (sweep_radius_b * fast::rsqrt(dot(n,n))) * n;
             sum += dot(b_prime_diag-v_b, b_prime_diag - q_b);
             }
 

@@ -126,8 +126,9 @@ class SupportFuncConvexPolyhedron
         /*! \param _verts Polyhedron vertices
             Note that for performance it is assumed that unused vertices (beyond N) have already been set to zero.
         */
-        DEVICE SupportFuncConvexPolyhedron(const poly3d_verts& _verts)
-            : verts(_verts)
+        DEVICE SupportFuncConvexPolyhedron(const poly3d_verts& _verts,
+            OverlapReal extra_sweep_radius=OverlapReal(0.0))
+            : verts(_verts), sweep_radius(extra_sweep_radius)
             {
             }
 
@@ -297,16 +298,25 @@ class SupportFuncConvexPolyhedron
                     max_idx = max_idx3;
                     }
                 #endif
-                return vec3<OverlapReal>(verts.x[max_idx], verts.y[max_idx], verts.z[max_idx]);
+
+                vec3<OverlapReal> v(verts.x[max_idx], verts.y[max_idx], verts.z[max_idx]);
+                if (sweep_radius != OverlapReal(0.0))
+                    return v + (sweep_radius * fast::rsqrt(dot(n,n))) * n;
+                else
+                    return v;
                 } // end if(verts.N > 0)
             else
                 {
-                return vec3<OverlapReal>(0.0, 0.0, 0.0); // No verts!
+                if (sweep_radius != OverlapReal(0.0))
+                    return (sweep_radius * fast::rsqrt(dot(n,n))) * n;
+                else
+                    return vec3<OverlapReal>(0.0, 0.0, 0.0); // No verts!
                 }
             }
 
     private:
         const poly3d_verts& verts;      //!< Vertices of the polyhedron
+        const OverlapReal sweep_radius; //!< Extra sweep radius
     };
 
 /*!
@@ -424,8 +434,9 @@ class ProjectionFuncConvexPolyhedron
         //! Construct a projection function for a convex polyhedron
         /*! \param _verts Polyhedron vertices
         */
-        DEVICE ProjectionFuncConvexPolyhedron(const poly3d_verts& _verts)
-            : verts(_verts)
+        DEVICE ProjectionFuncConvexPolyhedron(const poly3d_verts& _verts,
+            OverlapReal extra_sweep_radius=OverlapReal(0.0))
+            : verts(_verts), sweep_radius(extra_sweep_radius)
             {
             }
 
@@ -494,11 +505,29 @@ class ProjectionFuncConvexPolyhedron
                     }
                 }
 
+            if (sweep_radius != 0.0 &&
+                (p.x != closest_p.x || p.y != closest_p.y || p.z != closest_p.z))
+                {
+                // point is on the surface, see if we have to project further out
+                vec3<OverlapReal> del = p - closest_p;
+                OverlapReal dsq = dot(del,del);
+                if (dsq > sweep_radius*sweep_radius)
+                    {
+                    // add the sphere radius in direction of closest approach, or the closest point inside the sphere
+                    OverlapReal d = fast::sqrt(dsq);
+                    return closest_p + sweep_radius/d*del;
+                    }
+                else
+                    return p;
+                }
+
+            // pt is inside base shape
             return closest_p;
             }
 
     private:
         const poly3d_verts& verts;      //!< Vertices of the polyhedron
+        const OverlapReal sweep_radius; //!< extra sphere sweep radius
     };
 
 
@@ -643,43 +672,24 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     {
     vec3<OverlapReal> dr(r_ab);
 
-    if (sweep_radius_a == Scalar(0.0) && sweep_radius_b == Scalar(0.0))
-        {
-        OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-        return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts),
-                                      detail::SupportFuncConvexPolyhedron(b.verts),
-                                      rotate(conj(quat<OverlapReal>(a.orientation)), dr),
-                                      conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
-                                      DaDb/2.0,
-                                      err);
+    return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,sweep_radius_a),
+                                  detail::SupportFuncConvexPolyhedron(b.verts,sweep_radius_b),
+                                  rotate(conj(quat<OverlapReal>(a.orientation)), dr),
+                                  conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
+                                  DaDb/2.0,
+                                  err);
 
-        /*
-        return detail::gjke_3d(detail::SupportFuncConvexPolyhedron(a.verts),
-                               detail::SupportFuncConvexPolyhedron(b.verts),
-                               vec3<Scalar>(dr.x, dr.y, dr.z),
-                               a.orientation,
-                               b.orientation,
-                               DaDb/2.0,
-                               err);
-        */
-        }
-    else
-        {
-        // NOTE: we could fold in the sweeping operation into the support function and still use xenocollide,
-        // leaving this optimization for later
-
-        // it will especially be important to not include avoidable code into the GPU kernels (potentially b/c of register usage)
-        return detail::map_two(a,b,
-            detail::SupportFuncConvexPolyhedron(a.verts),
-            detail::SupportFuncConvexPolyhedron(b.verts),
-            detail::ProjectionFuncConvexPolyhedron(a.verts),
-            detail::ProjectionFuncConvexPolyhedron(b.verts),
-            dr,
-            err,
-            sweep_radius_a,
-            sweep_radius_b);
-        }
+    /*
+    return detail::gjke_3d(detail::SupportFuncConvexPolyhedron(a.verts),
+                           detail::SupportFuncConvexPolyhedron(b.verts),
+                           vec3<Scalar>(dr.x, dr.y, dr.z),
+                           a.orientation,
+                           b.orientation,
+                           DaDb/2.0,
+                           err);
+    */
     }
 
 //! Test for the overlap of a third convex polyhedron with the intersection of two convex polyhedra
@@ -698,18 +708,15 @@ DEVICE inline bool test_overlap_intersection(const ShapeConvexPolyhedron& a,
     Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
     {
     return detail::map_three(a,b,c,
-        detail::SupportFuncConvexPolyhedron(a.verts),
-        detail::SupportFuncConvexPolyhedron(b.verts),
-        detail::SupportFuncConvexPolyhedron(c.verts),
-        detail::ProjectionFuncConvexPolyhedron(a.verts),
-        detail::ProjectionFuncConvexPolyhedron(b.verts),
-        detail::ProjectionFuncConvexPolyhedron(c.verts),
+        detail::SupportFuncConvexPolyhedron(a.verts,sweep_radius_a),
+        detail::SupportFuncConvexPolyhedron(b.verts,sweep_radius_b),
+        detail::SupportFuncConvexPolyhedron(c.verts,sweep_radius_c),
+        detail::ProjectionFuncConvexPolyhedron(a.verts,sweep_radius_a),
+        detail::ProjectionFuncConvexPolyhedron(b.verts,sweep_radius_b),
+        detail::ProjectionFuncConvexPolyhedron(c.verts,sweep_radius_c),
         vec3<OverlapReal>(ab_t),
         vec3<OverlapReal>(ac_t),
-        err,
-        sweep_radius_a,
-        sweep_radius_b,
-        sweep_radius_c);
+        err);
     }
 
 }; // end namespace hpmc

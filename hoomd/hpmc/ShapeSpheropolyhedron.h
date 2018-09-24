@@ -31,94 +31,6 @@
 namespace hpmc
 {
 
-namespace detail
-{
-
-//! Support function for ShapeSpheropolyhedron
-/*! SupportFuncSpheropolyhedron is a functor that computes the support function for ShapeSpheropolyhedron. For a given
-    input vector in local coordinates, it finds the vertex most in that direction and then extends it out further
-    by the sweep radius.
-
-    There are some current features under consideration for special handling of 0 and 1-vertex inputs. See
-    ShapeSphereopolyhedron for documentation on these cases.
-
-    \ingroup minkowski
-*/
-class SupportFuncSpheropolyhedron
-    {
-    public:
-        //! Construct a support function for a convex spheropolyhedron
-        /*! \param _verts Polyhedron vertices and additional parameters
-        */
-        DEVICE SupportFuncSpheropolyhedron(const poly3d_verts& _verts)
-            : verts(_verts)
-            {
-            }
-
-        //! Compute the support function
-        /*! \param n Normal vector input (in the local frame)
-            \returns Local coords of the point furthest in the direction of n
-        */
-        DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& n) const
-            {
-            // get the support function of the underlying convex polyhedron
-            vec3<OverlapReal> max_poly3d = SupportFuncConvexPolyhedron(verts)(n);
-            // add to that the support mapping of the sphere
-            vec3<OverlapReal> max_sphere = (verts.sweep_radius * fast::rsqrt(dot(n,n))) * n;
-
-            return max_poly3d + max_sphere;
-            }
-
-    private:
-        const poly3d_verts& verts;        //!< Vertices of the polyhedron
-    };
-
-//! Projection function for ShapeSpheropolyhedron
-/*! ProjectionFuncConvexPolyhedron is a functor that computes the projection function for ShapePolyhedron. For a given
-    input point in local coordinates, it finds the point on the sphere-swept shape closest to that point.
-
-    \ingroup minkowski
-*/
-class ProjectionFuncSpheropolyhedron
-    {
-    public:
-        //! Construct a projection function for a convex spheropolyhedron
-        /*! \param _verts Polyhedron vertices and additional parameters
-        */
-        DEVICE ProjectionFuncSpheropolyhedron(const poly3d_verts& _verts)
-            : verts(_verts)
-            {
-            }
-
-        //! Compute the projection
-        /*! \param p Point to compute the projection for
-            \returns Local coords of the point in the shape closest to p
-        */
-        DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& p) const
-            {
-            // get the projection function of the underlying convex polyhedron
-            vec3<OverlapReal> proj_poly3d = ProjectionFuncConvexPolyhedron(verts)(p);
-
-            vec3<OverlapReal> del = p - proj_poly3d;
-            OverlapReal dsq = dot(del,del);
-            if (dsq > verts.sweep_radius*verts.sweep_radius)
-                {
-                // add the sphere radius in direction of closest approach, or the closest point inside the sphere
-                OverlapReal d = fast::sqrt(dsq);
-                return proj_poly3d + verts.sweep_radius/d*del;
-                }
-            else
-                // point is inside base shape
-                return p;
-            }
-
-    private:
-        const poly3d_verts& verts;        //!< Vertices of the polyhedron
-    };
-
-
-}; // end namespace detail
-
 //! Convex (Sphero)Polyhedron shape template
 /*! ShapeSpheropolyhedron represents a convex polygon swept out by a sphere with special cases. A shape with zero
     vertices is a sphere centered at the particle location. This is degenerate with the one-vertex case and marginal
@@ -276,39 +188,24 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     {
     vec3<OverlapReal> dr = r_ab;
 
-    if (sweep_radius_a == Scalar(0.0) && sweep_radius_b == Scalar(0.0))
-        {
-        OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-        return xenocollide_3d(detail::SupportFuncSpheropolyhedron(a.verts),
-                              detail::SupportFuncSpheropolyhedron(b.verts),
-                              rotate(conj(quat<OverlapReal>(a.orientation)),dr),
-                              conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
-                              DaDb/2.0,
-                              err);
+    return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
+                          detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
+                          rotate(conj(quat<OverlapReal>(a.orientation)),dr),
+                          conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
+                          DaDb/2.0,
+                          err);
 
-        /*
-        return gjke_3d(detail::SupportFuncSpheropolyhedron(a.verts),
-                       detail::SupportFuncSpheropolyhedron(b.verts),
-                              dr,
-                              a.orientation,
-                              b.orientation,
-                              DaDb/2.0,
-                              err);
-        */
-        }
-    else
-        {
-        return detail::map_two(a,b,
-            detail::SupportFuncSpheropolyhedron(a.verts),
-            detail::SupportFuncSpheropolyhedron(b.verts),
-            detail::ProjectionFuncSpheropolyhedron(a.verts),
-            detail::ProjectionFuncSpheropolyhedron(b.verts),
-            dr,
-            err,
-            sweep_radius_a,
-            sweep_radius_b);
-        }
+    /*
+    return gjke_3d(detail::SupportFuncSpheropolyhedron(a.verts),
+                   detail::SupportFuncSpheropolyhedron(b.verts),
+                          dr,
+                          a.orientation,
+                          b.orientation,
+                          DaDb/2.0,
+                          err);
+    */
     }
 
 //! Test for overlap of a third particle with the intersection of two shapes
@@ -329,18 +226,15 @@ DEVICE inline bool test_overlap_intersection(const ShapeSpheropolyhedron& a,
     Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
     {
     return detail::map_three(a,b,c,
-        detail::SupportFuncSpheropolyhedron(a.verts),
-        detail::SupportFuncSpheropolyhedron(b.verts),
-        detail::SupportFuncSpheropolyhedron(c.verts),
-        detail::ProjectionFuncSpheropolyhedron(a.verts),
-        detail::ProjectionFuncSpheropolyhedron(b.verts),
-        detail::ProjectionFuncSpheropolyhedron(c.verts),
+        detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
+        detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
+        detail::SupportFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+sweep_radius_c),
+        detail::ProjectionFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
+        detail::ProjectionFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
+        detail::ProjectionFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+sweep_radius_c),
         vec3<OverlapReal>(ab_t),
         vec3<OverlapReal>(ac_t),
-        err,
-        sweep_radius_a,
-        sweep_radius_b,
-        sweep_radius_c);
+        err);
     }
 
 }; // end namespace hpmc
