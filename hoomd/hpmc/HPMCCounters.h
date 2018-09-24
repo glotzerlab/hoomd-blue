@@ -88,6 +88,18 @@ DEVICE inline hpmc_counters_t operator-(const hpmc_counters_t& a, const hpmc_cou
     return result;
     }
 
+//! Sum of two sets of counters
+DEVICE inline hpmc_counters_t operator+(const hpmc_counters_t& a, const hpmc_counters_t& b)
+    {
+    hpmc_counters_t result;
+    result.translate_accept_count = a.translate_accept_count + b.translate_accept_count;
+    result.rotate_accept_count = a.rotate_accept_count + b.rotate_accept_count;
+    result.translate_reject_count = a.translate_reject_count + b.translate_reject_count;
+    result.rotate_reject_count = a.rotate_reject_count + b.rotate_reject_count;
+    result.overlap_checks = a.overlap_checks + b.overlap_checks;
+    result.overlap_err_count = a.overlap_err_count + b.overlap_err_count;
+    return result;
+    }
 
 //! Storage for NPT acceptance counters
 /*! \ingroup hpmc_data_structs */
@@ -372,6 +384,14 @@ DEVICE inline hpmc_implicit_counters_t operator-(const hpmc_implicit_counters_t&
     {
     hpmc_implicit_counters_t result;
     result.insert_count = a.insert_count - b.insert_count;
+    return result;
+    }
+
+//! Sum of two sets of counters
+DEVICE inline hpmc_implicit_counters_t operator+(const hpmc_implicit_counters_t& a, const hpmc_implicit_counters_t& b)
+    {
+    hpmc_implicit_counters_t result;
+    result.insert_count = a.insert_count + b.insert_count;
     return result;
     }
 

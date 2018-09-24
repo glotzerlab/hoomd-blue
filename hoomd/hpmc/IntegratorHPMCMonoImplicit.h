@@ -732,13 +732,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     Shape shape_old(quat<Scalar>(h_orientation[i]), this->m_params[typ_i]);
 
     #ifdef ENABLE_TBB
-    tbb::atomic<unsigned int> n_overlap_checks = 0;
-    tbb::atomic<unsigned int> overlap_err_count = 0;
-    tbb::atomic<unsigned int> insert_count = 0;
-    #else
-    unsigned int n_overlap_checks = 0;
-    unsigned int overlap_err_count = 0;
-    unsigned int insert_count = 0;
+    tbb::enumerable_thread_specific<hpmc_implicit_counters_t> thread_implicit_counters;
+    tbb::enumerable_thread_specific<hpmc_counters_t> thread_counters;
     #endif
 
     #ifdef ENABLE_TBB
@@ -900,7 +895,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     hoomd::detail::Saru& my_rng = rng_i;
                     #endif
 
-                    insert_count++;
+                    #ifdef ENABLE_TBB
+                    thread_implicit_counters.local().insert_count++;
+                    #else
+                    implicit_counters.insert_count++;
+                    #endif
 
                     vec3<Scalar> pos_test;
                     if (!sphere)
@@ -970,13 +969,23 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                             if (m_quermass || h_overlaps[this->m_overlap_idx(type, typ_i)])
                                 {
-                                n_overlap_checks++;
+                                #ifdef ENABLE_TBB
+                                thread_counters.local().overlap_checks++;
+                                #else
+                                counters.overlap_checks++;
+                                #endif
+
                                 unsigned int err = 0;
                                 if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_old, err, 0.0, m_sweep_radius))
                                     {
                                     overlap_old = true;
                                     }
-                                if (err) overlap_err_count += err;
+                                if (err)
+                                #ifdef ENABLE_TBB
+                                    thread_counters.local().overlap_err_count++;
+                                #else
+                                    counters.overlap_err_count++;
+                                #endif
                                 }
                             }
 
@@ -1000,13 +1009,23 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                             if (m_quermass || h_overlaps[this->m_overlap_idx(type, typ_i)])
                                 {
-                                n_overlap_checks++;
+                                #ifdef ENABLE_TBB
+                                thread_counters.local().overlap_checks++;
+                                #else
+                                counters.overlap_checks++;
+                                #endif
+
                                 unsigned int err = 0;
                                 if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i, err, 0.0, m_sweep_radius))
                                     {
                                     overlap_new = true;
                                     }
-                                if (err) overlap_err_count += err;
+                                if (err)
+                                #ifdef ENABLE_TBB
+                                    thread_counters.local().overlap_err_count++;
+                                #else
+                                    counters.overlap_err_count++;
+                                #endif
                                 }
                             }
 
@@ -1035,7 +1054,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         unsigned int typ_j = __scalar_as_int(postype_j.w);
                         Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
 
-                        n_overlap_checks++;
+                        #ifdef ENABLE_TBB
+                        thread_counters.local().overlap_checks++;
+                        #else
+                        counters.overlap_checks++;
+                        #endif
 
                         unsigned int err = 0;
 
@@ -1087,7 +1110,13 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                 }
                             }
 
-                        if (err) overlap_err_count+=err;
+                        if (err)
+                        #ifdef ENABLE_TBB
+                            thread_counters.local().overlap_err_count++;
+                        #else
+                            counters.overlap_err_count++;
+                        #endif
+
                         if (in_intersection_volume)
                             break;
                         } // end loop over intersections
@@ -1265,7 +1294,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     hoomd::detail::Saru& my_rng = rng_i;
                     #endif
 
-                    insert_count++;
+                    #ifdef ENABLE_TBB
+                    thread_implicit_counters.local().insert_count++;
+                    #else
+                    implicit_counters.insert_count++;
+                    #endif
 
                     vec3<Scalar> pos_test;
                     if (!sphere)
@@ -1340,13 +1373,23 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                             if (m_quermass || h_overlaps[this->m_overlap_idx(type, typ_i)])
                                 {
-                                n_overlap_checks++;
+                                #ifdef ENABLE_TBB
+                                thread_counters.local().overlap_checks++;
+                                #else
+                                counters.overlap_checks++;
+                                #endif
+
                                 unsigned int err = 0;
                                 if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i, err, 0.0, m_sweep_radius))
                                     {
                                     overlap_new = true;
                                     }
-                                if (err) overlap_err_count += err;
+                                if (err)
+                                #ifdef ENABLE_TBB
+                                    thread_counters.local().overlap_err_count++;
+                                #else
+                                    counters.overlap_err_count++;
+                                #endif
                                 }
                             }
 
@@ -1368,13 +1411,23 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                         if (m_quermass || h_overlaps[this->m_overlap_idx(type, typ_i)])
                             {
-                            n_overlap_checks++;
+                            #ifdef ENABLE_TBB
+                            thread_counters.local().overlap_checks++;
+                            #else
+                            counters.overlap_checks++;
+                            #endif
+
                             unsigned int err = 0;
                             if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_old, err, 0.0, m_sweep_radius))
                                 {
                                 overlap_old = true;
                                 }
-                            if (err) overlap_err_count += err;
+                            if (err)
+                            #ifdef ENABLE_TBB
+                                thread_counters.local().overlap_err_count++;
+                            #else
+                                counters.overlap_err_count++;
+                            #endif
                             }
 
                         if (overlap_old)
@@ -1401,7 +1454,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         unsigned int typ_j = (i == j) ? typ_i : __scalar_as_int(h_postype[j].w);
                         Shape shape_j((i == j) ? shape_i.orientation : quat<Scalar>(h_orientation[j]), this->m_params[typ_j]);
 
-                        n_overlap_checks++;
+                        #ifdef ENABLE_TBB
+                        thread_counters.local().overlap_checks++;
+                        #else
+                        counters.overlap_checks++;
+                        #endif
 
                         unsigned int err = 0;
                         if (m_quermass)
@@ -1438,7 +1495,12 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                         m_sweep_radius, m_sweep_radius, 0.0))
                                     in_new_intersection_volume = false;
                                 }
-                            if (err) overlap_err_count+=err;
+                            if (err)
+                            #ifdef ENABLE_TBB
+                                thread_counters.local().overlap_err_count++;
+                            #else
+                                counters.overlap_err_count++;
+                            #endif
                             }
                         else
                             {
@@ -1453,7 +1515,12 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                 {
                                 in_new_intersection_volume = true;
                                 }
-                            if (err) overlap_err_count+=err;
+                            if (err)
+                            #ifdef ENABLE_TBB
+                                thread_counters.local().overlap_err_count++;
+                            #else
+                                counters.overlap_err_count++;
+                            #endif
                             }
 
                         if (in_new_intersection_volume)
@@ -1481,21 +1548,24 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             #ifdef ENABLE_TBB
                 );
             #endif
-
-            // increment counters
-            counters.overlap_checks += n_overlap_checks;
-            counters.overlap_err_count += overlap_err_count;
-            implicit_counters.insert_count += insert_count;
             } // end depletant placement
         }
     #ifdef ENABLE_TBB
         );
     #endif
 
-    // increment counters
-    counters.overlap_checks += n_overlap_checks;
-    counters.overlap_err_count += overlap_err_count;
-    implicit_counters.insert_count += insert_count;
+    #ifdef ENABLE_TBB
+    // reduce counters
+    for (auto i = thread_counters.begin(); i != thread_counters.end(); ++i)
+        {
+        counters = counters + *i;
+        }
+
+    for (auto i = thread_implicit_counters.begin(); i != thread_implicit_counters.end(); ++i)
+        {
+        implicit_counters = implicit_counters + *i;
+        }
+    #endif
 
     return accept;
     }
