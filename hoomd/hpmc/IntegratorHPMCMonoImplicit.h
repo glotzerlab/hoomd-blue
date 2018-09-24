@@ -737,6 +737,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     #endif
 
     #ifdef ENABLE_TBB
+    try {
     tbb::parallel_for((unsigned int)0, (unsigned int)this->m_pdata->getNTypes(), [&](unsigned int type)
     #else
     for (unsigned int type = 0; type < this->m_pdata->getNTypes(); ++type)
@@ -825,11 +826,6 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             for (unsigned int k = 0; k < intersect_i.size(); ++k)
             #endif
                 {
-                #ifdef ENABLE_TBB
-                if (!accept)
-                    return;
-                #endif
-
                 unsigned int j = intersect_i[k];
                 vec3<Scalar> ri = pos_i_old;
                 Scalar4 postype_j = h_postype[j];
@@ -1127,6 +1123,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         accept = false;
                         #ifndef ENABLE_TBB
                         break;
+                        #else
+                        throw false;
                         #endif
                         }
                     } // end loop over depletants
@@ -1135,7 +1133,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #endif
 
                 #ifndef ENABLE_TBB
-                if (!accept) break;
+                if (!accept)
+                    break;
                 #endif
                 } // end loop over overlapping spheres
             #ifdef ENABLE_TBB
@@ -1283,11 +1282,6 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 for (unsigned int l = 0; l < n; ++l)
                 #endif
                     {
-                    #ifdef ENABLE_TBB
-                    if (!accept)
-                        return;
-                    #endif
-
                     #ifdef ENABLE_TBB
                     hoomd::detail::Saru& my_rng = rng_parallel.local();
                     #else
@@ -1534,6 +1528,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         #ifndef ENABLE_TBB
                         // early exit
                         break;
+                        #else
+                        throw false;
                         #endif
                         }
                     } // end loop over depletants
@@ -1551,7 +1547,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             } // end depletant placement
         }
     #ifdef ENABLE_TBB
-        );
+        ); } catch (bool b) { }
     #endif
 
     #ifdef ENABLE_TBB
