@@ -457,7 +457,7 @@ inline OverlapReal eigen_sphere(const std::vector< vec3<OverlapReal> >& verts, v
         }
 
     // compute normalized eigenvectors
-    Eigen::EigenSolver<Eigen::MatrixXd> es;
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
     es.compute(m);
 
     rotmat3<OverlapReal> r;
@@ -686,10 +686,13 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
             }
         else
             {
-            Eigen::MatrixXcd eigen_vec = es.eigenvectors();
-            r.row0 = vec3<OverlapReal>(eigen_vec(0,0).real(),eigen_vec(0,1).real(),eigen_vec(0,2).real());
-            r.row1 = vec3<OverlapReal>(eigen_vec(1,0).real(),eigen_vec(1,1).real(),eigen_vec(1,2).real());
-            r.row2 = vec3<OverlapReal>(eigen_vec(2,0).real(),eigen_vec(2,1).real(),eigen_vec(2,2).real());
+            // get the orthonormal basis
+            Eigen::HouseholderQR<Eigen::MatrixXd> qr(es.eigenvectors());
+            Eigen::MatrixXd eigenvec_ortho = qr.householderQ();
+
+            r.row0 = vec3<OverlapReal>(eigenvec_ortho(0,0),eigenvec_ortho(0,1),eigenvec_ortho(0,2));
+            r.row1 = vec3<OverlapReal>(eigenvec_ortho(1,0),eigenvec_ortho(1,1),eigenvec_ortho(1,2));
+            r.row2 = vec3<OverlapReal>(eigenvec_ortho(2,0),eigenvec_ortho(2,1),eigenvec_ortho(2,2));
             }
 
         if (pts.size() >= 3)
