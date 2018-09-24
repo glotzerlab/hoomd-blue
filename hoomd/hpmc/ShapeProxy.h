@@ -457,6 +457,7 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
     // extract member parameters, posistions, and orientations and compute the radius along the way
     OverlapReal diameter = OverlapReal(0.0);
 
+    bool all_spheres = true;
     for (unsigned int i = 0; i < result.N; i++)
         {
         typename Shape::param_type param = pybind11::cast<typename Shape::param_type>(_members[i]);
@@ -481,6 +482,7 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
             {
             // construct OBB
             obbs[i] = dummy.getOBB(pos);
+            all_spheres = false;
             }
         else
             {
@@ -497,7 +499,7 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
     // build tree and store GPU accessible version in parameter structure
     typedef typename ShapeUnion<Shape>::param_type::gpu_tree_type gpu_tree_type;
     OBBTree tree;
-    tree.buildTree(obbs, result.N, leaf_capacity, false);
+    tree.buildTree(obbs, result.N, leaf_capacity, all_spheres);
     delete [] obbs;
     result.tree = gpu_tree_type(tree,exec_conf->isCUDAEnabled());
 
