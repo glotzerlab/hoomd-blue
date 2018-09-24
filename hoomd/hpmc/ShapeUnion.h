@@ -493,73 +493,6 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
         obb_c.lengths.y += sweep_radius_c;
         obb_c.lengths.z += sweep_radius_c;
 
-        #if defined(ENABLE_TBB) && defined(SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL)
-        if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
-            {
-            // transform into b's reference frame
-            obb_c.affineTransform(qbc, rbc_rot);
-
-            try { tbb::parallel_for((unsigned int)0, (unsigned int)tree_a.getNumLeaves(), [&](unsigned int cur_leaf_a)
-                {
-                unsigned int cur_node_a = tree_a.getLeafNode(cur_leaf_a);
-                hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
-                // rotate and translate a's obb into b's body frame
-                obb_a.affineTransform(qab, rab_rot);
-
-                // extend OBB
-                obb_a.lengths.x += sweep_radius_a;
-                obb_a.lengths.y += sweep_radius_a;
-                obb_a.lengths.z += sweep_radius_a;
-
-                unsigned cur_node_b = 0;
-                while (cur_node_b < tree_b.getNumNodes())
-                    {
-                    unsigned int query_node = cur_node_b;
-                    if (tree_b.queryNodeIntersection(obb_a, cur_node_b, sweep_radius_b, obb_c) &&
-                        test_narrow_phase_overlap_intersection(a, b, c, ab_t, ac_t,
-                            cur_node_a, query_node, cur_node_c, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
-                        throw true;
-                    }
-                }
-                ); } catch (bool b) { return true; }
-            }
-        else
-            {
-            vec3<OverlapReal> rba_rot(rotate(conj(quat<OverlapReal>(a.orientation)),vec3<OverlapReal>(ab_t)));
-            quat<OverlapReal> qba(conj(a.orientation)*b.orientation);
-
-            vec3<OverlapReal> rac_rot(rotate(conj(quat<OverlapReal>(a.orientation)),vec3<OverlapReal>(ac_t)));
-            quat<OverlapReal> qca(conj(a.orientation)*c.orientation);
-
-            // transform into a's reference frame
-            obb_c.affineTransform(qca, rac_rot);
-
-            try { tbb::parallel_for((unsigned int)0, (unsigned int)tree_b.getNumLeaves(), [&](unsigned int cur_leaf_b)
-                {
-                unsigned int cur_node_b = tree_b.getLeafNode(cur_leaf_b);
-                hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
-
-                // rotate and translate b's obb into a's body frame
-                obb_b.affineTransform(qba, rba_rot);
-
-                // extend OBB
-                obb_b.lengths.x += sweep_radius_b;
-                obb_b.lengths.y += sweep_radius_b;
-                obb_b.lengths.z += sweep_radius_b;
-
-                unsigned cur_node_a = 0;
-                while (cur_node_a < tree_a.getNumNodes())
-                    {
-                    unsigned int query_node = cur_node_a;
-                    if (tree_a.queryNodeIntersection(obb_b, cur_node_a, sweep_radius_a, obb_c) &&
-                        test_narrow_phase_overlap_intersection(a, b, c, ab_t, ac_t,
-                            query_node, cur_node_b, cur_node_c, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
-                        throw true;
-                    }
-                }
-                ); } catch (bool b) { return true; }
-            }
-        #else
         // transform into b's reference frame
         obb_c.affineTransform(qbc, rbc_rot);
 
@@ -576,6 +509,8 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
         unsigned int query_node_a = UINT_MAX;
         unsigned int query_node_b = UINT_MAX;
 
+        unsigned int mask_a = 0;
+        unsigned int mask_b = 0;
         while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
             {
             if (query_node_a != cur_node_a)
@@ -585,6 +520,7 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
                 obb_a.lengths.y += sweep_radius_a;
                 obb_a.lengths.z += sweep_radius_a;
                 query_node_a = cur_node_a;
+                mask_a = obb_a.mask;
                 }
 
             if (query_node_b != cur_node_b)
@@ -593,14 +529,18 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
                 obb_b.lengths.y += sweep_radius_b;
                 obb_b.lengths.z += sweep_radius_b;
                 query_node_b = cur_node_b;
+                mask_b = obb_b.mask;
                 }
+
+            // combine masks
+            unsigned int combined_mask = mask_a | mask_b;
+            obb_a.mask = obb_b.mask = combined_mask;
 
             if (detail::traverseBinaryStackIntersection(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, qab, rab_rot, obb_c)
                 && test_narrow_phase_overlap_intersection(a, b, c, ab_t, ac_t,
                     query_node_a, query_node_b, cur_node_c, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
                         return true;
             }
-        #endif
         }
 
     return false;
