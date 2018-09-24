@@ -474,12 +474,11 @@ inline OverlapReal eigen_sphere(const std::vector< vec3<OverlapReal> >& verts, v
     else
         {
         // get the orthonormal basis
-        Eigen::HouseholderQR<Eigen::MatrixXd> qr(es.eigenvectors());
-        Eigen::MatrixXd eigenvec_ortho = qr.householderQ();
+        Eigen::MatrixXd eigenvec = es.eigenvectors();
 
-        r.row0 = vec3<OverlapReal>(eigenvec_ortho(0,0),eigenvec_ortho(0,1),eigenvec_ortho(0,2));
-        r.row1 = vec3<OverlapReal>(eigenvec_ortho(1,0),eigenvec_ortho(1,1),eigenvec_ortho(1,2));
-        r.row2 = vec3<OverlapReal>(eigenvec_ortho(2,0),eigenvec_ortho(2,1),eigenvec_ortho(2,2));
+        r.row0 = vec3<OverlapReal>(eigenvec(0,0),eigenvec(0,1),eigenvec(0,2));
+        r.row1 = vec3<OverlapReal>(eigenvec(1,0),eigenvec(1,1),eigenvec(1,2));
+        r.row2 = vec3<OverlapReal>(eigenvec(2,0),eigenvec(2,1),eigenvec(2,2));
         eigen_val = es.eigenvalues();
         }
 
