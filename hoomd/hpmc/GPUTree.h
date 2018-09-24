@@ -519,6 +519,7 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
 /*! Returns true if an intersecting pair of leaf OBB's has been found, where both
  * OBBs intersect with the third OBB
  *
+ * \param overlaps true if overlap condition between a, b and c is fulfilled
  * \param a First tree
  * \param b Second tree
  * \param cur_node_a Current node in first tree
@@ -552,7 +553,8 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
  *            test_narrow_phase(a, b, query_node_a, query_node_b, ...)
  *     }
  */
-DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a, const GPUTree &b, unsigned int& cur_node_a, unsigned int& cur_node_b,
+DEVICE inline bool traverseBinaryStackIntersection(bool overlaps,
+    const GPUTree& a, const GPUTree &b, unsigned int& cur_node_a, unsigned int& cur_node_b,
     unsigned long int &stack, OBB& obb_a, OBB& obb_b, const quat<OverlapReal>& q, const vec3<OverlapReal>& dr, const OBB& obb_c)
     {
     bool leaf = false;
@@ -561,8 +563,7 @@ DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a, const GPUTr
     unsigned int old_a = cur_node_a;
     unsigned int old_b = cur_node_b;
 
-    if (((obb_a.mask & obb_c.mask) || (obb_b.mask & obb_c.mask)) &&
-        overlap(obb_a, obb_b) && overlap(obb_a, obb_c) && overlap(obb_b, obb_c))
+    if (overlaps)
         {
         if (a.isLeaf(cur_node_a) && b.isLeaf(cur_node_b))
             {
