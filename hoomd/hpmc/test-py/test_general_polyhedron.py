@@ -15,7 +15,7 @@ def create_empty(**kwargs):
 
 class polyhedron_test(unittest.TestCase):
     def setUp(self):
-        self.system = create_empty(N=2, box=data.boxdim(L=25, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=2, box=data.boxdim(L=25, dimensions=3), particle_types=['A'])
 
         self.mc = hpmc.integrate.polyhedron(seed=10,d=0,a=0);
 
