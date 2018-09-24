@@ -576,10 +576,6 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
         unsigned int query_node_a = UINT_MAX;
         unsigned int query_node_b = UINT_MAX;
 
-        bool overlap_ab = false;
-        bool overlap_ac = false;
-        bool overlap_bc = false;
-
         while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
             {
             if (query_node_a != cur_node_a)
@@ -589,8 +585,6 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
                 obb_a.lengths.y += sweep_radius_a;
                 obb_a.lengths.z += sweep_radius_a;
                 query_node_a = cur_node_a;
-                overlap_ab = overlap(obb_a, obb_b);
-                overlap_ac = overlap(obb_a, obb_c);
                 }
 
             if (query_node_b != cur_node_b)
@@ -599,14 +593,9 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
                 obb_b.lengths.y += sweep_radius_b;
                 obb_b.lengths.z += sweep_radius_b;
                 query_node_b = cur_node_b;
-                overlap_ab = overlap(obb_a, obb_b);
-                overlap_bc = overlap(obb_b, obb_c);
                 }
 
-            bool overlap = ((obb_a.mask & obb_c.mask) || (obb_b.mask & obb_c.mask)) &&
-                overlap_ab && overlap_ac && overlap_bc;
-
-            if (detail::traverseBinaryStackIntersection(overlap, tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, qab, rab_rot, obb_c)
+            if (detail::traverseBinaryStackIntersection(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, qab, rab_rot, obb_c)
                 && test_narrow_phase_overlap_intersection(a, b, c, ab_t, ac_t,
                     query_node_a, query_node_b, cur_node_c, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
                         return true;
