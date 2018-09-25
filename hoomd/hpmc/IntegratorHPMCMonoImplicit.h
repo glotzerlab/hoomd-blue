@@ -823,13 +823,40 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
                                 Shape shape_j(quat<Scalar>(), this->m_params[typ_j]);
+                                if (shape_j.hasOrientation())
+                                    shape_j.orientation = quat<Scalar>(h_orientation[j]);
 
                                 // check circumsphere overlap
                                 OverlapReal rsq = dot(r_ij,r_ij);
                                 OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter() + 2*range;
                                 bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-                                if ((m_quermass || h_overlaps[this->m_overlap_idx(type,typ_j)]) && circumsphere_overlap)
+                                bool overlap_excluded = circumsphere_overlap;
+
+                                // currently ignore overlap flags with quermass==true
+                                overlap_excluded = overlap_excluded && (m_quermass || h_overlaps[this->m_overlap_idx(type,typ_j)]);
+
+                                if (Shape::supportsSweepRadius() && overlap_excluded)
+                                    {
+                                    // do i and j overlap with their excluded volumes in the old configuration?
+                                    #ifdef ENABLE_TBB
+                                    thread_counters.local().overlap_checks++;
+                                    #else
+                                    counters.overlap_checks++;
+                                    #endif
+
+                                    unsigned int err = 0;
+                                    Scalar sweep_radius = m_quermass ? m_sweep_radius : Scalar(0.5)*tmp.getCircumsphereDiameter();
+                                    overlap_excluded = test_overlap(r_ij, shape_old, shape_j, err, sweep_radius, sweep_radius);
+
+                                    if (err)
+                                    #ifdef ENABLE_TBB
+                                        thread_counters.local().overlap_err_count++;
+                                    #else
+                                        counters.overlap_err_count++;
+                                    #endif
+                                    }
+                                if (overlap_excluded)
                                     {
                                     intersect_i.push_back(j);
                                     image_i.push_back(cur_image);
@@ -1222,12 +1249,45 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                                 Shape shape_j(quat<Scalar>(), this->m_params[typ_j]);
 
+                                if (shape_j.hasOrientation())
+                                    {
+                                    if (i == j)
+                                        shape_j.orientation = shape_i.orientation;
+                                    else
+                                        shape_j.orientation = quat<Scalar>(h_orientation[j]);
+                                    }
+
                                 // check circumsphere overlap
                                 OverlapReal rsq = dot(r_ij,r_ij);
                                 OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter() + 2*range;
                                 bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-                                if ((m_quermass || h_overlaps[this->m_overlap_idx(type,typ_j)]) && circumsphere_overlap)
+                                bool overlap_excluded = circumsphere_overlap;
+
+                                // currently ignore overlap flags with quermass==true
+                                overlap_excluded = overlap_excluded && (m_quermass || h_overlaps[this->m_overlap_idx(type,typ_j)]);
+
+                                if (Shape::supportsSweepRadius() && overlap_excluded)
+                                    {
+                                    // do i and j overlap with their excluded volumes in the new configuration?
+                                    #ifdef ENABLE_TBB
+                                    thread_counters.local().overlap_checks++;
+                                    #else
+                                    counters.overlap_checks++;
+                                    #endif
+
+                                    unsigned int err = 0;
+                                    Scalar sweep_radius = m_quermass ? m_sweep_radius : Scalar(0.5)*tmp.getCircumsphereDiameter();
+                                    overlap_excluded = test_overlap(r_ij, shape_i, shape_j, err, sweep_radius, sweep_radius);
+
+                                    if (err)
+                                    #ifdef ENABLE_TBB
+                                        thread_counters.local().overlap_err_count++;
+                                    #else
+                                        counters.overlap_err_count++;
+                                    #endif
+                                    }
+                                if (overlap_excluded)
                                     {
                                     intersect_i.push_back(j);
                                     image_i.push_back(cur_image);

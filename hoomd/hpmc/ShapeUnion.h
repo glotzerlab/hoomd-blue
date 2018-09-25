@@ -214,7 +214,8 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                                              unsigned int cur_node_b,
                                              unsigned int &err,
                                              OverlapReal sweep_radius_a,
-                                             OverlapReal sweep_radius_b)
+                                             OverlapReal sweep_radius_b,
+                                             bool ignore_mask)
     {
     vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(dr));
 
@@ -249,7 +250,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
 
             unsigned int overlap_j = b.members.moverlap[jshape];
 
-            if (overlap_i & overlap_j)
+            if (ignore_mask || (overlap_i & overlap_j))
                 {
                 vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
                 if (test_overlap(r_ij, shape_i, shape_j, err, sweep_radius_a, sweep_radius_b))
@@ -272,6 +273,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     {
     const detail::GPUTree& tree_a = a.members.tree;
     const detail::GPUTree& tree_b = b.members.tree;
+
+    bool ignore_mask = sweep_radius_a != Scalar(0.0) || sweep_radius_b != Scalar(0.0);
 
     #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
     #ifdef NVCC
@@ -304,8 +307,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             while (cur_node_b < tree_b.getNumNodes())
                 {
                 unsigned int query_node = cur_node_b;
-                if (tree_b.queryNode(obb_a, cur_node_b) &&
-                    test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err, sweep_radius_a,sweep_radius_b))
+                if (tree_b.queryNode(obb_a, cur_node_b, ignore_mask) &&
+                    test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err, sweep_radius_a,sweep_radius_b, ignore_mask))
                     return true;
                 }
             }
@@ -330,8 +333,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             while (cur_node_a < tree_a.getNumNodes())
                 {
                 unsigned int query_node = cur_node_a;
-                if (tree_a.queryNode(obb_b, cur_node_a) &&
-                    test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err, sweep_radius_a,sweep_radius_b))
+                if (tree_a.queryNode(obb_b, cur_node_a, ignore_mask) &&
+                    test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err, sweep_radius_a,sweep_radius_b, ignore_mask))
                     return true;
                 }
             }
@@ -372,8 +375,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             query_node_b = cur_node_b;
             }
 
-        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot)
-            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err, sweep_radius_a, sweep_radius_b))
+        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot, ignore_mask)
+            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err, sweep_radius_a, sweep_radius_b, ignore_mask))
             return true;
         }
     #endif

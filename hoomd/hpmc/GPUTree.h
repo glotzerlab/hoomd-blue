@@ -138,12 +138,12 @@ class GPUTree
          * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous call
          * \returns true if the current node overlaps and is a leaf node
          */
-        DEVICE inline bool queryNode(const OBB& obb, unsigned int &cur_node) const
+        DEVICE inline bool queryNode(const OBB& obb, unsigned int &cur_node, bool ignore_mask=false) const
             {
             OBB node_obb(getOBB(cur_node));
 
             bool leaf = false;
-            if (overlap(node_obb, obb))
+            if (overlap(node_obb, obb, ignore_mask))
                 {
                 unsigned int left_child = getLeftChild(cur_node);
 
@@ -401,7 +401,8 @@ DEVICE inline void findAscent(unsigned int a_count, unsigned int b_count, unsign
  *     }
  */
 DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsigned int& cur_node_a, unsigned int& cur_node_b,
-    unsigned long int &stack, OBB& obb_a, OBB& obb_b, const quat<OverlapReal>& q, const vec3<OverlapReal>& dr)
+    unsigned long int &stack, OBB& obb_a, OBB& obb_b, const quat<OverlapReal>& q, const vec3<OverlapReal>& dr,
+    bool ignore_mask = false)
     {
     bool leaf = false;
     bool ascend = true;
@@ -409,7 +410,7 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
     unsigned int old_a = cur_node_a;
     unsigned int old_b = cur_node_b;
 
-    if (overlap(obb_a, obb_b))
+    if (overlap(obb_a, obb_b, ignore_mask))
         {
         if (a.isLeaf(cur_node_a) && b.isLeaf(cur_node_b))
             {

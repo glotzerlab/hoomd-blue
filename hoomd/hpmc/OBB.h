@@ -192,16 +192,20 @@ DEVICE inline bool SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const O
 /*! \param a First OBB
     \param b Second OBB
 
+    \param ignore_mask if true, ignore OBB masks
+
     \param exact If true, report exact overlaps
     Otherwise, false positives may be reported (which do not hurt
     since this is used in broad phase), which can improve performance
 
     \returns true when the two OBBs overlap, false otherwise
 */
-DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
+DEVICE inline bool overlap(const OBB& a, const OBB& b,
+    bool ignore_mask=false,
+    bool exact=true)
     {
     // exit early if the masks don't match
-    if (! (a.mask & b.mask)) return false;
+    if (!ignore_mask && !(a.mask & b.mask)) return false;
 
     // translation vector
     vec3<OverlapReal> t = b.center - a.center;
