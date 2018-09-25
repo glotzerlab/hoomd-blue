@@ -95,7 +95,8 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
             {
             IntegratorHPMCMono<Shape>::resetStats();
             ArrayHandle<hpmc_implicit_counters_t> h_counters(m_implicit_count, access_location::host, access_mode::read);
-            m_implicit_count_run_start = h_counters.data[0];
+            for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+                m_implicit_count_run_start[i] = h_counters.data[i];
             }
 
         //! Print statistics about the hpmc steps taken
@@ -103,17 +104,28 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
             {
             IntegratorHPMCMono<Shape>::printStats();
 
-            hpmc_implicit_counters_t result = getImplicitCounters(1);
+            const std::vector<hpmc_implicit_counters_t>& result = getImplicitCounters(1);
+
+            // reduce over all types
+            unsigned long long int total_insert_count = 0;
+            for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+                total_insert_count += result[i].insert_count;
 
             double cur_time = double(this->m_clock.getTime()) / Scalar(1e9);
 
             this->m_exec_conf->msg->notice(2) << "-- Implicit depletants stats:" << "\n";
             this->m_exec_conf->msg->notice(2) << "Depletant insertions per second:          "
-                << double(result.insert_count)/cur_time << "\n";
+                << double(total_insert_count)/cur_time << "\n";
+
+            // supply additional statistics
+            for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+                if (m_fugacity[i] != 0.0)
+                    this->m_exec_conf->msg->notice(2) << "Type '" << this->m_pdata->getNameByType(i) << "': "
+                        << double(result[i].insert_count)/cur_time << std::endl;
             }
 
         //! Get the current counter values
-        hpmc_implicit_counters_t getImplicitCounters(unsigned int mode=0);
+        std::vector<hpmc_implicit_counters_t> getImplicitCounters(unsigned int mode=0);
 
         /* \returns a list of provided quantities
         */
@@ -148,8 +160,8 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         std::vector<Scalar> m_fugacity;                          //!< Average depletant number density in free volume, per type
 
         GPUArray<hpmc_implicit_counters_t> m_implicit_count;     //!< Counter of active cell cluster moves
-        hpmc_implicit_counters_t m_implicit_count_run_start;     //!< Counter of active cell cluster moves at run start
-        hpmc_implicit_counters_t m_implicit_count_step_start;    //!< Counter of active cell cluster moves at run start
+        std::vector<hpmc_implicit_counters_t> m_implicit_count_run_start;     //!< Counter of active cell cluster moves at run start
+        std::vector<hpmc_implicit_counters_t> m_implicit_count_step_start;    //!< Counter of active cell cluster moves at run start
 
         bool m_quermass;                                         //!< True if quermass integration mode is enabled
         Scalar m_sweep_radius;                                   //!< Radius of sphere to sweep shapes by
@@ -159,9 +171,9 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
 
         //! Test whether to reject the current particle move based on depletants
         #ifndef ENABLE_TBB
-        inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i);
+        inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i);
         #else
-        inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, hoomd::detail::Saru& rng_i, tbb::enumerable_thread_specific< hoomd::detail::Saru >& rng_parallel, tbb::enumerable_thread_specific<std::mt19937>& rng_parallel_mt);
+        inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, hoomd::detail::Saru& rng_i, tbb::enumerable_thread_specific< hoomd::detail::Saru >& rng_parallel, tbb::enumerable_thread_specific<std::mt19937>& rng_parallel_mt);
         #endif
 
         //! Set the nominal width appropriate for depletion interaction
@@ -185,8 +197,17 @@ IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCImplicit" << std::endl;
 
-    GPUArray<hpmc_implicit_counters_t> implicit_count(1,this->m_exec_conf);
+    GPUArray<hpmc_implicit_counters_t> implicit_count(this->m_pdata->getNTypes(),this->m_exec_conf);
     m_implicit_count.swap(implicit_count);
+
+        {
+        ArrayHandle<hpmc_implicit_counters_t> h_implicit_count(m_implicit_count, access_location::host, access_mode::readwrite);
+        for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+            h_implicit_count.data[i] = hpmc_implicit_counters_t();
+        }
+
+    m_implicit_count_run_start.resize(this->m_pdata->getNTypes());
+    m_implicit_count_step_start.resize(this->m_pdata->getNTypes());
 
     m_fugacity.resize(this->m_pdata->getNTypes(),0.0);
     }
@@ -202,6 +223,17 @@ void IntegratorHPMCMonoImplicit<Shape>::slotNumTypesChange()
     {
     // call parent class method
     IntegratorHPMCMono<Shape>::slotNumTypesChange();
+
+    unsigned int old_ntypes = m_implicit_count.getNumElements();
+    m_implicit_count.resize(this->m_pdata->getNTypes());
+
+        {
+        ArrayHandle<hpmc_implicit_counters_t> h_implicit_count(m_implicit_count, access_location::host, access_mode::readwrite);
+        for (unsigned int i = old_ntypes; i < this->m_pdata->getNTypes(); ++i)
+            h_implicit_count.data[i] = hpmc_implicit_counters_t();
+        }
+    m_implicit_count_run_start.resize(this->m_pdata->getNTypes());
+    m_implicit_count_step_start.resize(this->m_pdata->getNTypes());
 
     m_fugacity.resize(this->m_pdata->getNTypes(),0.0);
     }
@@ -258,9 +290,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
     hpmc_counters_t& counters = h_counters.data[0];
 
     ArrayHandle<hpmc_implicit_counters_t> h_implicit_counters(m_implicit_count, access_location::host, access_mode::readwrite);
-    hpmc_implicit_counters_t& implicit_counters = h_implicit_counters.data[0];
-
-    m_implicit_count_step_start = implicit_counters;
+    std::copy(h_implicit_counters.data, h_implicit_counters.data + this->m_pdata->getNTypes(), m_implicit_count_step_start.begin());
 
     const BoxDim& box = this->m_pdata->getBox();
     unsigned int ndim = this->m_sysdef->getNDimensions();
@@ -606,9 +636,9 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             if (accept)
                 {
                 #ifndef ENABLE_TBB
-                accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_postype.data, h_orientation.data, h_overlaps.data, counters, implicit_counters, rng_poisson, rng_i);
+                accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_postype.data, h_orientation.data, h_overlaps.data, counters, h_implicit_counters.data, rng_poisson, rng_i);
                 #else
-                accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_postype.data, h_orientation.data, h_overlaps.data, counters, implicit_counters, rng_i, rng_parallel, rng_parallel_mt);
+                accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_postype.data, h_orientation.data, h_overlaps.data, counters, h_implicit_counters.data, rng_i, rng_parallel, rng_parallel_mt);
                 #endif
                 } // end depletant placement
 
@@ -719,10 +749,10 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
     */
 #ifndef ENABLE_TBB
 template<class Shape>
-inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i)
+inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i)
 #else
 template<class Shape>
-inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, hoomd::detail::Saru& rng_i, tbb::enumerable_thread_specific< hoomd::detail::Saru >& rng_parallel, tbb::enumerable_thread_specific<std::mt19937>& rng_parallel_mt)
+inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, hoomd::detail::Saru& rng_i, tbb::enumerable_thread_specific< hoomd::detail::Saru >& rng_parallel, tbb::enumerable_thread_specific<std::mt19937>& rng_parallel_mt)
 #endif
     {
     bool accept = true;
@@ -732,7 +762,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     Shape shape_old(quat<Scalar>(h_orientation[i]), this->m_params[typ_i]);
 
     #ifdef ENABLE_TBB
-    tbb::enumerable_thread_specific<hpmc_implicit_counters_t> thread_implicit_counters;
+    std::vector< tbb::enumerable_thread_specific<hpmc_implicit_counters_t> > thread_implicit_counters(this->m_pdata->getNTypes());
     tbb::enumerable_thread_specific<hpmc_counters_t> thread_counters;
     #endif
 
@@ -892,9 +922,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     #endif
 
                     #ifdef ENABLE_TBB
-                    thread_implicit_counters.local().insert_count++;
+                    thread_implicit_counters[type].local().insert_count++;
                     #else
-                    implicit_counters.insert_count++;
+                    implicit_counters[type].insert_count++;
                     #endif
 
                     vec3<Scalar> pos_test;
@@ -1289,9 +1319,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     #endif
 
                     #ifdef ENABLE_TBB
-                    thread_implicit_counters.local().insert_count++;
+                    thread_implicit_counters[type].local().insert_count++;
                     #else
-                    implicit_counters.insert_count++;
+                    implicit_counters[type].insert_count++;
                     #endif
 
                     vec3<Scalar> pos_test;
@@ -1557,10 +1587,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
         counters = counters + *i;
         }
 
-    for (auto i = thread_implicit_counters.begin(); i != thread_implicit_counters.end(); ++i)
-        {
-        implicit_counters = implicit_counters + *i;
-        }
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        for (auto it= thread_implicit_counters[i].begin(); it != thread_implicit_counters[i].end(); ++it)
+            {
+            implicit_counters[i] = implicit_counters[i] + *it;
+            }
     #endif
 
     return accept;
@@ -1618,13 +1649,18 @@ Scalar IntegratorHPMCMonoImplicit<Shape>::getLogValue(const std::string& quantit
         }
 
     hpmc_counters_t counters = IntegratorHPMC::getCounters(2);
-    hpmc_implicit_counters_t implicit_counters = getImplicitCounters(2);
+    const std::vector<hpmc_implicit_counters_t>& implicit_counters = getImplicitCounters(2);
 
     if (quantity == "hpmc_insert_count")
         {
+        // reduce over all types
+        unsigned long long int total_insert_count = 0;
+        for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+            total_insert_count += implicit_counters[i].insert_count;
+
         // return number of depletant insertions per colloid
         if (counters.getNMoves() > 0)
-            return (Scalar)implicit_counters.insert_count/(Scalar)counters.getNMoves();
+            return (Scalar)total_insert_count/(Scalar)counters.getNMoves();
         else
             return Scalar(0.0);
         }
@@ -1641,23 +1677,29 @@ Scalar IntegratorHPMCMonoImplicit<Shape>::getLogValue(const std::string& quantit
     to the start of the run, or relative to the start of the last executed step.
 */
 template<class Shape>
-hpmc_implicit_counters_t IntegratorHPMCMonoImplicit<Shape>::getImplicitCounters(unsigned int mode)
+std::vector<hpmc_implicit_counters_t> IntegratorHPMCMonoImplicit<Shape>::getImplicitCounters(unsigned int mode)
     {
     ArrayHandle<hpmc_implicit_counters_t> h_counters(m_implicit_count, access_location::host, access_mode::read);
-    hpmc_implicit_counters_t result;
+    std::vector<hpmc_implicit_counters_t> result(this->m_pdata->getNTypes());
 
-    if (mode == 0)
-        result = h_counters.data[0];
-    else if (mode == 1)
-        result = h_counters.data[0] - m_implicit_count_run_start;
+    std::copy(h_counters.data, h_counters.data + this->m_pdata->getNTypes(), result.begin());
+    if (mode == 1)
+        {
+        for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+            result[i] = result[i] - m_implicit_count_run_start[i];
+        }
     else
-        result = h_counters.data[0] - m_implicit_count_step_start;
+        {
+        for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+            result[i] = result[i] - m_implicit_count_step_start[i];
+        }
 
     #ifdef ENABLE_MPI
     if (this->m_comm)
         {
         // MPI Reduction to total result values on all ranks
-        MPI_Allreduce(MPI_IN_PLACE, &result.insert_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+        for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+            MPI_Allreduce(MPI_IN_PLACE, &result[i].insert_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
         }
     #endif
 
