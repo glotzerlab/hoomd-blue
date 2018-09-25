@@ -31,7 +31,7 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda8.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python2.7 -DENABLE_CUDA=ON -DENABLE_MPI=OFF -DENABLE_TBB=OFF -DBUILD_VALIDATION=OFF -DBUILD_TESTING=ON -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda8.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python2.7 -DENABLE_CUDA=ON -DENABLE_MPI=OFF -DENABLE_TBB=OFF -DBUILD_VALIDATION=OFF -DBUILD_TESTING=ON -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
                            '''
 
                         sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda8.simg ninja -j 3'
@@ -40,6 +40,7 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
+                            export PATH=/usr/lib/llvm-/bin:$PATH
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda8.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
@@ -84,7 +85,7 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=ON -DBUILD_TESTING=ON -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=ON -DBUILD_TESTING=ON -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
                            '''
 
                         sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg ninja -j 3'
@@ -93,6 +94,7 @@ pipeline
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
+                            export PATH=/usr/lib/llvm-/bin:$PATH
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
@@ -137,7 +139,7 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
                            '''
 
                         sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg ninja -j 3'
@@ -146,6 +148,7 @@ pipeline
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
+                            export PATH=/usr/lib/llvm-/bin:$PATH
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
@@ -190,7 +193,7 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
                            '''
 
                         sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg ninja -j 3'
@@ -199,6 +202,7 @@ pipeline
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
+                            export PATH=/usr/lib/llvm-/bin:$PATH
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
@@ -243,7 +247,7 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
                            '''
 
                         sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg ninja -j 3'
@@ -252,6 +256,7 @@ pipeline
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
+                            export PATH=/usr/lib/llvm-/bin:$PATH
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }

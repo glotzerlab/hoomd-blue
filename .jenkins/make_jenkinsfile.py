@@ -17,6 +17,7 @@ tests.append(dict(name='gcc54-py27-cuda8',
                   BUILD_VALIDATION = 'OFF',
                   CONTAINER = 'ci-2018.09-cuda8.simg',
                   BUILD_JIT = 'OFF',
+                  LLVM_VERSION = '',
                   OMP_NUM_THREADS = '1',
                   timeout=1))
 
@@ -33,6 +34,7 @@ tests.append(dict(name='vld-gcc7-py36-mpi-cuda9',
                   BUILD_VALIDATION = 'ON',
                   CONTAINER = 'ci-2018.09-cuda9.simg',
                   BUILD_JIT = 'OFF',
+                  LLVM_VERSION = '',
                   OMP_NUM_THREADS = '1',
                   timeout=15))
 
@@ -49,6 +51,7 @@ tests.append(dict(name='vld-gcc6-py36-mpi',
                   BUILD_VALIDATION = 'ON',
                   CONTAINER = 'ci-2018.09-ubuntu18.04.simg',
                   BUILD_JIT = 'ON',
+                  LLVM_VERSION = '6.0',
                   OMP_NUM_THREADS = '1',
                   timeout=15))
 
@@ -65,6 +68,7 @@ tests.append(dict(name='vld-gcc7-py36-mpi-tbb1',
                   BUILD_VALIDATION = 'ON',
                   CONTAINER = 'ci-2018.09-ubuntu18.04.simg',
                   BUILD_JIT = 'ON',
+                  LLVM_VERSION = '6.0',
                   OMP_NUM_THREADS = '1',
                   timeout=15))
 
@@ -81,6 +85,7 @@ tests.append(dict(name='vld-gcc8-py36-mpi-tbb3',
                   BUILD_VALIDATION = 'ON',
                   CONTAINER = 'ci-2018.09-ubuntu18.04.simg',
                   BUILD_JIT = 'ON',
+                  LLVM_VERSION = '6.0',
                   OMP_NUM_THREADS = '3',
                   timeout=15))
 
