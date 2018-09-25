@@ -219,7 +219,7 @@ workflows:
           llvm-version: "4.0"
           python-version: "3.6"
           enable-mpi: on
-          enable-tbb: on
+          enable-tbb: off
           build-jit: on
           threads: "3"
 
