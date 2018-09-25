@@ -120,7 +120,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
             // supply additional statistics
             for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
                 if (m_fugacity[i] != 0.0)
-                    this->m_exec_conf->msg->notice(2) << "Type '" << this->m_pdata->getNameByType(i) << "': "
+                    this->m_exec_conf->msg->notice(3) << "Type '" << this->m_pdata->getNameByType(i) << "': "
                         << double(result[i].insert_count)/cur_time << std::endl;
             }
 
