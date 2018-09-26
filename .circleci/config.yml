@@ -236,16 +236,15 @@ workflows:
           threads: "3"
 
       - build_and_test:
-          name: gcc48-py27-cm28-llvm38-mpi-tbb3
+          name: gcc48-py27-cm28-mpi-tbb3
           image: ubuntu16.04
           cc: gcc-4.8
           cxx: g++-4.8
-          llvm-version: "3.8"
           cmake-bin: /opt/cmake-2.8.12/bin
           python-version: "2.7"
           enable-mpi: on
           enable-tbb: on
-          build-jit: on
+          build-jit: off
           threads: "3"
 
       - build_and_test:
