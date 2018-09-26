@@ -139,7 +139,7 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -GNinja
                            '''
 
                         sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg ninja -j 3'
@@ -148,7 +148,7 @@ pipeline
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
-                            export PATH=/usr/lib/llvm-/bin:$PATH
+                            export PATH=/usr/lib/llvm-6.0/bin:$PATH
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
@@ -193,7 +193,7 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -GNinja
                            '''
 
                         sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg ninja -j 3'
@@ -202,7 +202,7 @@ pipeline
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
-                            export PATH=/usr/lib/llvm-/bin:$PATH
+                            export PATH=/usr/lib/llvm-6.0/bin:$PATH
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
@@ -247,7 +247,7 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -GNinja
                            '''
 
                         sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg ninja -j 3'
@@ -256,7 +256,7 @@ pipeline
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
-                            export PATH=/usr/lib/llvm-/bin:$PATH
+                            export PATH=/usr/lib/llvm-6.0/bin:$PATH
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
