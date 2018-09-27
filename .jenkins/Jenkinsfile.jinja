@@ -40,7 +40,7 @@ pipeline
                     timeout(time: {{ test.timeout }}, unit: 'HOURS')
                         {
                         sh '''
-                            export PATH=/usr/lib/llvm-{{ test.LLVM_VERSION }}/bin:$PATH
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-{{ test.LLVM_VERSION }}/bin
                             singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }

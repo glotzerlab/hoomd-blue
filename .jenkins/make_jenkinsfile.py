@@ -21,23 +21,6 @@ tests.append(dict(name='gcc54-py27-cuda8',
                   OMP_NUM_THREADS = '1',
                   timeout=1))
 
-tests.append(dict(name='vld-gcc7-py36-mpi-cuda9',
-                  agent='gpu',
-                  CC = '/usr/bin/gcc-7',
-                  CXX = '/usr/bin/g++-7',
-                  PYVER = '3.6',
-                  CMAKE_BIN = '/usr/bin',
-                  ENABLE_CUDA = 'ON',
-                  ENABLE_MPI = 'ON',
-                  ENABLE_TBB = 'OFF',
-                  BUILD_TESTING = 'ON',
-                  BUILD_VALIDATION = 'ON',
-                  CONTAINER = 'ci-2018.09-cuda9.simg',
-                  BUILD_JIT = 'OFF',
-                  LLVM_VERSION = '',
-                  OMP_NUM_THREADS = '1',
-                  timeout=15))
-
 tests.append(dict(name='vld-gcc6-py36-mpi',
                   agent='linux-cpu',
                   CC = '/usr/bin/gcc-6',
@@ -88,5 +71,23 @@ tests.append(dict(name='vld-gcc8-py36-mpi-tbb3',
                   LLVM_VERSION = '6.0',
                   OMP_NUM_THREADS = '3',
                   timeout=15))
+
+tests.append(dict(name='vld-gcc7-py36-mpi-cuda9',
+                  agent='gpu',
+                  CC = '/usr/bin/gcc-7',
+                  CXX = '/usr/bin/g++-7',
+                  PYVER = '3.6',
+                  CMAKE_BIN = '/usr/bin',
+                  ENABLE_CUDA = 'ON',
+                  ENABLE_MPI = 'ON',
+                  ENABLE_TBB = 'OFF',
+                  BUILD_TESTING = 'ON',
+                  BUILD_VALIDATION = 'ON',
+                  CONTAINER = 'ci-2018.09-cuda9.simg',
+                  BUILD_JIT = 'OFF',
+                  LLVM_VERSION = '',
+                  OMP_NUM_THREADS = '1',
+                  timeout=15))
+
 
 print(template.render(tests=tests))

@@ -40,62 +40,8 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            export PATH=/usr/lib/llvm-/bin:$PATH
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-/bin
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda8.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
-                           '''
-                        }
-                    }
-
-                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
-
-                junit 'test.xml'
-                }
-            post
-                {
-                always
-                    {
-                    archive 'build/Testing/**/Test.xml'
-                    deleteDir()
-                    }
-                }
-            }
-        stage('vld-gcc7-py36-mpi-cuda9')
-            {
-            agent { label 'gpu' }
-
-            environment
-                {
-                CC = '/usr/bin/gcc-7'
-                CXX = '/usr/bin/g++-7'
-                OMP_NUM_THREADS = '1'
-                }
-
-            steps
-                {
-                sh 'echo ${NODE_NAME}'
-
-                dir('code')
-                    {
-                    checkout scm
-                    sh 'git submodule update --init'
-                    }
-
-                dir('build')
-                    {
-                    timeout(time: 1, unit: 'HOURS')
-                        {
-                        sh '''
-                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=ON -DBUILD_TESTING=ON -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
-                           '''
-
-                        sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg ninja -j 3'
-                        }
-
-                    timeout(time: 15, unit: 'HOURS')
-                        {
-                        sh '''
-                            export PATH=/usr/lib/llvm-/bin:$PATH
-                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
                     }
@@ -148,7 +94,7 @@ pipeline
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
-                            export PATH=/usr/lib/llvm-6.0/bin:$PATH
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-6.0/bin
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
@@ -202,7 +148,7 @@ pipeline
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
-                            export PATH=/usr/lib/llvm-6.0/bin:$PATH
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-6.0/bin
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
@@ -256,8 +202,62 @@ pipeline
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
-                            export PATH=/usr/lib/llvm-6.0/bin:$PATH
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-6.0/bin
                             singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
+                           '''
+                        }
+                    }
+
+                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                junit 'test.xml'
+                }
+            post
+                {
+                always
+                    {
+                    archive 'build/Testing/**/Test.xml'
+                    deleteDir()
+                    }
+                }
+            }
+        stage('vld-gcc7-py36-mpi-cuda9')
+            {
+            agent { label 'gpu' }
+
+            environment
+                {
+                CC = '/usr/bin/gcc-7'
+                CXX = '/usr/bin/g++-7'
+                OMP_NUM_THREADS = '1'
+                }
+
+            steps
+                {
+                sh 'echo ${NODE_NAME}'
+
+                dir('code')
+                    {
+                    checkout scm
+                    sh 'git submodule update --init'
+                    }
+
+                dir('build')
+                    {
+                    timeout(time: 1, unit: 'HOURS')
+                        {
+                        sh '''
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=ON -DBUILD_TESTING=ON -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
+                           '''
+
+                        sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg ninja -j 3'
+                        }
+
+                    timeout(time: 15, unit: 'HOURS')
+                        {
+                        sh '''
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-/bin
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
                     }
