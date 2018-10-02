@@ -581,7 +581,7 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
             overlap_checks++;
             }
 
-        hoomd::detail::WarpReduce<Scalar, group_size> reducer;
+        hoomd::detail::WarpReduce<unsigned int, group_size> reducer;
         overlap = reducer.Sum(overlap);
 
         if (i_dep_local < n_depletants)

@@ -479,7 +479,8 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 // skip if no overlap check is required
                 if (h_d.data[typ_i] == 0.0)
                     {
-                    counters.translate_accept_count++;
+                    if (!shape_i.ignoreStatistics())
+                        counters.translate_accept_count++;
                     continue;
                     }
 
@@ -498,7 +499,8 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 {
                 if (h_a.data[typ_i] == 0.0)
                     {
-                    counters.rotate_accept_count++;
+                    if (!shape_i.ignoreStatistics())
+                        counters.rotate_accept_count++;
                     continue;
                     }
 

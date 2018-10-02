@@ -5,22 +5,14 @@ pipeline
 
     stages
         {
-        stage('unit-clang38-py35-cd80')
+        stage('gcc54-py27-cuda8')
             {
             agent { label 'gpu' }
 
             environment
                 {
-                CC = '/usr/bin/clang'
-                CXX = '/usr/bin/clang++'
-                PYVER = '3.5'
-                CMAKE_BIN = '/usr/bin'
-                ENABLE_CUDA = 'ON'
-                ENABLE_MPI = 'OFF'
-                ENABLE_TBB = 'OFF'
-                BUILD_VALIDATION = 'OFF'
-                CONTAINER = '/nfs/glotzer/containers/ci-20171130-cuda80.img'
-                BUILD_JIT = 'ON'
+                CC = '/usr/bin/gcc'
+                CXX = '/usr/bin/g++'
                 OMP_NUM_THREADS = '1'
                 }
 
@@ -39,16 +31,17 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda8.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python2.7 -DENABLE_CUDA=ON -DENABLE_MPI=OFF -DENABLE_TBB=OFF -DBUILD_VALIDATION=OFF -DBUILD_TESTING=ON -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
                            '''
 
-                        sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
+                        sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda8.simg ninja -j 3'
                         }
 
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-/bin
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda8.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
                     }
@@ -66,83 +59,14 @@ pipeline
                     }
                 }
             }
-        stage('vld-gcc6-py36-mpi-cd90')
-            {
-            agent { label 'gpu' }
-
-            environment
-                {
-                CC = '/usr/sbin/gcc-6'
-                CXX = '/usr/sbin/g++-6'
-                PYVER = '3.6'
-                CMAKE_BIN = '/usr/sbin'
-                ENABLE_CUDA = 'ON'
-                ENABLE_MPI = 'ON'
-                ENABLE_TBB = 'OFF'
-                BUILD_VALIDATION = 'ON'
-                CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
-                BUILD_JIT = 'ON'
-                OMP_NUM_THREADS = '1'
-                }
-
-            steps
-                {
-                sh 'echo ${NODE_NAME}'
-
-                dir('code')
-                    {
-                    checkout scm
-                    sh 'git submodule update --init'
-                    }
-
-                dir('build')
-                    {
-                    timeout(time: 1, unit: 'HOURS')
-                        {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
-                           '''
-
-                        sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
-                        }
-
-                    timeout(time: 15, unit: 'HOURS')
-                        {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
-                           '''
-                        }
-                    }
-
-                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
-
-                junit 'test.xml'
-                }
-            post
-                {
-                always
-                    {
-                    archive 'build/Testing/**/Test.xml'
-                    deleteDir()
-                    }
-                }
-            }
-        stage('vld-clang50-py36-mpi')
+        stage('vld-gcc6-py36-mpi')
             {
             agent { label 'linux-cpu' }
 
             environment
                 {
-                CC = '/usr/sbin/clang'
-                CXX = '/usr/sbin/clang++'
-                PYVER = '3.6'
-                CMAKE_BIN = '/usr/sbin'
-                ENABLE_CUDA = 'OFF'
-                ENABLE_MPI = 'ON'
-                ENABLE_TBB = 'OFF'
-                BUILD_VALIDATION = 'ON'
-                CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
-                BUILD_JIT = 'ON'
+                CC = '/usr/bin/gcc-6'
+                CXX = '/usr/bin/g++-6'
                 OMP_NUM_THREADS = '1'
                 }
 
@@ -161,16 +85,17 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -GNinja
                            '''
 
-                        sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
+                        sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg ninja -j 3'
                         }
 
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-6.0/bin
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
                     }
@@ -188,22 +113,14 @@ pipeline
                     }
                 }
             }
-        stage('vld-clang50-py36-mpi-tbb1')
+        stage('vld-gcc7-py36-mpi-tbb1')
             {
             agent { label 'linux-cpu' }
 
             environment
                 {
-                CC = '/usr/sbin/clang'
-                CXX = '/usr/sbin/clang++'
-                PYVER = '3.6'
-                CMAKE_BIN = '/usr/sbin'
-                ENABLE_CUDA = 'OFF'
-                ENABLE_MPI = 'ON'
-                ENABLE_TBB = 'ON'
-                BUILD_VALIDATION = 'ON'
-                CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
-                BUILD_JIT = 'ON'
+                CC = '/usr/bin/gcc-7'
+                CXX = '/usr/bin/g++-7'
                 OMP_NUM_THREADS = '1'
                 }
 
@@ -222,16 +139,17 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -GNinja
                            '''
 
-                        sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
+                        sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg ninja -j 3'
                         }
 
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-6.0/bin
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
                     }
@@ -249,22 +167,14 @@ pipeline
                     }
                 }
             }
-        stage('vld-clang50-py36-mpi-tbb3')
+        stage('vld-gcc8-py36-mpi-tbb3')
             {
             agent { label 'linux-cpu' }
 
             environment
                 {
-                CC = '/usr/sbin/clang'
-                CXX = '/usr/sbin/clang++'
-                PYVER = '3.6'
-                CMAKE_BIN = '/usr/sbin'
-                ENABLE_CUDA = 'OFF'
-                ENABLE_MPI = 'ON'
-                ENABLE_TBB = 'ON'
-                BUILD_VALIDATION = 'ON'
-                CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
-                BUILD_JIT = 'ON'
+                CC = '/usr/bin/gcc-8'
+                CXX = '/usr/bin/g++-8'
                 OMP_NUM_THREADS = '3'
                 }
 
@@ -283,16 +193,71 @@ pipeline
                     timeout(time: 1, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=ON -DBUILD_TESTING=OFF -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -GNinja
                            '''
 
-                        sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
+                        sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg ninja -j 3'
                         }
 
                     timeout(time: 15, unit: 'HOURS')
                         {
                         sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-6.0/bin
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
+                           '''
+                        }
+                    }
+
+                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                junit 'test.xml'
+                }
+            post
+                {
+                always
+                    {
+                    archive 'build/Testing/**/Test.xml'
+                    deleteDir()
+                    }
+                }
+            }
+        stage('vld-gcc7-py36-mpi-cuda9')
+            {
+            agent { label 'gpu' }
+
+            environment
+                {
+                CC = '/usr/bin/gcc-7'
+                CXX = '/usr/bin/g++-7'
+                OMP_NUM_THREADS = '1'
+                }
+
+            steps
+                {
+                sh 'echo ${NODE_NAME}'
+
+                dir('code')
+                    {
+                    checkout scm
+                    sh 'git submodule update --init'
+                    }
+
+                dir('build')
+                    {
+                    timeout(time: 1, unit: 'HOURS')
+                        {
+                        sh '''
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=ON -DBUILD_TESTING=ON -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -GNinja
+                           '''
+
+                        sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg ninja -j 3'
+                        }
+
+                    timeout(time: 15, unit: 'HOURS')
+                        {
+                        sh '''
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-/bin
+                            singularity exec --nv /nfs/glotzer/containers/ci-2018.09-cuda9.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                            '''
                         }
                     }

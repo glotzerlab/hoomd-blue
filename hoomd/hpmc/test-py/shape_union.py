@@ -88,7 +88,7 @@ def dimer_overlap_union(system, verts, Ap, Aq, Bp, Bq):
     # for restoration later
     backup = system.take_snapshot()
 
-    mc = hpmc.integrate.convex_polyhedron_union(seed=27);
+    mc = hpmc.integrate.convex_spheropolyhedron_union(seed=27);
     mc.shape_param.set("A", vertices=[verts, verts], centers=Ap, orientations=Aq);
     mc.shape_param.set("B", vertices=[verts, verts], centers=Bp, orientations=Bq);
 
@@ -390,7 +390,7 @@ class shape_union(unittest.TestCase):
             #self.system.restore_snapshot(backup)
             cube_overlaps = overlaps
 
-            self.mc = hpmc.integrate.convex_polyhedron_union(seed=self.seed);
+            self.mc = hpmc.integrate.convex_spheropolyhedron_union(seed=self.seed);
             self.mc.shape_param.set("A", vertices=[cube_verts, cube_verts], centers=cubes, orientations=cube_ors);
 
             # use HPMC overlap check
@@ -409,6 +409,61 @@ class shape_union(unittest.TestCase):
         del p
         del tmp_sim
         del self.mc
+
+    # Test randomly generated dumbbells (with spheropolyhedron shape)
+    # 1) generate N dumbbell positions and orientations
+    # 2) place 2N spheres and determine if system has overlapping dumbbells
+    # 3) place N dumbbells and determine if system has overlapping dumbbells
+    # 4) confirm agreement between tests
+    # 5) wash, rinse, repeat
+    def test_dumbbells_spheropolyhedron (self):
+        spheres = numpy.array([[-0.5, 0, 0],[0.5, 0, 0]])      # positions of spheres in dumbbell coordinates
+
+        # use fixed seed
+        numpy.random.seed(self.seed)
+
+        self.mc = hpmc.integrate.convex_spheropolyhedron_union(seed=self.seed);
+        self.mc.shape_param.set("A", sweep_radii=[0.5, 0.5], centers=spheres, orientations=[(1,0,0,0),(1,0,0,0)], vertices=[[(0,0,0)],[(0,0,0)]]);
+
+        num_iter = 50 # number of times to generate new configurations
+        for i in range(num_iter):
+            # randomly create "dumbbells" as pairs of spheres located anywhere in the box
+            positions = (numpy.random.random((self.N,self.ndim)) - 0.5) * self.L  # positions of dumbbells in box
+            # not uniformly sampling orientations, but that's okay
+            orientations = numpy.random.random((self.N,4)) - 0.5
+            # normalize to unit quaternions
+            o2 = numpy.einsum('ij,ij->i', orientations, orientations)
+            orientations = numpy.einsum('ij,i->ij', orientations, 1./numpy.sqrt(o2)) # orientations of dumbbells
+
+            dumbbell = numpy.array([[quatRot(q, spheres[0]) + r, quatRot(q, spheres[1]) + r] for r,q in zip(positions, orientations)])
+
+            # perform brute force overlap check
+            overlaps = False
+            for i in range(self.N-1):
+                for j in range(i+1, self.N):
+                    if dumbbell_overlap(dumbbell[i], dumbbell[j], [self.L,self.L,self.L]):
+                        overlaps = True
+                        break
+                if overlaps == True:
+                    break
+            sphere_overlaps = overlaps
+
+            # use HPMC overlap check
+            for p, r, q in zip(self.system.particles, positions, orientations):
+                p.position = r
+                p.orientation = q
+
+            dumbbell_overlaps = False
+            run(0, quiet=True)
+            if self.mc.count_overlaps() > 0:
+                dumbbell_overlaps = True
+
+            # verify agreement on configurations with overlaps
+            self.assertEqual(sphere_overlaps, dumbbell_overlaps);
+
+        del p
+        del self.mc
+
 
     def tearDown(self):
         del self.system
