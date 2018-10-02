@@ -8,6 +8,22 @@ executors:
       python-version:
         type: string
     docker:
+      - image: glotzerlab/ci:2018.09-<< parameters.image >>
+    environment:
+      PYTHONPATH: /home/ci/project/build
+      PYTHON: "/usr/bin/python<< parameters.python-version >>"
+      PYTEST: "/usr/bin/python<< parameters.python-version >> -m pytest"
+    working_directory: /home/ci/project
+
+commands:
+  checkout_with_submodules:
+    steps:
+      - checkout:
+          path: code
+      - run:
+          name: Update submodules
+          working_directory: code
+          command: git submodule update --init
 
   build:
     parameters:
