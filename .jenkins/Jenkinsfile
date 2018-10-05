@@ -11,7 +11,7 @@ pipeline
                 {
                 stage('gcc54-py27-cuda8')
                     {
-                    agent { label 'gpu' }
+                    agent { label 'cuda10' }
 
                     environment
                         {
@@ -65,7 +65,7 @@ pipeline
                     }
                 stage('gcc7-py36-mpi-cuda9')
                     {
-                    agent { label 'gpu' }
+                    agent { label 'cuda10' }
 
                     environment
                         {
@@ -119,7 +119,7 @@ pipeline
                     }
                 stage('gcc7-py36-mpi-cuda10')
                     {
-                    agent { label 'gpu' }
+                    agent { label 'cuda10' }
 
                     environment
                         {
@@ -343,7 +343,7 @@ pipeline
                     }
                 stage('vld-gcc7-py36-mpi-cuda10')
                     {
-                    agent { label 'gpu' }
+                    agent { label 'cuda10' }
 
                     environment
                         {

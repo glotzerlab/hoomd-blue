@@ -8,7 +8,7 @@ ci_base = 'ci-2018.10'
 unit_tests = []
 vldt_tests = []
 unit_tests.append(dict(name='gcc54-py27-cuda8',
-                  agent='gpu',
+                  agent='cuda10',
                   CC = '/usr/bin/gcc',
                   CXX = '/usr/bin/g++',
                   PYVER = '2.7',
@@ -22,7 +22,7 @@ unit_tests.append(dict(name='gcc54-py27-cuda8',
                   OMP_NUM_THREADS = '1'))
 
 unit_tests.append(dict(name='gcc7-py36-mpi-cuda9',
-                  agent='gpu',
+                  agent='cuda10',
                   CC = '/usr/bin/gcc-7',
                   CXX = '/usr/bin/g++-7',
                   PYVER = '3.6',
@@ -36,7 +36,7 @@ unit_tests.append(dict(name='gcc7-py36-mpi-cuda9',
                   OMP_NUM_THREADS = '1'))
 
 unit_tests.append(dict(name='gcc7-py36-mpi-cuda10',
-                  agent='gpu',
+                  agent='cuda10',
                   CC = '/usr/bin/gcc-7',
                   CXX = '/usr/bin/g++-7',
                   PYVER = '3.6',
@@ -92,7 +92,7 @@ vldt_tests.append(dict(name='vld-gcc8-py36-mpi-tbb3',
                   OMP_NUM_THREADS = '3'))
 
 vldt_tests.append(dict(name='vld-gcc7-py36-mpi-cuda10',
-                  agent='gpu',
+                  agent='cuda10',
                   CC = '/usr/bin/gcc-7',
                   CXX = '/usr/bin/g++-7',
                   PYVER = '3.6',
