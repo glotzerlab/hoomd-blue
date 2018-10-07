@@ -2,6 +2,15 @@
 
 [TOC]
 
+## v2.3.5
+
+Released 2018/10/07
+
+*Bug fixes*
+
+* Document ``--single-mpi`` command line option.
+* HPMC: Fix a bug where ``hpmc.field.lattice_field`` did not resize 2D systems properly in combination with ``update.box_resize``.
+
 ## v2.3.4
 
 Released 2018/07/30
