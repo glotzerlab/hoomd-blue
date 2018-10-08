@@ -147,6 +147,21 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             }
         #endif
 
+        if (m_concurrent)
+            {
+            // compare compute capabilities
+            for (unsigned int idev = 0; idev < gpu_id.size(); ++idev)
+                {
+                if (m_dev_prop[idev].major != m_dev_prop[0].major
+                    || m_dev_prop[idev].minor != m_dev_prop[0].minor)
+                    {
+                    // the autotuner may pick up different block sizes for different GPUs
+                    msg->warning() << "Multi-GPU execution requested, but GPUs have differing compute capabilities" << endl;
+                    msg->warning() << "Continuing anyways, but autotuner may not work correctly and simulation may crash." << endl;
+                    }
+                }
+            }
+
         // select first device by default
         cudaSetDevice(m_gpu_id[0]);
 
