@@ -11,9 +11,16 @@ Not yet released
 * General:
     * Misc documentation updates
     * Accept `mpi4py` communicators in `context.initialize`.
+
 * MD:
+    * *no changes*.
 
 * HPMC:
+    * Add `convex_spheropolyhedron_union` shape class.
+    * Correctly count acceptance rate when maximum particle move is is zero in ``hpmc.integrate.*``.
+    * Correctly count acceptance rate when maximum box move size is zero in ``hpmc.update.boxmc``.
+    * Fix a bug that may have led to overlaps between polygon soups with ``hpmc.integrate.polyhedron``.
+    * Improve performance in sphere trees used in ``hpmc.integrate.sphere_union``.
 
 * API:
     * Allow external callers of HOOMD to set the MPI communicator
@@ -27,6 +34,16 @@ Not yet released
     * HPMC: The implicit depletant mode `circumsphere` with `ntrial > 0` does not support compute 7.0 (Volta) and newer GPUs and is now disabled by default.
             To enable this functionality, configure HOOMD with option the `-DENABLE_HPMC_REINSERT=ON`, which will not function properly on compute 7.0 (Volta)
             and newer GPUs.
+    * HPMC: `convex_polyhedron_union` is replaced by `convex_spheropolyhedron_union` (when sweep_radii are 0 for all particles)
+
+## v2.3.5
+
+Released 2018/10/07
+
+*Bug fixes*
+
+* Document ``--single-mpi`` command line option.
+* HPMC: Fix a bug where ``hpmc.field.lattice_field`` did not resize 2D systems properly in combination with ``update.box_resize``.
 
 ## v2.3.4
 
