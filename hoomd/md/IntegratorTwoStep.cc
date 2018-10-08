@@ -140,6 +140,12 @@ void IntegratorTwoStep::update(unsigned int timestep)
 #endif
         computeNetForce(timestep+1);
 
+    // Call HalfStep hook
+    if (m_half_step_hook)
+        {
+        m_half_step_hook->update(timestep+1);
+        }
+
     if (m_prof)
         m_prof->push("Integrate");
 

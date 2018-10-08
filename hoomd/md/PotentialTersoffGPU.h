@@ -83,11 +83,7 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<
     // the full block size and threads_per_particle matrix is searched,
     // encoded as block_size*10000 + threads_per_particle
     unsigned int max_tpp = 1;
-    if (this->m_exec_conf->getComputeCapability() >= 300)
-        {
-        // Kepler, use multiple threads per particle
-        max_tpp = this->m_exec_conf->dev_prop.warpSize;
-        }
+    max_tpp = this->m_exec_conf->dev_prop.warpSize;
 
     std::vector<unsigned int> valid_params;
     for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)

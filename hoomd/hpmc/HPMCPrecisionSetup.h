@@ -70,4 +70,6 @@ DEVICE inline OverlapReal4 make_overlapreal4(OverlapReal x, OverlapReal y, Overl
 
 }; // end namespace hpmc
 
+#undef DEVICE
+
 #endif //__HPMC_PRECISION_SETUP_H__

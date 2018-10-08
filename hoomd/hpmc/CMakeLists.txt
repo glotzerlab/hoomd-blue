@@ -5,6 +5,11 @@ if (ENABLE_HPMC_SPHINX_GPU)
     add_definitions(-DENABLE_SPHINX_GPU)
 endif()
 
+option(ENABLE_HPMC_REINSERT "Enable ntrial>0 with depletant_mode='circumsphere' on the GPU" OFF)
+if (ENABLE_HPMC_REINSERT)
+    add_definitions(-DENABLE_HPMC_REINSERT)
+endif()
+
 set(_hpmc_sources   module.cc
                     module_external_field.cc
                     module_sphere.cc
@@ -39,7 +44,6 @@ set(_hpmc_headers
     IntegratorHPMCMono.h
     IntegratorHPMCMonoImplicitGPU.h
     IntegratorHPMCMonoImplicit.h
-    IntegratorHPMCMonoImplicitNew.h
     IntegratorHPMCMonoImplicitNewGPU.h
     MinkowskiMath.h
     modules.h
@@ -83,7 +87,7 @@ set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      all_kernels_ellipsoid.cu
                      all_kernels_faceted_sphere.cu
                      all_kernels_sphinx.cu
-                     all_kernels_union_convex_polyhedron.cu
+                     all_kernels_union_spheropolyhedron.cu
                      all_kernels_union_sphere.cu
                      all_kernels_convex_polyhedron.cu
                      all_kernels_convex_spheropolyhedron.cu
@@ -99,7 +103,11 @@ CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hpmc_cu_sources} OPTIONS ${CUDA_ADDITIONAL
 endif (ENABLE_CUDA)
 
 pybind11_add_module (_hpmc SHARED ${_hpmc_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
-set_target_properties(_hpmc PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR})
+if (APPLE)
+set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
+else()
+set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
+endif()
 
 # link the library to its dependencies
 target_link_libraries(_hpmc PRIVATE ${HOOMD_LIBRARIES})

@@ -432,7 +432,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
         m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
         update_V(timestep, rng);
         }
-    if (move_type_select < m_Volume_weight + m_lnVolume_weight)
+    else if (move_type_select < m_Volume_weight + m_lnVolume_weight)
         {
         // Isotropic volume change in logarithmic steps
         m_exec_conf->msg->notice(8) << "lnV move performed at step " << timestep << std::endl;
@@ -499,7 +499,23 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
     // Volume change
 
     // Choose a lattice vector if non-isotropic volume changes
-    unsigned int i = rand_select(rng, Ndim - 1);
+    unsigned int nonzero_dim = 0;
+    for (unsigned int i = 0; i < Ndim; ++i)
+        if (m_Length_delta[i] != 0.0)
+            nonzero_dim++;
+
+    unsigned int i = rand_select(rng, nonzero_dim-1);
+    for (unsigned int j = 0; j < Ndim; ++j)
+        if (m_Length_delta[j] == 0.0 && i == j)
+            ++i;
+
+    if (i == Ndim)
+        {
+        // all dimensions have delta==0, just count as accepted and return
+        m_count_total.volume_accept_count++;
+        return;
+        }
+
     Scalar dL_max(m_Length_delta[i]);
 
     // Choose a length change

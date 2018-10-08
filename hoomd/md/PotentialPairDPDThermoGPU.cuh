@@ -15,12 +15,13 @@
 #include "hoomd/ParticleData.cuh"
 #include "EvaluatorPairDPDThermo.h"
 #include "hoomd/Index1D.h"
+#ifdef NVCC
+#include "hoomd/WarpTools.cuh"
+#endif // NVCC
 #include <cassert>
 
-#include "PotentialPairGPU.cuh"
-
 //! Maximum number of threads (width of a dpd_warp)
-const unsigned int gpu_dpd_pair_force_max_tpp = 32;
+const int gpu_dpd_pair_force_max_tpp = 32;
 
 //! args struct for passing additional options to gpu_compute_dpd_forces
 struct dpd_pair_args_t
@@ -107,7 +108,6 @@ struct dpd_pair_args_t
     };
 
 #ifdef NVCC
-
 //! Texture for reading particle positions
 scalar4_tex_t pdata_dpd_pos_tex;
 
@@ -160,7 +160,7 @@ texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
 */
-template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned char use_gmem_nlist>
+template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned char use_gmem_nlist, int tpp>
 __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                                               Scalar *d_virial,
                                               const unsigned int virial_pitch,
@@ -178,8 +178,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                                               const unsigned int d_timestep,
                                               const Scalar d_deltaT,
                                               const Scalar d_T,
-                                              const int ntypes,
-                                              const unsigned int tpp)
+                                              const int ntypes)
     {
     Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
@@ -202,19 +201,8 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     __syncthreads();
 
     // start by identifying which particle we are to handle
-    unsigned int idx;
-    if (gridDim.y > 1)
-        {
-        // if we have blocks in the y-direction, the fermi-workaround is in place
-        idx = (blockIdx.x + blockIdx.y * 65535) * (blockDim.x/tpp) + threadIdx.x/tpp;
-        }
-    else
-        {
-        idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
-        }
-
+    const unsigned int idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
     bool active = true;
-
     if (idx >= N)
         {
         // need to mask this thread, but still participate in warp-level reduction (because of __syncthreads())
@@ -353,20 +341,12 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
         force.w *= Scalar(0.5);
         }
 
-    // we need to access a separate portion of shared memory to avoid race conditions
-    const unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-        * num_typ_parameters;
-
-    // need to declare as volatile, because we are using warp-synchronous programming
-    volatile Scalar *sh = (Scalar *) &s_data[shared_bytes];
-
-    unsigned int cta_offs = (threadIdx.x/tpp)*tpp;
-
     // reduce force over threads in cta
-    force.x = warp_reduce(tpp, threadIdx.x % tpp, force.x, &sh[cta_offs]);
-    force.y = warp_reduce(tpp, threadIdx.x % tpp, force.y, &sh[cta_offs]);
-    force.z = warp_reduce(tpp, threadIdx.x % tpp, force.z, &sh[cta_offs]);
-    force.w = warp_reduce(tpp, threadIdx.x % tpp, force.w, &sh[cta_offs]);
+    hoomd::detail::WarpReduce<Scalar, tpp> reducer;
+    force.x = reducer.Sum(force.x);
+    force.y = reducer.Sum(force.y);
+    force.z = reducer.Sum(force.z);
+    force.w = reducer.Sum(force.w);
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     if (active && threadIdx.x % tpp == 0)
@@ -375,7 +355,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     if (compute_virial)
         {
         for (unsigned int i = 0; i < 6; ++i)
-            virial[i] = warp_reduce(tpp, threadIdx.x % tpp, virial[i], &sh[cta_offs]);
+            virial[i] = reducer.Sum(virial[i]);
 
         // if we are the first thread in the cta, write out virial to global mem
         if (active && threadIdx.x %tpp == 0)
@@ -418,61 +398,84 @@ inline void gpu_dpd_pair_force_bind_textures(const dpd_pair_args_t pair_args)
         }
     }
 
-//! Templated launcher for the dpd force kernel
-template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned char use_gmem_nlist>
-inline void launch_gpu_compute_dpd_forces_kernel(const dpd_pair_args_t& args,
-                                                 const typename evaluator::param_type *d_params)
+//! DPD force compute kernel launcher
+/*!
+ * \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
+ * \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
+ *                       (See PotentialPair for a discussion on what that entails)
+ * \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
+ * \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
+ *                        is used depending on architecture.
+ * \tparam tpp Number of threads to use per particle, must be power of 2 and smaller than warp size
+ *
+ * Partial function template specialization is not allowed in C++, so instead we have to wrap this with a struct that
+ * we are allowed to partially specialize.
+ */
+template<class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned int use_gmem_nlist, int tpp>
+struct DPDForceComputeKernel
     {
-    // setup the grid to run the kernel
-    unsigned int block_size = args.block_size;
-    unsigned int tpp = args.threads_per_particle;
-
-    Index2D typpair_idx(args.ntypes);
-    unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                * typpair_idx.getNumElements();
-
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist>);
-
-    if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
-
-    block_size = block_size < max_block_size ? block_size : max_block_size;
-    dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
-    if (args.compute_capability < 30 && grid.x > 65535)
+    //! Launcher for the DPD force kernel
+    /*!
+     * \param args Other arguments to pass onto the kernel
+     * \param d_params Parameters for the potential, stored per type pair
+     */
+    static void launch(const dpd_pair_args_t& args, const typename evaluator::param_type *d_params)
         {
-        grid.y = grid.x/65535 + 1;
-        grid.x = 65535;
-        }
+        if (tpp == args.threads_per_particle)
+            {
+            // setup the grid to run the kernel
+            unsigned int block_size = args.block_size;
 
-    if (args.compute_capability < 30)
+            Index2D typpair_idx(args.ntypes);
+            unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                        * typpair_idx.getNumElements();
+
+            static unsigned int max_block_size = UINT_MAX;
+            if (max_block_size == UINT_MAX)
+                max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist, tpp>);
+
+            if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
+
+            block_size = block_size < max_block_size ? block_size : max_block_size;
+            dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
+
+            gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist, tpp>
+                                <<<grid, block_size, shared_bytes>>>
+                                (args.d_force,
+                                args.d_virial,
+                                args.virial_pitch,
+                                args.N,
+                                args.d_pos,
+                                args.d_vel,
+                                args.d_tag,
+                                args.box,
+                                args.d_n_neigh,
+                                args.d_nlist,
+                                args.d_head_list,
+                                d_params,
+                                args.d_rcutsq,
+                                args.seed,
+                                args.timestep,
+                                args.deltaT,
+                                args.T,
+                                args.ntypes);
+            }
+        else
+            {
+            DPDForceComputeKernel<evaluator, shift_mode, compute_virial, use_gmem_nlist, tpp/2>::launch(args, d_params);
+            }
+        }
+    };
+
+//! Template specialization to do nothing for the tpp = 0 case
+template<class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned int use_gmem_nlist>
+struct DPDForceComputeKernel<evaluator, shift_mode, compute_virial, use_gmem_nlist, 0>
+    {
+    static void launch(const dpd_pair_args_t& args, const typename evaluator::param_type *d_params)
         {
-        shared_bytes += sizeof(Scalar)*block_size;
+        // do nothing
         }
-
-    gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist>
-                        <<<grid, block_size, shared_bytes>>>
-                        (args.d_force,
-                        args.d_virial,
-                        args.virial_pitch,
-                        args.N,
-                        args.d_pos,
-                        args.d_vel,
-                        args.d_tag,
-                        args.box,
-                        args.d_n_neigh,
-                        args.d_nlist,
-                        args.d_head_list,
-                        d_params,
-                        args.d_rcutsq,
-                        args.seed,
-                        args.timestep,
-                        args.deltaT,
-                        args.T,
-                        args.ntypes,
-                        tpp);
-    }
-
+    };
 
 //! Kernel driver that computes pair DPD thermo forces on the GPU
 /*! \param args Additional options
@@ -497,12 +500,12 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                 {
                 case 0:
                     {
-                    launch_gpu_compute_dpd_forces_kernel<evaluator, 0, 1, 1>(args, d_params);
+                    DPDForceComputeKernel<evaluator, 0, 1, 1, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
                     break;
                     }
                 case 1:
                     {
-                    launch_gpu_compute_dpd_forces_kernel<evaluator, 1, 1, 1>(args, d_params);
+                    DPDForceComputeKernel<evaluator, 1, 1, 1, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
                     break;
                     }
                 default:
@@ -515,12 +518,12 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                 {
                 case 0:
                     {
-                    launch_gpu_compute_dpd_forces_kernel<evaluator, 0, 0, 1>(args, d_params);
+                    DPDForceComputeKernel<evaluator, 0, 0, 1, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
                     break;
                     }
                 case 1:
                     {
-                    launch_gpu_compute_dpd_forces_kernel<evaluator, 1, 0, 1>(args, d_params);
+                    DPDForceComputeKernel<evaluator, 1, 0, 1, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
                     break;
                     }
                 default:
@@ -536,12 +539,12 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                 {
                 case 0:
                     {
-                    launch_gpu_compute_dpd_forces_kernel<evaluator, 0, 1, 0>(args, d_params);
+                    DPDForceComputeKernel<evaluator, 0, 1, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
                     break;
                     }
                 case 1:
                     {
-                    launch_gpu_compute_dpd_forces_kernel<evaluator, 1, 1, 0>(args, d_params);
+                    DPDForceComputeKernel<evaluator, 1, 1, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
                     break;
                     }
                 default:
@@ -554,12 +557,12 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                 {
                 case 0:
                     {
-                    launch_gpu_compute_dpd_forces_kernel<evaluator, 0, 0, 0>(args, d_params);
+                    DPDForceComputeKernel<evaluator, 0, 0, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
                     break;
                     }
                 case 1:
                     {
-                    launch_gpu_compute_dpd_forces_kernel<evaluator, 1, 0, 0>(args, d_params);
+                    DPDForceComputeKernel<evaluator, 1, 0, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
                     break;
                     }
                 default:

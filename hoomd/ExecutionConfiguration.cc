@@ -47,7 +47,11 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                bool min_cpu,
                                                bool ignore_display,
                                                std::shared_ptr<Messenger> _msg,
-                                               unsigned int n_ranks)
+                                               unsigned int n_ranks
+                                               #ifdef ENABLE_MPI
+                                               , MPI_Comm hoomd_world
+                                               #endif
+                                               )
     : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
@@ -102,7 +106,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     #ifdef ENABLE_MPI
     m_n_rank = n_ranks;
-    initializeMPI();
+    m_hoomd_world = hoomd_world;
+    splitPartitions(hoomd_world);
     #endif
 
     setupStats();
@@ -145,14 +150,14 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
         // get the min and max times
         unsigned int start_time_min, start_time_max, mpi_init_time_min, mpi_init_time_max, conf_time_min, conf_time_max;
-        MPI_Reduce(&hoomd_start_time, &start_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
-        MPI_Reduce(&hoomd_start_time, &start_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&hoomd_start_time, &start_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_hoomd_world);
+        MPI_Reduce(&hoomd_start_time, &start_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_hoomd_world);
 
-        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
-        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_hoomd_world);
+        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_hoomd_world);
 
-        MPI_Reduce(&conf_time, &conf_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
-        MPI_Reduce(&conf_time, &conf_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&conf_time, &conf_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_hoomd_world);
+        MPI_Reduce(&conf_time, &conf_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_hoomd_world);
 
         // write them out to a file
         if (getRankGlobal() == 0)
@@ -199,9 +204,9 @@ ExecutionConfiguration::~ExecutionConfiguration()
     }
 
 #ifdef ENABLE_MPI
-void ExecutionConfiguration::initializeMPI()
+void ExecutionConfiguration::splitPartitions(MPI_Comm mpi_comm)
     {
-    m_mpi_comm = MPI_COMM_WORLD;
+    m_mpi_comm = mpi_comm;
 
     int num_total_ranks;
     MPI_Comm_size(m_mpi_comm, &num_total_ranks);
@@ -210,7 +215,7 @@ void ExecutionConfiguration::initializeMPI()
 
     if  (m_n_rank != 0)
         {
-        int  rank;
+        int rank;
         MPI_Comm_rank(m_mpi_comm, &rank);
 
         if (num_total_ranks % m_n_rank != 0)
@@ -640,8 +645,8 @@ int ExecutionConfiguration::guessLocalRank()
             errors = 1;
 
         // some SLURMs set LOCALID to 0 on all ranks, check for this
-        MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Comm_size(MPI_COMM_WORLD, &num_total_ranks);
+        MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, m_hoomd_world);
+        MPI_Comm_size(m_hoomd_world, &num_total_ranks);
         if (errors == num_total_ranks)
             {
             msg->notice(3) << "SLURM_LOCALID is 0 on all ranks" << std::endl;
@@ -700,32 +705,42 @@ unsigned int ExecutionConfiguration::getNRanks() const
     }
 #endif
 
-
 void export_ExecutionConfiguration(py::module& m)
     {
     py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration> > executionconfiguration(m,"ExecutionConfiguration");
     executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, int, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
-         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
-         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
-         .def("getGPUName", &ExecutionConfiguration::getGPUName)
-         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
-         .def_readonly("msg", &ExecutionConfiguration::msg)
+        .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
+        .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
+        .def("getGPUName", &ExecutionConfiguration::getGPUName)
+        .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
+        .def_readonly("msg", &ExecutionConfiguration::msg)
 #ifdef ENABLE_CUDA
-         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
+        .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
 #ifdef ENABLE_MPI
-         .def("getPartition", &ExecutionConfiguration::getPartition)
-         .def("getNRanks", &ExecutionConfiguration::getNRanks)
-         .def("getRank", &ExecutionConfiguration::getRank)
-         .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
-         .def("barrier", &ExecutionConfiguration::barrier)
-         .def_static("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
-         .def_static("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
+        .def("getPartition", &ExecutionConfiguration::getPartition)
+        .def("getNRanks", &ExecutionConfiguration::getNRanks)
+        .def("getRank", &ExecutionConfiguration::getRank)
+        .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
+        .def("barrier", &ExecutionConfiguration::barrier)
+        .def_static("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
+        .def_static("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
+        .def_static("_make_exec_conf_mpi_comm",  [](ExecutionConfiguration::executionMode mode,
+                                                    int gpu_id,
+                                                    bool min_cpu,
+                                                    bool ignore_display,
+                                                    std::shared_ptr<Messenger> _msg,
+                                                    unsigned int n_ranks,
+                                                    py::object mpi_comm) -> std::shared_ptr<ExecutionConfiguration>
+            {
+            MPI_Comm *comm = (MPI_Comm*)PyLong_AsVoidPtr(mpi_comm.ptr());
+            return std::make_shared<ExecutionConfiguration>(mode, gpu_id, min_cpu, ignore_display, _msg, n_ranks, *comm);
+            })
 #endif
 #ifdef ENABLE_TBB
         .def("setNumThreads", &ExecutionConfiguration::setNumThreads)
 #endif
-        .def("getNumThreads", &ExecutionConfiguration::getNumThreads);
+        .def("getNumThreads", &ExecutionConfiguration::getNumThreads)
     ;
 
     py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration,"executionMode")

@@ -270,7 +270,8 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     :py:func:`hoomd.init.read_gsd` will read the restart file if it exists, otherwise it will read *filename*.
 
     If *time_step* is specified, its value will be used as the initial time
-    step of the simulation instead of the one read from the GSD file.
+    step of the simulation instead of the one read from the GSD file *filename*.
+    *time_step* is not applied when the file *restart* is read.
 
     The result of :py:func:`hoomd.init.read_gsd` can be saved in a variable and later used to read and/or
     change particle properties later in the script. See :py:mod:`hoomd.data` for more information.
@@ -287,13 +288,18 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
         hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
+    filename = _hoomd.mpi_bcast_str(filename, hoomd.context.exec_conf);
+    restart = _hoomd.mpi_bcast_str(restart, hoomd.context.exec_conf);
+
     if restart is not None and os.path.exists(restart):
         reader = _hoomd.GSDReader(hoomd.context.exec_conf, restart, abs(frame), frame < 0);
+        time_step = reader.getTimeStep();
     else:
         reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, abs(frame), frame < 0);
+        if time_step is None:
+            time_step = reader.getTimeStep();
+
     snapshot = reader.getSnapshot();
-    if time_step is None:
-        time_step = reader.getTimeStep();
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
     snapshot._broadcast_box(hoomd.context.exec_conf);

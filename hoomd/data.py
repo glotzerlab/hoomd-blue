@@ -2302,6 +2302,8 @@ def gsd_snapshot(filename, frame=0):
 
     :py:func:`hoomd.data.gsd_snapshot()` opens the given GSD file and reads a snapshot from it.
     """
+    hoomd.context._verify_init();
+
     reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, abs(frame), frame < 0);
     return reader.getSnapshot();
 

@@ -5,124 +5,60 @@ pipeline
 
     stages
         {
-        stage('Unit and validation tests')
+        {% for test in tests %}stage('{{ test.name }}')
             {
-            when { not { branch 'release' } }
-            failFast true
-            parallel
-                {
-                {% for test in tests %}stage('{{ test.name }}')
-                    {
-                    agent { label '{{ test.agent }}' }
-
-                    environment
-                        {
-                        CC = '{{ test.CC }}'
-                        CXX = '{{ test.CXX }}'
-                        PYVER = '{{ test.PYVER }}'
-                        CMAKE_BIN = '{{ test.CMAKE_BIN }}'
-                        ENABLE_CUDA = '{{ test.ENABLE_CUDA }}'
-                        ENABLE_MPI = '{{ test.ENABLE_MPI }}'
-                        ENABLE_TBB = '{{ test.ENABLE_TBB }}'
-                        BUILD_VALIDATION = '{{ test.BUILD_VALIDATION }}'
-                        CONTAINER = '/nfs/glotzer/containers/{{ test.CONTAINER }}'
-                        BUILD_JIT = '{{ test.BUILD_JIT }}'
-                        OMP_NUM_THREADS = '{{ test.OMP_NUM_THREADS }}'
-                        }
-
-                    steps
-                        {
-                        sh 'echo ${NODE_NAME}'
-
-                        dir('code')
-                            {
-                            checkout scm
-                            sh 'git submodule update --init'
-                            }
-
-                        dir('build')
-                            {
-                            timeout(time: 1, unit: 'HOURS')
-                                {
-                                sh '''
-                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
-                                   '''
-
-                                sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
-                                }
-
-                            timeout(time: {{ test.timeout }}, unit: 'HOURS')
-                                {
-                                sh '''
-                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
-                                   '''
-                                }
-                            }
-
-                        sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
-
-                        junit 'test.xml'
-                        }
-                    post
-                        {
-                        always
-                            {
-                            archive 'build/Testing/**/Test.xml'
-                            deleteDir()
-                            }
-                        }
-                    }
-                {% endfor %}
-                }
-            }
-
-        stage('conda-build-mac')
-            {
-            agent { label 'mac' }
-            when { anyOf { branch 'master'; branch 'maint'; branch 'release' } }
+            agent { label '{{ test.agent }}' }
 
             environment
                 {
-                CONDA_BLD_PATH = "${WORKSPACE}/conda-bld"
-                ANACONDA_TOKEN = credentials('glotzer-anaconda-token')
+                CC = '{{ test.CC }}'
+                CXX = '{{ test.CXX }}'
+                OMP_NUM_THREADS = '{{ test.OMP_NUM_THREADS }}'
                 }
 
             steps
                 {
-                sh 'echo ${CONDA_BLD_PATH}'
+                sh 'echo ${NODE_NAME}'
 
-                retry(5)
+                dir('code')
                     {
-                    dir('code')
+                    checkout scm
+                    sh 'git submodule update --init'
+                    }
+
+                dir('build')
+                    {
+                    timeout(time: 1, unit: 'HOURS')
                         {
-                        checkout scm
+                        sh '''
+                            singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python{{ test.PYVER }} -DENABLE_CUDA={{ test.ENABLE_CUDA }} -DENABLE_MPI={{ test.ENABLE_MPI }} -DENABLE_TBB={{ test.ENABLE_TBB }} -DBUILD_VALIDATION={{ test.BUILD_VALIDATION }} -DBUILD_TESTING={{ test.BUILD_TESTING }} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT={{ test.BUILD_JIT }} -DLLVM_DIR=/usr/lib/llvm-{{ test.LLVM_VERSION }}/cmake -GNinja
+                           '''
 
-                        timeout(time: 2, unit: 'HOURS')
-                            {
-                            sh 'git submodule update --init'
+                        sh 'singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} ninja -j 3'
+                        }
 
-                            sh '''
-                               conda build conda-recipe
-                               '''
-                            }
+                    timeout(time: {{ test.timeout }}, unit: 'HOURS')
+                        {
+                        sh '''
+                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-{{ test.LLVM_VERSION }}/bin
+                            singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/ctest --no-compress-output -T test --output-on-failure
+                           '''
                         }
                     }
 
-                script
-                    {
-                    if (env.BRANCH_NAME == 'release')
-                        {
-                        sh 'anaconda -t ${ANACONDA_TOKEN} upload --force --no-progress ${WORKSPACE}/conda-bld/**/*.tar.bz2'
-                        }
-                    }
+                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                junit 'test.xml'
                 }
             post
                 {
                 always
                     {
+                    archive 'build/Testing/**/Test.xml'
                     deleteDir()
                     }
                 }
             }
+        {% endfor %}
         }
     }

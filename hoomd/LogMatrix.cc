@@ -184,7 +184,7 @@ py::array LogMatrix::getMatrix(const std::string &quantity, unsigned int timeste
             py::object extracted_rv = rv.cast<py::object >();
             return extracted_rv;
             }
-        catch (py::cast_error)
+        catch (const py::cast_error&)
             {
             m_exec_conf->msg->warning() << "analyze.log: Log matrix callback "
                                         << quantity << " no matrix obtainable from callback." << endl;

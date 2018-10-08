@@ -477,4 +477,4 @@ void recv(T& val,const unsigned int src, const MPI_Comm mpi_comm)
 
 
 #endif // ENABLE_MPI
-#endif // __HOOMD_MATH_H__
+#endif // __HOOMD_MPI_H__

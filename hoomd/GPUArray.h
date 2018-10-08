@@ -701,7 +701,7 @@ template<class T> void GPUArray<T>::memclear(unsigned int first)
     assert(first < m_num_elements);
 
     // clear memory
-    memset(h_data+first, 0, sizeof(T)*(m_num_elements-first));
+    memset((void *)(h_data+first), 0, sizeof(T)*(m_num_elements-first));
 
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
@@ -976,11 +976,11 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
         }
 #endif
     // clear memory
-    memset(h_tmp, 0, sizeof(T)*num_elements);
+    memset((void *)h_tmp, 0, sizeof(T)*num_elements);
 
     // copy over data
     unsigned int num_copy_elements = m_num_elements > num_elements ? num_elements : m_num_elements;
-    memcpy(h_tmp, h_data, sizeof(T)*num_copy_elements);
+    memcpy((void *)h_tmp, (void *)h_data, sizeof(T)*num_copy_elements);
 
     // free old memory location
 #ifdef ENABLE_CUDA
@@ -1031,14 +1031,14 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 #endif
 
     // clear memory
-    memset(h_tmp, 0, sizeof(T)*new_pitch*new_height);
+    memset((void *)h_tmp, 0, sizeof(T)*new_pitch*new_height);
 
     // copy over data
     // every column is copied separately such as to align with the new pitch
     unsigned int num_copy_rows = height > new_height ? new_height : height;
     unsigned int num_copy_columns = pitch > new_pitch ? new_pitch : pitch;
     for (unsigned int i = 0; i < num_copy_rows; i++)
-        memcpy(h_tmp + i * new_pitch, h_data + i*pitch, sizeof(T)*num_copy_columns);
+        memcpy((void *)(h_tmp + i * new_pitch), (void *)(h_data + i*pitch), sizeof(T)*num_copy_columns);
 
     // free old memory location
 #ifdef ENABLE_CUDA

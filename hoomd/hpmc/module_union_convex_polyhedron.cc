@@ -5,11 +5,11 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
-#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 #include "AnalyzerSDF.h"
 
 #include "ShapeUnion.h"
+#include "ShapeSpheropolyhedron.h"
 
 #include "ExternalField.h"
 #include "ExternalFieldWall.h"
@@ -42,31 +42,28 @@ namespace hpmc
 //! Export the base HPMCMono integrators
 void export_union_convex_polyhedron(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoConvexPolyhedronUnion");
-    export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitConvexPolyhedronUnion");
-    export_IntegratorHPMCMonoImplicitNew< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitNewConvexPolyhedronUnion");
-    export_ComputeFreeVolume< ShapeUnion<ShapeConvexPolyhedron> >(m, "ComputeFreeVolumeConvexPolyhedronUnion");
-    // export_AnalyzerSDF< ShapeUnion<ShapeConvexPolyhedron> >(m, "AnalyzerSDFConvexPolyhedronUnion");
-    export_UpdaterMuVT< ShapeUnion<ShapeConvexPolyhedron> >(m, "UpdaterMuVTConvexPolyhedronUnion");
-    export_UpdaterClusters<ShapeUnion<ShapeConvexPolyhedron> >(m, "UpdaterClustersConvexPolyhedronUnion");
-    export_UpdaterClustersImplicit<ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterClustersImplicitConvexPolyhedronUnion");
-    export_UpdaterClustersImplicit<ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicitNew<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterClustersImplicitNewConvexPolyhedronUnion");
-    export_UpdaterMuVTImplicit< ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterMuVTImplicitConvexPolyhedronUnion");
-    export_UpdaterMuVTImplicit< ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicitNew<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterMuVTImplicitNewConvexPolyhedronUnion");
+    export_IntegratorHPMCMono< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoConvexPolyhedronUnion");
+    export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoImplicitConvexPolyhedronUnion");
+    export_ComputeFreeVolume< ShapeUnion<ShapeSpheropolyhedron> >(m, "ComputeFreeVolumeConvexPolyhedronUnion");
+    // export_AnalyzerSDF< ShapeUnion<ShapeSpheropolyhedron> >(m, "AnalyzerSDFConvexPolyhedronUnion");
+    export_UpdaterMuVT< ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterMuVTConvexPolyhedronUnion");
+    export_UpdaterClusters<ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterClustersConvexPolyhedronUnion");
+    export_UpdaterClustersImplicit<ShapeUnion<ShapeSpheropolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeSpheropolyhedron> > >(m, "UpdaterClustersImplicitConvexPolyhedronUnion");
+    export_UpdaterMuVTImplicit< ShapeUnion<ShapeSpheropolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeSpheropolyhedron> > >(m, "UpdaterMuVTImplicitConvexPolyhedronUnion");
 
-    export_ExternalFieldInterface<ShapeUnion<ShapeConvexPolyhedron> >(m, "ExternalFieldConvexPolyhedronUnion");
-    export_LatticeField<ShapeUnion<ShapeConvexPolyhedron> >(m, "ExternalFieldLatticeConvexPolyhedronUnion");
-    export_ExternalFieldComposite<ShapeUnion<ShapeConvexPolyhedron> >(m, "ExternalFieldCompositeConvexPolyhedronUnion");
-    export_RemoveDriftUpdater<ShapeUnion<ShapeConvexPolyhedron> >(m, "RemoveDriftUpdaterConvexPolyhedronUnion");
-    export_ExternalFieldWall<ShapeUnion<ShapeConvexPolyhedron> >(m, "WallConvexPolyhedronUnion");
-    export_UpdaterExternalFieldWall<ShapeUnion<ShapeConvexPolyhedron> >(m, "UpdaterExternalFieldWallConvexPolyhedronUnion");
+    export_ExternalFieldInterface<ShapeUnion<ShapeSpheropolyhedron> >(m, "ExternalFieldConvexPolyhedronUnion");
+    export_LatticeField<ShapeUnion<ShapeSpheropolyhedron> >(m, "ExternalFieldLatticeConvexPolyhedronUnion");
+    export_ExternalFieldComposite<ShapeUnion<ShapeSpheropolyhedron> >(m, "ExternalFieldCompositeConvexPolyhedronUnion");
+    export_RemoveDriftUpdater<ShapeUnion<ShapeSpheropolyhedron> >(m, "RemoveDriftUpdaterConvexPolyhedronUnion");
+    export_ExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron> >(m, "WallConvexPolyhedronUnion");
+    export_UpdaterExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterExternalFieldWallConvexPolyhedronUnion");
 
     #ifdef ENABLE_CUDA
 
-    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoGPUConvexPolyhedronUnion");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitGPUConvexPolyhedronUnion");
-    export_IntegratorHPMCMonoImplicitNewGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitNewGPUConvexPolyhedronUnion");
-    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "ComputeFreeVolumeGPUConvexPolyhedronUnion");
+    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoGPUConvexPolyhedronUnion");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoImplicitGPUConvexPolyhedronUnion");
+    export_IntegratorHPMCMonoImplicitNewGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoImplicitNewGPUConvexPolyhedronUnion");
+    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "ComputeFreeVolumeGPUConvexPolyhedronUnion");
 
     #endif
     }

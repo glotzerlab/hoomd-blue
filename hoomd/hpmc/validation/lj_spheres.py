@@ -48,7 +48,7 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
         use_clusters = int(option.get_user()[0])%2
         use_depletants = int(option.get_user()[0])//2
-        depletant_mode = 'overlap_regions' if use_depletants == 2 else 'circumsphere'
+        depletant_mode = 'overlap_regions'
 
         N = len(system.particles);
 

@@ -1,97 +1,78 @@
-version: 2
+version: 2.1
 
-references:
-  test_container_config: &test_container_config
+executors:
+  glotzerlab:
+    parameters:
+      image:
+        type: string
+      python-version:
+        type: string
     docker:
-      - image: joaander/ci:20171130
-        environment:
-          PYTHONPATH: /home/ci/project/build
+      - image: glotzerlab/ci:2018.09-<< parameters.image >>
+    environment:
+      PYTHONPATH: /home/ci/project/build
+      PYTHON: "/usr/bin/python<< parameters.python-version >>"
+      PYTEST: "/usr/bin/python<< parameters.python-version >> -m pytest"
     working_directory: /home/ci/project
 
-  test_container_config-cuda80: &test_container_config-cuda80
-    docker:
-      - image: joaander/ci:20171130-cuda80
-        environment:
-          PYTHONPATH: /home/ci/project/build
-    working_directory: /home/ci/project
-
-  test_container_config-cuda75: &test_container_config-cuda75
-    docker:
-      - image: joaander/ci:20171130-cuda75
-        environment:
-          PYTHONPATH: /home/ci/project/build
-    working_directory: /home/ci/project
-
-  test_container_config-cuda70: &test_container_config-cuda70
-    docker:
-      - image: joaander/ci:20171130-cuda70
-        environment:
-          PYTHONPATH: /home/ci/project/build
-    working_directory: /home/ci/project
-
-  test_container_config-arch: &test_container_config-arch
-    docker:
-      - image: joaander/ci:20171206-arch-2
-        environment:
-          PYTHONPATH: /home/ci/project/build
-    working_directory: /home/ci/project
-
-  conda_container_config: &conda_container_config
-    docker:
-      - image: joaander/conda-build:20180207
-    working_directory: /root/project
-
-  load_code: &load_code
-    checkout:
-      path: code
-
-  update_submodules: &update_submodules
-    run:
-      name: Update submodules
-      working_directory: code
-      command: git submodule update --init
-
-  configure: &configure
-    run:
-      name: Configure
-      command: |
-        mkdir build
-        cd build
-        echo cmake_root=${CMAKE_BIN}
-        echo pyver=${PYVER}
-        echo cc=${CC}
-        echo cxx=${CXX}
-        echo enable_cuda=${ENABLE_CUDA}
-        echo enable_mpi=${ENABLE_MPI}
-        echo enable_tbb=${ENABLE_TBB}
-        echo build_validation=${BUILD_VALIDATION}
-        echo build_jit=${BUILD_JIT}
-        ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DBUILD_JIT=${BUILD_JIT} -DBUILD_DEPRECATED=off -GNinja
-
-  compile: &compile
-    run:
-      name: Compile
-      working_directory: build
-      command: ninja -j3
-
-  native_build: &native_build
+commands:
+  checkout_with_submodules:
     steps:
-      - *load_code
-      - *update_submodules
-      - *configure
-      - *compile
+      - checkout:
+          path: code
+      - run:
+          name: Update submodules
+          working_directory: code
+          command: git submodule update --init
 
-  build_and_test: &build_and_test
+  build:
+    parameters:
+      cc:
+        type: string
+      cxx:
+        type: string
+      cmake-bin:
+        type: string
+      enable-cuda:
+        type: boolean
+      enable-mpi:
+        type: boolean
+      enable-tbb:
+        type: boolean
+      build-validation:
+        type: boolean
+      build-jit:
+        type: boolean
+      llvm-version:
+        type: string
     steps:
-      - *load_code
-      - *update_submodules
-      - *configure
-      - *compile
+      - run:
+          name: Configure
+          command: |
+            export CC=<< parameters.cc >> CXX=<< parameters.cxx >>
+            mkdir build
+            cd build
+            << parameters.cmake-bin >>/cmake ../code -DPYTHON_EXECUTABLE=${PYTHON} -DENABLE_CUDA=<< parameters.enable-cuda >> -DENABLE_MPI=<< parameters.enable-mpi >> -DENABLE_TBB=<< parameters.enable-tbb >> -DBUILD_VALIDATION=<< parameters.build-validation >> -DBUILD_JIT=<< parameters.build-jit >> -DLLVM_DIR=/usr/lib/llvm-<< parameters.llvm-version >>/cmake -DBUILD_DEPRECATED=off -GNinja
+      - run:
+          name: Compile
+          command: |
+            cd build
+            ninja -j3
+
+  test:
+    parameters:
+      cmake-bin:
+        type: string
+      llvm-version:
+        type: string
+    steps:
       - run:
           name: Test
           working_directory: build
           no_output_timeout: 2h
-          command: ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+          command: |
+            export PATH=/usr/lib/llvm-<< parameters.llvm-version >>/bin:$PATH
+            << parameters.cmake-bin >>/ctest --no-compress-output -T test --output-on-failure
       - run:
           name: Copy test results
           command: mkdir test-results && cp build/Testing/**/Test.xml test-results/
@@ -101,187 +82,178 @@ references:
       - store_test_results:
           path: test-results
 
+  sphinx:
+    steps:
+      - run: cd code/sphinx-doc && sphinx-build -b html -d _build/doctrees -W -n . _build/html
+
 jobs:
-  unit-gcc48-py27-cm28-mpi-tbb:
-    <<: *test_container_config
+  build_and_test:
+    parameters:
+      image:
+        type: string
+      cc:
+        type: string
+      cxx:
+        type: string
+      python-version:
+        type: string
+      cmake-bin:
+        default: /usr/bin
+        type: string
+      enable-cuda:
+        type: boolean
+        default: false
+      enable-mpi:
+        type: boolean
+      enable-tbb:
+        type: boolean
+      build-validation:
+        type: boolean
+        default: false
+      build-jit:
+        type: boolean
+      threads:
+        type: string
+        default: "1"
+      llvm-version:
+        type: string
+        default: "6.0"
+    executor:
+      name: glotzerlab
+      image: << parameters.image >>
+      python-version: << parameters.python-version >>
     environment:
-      CC: /usr/bin/gcc-4.8
-      CXX: /usr/bin/g++-4.8
-      PYVER: "2.7"
-      CMAKE_BIN: /opt/cmake-2.8.12/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: ON
-      ENABLE_CUDA: OFF
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: OFF
-      OMP_NUM_THREADS: 3
-    <<: *build_and_test
-
-  gcc48-py27-mpi-cd80:
-    <<: *test_container_config-cuda80
-    environment:
-      CC: /usr/bin/gcc-4.8
-      CXX: /usr/bin/g++-4.8
-      PYVER: "2.7"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: ON
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: ON
-    <<: *native_build
-
-  gcc49-py34-mpi-cd75:
-    <<: *test_container_config-cuda75
-    environment:
-      CC: /usr/bin/gcc-4.9
-      CXX: /usr/bin/g++-4.9
-      PYVER: "3.4"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: ON
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: OFF
-    <<: *native_build
-
-  gcc48-py34-cm28-mpi-cd70:
-    <<: *test_container_config-cuda70
-    environment:
-      CC: /usr/bin/gcc-4.8
-      CXX: /usr/bin/g++-4.8
-      PYVER: "3.4"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: ON
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: OFF
-    <<: *native_build
-
-  gcc54-py35-mpi-cd80:
-    <<: *test_container_config-cuda80
-    environment:
-      CC: /usr/bin/gcc
-      CXX: /usr/bin/g++
-      PYVER: "3.5"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: ON
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: ON
-    <<: *native_build
-
-  gcc72-py36-mpi:
-    <<: *test_container_config-arch
-    environment:
-      CC: /usr/bin/gcc
-      CXX: /usr/bin/g++
-      PYVER: "3.6"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: ON
-      ENABLE_CUDA: OFF
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: ON
-    <<: *native_build
-
-  unit-clang38-py35:
-    <<: *test_container_config
-    environment:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-      PYVER: "3.5"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: OFF
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: OFF
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: ON
-    <<: *build_and_test
+      OMP_NUM_THREADS: << parameters.threads >>
+    steps:
+      - checkout_with_submodules
+      - build:
+          cc: << parameters.cc >>
+          cxx: << parameters.cxx >>
+          llvm-version: << parameters.llvm-version >>
+          cmake-bin: << parameters.cmake-bin >>
+          enable-cuda: << parameters.enable-cuda >>
+          enable-mpi: << parameters.enable-mpi >>
+          enable-tbb: << parameters.enable-tbb >>
+          build-validation: << parameters.build-validation >>
+          build-jit: << parameters.build-jit >>
+      - test:
+          cmake-bin: << parameters.cmake-bin >>
+          llvm-version: << parameters.llvm-version >>
 
   sphinx-docs:
-    <<: *test_container_config
+    executor:
+      name: glotzerlab
+      image: ubuntu18.04
+      python-version: "3.6"
     steps:
-      - *load_code
-      - run:
-          name: Run Sphinx
-          working_directory: code/sphinx-doc
-          command: sphinx-build -b html -d _build/doctrees -W -n . build/html
-
-  conda-build:
-    <<: *conda_container_config
-    steps:
-      - *load_code
-      - *update_submodules
-      - run:
-          name: Conda build
-          working_directory: code
-          no_output_timeout: 8h
-          command: conda build conda-recipe
-      - run: mv /opt/conda/conda-bld .
-      - persist_to_workspace:
-          root: .
-          paths:
-            - conda-bld/linux-64/hoomd-*.tar.bz2
-
-  conda-upload:
-    <<: *conda_container_config
-    steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: Upload
-          command: anaconda -t ${ANACONDA_TOKEN} upload --no-progress --force conda-bld/**/*.tar.bz2
+      - checkout_with_submodules
+      - sphinx
 
 workflows:
-  version: 2
   workflow:
     jobs:
-      - unit-gcc48-py27-cm28-mpi-tbb:
-          filters:
-            branches:
-              ignore: release
-      - gcc48-py27-mpi-cd80:
-          filters:
-            branches:
-              ignore: release
-      - gcc49-py34-mpi-cd75:
-          filters:
-            branches:
-              ignore: release
-      - gcc54-py35-mpi-cd80:
-          filters:
-            branches:
-              ignore: release
-      - gcc48-py34-cm28-mpi-cd70:
-          filters:
-            branches:
-              ignore: release
-      - unit-clang38-py35:
-          filters:
-            branches:
-              ignore: release
-      - gcc72-py36-mpi:
-          filters:
-            branches:
-              ignore: release
-      - sphinx-docs:
-          filters:
-            branches:
-              ignore: release
-      - conda-build:
-          filters:
-            branches:
-              only:
-                - maint
-                - master
-                - release
-      - conda-upload:
-          context: org-global
-          requires:
-            - conda-build
-          filters:
-            branches:
-              only: release
+      - sphinx-docs
+      - build_and_test:
+          name: gcc8-py36-cm310-llvm6-mpi-tbb3
+          image: ubuntu18.04
+          cc: gcc-8
+          cxx: g++-8
+          python-version: "3.6"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: on
+          llvm-version: "6.0"
+          threads: "3"
+
+      - build_and_test:
+          name: gcc7-py36-cm310-llvm6-mpi-tbb3
+          image: ubuntu18.04
+          cc: gcc-7
+          cxx: g++-7
+          python-version: "3.6"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: on
+          llvm-version: "6.0"
+          threads: "3"
+
+      - build_and_test:
+          name: gcc6-py36-cm310-mpi
+          image: ubuntu18.04
+          cc: gcc-6
+          cxx: g++-6
+          python-version: "3.6"
+          enable-mpi: on
+          enable-tbb: off
+          build-jit: off
+
+      - build_and_test:
+          name: clang6-py36-cm310-llvm6-mpi-tbb3
+          image: ubuntu18.04
+          cc: clang-6.0
+          cxx: clang++-6.0
+          llvm-version: "6.0"
+          python-version: "3.6"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: on
+          threads: "3"
+
+      - build_and_test:
+          name: clang5-py36-cm310-llvm5-mpi-tbb3
+          image: ubuntu18.04
+          cc: clang-5.0
+          cxx: clang++-5.0
+          llvm-version: "5.0"
+          python-version: "3.6"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: on
+          threads: "3"
+
+      - build_and_test:
+          name: clang4-py36-cm310-llvm4-tbb3
+          image: ubuntu18.04
+          cc: clang-4.0
+          cxx: clang++-4.0
+          llvm-version: "4.0"
+          python-version: "3.6"
+          enable-mpi: on
+          enable-tbb: off
+          build-jit: on
+          threads: "3"
+
+      - build_and_test:
+          name: gcc54-py35-cm35-llvm6-mpi-tbb3
+          image: ubuntu16.04
+          cc: gcc-5
+          cxx: g++-5
+          llvm-version: "6.0"
+          python-version: "3.5"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: on
+          threads: "3"
+
+      - build_and_test:
+          name: gcc48-py27-cm28-mpi-tbb3
+          image: ubuntu16.04
+          cc: gcc-4.8
+          cxx: g++-4.8
+          cmake-bin: /opt/cmake-2.8.12/bin
+          python-version: "2.7"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: off
+          threads: "3"
+
+      - build_and_test:
+          name: clang38-py35-llvm38-cm35
+          image: ubuntu16.04
+          cc: clang-3.8
+          cxx: clang++-3.8
+          llvm-version: "3.8"
+          python-version: "3.5"
+          enable-mpi: off
+          enable-tbb: off
+          build-jit: on

@@ -16,40 +16,12 @@
 #include "ReductionOperators.h"
 
 #include "hoomd/extern/cub/cub/cub.cuh"
+#include "hoomd/WarpTools.cuh"
 
 namespace mpcd
 {
 namespace gpu
 {
-
-//! Shuffle-based warp reduction
-/*!
- * \param val Value to be reduced
- *
- * \tparam LOGICAL_WARP_SIZE Number of threads in a "logical" warp to reduce, must be a power-of-two
- *                           and less than the hardware warp size.
- * \tparam T Type of value to be reduced (inferred).
- *
- * \returns Reduced value.
- *
- * The value \a val is reduced into the 0-th lane of the "logical" warp using
- * shuffle-based intrinsics. This allows for the summation of quantities when
- * using multiple threads per object within a kernel.
- */
-template<int LOGICAL_WARP_SIZE, typename T>
-__device__ static T warp_reduce(T val)
-    {
-    static_assert(LOGICAL_WARP_SIZE <= CUB_PTX_WARP_THREADS, "Logical warp size cannot exceed hardware warp size");
-    static_assert(LOGICAL_WARP_SIZE && !(LOGICAL_WARP_SIZE & (LOGICAL_WARP_SIZE-1)), "Logical warp size must be a power of 2");
-
-    #pragma unroll
-    for (int dest_count = LOGICAL_WARP_SIZE/2; dest_count >= 1; dest_count /= 2)
-        {
-        val += cub::ShuffleDown(val, dest_count);
-        }
-    return val;
-    }
-
 namespace kernel
 {
 //! Begins the cell thermo compute by summing cell quantities on outer cells
@@ -133,12 +105,13 @@ __global__ void begin_cell_thermo(double4 *d_cell_vel,
     // reduce quantities down into the 0-th lane per logical warp
     if (tpp > 1)
         {
-        momentum.x = warp_reduce<tpp>(momentum.x);
-        momentum.y = warp_reduce<tpp>(momentum.y);
-        momentum.z = warp_reduce<tpp>(momentum.z);
-        momentum.w = warp_reduce<tpp>(momentum.w);
+        hoomd::detail::WarpReduce<Scalar, tpp> reducer;
+        momentum.x = reducer.Sum(momentum.x);
+        momentum.y = reducer.Sum(momentum.y);
+        momentum.z = reducer.Sum(momentum.z);
+        momentum.w = reducer.Sum(momentum.w);
         if (need_energy)
-            ke = warp_reduce<tpp>(ke);
+            ke = reducer.Sum(ke);
         }
 
     // 0-th lane in each warp writes the result
@@ -300,12 +273,13 @@ __global__ void inner_cell_thermo(double4 *d_cell_vel,
     // reduce quantities down into the 0-th lane per logical warp
     if (tpp > 1)
         {
-        momentum.x = warp_reduce<tpp>(momentum.x);
-        momentum.y = warp_reduce<tpp>(momentum.y);
-        momentum.z = warp_reduce<tpp>(momentum.z);
-        momentum.w = warp_reduce<tpp>(momentum.w);
+        hoomd::detail::WarpReduce<Scalar, tpp> reducer;
+        momentum.x = reducer.Sum(momentum.x);
+        momentum.y = reducer.Sum(momentum.y);
+        momentum.z = reducer.Sum(momentum.z);
+        momentum.w = reducer.Sum(momentum.w);
         if (need_energy)
-            ke = warp_reduce<tpp>(ke);
+            ke = reducer.Sum(ke);
         }
 
     // 0-th lane in each warp writes the result

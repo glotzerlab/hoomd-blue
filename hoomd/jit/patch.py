@@ -6,7 +6,6 @@ from hoomd.jit import _jit
 import hoomd
 
 import tempfile
-from distutils.spawn import find_executable
 import shutil
 import subprocess
 import os
@@ -120,7 +119,7 @@ class user(object):
         if clang_exec is not None:
             clang = clang_exec;
         else:
-            clang = find_executable('clang')
+            clang = 'clang'
 
         if code is not None:
             llvm_ir = self.compile_user(code, clang)
@@ -177,7 +176,7 @@ float eval(const vec3<float>& r_ij,
         if clang_exec is not None:
             clang = clang_exec;
         else:
-            clang = find_executable('clang');
+            clang = 'clang';
 
         if fn is not None:
             cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
@@ -285,7 +284,7 @@ class user_union(user):
         if clang_exec is not None:
             clang = clang_exec;
         else:
-            clang = find_executable('clang')
+            clang = 'clang'
 
         if code is not None:
             llvm_ir = self.compile_user(code,clang)

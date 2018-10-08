@@ -193,7 +193,7 @@ class constant(_force):
         fy (float): y component of force, retained for backwards compatibility
         fz (float): z component of force, retained for backwards compatibility
         group (:py:mod:`hoomd.group`): Group for which the force will be set.
-        callback (callable): A python callback invoked every time the forces are computed
+        callback (`callable`): A python callback invoked every time the forces are computed
 
     :py:class:`constant` specifies that a constant force should be added to every
     particle in the simulation or optionally to all particles in a group.
@@ -320,7 +320,7 @@ class constant(_force):
     R""" Set a python callback to be called before the force is evaluated
 
     Args:
-        callback (callable) The callback function
+        callback (`callable`) The callback function
 
      Examples:
         const = force.constant(fx=0.4, fy=1.0, fz=0.5)

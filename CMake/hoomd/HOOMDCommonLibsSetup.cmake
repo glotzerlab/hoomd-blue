@@ -21,6 +21,7 @@ option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
 
 if(ENABLE_TBB)
     find_package(TBB 4.3)
+    include_directories(${TBB_INCLUDE_DIR})
 
     # Detect clang and fix incompatibility with TBB
     # https://github.com/wjakob/tbb/blob/master/CMakeLists.txt

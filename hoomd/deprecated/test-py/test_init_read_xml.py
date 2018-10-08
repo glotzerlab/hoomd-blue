@@ -65,7 +65,7 @@ A B C
         self.assert_(hoomd.context.current.system);
         self.assertEqual(hoomd.context.current.system_definition.getParticleData().getNGlobal(), 3);
 
-    # tests creation with a few more arugments specified
+    # tests creation with a few more arguments specified
     def test_moreargs(self):
         deprecated.init.read_xml(self.tmp_file, time_step=100);
         self.assert_(hoomd.context.current.system_definition);

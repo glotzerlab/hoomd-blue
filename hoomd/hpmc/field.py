@@ -933,7 +933,7 @@ class callback(_external):
     Args:
 
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        callback (callable): A python function to evaluate the energy of a configuration
+        callback (`callable`): A python function to evaluate the energy of a configuration
         composite (bool): True if this evaluator is part of a composite external field
 
     Example::

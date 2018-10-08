@@ -72,7 +72,11 @@ def print_status_line():
     else:
         frame = -4
 
-    file_name, line, module, code = stack[frame];
+    try:
+        file_name, line, module, code = stack[frame];
+    except IndexError:
+        # No traceback information is available.
+        return
 
     # if we are in interactive mode, there is no need to print anything: the
     # interpreter loop does it for us. We can make that check by testing if

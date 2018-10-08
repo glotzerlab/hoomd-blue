@@ -167,6 +167,20 @@ class PYBIND11_EXPORT Autotuner
             }
 
 
+        //! build list of thread per particle targets
+        static std::vector<unsigned int> getTppListPow2(unsigned int warpSize)
+            {
+            std::vector<unsigned int> v;
+
+            for (unsigned int s=4; s <= warpSize; s*=2)
+                {
+                v.push_back(s);
+                }
+            v.push_back(1);
+            v.push_back(2);
+            return v;
+            }
+
     protected:
         unsigned int computeOptimalParameter();
 

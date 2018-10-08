@@ -161,8 +161,24 @@ class gsd_write_tests (unittest.TestCase):
 
         context.initialize();
         init.read_gsd(filename=self.tmp_file, frame=4);
+        self.assertEqual(get_step(), 4)
         if comm.get_rank() == 0:
             self.assertRaises(RuntimeError, init.read_gsd, self.tmp_file, frame=5);
+
+    # tests init.read_gsd time_step
+    def test_read_gsd_time_step(self):
+        dump.gsd(filename=self.tmp_file, group=group.all(), period=1, overwrite=True);
+        run(5);
+
+        context.initialize();
+        # test that time_step is set appropriately
+        init.read_gsd(filename=self.tmp_file, frame=4, time_step=1000);
+        self.assertEqual(get_step(), 1000)
+
+        # when restart is present, the time_step field should be ignored
+        context.initialize();
+        init.read_gsd(filename=self.tmp_file, restart=self.tmp_file, frame=4, time_step=1000);
+        self.assertEqual(get_step(), 4)
 
     # tests with zero particles
     def test_zero_particles(self):

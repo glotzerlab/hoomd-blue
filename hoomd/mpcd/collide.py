@@ -168,9 +168,9 @@ class at(_collision_method):
     Args:
         seed (int): Seed to the collision method random number generator (must be positive)
         period (int): Number of integration steps between collisions
-        group (:py:mod:`hoomd.group`): Group of particles to embed in collisions
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set
             point for the thermostat (in energy units).
+        group (:py:mod:`hoomd.group`): Group of particles to embed in collisions
 
     This class implements the Andersen thermostat collision rule for MPCD, as described
     by `Allahyarov and Gompper <https://doi.org/10.1103/PhysRevE.66.036702>`_.
@@ -205,7 +205,7 @@ class at(_collision_method):
         collide.at(seed=77, period=50, kT=1.5, group=hoomd.group.all())
 
     """
-    def __init__(self, seed, period, group=None, kT=False):
+    def __init__(self, seed, period, kT, group=None):
         hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
@@ -271,10 +271,10 @@ class srd(_collision_method):
         seed (int): Seed to the collision method random number generator (must be positive)
         period (int): Number of integration steps between collisions
         angle (float): SRD rotation angle (degrees)
-        group (:py:mod:`hoomd.group`): Group of particles to embed in collisions
         kT (:py:mod:`hoomd.variant` or :py:obj:`float` or bool): Temperature set
             point for the thermostat (in energy units). If False (default), no
             thermostat is applied and an NVE simulation is run.
+        group (:py:mod:`hoomd.group`): Group of particles to embed in collisions
 
     This class implements the classic stochastic rotation dynamics collision
     rule for MPCD as first proposed by `Malevanets and Kapral <http://dx.doi.org/10.1063/1.478857>`_.
@@ -321,7 +321,7 @@ class srd(_collision_method):
         collide.srd(seed=1991, period=10, angle=90., kT=1.5)
 
     """
-    def __init__(self, seed, period, angle, group=None, kT=False):
+    def __init__(self, seed, period, angle, kT=False, group=None):
         hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)

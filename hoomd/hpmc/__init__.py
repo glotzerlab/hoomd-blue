@@ -32,6 +32,10 @@ With non-interacting depletant (**implicit=True**), the following log quantities
 - ``hpmc_overlap_fraction`` - Fraction of depletants in excluded volume after trial move to depletants in free volume before move
 - ``hpmc_configurational_bias_ratio`` - Ratio of configurational bias attempts to depletant insertions
 
+With patch energies defined, the following quantities are available:
+- ``hpmc_patch_energy`` - The potential energy of the system resulting from the patch interaction.
+- ``hpmc_patch_rcut`` - The cutoff radius in the patch energy interaction.
+
 :py:class:`compute.free_volume` provides the following loggable quantities:
 - ``hpmc_free_volume`` - The free volume estimate in the simulation box obtained by MC sampling (in volume units)
 

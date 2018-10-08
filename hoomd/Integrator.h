@@ -18,6 +18,7 @@
 #include "Updater.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
+#include "HalfStepHook.h"
 #include "ParticleGroup.h"
 #include <string>
 #include <vector>
@@ -80,8 +81,14 @@ class PYBIND11_EXPORT Integrator : public Updater
         //! Add a ForceConstraint to the list
         virtual void addForceConstraint(std::shared_ptr<ForceConstraint> fc);
 
+        //! Set HalfStepHook
+        virtual void setHalfStepHook(std::shared_ptr<HalfStepHook> hook);
+
         //! Removes all ForceComputes from the list
         virtual void removeForceComputes();
+
+        //! Removes HalfStepHook
+        virtual void removeHalfStepHook();
 
         //! Change the timestep
         virtual void setDeltaT(Scalar deltaT);
@@ -137,6 +144,9 @@ class PYBIND11_EXPORT Integrator : public Updater
         std::vector< std::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
 
         std::vector< std::shared_ptr<ForceConstraint> > m_constraint_forces;    //!< List of all the constraints
+
+        std::shared_ptr<HalfStepHook> m_half_step_hook;    //!< The HalfStepHook, if active
+
 
         //! helper function to compute initial accelerations
         void computeAccelerations(unsigned int timestep);

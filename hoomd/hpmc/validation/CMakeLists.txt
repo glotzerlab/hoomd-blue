@@ -57,7 +57,7 @@ disk_eos.py 0 0
 if(BUILD_JIT)
 set(TEST_LIST_CPU ${TEST_LIST_CPU}
     wca_dumbbell.py 0 2
-    lj_spheres.py 0 5
+    lj_spheres.py 0 3
 )
 endif(BUILD_JIT)
 

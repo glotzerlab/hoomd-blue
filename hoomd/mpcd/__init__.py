@@ -43,7 +43,7 @@ a thermostat. In the future, fluid-solid coupling will also be introduced during
 the streaming step to couple hard particles and boundaries.
 
 Details of this implementation of the MPCD algorithm for HOOMD-blue can be found
-in Howard et al. (2017).
+in `M. P. Howard et al. (2018) <https://doi.org/10.1016/j.cpc.2018.04.009>`_.
 
 .. rubric:: Getting started
 
@@ -103,6 +103,22 @@ from hoomd.mpcd import data
 from hoomd.mpcd import init
 from hoomd.mpcd import stream
 from hoomd.mpcd import update
+
+# add MPCD article citation notice
+_citation = hoomd.cite.article(cite_key='howard2018',
+                               author=['M P Howard', 'A Z Panagiotopoulos', 'A Nikoubashman'],
+                               title='Efficient mesoscale hydrodynamics: Multiparticle collision dynamics with massively parallel GPU acceleration',
+                               journal='Computer Physics Communications',
+                               volume=230,
+                               pages='10--20',
+                               month='September',
+                               year='2018',
+                               doi='10.1016/j.cpc.2018.04.009',
+                               feature='MPCD')
+if hoomd.context.bib is None:
+    hoomd.cite._extra_default_entries.append(_citation)
+else:
+    hoomd.context.bib.add(_citation)
 
 class integrator(hoomd.integrate._integrator):
     """ MPCD integrator

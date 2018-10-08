@@ -550,14 +550,14 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
             if (mod == 0)
                 {
                 MPI_Status stat;
-                MPI_Recv(&other_timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
-                MPI_Send(&timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
+                MPI_Recv(&other_timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
+                MPI_Send(&timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                 }
             else
                 {
                 MPI_Status stat;
-                MPI_Send(&timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
-                MPI_Recv(&other_timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                MPI_Send(&timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
+                MPI_Recv(&other_timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
                 }
 
             if (other_timestep != timestep)
@@ -614,9 +614,9 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
 
                         // receive type of particle
                         unsigned int n;
-                        MPI_Recv(&n, 1, MPI_UNSIGNED, m_gibbs_other,0, MPI_COMM_WORLD, &stat);
+                        MPI_Recv(&n, 1, MPI_UNSIGNED, m_gibbs_other,0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
                         char s[n];
-                        MPI_Recv(s, n, MPI_CHAR, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                        MPI_Recv(s, n, MPI_CHAR, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
                         type_name = std::string(s);
 
                         // resolve type name
@@ -690,8 +690,8 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                         MPI_Status stat;
                         Scalar remove_lnb;
                         unsigned int remove_nonzero;
-                        MPI_Recv(&remove_lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
-                        MPI_Recv(&remove_nonzero, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                        MPI_Recv(&remove_lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
+                        MPI_Recv(&remove_nonzero, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
 
                         // avoid divide/multiply by infinity
                         if (remove_nonzero)
@@ -723,7 +723,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                         {
                         // send result of acceptance test
                         unsigned result = accept;
-                        MPI_Send(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
+                        MPI_Send(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                         }
                     #endif
 
@@ -804,10 +804,10 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
 
                         // send particle type to other rank
                         unsigned int n = type_name.size()+1;
-                        MPI_Send(&n, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
+                        MPI_Send(&n, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                         char s[n];
                         memcpy(s,type_name.c_str(),n);
-                        MPI_Send(s, n, MPI_CHAR, m_gibbs_other, 0, MPI_COMM_WORLD);
+                        MPI_Send(s, n, MPI_CHAR, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                         #endif
                         }
                     }
@@ -842,13 +842,13 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                         {
                         #ifdef ENABLE_MPI
                         // send result of removal attempt
-                        MPI_Send(&lnboltzmann, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, MPI_COMM_WORLD);
-                        MPI_Send(&nonzero, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
+                        MPI_Send(&lnboltzmann, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
+                        MPI_Send(&nonzero, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
 
                         // wait for result of insertion on other rank
                         unsigned int result;
                         MPI_Status stat;
-                        MPI_Recv(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                        MPI_Recv(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
                         accept = result;
                         #endif
                         }
@@ -920,8 +920,8 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     if (m_gibbs && is_root)
                         {
                         // communicate type pair to other box
-                        MPI_Send(&type, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
-                        MPI_Send(&other_type, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
+                        MPI_Send(&type, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
+                        MPI_Send(&other_type, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                         }
                     #endif
 
@@ -971,8 +971,8 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                             {
                             // receive result of identity change from other box
                             MPI_Status stat;
-                            MPI_Recv(&other_nonzero, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
-                            MPI_Recv(&lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                            MPI_Recv(&other_nonzero, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
+                            MPI_Recv(&lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
                             }
                         if (m_pdata->getDomainDecomposition())
                             {
@@ -1001,7 +1001,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     if (m_gibbs && is_root)
                         {
                         // communicate result to other box
-                        MPI_Send(&accept, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
+                        MPI_Send(&accept, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                         }
                     #endif
 
@@ -1030,8 +1030,8 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     if (is_root)
                         {
                         MPI_Status stat;
-                        MPI_Recv(&type, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
-                        MPI_Recv(&other_type, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                        MPI_Recv(&type, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
+                        MPI_Recv(&other_type, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
                         }
 
                     if (m_pdata->getDomainDecomposition())
@@ -1087,12 +1087,12 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     #ifdef ENABLE_MPI
                     if (is_root)
                         {
-                        MPI_Send(&nonzero, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
-                        MPI_Send(&lnboltzmann, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, MPI_COMM_WORLD);
+                        MPI_Send(&nonzero, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
+                        MPI_Send(&lnboltzmann, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
 
                         // receive result of decision from other box
                         MPI_Status stat;
-                        MPI_Recv(&accept, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                        MPI_Recv(&accept, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
                         }
 
                     if (m_pdata->getDomainDecomposition())
@@ -1140,21 +1140,21 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
             if (mod == 0)
                 {
                 // send volume to other rank
-                MPI_Send(&V, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, MPI_COMM_WORLD);
+                MPI_Send(&V, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
 
                 MPI_Status stat;
 
                 // receive other box volume
-                MPI_Recv(&V_other, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                MPI_Recv(&V_other, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
                 }
             else
                 {
                 // receive other box volume
                 MPI_Status stat;
-                MPI_Recv(&V_other, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                MPI_Recv(&V_other, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
 
                 // send volume to other rank
-                MPI_Send(&V, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, MPI_COMM_WORLD);
+                MPI_Send(&V, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                 }
 
             if (mod == 0)
@@ -1211,15 +1211,15 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 {
                 // receive result from other rank
                 MPI_Status stat;
-                MPI_Recv(&other_result, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
-                MPI_Recv(&other_lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 1, MPI_COMM_WORLD, &stat);
+                MPI_Recv(&other_result, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
+                MPI_Recv(&other_lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 1, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
                 }
             else
                 {
                 // send result to other rank
                 unsigned int result = has_overlaps;
-                MPI_Send(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
-                MPI_Send(&lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 1, MPI_COMM_WORLD);
+                MPI_Send(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
+                MPI_Send(&lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 1, m_exec_conf->getHOOMDWorldMPICommunicator());
                 }
             }
 
@@ -1232,7 +1232,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 // receive number of particles from other rank
                 unsigned int other_ndof;
                 MPI_Status stat;
-                MPI_Recv(&other_ndof, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                MPI_Recv(&other_ndof, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
 
                 // apply criterion on rank zero
                 Scalar arg = log(V_new/V)*(Scalar)(ndof+1)+log(V_new_other/V_other)*(Scalar)(other_ndof+1)
@@ -1243,17 +1243,17 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
 
                 // communicate if accepted
                 unsigned result = accept;
-                MPI_Send(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
+                MPI_Send(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                 }
             else
                 {
                 // send number of particles
-                MPI_Send(&ndof, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
+                MPI_Send(&ndof, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
 
                 // wait for result of acceptance criterion
                 MPI_Status stat;
                 unsigned int result;
-                MPI_Recv(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                MPI_Recv(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
                 accept = result;
                 }
             }

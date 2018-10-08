@@ -1,6 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 # Maintainer: mspells
 
+import math as m
 from hoomd import *
 from hoomd import md
 context.initialize()
@@ -72,7 +73,6 @@ class pair_dipole_tests (unittest.TestCase):
     def tearDown(self):
         del self.system,self.nl
         context.initialize();
-
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
