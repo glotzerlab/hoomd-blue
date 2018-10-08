@@ -165,9 +165,9 @@ class PYBIND11_EXPORT ParticleSelectorRigidCenter : public ParticleSelector
     groups where membership does not change over the course of a simulation. Dynamic groups, if they are needed,
     may require a drastically different design to allow for efficient access.
 
-    In many use-cases, ParticleGroup may be accessed many times within inner loops. Thus, it must not aquire any
+    In many use-cases, ParticleGroup may be accessed many times within inner loops. Thus, it must not acquire any
     ParticleData arrays within most of the get() calls as the caller must be allowed to leave their ParticleData
-    aquired. Thus, all get() methods must return values from internal cached variables only. Those methods that
+    acquired. Thus, all get() methods must return values from internal cached variables only. Those methods that
     absolutely require the particle data be released before they are called will be documented as such.
 
     <b>Data Structures and Implementation</b>

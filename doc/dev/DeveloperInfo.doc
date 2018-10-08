@@ -905,7 +905,7 @@ everything is already almost there (as of HOOMD 0.8.0), we just need to add the 
 the rigid body data and fit the update process into the integrators. The biggest problem to overcome is basically
 just the data structures. HOOMD's ParticleData setup has gotten quite bloated and is not easily extensible to
 rigid bodies. A redesign is in progress that will result in the creation of a templated GPUArray class which
-encapsulates the concept of a CPU data mirrored to the GPU with read/write aquire capabilities built in. Once
+encapsulates the concept of a CPU data mirrored to the GPU with read/write acquire capabilities built in. Once
 this array is built, it will be absolutely trivial to add new fields to ParticleData and the forthcoming rigid
 data.
 
@@ -921,7 +921,7 @@ in parallel with all the other threads doing the same calculation for different 
 A number of additional values will need to be stored for each rigid body. Along with the aux list of particle indices
 for each body, these will all be contained in RigidData each in their own GPUArray. Since adding a new data element
 will just require adding a new GPUArray member variable this can be easily done by everyone. Values are stored
-in the read/write aquire capable GPUArray so that Rigid updaters / force computes / etc.. can be easily written
+in the read/write acquire capable GPUArray so that Rigid updaters / force computes / etc.. can be easily written
 on the CPU and/or GPU in a mixed fashion for testing and implementation of new algorithms.
 
 For performance reasons in simulations not using rigid bodies, the non-rigid integrators will be left as they are.

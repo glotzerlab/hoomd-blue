@@ -520,7 +520,7 @@ void ParticleGroup::reallocate() const
     }
 
 /*! \returns Total mass of all particles in the group
-    \note This method aquires the ParticleData internally
+    \note This method acquires the ParticleData internally
 */
 Scalar ParticleGroup::getTotalMass() const
     {
@@ -538,7 +538,7 @@ Scalar ParticleGroup::getTotalMass() const
     }
 
 /*! \returns The center of mass of the group, in unwrapped coordinates
-    \note This method aquires the ParticleData internally
+    \note This method acquires the ParticleData internally
 */
 Scalar3 ParticleGroup::getCenterOfMass() const
     {
