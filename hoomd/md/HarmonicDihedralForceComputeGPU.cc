@@ -28,7 +28,7 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(std::shared_ptr
         }
 
     // allocate and zero device memory
-    GPUArray<Scalar4> params(m_dihedral_data->getNTypes(),exec_conf);
+    GPUArray<Scalar4> params(m_dihedral_data->getNTypes(),m_exec_conf);
     m_params.swap(params);
 
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "harmonic_dihedral", this->m_exec_conf));

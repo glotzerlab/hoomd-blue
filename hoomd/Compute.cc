@@ -23,12 +23,12 @@ using namespace std;
     \post The Compute is constructed with the given particle data and a NULL profiler.
 */
 Compute::Compute(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
-        exec_conf(m_pdata->getExecConf()), m_force_compute(false), m_last_computed(0), m_first_compute(true)
+        m_exec_conf(m_pdata->getExecConf()), m_force_compute(false), m_last_computed(0), m_first_compute(true)
     {
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
-    m_exec_conf = exec_conf;
+    assert(m_exec_conf);
     }
 
 /*! \param num_iters Number of iterations to average for the benchmark

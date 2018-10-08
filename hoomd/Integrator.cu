@@ -47,9 +47,10 @@ __device__ void add_force_total(Scalar4& net_force, Scalar *net_virial, Scalar4&
     \param net_virial_pitch The pitch of the 2D net_virial array
     \param d_net_torque Output device array to hold the computed net torque
     \param force_list List of pointers to force data to sum
-    \param nparticles Number of particles in the arrays
+    \param nwork Number of particles this GPU processes
     \param clear When true, initializes the sums to 0 before adding. When false, reads in the current \a d_net_force
            and \a d_net_virial and adds to that
+    \param offset of this GPU in ptls array
 
     \tparam compute_virial When set to 0, the virial sum is not computed
 */
@@ -59,14 +60,17 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4 *d_net_force,
                                                     const unsigned int net_virial_pitch,
                                                     Scalar4 *d_net_torque,
                                                     const gpu_force_list force_list,
-                                                    unsigned int nparticles,
-                                                    bool clear)
+                                                    unsigned int nwork,
+                                                    bool clear,
+                                                    unsigned int offset)
     {
     // calculate the index we will be handling
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if (idx < nparticles)
+    if (idx < nwork)
         {
+        idx += offset;
+
         // set the initial net_force and net_virial to sum into
         Scalar4 net_force;
         Scalar net_virial[6];
@@ -119,7 +123,8 @@ cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,
                                          bool clear,
-                                         bool compute_virial)
+                                         bool compute_virial,
+                                         const GPUPartition& gpu_partition)
     {
     // sanity check
     assert(d_net_force);
@@ -128,25 +133,35 @@ cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
 
     const int block_size = 256;
 
-    if (compute_virial)
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
-        gpu_integrator_sum_net_force_kernel<1><<< nparticles/block_size+1, block_size >>>(d_net_force,
-                                                                                          d_net_virial,
-                                                                                          net_virial_pitch,
-                                                                                          d_net_torque,
-                                                                                          force_list,
-                                                                                          nparticles,
-                                                                                          clear);
-        }
-    else
-        {
-        gpu_integrator_sum_net_force_kernel<0><<< nparticles/block_size+1, block_size >>>(d_net_force,
-                                                                                          d_net_virial,
-                                                                                          net_virial_pitch,
-                                                                                          d_net_torque,
-                                                                                          force_list,
-                                                                                          nparticles,
-                                                                                          clear);
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+
+        if (compute_virial)
+            {
+            gpu_integrator_sum_net_force_kernel<1><<< nwork/block_size+1, block_size >>>(d_net_force,
+                                                                                              d_net_virial,
+                                                                                              net_virial_pitch,
+                                                                                              d_net_torque,
+                                                                                              force_list,
+                                                                                              nwork,
+                                                                                              clear,
+                                                                                              range.first);
+            }
+        else
+            {
+            gpu_integrator_sum_net_force_kernel<0><<< nwork/block_size+1, block_size >>>(d_net_force,
+                                                                                              d_net_virial,
+                                                                                              net_virial_pitch,
+                                                                                              d_net_torque,
+                                                                                              force_list,
+                                                                                              nwork,
+                                                                                              clear,
+                                                                                              range.first);
+            }
         }
 
     return cudaSuccess;

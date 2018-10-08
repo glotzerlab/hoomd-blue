@@ -14,6 +14,10 @@ if (ENABLE_CUDA)
     if (ENABLE_NVTOOLS)
         add_definitions(-DENABLE_NVTOOLS)
     endif()
+
+    if(ALWAYS_USE_MANAGED_MEMORY)
+        add_definitions(-DALWAYS_USE_MANAGED_MEMORY)
+    endif()
 endif (ENABLE_CUDA)
 
 ################################

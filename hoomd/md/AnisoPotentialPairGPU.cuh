@@ -8,6 +8,7 @@
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 #include "hoomd/TextureTools.h"
+#include "hoomd/GPUPartition.cuh"
 
 #ifdef WIN32
 #include <cassert>
@@ -67,7 +68,8 @@ struct a_pair_args_t
               const unsigned int _block_size,
               const unsigned int _shift_mode,
               const unsigned int _compute_virial,
-              const unsigned int _threads_per_particle)
+              const unsigned int _threads_per_particle,
+              const GPUPartition& _gpu_partition)
                 : d_force(_d_force),
                   d_torque(_d_torque),
                   d_virial(_d_virial),
@@ -87,7 +89,8 @@ struct a_pair_args_t
                   block_size(_block_size),
                   shift_mode(_shift_mode),
                   compute_virial(_compute_virial),
-                  threads_per_particle(_threads_per_particle)
+                  threads_per_particle(_threads_per_particle),
+                  gpu_partition(_gpu_partition)
         {
         };
 
@@ -111,6 +114,7 @@ struct a_pair_args_t
     const unsigned int shift_mode;  //!< The potential energy shift mode
     const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads to launch per particle
+    const GPUPartition& gpu_partition;      //!< The load balancing partition of particles between GPUs
     };
 
 #ifdef NVCC
@@ -181,7 +185,8 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                                                      const typename evaluator::param_type *d_params,
                                                      const Scalar *d_rcutsq,
                                                      const unsigned int ntypes,
-                                                     const unsigned int tpp)
+                                                     const unsigned int tpp,
+                                                     const unsigned int offset)
     {
     Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
@@ -209,6 +214,9 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
 
     if (idx >= N)
         return;
+
+    // particle index
+    idx += offset;
 
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
     unsigned int n_neigh = d_n_neigh[idx];
@@ -448,165 +456,181 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
     unsigned int block_size = pair_args.block_size;
     unsigned int tpp = pair_args.threads_per_particle;
 
-    // run the kernel
-    if (pair_args.compute_virial)
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = pair_args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
-        switch (pair_args.shift_mode)
+        auto range = pair_args.gpu_partition.getRangeAndSetGPU(idev);
+        unsigned int nwork = range.second - range.first;
+
+        // run the kernel
+        if (pair_args.compute_virial)
             {
-            case 0:
+            switch (pair_args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                static unsigned int sm = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>);
-                if (sm == UINT_MAX)
-                    sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>);
+                case 0:
+                    {
+                    static unsigned int max_block_size = UINT_MAX;
+                    static unsigned int sm = UINT_MAX;
+                    if (max_block_size == UINT_MAX)
+                        max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>);
+                    if (sm == UINT_MAX)
+                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>);
 
-                if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
+                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
 
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
+                    block_size = block_size < max_block_size ? block_size : max_block_size;
+                    dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
 
-                shared_bytes += sizeof(Scalar)*block_size;
+                    shared_bytes += sizeof(Scalar)*block_size;
 
-                gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>
-                    <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
-                                                  pair_args.d_torque,
-                                                  pair_args.d_virial,
-                                                  pair_args.virial_pitch,
-                                                  pair_args.N,
-                                                  pair_args.d_pos,
-                                                  pair_args.d_diameter,
-                                                  pair_args.d_charge,
-                                                  pair_args.d_orientation,
-                                                  pair_args.box,
-                                                  pair_args.d_n_neigh,
-                                                  pair_args.d_nlist,
-                                                  pair_args.d_head_list,
-                                                  d_params,
-                                                  pair_args.d_rcutsq,
-                                                  pair_args.ntypes,
-                                                  tpp);
-                break;
+                    gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>
+                        <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
+                                                      pair_args.d_torque,
+                                                      pair_args.d_virial,
+                                                      pair_args.virial_pitch,
+                                                      nwork,
+                                                      pair_args.d_pos,
+                                                      pair_args.d_diameter,
+                                                      pair_args.d_charge,
+                                                      pair_args.d_orientation,
+                                                      pair_args.box,
+                                                      pair_args.d_n_neigh,
+                                                      pair_args.d_nlist,
+                                                      pair_args.d_head_list,
+                                                      d_params,
+                                                      pair_args.d_rcutsq,
+                                                      pair_args.ntypes,
+                                                      tpp,
+                                                      range.first);
+                    break;
+                    }
+                case 1:
+                    {
+                    static unsigned int max_block_size = UINT_MAX;
+                    static unsigned int sm = UINT_MAX;
+                    if (max_block_size == UINT_MAX)
+                        max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>);
+                    if (sm == UINT_MAX)
+                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>);
+
+                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
+
+                    block_size = block_size < max_block_size ? block_size : max_block_size;
+                    dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
+
+                    shared_bytes += sizeof(Scalar)*block_size;
+
+                    gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>
+                        <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
+                                                      pair_args.d_torque,
+                                                      pair_args.d_virial,
+                                                      pair_args.virial_pitch,
+                                                      nwork,
+                                                      pair_args.d_pos,
+                                                      pair_args.d_diameter,
+                                                      pair_args.d_charge,
+                                                      pair_args.d_orientation,
+                                                      pair_args.box,
+                                                      pair_args.d_n_neigh,
+                                                      pair_args.d_nlist,
+                                                      pair_args.d_head_list,
+                                                      d_params,
+                                                      pair_args.d_rcutsq,
+                                                      pair_args.ntypes,
+                                                      tpp,
+                                                      range.first);
+                    break;
+                    }
+                default:
+                    return cudaErrorUnknown;
                 }
-            case 1:
-                {
-                static unsigned int max_block_size = UINT_MAX;
-                static unsigned int sm = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>);
-                if (sm == UINT_MAX)
-                    sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>);
-
-                if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-
-                shared_bytes += sizeof(Scalar)*block_size;
-
-                gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>
-                    <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
-                                                  pair_args.d_torque,
-                                                  pair_args.d_virial,
-                                                  pair_args.virial_pitch,
-                                                  pair_args.N,
-                                                  pair_args.d_pos,
-                                                  pair_args.d_diameter,
-                                                  pair_args.d_charge,
-                                                  pair_args.d_orientation,
-                                                  pair_args.box,
-                                                  pair_args.d_n_neigh,
-                                                  pair_args.d_nlist,
-                                                  pair_args.d_head_list,
-                                                  d_params,
-                                                  pair_args.d_rcutsq,
-                                                  pair_args.ntypes,
-                                                  tpp);
-                break;
-                }
-            default:
-                return cudaErrorUnknown;
             }
-        }
-    else
-        {
-        switch (pair_args.shift_mode)
+        else
             {
-            case 0:
+            switch (pair_args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                static unsigned int sm = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>);
-                if (sm == UINT_MAX)
-                    sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>);
+                case 0:
+                    {
+                    static unsigned int max_block_size = UINT_MAX;
+                    static unsigned int sm = UINT_MAX;
+                    if (max_block_size == UINT_MAX)
+                        max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>);
+                    if (sm == UINT_MAX)
+                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>);
 
-                if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
+                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
 
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
+                    block_size = block_size < max_block_size ? block_size : max_block_size;
+                    dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
 
-                shared_bytes += sizeof(Scalar)*block_size;
+                    shared_bytes += sizeof(Scalar)*block_size;
 
-                gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>
-                    <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
-                                                  pair_args.d_torque,
-                                                  pair_args.d_virial,
-                                                  pair_args.virial_pitch,
-                                                  pair_args.N,
-                                                  pair_args.d_pos,
-                                                  pair_args.d_diameter,
-                                                  pair_args.d_charge,
-                                                  pair_args.d_orientation,
-                                                  pair_args.box,
-                                                  pair_args.d_n_neigh,
-                                                  pair_args.d_nlist,
-                                                  pair_args.d_head_list,
-                                                  d_params,
-                                                  pair_args.d_rcutsq,
-                                                  pair_args.ntypes,
-                                                  tpp);
-                break;
+                    gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>
+                        <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
+                                                      pair_args.d_torque,
+                                                      pair_args.d_virial,
+                                                      pair_args.virial_pitch,
+                                                      nwork,
+                                                      pair_args.d_pos,
+                                                      pair_args.d_diameter,
+                                                      pair_args.d_charge,
+                                                      pair_args.d_orientation,
+                                                      pair_args.box,
+                                                      pair_args.d_n_neigh,
+                                                      pair_args.d_nlist,
+                                                      pair_args.d_head_list,
+                                                      d_params,
+                                                      pair_args.d_rcutsq,
+                                                      pair_args.ntypes,
+                                                      tpp,
+                                                      range.first);
+                    break;
+                    }
+                case 1:
+                    {
+                    static unsigned int max_block_size = UINT_MAX;
+                    static unsigned int sm = UINT_MAX;
+                    if (max_block_size == UINT_MAX)
+                        max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>);
+                    if (sm == UINT_MAX)
+                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>);
+
+                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
+
+                    block_size = block_size < max_block_size ? block_size : max_block_size;
+                    dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
+                    if (sm < 30 && grid.x > 65535)
+                        {
+                        grid.y = grid.x/65535 + 1;
+                        grid.x = 65535;
+                        }
+
+                    shared_bytes += sizeof(Scalar)*block_size;
+
+                    gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>
+                        <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
+                                                      pair_args.d_torque,
+                                                      pair_args.d_virial,
+                                                      pair_args.virial_pitch,
+                                                      nwork,
+                                                      pair_args.d_pos,
+                                                      pair_args.d_diameter,
+                                                      pair_args.d_charge,
+                                                      pair_args.d_orientation,
+                                                      pair_args.box,
+                                                      pair_args.d_n_neigh,
+                                                      pair_args.d_nlist,
+                                                      pair_args.d_head_list,
+                                                      d_params,
+                                                      pair_args.d_rcutsq,
+                                                      pair_args.ntypes,
+                                                      tpp,
+                                                      range.first);
+                    break;
+                    }
+                default:
+                    return cudaErrorUnknown;
                 }
-            case 1:
-                {
-                static unsigned int max_block_size = UINT_MAX;
-                static unsigned int sm = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>);
-                if (sm == UINT_MAX)
-                    sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>);
-
-                if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-
-                shared_bytes += sizeof(Scalar)*block_size;
-
-                gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>
-                    <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
-                                                  pair_args.d_torque,
-                                                  pair_args.d_virial,
-                                                  pair_args.virial_pitch,
-                                                  pair_args.N,
-                                                  pair_args.d_pos,
-                                                  pair_args.d_diameter,
-                                                  pair_args.d_charge,
-                                                  pair_args.d_orientation,
-                                                  pair_args.box,
-                                                  pair_args.d_n_neigh,
-                                                  pair_args.d_nlist,
-                                                  pair_args.d_head_list,
-                                                  d_params,
-                                                  pair_args.d_rcutsq,
-                                                  pair_args.ntypes,
-                                                  tpp);
-                break;
-                }
-            default:
-                return cudaErrorUnknown;
             }
         }
     return cudaSuccess;

@@ -18,6 +18,12 @@
 #include <memory>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
+#include "GlobalArray.h"
+
+#ifdef ENABLE_CUDA
+#include "GPUPartition.cuh"
+#endif
+
 #ifndef __PARTICLE_GROUP_H__
 #define __PARTICLE_GROUP_H__
 
@@ -267,7 +273,7 @@ class PYBIND11_EXPORT ParticleGroup
             {
             checkRebuild();
 
-            ArrayHandle<unsigned char> h_handle(m_is_member, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_handle(m_is_member, access_location::host, access_mode::read);
             return h_handle.data[idx] == 1;
             }
 
@@ -284,6 +290,16 @@ class PYBIND11_EXPORT ParticleGroup
 
             return m_member_idx;
             }
+
+        #ifdef ENABLE_CUDA
+        //! Return the load balancing GPU partition
+        const GPUPartition& getGPUPartition() const
+            {
+            checkRebuild();
+
+            return m_gpu_partition;
+            }
+        #endif
 
         // @}
         //! \name Analysis methods
@@ -314,22 +330,25 @@ class PYBIND11_EXPORT ParticleGroup
         std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
         std::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
-        mutable GPUArray<unsigned char> m_is_member;    //!< One byte per particle, == 1 if index is a local member of the group
-        GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
-        GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of the particle members
+
+        // NOTE a design with so many mutable members is broken, we should refactor const correctness
+        // in ParticleGroup in the future by using resize methods on the arrays
+        mutable GlobalArray<unsigned int> m_is_member;    //!< One byte per particle, == 1 if index is a local member of the group
+        mutable GlobalArray<unsigned int> m_member_idx;    //!< List of all particle indices in the group
+        mutable GlobalArray<unsigned int> m_member_tags;   //!< Lists the tags of the particle members
         mutable unsigned int m_num_local_members;       //!< Number of members on the local processor
         mutable bool m_particles_sorted;                //!< True if particle have been sorted since last rebuild
         mutable bool m_reallocated;                     //!< True if particle data arrays have been reallocated
         mutable bool m_global_ptl_num_change;           //!< True if the global particle number changed
 
-        GPUArray<unsigned char> m_is_member_tag;        //!< One byte per particle, == 1 if tag is a member of the group
+        mutable GlobalArray<unsigned int> m_is_member_tag;  //!< One byte per particle, == 1 if tag is a member of the group
         std::shared_ptr<ParticleSelector> m_selector; //!< The associated particle selector
 
         bool m_update_tags;                             //!< True if tags should be updated when global number of particles changes
         mutable bool m_warning_printed;                         //!< True if warning about static groups has been printed
 
         #ifdef ENABLE_CUDA
-        mgpu::ContextPtr m_mgpu_context;                //!< moderngpu context
+        mutable GPUPartition m_gpu_partition;           //!< A handy struct to store load balancing info for this group's local members
         #endif
 
         //! Helper function to resize array of member tags

@@ -20,6 +20,7 @@ namespace py = pybind11;
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false),
          m_global_max_d(0.0),
+         m_memory_initialized(false),
          #ifdef ENABLE_MPI
          m_comm_ghost_layer_connected(false),
          #endif
@@ -32,26 +33,6 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
 
     // connect to box change signal
     m_pdata->getCompositeParticlesSignal().connect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
-
-    GPUArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
-    m_body_types.swap(body_types);
-
-    GPUArray<Scalar3> body_pos(m_pdata->getNTypes(), 1, m_exec_conf);
-    m_body_pos.swap(body_pos);
-
-    GPUArray<Scalar4> body_orientation(m_pdata->getNTypes(), 1, m_exec_conf);
-    m_body_orientation.swap(body_orientation);
-
-    GPUArray<unsigned int> body_len(m_pdata->getNTypes(), m_exec_conf);
-    m_body_len.swap(body_len);
-
-    m_body_charge.resize(m_pdata->getNTypes());
-    m_body_diameter.resize(m_pdata->getNTypes());
-
-    m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
-    m_d_max_changed.resize(m_pdata->getNTypes(), false);
-
-    m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
     }
 
 //! Destructor
@@ -67,6 +48,47 @@ ForceComposite::~ForceComposite()
     #endif
     }
 
+void ForceComposite::lazyInitMem()
+    {
+    if (m_memory_initialized)
+        return;
+
+    m_exec_conf->msg->notice(7) << "ForceComposite initialize memory" << std::endl;
+
+    GlobalArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
+    m_body_types.swap(body_types);
+    TAG_ALLOCATION(m_body_types);
+
+    GlobalArray<Scalar3> body_pos(m_pdata->getNTypes(), 1, m_exec_conf);
+    m_body_pos.swap(body_pos);
+    TAG_ALLOCATION(m_body_pos);
+
+    GlobalArray<Scalar4> body_orientation(m_pdata->getNTypes(), 1, m_exec_conf);
+    m_body_orientation.swap(body_orientation);
+    TAG_ALLOCATION(m_body_orientation);
+
+    GlobalArray<unsigned int> body_len(m_pdata->getNTypes(), m_exec_conf);
+    m_body_len.swap(body_len);
+    TAG_ALLOCATION(m_body_len);
+
+    // reset elements to zero
+    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        {
+        h_body_len.data[i] = 0;
+        }
+
+    m_body_charge.resize(m_pdata->getNTypes());
+    m_body_diameter.resize(m_pdata->getNTypes());
+
+    m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
+    m_d_max_changed.resize(m_pdata->getNTypes(), false);
+
+    m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
+
+    m_memory_initialized = true;
+    }
+
 void ForceComposite::setParam(unsigned int body_typeid,
     std::vector<unsigned int>& type,
     std::vector<Scalar3>& pos,
@@ -74,6 +96,8 @@ void ForceComposite::setParam(unsigned int body_typeid,
     std::vector<Scalar>& charge,
     std::vector<Scalar>& diameter)
     {
+    lazyInitMem();
+
     assert(m_body_types.getPitch() >= m_pdata->getNTypes());
     assert(m_body_pos.getPitch() >= m_pdata->getNTypes());
     assert(m_body_orientation.getPitch() >= m_pdata->getNTypes());
@@ -111,12 +135,11 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
     // detect if bodies have changed
 
-    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
-
         {
         ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
 
         assert(body_typeid < m_body_len.getNumElements());
         if (type.size() != h_body_len.data[body_typeid])
@@ -155,6 +178,9 @@ void ForceComposite::setParam(unsigned int body_typeid,
             m_body_orientation.resize(m_pdata->getNTypes(), type.size());
 
             m_body_idx = Index2D(m_body_types.getPitch(), m_body_types.getHeight());
+
+            // set memory hints
+            lazyInitMem();
             }
         }
 
@@ -168,7 +194,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
             m_body_charge[body_typeid].resize(type.size());
             m_body_diameter[body_typeid].resize(type.size());
 
-            // store body data in GPUArray
+            // store body data in GlobalArray
             for (unsigned int i = 0; i < type.size(); ++i)
                 {
                 h_body_type.data[m_body_idx(body_typeid,i)] = type[i];
@@ -201,6 +227,8 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
 Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
     {
+    lazyInitMem();
+
     m_exec_conf->msg->notice(7) << "ForceComposite: calculating body diameter for type " << m_pdata->getNameByType(body_type) << std::endl;
 
     // get maximum pairwise distance
@@ -238,6 +266,9 @@ Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
 
 void ForceComposite::slotNumTypesChange()
     {
+    //! initial allocation if necessary
+    lazyInitMem();
+
     unsigned int old_ntypes = m_body_len.getNumElements();
     unsigned int new_ntypes = m_pdata->getNTypes();
 
@@ -266,10 +297,15 @@ void ForceComposite::slotNumTypesChange()
     m_d_max_changed.resize(new_ntypes, false);
 
     m_body_max_diameter.resize(new_ntypes,0.0);
+
+    //! update memory hints, after re-allocation
+    lazyInitMem();
     }
 
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
     {
+    lazyInitMem();
+
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     if (m_d_max_changed[type])
@@ -338,6 +374,8 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
 
 void ForceComposite::validateRigidBodies(bool create)
     {
+    lazyInitMem();
+
     if (m_bodies_changed || m_ptls_added_removed)
         {
         // check validity of rigid body types: no nested rigid bodies
@@ -667,7 +705,7 @@ void ForceComposite::validateRigidBodies(bool create)
         // resize GPU table
         m_molecule_tag.resize(molecule_tag.size());
             {
-            // store global molecule information in GPUArray
+            // store global molecule information in GlobalArray
             ArrayHandle<unsigned int> h_molecule_tag(m_molecule_tag, access_location::host, access_mode::overwrite);
             std::copy(molecule_tag.begin(), molecule_tag.end(), h_molecule_tag.data);
             }
@@ -723,7 +761,7 @@ void ForceComposite::computeForces(unsigned int timestep)
     // access local molecule data
     // need to move this on top because of scoping issues
     Index2D molecule_indexer = getMoleculeIndexer();
-    unsigned int nmol = molecule_indexer.getW();
+    unsigned int nmol = molecule_indexer.getH();
 
     ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(), access_location::host, access_mode::read);
@@ -771,7 +809,7 @@ void ForceComposite::computeForces(unsigned int timestep)
 
         // get central ptl tag from first ptl in molecule
         assert(len>0);
-        unsigned int first_idx = h_molecule_list.data[molecule_indexer(ibody,0)];
+        unsigned int first_idx = h_molecule_list.data[molecule_indexer(0,ibody)];
 
         assert(first_idx < m_pdata->getN() + m_pdata->getNGhosts());
         unsigned int central_tag = h_body.data[first_idx];
@@ -794,7 +832,7 @@ void ForceComposite::computeForces(unsigned int timestep)
         // sum up forces and torques from constituent particles
         for (unsigned int jptl = 0; jptl < len; ++jptl)
             {
-            unsigned int idxj = h_molecule_list.data[molecule_indexer(ibody, jptl)];
+            unsigned int idxj = h_molecule_list.data[molecule_indexer(jptl,ibody)];
             assert(idxj < m_pdata->getN() + m_pdata->getNGhosts());
 
             assert(idxj == central_idx || jptl > 0);

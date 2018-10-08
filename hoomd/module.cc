@@ -181,24 +181,6 @@ bool is_TBB_available()
     }
 
 
-//! Start the CUDA profiler
-void cuda_profile_start()
-    {
-    #ifdef ENABLE_CUDA
-    cudaDeviceSynchronize();
-    cudaProfilerStart();
-    #endif
-    }
-
-//! Stop the CUDA profiler
-void cuda_profile_stop()
-    {
-    #ifdef ENABLE_CUDA
-    cudaDeviceSynchronize();
-    cudaProfilerStop();
-    #endif
-    }
-
 // values used in measuring hoomd launch timing
 unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
 bool hoomd_launch_timing=false;
@@ -327,9 +309,6 @@ PYBIND11_MODULE(_hoomd, m)
 
     m.def("is_MPI_available", &is_MPI_available);
     m.def("is_TBB_available", &is_TBB_available);
-
-    m.def("cuda_profile_start", &cuda_profile_start);
-    m.def("cuda_profile_stop", &cuda_profile_stop);
 
     pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector_scalar");
     pybind11::bind_vector< std::vector<string> >(m,"std_vector_string");

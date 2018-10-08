@@ -142,7 +142,7 @@ PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_typpair_idx(m_pdata->getNTypes())
     {
-    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << std::endl;
+    this->m_exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << std::endl;
 
     assert(m_pdata);
     assert(m_nlist);
@@ -165,7 +165,7 @@ PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition
 template < class evaluator >
 PotentialTersoff< evaluator >::~PotentialTersoff()
     {
-    this->exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
+    this->m_exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
     m_pdata->getNumTypesChangeSignal().template disconnect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
     }
 

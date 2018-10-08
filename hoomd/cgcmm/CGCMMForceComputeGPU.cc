@@ -39,7 +39,7 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(std::shared_ptr<SystemDefinition> sys
         }
 
     // allocate the coeff data on the CPU
-    GPUArray<Scalar4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),exec_conf);
+    GPUArray<Scalar4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),m_exec_conf);
     m_coeffs.swap(coeffs);
     }
 
@@ -53,7 +53,7 @@ void CGCMMForceComputeGPU::slotNumTypesChange()
     CGCMMForceCompute::slotNumTypesChange();
 
     // re-allocate the coeff data on the CPU
-    GPUArray<Scalar4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),exec_conf);
+    GPUArray<Scalar4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),m_exec_conf);
     m_coeffs.swap(coeffs);
     }
 
@@ -168,14 +168,14 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
                              m_block_size,
                              m_exec_conf->getComputeCapability()/10,
                              m_exec_conf->dev_prop.maxTexture1DLinear);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     Scalar avg_neigh = m_nlist->estimateNNeigh();
     int64_t n_calc = int64_t(avg_neigh * m_pdata->getN());
     int64_t mem_transfer = m_pdata->getN() * (4 + 16 + 20) + n_calc * (4 + 16);
     int64_t flops = n_calc * (3+12+5+2+3+11+3+8+7);
-    if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
+    if (m_prof) m_prof->pop(m_exec_conf, flops, mem_transfer);
     }
 
 void export_CGCMMForceComputeGPU(py::module& m)

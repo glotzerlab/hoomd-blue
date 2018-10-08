@@ -12,6 +12,7 @@
 #define __INTEGRATOR_CUH__
 
 #include "ParticleData.cuh"
+#include "GPUPartition.cuh"
 
 //! struct to pack up several force and virial arrays for addition
 /*! To keep the argument count down to gpu_integrator_sum_accel, up to 6 force/virial array pairs are packed up in this
@@ -66,6 +67,7 @@ cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,
                                          bool clear,
-                                         bool compute_virial);
+                                         bool compute_virial,
+                                         const GPUPartition& gpu_partition);
 
 #endif

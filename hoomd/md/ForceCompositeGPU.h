@@ -8,8 +8,6 @@
 #include "NeighborList.h"
 #include "hoomd/Autotuner.h"
 
-#include "hoomd/GPUFlags.h"
-
 /*! \file ForceCompositeGPU.h
     \brief Implementation of a rigid body force compute, GPU version
 */
@@ -64,11 +62,33 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
         //! Compute the forces and torques on the central particle
         virtual void computeForces(unsigned int timestep);
 
+        //! Helper kernel to sort rigid bodies by their center particles
+        virtual void findRigidCenters();
+
+        //! Helper function to check if particles have been sorted and rebuild indices if necessary
+        virtual void checkParticlesSorted()
+            {
+            bool dirty = m_dirty;
+
+            MolecularForceCompute::checkParticlesSorted();
+
+            if (dirty)
+                // identify center particles for use in GPU kernel
+                findRigidCenters();
+            }
+
+        //! Update GPU Mappings
+        virtual void lazyInitMem();
+
         std::unique_ptr<Autotuner> m_tuner_force;  //!< Autotuner for block size and threads per particle
         std::unique_ptr<Autotuner> m_tuner_virial; //!< Autotuner for block size and threads per particle
         std::unique_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel
 
-        GPUFlags<uint2> m_flag;               //!< Flag to read out error condition
+        GlobalArray<uint2> m_flag;                 //!< Flag to read out error condition
+
+        GPUPartition m_gpu_partition;               //!< Partition of the rigid bodies
+        GlobalVector<unsigned int> m_rigid_center;  //!< Contains particle indices of all central particles
+        GlobalVector<unsigned int> m_lookup_center; //!< Lookup particle index -> central particle index
     };
 
 //! Exports the ForceCompositeGPU to python

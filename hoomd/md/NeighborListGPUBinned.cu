@@ -29,6 +29,7 @@ scalar4_tex_t cell_xyzf_1d_tex;
     \param N Number of particles
     \param d_cell_size Number of particles in each cell
     \param d_cell_xyzf Cell contents (xyzf array from CellList with flag=type)
+    \param d_cell_idx Cell contents (particle indices)
     \param d_cell_tdb Cell contents (tdb array from CellList with)
     \param d_cell_adj Cell adjacency list
     \param ci Cell indexer for indexing cells
@@ -39,10 +40,12 @@ scalar4_tex_t cell_xyzf_1d_tex;
     \param r_buff The maximum radius for which to include particles as neighbors
     \param ntypes Number of particle types
     \param ghost_width Width of ghost cell layer
+    \param offset Starting particle index
+    \param nwork Number of particles to process
 
     \note optimized for Kepler
 */
-template<unsigned char flags, int threads_per_particle>
+template<unsigned char flags, int use_index, int threads_per_particle>
 __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                                                     unsigned int *d_n_neigh,
                                                     Scalar4 *d_last_updated_pos,
@@ -55,6 +58,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                                                     const unsigned int N,
                                                     const unsigned int *d_cell_size,
                                                     const Scalar4 *d_cell_xyzf,
+                                                    const unsigned int *d_cell_idx,
                                                     const Scalar4 *d_cell_tdb,
                                                     const unsigned int *d_cell_adj,
                                                     const Index3D ci,
@@ -64,7 +68,9 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                                                     const Scalar *d_r_cut,
                                                     const Scalar r_buff,
                                                     const unsigned int ntypes,
-                                                    const Scalar3 ghost_width)
+                                                    const Scalar3 ghost_width,
+                                                    const unsigned int offset,
+                                                    const unsigned int nwork)
     {
     bool filter_body = flags & 1;
     bool diameter_shift = flags & 2;
@@ -97,10 +103,13 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
     __syncthreads();
 
     // each set of threads_per_particle threads is going to compute the neighbor list for a single particle
-    const int my_pidx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
+    int my_pidx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
 
     // one thread per particle
-    if (my_pidx >= N) return;
+    if (my_pidx >= nwork) return;
+
+    // get particle index
+    my_pidx += offset;
 
     Scalar4 my_postype = d_pos[my_pidx];
     Scalar3 my_pos = make_scalar3(my_postype.x, my_postype.y, my_postype.z);
@@ -172,9 +181,23 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
         // check for a neighbor if thread is still working
         if (!done)
             {
-            Scalar4 cur_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
+            Scalar4 cur_xyzf;
+            unsigned int j;
+            Scalar4 postype_j;
+            if (!use_index)
+                cur_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
+            else
+                {
+                j = d_cell_idx[cli(cur_offset, neigh_cell)];
+                postype_j = d_pos[j];
+                cur_xyzf = make_scalar4(postype_j.x, postype_j.y, postype_j.z, __int_as_scalar(j));
+                }
 
-            Scalar4 cur_tdb = d_cell_tdb[cli(cur_offset, neigh_cell)];
+            Scalar4 cur_tdb;
+            if (!use_index)
+                cur_tdb = d_cell_tdb[cli(cur_offset, neigh_cell)];
+            else
+                cur_tdb = make_scalar4(postype_j.w, d_diameter[j], __int_as_scalar(d_body[j]),0);
 
             // advance cur_offset
             cur_offset += threads_per_particle;
@@ -289,6 +312,7 @@ inline void launcher(unsigned int *d_nlist,
               const unsigned int N,
               const unsigned int *d_cell_size,
               const Scalar4 *d_cell_xyzf,
+              const unsigned int *d_cell_idx,
               const Scalar4 *d_cell_tdb,
               const unsigned int *d_cell_adj,
               const Index3D ci,
@@ -303,141 +327,312 @@ inline void launcher(unsigned int *d_nlist,
               unsigned int tpp,
               bool filter_body,
               bool diameter_shift,
-              unsigned int block_size)
+              unsigned int block_size,
+              std::pair<unsigned int, unsigned int> range,
+              bool use_index)
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
     unsigned int shared_size = sizeof(Scalar)*typpair_idx.getNumElements() + sizeof(unsigned int)*ntypes;
 
+    unsigned int offset = range.first;
+    unsigned int nwork = range.second - range.first;
+
     if (tpp == cur_tpp && cur_tpp != 0)
         {
-        if (!diameter_shift && !filter_body)
+        if (!use_index)
             {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<0,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+            if (!diameter_shift && !filter_body)
+                {
+                static unsigned int max_block_size = UINT_MAX;
+                if (max_block_size == UINT_MAX)
+                    max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<0,0,cur_tpp>);
+                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
-            block_size = block_size < max_block_size ? block_size : max_block_size;
-            dim3 grid(N / (block_size/tpp) + 1);
-            gpu_compute_nlist_binned_kernel<0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
-                                                                                         d_n_neigh,
-                                                                                         d_last_updated_pos,
-                                                                                         d_conditions,
-                                                                                         d_Nmax,
-                                                                                         d_head_list,
-                                                                                         d_pos,
-                                                                                         d_body,
-                                                                                         d_diameter,
-                                                                                         N,
-                                                                                         d_cell_size,
-                                                                                         d_cell_xyzf,
-                                                                                         d_cell_tdb,
-                                                                                         d_cell_adj,
-                                                                                         ci,
-                                                                                         cli,
-                                                                                         cadji,
-                                                                                         box,
-                                                                                         d_r_cut,
-                                                                                         r_buff,
-                                                                                         ntypes,
-                                                                                         ghost_width);
+                block_size = block_size < max_block_size ? block_size : max_block_size;
+                dim3 grid(nwork / (block_size/tpp) + 1);
+
+                gpu_compute_nlist_binned_kernel<0,0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                                                                                             d_n_neigh,
+                                                                                             d_last_updated_pos,
+                                                                                             d_conditions,
+                                                                                             d_Nmax,
+                                                                                             d_head_list,
+                                                                                             d_pos,
+                                                                                             d_body,
+                                                                                             d_diameter,
+                                                                                             N,
+                                                                                             d_cell_size,
+                                                                                             d_cell_xyzf,
+                                                                                             d_cell_idx,
+                                                                                             d_cell_tdb,
+                                                                                             d_cell_adj,
+                                                                                             ci,
+                                                                                             cli,
+                                                                                             cadji,
+                                                                                             box,
+                                                                                             d_r_cut,
+                                                                                             r_buff,
+                                                                                             ntypes,
+                                                                                             ghost_width,
+                                                                                             offset,
+                                                                                             nwork);
+                }
+            else if (!diameter_shift && filter_body)
+                {
+                static unsigned int max_block_size = UINT_MAX;
+                if (max_block_size == UINT_MAX)
+                    max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<1,0,cur_tpp>);
+                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+
+                block_size = block_size < max_block_size ? block_size : max_block_size;
+                dim3 grid(nwork / (block_size/tpp) + 1);
+
+                gpu_compute_nlist_binned_kernel<1,0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                                                                                             d_n_neigh,
+                                                                                             d_last_updated_pos,
+                                                                                             d_conditions,
+                                                                                             d_Nmax,
+                                                                                             d_head_list,
+                                                                                             d_pos,
+                                                                                             d_body,
+                                                                                             d_diameter,
+                                                                                             N,
+                                                                                             d_cell_size,
+                                                                                             d_cell_xyzf,
+                                                                                             d_cell_idx,
+                                                                                             d_cell_tdb,
+                                                                                             d_cell_adj,
+                                                                                             ci,
+                                                                                             cli,
+                                                                                             cadji,
+                                                                                             box,
+                                                                                             d_r_cut,
+                                                                                             r_buff,
+                                                                                             ntypes,
+                                                                                             ghost_width,
+                                                                                             offset,
+                                                                                             nwork);
+                }
+            else if (diameter_shift && !filter_body)
+                {
+                static unsigned int max_block_size = UINT_MAX;
+                if (max_block_size == UINT_MAX)
+                    max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<2,0,cur_tpp>);
+                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+
+                block_size = block_size < max_block_size ? block_size : max_block_size;
+                dim3 grid(nwork / (block_size/tpp) + 1);
+
+                gpu_compute_nlist_binned_kernel<2,0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                                                                                             d_n_neigh,
+                                                                                             d_last_updated_pos,
+                                                                                             d_conditions,
+                                                                                             d_Nmax,
+                                                                                             d_head_list,
+                                                                                             d_pos,
+                                                                                             d_body,
+                                                                                             d_diameter,
+                                                                                             N,
+                                                                                             d_cell_size,
+                                                                                             d_cell_xyzf,
+                                                                                             d_cell_idx,
+                                                                                             d_cell_tdb,
+                                                                                             d_cell_adj,
+                                                                                             ci,
+                                                                                             cli,
+                                                                                             cadji,
+                                                                                             box,
+                                                                                             d_r_cut,
+                                                                                             r_buff,
+                                                                                             ntypes,
+                                                                                             ghost_width,
+                                                                                             offset,
+                                                                                             nwork);
+                }
+            else if (diameter_shift && filter_body)
+                {
+                static unsigned int max_block_size = UINT_MAX;
+                if (max_block_size == UINT_MAX)
+                    max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<3,0,cur_tpp>);
+                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+
+                block_size = block_size < max_block_size ? block_size : max_block_size;
+                dim3 grid(nwork / (block_size/tpp) + 1);
+
+                gpu_compute_nlist_binned_kernel<3,0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                                                                                             d_n_neigh,
+                                                                                             d_last_updated_pos,
+                                                                                             d_conditions,
+                                                                                             d_Nmax,
+                                                                                             d_head_list,
+                                                                                             d_pos,
+                                                                                             d_body,
+                                                                                             d_diameter,
+                                                                                             N,
+                                                                                             d_cell_size,
+                                                                                             d_cell_xyzf,
+                                                                                             d_cell_idx,
+                                                                                             d_cell_tdb,
+                                                                                             d_cell_adj,
+                                                                                             ci,
+                                                                                             cli,
+                                                                                             cadji,
+                                                                                             box,
+                                                                                             d_r_cut,
+                                                                                             r_buff,
+                                                                                             ntypes,
+                                                                                             ghost_width,
+                                                                                             offset,
+                                                                                             nwork);
+                }
             }
-        else if (!diameter_shift && filter_body)
+        else // use_index
             {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<1,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+            if (!diameter_shift && !filter_body)
+                {
+                static unsigned int max_block_size = UINT_MAX;
+                if (max_block_size == UINT_MAX)
+                    max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<0,1,cur_tpp>);
+                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
-            block_size = block_size < max_block_size ? block_size : max_block_size;
-            dim3 grid(N / (block_size/tpp) + 1);
-            gpu_compute_nlist_binned_kernel<1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
-                                                                                         d_n_neigh,
-                                                                                         d_last_updated_pos,
-                                                                                         d_conditions,
-                                                                                         d_Nmax,
-                                                                                         d_head_list,
-                                                                                         d_pos,
-                                                                                         d_body,
-                                                                                         d_diameter,
-                                                                                         N,
-                                                                                         d_cell_size,
-                                                                                         d_cell_xyzf,
-                                                                                         d_cell_tdb,
-                                                                                         d_cell_adj,
-                                                                                         ci,
-                                                                                         cli,
-                                                                                         cadji,
-                                                                                         box,
-                                                                                         d_r_cut,
-                                                                                         r_buff,
-                                                                                         ntypes,
-                                                                                         ghost_width);
-            }
-        else if (diameter_shift && !filter_body)
-            {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<2,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+                block_size = block_size < max_block_size ? block_size : max_block_size;
+                dim3 grid(nwork / (block_size/tpp) + 1);
 
-            block_size = block_size < max_block_size ? block_size : max_block_size;
-            dim3 grid(N / (block_size/tpp) + 1);
-            gpu_compute_nlist_binned_kernel<2,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
-                                                                                         d_n_neigh,
-                                                                                         d_last_updated_pos,
-                                                                                         d_conditions,
-                                                                                         d_Nmax,
-                                                                                         d_head_list,
-                                                                                         d_pos,
-                                                                                         d_body,
-                                                                                         d_diameter,
-                                                                                         N,
-                                                                                         d_cell_size,
-                                                                                         d_cell_xyzf,
-                                                                                         d_cell_tdb,
-                                                                                         d_cell_adj,
-                                                                                         ci,
-                                                                                         cli,
-                                                                                         cadji,
-                                                                                         box,
-                                                                                         d_r_cut,
-                                                                                         r_buff,
-                                                                                         ntypes,
-                                                                                         ghost_width);
-            }
-        else if (diameter_shift && filter_body)
-            {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<3,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+                gpu_compute_nlist_binned_kernel<0,1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                                                                                             d_n_neigh,
+                                                                                             d_last_updated_pos,
+                                                                                             d_conditions,
+                                                                                             d_Nmax,
+                                                                                             d_head_list,
+                                                                                             d_pos,
+                                                                                             d_body,
+                                                                                             d_diameter,
+                                                                                             N,
+                                                                                             d_cell_size,
+                                                                                             d_cell_xyzf,
+                                                                                             d_cell_idx,
+                                                                                             d_cell_tdb,
+                                                                                             d_cell_adj,
+                                                                                             ci,
+                                                                                             cli,
+                                                                                             cadji,
+                                                                                             box,
+                                                                                             d_r_cut,
+                                                                                             r_buff,
+                                                                                             ntypes,
+                                                                                             ghost_width,
+                                                                                             offset,
+                                                                                             nwork);
+                }
+            else if (!diameter_shift && filter_body)
+                {
+                static unsigned int max_block_size = UINT_MAX;
+                if (max_block_size == UINT_MAX)
+                    max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<1,1,cur_tpp>);
+                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
-            block_size = block_size < max_block_size ? block_size : max_block_size;
-            dim3 grid(N / (block_size/tpp) + 1);
-            gpu_compute_nlist_binned_kernel<3,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
-                                                                                         d_n_neigh,
-                                                                                         d_last_updated_pos,
-                                                                                         d_conditions,
-                                                                                         d_Nmax,
-                                                                                         d_head_list,
-                                                                                         d_pos,
-                                                                                         d_body,
-                                                                                         d_diameter,
-                                                                                         N,
-                                                                                         d_cell_size,
-                                                                                         d_cell_xyzf,
-                                                                                         d_cell_tdb,
-                                                                                         d_cell_adj,
-                                                                                         ci,
-                                                                                         cli,
-                                                                                         cadji,
-                                                                                         box,
-                                                                                         d_r_cut,
-                                                                                         r_buff,
-                                                                                         ntypes,
-                                                                                         ghost_width);
+                block_size = block_size < max_block_size ? block_size : max_block_size;
+                dim3 grid(nwork / (block_size/tpp) + 1);
+
+                gpu_compute_nlist_binned_kernel<1,1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                                                                                             d_n_neigh,
+                                                                                             d_last_updated_pos,
+                                                                                             d_conditions,
+                                                                                             d_Nmax,
+                                                                                             d_head_list,
+                                                                                             d_pos,
+                                                                                             d_body,
+                                                                                             d_diameter,
+                                                                                             N,
+                                                                                             d_cell_size,
+                                                                                             d_cell_xyzf,
+                                                                                             d_cell_idx,
+                                                                                             d_cell_tdb,
+                                                                                             d_cell_adj,
+                                                                                             ci,
+                                                                                             cli,
+                                                                                             cadji,
+                                                                                             box,
+                                                                                             d_r_cut,
+                                                                                             r_buff,
+                                                                                             ntypes,
+                                                                                             ghost_width,
+                                                                                             offset,
+                                                                                             nwork);
+                }
+            else if (diameter_shift && !filter_body)
+                {
+                static unsigned int max_block_size = UINT_MAX;
+                if (max_block_size == UINT_MAX)
+                    max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<2,1,cur_tpp>);
+                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+
+                block_size = block_size < max_block_size ? block_size : max_block_size;
+                dim3 grid(nwork / (block_size/tpp) + 1);
+
+                gpu_compute_nlist_binned_kernel<2,1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                                                                                             d_n_neigh,
+                                                                                             d_last_updated_pos,
+                                                                                             d_conditions,
+                                                                                             d_Nmax,
+                                                                                             d_head_list,
+                                                                                             d_pos,
+                                                                                             d_body,
+                                                                                             d_diameter,
+                                                                                             N,
+                                                                                             d_cell_size,
+                                                                                             d_cell_xyzf,
+                                                                                             d_cell_idx,
+                                                                                             d_cell_tdb,
+                                                                                             d_cell_adj,
+                                                                                             ci,
+                                                                                             cli,
+                                                                                             cadji,
+                                                                                             box,
+                                                                                             d_r_cut,
+                                                                                             r_buff,
+                                                                                             ntypes,
+                                                                                             ghost_width,
+                                                                                             offset,
+                                                                                             nwork);
+                }
+            else if (diameter_shift && filter_body)
+                {
+                static unsigned int max_block_size = UINT_MAX;
+                if (max_block_size == UINT_MAX)
+                    max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<3,1,cur_tpp>);
+                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+
+                block_size = block_size < max_block_size ? block_size : max_block_size;
+                dim3 grid(nwork / (block_size/tpp) + 1);
+
+                gpu_compute_nlist_binned_kernel<3,1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                                                                                             d_n_neigh,
+                                                                                             d_last_updated_pos,
+                                                                                             d_conditions,
+                                                                                             d_Nmax,
+                                                                                             d_head_list,
+                                                                                             d_pos,
+                                                                                             d_body,
+                                                                                             d_diameter,
+                                                                                             N,
+                                                                                             d_cell_size,
+                                                                                             d_cell_xyzf,
+                                                                                             d_cell_idx,
+                                                                                             d_cell_tdb,
+                                                                                             d_cell_adj,
+                                                                                             ci,
+                                                                                             cli,
+                                                                                             cadji,
+                                                                                             box,
+                                                                                             d_r_cut,
+                                                                                             r_buff,
+                                                                                             ntypes,
+                                                                                             ghost_width,
+                                                                                             offset,
+                                                                                             nwork);
+                }
             }
         }
     else
@@ -454,6 +649,7 @@ inline void launcher(unsigned int *d_nlist,
                      N,
                      d_cell_size,
                      d_cell_xyzf,
+                     d_cell_idx,
                      d_cell_tdb,
                      d_cell_adj,
                      ci,
@@ -468,7 +664,9 @@ inline void launcher(unsigned int *d_nlist,
                      tpp,
                      filter_body,
                      diameter_shift,
-                     block_size
+                     block_size,
+                     range,
+                     use_index
                      );
         }
     }
@@ -487,6 +685,7 @@ inline void launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
               const unsigned int N,
               const unsigned int *d_cell_size,
               const Scalar4 *d_cell_xyzf,
+              const unsigned int *d_cell_idx,
               const Scalar4 *d_cell_tdb,
               const unsigned int *d_cell_adj,
               const Index3D ci,
@@ -501,7 +700,9 @@ inline void launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
               unsigned int tpp,
               bool filter_body,
               bool diameter_shift,
-              unsigned int block_size)
+              unsigned int block_size,
+              std::pair<unsigned int, unsigned int> range,
+              bool use_index)
     { }
 
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
@@ -516,6 +717,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const unsigned int N,
                                      const unsigned int *d_cell_size,
                                      const Scalar4 *d_cell_xyzf,
+                                     const unsigned int *d_cell_idx,
                                      const Scalar4 *d_cell_tdb,
                                      const unsigned int *d_cell_adj,
                                      const Index3D& ci,
@@ -530,36 +732,46 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      bool filter_body,
                                      bool diameter_shift,
                                      const Scalar3& ghost_width,
-                                     const unsigned int compute_capability)
+                                     const unsigned int compute_capability,
+                                     const GPUPartition& gpu_partition,
+                                     bool use_index)
     {
-    launcher<max_threads_per_particle>(d_nlist,
-                                   d_n_neigh,
-                                   d_last_updated_pos,
-                                   d_conditions,
-                                   d_Nmax,
-                                   d_head_list,
-                                   d_pos,
-                                   d_body,
-                                   d_diameter,
-                                   N,
-                                   d_cell_size,
-                                   d_cell_xyzf,
-                                   d_cell_tdb,
-                                   d_cell_adj,
-                                   ci,
-                                   cli,
-                                   cadji,
-                                   box,
-                                   d_r_cut,
-                                   r_buff,
-                                   ntypes,
-                                   ghost_width,
-                                   compute_capability,
-                                   threads_per_particle,
-                                   filter_body,
-                                   diameter_shift,
-                                   block_size
-                                   );
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
+        launcher<max_threads_per_particle>(d_nlist,
+                                       d_n_neigh,
+                                       d_last_updated_pos,
+                                       d_conditions,
+                                       d_Nmax,
+                                       d_head_list,
+                                       d_pos,
+                                       d_body,
+                                       d_diameter,
+                                       N,
+                                       d_cell_size,
+                                       d_cell_xyzf,
+                                       d_cell_idx,
+                                       d_cell_tdb,
+                                       d_cell_adj,
+                                       ci,
+                                       cli,
+                                       cadji,
+                                       box,
+                                       d_r_cut,
+                                       r_buff,
+                                       ntypes,
+                                       ghost_width,
+                                       compute_capability,
+                                       threads_per_particle,
+                                       filter_body,
+                                       diameter_shift,
+                                       block_size,
+                                       range,
+                                       use_index
+                                       );
+        }
     return cudaSuccess;
     }

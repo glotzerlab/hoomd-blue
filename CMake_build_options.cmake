@@ -20,6 +20,9 @@ endif()
 ## CUDA related options
 option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
 
+option(ALWAYS_USE_MANAGED_MEMORY "Use CUDA managed memory also when running on single GPU" OFF)
+MARK_AS_ADVANCED(ALWAYS_USE_MANAGED_MEMORY)
+
 if (ENABLE_CUDA)
     option(ENABLE_NVTOOLS "Enable NVTools profiler integration" off)
 endif (ENABLE_CUDA)

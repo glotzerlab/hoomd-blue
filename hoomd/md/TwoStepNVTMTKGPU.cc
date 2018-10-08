@@ -52,7 +52,6 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     m_tuner_one.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_one", this->m_exec_conf));
     m_tuner_two.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two", this->m_exec_conf));
-    m_tuner_rescale.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two_rescale", this->m_exec_conf));
 
     // generate power-of-two block sizes
     valid_params.clear();
@@ -60,13 +59,6 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
         {
         valid_params.push_back(block_size);
         }
-    m_tuner_reduce.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two_reduce", this->m_exec_conf));
-
-    GPUVector< Scalar > scratch(m_exec_conf);
-    m_scratch.swap(scratch);
-
-    GPUArray< Scalar> temperature(1, m_exec_conf, true);
-    m_temperature.swap(temperature);
     }
 
 /*! \param timestep Current time step
@@ -87,6 +79,8 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
         {
         m_prof->push(m_exec_conf, "NVT MTK step 1");
         }
+
+    m_exec_conf->beginMultiGPU();
 
         {
         // access all the needed data
@@ -109,12 +103,15 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
                          box,
                          m_tuner_one->getParam(),
                          m_exp_thermo_fac,
-                         m_deltaT);
+                         m_deltaT,
+                         m_group->getGPUPartition());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_one->end();
         }
+
+    m_exec_conf->endMultiGPU();
 
     if (m_aniso)
         {
@@ -163,6 +160,8 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "NVT MTK step 2");
 
+    m_exec_conf->beginMultiGPU();
+
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
         {
@@ -179,12 +178,15 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
                          d_net_force.data,
                          m_tuner_two->getParam(),
                          m_deltaT,
-                         m_exp_thermo_fac);
+                         m_exp_thermo_fac,
+                         m_group->getGPUPartition());
 
         if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_two->end();
         }
+
+    m_exec_conf->endMultiGPU();
 
     if (m_aniso)
         {

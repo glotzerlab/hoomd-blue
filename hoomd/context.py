@@ -184,11 +184,12 @@ class SimulationContext(object):
 
         current = self.prev;
 
-def initialize(args=None, mpi_comm=None):
+def initialize(args=None, memory_traceback=False, mpi_comm=None):
     R""" Initialize the execution context
 
     Args:
         args (str): Arguments to parse. When *None*, parse the arguments passed on the command line.
+        memory_traceback (bool): If true, enable memory allocation tracking (*only for debugging/profiling purposes*)
         mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
                   where you communicate between those simulations using your own mpi4py code.
 
@@ -243,7 +244,10 @@ def initialize(args=None, mpi_comm=None):
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()
 
-    _create_exec_conf(mpi_comm);
+    exec_conf = _create_exec_conf(mpi_comm);
+
+    # set memory tracing option
+    exec_conf.setMemoryTracing(memory_traceback)
 
     current = SimulationContext();
     return current
@@ -271,18 +275,22 @@ def _create_exec_conf(mpi_comm):
 
     # convert None options to defaults
     if options.gpu is None:
-        gpu_id = -1;
+        gpu_id = [];
     else:
-        gpu_id = int(options.gpu);
+        gpu_id = options.gpu;
 
     if options.nrank is None:
         nrank = 0;
     else:
         nrank = int(options.nrank);
 
+    gpu_vec = _hoomd.std_vector_int()
+    for gpuid in gpu_id:
+        gpu_vec.append(gpuid)
+
     # create the specified configuration
     if mpi_comm is None:
-        exec_conf = _hoomd.ExecutionConfiguration(exec_mode, gpu_id, options.min_cpu, options.ignore_display, msg, nrank);
+        exec_conf = _hoomd.ExecutionConfiguration(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, msg, nrank);
     else:
         if not mpi_available:
             msg.error("mpi_comm provided, but MPI support was disabled at compile time\n");
@@ -295,7 +303,7 @@ def _create_exec_conf(mpi_comm):
             import mpi4py
             if isinstance(mpi_comm, mpi4py.MPI.Comm):
                 addr = mpi4py.MPI._addressof(mpi_comm);
-                exec_conf = _hoomd.ExecutionConfiguration._make_exec_conf_mpi_comm(exec_mode, gpu_id, options.min_cpu, options.ignore_display, msg, nrank, addr);
+                exec_conf = _hoomd.ExecutionConfiguration._make_exec_conf_mpi_comm(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, msg, nrank, addr);
                 handled = True
         except ImportError:
             # silently ignore when mpi4py is missing
@@ -303,7 +311,7 @@ def _create_exec_conf(mpi_comm):
 
         # undocumented case: handle plain integers as pointers to MPI_Comm objects
         if not handled and isinstance(mpi_comm, int):
-            exec_conf = _hoomd.ExecutionConfiguration._make_exec_conf_mpi_comm(exec_mode, gpu_id, options.min_cpu, options.ignore_display, msg, nrank, mpi_comm);
+            exec_conf = _hoomd.ExecutionConfiguration._make_exec_conf_mpi_comm(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, msg, nrank, mpi_comm);
             handled = True
 
         if not handled:
@@ -364,7 +372,8 @@ class ExecutionContext(hoomd.meta._metadata):
     # \brief Return the name of the GPU used in GPU mode.
     @property
     def gpu(self):
-        return self._get_exec_conf().getGPUName()
+        n_gpu = self._get_exec_conf().getNumActiveGPUs()
+        return [self._get_exec_conf().getGPUName(i) for i in range(n_gpu)]
 
     # \brief Return the execution mode
     @property

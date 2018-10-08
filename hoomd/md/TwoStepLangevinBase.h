@@ -57,8 +57,8 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
         bool m_use_lambda;                //!< flag to enable gamma to be a scaled version of the diameter
         Scalar m_lambda;                  //!< Scale factor to apply to diameter to get gamma
 
-        GPUVector<Scalar> m_gamma;        //!< List of per type gammas to use
-        GPUVector<Scalar> m_gamma_r;      //!< List of per type gamma_r (for 2D-only rotational noise) to use
+        GlobalVector<Scalar> m_gamma;        //!< List of per type gammas to use
+        GlobalVector<Scalar> m_gamma_r;      //!< List of per type gamma_r (for 2D-only rotational noise) to use
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();

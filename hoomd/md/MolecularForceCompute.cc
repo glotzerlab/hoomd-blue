@@ -25,12 +25,18 @@ namespace py = pybind11;
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0),
+    : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0), m_dirty(true),
       m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf), m_molecule_order(m_exec_conf),
-      m_molecule_idx(m_exec_conf), m_dirty(true)
+      m_molecule_idx(m_exec_conf)
     {
     // connect to the ParticleData to receive notifications when particles change order in memory
     m_pdata->getParticleSortSignal().connect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
+
+    TAG_ALLOCATION(m_molecule_tag);
+    TAG_ALLOCATION(m_molecule_list);
+    TAG_ALLOCATION(m_molecule_length);
+    TAG_ALLOCATION(m_molecule_order);
+    TAG_ALLOCATION(m_molecule_idx);
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
@@ -102,7 +108,7 @@ void MolecularForceCompute::initMoleculesGPU()
         }
 
     // set up indexer
-    m_molecule_indexer = Index2D(n_local_molecules, nmax);
+    m_molecule_indexer = Index2D(nmax, n_local_molecules);
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute: " << n_local_molecules << " molecules, "
         << n_local_ptls_in_molecules << " particles in molecules " << std::endl;
@@ -137,6 +143,32 @@ void MolecularForceCompute::initMoleculesGPU()
             CHECK_CUDA_ERROR();
 
         m_tuner_fill->end();
+        }
+
+    if (m_exec_conf->allConcurrentManagedAccess())
+        {
+        auto gpu_map = m_exec_conf->getGPUIds();
+
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaMemAdvise(m_molecule_list.get(), sizeof(unsigned int)*m_molecule_list.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_molecule_length.get(), sizeof(unsigned int)*m_molecule_length.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            }
+
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            auto range = m_pdata->getGPUPartition().getRange(idev);
+            unsigned int nelem =  range.second - range.first;
+
+            // skip if no hint set
+            if (!nelem)
+                continue;
+
+            cudaMemAdvise(m_molecule_idx.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_molecule_idx.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+            }
+
+        CHECK_CUDA_ERROR();
         }
 
     if (m_prof) m_prof->pop(m_exec_conf);
@@ -175,7 +207,7 @@ void MolecularForceCompute::initMolecules()
     // resize molecule lookup to size of local particle data
     m_molecule_order.resize(m_pdata->getMaxN());
 
-    // sort local molecules lexicographically by molecule and by ptl tag
+    // sort local molecules by molecule tag, and inside the molecule by ptl tag
     std::map<unsigned int, std::set<unsigned int> > local_molecules_sorted;
 
     for (unsigned int iptl = 0; iptl < nptl_local; ++iptl)
@@ -229,7 +261,7 @@ void MolecularForceCompute::initMolecules()
         }
 
     // set up indexer
-    m_molecule_indexer = Index2D(n_local_molecules, nmax);
+    m_molecule_indexer = Index2D(nmax, n_local_molecules);
 
     // resize molecule list
     m_molecule_list.resize(m_molecule_indexer.getNumElements());
@@ -263,7 +295,7 @@ void MolecularForceCompute::initMolecules()
             unsigned int n = h_molecule_length.data[i_mol]++;
             unsigned int ptl_idx = h_rtag.data[*it_tag];
             assert(ptl_idx < m_pdata->getN() + m_pdata->getNGhosts());
-            h_molecule_list.data[m_molecule_indexer(i_mol, n)] = ptl_idx;
+            h_molecule_list.data[m_molecule_indexer(n, i_mol)] = ptl_idx;
             h_molecule_idx.data[ptl_idx] = i_mol;
             h_molecule_order.data[ptl_idx] = n;
             }
