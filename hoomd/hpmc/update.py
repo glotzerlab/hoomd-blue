@@ -871,7 +871,7 @@ class shape_update(_updater):
         elif isinstance(mc, integrate.convex_polyhedron):
             cls = _hpmc.UpdaterShapeConvexPolyhedron;
         elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = _hpmc.UpdaterShapeSpheroPolyhedron;
+            cls = _hpmc.UpdaterShapeSpheropolyhedron;
         elif isinstance(mc, integrate.ellipsoid):
             cls = _hpmc.UpdaterShapeEllipsoid;
         elif isinstance(mc, integrate.convex_spheropolygon):
@@ -959,7 +959,7 @@ class shape_update(_updater):
         elif isinstance(self.mc, integrate.convex_polyhedron):
             move_cls = _hpmc.PythonShapeMoveConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
-            move_cls = _hpmcPythonShapeMoveSpheropolyhedron;
+            move_cls = _hpmc.PythonShapeMoveSpheropolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
             move_cls = _hpmc.PythonShapeMoveEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
@@ -989,6 +989,19 @@ class shape_update(_updater):
             stepsize_list = [float(stepsize) for i in range(ntypes) ];
         else:
             stepsize_list = self.mc.shape_class.ensure_list(stepsize);
+
+        # TODO: Make this possible
+        # Currently computing the moments of inertia for spheropolyhedra is not implemented
+        # In order to prevent improper usage, we throw an error here. The use of this
+        # updater with spheropolyhedra is currently enabled to allow the use of spherical
+        # depletants
+        if isinstance(self.mc, integrate.convex_spheropolyhedron):
+            for i in range(ntypes):
+                typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
+                shape = self.mc.shape_param.get(typename)
+                if shape.sweep_radius != 0 and len(shape.vertices) != 0 and stepsize_list[i] != 0:
+                    raise RuntimeError("Currently alchemical moves with integrate.convex_spheropolyhedron \
+are only enabled for polyhedral and spherical particles.")
 
         self.move_cpp = move_cls(ntypes, callback, param_list, stepsize_list, float(param_ratio));
         self.cpp_updater.registerShapeMove(self.move_cpp);
@@ -1382,7 +1395,7 @@ class alchemy(shape_update):
         elif isinstance(self.mc, integrate.convex_polyhedron):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
-            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSpheroPolyhedron;
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSpheropolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
