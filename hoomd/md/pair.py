@@ -879,7 +879,7 @@ class ewald(pair):
 
         \begin{eqnarray*}
          V_{\mathrm{ewald}}(r)  = & q_i q_j \left[\mathrm{erfc}\left(\kappa r + \frac{\alpha}{2\kappa}\right) \exp(\alpha r)+
-                                    \mathrm{erfc}\left(\kappa r - \frac{\alpha}{2 \kappa}\right) \exp(-\alpha r) & r < r_{\mathrm{cut}} \\
+                                    \mathrm{erfc}\left(\kappa r - \frac{\alpha}{2 \kappa}\right) \exp(-\alpha r)\right] & r < r_{\mathrm{cut}} \\
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
