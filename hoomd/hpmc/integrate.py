@@ -512,6 +512,33 @@ class mode_hpmc(_integrator):
         self.cpp_integrator.communicate(True);
         return self.cpp_integrator.countOverlaps(hoomd.context.current.system.getCurrentTimeStep(), False);
 
+    def test_overlap(self,type_i, type_j, rij, qi, qj, use_images=True):
+        R""" Test overlap between two particles.
+
+        Args:
+            type_i (str): Type of first particle
+            type_j (str): Type of second particle
+            rij (tuple): Separation vector **rj**-**ri** between the particle centers
+            qi (tuple): Orientation quaternion of first particle
+            qj (tuple): Orientation quaternion of second particle
+            use_images (bool): If True, check for overlap between the periodic images of the particles by adding
+                the image vector to the separation vector
+
+        For two-dimensional shapes, pass the third dimension of **rij** as zero.
+
+        Returns:
+            True if the particles overlap.
+        """
+        self.update_forces()
+
+        ti =  hoomd.context.current.system_definition.getParticleData().getTypeByName(type_i)
+        tj =  hoomd.context.current.system_definition.getParticleData().getTypeByName(type_j)
+
+        rij = hoomd.util.listify(rij)
+        qi = hoomd.util.listify(qi)
+        qj = hoomd.util.listify(qj)
+        return self.cpp_integrator.py_test_overlap(ti,tj,rij,qi,qj,use_images)
+
     def get_translate_acceptance(self):
         R""" Get the average acceptance ratio for translate moves.
 
