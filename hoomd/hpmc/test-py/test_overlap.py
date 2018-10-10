@@ -52,6 +52,11 @@ class map_overlaps_test(unittest.TestCase):
         self.mc.shape_param.set('A', vertices = [(-0.5,-0.5,-0.5), (0.5,-0.5,-0.5), (0.5,0.5,-0.5), (-0.5,0.5,-0.5),
             (-0.5,-0.5,0.5), (0.5,-0.5,0.5), (0.5,0.5,0.5), (-0.5,0.5,0.5)])
 
+        # not overlapping, excluding the self image
+        rij = np.array((0,1.2,0))
+        self.assertFalse(self.mc.test_overlap('A','A',rij, qi, qj, exclude_self=True))
+        self.assertFalse(self.mc.test_overlap('A','A',-rij, qj, qi, exclude_self=True))
+
         # not overlapping, one image apart
         rij = np.array((10-0.2,-1.4,0))
         self.assertFalse(self.mc.test_overlap('A','A',rij, qi, qj))

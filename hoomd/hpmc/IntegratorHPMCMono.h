@@ -200,11 +200,13 @@ class IntegratorHPMCMono : public IntegratorHPMC
             \param qi Orientation quaternion of first particle
             \param qj Orientation quaternion of second particle
             \param use_images if true, take into account periodic boundary conditions
+            \param exclude_self if true, exclude the self-image
 
             \returns true if particles overlap
          */
         virtual bool py_test_overlap(unsigned int type_i, unsigned int type_j,
-            pybind11::list rij, pybind11::list qi, pybind11::list qj, bool use_images);
+            pybind11::list rij, pybind11::list qi, pybind11::list qj,
+            bool use_images, bool exclude_self);
 
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth(unsigned int)
@@ -1730,7 +1732,7 @@ bool IntegratorHPMCMono<Shape>::restoreStateGSD( std::shared_ptr<GSDReader> read
 template<class Shape>
 bool IntegratorHPMCMono<Shape>::py_test_overlap(unsigned int type_i, unsigned int type_j,
     pybind11::list rij, pybind11::list qi, pybind11::list qj,
-    bool use_images)
+    bool use_images, bool exclude_self)
     {
     if (len(rij) != 3)
         throw std::runtime_error("rij needs to be a 3d vector.\n");
@@ -1766,6 +1768,9 @@ bool IntegratorHPMCMono<Shape>::py_test_overlap(unsigned int type_i, unsigned in
         const unsigned int n_images = m_image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
+            if (exclude_self && cur_image == 0)
+                continue;
+
             if (test_overlap(dr + m_image_list[cur_image], shape_i, shape_j, err))
                 overlap = true;
             }
