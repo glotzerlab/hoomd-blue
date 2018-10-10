@@ -1771,13 +1771,14 @@ bool IntegratorHPMCMono<Shape>::py_test_overlap(unsigned int type_i, unsigned in
             if (exclude_self && cur_image == 0)
                 continue;
 
-            if (test_overlap(dr + m_image_list[cur_image], shape_i, shape_j, err))
+            if (check_circumsphere_overlap(dr + m_image_list[cur_image], shape_i, shape_j) &&
+                test_overlap(dr + m_image_list[cur_image], shape_i, shape_j, err))
                 overlap = true;
             }
         }
     else
         {
-        overlap = test_overlap(dr, shape_i, shape_j, err);
+        overlap = check_circumsphere_overlap(dr, shape_i, shape_j) && test_overlap(dr, shape_i, shape_j, err);
         }
 
     if (err)
