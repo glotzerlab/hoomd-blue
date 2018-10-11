@@ -14,3 +14,4 @@ hoomd.hdf5
 .. automodule:: hoomd.hdf5
     :synopsis: Python classes that depend on the h5py package.
     :members:
+    :no-inherited-members:
