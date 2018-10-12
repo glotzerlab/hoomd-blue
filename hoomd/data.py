@@ -2319,18 +2319,18 @@ class SnapshotParticleData:
     Attributes:
         N (int): Number of particles in the snapshot
         types (list): List of string type names (assignable)
-        position (ndarray Nx3): numpy array containing the position of each particle (float or double)
-        orientation (ndarray Nx4): numpy array containing the orientation quaternion of each particle (float or double)
-        velocity (ndarray Nx3): numpy array containing the velocity of each particle (float or double)
-        acceleration (ndarray Nx3): numpy array containing the acceleration of each particle (float or double)
-        typeid (ndarray): N length numpy array containing the type id of each particle (32-bit unsigned int)
-        mass (ndarray): N length numpy array containing the mass of each particle (float or double)
-        charge (ndarray): N length numpy array containing the charge of each particle (float or double)
-        diameter (ndarray): N length numpy array containing the diameter of each particle (float or double)
-        image (ndarray Nx3): numpy array containing the image of each particle (32-bit int)
-        body (ndarray): N length numpy array containing the body of each particle (32-bit unsigned int)
-        moment_inertia (ndarray Nx3): numpy array containing the principal moments of inertia of each particle (float or double)
-        angmom (ndarray Nx4): numpy array containing the angular momentum quaternion of each particle (float or double)
+        position (numpy.ndarray): (Nx3: numpy array containing the position of each particle (float or double)
+        orientation (numpy.ndarray): (Nx4) - numpy array containing the orientation quaternion of each particle (float or double)
+        velocity (numpy.ndarray): (Nx3) - numpy array containing the velocity of each particle (float or double)
+        acceleration (numpy.ndarray): (Nx3) - numpy array containing the acceleration of each particle (float or double)
+        typeid (numpy.ndarray): N-Length numpy array containing the type id of each particle (32-bit unsigned int)
+        mass (numpy.ndarray): N-Length numpy array containing the mass of each particle (float or double)
+        charge (numpy.ndarray): N L-ength numpy array containing the charge of each particle (float or double)
+        diameter (numpy.ndarray): N Length numpy array containing the diameter of each particle (float or double)
+        image (numpy.ndarray): (Nx3) - numpy array containing the image of each particle (32-bit int)
+        body (numpy.ndarray): N L-ength numpy array containing the body of each particle (32-bit unsigned int)
+        moment_inertia (numpy.ndarray): (Nx3) - numpy array containing the principal moments of inertia of each particle (float or double)
+        angmom (numpy.ndarray): (Nx4) - numpy array containing the angular momentum quaternion of each particle (float or double)
 
     See Also:
         :py:mod:`hoomd.data`
