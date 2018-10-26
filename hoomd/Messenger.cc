@@ -15,41 +15,12 @@
 #include "HOOMDMPI.h"
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/iostream.h>
 #include <sstream>
 #include <assert.h>
 using namespace std;
 
 namespace py = pybind11;
-
-//! A streambuf sink that writes to sys.stdout in python
-class pysys_stdout_streambuf : public std::streambuf
-    {
-    public:
-        virtual int overflow( int ch )
-            {
-            char c = ch;
-            PyGILState_STATE gilstate = PyGILState_Ensure();
-            PySys_WriteStdout("%.1s", &c);
-            PyGILState_Release(gilstate);
-
-            return 0;
-            }
-    };
-
-//! A streambuf sink that writes to sys.stderr in python
-class pysys_stderr_streambuf : public std::streambuf
-    {
-    public:
-        virtual int overflow( int ch )
-            {
-            char c = ch;
-            PyGILState_STATE gilstate = PyGILState_Ensure();
-            PySys_WriteStderr("%.1s", &c);
-            PyGILState_Release(gilstate);
-
-            return 0;
-            }
-    };
 
 #ifdef ENABLE_MPI
 //! Class that supports writing to a shared log file using MPI-IO
@@ -228,7 +199,7 @@ std::ostream& Messenger::error() const
 */
 void Messenger::errorStr(const std::string& msg) const
     {
-    error() << msg;
+    error() << msg << std::flush;
     }
 
 /*! \returns The warning stream for use in printing warning messages
@@ -250,7 +221,7 @@ std::ostream& Messenger::warning() const
 */
 void Messenger::warningStr(const std::string& msg) const
     {
-    warning() << msg;
+    warning() << msg << std::flush;;
     }
 
 /*! \returns The notice stream for use in printing notice messages
@@ -334,7 +305,7 @@ void Messenger::collectiveNoticeStr(unsigned int level, const std::string& msg) 
 */
 void Messenger::noticeStr(unsigned int level, const std::string& msg) const
     {
-    notice(level) << msg;
+    notice(level) << msg << std::flush;
     }
 
 /*! \param fname File name
@@ -358,8 +329,10 @@ void Messenger::openFile(const std::string& fname)
 */
 void Messenger::openPython()
     {
-    m_streambuf_out = std::shared_ptr<std::streambuf>(new pysys_stdout_streambuf());
-    m_streambuf_err = std::shared_ptr<std::streambuf>(new pysys_stderr_streambuf());
+    pybind11::object pystdout = pybind11::module::import("sys").attr("stdout");
+    m_streambuf_out = std::shared_ptr<std::streambuf>(new pybind11::detail::pythonbuf(pystdout));
+    pybind11::object pystderr = pybind11::module::import("sys").attr("stderr");
+    m_streambuf_err = std::shared_ptr<std::streambuf>(new pybind11::detail::pythonbuf(pystderr));
 
     // now update the error, warning, and notice streams
     m_file_out = std::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
