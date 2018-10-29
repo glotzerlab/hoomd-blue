@@ -65,6 +65,7 @@ set(TEST_LIST_CPU
     hpmc_gsd_state.py
     faceted_sphere.py
     test_clusters.py
+    test_overlap.py
     )
 
 if (BUILD_JIT)
@@ -100,6 +101,7 @@ set(EXCLUDE_FROM_MPI
     shape_union.py
     enthalpic_interaction.py
     test_general_polyhedron.py
+    test_overlap.py
    )
 
 set(MPI_ONLY
