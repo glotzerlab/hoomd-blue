@@ -35,7 +35,7 @@ namespace hpmc
 // put a few misc math functions here as they don't have any better home
 namespace detail
     {
-    // !helper to call CPU or GPU signbit
+    //! helper to call CPU or GPU signbit
     template <class T> HOSTDEVICE inline int signbit(const T& a)
         {
         #ifdef __CUDA_ARCH__
@@ -163,7 +163,7 @@ struct ShapeSphere
         return params.isOriented;
         }
 
-    //!Ignore flag for acceptance statistics
+    //! Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return params.ignore; }
 
     //! Get the circumsphere diameter
