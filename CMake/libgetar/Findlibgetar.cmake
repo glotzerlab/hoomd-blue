@@ -11,6 +11,4 @@ find_path(LIBGETAR_SRC_DIR
   NO_DEFAULT_PATH)
 
 mark_as_advanced(LIBGETAR_SRC_DIR)
-mark_as_advanced(SQLITE3_INCLUDE_DIR)
-mark_as_advanced(SQLITE3_LIBRARY)
 mark_as_advanced(libgetar_DIR)
