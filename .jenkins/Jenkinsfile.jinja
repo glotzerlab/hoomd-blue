@@ -5,60 +5,129 @@ pipeline
 
     stages
         {
-        {% for test in tests %}stage('{{ test.name }}')
+        stage('Unit Tests')
             {
-            agent { label '{{ test.agent }}' }
-
-            environment
+            parallel
                 {
-                CC = '{{ test.CC }}'
-                CXX = '{{ test.CXX }}'
-                OMP_NUM_THREADS = '{{ test.OMP_NUM_THREADS }}'
-                }
-
-            steps
-                {
-                sh 'echo ${NODE_NAME}'
-
-                dir('code')
+                {% for test in unit_tests %}stage('{{ test.name }}')
                     {
-                    checkout scm
-                    sh 'git submodule update --init'
-                    }
+                    agent { label '{{ test.agent }}' }
 
-                dir('build')
-                    {
-                    timeout(time: 1, unit: 'HOURS')
+                    environment
                         {
-                        sh '''
-                            singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python{{ test.PYVER }} -DENABLE_CUDA={{ test.ENABLE_CUDA }} -DENABLE_MPI={{ test.ENABLE_MPI }} -DENABLE_TBB={{ test.ENABLE_TBB }} -DBUILD_VALIDATION={{ test.BUILD_VALIDATION }} -DBUILD_TESTING={{ test.BUILD_TESTING }} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT={{ test.BUILD_JIT }} -DLLVM_DIR=/usr/lib/llvm-{{ test.LLVM_VERSION }}/cmake -GNinja
-                           '''
-
-                        sh 'singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} ninja -j 3'
+                        CC = '{{ test.CC }}'
+                        CXX = '{{ test.CXX }}'
+                        OMP_NUM_THREADS = '{{ test.OMP_NUM_THREADS }}'
                         }
 
-                    timeout(time: {{ test.timeout }}, unit: 'HOURS')
+                    steps
                         {
-                        sh '''
-                            export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-{{ test.LLVM_VERSION }}/bin
-                            singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/ctest --no-compress-output -T test --output-on-failure
-                           '''
+                        sh 'echo ${NODE_NAME}'
+
+                        dir('code')
+                            {
+                            checkout scm
+                            sh 'git submodule update --init'
+                            }
+
+                        dir('build')
+                            {
+                            timeout(time: 1, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python{{ test.PYVER }} -DENABLE_CUDA={{ test.ENABLE_CUDA }} -DENABLE_MPI={{ test.ENABLE_MPI }} -DENABLE_TBB={{ test.ENABLE_TBB }} -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT={{ test.BUILD_JIT }} -DLLVM_DIR=/usr/lib/llvm-{{ test.LLVM_VERSION }}/cmake -GNinja
+                                   '''
+
+                                sh 'singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} ninja -j 3'
+                                }
+
+                            timeout(time: {{ 1 }}, unit: 'HOURS')
+                                {
+                                sh '''
+                                    export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-{{ test.LLVM_VERSION }}/bin
+                                    singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/ctest --no-compress-output -T test --output-on-failure
+                                   '''
+                                }
+                            }
+
+                        sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                        junit 'test.xml'
+                        }
+                    post
+                        {
+                        always
+                            {
+                            archive 'build/Testing/**/Test.xml'
+                            deleteDir()
+                            }
                         }
                     }
-
-                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
-
-                junit 'test.xml'
-                }
-            post
-                {
-                always
-                    {
-                    archive 'build/Testing/**/Test.xml'
-                    deleteDir()
-                    }
+                {% endfor %}
                 }
             }
-        {% endfor %}
+
+        stage('Validation Tests')
+            {
+            parallel
+                {
+                {% for test in vldt_tests %}stage('{{ test.name }}')
+                    {
+                    agent { label '{{ test.agent }}' }
+
+                    environment
+                        {
+                        CC = '{{ test.CC }}'
+                        CXX = '{{ test.CXX }}'
+                        OMP_NUM_THREADS = '{{ test.OMP_NUM_THREADS }}'
+                        }
+
+                    steps
+                        {
+                        sh 'echo ${NODE_NAME}'
+
+                        dir('code')
+                            {
+                            checkout scm
+                            sh 'git submodule update --init'
+                            }
+
+                        dir('build')
+                            {
+                            timeout(time: 1, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python{{ test.PYVER }} -DENABLE_CUDA={{ test.ENABLE_CUDA }} -DENABLE_MPI={{ test.ENABLE_MPI }} -DENABLE_TBB={{ test.ENABLE_TBB }} -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT={{ test.BUILD_JIT }} -DLLVM_DIR=/usr/lib/llvm-{{ test.LLVM_VERSION }}/cmake -GNinja
+                                   '''
+
+                                sh 'singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} ninja -j 3'
+                                }
+
+                            timeout(time: {{ 12 }}, unit: 'HOURS')
+                                {
+                                sh '''
+                                    export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-{{ test.LLVM_VERSION }}/bin
+                                    singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/ctest --no-compress-output -T test --output-on-failure
+                                   '''
+                                }
+                            }
+
+                        sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                        junit 'test.xml'
+                        }
+                    post
+                        {
+                        always
+                            {
+                            archive 'build/Testing/**/Test.xml'
+                            deleteDir()
+                            }
+                        }
+                    }
+                {% endfor %}
+                }
+            }
+
         }
     }

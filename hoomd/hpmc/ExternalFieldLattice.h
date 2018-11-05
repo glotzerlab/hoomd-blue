@@ -389,7 +389,11 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 BoxDim newBox = m_pdata->getBox();
                 Scalar newVol = newBox.getVolume();
                 Scalar lastVol = m_box.getVolume();
-                Scalar scale = pow((newVol/lastVol), Scalar(1.0/3.0));
+                Scalar scale;
+                if (this->m_sysdef->getNDimensions() == 2)
+                    scale = pow((newVol/lastVol), Scalar(1.0/2.0));
+                else
+                    scale = pow((newVol/lastVol), Scalar(1.0/3.0));
                 m_latticePositions.scale(scale);
                 m_box = newBox;
             }
