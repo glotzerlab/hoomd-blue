@@ -16,7 +16,6 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
      * NVIDIA CUDA Toolkit >= 7.0
      * Intel Threaded Building Blocks >= 4.3
      * MPI (tested with OpenMPI, MVAPICH)
-     * sqlite3
  * Useful developer tools
      * Doxygen  >= 1.8.5
 
@@ -52,9 +51,9 @@ ensure that all libraries (mpi, python, etc...) are linked from the conda enviro
 Then, uninstall the hoomd binaries if you have them installed and install the prerequisite libraries and tools::
 
     # if using linux
-    conda install sphinx git mpich2 numpy cmake pkg-config sqlite
+    conda install sphinx git mpich2 numpy cmake pkg-config
     # if using mac
-    conda install sphinx git numpy cmake pkg-config sqlite
+    conda install sphinx git numpy cmake pkg-config
 
 Check the CMake configuration to ensure that it finds python, numpy, and MPI from within the conda installation.
 If any of these library or include files reference directories other than your conda environment, you will need to
