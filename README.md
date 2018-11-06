@@ -77,7 +77,6 @@ to fetch the submodules.
      * NVIDIA CUDA Toolkit >= 7.0
      * Intel Threaded Building Blocks >= 4.3
      * MPI (tested with OpenMPI, MVAPICH)
-     * sqlite3
 
 ### Compile
 
