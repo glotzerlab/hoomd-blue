@@ -11,6 +11,14 @@ Not yet released
 * General:
     * Misc documentation updates
     * Accept `mpi4py` communicators in `context.initialize`.
+    * CUDA 10 support and testing
+    * Sphinx 1.8 support
+    * Flush message output so that `python -u` is no longer required to obtain output on some batch job systems
+    * Support multi-GPU execution on dense nodes using CUDA managed memory. Execute with ``--gpu=0,1,..,n-1`` command line option to run on the first n GPUs (Pascal and above).
+      * Node-local acceleration is implemented for a subset of kernels. Performance improvements may vary.
+      * Improvements are only expected with NVLINK hardware. Use MPI when NVLINK is not available.
+      * Combine the ``--gpu=..`` command line option with mpirun to execute on many dense nodes
+    * Bundle ``libgetar`` v0.7.0 and remove ``sqlite3`` dependency
 
 * MD:
     * *no changes*.
@@ -21,6 +29,7 @@ Not yet released
     * Correctly count acceptance rate when maximum box move size is zero in ``hpmc.update.boxmc``.
     * Fix a bug that may have led to overlaps between polygon soups with ``hpmc.integrate.polyhedron``.
     * Improve performance in sphere trees used in ``hpmc.integrate.sphere_union``.
+    * Add `test_overlap` method to python API
 
 * API:
     * Allow external callers of HOOMD to set the MPI communicator
