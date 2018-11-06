@@ -138,8 +138,8 @@ If you run a script without any options::
 hoomd first checks if there are any GPUs in the system. If it finds one or more,
 it makes the same automatic choice described previously. If none are found, it runs on the CPU.
 
-Multi-GPU (and multi-CPU) execution
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Multi-GPU (and multi-CPU) execution with MPI
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 HOOMD-blue uses MPI domain decomposition for parallel execution. Execute python with ``mpirun``, ``mpiexec``, or whatever the
 appropriate launcher is on your system. For more information, see :ref:`mpi-domain-decomposition`::
@@ -147,6 +147,26 @@ appropriate launcher is on your system. For more information, see :ref:`mpi-doma
     mpirun -n 8 python script.py
 
 All command line options apply to MPI execution in the same way as single process runs.
+
+Multi-GPU execution with NVLINK
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can run HOOMD on multiple GPUs in the same compute node that are connected with NVLINK. To find out
+if your node supports it, run
+
+    nvidia-smi -m topo
+
+If the GPUs *are* connected by NVLINK, launch HOOMD with
+
+    python script.py --gpu=0,1,2
+
+to execute on GPUs 0,1 and 2. For multi-GPU execution it is required that all GPUs have the same compute
+capability >= 6.0.  Not all kernels are currently NVLINK enabled; performance may depend on the subset of
+features used.
+
+Multi-GPU execution with NVLINK may be combined with MPI parallel execution (see above). It is especially
+beneficial when further decomposition of the domain using MPI is not feasible or slower, but speed-ups are still
+possible.
 
 Automatic free GPU selection
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
