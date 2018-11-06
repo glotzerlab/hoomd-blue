@@ -44,7 +44,7 @@ Options
 
 * **--gpu** =#
 
-    specify the GPU id that hoomd will use. Implies --mode=gpu.
+    specify the GPU id or comma-separated list of GPUs (with NVLINK) that hoomd will use. Implies --mode=gpu.
 
 * **--ignore-display-gpu**
 
