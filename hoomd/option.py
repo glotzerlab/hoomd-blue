@@ -72,7 +72,7 @@ class options:
 def _parse_command_line(arg_string=None):
     parser = OptionParser();
     parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)", default='auto');
-    parser.add_option("--gpu", dest="gpu", help="GPU on which to execute");
+    parser.add_option("--gpu", dest="gpu", help="GPU or comma-separated list of GPUs on which to execute");
     parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
     parser.add_option("--minimize-cpu-usage", dest="min_cpu", action="store_true", default=False, help="Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)");
     parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
