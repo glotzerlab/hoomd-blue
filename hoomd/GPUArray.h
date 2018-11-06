@@ -58,7 +58,7 @@ struct data_location
         };
     };
 
-//! Sepcify how the data is to be accessed
+//! Specify how the data is to be accessed
 struct access_mode
     {
     //! The enum
@@ -217,7 +217,7 @@ template<class T> class ArrayHandle
     accessing multiple buffers on the host AND the device.
 
     ArrayHandleAsync is asynchronous with respect to the host, i.e. multiple
-    ArrayHandleAync objects maybe instantiated for multiple GPUArrays in a row, without
+    ArrayHandleAsync objects maybe instantiated for multiple GPUArrays in a row, without
     incurring significant overhead for each of the handles.
 
     \warning Because ArrayHandleAsync uses asynchronous copying, however, array data is not
@@ -264,7 +264,7 @@ location specified when acquiring an ArrayHandle.
 
 GPUArray is fairly advanced, C++ wise. It is a template class, so GPUArray's of floats, float4's,
 uint2's, etc.. can be made. It comes with a copy constructor and = operator so you can (expensively)
-pass GPUArray's around in arguments or overwite one with another via assignment (inexpensive swaps can be
+pass GPUArray's around in arguments or overwrite one with another via assignment (inexpensive swaps can be
 performed with swap()). The ArrayHandle acquisition method guarantees that every acquired handle will be
 released. About the only thing it \b doesn't do is prevent the user from writing to a pointer acquired
 with a read only mode.
@@ -450,7 +450,7 @@ template<class T> class GPUArray
         //! Helper function to resize a 2D device array
        inline T* resize2DDeviceArray(unsigned int pitch, unsigned int new_pitch, unsigned int height, unsigned int new_height );
 
-        // need to be frineds of all the implementations of ArrayHandle and ArrayHandleAsync
+        // need to be friends of all the implementations of ArrayHandle and ArrayHandleAsync
         friend class ArrayHandle<T>;
 #ifdef ENABLE_CUDA
         friend class ArrayHandleAsync<T>;
@@ -691,7 +691,7 @@ a = b;
 b = c;
     \endcode
 
-    But it will be done in a super-efficent way by just swapping the internal pointers, thus avoiding all the expensive
+    But it will be done in a super-efficient way by just swapping the internal pointers, thus avoiding all the expensive
     memory deallocations/allocations and copies using the copy constructor and assignment operator.
 */
 template<class T> void GPUArray<T>::swap(GPUArray& from)
@@ -906,7 +906,7 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
 #ifdef ENABLE_CUDA
         else if (m_data_location == data_location::hostdevice)
             {
-            // finally perform the action baed on the access mode requested
+            // finally perform the action based on the access mode requested
             if (mode == access_mode::read)  // state stays on hostdevice
                 m_data_location = data_location::hostdevice;
             else if (mode == access_mode::readwrite)    // state goes to host
@@ -924,7 +924,7 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
             }
         else if (m_data_location == data_location::device)
             {
-            // finally perform the action baed on the access mode requested
+            // finally perform the action based on the access mode requested
             if (mode == access_mode::read)
                 {
                 // need to copy data from the device to the host
@@ -980,7 +980,7 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
         // then break down based on the current location of the data
         if (m_data_location == data_location::host)
             {
-            // finally perform the action baed on the access mode requested
+            // finally perform the action based on the access mode requested
             if (mode == access_mode::read)
                 {
                 // need to copy data to the device
@@ -1011,7 +1011,7 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
             }
         else if (m_data_location == data_location::hostdevice)
             {
-            // finally perform the action baed on the access mode requested
+            // finally perform the action based on the access mode requested
             if (mode == access_mode::read)  // state stays on hostdevice
                 m_data_location = data_location::hostdevice;
             else if (mode == access_mode::readwrite)    // state goes to device

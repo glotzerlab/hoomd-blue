@@ -28,9 +28,9 @@ using namespace std;
 /*! \param sysdef SystemDefinition containing the Particle data to analyze
     \param fname File name to write output to
     \param header_prefix String to print before the file header
-    \param overwrite Will overwite an exiting file if true (default is to append)
+    \param overwrite Will overwrite an exiting file if true (default is to append)
 
-    On construction, the initial coordinates of all parrticles in the system are recoreded. The file is opened
+    On construction, the initial coordinates of all particles in the system are recorded. The file is opened
     (and overwritten if told to). Nothing is initially written to the file, that will occur on the first call to
     analyze()
 */
@@ -351,7 +351,7 @@ void MSDAnalyzer::writeRow(unsigned int timestep, const SnapshotParticleData<Sca
     if (!m_file.good())
         {
         m_exec_conf->msg->error() << "analyze.msd: I/O error while writing file" << endl;
-        throw runtime_error("Error writting msd file");
+        throw runtime_error("Error writing msd file");
         }
 
     if (m_prof) m_prof->pop();

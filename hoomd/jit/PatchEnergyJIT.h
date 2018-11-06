@@ -81,7 +81,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
         //! function pointer signature
         typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, float, float, unsigned int type_j, const quat<float>& q_j, float, float);
         Scalar m_r_cut;                             //!< Cutoff radius
-        std::shared_ptr<EvalFactory> m_factory;       //!< The factory for the evaulator function
+        std::shared_ptr<EvalFactory> m_factory;       //!< The factory for the evaluator function
         EvalFactory::EvalFnPtr m_eval;                //!< Pointer to evaluator function inside the JIT module
     };
 

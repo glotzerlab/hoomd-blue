@@ -162,13 +162,13 @@ std::vector< std::string > Integrator::getProvidedLogQuantities()
     classes that calculate any of these on their own can (and should) return their calculated values. To do so
     an overridden getLogValue() should have the following logic:
     \code
-    if (quantitiy == "my_calculated_quantitiy1")
+    if (quantity == "my_calculated_quantity1")
         return my_calculated_quantity1;
-    else if (quantitiy == "my_calculated_quantitiy2")
+    else if (quantity == "my_calculated_quantity2")
         return my_calculated_quantity2;
     else return Integrator::getLogValue(quantity, timestep);
     \endcode
-    In this way the "overriden" quantity is handled by the derived class and any other quantities are passed up
+    In this way the "overridden" quantity is handled by the derived class and any other quantities are passed up
     to the base class to be handled there.
 
     See Logger for more information on what this is about.
@@ -305,7 +305,7 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 /*! \param timestep Current time step of the simulation
     \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
     \note The summation step is performed <b>on the CPU</b> and will result in a lot of data traffic back and forth
-          if the forces and/or integrater are on the GPU. Call computeNetForcesGPU() to sum the forces on the GPU
+          if the forces and/or integrator are on the GPU. Call computeNetForcesGPU() to sum the forces on the GPU
 */
 void Integrator::computeNetForce(unsigned int timestep)
     {
@@ -488,7 +488,7 @@ void Integrator::computeNetForce(unsigned int timestep)
 
 #ifdef ENABLE_CUDA
 /*! \param timestep Current time step of the simulation
-    \post All added frce computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
+    \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
     \note The summation step is performed <b>on the GPU</b>.
 */
 void Integrator::computeNetForceGPU(unsigned int timestep)
@@ -871,7 +871,7 @@ void Integrator::prepRun(unsigned int timestep)
 #ifdef ENABLE_MPI
 /*! \param tstep Time step for which to determine the flags
 
-    The flags needed are determiend by peeking to \a tstep and then using bitwise or
+    The flags needed are determined by peeking to \a tstep and then using bitwise or
     to combine the flags from all ForceComputes
 */
 CommFlags Integrator::determineFlags(unsigned int timestep)

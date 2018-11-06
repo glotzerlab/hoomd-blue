@@ -57,7 +57,7 @@ extern bool hoomd_launch_timing;
 
     The execution configuration is determined at the beginning of the run and must
     remain static for the entire run. It can be accessed from the ParticleData of the
-    system. DO NOT construct additional exeuction configurations. Only one is to be created for each run.
+    system. DO NOT construct additional execution configurations. Only one is to be created for each run.
 
     The execution mode is specified in exec_mode. This is only to be taken as a hint,
     different compute classes are free to fall back on CPU implementations if no GPU is available. However,
@@ -349,7 +349,7 @@ private:
         return (unsigned int)m_gpu_available.size();
         }
 
-    std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not
+    std::vector< bool > m_gpu_available;    //!< true if the GPU is available for computation, false if it is not
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
     std::vector< cudaEvent_t > m_events;      //!< A list of events to synchronize between GPUs

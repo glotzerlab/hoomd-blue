@@ -27,7 +27,7 @@ extern __shared__ Scalar s_gammas[];
     \param box simulation box
     \param d_diameter array of particle diameters
     \param d_tag array of particle tags
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param nwork Number of group members to process on this GPU
     \param d_net_force Net force on each particle
     \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)
@@ -252,7 +252,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
     \param box simulation box
     \param d_diameter array of particle diameters
     \param d_tag array of particle tags
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
     \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)

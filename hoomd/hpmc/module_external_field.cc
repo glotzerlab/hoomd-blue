@@ -32,7 +32,7 @@
 namespace py = pybind11;
 
 namespace hpmc{
-// NOTE: I am only exporting 3d shapes for now beacuse I think the 2d ones need some tweaking (how to do this generally?)
+// NOTE: I am only exporting 3d shapes for now because I think the 2d ones need some tweaking (how to do this generally?)
 
 SphereWall make_sphere_wall(Scalar r, py::list origin, bool inside)
     {

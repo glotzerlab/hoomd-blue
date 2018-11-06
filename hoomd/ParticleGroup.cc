@@ -113,7 +113,7 @@ ParticleSelectorType::ParticleSelectorType(std::shared_ptr<SystemDefinition> sys
         m_exec_conf->msg->warning() << "group: max < min specified when selecting particle types" << endl;
 
     if (m_typ_max >= m_pdata->getNTypes())
-        m_exec_conf->msg->warning() << "group: Requesting the selection of a non-existant particle type" << endl;
+        m_exec_conf->msg->warning() << "group: Requesting the selection of a non-existent particle type" << endl;
     }
 
 /*! \param tag Tag of the particle to check
@@ -156,7 +156,7 @@ ParticleSelectorRigid::ParticleSelectorRigid(std::shared_ptr<SystemDefinition> s
     }
 
 /*! \param tag Tag of the particle to check
-    \returns true if the type of particle \a tag meets the rigid critera selected
+    \returns true if the type of particle \a tag meets the rigid criteria selected
 */
 bool ParticleSelectorRigid::isSelected(unsigned int tag) const
     {
@@ -434,7 +434,7 @@ void ParticleGroup::updateMemberTags(bool force_update) const
         vector<unsigned int> member_tags;
 
             {
-            // loop through local particles and select those that match selection criterium
+            // loop through local particles and select those that match selection criterion
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
             for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
                 {
@@ -520,7 +520,7 @@ void ParticleGroup::reallocate() const
     }
 
 /*! \returns Total mass of all particles in the group
-    \note This method aquires the ParticleData internally
+    \note This method acquires the ParticleData internally
 */
 Scalar ParticleGroup::getTotalMass() const
     {
@@ -538,7 +538,7 @@ Scalar ParticleGroup::getTotalMass() const
     }
 
 /*! \returns The center of mass of the group, in unwrapped coordinates
-    \note This method aquires the ParticleData internally
+    \note This method acquires the ParticleData internally
 */
 Scalar3 ParticleGroup::getCenterOfMass() const
     {

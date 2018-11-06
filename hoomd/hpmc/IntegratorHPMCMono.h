@@ -490,7 +490,7 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     // skip the reallocation if the number of types does not change
     // this keeps old potential coefficients when restoring a snapshot
-    // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+    // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
     if (m_pdata->getNTypes() == m_overlap_idx.getW())
         return;
 
@@ -1213,7 +1213,7 @@ void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& pa
     // validate input
     if (typ >= this->m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set pair params for a non existant type! "
+        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set pair params for a non existent type! "
                   << typ << std::endl;
         throw std::runtime_error("Error setting parameters in IntegratorHPMCMono");
         }
@@ -1234,14 +1234,14 @@ void IntegratorHPMCMono<Shape>::setOverlapChecks(unsigned int typi, unsigned int
     // validate input
     if (typi >= this->m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existant type! "
+        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existent type! "
                   << typi << std::endl;
         throw std::runtime_error("Error setting interaction matrix in IntegratorHPMCMono");
         }
 
     if (typj >= this->m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existant type! "
+        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existent type! "
                   << typj << std::endl;
         throw std::runtime_error("Error setting interaction matrix in IntegratorHPMCMono");
         }
@@ -1464,7 +1464,7 @@ void IntegratorHPMCMono<Shape>::growAABBList(unsigned int N)
     buildAABBTree() relies on the member variable m_aabb_tree_invalid to work correctly. Any time particles
     are moved (and not updated with m_aabb_tree->update()) or the particle list changes order, m_aabb_tree_invalid
     needs to be set to true. Then buildAABBTree() will know to rebuild the tree from scratch on the next call. Typically
-    this is on the next timestep. But in same cases (i.e. NPT), the tree may need to be rebuilt several times in a
+    this is on the next timestep. But in some cases (i.e. NPT), the tree may need to be rebuilt several times in a
     single step because of box volume moves.
 
     Subclasses that override update() or other methods must be user to set m_aabb_tree_invalid appropriately, or

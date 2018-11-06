@@ -100,7 +100,7 @@ class IntegratorHPMCMonoImplicitNewGPU : public IntegratorHPMCMonoImplicit<Shape
         GPUArray<curandDiscreteDistribution_t> m_poisson_dist; //!< Handles for the poisson distribution histogram
         std::vector<bool> m_poisson_dist_created;               //!< Flag to indicate if Poisson distribution has been initialized
 
-        GPUArray<unsigned int> m_active_cell_ptl_idx;  //!< List of update particle indicies per active cell
+        GPUArray<unsigned int> m_active_cell_ptl_idx;  //!< List of update particle indices per active cell
         GPUArray<unsigned int> m_active_cell_accept;   //!< List of accept/reject flags per active cell
         GPUArray<unsigned int> m_active_cell_move_type_translate;   //!< Type of move proposed in active cell
 
@@ -580,7 +580,7 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::update(unsigned int timestep)
                         // counters
                         ArrayHandle<hpmc_implicit_counters_t> d_implicit_count(this->m_implicit_count, access_location::device, access_mode::readwrite);
 
-                        // apply acceptance/rejection criterium
+                        // apply acceptance/rejection criterion
                         detail::gpu_hpmc_implicit_accept_reject_new<Shape>(
                             detail::hpmc_implicit_args_new_t(d_postype.data,
                                 d_orientation.data,

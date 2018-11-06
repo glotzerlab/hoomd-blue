@@ -126,7 +126,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
         // apply periodic boundary conditions: (FLOPS 12)
         dx = box.minImage(dx);
 
-        // calculate r squard (FLOPS: 5)
+        // calculate r squared (FLOPS: 5)
         Scalar rsq = dot(dx, dx);
 
         // calculate 1/r^2 (FLOPS: 2)

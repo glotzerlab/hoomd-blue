@@ -60,7 +60,7 @@ void Compute::setProfiler(std::shared_ptr<Profiler> prof)
         at this \a timestep.
     \note This method is designed to only be called once per call to compute() like so:
 \code
-void SomeClass::compute(unsgned int timestep)
+void SomeClass::compute(unsigned int timestep)
     {
     if (!shouldCompute(timestep))
         return;

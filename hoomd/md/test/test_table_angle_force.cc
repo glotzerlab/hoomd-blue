@@ -91,7 +91,7 @@ void angle_force_basic_tests(angleforce_creator tf_creator, std::shared_ptr<Exec
     }
 
     // add an angle and check again
-    sysdef_3->getAngleData()->addBondedGroup(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
+    sysdef_3->getAngleData()->addBondedGroup(Angle(0,0,1,2)); // add type 0 between angle formed by atom 0-1-2
     fc_3->compute(1);
 
     Scalar rough_tol = 0.1;

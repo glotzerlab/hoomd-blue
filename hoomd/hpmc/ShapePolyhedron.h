@@ -31,10 +31,10 @@
 #endif
 
 /*!  This overlap check has been optimized to the best of my ability. However, further optimizations may still be possible,
-  in particular regarding the tree traversal and the type of bounding volume hiarchy. Generally, I have found
+  in particular regarding the tree traversal and the type of bounding volume hierarchy. Generally, I have found
   OBB's to perform superior to AABB's and spheres, because they are tightly fitting. The tandem overlap check is also
   faster than checking all leaves against the tree on the CPU. On the GPU, leave against tree traversal may be faster due
-  to the possibility of parallellizing over the leave nodes, but that also leads to longer autotuning times. Even though
+  to the possibility of parallelizing over the leave nodes, but that also leads to longer autotuning times. Even though
   tree traversal is non-recursive, occasionally I see stack errors (= overflows) on Pascal GPUs when the shape is highly complicated.
   Then the stack frame could be increased using cudaDeviceSetLimit().
 
@@ -117,7 +117,7 @@ struct poly3d_data : param_base
 }; // end namespace detail
 
 //!  Polyhedron shape template
-/*! ShapePolyhedron implements IntegragorHPMC's shape protocol.
+/*! ShapePolyhedron implements IntegratorHPMC's shape protocol.
 
     The parameter defining a polyhedron is a structure containing a list of n_faces faces, each representing
     a polygon, for which the vertices are stored in sorted order, giving a total number of n_verts vertices.
@@ -198,7 +198,7 @@ DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& 
 
     OverlapReal d1 = dot(ab, ap);
     OverlapReal d2 = dot(ac, ap);
-    if (d1 <= OverlapReal(0.0) && d2 <= OverlapReal(0.0)) return a; // barycentric coordiantes (1,0,0)
+    if (d1 <= OverlapReal(0.0) && d2 <= OverlapReal(0.0)) return a; // barycentric coordinates (1,0,0)
 
     // Check if P in vertex region outside B
     vec3<OverlapReal> bp = p - b;

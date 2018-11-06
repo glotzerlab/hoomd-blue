@@ -65,7 +65,7 @@ def print_status_line():
     # get the traceback info first
     stack = traceback.extract_stack();
     if len(stack) < 3:
-        hoomd.context.msg.notice(2, "hoomd_script executing unknown command\n");
+        hoomd.context.msg.notice(2, "hoomd executing unknown command\n");
 
     if sys.version_info[:3] != (3, 5, 0):
         frame = -3
@@ -116,7 +116,7 @@ def cuda_profile_start():
 
     Example::
 
-        from hoomd_script import *
+        from hoomd import *
         init.read_xml("init.xml");
         # setup....
         run(30000);  # warm up and auto-tune kernel block sizes

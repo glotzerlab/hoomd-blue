@@ -388,7 +388,7 @@ class BondedGroupData
             }
 
         #ifdef ENABLE_MPI
-        //! Return auxillary array of member particle ranks (const)
+        //! Return auxiliary array of member particle ranks (const)
         const GPUVector<ranks_t>& getRanksArray() const
             {
             return m_group_ranks;
@@ -420,7 +420,7 @@ class BondedGroupData
             }
 
         #ifdef ENABLE_MPI
-        //! Return auxillary array of member particle ranks
+        //! Return auxiliary array of member particle ranks
         GPUVector<ranks_t>& getRanksArray()
             {
             return m_group_ranks;
@@ -460,7 +460,7 @@ class BondedGroupData
             }
 
         #ifdef ENABLE_MPI
-        //! Return auxillary array of member particle ranks
+        //! Return auxiliary array of member particle ranks
         GPUVector<ranks_t>& getAltRanksArray()
             {
             m_group_ranks_alt.resize(m_group_ranks.size());

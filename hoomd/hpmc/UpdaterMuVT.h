@@ -74,7 +74,7 @@ class UpdaterMuVT : public Updater
             m_transfer_ratio = transfer_ratio;
             }
 
-        //! List of types that are inserted/removed/transfered
+        //! List of types that are inserted/removed/transferred
         void setTransferTypes(std::vector<unsigned int>& transfer_types)
             {
             assert(transfer_types.size() <= m_pdata->getNTypes());
@@ -160,17 +160,17 @@ class UpdaterMuVT : public Updater
         hpmc_muvt_counters_t m_count_step_start;     //!< Count saved at the start of the last step
 
         std::vector<std::vector<unsigned int> > m_type_map;   //!< Local list of particle tags per type
-        std::vector<unsigned int> m_transfer_types;  //!< List of types being insert/removed/transfered between boxes
+        std::vector<unsigned int> m_transfer_types;  //!< List of types being insert/removed/transferred between boxes
 
         GPUVector<Scalar4> m_pos_backup;             //!< Backup of particle positions for volume move
         GPUVector<Scalar4> m_orientation_backup;     //!< Backup of particle orientations for volume move
         GPUVector<Scalar> m_charge_backup;           //!< Backup of particle charges for volume move
         GPUVector<Scalar> m_diameter_backup;         //!< Backup of particle diameters for volume move
 
-        /*! Check for overlaps of a fictituous particle
+        /*! Check for overlaps of a fictitious particle
          * \param timestep Current time step
          * \param type Type of particle to test
-         * \param pos Position of fictitous particle
+         * \param pos Position of fictitious particle
          * \param orientation Orientation of particle
          * \param lnboltzmann Log of Boltzmann weight of insertion attempt (return value)
          * \returns True if boltzmann weight is non-zero
@@ -711,7 +711,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                         }
                     #endif
 
-                    // apply acceptance criterium
+                    // apply acceptance criterion
                     bool accept = false;
                     if (nonzero)
                         {
@@ -763,7 +763,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 // in Gibbs ensemble, we should not use correlated random numbers with box 1
                 hoomd::detail::Saru rng_local(rng.u32());
 
-                // choose a random particle type out of those being transfered
+                // choose a random particle type out of those being transferred
                 assert(m_transfer_types.size() > 0);
                 unsigned int type = m_transfer_types[rand_select(rng_local, m_transfer_types.size()-1)];
 
@@ -855,7 +855,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     }
                 else
                     {
-                    // apply acceptance criterium
+                    // apply acceptance criterion
                     if (nonzero)
                         {
                         accept  = (rng_local.f() < exp(lnboltzmann));
@@ -993,7 +993,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     unsigned int accept = 0;
                     if (nonzero)
                         {
-                        // apply acceptance criterium
+                        // apply acceptance criterion
                         accept = rng.f() < exp(lnboltzmann);
                         }
 
@@ -1234,7 +1234,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 MPI_Status stat;
                 MPI_Recv(&other_ndof, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
 
-                // apply criterium on rank zero
+                // apply criterion on rank zero
                 Scalar arg = log(V_new/V)*(Scalar)(ndof+1)+log(V_new_other/V_other)*(Scalar)(other_ndof+1)
                     + lnb + other_lnb;
 
@@ -1250,7 +1250,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 // send number of particles
                 MPI_Send(&ndof, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
 
-                // wait for result of acceptance criterium
+                // wait for result of acceptance criterion
                 MPI_Status stat;
                 unsigned int result;
                 MPI_Recv(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);

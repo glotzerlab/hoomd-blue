@@ -301,7 +301,7 @@ class SupportFuncConvexPolyhedron
 }; // end namespace detail
 
 //! Convex Polyhedron shape template
-/*! ShapeConvexPolyhedron implements IntegragorHPMC's shape protocol.
+/*! ShapeConvexPolyhedron implements IntegratorHPMC's shape protocol.
 
     The parameter defining a polyhedron is a structure containing a list of N vertices, centered on 0,0. In fact, it is
     **required** that the origin is inside the shape, and it is best if the origin is the center of mass.

@@ -59,10 +59,10 @@ class EvaluatorPairDipole
     public:
         typedef Scalar3 param_type;
         //! Constructs the pair potential evaluator
-        /*! \param _dr Displacement vector between particle centres of mass
+        /*! \param _dr Displacement vector between particle centers of mass
             \param _rcutsq Squared distance at which the potential goes to 0
-            \param _quat_i Quaterion of i^{th} particle
-            \param _quat_j Quaterion of j^{th} particle
+            \param _quat_i Quaternion of i^{th} particle
+            \param _quat_j Quaternion of j^{th} particle
             \param _mu Dipole magnitude of particles
             \param _A Electrostatic energy scale
             \param _kappa Inverse screening length
@@ -107,8 +107,8 @@ class EvaluatorPairDipole
         /*! \param force Output parameter to write the computed force.
             \param pair_eng Output parameter to write the computed pair energy.
             \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff.
-            \param torque_i The torque exterted on the i^th particle.
-            \param torque_j The torque exterted on the j^th particle.
+            \param torque_i The torque exerted on the i^th particle.
+            \param torque_j The torque exerted on the j^th particle.
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
         DEVICE  bool
@@ -219,11 +219,11 @@ class EvaluatorPairDipole
         #endif
 
     protected:
-        Scalar3 dr;                 //!< Stored vector pointing between particle centres of mass
+        Scalar3 dr;                 //!< Stored vector pointing between particle centers of mass
         Scalar rcutsq;              //!< Stored rcutsq from the constructor
         Scalar q_i, q_j;            //!< Stored particle charges
-        Scalar4 quat_i,quat_j;      //!< Stored quaternion of ith and jth particle from constuctor
-        Scalar mu, A, kappa;        //!< Stored dipole magnitude, electrostatic magnitude and inverse screeing length
+        Scalar4 quat_i,quat_j;      //!< Stored quaternion of ith and jth particle from constructor
+        Scalar mu, A, kappa;        //!< Stored dipole magnitude, electrostatic magnitude and inverse screening length
     };
 
 

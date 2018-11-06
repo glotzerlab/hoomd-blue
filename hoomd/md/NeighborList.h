@@ -56,7 +56,7 @@
     The head list for accessing elements can be gotten with getHeadList()
     and the array itself can be accessed with getNlistArray().
 
-    The number of neighbors for each particle is stored in an auxilliary array accessed with getNNeighArray().
+    The number of neighbors for each particle is stored in an auxiliary array accessed with getNNeighArray().
 
      - <code>jf = nlist[head_list[i] + n]</code> is the index of neighbor \a n of particle \a i, where \a n can vary from
        0 to <code>n_neigh[i] - 1</code>
@@ -74,8 +74,8 @@
 
     \b Algorithms:
 
-    This base class supplys no build algorithm for generating this list, it must be overridden by deriving classes.
-    Derived classes implement O(N) efficient straetegies using a CellList or a BVH tree.
+    This base class supplies no build algorithm for generating this list, it must be overridden by deriving classes.
+    Derived classes implement O(N) efficient strategies using a CellList or a BVH tree.
 
     <b>Needs update check:</b>
 
@@ -99,7 +99,7 @@
     through the neighbor list and removes any particles that are excluded. This allows an arbitrary number of exclusions
     to be processed without slowing the performance of the buildNlist() step itself.
 
-    <b>Overvlow handling:</b>
+    <b>Overflow handling:</b>
     For easy support of derived GPU classes to implement overflow detection the overflow condition is stored in the
     GlobalArray \a d_conditions.
 
@@ -141,8 +141,8 @@ class PYBIND11_EXPORT NeighborList : public Compute
         virtual void setRBuff(Scalar r_buff);
 
         //! Change how many timesteps before checking to see if the list should be rebuilt
-        /*! \param every Number of time steps to wait before beignning to check if particles have moved a sufficient distance
-                   to require a neighbor list upate.
+        /*! \param every Number of time steps to wait before beginning to check if particles have moved a sufficient distance
+                   to require a neighbor list update.
             \param dist_check Set to false to enforce nlist builds exactly \a every steps
         */
         void setEvery(unsigned int every, bool dist_check=true)
@@ -432,7 +432,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
          */
         virtual void setCommunicator(std::shared_ptr<Communicator> comm);
 
-        //! Returns true if the particle migration criterium is fulfilled
+        //! Returns true if the particle migration criterion is fulfilled
         /*! \param timestep The current timestep
          */
         bool peekUpdate(unsigned int timestep);
@@ -460,7 +460,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         GlobalArray<Scalar> m_rcut_max;//!< The maximum value of rcut per particle type
         Scalar m_rcut_max_max;      //!< The maximum cutoff radius of any pair
         Scalar m_rcut_min;          //!< The smallest cutoff radius of any pair (that is > 0)
-        Scalar m_r_buff;            //!< The buffer around the cuttoff
+        Scalar m_r_buff;            //!< The buffer around the cutoff
         Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
         bool m_diameter_shift;      //!< Set to true if the neighborlist rcut(i,j) should be diameter shifted
@@ -497,7 +497,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
 
-        //! Updates the idx exlcusion list
+        //! Updates the idx exclusion list
         virtual void updateExListIdx();
 
         //! Loops through all pairs, and updates the r_list(i,j)
@@ -545,7 +545,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
 
         int64_t m_updates;              //!< Number of times the neighbor list has been updated
-        int64_t m_forced_updates;       //!< Number of times the neighbor list has been foribly updated
+        int64_t m_forced_updates;       //!< Number of times the neighbor list has been forcibly updated
         int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
         bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
         bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_every steps)

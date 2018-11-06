@@ -71,7 +71,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     }
 
     // add a dihedral and check the force again
-    sysdef_4->getDihedralData()->addBondedGroup(Dihedral(0,0,1,2,3)); // add type 0 dihedral bewtween atoms 0-1-2-3
+    sysdef_4->getDihedralData()->addBondedGroup(Dihedral(0,0,1,2,3)); // add type 0 dihedral between atoms 0-1-2-3
     fc_4->compute(1);
 
     {

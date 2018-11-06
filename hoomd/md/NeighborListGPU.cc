@@ -126,7 +126,7 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
     if (m_pdata->getDomainDecomposition())
         {
         if (m_prof) m_prof->push(m_exec_conf,"MPI allreduce");
-        // check if migrate criterium is fulfilled on any rank
+        // check if migrate criterion is fulfilled on any rank
         int local_result = result ? 1 : 0;
         int global_result = 0;
         MPI_Allreduce(&local_result,
@@ -145,7 +145,7 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
     return result;
     }
 
-/*! Calls gpu_nlsit_filter() to filter the neighbor list on the GPU
+/*! Calls gpu_nlist_filter() to filter the neighbor list on the GPU
 */
 void NeighborListGPU::filterNlist()
     {

@@ -43,7 +43,7 @@ cudaError_t gpu_zero_velocities(Scalar4 *d_vel, unsigned int N)
     // run the kernel
     gpu_zero_velocities_kernel<<< grid, threads >>>(d_vel, N);
 
-    // this method always succeds. If you had a cuda* call in this driver, you could return its error code if not
+    // this method always succeeds. If you had a cuda* call in this driver, you could return its error code if not
     // cudaSuccess
     return cudaSuccess;
     }

@@ -35,7 +35,7 @@ namespace hpmc
 // put a few misc math functions here as they don't have any better home
 namespace detail
     {
-    // !helper to call CPU or GPU signbit
+    //! helper to call CPU or GPU signbit
     template <class T> HOSTDEVICE inline int signbit(const T& a)
         {
         #ifdef __CUDA_ARCH__
@@ -125,7 +125,7 @@ struct param_base
 
 
 //! Sphere shape template
-/*! ShapeSphere implements IntegragorHPMC's shape protocol. It serves at the simplest example of a shape for HPMC
+/*! ShapeSphere implements IntegratorHPMC's shape protocol. It serves at the simplest example of a shape for HPMC
 
     The parameter defining a sphere is just a single Scalar, the sphere radius.
 
@@ -163,7 +163,7 @@ struct ShapeSphere
         return params.isOriented;
         }
 
-    //!Ignore flag for acceptance statistics
+    //! Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return params.ignore; }
 
     //! Get the circumsphere diameter

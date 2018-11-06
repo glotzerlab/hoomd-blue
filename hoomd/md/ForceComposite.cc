@@ -394,7 +394,7 @@ void ForceComposite::validateRigidBodies(bool create)
                         {
                         m_exec_conf->msg->error() << "constrain.rigid(): A rigid body type may not contain constituent particles "
                             << "that are also rigid bodies!" << std::endl;
-                        throw std::runtime_error("Error intializing ForceComposite");
+                        throw std::runtime_error("Error initializing ForceComposite");
                         }
                     }
                 }
@@ -420,7 +420,7 @@ void ForceComposite::validateRigidBodies(bool create)
             typedef std::map<unsigned int, unsigned int> map_t;
             map_t count_body_ptls;
 
-            // count number of constituent particls to add
+            // count number of constituent particles to add
             for (unsigned i = 0; i < snap.size; ++i)
                 {
                 assert(snap.type[i] < ntypes);
@@ -491,7 +491,7 @@ void ForceComposite::validateRigidBodies(bool create)
 
                             if (h_body_type.data[m_body_idx(body_type, n)] != snap.type[i])
                                 {
-                                m_exec_conf->msg->error() << "constrain.rigid(): Constituent particle types must be consistent with rigid body parametrs." << std::endl;
+                                m_exec_conf->msg->error() << "constrain.rigid(): Constituent particle types must be consistent with rigid body parameters." << std::endl;
                                 throw std::runtime_error("Error validating rigid bodies\n");
                                 }
 

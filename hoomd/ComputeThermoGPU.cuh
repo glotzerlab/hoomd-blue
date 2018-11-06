@@ -30,7 +30,7 @@ struct compute_thermo_args
     unsigned int ndof;      //!< Number of degrees of freedom for T calculation
     unsigned int D;         //!< Dimensionality of the system
     Scalar4 *d_scratch;      //!< n_blocks elements of scratch space for partial sums
-    Scalar *d_scratch_pressure_tensor; //!< n_blocks*6 elements of scratch spaace for partial sums of the pressure tensor
+    Scalar *d_scratch_pressure_tensor; //!< n_blocks*6 elements of scratch space for partial sums of the pressure tensor
     Scalar *d_scratch_rot;      //!< Scratch space for rotational kinetic energy partial sums
     unsigned int block_size;    //!< Block size to execute on the GPU
     unsigned int n_blocks;      //!< Number of blocks to execute / n_blocks * block_size >= group_size

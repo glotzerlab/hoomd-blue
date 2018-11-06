@@ -256,7 +256,7 @@ struct ghost_layer_width_request
      */
     ghost_layer_width_request(Scalar r_ghost) : m_r_ghost(r_ghost) {}
 
-    //! Get the ghost width layey
+    //! Get the ghost layer width
     /*!
      * \param type Type index
      * \returns Constant ghost layer width for all types

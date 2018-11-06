@@ -15,7 +15,7 @@
     the GPU. Used by Enforce2DUpdaterGPU.
 */
 
-//! Constrains partcles to the xy plane on the GPU
+//! Constrains particles to the xy plane on the GPU
 /*! \param N number of particles in system
     \param d_vel Particle velocities to constrain to xy plane
     \param d_accel Particle accelerations to constrain to xy plane

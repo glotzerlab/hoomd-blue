@@ -29,7 +29,7 @@
 /*! ComputeThermo calculates instantaneous thermodynamic properties and provides them for the logger.
     All computed values are stored in a GlobalArray so that they can be accessed on the GPU without intermediate copies.
     Use the enum values in thermo_index to index the array and extract the properties of interest. Convenience functions
-    are provided for accessing the values on the CPU. Certain properties, loke ndof and num_particles are always known
+    are provided for accessing the values on the CPU. Certain properties, like ndof and num_particles are always known
     and there is no need for them to be accessible via the GPUArray.
 
     Computed quantities available in the GPUArray:
@@ -50,7 +50,7 @@
 
     All quantities are made available for the logger. ComputerThermo can be given a suffix which it will append
     to each quantity provided to the logger. Typical usage is to provide _groupname as the suffix so that properties
-    of different groups can be logged seperately (e.g. temperature_group1 and temperature_group2).
+    of different groups can be logged separately (e.g. temperature_group1 and temperature_group2).
 
     \ingroup computes
 */

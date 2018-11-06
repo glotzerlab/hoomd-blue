@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-# this simple python interface just actiavates the c++ ExampleUpdater from cppmodule
+# this simple python interface just activates the c++ ExampleUpdater from cppmodule
 # Check out any of the python code in lib/hoomd-python-module/hoomd_script for moreexamples
 
 # First, we need to import the C++ module. It has the same name as this module (example_plugin) but with an underscore

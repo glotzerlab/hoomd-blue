@@ -39,10 +39,10 @@ class EvaluatorPairGB
         typedef Scalar3 param_type;
 
         //! Constructs the pair potential evaluator
-        /*! \param _dr Displacement vector between particle centres of mass
+        /*! \param _dr Displacement vector between particle centers of mass
             \param _rcutsq Squared distance at which the potential goes to 0
-            \param _q_i Quaterion of i^th particle
-            \param _q_j Quaterion of j^th particle
+            \param _q_i Quaternion of i^th particle
+            \param _q_j Quaternion of j^th particle
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairGB(const Scalar3& _dr,
@@ -84,8 +84,8 @@ class EvaluatorPairGB
         /*! \param force Output parameter to write the computed force.
             \param pair_eng Output parameter to write the computed pair energy.
             \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff.
-            \param torque_i The torque exterted on the i^th particle.
-            \param torque_j The torque exterted on the j^th particle.
+            \param torque_i The torque exerted on the i^th particle.
+            \param torque_j The torque exerted on the j^th particle.
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
         DEVICE  bool

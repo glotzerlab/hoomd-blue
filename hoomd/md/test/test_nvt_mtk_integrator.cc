@@ -36,7 +36,7 @@ using namespace std::placeholders;
 HOOMD_UP_MAIN();
 
 
-//! Typedef'd NVTUpdator class factory
+//! Typedef'd NVTUpdater class factory
 typedef std::function<std::shared_ptr<TwoStepNVTMTK> (std::shared_ptr<SystemDefinition> sysdef,
                                                  std::shared_ptr<ParticleGroup> group,
                                                  std::shared_ptr<ComputeThermo> thermo,

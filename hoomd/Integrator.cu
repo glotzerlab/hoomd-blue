@@ -40,7 +40,7 @@ __device__ void add_force_total(Scalar4& net_force, Scalar *net_virial, Scalar4&
     }
 
 //! Kernel for summing forces on the GPU
-/*! The speicified forces and virials are summed for every particle into \a d_net_force and \a d_net_virial
+/*! The specified forces and virials are summed for every particle into \a d_net_force and \a d_net_virial
 
     \param d_net_force Output device array to hold the computed net force
     \param d_net_virial Output device array to hold the computed net virial
@@ -87,7 +87,7 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4 *d_net_force,
             }
         else
             {
-            // if clear is false, intialize to the current d_net_force and d_net_virial
+            // if clear is false, initialize to the current d_net_force and d_net_virial
             net_force = d_net_force[idx];
             if (compute_virial)
                 {

@@ -38,7 +38,7 @@ using namespace std;
     \param _msg Messenger to use for status message printing
     \param n_ranks Number of ranks per partition
 
-    Explicitly force the use of either CPU or GPU execution. If GPU exeuction is selected, then a default GPU choice
+    Explicitly force the use of either CPU or GPU execution. If GPU execution is selected, then a default GPU choice
     is made by not calling cudaSetDevice.
 */
 ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
@@ -328,7 +328,7 @@ std::string ExecutionConfiguration::getGPUName(unsigned int idev) const
 
 #ifdef ENABLE_CUDA
 /*! \returns Compute capability of GPU 0 as a string
-    \note Silently returns an emtpy string if no GPUs are specified
+    \note Silently returns an empty string if no GPUs are specified
 */
 std::string ExecutionConfiguration::getComputeCapabilityAsString(unsigned int idev) const
     {
@@ -342,7 +342,7 @@ std::string ExecutionConfiguration::getComputeCapabilityAsString(unsigned int id
     return s.str();
     }
 
-/*! \returns Compute capability of the GPU formated as 210 (for compute 2.1 as an example)
+/*! \returns Compute capability of the GPU formatted as 210 (for compute 2.1 as an example)
     \note Silently returns 0 if no GPU is being used
 */
 unsigned int ExecutionConfiguration::getComputeCapability(unsigned int idev) const
@@ -381,7 +381,7 @@ void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, 
     \pre scanGPUs has been called
 
     initializeGPU will loop through the specified list of GPUs, validate that each one is available for CUDA use
-    and then setup CUDA to use the given GPU. After initialzeGPU completes, cuda calls can be made by the main
+    and then setup CUDA to use the given GPU. After initializeGPU completes, cuda calls can be made by the main
     application.
 */
 void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
@@ -683,7 +683,7 @@ bool ExecutionConfiguration::isGPUAvailable(int gpu_id)
 
 
 /*! \pre scanGPUs() has been called
-    \return The count of avaialble GPUs deteremined by scanGPUs
+    \return The count of available GPUs determined by scanGPUs
 */
 int ExecutionConfiguration::getNumCapableGPUs()
     {

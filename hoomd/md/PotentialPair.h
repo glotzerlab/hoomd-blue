@@ -42,13 +42,13 @@
 /*! <b>Overview:</b>
     PotentialPair computes standard pair potentials (and forces) between all particle pairs in the simulation. It
     employs the use of a neighbor list to limit the number of computations done to only those particles with the
-    cuttoff radius of each other. The computation of the actual V(r) is not performed directly by this class, but
-    by an evaluator class (e.g. EvaluatorPairLJ) which is passed in as a template parameter so the compuations
+    cutoff radius of each other. The computation of the actual V(r) is not performed directly by this class, but
+    by an evaluator class (e.g. EvaluatorPairLJ) which is passed in as a template parameter so the computations
     are performed as efficiently as possible.
 
     PotentialPair handles most of the gory internal details common to all standard pair potentials.
-     - A cuttoff radius to be specified per particle type pair
-     - The energy can be globally shifted to 0 at the cuttoff
+     - A cutoff radius to be specified per particle type pair
+     - The energy can be globally shifted to 0 at the cutoff
      - XPLOR switching can be enabled
      - Per type pair parameters are stored and a set method is provided
      - Logging methods are provided for the energy
@@ -57,10 +57,10 @@
     A note on the design of XPLOR switching:
     We need to be able to handle smooth XPLOR switching in systems of mixed LJ/WCA particles. There are three modes to
     enable all of the various use-cases:
-     - Mode 1: No shifting. All pair potentials are computed as is and not shifted to 0 at the cuttoff.
-     - Mode 2: Shift everything. All pair potentials (no matter what type pair) are shifted so they are 0 at the cuttoff
+     - Mode 1: No shifting. All pair potentials are computed as is and not shifted to 0 at the cutoff.
+     - Mode 2: Shift everything. All pair potentials (no matter what type pair) are shifted so they are 0 at the cutoff
      - Mode 3: XPLOR switching enabled. A r_on value is specified per type pair. When r_on is less than r_cut, normal
-       XPLOR switching will be applied to the unshifted potential. When r_on is greather than r_cut, the energy will
+       XPLOR switching will be applied to the unshifted potential. When r_on is greater than r_cut, the energy will
        be shifted. In this manner, a valid r_on value can be given for the LJ interactions and r_on > r_cut can be set
        for WCA (which will then be shifted).
 
@@ -71,7 +71,7 @@
     <b>Implementation details</b>
 
     rcutsq, ronsq, and the params are stored per particle type pair. It wastes a little bit of space, but benchmarks
-    show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redudant pairs
+    show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redundant pairs
     and indexing with Index2DUpperTriangular. All of these values are stored in GlobalArray
     for easy access on the GPU by a derived class. The type of the parameters is defined by \a param_type in the
     potential evaluator class passed in. See the appropriate documentation for the evaluator for the definition of each
@@ -79,7 +79,7 @@
 
     For profiling and logging, PotentialPair needs to know the name of the potential. For now, that will be queried from
     the evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
-    independantly.
+    independently.
 
     \sa export_PotentialPair()
 */
@@ -141,7 +141,7 @@ class PotentialPair : public ForceCompute
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
-        GlobalArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
+        GlobalArray<Scalar> m_rcutsq;                  //!< Cutoff radius squared per type pair
         GlobalArray<Scalar> m_ronsq;                   //!< ron squared per type pair
         GlobalArray<param_type> m_params;              //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
@@ -155,7 +155,7 @@ class PotentialPair : public ForceCompute
             {
             // skip the reallocation if the number of types does not change
             // this keeps old potential coefficients when restoring a snapshot
-            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
             if (m_pdata->getNTypes() == m_typpair_idx.getW())
                 return;
 
@@ -262,7 +262,7 @@ void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2,
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set pair params for a non existant type! "
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set pair params for a non existent type! "
                   << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
         }
@@ -274,7 +274,7 @@ void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2,
 
 /*! \param typ1 First type index in the pair
     \param typ2 Second type index in the pair
-    \param rcut Cuttoff radius to set
+    \param rcut Cutoff radius to set
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically
           set.
 */
@@ -283,7 +283,7 @@ void PotentialPair< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, S
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set rcut for a non existant type! "
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set rcut for a non existent type! "
                   << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
         }
@@ -304,7 +304,7 @@ void PotentialPair< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Sc
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set ron for a non existant type! "
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set ron for a non existent type! "
                   << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
         }

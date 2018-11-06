@@ -46,7 +46,7 @@ TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
     }
 
 /*! \param timestep Current time step
-    \post Particle positions are moved forward a full time step and velocities are redrawn from the proper distrubtion.
+    \post Particle positions are moved forward a full time step and velocities are redrawn from the proper distribution.
 */
 void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
     {

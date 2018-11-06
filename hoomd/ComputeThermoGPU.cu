@@ -121,7 +121,7 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
     \param block_offset Offset of this GPU in the array of partial sums
     \param num_blocks Total number of partial sums by all GPUs
 
-    One thread is executed per group member. That thread reads in the six values (components of the presure tensor)
+    One thread is executed per group member. That thread reads in the six values (components of the pressure tensor)
     for its member into shared memory and then the block performs a reduction in parallel to produce a partial sum output for the block.
     These partial sums are written to d_scratch[i*gridDim.x + blockIdx.x], where i=0..5 is the index of the component.
     For this kernel to run, 6*sizeof(Scalar)*block_size of dynamic shared memory are needed.
@@ -276,7 +276,7 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
 /*! \param d_properties Property array to write final values
     \param d_scratch Partial sums
     \param d_scratch_rot Partial sums of rotational kinetic energy
-    \param ndof Number of degrees of freedom this group posesses
+    \param ndof Number of degrees of freedom this group possesses
     \param box Box the particles are in
     \param D Dimensionality of the system
     \param group_size Number of particles in the group

@@ -25,7 +25,7 @@
 /*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface, runs on the GPU
 
     In order to compute efficiently and limit the number of kernel launches integrateStepOne() performs a first
-    pass reduction on the sum of m*v^2 and stores the partial reductions. A second kernel is then launched to recude
+    pass reduction on the sum of m*v^2 and stores the partial reductions. A second kernel is then launched to reduce
     those to a final \a sum2K, which is a scalar but stored in a GPUArray for convenience.
 
     \ingroup updaters

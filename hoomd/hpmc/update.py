@@ -518,7 +518,7 @@ class muvt(_updater):
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
         seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
         period (int): Number of timesteps between histogram evaluations.
-        transfer_types (list): List of type names that are being transfered from/to the reservoir or between boxes (if *None*, all types)
+        transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes (if *None*, all types)
         ngibbs (int): The number of partitions to use in Gibbs ensemble simulations (if == 1, perform grand canonical muVT)
 
     The muVT (or grand-canonical) ensemble simulates a system at constant fugacity.
@@ -663,7 +663,7 @@ class muvt(_updater):
         # register the muvt updater
         self.setupUpdater(period);
 
-        # set the list of transfered types
+        # set the list of transferred types
         if not isinstance(transfer_types,list):
             hoomd.context.msg.error("update.muvt: Need list of types to transfer.\n");
             raise RuntimeError("Error initializing update.muvt");
@@ -769,7 +769,7 @@ class remove_drift(_updater):
     """
     def __init__(self, mc, external_lattice, period=1):
         hoomd.util.print_status_line();
-        #initiliaze base class
+        #initialize base class
         _updater.__init__(self);
         cls = None;
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -837,13 +837,13 @@ class clusters(_updater):
     The GCA as described in Liu and Lujten (2004), http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape,
     patch interactions and depletants.
 
-    With depletants, Clusters are defined by a simple distance cut-off criterium. Two particles belong to the same cluster if
+    With depletants, Clusters are defined by a simple distance cut-off criterion. Two particles belong to the same cluster if
     the circumspheres of the depletant-excluded volumes overlap.
 
     Supported moves include pivot moves (point reflection), line reflections (pi rotation around an axis), and type swaps.
     Only the pivot move is rejection free. With anisotropic particles, the pivot move cannot be used because it would create a
     chiral mirror image of the particle, and only line reflections are employed. Line reflections are not rejection free because
-    of periodic boundary conditions, as dicussed in Sinkovits et al. (2012), http://doi.org/10.1063/1.3694271 .
+    of periodic boundary conditions, as discussed in Sinkovits et al. (2012), http://doi.org/10.1063/1.3694271 .
 
     The type swap move works between two types of spherical particles and exchanges their identities.
 
@@ -857,7 +857,7 @@ class clusters(_updater):
 
     Example::
 
-        mc = hpmc.integrate.uphere(seed=415236)
+        mc = hpmc.integrate.sphere(seed=415236)
         hpmc.update.clusters(mc=mc, seed=123)
 
     """

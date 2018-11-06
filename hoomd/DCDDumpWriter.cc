@@ -59,7 +59,7 @@ static unsigned int read_int(fstream &file)
     \param overwrite If false, existing files will be appended to. If true, existing files will be overwritten.
 
     \note You must call analyze() with the same period specified in the constructor or
-    the time step inforamtion in the file will be invalid. analyze() will print a warning
+    the time step information in the file will be invalid. analyze() will print a warning
     if it is called out of sequence.
 */
 DCDDumpWriter::DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
@@ -260,7 +260,7 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
     // check for errors
     if (!file.good())
         {
-        m_exec_conf->msg->error() << "dump.dcd: I/O rrror when writing DCD header" << endl;
+        m_exec_conf->msg->error() << "dump.dcd: I/O error when writing DCD header" << endl;
         throw runtime_error("Error writing DCD file");
         }
     }
@@ -300,7 +300,7 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
     // check for errors
     if (!file.good())
         {
-        m_exec_conf->msg->error() << "dump.dcd: I/O rrror while writing DCD frame header" << endl;
+        m_exec_conf->msg->error() << "dump.dcd: I/O error while writing DCD frame header" << endl;
         throw runtime_error("Error writing DCD file");
         }
     }

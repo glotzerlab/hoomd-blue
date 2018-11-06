@@ -19,7 +19,7 @@
 //! Texture for reading angle parameters
 scalar2_tex_t angle_params_tex;
 
-//! Kernel for caculating cosine squared angle forces on the GPU
+//! Kernel for calculating cosine squared angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch Pitch of 2D virial array
@@ -195,7 +195,7 @@ extern "C" __global__ void gpu_compute_cosinesq_angle_forces_kernel(Scalar4* d_f
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
-    \param virial_pitch pitch of 2D virial arary
+    \param virial_pitch pitch of 2D virial array
     \param N number of particles
     \param d_pos device array of particle positions
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions

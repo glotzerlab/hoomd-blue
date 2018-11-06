@@ -356,7 +356,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                     d_net_virial[4*net_virial_pitch+pidx] = Scalar(0.0);
                     d_net_virial[5*net_virial_pitch+pidx] = Scalar(0.0);
 
-                    // if this particle is not the central particle (incomplete molcules can't have local members)
+                    // if this particle is not the central particle (incomplete molecules can't have local members)
                     if (central_idx[m] < N)
                         {
                         vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], k-1)]);

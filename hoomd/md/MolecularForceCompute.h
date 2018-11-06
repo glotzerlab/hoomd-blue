@@ -24,7 +24,7 @@
     Every molecule has a unique contiguous tag, 0 <=tag <m_n_molecules_global.
 
     Derived classes take care of resizing the ghost layer accordingly so that
-    spanning molecules are communicated correctly. They connect to the Communciator
+    spanning molecules are communicated correctly. They connect to the Communicator
     signal using addGhostLayerWidthRequest() .
 
     In MPI simulations, MolecularForceCompute ensures that local molecules are complete by requesting communication of all

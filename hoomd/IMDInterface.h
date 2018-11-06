@@ -22,7 +22,7 @@
 #ifndef __IMD_INTERFACE_H__
 #define __IMD_INTERFACE_H__
 
-//! Iterfaces with VMD through the IMD communcations port
+//! Interfaces with VMD through the IMD communications port
 /*! analyze() can be called very often. When not connected to
     VMD, it will do nothing. After a connection has been established,
     which can only happen during a call to analyze(), further calls will

@@ -17,7 +17,7 @@
     \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
     \param d_image array of particle images
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param work_size Number of members in the group for this GPU
     \param box Box dimensions for periodic boundary condition handling
     \param exp_fac Velocity rescaling factor from thermostat
@@ -80,7 +80,7 @@ void gpu_nvt_mtk_step_one_kernel(Scalar4 *d_pos,
     \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
     \param d_image array of particle images
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
     \param block_size Size of the block to run
@@ -139,7 +139,7 @@ cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
 //! Takes the second 1/2 step forward in the NVT integration step
 /*! \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param work_size Number of members in the group for this GPU
     \param d_net_force Net force on each particle
     \param deltaT Amount of real time to step forward in one time step
@@ -188,7 +188,7 @@ void gpu_nvt_mtk_step_two_kernel(Scalar4 *d_vel,
 
 /*! \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
     \param block_size Size of the block to execute on the device

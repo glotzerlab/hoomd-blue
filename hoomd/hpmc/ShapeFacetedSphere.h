@@ -224,7 +224,7 @@ class SupportFuncFacetedSphere
 
 
 //! Faceted sphere shape template
-/*! ShapeFacetedSphere implements IntegragorHPMC's shape protocol for a sphere that is truncated
+/*! ShapeFacetedSphere implements IntegratorHPMC's shape protocol for a sphere that is truncated
     by a set of planes, defined through their plane equations n_i*x = n_i^2.
 
     The parameter defining the sphere is just a single Scalar, the sphere radius.

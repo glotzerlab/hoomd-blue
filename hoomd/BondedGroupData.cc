@@ -423,7 +423,7 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBond
     // increment number of bonded groups
     m_nglobal++;
 
-    // notifiy observers
+    // notify observers
     m_group_num_change_signal.emit();
     notifyGroupReorder();
 
@@ -644,7 +644,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
     m_recycled_tags.push(tag);
     m_nglobal--;
 
-    // notifiy observers
+    // notify observers
     m_group_num_change_signal.emit();
     notifyGroupReorder();
     }
@@ -674,7 +674,7 @@ const std::string BondedGroupData<group_size, Group, name, has_type_mapping>::ge
     // check for an invalid request
     if (type >= m_type_mapping.size())
         {
-        m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
+        m_exec_conf->msg->error() << "Requesting type name for non-existent type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
 
@@ -688,7 +688,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::setTypeName(uns
     // check for an invalid request
     if (type >= this->m_type_mapping.size())
         {
-        m_exec_conf->msg->error() << "Setting type name for non-existant type " << type << endl;
+        m_exec_conf->msg->error() << "Setting type name for non-existent type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
 
@@ -936,7 +936,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 /*! \param snapshot Snapshot that will contain the group data
  * \returns a map to lookup snapshot index by tag
  *
- *  Data in the snapshot is in tag order, where non-existant tags are skipped
+ *  Data in the snapshot is in tag order, where non-existent tags are skipped
  */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 std::map<unsigned int, unsigned int> BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapshot& snapshot) const

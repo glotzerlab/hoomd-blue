@@ -190,7 +190,7 @@ struct hpmc_implicit_counters_t
     unsigned long long int insert_count;                //!< Count of depletants inserted
     unsigned long long int free_volume_count;           //!< Count of depletants in free volume
     unsigned long long int overlap_count;               //!< Count of depletants in free volume which overlap
-    unsigned long long int reinsert_count;              //!< Count of resinserted depletants
+    unsigned long long int reinsert_count;              //!< Count of reinserted depletants
 
     //! Construct a zero set of counters
     hpmc_implicit_counters_t()
@@ -295,7 +295,7 @@ struct hpmc_muvt_counters_t
         }
 
 
-    //! Get the volume ecceptance
+    //! Get the volume acceptance
     /*! \returns The ratio of volume moves that are accepted, or 0 if there are no volume moves
     */
     DEVICE double getVolumeAcceptance()
@@ -325,7 +325,7 @@ struct hpmc_muvt_counters_t
 
     };
 
-//! Storage for cluseter move acceptance counters
+//! Storage for cluster move acceptance counters
 /*! \ingroup hpmc_data_structs */
 struct hpmc_clusters_counters_t
     {

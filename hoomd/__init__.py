@@ -31,7 +31,7 @@ will not require any modifications. **Maintainer:** Joshua A. Anderson
 
 .. attention::
 
-    This stability guaruntee only applies to modules in the :py:mod:`hoomd` package.
+    This stability guarantee only applies to modules in the :py:mod:`hoomd` package.
     Subpackages (:py:mod:`hoomd.hpmc`, :py:mod:`hoomd.md`, etc...) may or may not
     have a stable API. The documentation for each subpackage specifies the level of
     API stability it provides.
@@ -130,7 +130,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     There are a number of mechanisms to limit the time of a running hoomd script. Use these in a job
     queuing environment to allow your script to cleanly exit before reaching the system enforced walltime limit.
 
-    Force :py:func:`run()` to end only on time steps that are a multiple of ``limit_mulitple``. Set this to the period at which you
+    Force :py:func:`run()` to end only on time steps that are a multiple of ``limit_multiple``. Set this to the period at which you
     dump restart files so that you always end a :py:func:`run()` cleanly at a point where you can restart from. Use
     ``phase=0`` on logs, file dumps, and other periodic tasks. With ``phase=0``, these tasks will continue on the same
     sequence regardless of the restart period.
@@ -164,7 +164,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     if not quiet:
         util.print_status_line();
-    # check if initialization has occured
+    # check if initialization has occurred
     if not init.is_initialized():
         context.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
@@ -223,7 +223,7 @@ def run_upto(step, **keywords):
     """
     if 'quiet' in keywords and not keywords['quiet']:
         util.print_status_line();
-    # check if initialization has occured
+    # check if initialization has occurred
     if not init.is_initialized():
         context.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');

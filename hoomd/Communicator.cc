@@ -620,7 +620,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
 
         unsigned int old_ngroups = m_gdata->getN();
 
-        // resize group arrays to accomodate additional groups (there can still be duplicates with local groups)
+        // resize group arrays to accommodate additional groups (there can still be duplicates with local groups)
         m_gdata->addGroups(n_recv_unique);
 
         GPUVector<typename group_data::members_t>& groups_array = m_gdata->getMembersArray();
@@ -2347,7 +2347,7 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
 
                 assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
 
-                // copy velocityition into send buffer
+                // copy velocity into send buffer
                 h_velocity_copybuf.data[ghost_idx] = h_vel.data[idx];
                 }
             }

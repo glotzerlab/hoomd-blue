@@ -73,7 +73,7 @@ std::vector< std::string > TwoStepNVTMTK::getProvidedLogQuantities()
 
 /*! \param quantity Name of the log quantity to get
     \param timestep Current time step of the simulation
-    \param my_quantity_flag passed as false, changed to true if quanity logged here
+    \param my_quantity_flag passed as false, changed to true if quantity logged here
 */
 
 Scalar TwoStepNVTMTK::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
@@ -165,7 +165,7 @@ void TwoStepNVTMTK::integrateStepOne(unsigned int timestep)
         }
     }
 
-    // Integration of angular degrees of freedom using sympletic and
+    // Integration of angular degrees of freedom using symplectic and
     // time-reversal symmetric integration scheme of Miller et al., extended by thermostat
     if (m_aniso)
         {

@@ -34,13 +34,13 @@
 /*! <b>Overview:</b>
     AnisoPotentialPair computes standard pair potentials (and forces) between all particle pairs in the simulation. It
     employs the use of a neighbor list to limit the number of computations done to only those particles with the
-    cuttoff radius of each other. The computation of the actual V(r) is not performed directly by this class, but
-    by an aniso_evaluator class (e.g. EvaluatorPairLJ) which is passed in as a template parameter so the compuations
+    cutoff radius of each other. The computation of the actual V(r) is not performed directly by this class, but
+    by an aniso_evaluator class (e.g. EvaluatorPairLJ) which is passed in as a template parameter so the computations
     are performed as efficiently as possible.
 
     AnisoPotentialPair handles most of the gory internal details common to all standard pair potentials.
-     - A cuttoff radius to be specified per particle type pair
-     - The energy can be globally shifted to 0 at the cuttoff
+     - A cutoff radius to be specified per particle type pair
+     - The energy can be globally shifted to 0 at the cutoff
      - Per type pair parameters are stored and a set method is provided
      - Logging methods are provided for the energy
      - And all the details about looping through the particles, computing dr, computing the virial, etc. are handled
@@ -50,7 +50,7 @@
     <b>Implementation details</b>
 
     rcutsq and the params are stored per particle type pair. It wastes a little bit of space, but benchmarks
-    show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redudant pairs
+    show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redundant pairs
     and indexing with Index2DUpperTriangular. All of these values are stored in GlobalArray
     for easy access on the GPU by a derived class. The type of the parameters is defined by \a param_type in the
     potential aniso_evaluator class passed in. See the appropriate documentation for the aniso_evaluator for the definition of each
@@ -58,7 +58,7 @@
 
     For profiling and logging, AnisoPotentialPair needs to know the name of the potential. For now, that will be queried from
     the aniso_evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
-    independantly.
+    independently.
 
     \sa export_AnisoAnisoPotentialPair()
 */
@@ -116,7 +116,7 @@ class AnisoPotentialPair : public ForceCompute
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
-        GlobalArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
+        GlobalArray<Scalar> m_rcutsq;                  //!< Cutoff radius squared per type pair
         GlobalArray<param_type> m_params;   //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
@@ -129,7 +129,7 @@ class AnisoPotentialPair : public ForceCompute
             {
             // skip the reallocation if the number of types does not change
             // this keeps old potential coefficients when restoring a snapshot
-            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
             if (m_pdata->getNTypes() == m_typpair_idx.getW())
                 return;
 
@@ -231,7 +231,7 @@ void AnisoPotentialPair< aniso_evaluator >::setParams(unsigned int typ1, unsigne
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": Trying to set pair params for a non existant type! "
+        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": Trying to set pair params for a non existent type! "
                   << typ1 << "," << typ2 << std::endl << std::endl;
         throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
         }
@@ -243,7 +243,7 @@ void AnisoPotentialPair< aniso_evaluator >::setParams(unsigned int typ1, unsigne
 
 /*! \param typ1 First type index in the pair
     \param typ2 Second type index in the pair
-    \param rcut Cuttoff radius to set
+    \param rcut Cutoff radius to set
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically
           set.
 */
@@ -252,7 +252,7 @@ void AnisoPotentialPair< aniso_evaluator >::setRcut(unsigned int typ1, unsigned 
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": Trying to set rcut for a non existant type! "
+        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": Trying to set rcut for a non existent type! "
                   << typ1 << "," << typ2 << std::endl << std::endl;
         throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
         }

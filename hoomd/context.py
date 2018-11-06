@@ -17,7 +17,7 @@ import socket
 import getpass
 import platform
 
-# The following global variables keep track of the walltime and processing time since the import of hoomd_script
+# The following global variables keep track of the walltime and processing time since the import of hoomd
 import time
 TIME_START = time.time()
 CLOCK_START = time.clock()
@@ -109,10 +109,10 @@ class SimulationContext(object):
 
     """
     def __init__(self):
-        ## Global variable that holds the SystemDefinition shared by all parts of hoomd_script
+        ## Global variable that holds the SystemDefinition shared by all parts of hoomd
         self.system_definition = None;
 
-        ## Global variable that holds the System shared by all parts of hoomd_script
+        ## Global variable that holds the System shared by all parts of hoomd
         self.system = None;
 
         ## Global variable that holds the balanced domain decomposition in MPI runs if it is requested
@@ -393,12 +393,12 @@ class ExecutionContext(hoomd.meta._metadata):
     def username(self):
         return getpass.getuser()
 
-    # \brief Return the wallclock time since the import of hoomd_script
+    # \brief Return the wallclock time since the import of hoomd
     @property
     def wallclocktime(self):
         return time.time() - TIME_START
 
-    # \brief Return the CPU clock time since the import of hoomd_script
+    # \brief Return the CPU clock time since the import of hoomd
     @property
     def cputime(self):
         return time.clock() - CLOCK_START

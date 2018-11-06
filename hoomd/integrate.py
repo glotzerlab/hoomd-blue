@@ -54,8 +54,8 @@ import sys;
 ## \internal
 # \brief Base class for integrators
 #
-# An integrator in hoomd_script reflects an Integrator in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd_script
+# An integrator in hoomd reflects an Integrator in c++. It is responsible
+# for all high-level management that happens behind the scenes for hoomd
 # writers. 1) The instance of the c++ integrator itself is tracked 2) All
 # forces created so far in the simulation are updated in the cpp_integrator
 # whenever run() is called.
@@ -65,7 +65,7 @@ class _integrator(hoomd.meta._metadata):
     #
     # This doesn't really do much bet set some member variables to None
     def __init__(self):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("Cannot create integrator before initialization\n");
             raise RuntimeError('Error creating integrator');
@@ -95,7 +95,7 @@ class _integrator(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_integrator is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_integrator not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd.integrate: cpp_integrator not set, please report\n');
             raise RuntimeError();
 
     ## \internal
@@ -107,7 +107,7 @@ class _integrator(hoomd.meta._metadata):
         self.cpp_integrator.removeForceComputes();
         for f in hoomd.context.current.forces:
             if f.cpp_force is None:
-                hoomd.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
+                hoomd.context.msg.error('Bug in hoomd.integrate: cpp_force not set, please report\n');
                 raise RuntimeError('Error updating forces');
 
             if f.log or f.enabled:
@@ -119,7 +119,7 @@ class _integrator(hoomd.meta._metadata):
         # set the constraint forces
         for f in hoomd.context.current.constraint_forces:
             if f.cpp_force is None:
-                hoomd.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
+                hoomd.context.msg.error('Bug in hoomd.integrate: cpp_force not set, please report\n');
                 raise RuntimeError('Error updating forces');
 
             if f.enabled:
@@ -178,7 +178,7 @@ class _integrator(hoomd.meta._metadata):
             raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 
     def restore_state(self):
-        """ Resore the state information from the file used to initialize the simulations
+        """ Restore the state information from the file used to initialize the simulations
         """
         hoomd.util.print_status_line();
         if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_integrator, "restoreStateGSD"):
@@ -193,8 +193,8 @@ class _integrator(hoomd.meta._metadata):
 ## \internal
 # \brief Base class for integration methods
 #
-# An integration_method in hoomd_script reflects an IntegrationMethod in c++. It is responsible for all high-level
-# management that happens behind the scenes for hoomd_script writers. 1) The instance of the c++ integration method
+# An integration_method in hoomd.integrate reflects an IntegrationMethod in c++. It is responsible for all high-level
+# management that happens behind the scenes for hoomd.integrate writers. 1) The instance of the c++ integration method
 # itself is tracked and added to the integrator and 2) methods are provided for disabling the integration method from
 # being active for the next run()
 #
@@ -205,7 +205,7 @@ class _integration_method(hoomd.meta._metadata):
     #
     # Initializes the cpp_method to None.
     def __init__(self):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("Cannot create an integration method before initialization\n");
             raise RuntimeError('Error creating integration method');
@@ -231,7 +231,7 @@ class _integration_method(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_method is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_method not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd.integrate: cpp_method not set, please report\n');
             raise RuntimeError();
 
     def disable(self):

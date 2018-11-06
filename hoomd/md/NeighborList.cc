@@ -430,14 +430,14 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
  * \param typ1 Particle type 1
  * \param typ2 Particle type 2
  * \param r_cut Cutoff radius between particles of types 1 and 2
- * \note Changing the cuttoff radius does NOT immediately update the neighborlist.
-         The new cuttoff will take effect when compute is called for the next timestep.
+ * \note Changing the cutoff radius does NOT immediately update the neighborlist.
+         The new cutoff will take effect when compute is called for the next timestep.
 */
 void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "nlist: Trying to set rcut for a non existant type! "
+        this->m_exec_conf->msg->error() << "nlist: Trying to set rcut for a non existent type! "
                   << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error changing NeighborList parameters");
         }
@@ -517,7 +517,7 @@ void NeighborList::updateRList()
     }
 
 /*! \returns an estimate of the number of neighbors per particle
-    This mean-field estimate may be very bad dending on how clustered particles are.
+    This mean-field estimate may be very bad depending on how clustered particles are.
     Derived classes can override this method to provide better estimates.
 
     \note Under NO circumstances should calling this method produce any
@@ -715,7 +715,7 @@ void NeighborList::countExclusions()
     }
 
 /*! After calling addExclusionFromBonds() all bonds specified in the attached ParticleData will be
-    added as exlusions. Any additional bonds added after this will not be automatically added as exclusions.
+    added as exclusions. Any additional bonds added after this will not be automatically added as exclusions.
 */
 void NeighborList::addExclusionsFromBonds()
     {
@@ -815,7 +815,7 @@ void NeighborList::addExclusionsFromDihedrals()
     }
 
 /*! After calling addExclusionFromConstraints() all constraints specified in the attached ConstraintData will be
-    added as exlusions. Any additional constraints added after this will not be automatically added as exclusions.
+    added as exclusions. Any additional constraints added after this will not be automatically added as exclusions.
 */
 void NeighborList::addExclusionsFromConstraints()
     {
@@ -849,7 +849,7 @@ void NeighborList::addExclusionsFromConstraints()
     }
 
 /*! After calling addExclusionFromPairs() all pairs specified in the attached ParticleData will be
-    added as exlusions. Any additional pairs added after this will not be automatically added as exclusions.
+    added as exclusions. Any additional pairs added after this will not be automatically added as exclusions.
 */
 void NeighborList::addExclusionsFromPairs()
     {
@@ -932,7 +932,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
 
     for (unsigned int i = 0; i < nBonds; i++)
         {
-        // loop over all bonds and make a 1D exlcusion map
+        // loop over all bonds and make a 1D exclusion map
 
         // FIXME: this will not work when the group tags are not contiguous
         Bond bondi = bond_data->getGroupByTag(i);
@@ -940,7 +940,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
 
-        // next, incremement the number of bonds, and update the tags
+        // next, increment the number of bonds, and update the tags
         const unsigned int nBondsA = ++localBondList[tagA*MAXNBONDS];
         const unsigned int nBondsB = ++localBondList[tagB*MAXNBONDS];
 
@@ -948,14 +948,14 @@ void NeighborList::addOneThreeExclusionsFromTopology()
             {
             m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA << endl;
             m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
-            throw runtime_error("Error setting up toplogical exclusions in NeighborList");
+            throw runtime_error("Error setting up topological exclusions in NeighborList");
             }
 
         if (nBondsB >= MAXNBONDS)
             {
             m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB << endl;
             m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
-            throw runtime_error("Error setting up toplogical exclusions in NeighborList");
+            throw runtime_error("Error setting up topological exclusions in NeighborList");
             }
 
         localBondList[tagA*MAXNBONDS + nBondsA] = tagB;
@@ -1011,12 +1011,12 @@ void NeighborList::addOneFourExclusionsFromTopology()
 
     for (unsigned int i = 0; i < nBonds; i++)
         {
-        // loop over all bonds and make a 1D exlcusion map
+        // loop over all bonds and make a 1D exclusion map
         Bond bondi = bond_data->getGroupByTag(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
 
-        // next, incrememt the number of bonds, and update the tags
+        // next, increment the number of bonds, and update the tags
         const unsigned int nBondsA = ++localBondList[tagA*MAXNBONDS];
         const unsigned int nBondsB = ++localBondList[tagB*MAXNBONDS];
 
@@ -1024,14 +1024,14 @@ void NeighborList::addOneFourExclusionsFromTopology()
             {
             m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA << endl;
             m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
-            throw runtime_error("Error setting up toplogical exclusions in NeighborList");
+            throw runtime_error("Error setting up topological exclusions in NeighborList");
             }
 
         if (nBondsB >= MAXNBONDS)
             {
             m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB << endl;
             m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
-            throw runtime_error("Error setting up toplogical exclusions in NeighborList");
+            throw runtime_error("Error setting up topological exclusions in NeighborList");
             }
 
         localBondList[tagA*MAXNBONDS + nBondsA] = tagB;
@@ -1136,7 +1136,7 @@ bool NeighborList::distanceCheck(unsigned int timestep)
     if (m_pdata->getDomainDecomposition())
         {
         if (m_prof) m_prof->push("MPI allreduce");
-        // check if migrate criterium is fulfilled on any rank
+        // check if migrate criterion is fulfilled on any rank
         int local_result = result ? 1 : 0;
         int global_result = 0;
         MPI_Allreduce(&local_result,
@@ -1271,7 +1271,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
     // warn the user if this is a dangerous build
     if (result && dangerous)
         {
-        m_exec_conf->msg->notice(2) << "nlist: Dangerous neighborlist build occured. Continuing this simulation may produce incorrect results and/or program crashes. Decrease the neighborlist check_period and rerun." << endl;
+        m_exec_conf->msg->notice(2) << "nlist: Dangerous neighborlist build occurred. Continuing this simulation may produce incorrect results and/or program crashes. Decrease the neighborlist check_period and rerun." << endl;
         m_dangerous_updates += 1;
         }
 
@@ -1281,13 +1281,13 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 
 /*! Generic statistics that apply to any neighbor list, like the number of updates,
     average number of neighbors, etc... are printed to stdout. Derived classes should
-    print any pertinient information they see fit to.
+    print any pertinent information they see fit to.
 
     \todo fix these statistics to work correctly for MPI runs
  */
 void NeighborList::printStats()
     {
-    // return earsly if the notice level is less than 1
+    // return early if the notice level is less than 1
     if (m_exec_conf->msg->getNoticeLevel() < 1)
         return;
 
@@ -1560,8 +1560,8 @@ void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
     Compute::setCommunicator(comm);
     }
 
-//! Returns true if the particle migration criterium is fulfilled
-/*! \note The criterium for when to request particle migration is the same as the one for neighbor list
+//! Returns true if the particle migration criterion is fulfilled
+/*! \note The criterion for when to request particle migration is the same as the one for neighbor list
     rebuilds, which is implemented in needsUpdating().
  */
 bool NeighborList::peekUpdate(unsigned int timestep)

@@ -151,7 +151,7 @@ const unsigned int FILTER_BATCH_SIZE = 4;
     \b Implementation
 
     One thread is run for each particle. Exclusions \a ex_start, \a ex_start + 1, ... are loaded in for that particle
-    (or the thread returns if there are no exlusions past that point). The thread then loops over the neighbor list,
+    (or the thread returns if there are no exclusions past that point). The thread then loops over the neighbor list,
     comparing each entry to the list of exclusions. If the entry is not excluded, it is written back out. \a d_n_neigh
     is updated to reflect the current number of particles in the list at the end of the kernel call.
 */

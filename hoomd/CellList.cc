@@ -58,7 +58,7 @@ CellList::~CellList()
     }
 
 //! Round down to the nearest multiple
-/*! \param v Value to ound
+/*! \param v Value to round
     \param m Multiple
     \returns \a v if it is a multiple of \a m, otherwise, \a v rounded down to the nearest multiple of \a m.
 */
@@ -213,7 +213,7 @@ double CellList::benchmark(unsigned int num_iters)
     {
     ClockSource t;
 
-    // ensure that any changed parameters have been propagaged and memory allocated
+    // ensure that any changed parameters have been propagated and memory allocated
     compute(0);
 
     // warm up run
@@ -646,7 +646,7 @@ uint3 CellList::readConditions()
  */
 void CellList::printStats()
     {
-    // return earsly if the notice level is less than 1
+    // return early if the notice level is less than 1
     if (m_exec_conf->msg->getNoticeLevel() < 1)
         return;
 

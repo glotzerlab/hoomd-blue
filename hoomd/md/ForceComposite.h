@@ -142,7 +142,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
             if (!m_comm_ghost_layer_connected)
                 {
-                // register this class with the communciator
+                // register this class with the communicator
                 m_comm->getExtraGhostLayerWidthRequestSignal().connect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
                 m_comm_ghost_layer_connected = true;
                 }

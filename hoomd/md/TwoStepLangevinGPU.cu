@@ -30,7 +30,7 @@ extern __shared__ Scalar bdtally_sdata[];
     \param d_accel array of particle accelerations
     \param d_diameter array of particle diameters
     \param d_tag array of particle tags
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
     \param d_gamma List of per-type gammas
@@ -152,7 +152,7 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
         vel.y += (Scalar(1.0)/Scalar(2.0)) * accel.y * deltaT;
         vel.z += (Scalar(1.0)/Scalar(2.0)) * accel.z * deltaT;
 
-        // tally the energy transfer from the bd thermal reservor to the particles (FLOPS: 6)
+        // tally the energy transfer from the bd thermal reservoir to the particles (FLOPS: 6)
         bd_energy_transfer =  bd_force.x *vel.x +  bd_force.y * vel.y +  bd_force.z * vel.z;
 
         // write out data (MEM TRANSFER: 32 bytes)
@@ -164,7 +164,7 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
 
     if (tally)
         {
-        // don't ovewrite values in the s_gammas array with bd_energy transfer
+        // don't overwrite values in the s_gammas array with bd_energy transfer
         __syncthreads();
         bdtally_sdata[threadIdx.x] = bd_energy_transfer;
         __syncthreads();
@@ -191,7 +191,7 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
 
 //! Kernel function for reducing a partial sum to a full sum (one value)
 /*! \param d_sum Placeholder for the sum
-    \param d_partial_sum Array containing the parial sum
+    \param d_partial_sum Array containing the partial sum
     \param num_blocks Number of blocks to execute
 */
 extern "C" __global__
@@ -237,7 +237,7 @@ extern "C" __global__
     \param d_angmom array of particle conjugate quaternions
     \param d_inertia array of moments of inertia
     \param d_net_torque array of net torques
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)
     \param d_tag array of particle tags
     \param group_size Number of members in the group
@@ -370,7 +370,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
     \param d_angmom array of particle conjugate quaternions
     \param d_inertia array of moments of inertia
     \param d_net_torque array of net torques
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)
     \param d_tag array of particle tags
     \param group_size Number of members in the group
@@ -432,7 +432,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
     \param d_accel array of particle accelerations
     \param d_diameter array of particle diameters
     \param d_tag array of particle tags
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
     \param langevin_args Collected arguments for gpu_langevin_step_two_kernel() and gpu_langevin_angular_step_two()

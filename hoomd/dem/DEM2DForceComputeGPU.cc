@@ -25,7 +25,7 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
   \param nlist Neighborlist to use for computing the forces
-  \param r_cut Cuttoff radius beyond which the force is 0
+  \param r_cut Cutoff radius beyond which the force is 0
   \param potential Global potential parameters for the compute
 
   \post memory is allocated with empty shape vectors

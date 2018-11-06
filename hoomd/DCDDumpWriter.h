@@ -85,7 +85,7 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
     private:
         std::string m_fname;                //!< The file name we are writing to
         unsigned int m_start_timestep;      //!< First time step written to the file
-        unsigned int m_period;              //!< Time step period bewteen writes
+        unsigned int m_period;              //!< Time step period between writes
         std::shared_ptr<ParticleGroup> m_group; //!< Group of particles to write to the DCD file
         unsigned int m_num_frames_written;  //!< Count the number of frames written to the file
         unsigned int m_last_written_step;   //!< Last timestep written in a a file we are appending to
@@ -103,7 +103,7 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
 
         // helper functions
 
-        //! Initalizes the file header
+        //! Initializes the file header
         void write_file_header(std::fstream &file);
         //! Writes the frame header
         void write_frame_header(std::fstream &file);

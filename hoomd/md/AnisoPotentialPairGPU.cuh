@@ -152,13 +152,13 @@ scalar_tex_t aniso_pdata_charge_tex;
     \param ntypes Number of types in the simulation
     \param tpp Number of threads per particle
 
-    \a d_params and \a d_rcutsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
+    \a d_params and \a d_rcutsq must be indexed with an Index2DUpperTriangular(typei, typej) to access the
     unique value for that type pair. These values are all cached into shared memory for quick access, so a dynamic
-    amount of shared memory must be allocatd for this kernel launch. The amount is
+    amount of shared memory must be allocated for this kernel launch. The amount is
     (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
-    \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
+    \tparam evaluator EvaluatorPair class to evaluate V(r) and -delta V(r)/r
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
                        (See PotentialPair for a discussion on what that entails)
     \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
@@ -231,12 +231,12 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
     if (evaluator::needsDiameter())
         di = texFetchScalar(d_diameter, aniso_pdata_diam_tex, idx);
     else
-        di += 1.0f; // shutup compiler warning
+        di += 1.0f; // shut up compiler warning
     Scalar qi;
     if (evaluator::needsCharge())
         qi = texFetchScalar(d_charge, aniso_pdata_charge_tex, idx);
     else
-        qi += 1.0f; // shutup compiler warning
+        qi += 1.0f; // shut up compiler warning
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -273,13 +273,13 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
             if (evaluator::needsDiameter())
                 dj = texFetchScalar(d_diameter, aniso_pdata_diam_tex, cur_j);
             else
-                dj += 1.0f; // shutup compiler warning
+                dj += 1.0f; // shut up compiler warning
 
             Scalar qj = 0.0f;
             if (evaluator::needsCharge())
                 qj = texFetchScalar(d_charge, aniso_pdata_charge_tex, cur_j);
             else
-                qj += 1.0f; // shutup compiler warning
+                qj += 1.0f; // shut up compiler warning
 
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
             Scalar3 dx = posi - posj;
@@ -425,7 +425,7 @@ void gpu_pair_aniso_force_bind_textures(const a_pair_args_t pair_args)
     aniso_pdata_quat_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, aniso_pdata_quat_tex, pair_args.d_orientation, sizeof(Scalar4)*pair_args.n_max);
 
-    // bind the diamter texture
+    // bind the diameter texture
     aniso_pdata_diam_tex.normalized = false;
     aniso_pdata_diam_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, aniso_pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) * pair_args.n_max);
@@ -436,7 +436,7 @@ void gpu_pair_aniso_force_bind_textures(const a_pair_args_t pair_args)
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
-/*! \param pair_args Other arugments to pass onto the kernel
+/*! \param pair_args Other arguments to pass onto the kernel
     \param d_params Parameters for the potential, stored per type pair
 
     This is just a driver function for gpu_compute_pair_aniso_forces_kernel(), see it for details.

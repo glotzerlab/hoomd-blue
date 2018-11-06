@@ -31,7 +31,7 @@
     \param N Number of particles
     \param n_ghost Number of ghost particles
     \param Nmax Maximum number of particles that can be placed in a single cell
-    \param flag_charge Set to true to store chage in the flag position in \a d_xyzf
+    \param flag_charge Set to true to store charge in the flag position in \a d_xyzf
     \param flag_type Set to true to store type in the flag position in \a d_xyzf
     \param box Box dimensions
     \param ci Indexer to compute cell id from cell grid coords

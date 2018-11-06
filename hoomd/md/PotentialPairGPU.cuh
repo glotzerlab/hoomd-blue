@@ -29,7 +29,7 @@
 const int gpu_pair_force_max_tpp = 32;
 
 
-//! Wrapps arguments to gpu_cgpf
+//! Wraps arguments to gpu_cgpf
 struct pair_args_t
     {
     //! Construct a pair_args_t
@@ -143,13 +143,13 @@ texture<unsigned int, 1, cudaReadModeElementType> pair_nlist_tex;
     \param ntypes Number of types in the simulation
     \param offset Offset of first particle
 
-    \a d_params, \a d_rcutsq, and \a d_ronsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
+    \a d_params, \a d_rcutsq, and \a d_ronsq must be indexed with an Index2DUpperTriangular(typei, typej) to access the
     unique value for that type pair. These values are all cached into shared memory for quick access, so a dynamic
-    amount of shared memory must be allocatd for this kernel launch. The amount is
+    amount of shared memory must be allocated for this kernel launch. The amount is
     (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
-    \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
+    \tparam evaluator EvaluatorPair class to evaluate V(r) and -delta V(r)/r
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
                        (See PotentialPair for a discussion on what that entails)
     \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
@@ -238,12 +238,12 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
         if (evaluator::needsDiameter())
             di = texFetchScalar(d_diameter, pdata_diam_tex, idx);
         else
-            di += Scalar(1.0); // shutup compiler warning
+            di += Scalar(1.0); // shut up compiler warning
         Scalar qi;
         if (evaluator::needsCharge())
             qi = texFetchScalar(d_charge, pdata_charge_tex, idx);
         else
-            qi += Scalar(1.0); // shutup compiler warning
+            qi += Scalar(1.0); // shut up compiler warning
 
         unsigned int my_head = d_head_list[idx];
         unsigned int cur_j = 0;
@@ -283,13 +283,13 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                 if (evaluator::needsDiameter())
                     dj = texFetchScalar(d_diameter, pdata_diam_tex, cur_j);
                 else
-                    dj += Scalar(1.0); // shutup compiler warning
+                    dj += Scalar(1.0); // shut up compiler warning
 
                 Scalar qj = Scalar(0.0);
                 if (evaluator::needsCharge())
                     qj = texFetchScalar(d_charge, pdata_charge_tex, cur_j);
                 else
-                    qj += Scalar(1.0); // shutup compiler warning
+                    qj += Scalar(1.0); // shut up compiler warning
 
                 // calculate dr (with periodic boundary conditions) (FLOPS: 3)
                 Scalar3 dx = posi - posj;
@@ -297,7 +297,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                 // apply periodic boundary conditions: (FLOPS 12)
                 dx = box.minImage(dx);
 
-                // calculate r squard (FLOPS: 5)
+                // calculate r squared (FLOPS: 5)
                 Scalar rsq = dot(dx, dx);
 
                 // access the per type pair parameters
@@ -430,7 +430,7 @@ inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.n_max);
 
-    // bind the diamter texture
+    // bind the diameter texture
     pdata_diam_tex.normalized = false;
     pdata_diam_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) * pair_args.n_max);
@@ -462,7 +462,7 @@ inline void gpu_pair_force_unbind_textures(const pair_args_t pair_args)
 
 //! Pair force compute kernel launcher
 /*!
- * \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
+ * \tparam evaluator EvaluatorPair class to evaluate V(r) and -delta V(r)/r
  * \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
  *                       (See PotentialPair for a discussion on what that entails)
  * \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
@@ -478,7 +478,7 @@ struct PairForceComputeKernel
     {
     //! Launcher for the pair force kernel
     /*!
-     * \param pair_args Other arugments to pass onto the kernel
+     * \param pair_args Other arguments to pass onto the kernel
      * \param range Range of particle indices this GPU operates on
      * \param d_params Parameters for the potential, stored per type pair
      */
@@ -534,7 +534,7 @@ struct PairForceComputeKernel<evaluator, shift_mode, compute_virial, use_gmem_nl
     };
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
-/*! \param pair_args Other arugments to pass onto the kernel
+/*! \param pair_args Other arguments to pass onto the kernel
     \param d_params Parameters for the potential, stored per type pair
 
     This is just a driver function for gpu_compute_pair_forces_shared_kernel(), see it for details.

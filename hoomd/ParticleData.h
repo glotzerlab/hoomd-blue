@@ -332,9 +332,9 @@ struct pdata_element
     communication flag (m_comm_flags) for that particle to a non-zero value.
 
     In addition, since many other classes maintain internal arrays holding data for every particle (such as neighbor lists etc.), these
-    arrays need to be resized, too, if the particle number changes. Everytime the particle data arrays are reallocated, a
+    arrays need to be resized, too, if the particle number changes. Every time the particle data arrays are reallocated, a
     maximum particle number change signal is triggered. Other classes can subscribe to this signal using connectMaxParticleNumberChange().
-    They may use the current maxium size of the particle arrays, which is returned by getMaxN().  This size changes only infrequently
+    They may use the current maximum size of the particle arrays, which is returned by getMaxN().  This size changes only infrequently
     (by amortized array resizing). Note that getMaxN() can return a higher number
     than the actual number of particles.
 
@@ -448,7 +448,7 @@ class PYBIND11_EXPORT ParticleData
             return m_nparticles;
             }
 
-        //! Get the currrent maximum number of particles
+        //! Get the current maximum number of particles
         /*\ return Maximum number of particles that can be stored in the particle array
         * this number has to be larger than getN() + getNGhosts()
         */
@@ -606,7 +606,7 @@ class PYBIND11_EXPORT ParticleData
          * Access methods to stand-by arrays for fast swapping in of reordered particle data
          *
          * \warning An array that is swapped in has to be completely initialized.
-         *          In parallel simulations, the ghost data needs to be initalized as well,
+         *          In parallel simulations, the ghost data needs to be initialized as well,
          *          or all ghosts need to be removed and re-initialized before and after reordering.
          *
          * USAGE EXAMPLE:
@@ -759,13 +759,13 @@ class PYBIND11_EXPORT ParticleData
         //! Notify listeners that ghost particles have been removed
         void notifyGhostParticlesRemoved();
 
-        //! Connects a funtion to be called every time the number of types changes
+        //! Connects a function to be called every time the number of types changes
         Nano::Signal< void()>& getNumTypesChangeSignal()
             {
             return m_num_types_signal;
             }
 
-        //! Connects a funtion to be called every time the maximum diameter of composite particles is needed
+        //! Connects a function to be called every time the maximum diameter of composite particles is needed
         /*! The signal slot returns the maximum diameter
          */
         Nano::Signal< Scalar()>& getCompositeParticlesSignal()
@@ -1009,7 +1009,7 @@ class PYBIND11_EXPORT ParticleData
          *  Packs all particles for which comm_flag>0 into a buffer
          *  and remove them from the particle data
          *
-         *  The output buffers are automatically resized to accomodate the data.
+         *  The output buffers are automatically resized to accommodate the data.
          *
          *  \post The particle data arrays remain compact. Any ghost atoms
          *        are invalidated. (call removeAllGhostAtoms() before or after
@@ -1030,7 +1030,7 @@ class PYBIND11_EXPORT ParticleData
          *  Pack all particles for which comm_flag >0 into a buffer
          *  and remove them from the particle data
          *
-         *  The output buffers are automatically resized to accomodate the data.
+         *  The output buffers are automatically resized to accommodate the data.
          *
          *  \post The particle data arrays remain compact. Any ghost atoms
          *        are invalidated. (call removeAllGhostAtoms() before or after

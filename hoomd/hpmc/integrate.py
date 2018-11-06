@@ -426,9 +426,9 @@ class mode_hpmc(_integrator):
         """
 
         hoomd.util.print_status_line();
-        # check that proper initialization has occured
+        # check that proper initialization has occurred
         if self.cpp_integrator == None:
-            hoomd.context.msg.error("Bug in hoomd_script: cpp_integrator not set, please report\n");
+            hoomd.context.msg.error("Bug in hoomd: cpp_integrator not set, please report\n");
             raise RuntimeError('Error updating forces');
 
         # change the parameters
@@ -1210,7 +1210,7 @@ class polyhedron(mode_hpmc):
     * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
 
         * The origin **MUST** strictly be contained in the generally nonconvex volume defined by the vertices and faces
-        * The (0,0,0) centered sphere that encloses all verticies should be of minimal size for optimal performance (e.g.
+        * The (0,0,0) centered sphere that encloses all vertices should be of minimal size for optimal performance (e.g.
           don't translate the shape such that (0,0,0) right next to a face).
 
     * *faces* (**required**) - a list of vertex indices for every face
@@ -1342,7 +1342,7 @@ class convex_polyhedron(mode_hpmc):
     * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
 
         * The origin **MUST** be contained within the vertices.
-        * The origin centered circle that encloses all verticies should be of minimal size for optimal performance (e.g.
+        * The origin centered circle that encloses all vertices should be of minimal size for optimal performance (e.g.
           don't put the origin right next to a face).
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
@@ -1462,7 +1462,7 @@ class faceted_sphere(mode_hpmc):
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
-    A faceted sphere is a sphere interesected with halfspaces. The equation defining each halfspace is given by:
+    A faceted sphere is a sphere intersected with halfspaces. The equation defining each halfspace is given by:
 
     .. math::
         n_i\cdot r + b_i \le 0
@@ -1686,14 +1686,14 @@ class convex_spheropolyhedron(mode_hpmc):
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
-    A sperholpolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
+    A spheropolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
 
     Spheropolyhedron parameters:
 
     * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
 
         - The origin **MUST** be contained within the vertices.
-        - The origin centered sphere that encloses all verticies should be of minimal size for optimal performance (e.g.
+        - The origin centered sphere that encloses all vertices should be of minimal size for optimal performance (e.g.
           don't put the origin right next to a face).
         - A sphere can be represented by specifying zero vertices (i.e. vertices=[]) and a non-zero radius R
         - Two vertices and a non-zero radius R define a prolate spherocylinder.

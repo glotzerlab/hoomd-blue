@@ -29,7 +29,7 @@ With non-interacting depletant (**implicit=True**), the following log quantities
 - ``hpmc_reinsert_count`` - Number of overlapping depletants reinserted per colloid by configurational bias MC
 - ``hpmc_free_volume_fraction`` - Fraction of free volume to total sphere volume after a trial move has been proposed
   (sampled inside a sphere around the new particle position)
-- ``hpmc_overlap_fraction`` - Fraction of deplatants in excluded volume after trial move to depletants in free volume before move
+- ``hpmc_overlap_fraction`` - Fraction of depletants in excluded volume after trial move to depletants in free volume before move
 - ``hpmc_configurational_bias_ratio`` - Ratio of configurational bias attempts to depletant insertions
 
 With patch energies defined, the following quantities are available:

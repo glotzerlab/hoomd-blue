@@ -146,7 +146,7 @@ class group(hoomd.meta._metadata):
         return result;
 
     ## \internal
-    # \brief Return an interator
+    # \brief Return an iterator
     def __iter__(self):
         return group.group_iterator(self);
 
@@ -449,7 +449,7 @@ def type(type, name=None, update=False):
         name (str): User-assigned name for this group. If a name is not specified, a default one will be generated.
         update (bool): When true, update list of group members when particles are added to or removed from the simulation.
 
-    Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script
+    Creates a particle group from particles that match the given type. The group can then be used by other hoomd
     commands (such as analyze.msd) to specify which particles should be operated on.
 
     Note:

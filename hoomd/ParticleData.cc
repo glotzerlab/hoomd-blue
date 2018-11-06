@@ -92,7 +92,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     if (decomposition) setDomainDecomposition(decomposition);
     #endif
 
-    // initialize box dimensions on all procesors
+    // initialize box dimensions on all processors
     setGlobalBox(global_box);
 
     #ifdef ENABLE_CUDA
@@ -160,7 +160,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     if (decomposition) setDomainDecomposition(decomposition);
     #endif
 
-    // initialize box dimensions on all procesors
+    // initialize box dimensions on all processors
     setGlobalBox(global_box);
 
     // it is an error for particles to be initialized outside of their box
@@ -311,7 +311,7 @@ std::string ParticleData::getNameByType(unsigned int type) const
     // check for an invalid request
     if (type >= getNTypes())
         {
-        m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
+        m_exec_conf->msg->error() << "Requesting type name for non-existent type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
 
@@ -330,7 +330,7 @@ void ParticleData::setTypeName(unsigned int type, const std::string& name)
     // check for an invalid request
     if (type >= getNTypes())
         {
-        m_exec_conf->msg->error() << "Setting name for non-existant type " << type << endl;
+        m_exec_conf->msg->error() << "Setting name for non-existent type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
 
@@ -339,7 +339,7 @@ void ParticleData::setTypeName(unsigned int type, const std::string& name)
 
 
 /*! \param N Number of particles to allocate memory for
-    \pre No memory is allocated and the per-particle GPUArrays are unitialized
+    \pre No memory is allocated and the per-particle GPUArrays are uninitialized
     \post All per-particle GPUArrays are allocated
 */
 void ParticleData::allocate(unsigned int N)
@@ -454,7 +454,7 @@ void ParticleData::allocate(unsigned int N)
     }
 
 /*! \param N Number of particles to allocate memory for
-    \pre No memory is allocated and the alternate per-particle GPUArrays are unitialized
+    \pre No memory is allocated and the alternate per-particle GPUArrays are uninitialized
     \post All alternate per-particle GPUArrays are allocated
 */
 void ParticleData::allocateAlternateArrays(unsigned int N)
@@ -585,7 +585,7 @@ void ParticleData::resize(unsigned int new_nparticles)
 
     if (new_nparticles == 0)
         {
-        // gurantee that arrays are allocated
+        // guarantee that arrays are allocated
         if (! m_arrays_allocated)
             allocate(1);
         m_nparticles = new_nparticles;
@@ -612,7 +612,7 @@ void ParticleData::resize(unsigned int new_nparticles)
     m_nparticles = new_nparticles;
     }
 
-/*! \param max_n new maximum size of particle data arrays (can be greater or smaller than the current maxium size)
+/*! \param max_n new maximum size of particle data arrays (can be greater or smaller than the current maximum size)
  *  To inform classes that allocate arrays for per-particle information of the change of the particle data size,
  *  this method issues a m_max_particle_num_signal.emit().
  *
@@ -892,7 +892,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 {
                 unsigned int snap_idx = it - snapshot.pos.begin();
 
-                // if requested, do not initalize constituent particles of rigid bodies
+                // if requested, do not initialize constituent particles of rigid bodies
                 if (ignore_bodies && snapshot.body[snap_idx] != NO_BODY)
                     {
                     continue;
@@ -1093,7 +1093,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         // Now that active tag list has changed, invalidate the cache
         m_invalid_cached_tags = true;
 
-        // allocate particle data such that we can accomodate the particles
+        // allocate particle data such that we can accommodate the particles
         resize(snapshot.size);
 
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
@@ -1111,7 +1111,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
         for (unsigned int snap_idx = 0; snap_idx < snapshot.size; snap_idx++)
             {
-            // if requested, do not initalize constituent particles of rigid bodies
+            // if requested, do not initialize constituent particles of rigid bodies
             if (ignore_bodies && snapshot.body[snap_idx] != NO_BODY)
                 {
                 continue;
@@ -1179,7 +1179,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 template <class Real>
 std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
     {
-    // a map to containt a particle tag-> snapshot idx lookup
+    // a map to contain a particle tag-> snapshot idx lookup
     std::map<unsigned int, unsigned int> index;
 
     m_exec_conf->msg->notice(4) << "ParticleData: taking snapshot" << std::endl;
@@ -1414,7 +1414,7 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
   don't need tags.
 
   \param nghosts number of ghost particles to add
-  \post the particle data arrays are resized if necessary to accomodate the ghost particles,
+  \post the particle data arrays are resized if necessary to accommodate the ghost particles,
         the number of ghost particles is updated
 */
 void ParticleData::addGhostParticles(const unsigned int nghosts)
@@ -1582,7 +1582,7 @@ int3 ParticleData::getImage(unsigned int tag) const
 #endif
     assert(found);
 
-    //corect for origin shift
+    //correct for origin shift
     result.x-=m_o_image.x;
     result.y-=m_o_image.y;
     result.z-=m_o_image.z;

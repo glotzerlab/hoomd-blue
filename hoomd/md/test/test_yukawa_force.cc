@@ -38,12 +38,12 @@ HOOMD_UP_MAIN();
 typedef std::function<std::shared_ptr<PotentialPairYukawa> (std::shared_ptr<SystemDefinition> sysdef,
                                                          std::shared_ptr<NeighborList> nlist)> yukawaforce_creator;
 
-//! Test the ability of the yukawa force compute to actually calucate forces
+//! Test the ability of the yukawa force compute to actually calculate forces
 void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
-    // such that 2 is inside the cuttoff radius of 1 and 3, but 1 and 3 are outside the cuttoff
+    // such that 2 is inside the cutoff radius of 1 and 3, but 1 and 3 are outside the cutoff
     // of course, the buffer will be set on the neighborlist so that 3 is included in it
     // thus, this case tests the ability of the force summer to sum more than one force on
     // a particle and ignore a particle outside the radius

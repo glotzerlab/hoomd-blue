@@ -22,7 +22,7 @@ extern __shared__ Scalar fire_sdata[];
 
 //! The kernel function to zeros velocities, called by gpu_fire_zero_v()
 /*! \param d_vel device array of particle velocities
-    \param d_group_members Device array listing the indicies of the mebers of the group to zero
+    \param d_group_members Device array listing the indices of the members of the group to zero
     \param group_size Number of members in the group
 */
 extern "C" __global__
@@ -71,7 +71,7 @@ void gpu_fire_zero_angmom_kernel(Scalar4 *d_angmom,
 
 
 /*! \param d_vel device array of particle velocities
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
 
 This function is just the driver for gpu_fire_zero_v_kernel(), see that function
@@ -113,7 +113,7 @@ cudaError_t gpu_fire_zero_angmom(Scalar4 *d_angmom,
 
 
 //! Kernel function for reducing the potential energy to a partial sum
-/*! \param d_group_members Device array listing the indicies of the mebers of the group to sum
+/*! \param d_group_members Device array listing the indices of the members of the group to sum
     \param group_size Number of members in the group
     \param d_net_force Pointer to the force array for all particles
     \param d_partial_sum_pe Placeholder for the partial sum
@@ -165,7 +165,7 @@ extern "C" __global__
 
 //! Kernel function for reducing a partial sum to a full sum (one value)
 /*! \param d_sum Placeholder for the sum
-    \param d_partial_sum Array containing the parial sum
+    \param d_partial_sum Array containing the partial sum
     \param num_blocks Number of blocks to execute
 */
 extern "C" __global__
@@ -203,11 +203,11 @@ extern "C" __global__
         *d_sum = sum;
     }
 
-/*!  \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+/*!  \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Array containing the net forces
     \param d_sum_pe Placeholder for the sum of the PE
-    \param d_partial_sum_pe Array containing the parial sum of the PE
+    \param d_partial_sum_pe Array containing the partial sum of the PE
     \param block_size The size of one block
     \param num_blocks Number of blocks to execute
 
@@ -244,7 +244,7 @@ cudaError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
 //! Kernel function to compute the partial sum over the P term in the FIRE algorithm
 /*! \param d_vel particle velocities and masses on the device
     \param d_accel particle accelerations on the device
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_partial_sum_P Array to hold the partial sum
 */
@@ -538,7 +538,7 @@ __global__ void gpu_fire_reduce_tsq_partial_kernel(const Scalar4 *d_net_torque,
 /*! \param N number of particles in system
     \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_sum_all Array to hold the sum over P, vsq, and asq
     \param d_partial_sum_P Array to hold the partial sum over P (a*v)
@@ -662,10 +662,10 @@ cudaError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
 
 
 
-//! Kernel function to update the velocties used by the FIRE algorithm
+//! Kernel function to update the velocities used by the FIRE algorithm
 /*! \param d_vel Array of velocities to update
     \param d_accel Array of accelerations
-    \param d_group_members Device array listing the indicies of the mebers of the group to update
+    \param d_group_members Device array listing the indices of the members of the group to update
     \param group_size Number of members in the grou
     \param alpha Alpha coupling parameter used by the FIRE algorithm
     \param factor_t Combined factor vnorm/fnorm*alpha, or 1 if fnorm==0
@@ -700,7 +700,7 @@ extern "C" __global__
 
 /*! \param d_vel array of particle velocities to update
     \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param alpha Alpha coupling parameter used by the FIRE algorithm
     \param vnorm Magnitude of the (3*N) dimensional velocity vector
