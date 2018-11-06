@@ -68,7 +68,8 @@ struct poly3d_data : param_base
         verts = ManagedArray<vec3<OverlapReal> >(nverts, _managed);
         face_offs = ManagedArray<unsigned int>(n_faces+1,_managed);
         face_verts = ManagedArray<unsigned int>(_n_face_verts, _managed);
-        face_overlap = ManagedArray<unsigned int>(_n_faces, _managed, 1);
+        face_overlap = ManagedArray<unsigned int>(_n_faces, _managed);
+        std::fill(face_overlap.get(), face_overlap.get()+_n_faces, 1);
         }
     #endif
 

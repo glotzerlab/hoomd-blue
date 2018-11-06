@@ -23,6 +23,7 @@ import datetime
 import copy
 
 from collections import OrderedDict
+from collections import Mapping
 
 ## \internal
 # \brief A Mixin to facilitate storage of simulation metadata

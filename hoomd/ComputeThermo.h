@@ -5,7 +5,7 @@
 // Maintainer: joaander
 
 #include "Compute.h"
-#include "GPUArray.h"
+#include "GlobalArray.h"
 #include "ComputeThermoTypes.h"
 #include "ParticleGroup.h"
 
@@ -27,7 +27,7 @@
 
 //! Computes thermodynamic properties of a group of particles
 /*! ComputeThermo calculates instantaneous thermodynamic properties and provides them for the logger.
-    All computed values are stored in a GPUArray so that they can be accessed on the GPU without intermediate copies.
+    All computed values are stored in a GlobalArray so that they can be accessed on the GPU without intermediate copies.
     Use the enum values in thermo_index to index the array and extract the properties of interest. Convenience functions
     are provided for accessing the values on the CPU. Certain properties, loke ndof and num_particles are always known
     and there is no need for them to be accessible via the GPUArray.
@@ -304,7 +304,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
 
     protected:
         std::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
-        GPUArray<Scalar> m_properties;  //!< Stores the computed properties
+        GlobalArray<Scalar> m_properties;  //!< Stores the computed properties
         unsigned int m_ndof;            //!< Stores the number of translational degrees of freedom in the system
         unsigned int m_ndof_rot;        //!< Stores the number of rotational degrees of freedom in the system
         std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names

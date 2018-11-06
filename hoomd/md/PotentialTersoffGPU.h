@@ -69,12 +69,12 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<
                                                                 const std::string& log_suffix)
     : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix)
     {
-    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << std::endl;
+    this->m_exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << std::endl;
 
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!this->exec_conf->isCUDAEnabled())
+    if (!this->m_exec_conf->isCUDAEnabled())
         {
-        this->exec_conf->msg->error() << "***Error! Creating a PotentialTersoffGPU with no GPU in the execution configuration"
+        this->m_exec_conf->msg->error() << "***Error! Creating a PotentialTersoffGPU with no GPU in the execution configuration"
                   << std::endl;
         throw std::runtime_error("Error initializing PotentialTersoffGPU");
         }
@@ -104,7 +104,7 @@ template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 PotentialTersoffGPU< evaluator, gpu_cgpf >::~PotentialTersoffGPU()
         {
-        this->exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << std::endl;
+        this->m_exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << std::endl;
         }
 
 template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
@@ -115,13 +115,13 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     this->m_nlist->compute(timestep);
 
     // start the profile
-    if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
+    if (this->m_prof) this->m_prof->push(this->m_exec_conf, this->m_prof_name);
 
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        this->exec_conf->msg->error() << "***Error! PotentialTersoffGPU cannot handle a half neighborlist"
+        this->m_exec_conf->msg->error() << "***Error! PotentialTersoffGPU cannot handle a half neighborlist"
                   << std::endl;
         throw std::runtime_error("Error computing forces in PotentialTersoffGPU");
         }
@@ -173,12 +173,12 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             this->m_exec_conf->dev_prop),
                             d_params.data);
 
-    if (this->exec_conf->isCUDAErrorCheckingEnabled())
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     this->m_tuner->end();
 
-    if (this->m_prof) this->m_prof->pop(this->exec_conf);
+    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
     }
 
 //! Export this three-body potential to python

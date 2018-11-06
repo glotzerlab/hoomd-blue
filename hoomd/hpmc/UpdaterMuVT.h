@@ -1471,22 +1471,12 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
 
     if (is_local)
         {
-        // update the image list
-        const std::vector<vec3<Scalar> >&image_list = m_mc->updateImageList();
+        // get some data structures from the integrator
+        auto& image_list = m_mc->updateImageList();
+        const unsigned int n_images = image_list.size();
+        auto& params = m_mc->getParams();
 
-        // check for overlaps
-        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-
-        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc->getParams();
-
-        ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
         const Index2D& overlap_idx = m_mc->getOverlapIndexer();
-
-        // read in the current position and orientation
-        Shape shape(orientation, params[type]);
 
         OverlapReal r_cut_patch(0.0);
         Scalar r_cut_self(0.0);
@@ -1499,36 +1489,48 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
 
         unsigned int err_count = 0;
 
-        const unsigned int n_images = image_list.size();
-        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
-            vec3<Scalar> pos_image = pos + image_list[cur_image];
+            // check for overlaps
+            ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
-            if (cur_image != 0)
+            ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+            // read in the current position and orientation
+            Shape shape(orientation, params[type]);
+
+            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
-                // check for self-overlap with all images except the original
-                vec3<Scalar> r_ij = pos - pos_image;
-                if (h_overlaps.data[overlap_idx(type, type)]
-                    && check_circumsphere_overlap(r_ij, shape, shape)
-                    && test_overlap(r_ij, shape, shape, err_count))
-                    {
-                    overlap = 1;
-                    break;
-                    }
+                vec3<Scalar> pos_image = pos + image_list[cur_image];
 
-                // self-energy
-                if (patch && dot(r_ij,r_ij) <= r_cut_self*r_cut_self)
+                if (cur_image != 0)
                     {
-                    lnboltzmann -= patch->energy(r_ij,
-                        type,
-                        quat<float>(orientation),
-                        1.0, // diameter i
-                        0.0, // charge i
-                        type,
-                        quat<float>(orientation),
-                        1.0, // diameter i
-                        0.0 // charge i
-                        );
+                    // check for self-overlap with all images except the original
+                    vec3<Scalar> r_ij = pos - pos_image;
+                    if (h_overlaps.data[overlap_idx(type, type)]
+                        && check_circumsphere_overlap(r_ij, shape, shape)
+                        && test_overlap(r_ij, shape, shape, err_count))
+                        {
+                        overlap = 1;
+                        break;
+                        }
+
+                    // self-energy
+                    if (patch && dot(r_ij,r_ij) <= r_cut_self*r_cut_self)
+                        {
+                        lnboltzmann -= patch->energy(r_ij,
+                            type,
+                            quat<float>(orientation),
+                            1.0, // diameter i
+                            0.0, // charge i
+                            type,
+                            quat<float>(orientation),
+                            1.0, // diameter i
+                            0.0 // charge i
+                            );
+                        }
                     }
                 }
             }
@@ -1539,6 +1541,13 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
             // Check particle against AABB tree for neighbors
             const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
 
+            ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+            Shape shape(orientation, params[type]);
             OverlapReal R_query = std::max(shape.getCircumsphereDiameter()/OverlapReal(2.0),
                 r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);

@@ -131,6 +131,12 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
 
     // rearrange the two particles in memory and see if they are properly updated
     {
+    // first move particles back to their original positions, and reset angle params
+    pdata_3->setPosition(0, make_scalar3(0.0, 0.0, 0.0));
+    pdata_3->setPosition(1, make_scalar3(1.0, 0.0, 0.0));
+    pdata_3->setPosition(2, make_scalar3(2.0, 0.0, 0.0));
+    fc_3->setParams(0, Scalar(1.0), Scalar(3.14159265359)); // type=0, K=1.0,theta_0=pi
+
     ArrayHandle<Scalar4> h_pos(
             pdata_3->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_tag(
@@ -138,11 +144,6 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     ArrayHandle<unsigned int> h_rtag(
             pdata_3->getRTags(), access_location::host, access_mode::readwrite);
 
-    // first move particles back to their original positions, and reset angle params
-    pdata_3->setPosition(0, make_scalar3(0.0, 0.0, 0.0));
-    pdata_3->setPosition(1, make_scalar3(1.0, 0.0, 0.0));
-    pdata_3->setPosition(2, make_scalar3(2.0, 0.0, 0.0));
-    fc_3->setParams(0, Scalar(1.0), Scalar(3.14159265359)); // type=0, K=1.0,theta_0=pi
     h_pos.data[1].x = Scalar(0.0); // put atom a at (-1,0,0.1)
     h_pos.data[1].y = Scalar(0.0);
     h_pos.data[1].z = Scalar(0.0);

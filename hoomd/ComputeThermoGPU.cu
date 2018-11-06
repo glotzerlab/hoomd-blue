@@ -29,7 +29,9 @@ extern __shared__ Scalar compute_ke_rot_sdata[];
     \param virial_pitch pitch of 2D virial array
     \param d_velocity Particle velocity and mass array from ParticleData
     \param d_group_members List of group members for which to sum properties
-    \param group_size Number of particles in the group
+    \param work_size Number of particles in the group this GPU processes
+    \param offset Offset of this GPU in list of group members
+    \param block_offset Offset of this GPU in the array of partial sums
 
     All partial sums are packaged up in a Scalar4 to keep pointer management down.
      - 2*Kinetic energy is summed in .x
@@ -48,15 +50,17 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
                                                 const unsigned int virial_pitch,
                                                 Scalar4 *d_velocity,
                                                 unsigned int *d_group_members,
-                                                unsigned int group_size)
+                                                unsigned int work_size,
+                                                unsigned int offset,
+                                                unsigned int block_offset)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     Scalar3 my_element; // element of scratch space read in
-    if (group_idx < group_size)
+    if (group_idx < work_size)
         {
-        unsigned int idx = d_group_members[group_idx];
+        unsigned int idx = d_group_members[group_idx+offset];
 
         // update positions to the next timestep and update velocities to the next half step
         Scalar4 net_force = d_net_force[idx];
@@ -101,7 +105,7 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
     if (threadIdx.x == 0)
         {
         Scalar3 res = compute_thermo_sdata[0];
-        d_scratch[blockIdx.x] = make_scalar4(res.x, res.y, res.z, 0);
+        d_scratch[block_offset + blockIdx.x] = make_scalar4(res.x, res.y, res.z, 0);
         }
     }
 
@@ -112,7 +116,10 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
     \param virial_pitch pitch of 2D virial array
     \param d_velocity Particle velocity and mass array from ParticleData
     \param d_group_members List of group members for which to sum properties
-    \param group_size Number of particles in the group
+    \param work_size Number of particles in the group
+    \param offset Offset of this GPU in the list of group members
+    \param block_offset Offset of this GPU in the array of partial sums
+    \param num_blocks Total number of partial sums by all GPUs
 
     One thread is executed per group member. That thread reads in the six values (components of the presure tensor)
     for its member into shared memory and then the block performs a reduction in parallel to produce a partial sum output for the block.
@@ -126,15 +133,18 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
                                                 const unsigned int virial_pitch,
                                                 Scalar4 *d_velocity,
                                                 unsigned int *d_group_members,
-                                                unsigned int group_size)
+                                                unsigned int work_size,
+                                                unsigned int offset,
+                                                unsigned int block_offset,
+                                                unsigned int num_blocks)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     Scalar my_element[6]; // element of scratch space read in
-    if (group_idx < group_size)
+    if (group_idx < work_size)
         {
-        unsigned int idx = d_group_members[group_idx];
+        unsigned int idx = d_group_members[group_idx+offset];
 
         // compute contribution to pressure tensor and store it in my_element
         Scalar4 vel = d_velocity[idx];
@@ -179,7 +189,7 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
     if (threadIdx.x == 0)
         {
         for (unsigned int i = 0; i < 6; i++)
-            d_scratch[gridDim.x * i + blockIdx.x] = compute_pressure_tensor_sdata[i*blockDim.x];
+            d_scratch[num_blocks * i + blockIdx.x + block_offset] = compute_pressure_tensor_sdata[i*blockDim.x];
         }
     }
 
@@ -189,7 +199,9 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
     \param d_angmom Conjugate quaternions from ParticleData
     \param d_inertia Moments of inertia from ParticleData
     \param d_group_members List of group members for which to sum properties
-    \param group_size Number of particles in the group
+    \param work_size Number of particles in the group processed by this GPU
+    \param offset Offset of this GPU in the list of group members
+    \param block_offset Output offset of this GPU
 */
 
 __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
@@ -197,15 +209,17 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
                                                         const Scalar4 *d_angmom,
                                                         const Scalar3 *d_inertia,
                                                         unsigned int *d_group_members,
-                                                        unsigned int group_size)
+                                                        unsigned int work_size,
+                                                        unsigned int offset,
+                                                        unsigned int block_offset)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     Scalar my_element; // element of scratch space read in
-    if (group_idx < group_size)
+    if (group_idx < work_size)
         {
-        unsigned int idx = d_group_members[group_idx];
+        unsigned int idx = d_group_members[group_idx+offset];
 
         // update positions to the next timestep and update velocities to the next half step
         quat<Scalar> q(d_orientation[idx]);
@@ -254,7 +268,7 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
     // write out our partial sum
     if (threadIdx.x == 0)
         {
-        d_scratch[blockIdx.x] = compute_ke_rot_sdata[0];
+        d_scratch[blockIdx.x + block_offset] = compute_ke_rot_sdata[0];
         }
     }
 
@@ -456,6 +470,105 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
         d_properties[thermo_index::pressure_zz] = final_sum[5]/V;
         }
     }
+//! Compute partial sums of thermodynamic properties of a group on the GPU,
+/*! \param d_properties Array to write computed properties
+    \param d_vel particle velocities and masses on the GPU
+    \param d_group_members List of group members
+    \param group_size Number of group members
+    \param box Box the particles are in
+    \param args Additional arguments
+    \param compute_pressure_tensor whether to compute the full pressure tensor
+    \param compute_rotational_energy whether to compute the rotational kinetic energy
+    \param gpu_partition Load balancing info for multi-GPU reduction
+
+    This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
+*/
+
+cudaError_t gpu_compute_thermo_partial(Scalar *d_properties,
+                               Scalar4 *d_vel,
+                               unsigned int *d_group_members,
+                               unsigned int group_size,
+                               const BoxDim& box,
+                               const compute_thermo_args& args,
+                               bool compute_pressure_tensor,
+                               bool compute_rotational_energy,
+                               const GPUPartition& gpu_partition
+                               )
+    {
+    assert(d_properties);
+    assert(d_vel);
+    assert(d_group_members);
+    assert(args.d_net_force);
+    assert(args.d_net_virial);
+    assert(args.d_scratch);
+
+    unsigned int block_offset = 0;
+
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+
+        dim3 grid(nwork/args.block_size+1, 1, 1);
+        dim3 threads(args.block_size, 1, 1);
+
+        unsigned int shared_bytes = sizeof(Scalar3)*args.block_size;
+
+        gpu_compute_thermo_partial_sums<<<grid,threads, shared_bytes>>>(args.d_scratch,
+                                                                        args.d_net_force,
+                                                                        args.d_net_virial,
+                                                                        args.virial_pitch,
+                                                                        d_vel,
+                                                                        d_group_members,
+                                                                        nwork,
+                                                                        range.first,
+                                                                        block_offset);
+
+        if (compute_pressure_tensor)
+            {
+            assert(args.d_scratch_pressure_tensor);
+
+            shared_bytes = 6 * sizeof(Scalar) * args.block_size;
+
+            // run the kernel
+            gpu_compute_pressure_tensor_partial_sums<<<grid, threads, shared_bytes>>>(args.d_scratch_pressure_tensor,
+                                                                                      args.d_net_force,
+                                                                                      args.d_net_virial,
+                                                                                      args.virial_pitch,
+                                                                                      d_vel,
+                                                                                      d_group_members,
+                                                                                      nwork,
+                                                                                      range.first,
+                                                                                      block_offset,
+                                                                                      args.n_blocks);
+            }
+
+        if (compute_rotational_energy)
+            {
+            assert(args.d_scratch_pressure_tensor);
+
+            shared_bytes = sizeof(Scalar) * args.block_size;
+
+            // run the kernel
+            gpu_compute_rotational_ke_partial_sums<<<grid, threads, shared_bytes>>>(args.d_scratch_rot,
+                                                   args.d_orientation,
+                                                   args.d_angmom,
+                                                   args.d_inertia,
+                                                   d_group_members,
+                                                   nwork,
+                                                   range.first,
+                                                   block_offset);
+            }
+
+        block_offset += grid.x;
+        }
+
+    assert(block_offset <= args.n_blocks);
+
+    return cudaSuccess;
+    }
 
 //! Compute thermodynamic properties of a group on the GPU
 /*! \param d_properties Array to write computed properties
@@ -466,11 +579,12 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
     \param args Additional arguments
     \param compute_pressure_tensor whether to compute the full pressure tensor
     \param compute_rotational_energy whether to compute the rotational kinetic energy
+    \param num_blocks Number of partial sums to reduce
 
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
 */
 
-cudaError_t gpu_compute_thermo(Scalar *d_properties,
+cudaError_t gpu_compute_thermo_final(Scalar *d_properties,
                                Scalar4 *d_vel,
                                unsigned int *d_group_members,
                                unsigned int group_size,
@@ -487,59 +601,17 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
     assert(args.d_net_virial);
     assert(args.d_scratch);
 
-    dim3 grid(args.n_blocks, 1, 1);
-    dim3 threads(args.block_size, 1, 1);
-    unsigned int shared_bytes = sizeof(Scalar3)*args.block_size;
+
+    // setup the grid to run the final kernel
+    int final_block_size = 512;
+    dim3 grid = dim3(1, 1, 1);
+    dim3 threads = dim3(final_block_size, 1, 1);
+
+    unsigned int shared_bytes = sizeof(Scalar4)*final_block_size;
 
     Scalar external_virial = Scalar(1.0/3.0)*(args.external_virial_xx
                              + args.external_virial_yy
                              + args.external_virial_zz);
-
-    gpu_compute_thermo_partial_sums<<<grid,threads, shared_bytes>>>(args.d_scratch,
-                                                                    args.d_net_force,
-                                                                    args.d_net_virial,
-                                                                    args.virial_pitch,
-                                                                    d_vel,
-                                                                    d_group_members,
-                                                                    group_size);
-
-
-    if (compute_pressure_tensor)
-        {
-        assert(args.d_scratch_pressure_tensor);
-
-        shared_bytes = 6 * sizeof(Scalar) * args.block_size;
-        // run the kernel
-        gpu_compute_pressure_tensor_partial_sums<<<grid, threads, shared_bytes>>>(args.d_scratch_pressure_tensor,
-                                                                                  args.d_net_force,
-                                                                                  args.d_net_virial,
-                                                                                  args.virial_pitch,
-                                                                                  d_vel,
-                                                                                  d_group_members,
-                                                                                  group_size);
-        }
-
-    if (compute_rotational_energy)
-        {
-        assert(args.d_scratch_pressure_tensor);
-
-        shared_bytes = sizeof(Scalar) * args.block_size;
-        // run the kernel
-        gpu_compute_rotational_ke_partial_sums<<<grid, threads, shared_bytes>>>(args.d_scratch_rot,
-                                               args.d_orientation,
-                                               args.d_angmom,
-                                               args.d_inertia,
-                                               d_group_members,
-                                               group_size);
-        }
-
-
-    // setup the grid to run the final kernel
-    int final_block_size = 512;
-    grid = dim3(1, 1, 1);
-    threads = dim3(final_block_size, 1, 1);
-
-    shared_bytes = sizeof(Scalar4)*final_block_size;
 
     // run the kernel
     gpu_compute_thermo_final_sums<<<grid, threads, shared_bytes>>>(d_properties,
@@ -549,7 +621,7 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                                                    box,
                                                                    args.D,
                                                                    group_size,
-                                                                   args.n_blocks,
+                                                                   args.n_blocks, 
                                                                    external_virial,
                                                                    args.external_energy);
 

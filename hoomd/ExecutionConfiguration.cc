@@ -6,7 +6,6 @@
 #include "ExecutionConfiguration.h"
 #include "HOOMDVersion.h"
 
-
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
 #endif
@@ -33,7 +32,7 @@ using namespace std;
 */
 
 /*! \param mode Execution mode to set (cpu or gpu)
-    \param gpu_id ID of the GPU on which to run, or -1 for automatic selection
+    \param gpu_id List of GPU IDs on which to run, or empty for automatic selection
     \param min_cpu If set to true, cudaDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
     \param ignore_display If set to true, try to ignore GPUs attached to the display
     \param _msg Messenger to use for status message printing
@@ -43,7 +42,7 @@ using namespace std;
     is made by not calling cudaSetDevice.
 */
 ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
-                                               int gpu_id,
+                                               std::vector<int> gpu_id,
                                                bool min_cpu,
                                                bool ignore_display,
                                                std::shared_ptr<Messenger> _msg,
@@ -57,14 +56,18 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     if (!msg)
         msg = std::shared_ptr<Messenger>(new Messenger());
 
-    msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
+    ostringstream s;
+    for (auto it = gpu_id.begin(); it != gpu_id.end(); ++it)
+        {
+        s << *it << " ";
+        }
+
+    msg->notice(5) << "Constructing ExecutionConfiguration: ( " << s.str() << ") " <<  min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
 
     m_rank = 0;
 
 #ifdef ENABLE_CUDA
-    m_gpu_id = -1;
-
     // scan the available GPUs
     scanGPUs(ignore_display);
     int dev_count = getNumCapableGPUs();
@@ -79,20 +82,34 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             exec_mode = CPU;
         }
 
+    m_concurrent = exec_mode==GPU;
+
     // now, exec_mode should be either CPU or GPU - proceed with initialization
 
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
         {
-        if (gpu_id == -1 && !m_system_compute_exclusive)
+        if (!gpu_id.size() && !m_system_compute_exclusive)
             {
             // if we are not running in compute exclusive mode, use
             // local MPI rank as preferred GPU id
             msg->notice(2) << "This system is not compute exclusive, using local rank to select GPUs" << std::endl;
-            gpu_id = (guessLocalRank() % dev_count);
+            gpu_id.push_back((guessLocalRank() % dev_count));
             }
 
-        initializeGPU(gpu_id, min_cpu);
+        cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
+
+        if (! gpu_id.size())
+            {
+            // auto-detect a single GPU
+            initializeGPU(-1, min_cpu);
+            }
+        else
+            {
+            // initialize all requested GPUs
+            for (auto it = gpu_id.begin(); it != gpu_id.end(); ++it)
+                initializeGPU(*it, min_cpu);
+            }
         }
 #else
     if (exec_mode == GPU)
@@ -102,6 +119,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         }
     // "auto-select" the CPU
     exec_mode = CPU;
+    m_concurrent = false;
 #endif
 
     #ifdef ENABLE_MPI
@@ -115,6 +133,41 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
         {
+        if (! m_concurrent && gpu_id.size() > 1)
+            {
+            msg->error() << "Multi-GPU execution requested, but not all GPUs support concurrent managed access" << endl;
+            throw runtime_error("Error initializing execution configuration");
+            }
+
+        #ifndef ALWAYS_USE_MANAGED_MEMORY
+        // disable managed memory when running on single GPU
+        if (m_gpu_id.size() == 1)
+            {
+            m_concurrent = false;
+            }
+        #endif
+
+        if (m_concurrent)
+            {
+            // compare compute capabilities
+            for (unsigned int idev = 0; idev < gpu_id.size(); ++idev)
+                {
+                if (m_dev_prop[idev].major != m_dev_prop[0].major
+                    || m_dev_prop[idev].minor != m_dev_prop[0].minor)
+                    {
+                    // the autotuner may pick up different block sizes for different GPUs
+                    msg->warning() << "Multi-GPU execution requested, but GPUs have differing compute capabilities" << endl;
+                    msg->warning() << "Continuing anyways, but autotuner may not work correctly and simulation may crash." << endl;
+                    }
+                }
+            }
+
+        // select first device by default
+        cudaSetDevice(m_gpu_id[0]);
+
+        cudaError_t err_sync = cudaGetLastError();
+        handleCUDAError(err_sync, __FILE__, __LINE__);
+
         // initialize cached allocator, max allocation 0.5*global mem
         m_cached_alloc = new CachedAllocator((unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
         }
@@ -180,11 +233,28 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         setNumThreads(num_threads);
         }
     #endif
+
+    #ifdef ENABLE_CUDA
+    // setup synchronization events
+    m_events.resize(m_gpu_id.size());
+    for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
+        {
+        cudaSetDevice(m_gpu_id[idev]);
+        cudaEventCreateWithFlags(&m_events[idev],cudaEventDisableTiming);
+        }
+    #endif
     }
 
 ExecutionConfiguration::~ExecutionConfiguration()
     {
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
+
+    #ifdef ENABLE_CUDA
+    for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
+        {
+        cudaEventDestroy(m_events[idev]);
+        }
+    #endif
 
     #if defined(ENABLE_CUDA)
     if (exec_mode == GPU)
@@ -243,11 +313,11 @@ void ExecutionConfiguration::splitPartitions(MPI_Comm mpi_comm)
     }
 #endif
 
-std::string ExecutionConfiguration::getGPUName() const
+std::string ExecutionConfiguration::getGPUName(unsigned int idev) const
     {
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
-        return string(dev_prop.name);
+        return string(m_dev_prop[idev].name);
     else
         return string();
     #else
@@ -260,13 +330,13 @@ std::string ExecutionConfiguration::getGPUName() const
 /*! \returns Compute capability of GPU 0 as a string
     \note Silently returns an emtpy string if no GPUs are specified
 */
-std::string ExecutionConfiguration::getComputeCapabilityAsString() const
+std::string ExecutionConfiguration::getComputeCapabilityAsString(unsigned int idev) const
     {
     ostringstream s;
 
     if (exec_mode == GPU)
         {
-        s << dev_prop.major << "." << dev_prop.minor;
+        s << m_dev_prop[idev].major << "." << m_dev_prop[idev].minor;
         }
 
     return s.str();
@@ -275,13 +345,13 @@ std::string ExecutionConfiguration::getComputeCapabilityAsString() const
 /*! \returns Compute capability of the GPU formated as 210 (for compute 2.1 as an example)
     \note Silently returns 0 if no GPU is being used
 */
-unsigned int ExecutionConfiguration::getComputeCapability() const
+unsigned int ExecutionConfiguration::getComputeCapability(unsigned int idev) const
     {
     unsigned int result = 0;
 
     if (exec_mode == GPU)
         {
-        result = dev_prop.major * 100 + dev_prop.minor * 10;
+        result = m_dev_prop[idev].major * 100 + m_dev_prop[idev].minor * 10;
         }
 
     return result;
@@ -354,11 +424,10 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         }
 
     cudaSetDeviceFlags(flags | cudaDeviceMapHost);
-    cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
 
     if (gpu_id != -1)
         {
-        cudaSetDevice(gpu_id);
+        cudaSetDevice(m_gpu_list[gpu_id]);
         }
     else
         {
@@ -366,7 +435,11 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         cudaFree(0);
         }
 
-    cudaGetDevice(&m_gpu_id);
+    int cuda_gpu_id;
+    cudaGetDevice(&cuda_gpu_id);
+
+    // add to list of active GPUs
+    m_gpu_id.push_back(cuda_gpu_id);
 
     cudaError_t err_sync = cudaGetLastError();
     handleCUDAError(err_sync, __FILE__, __LINE__);
@@ -381,32 +454,43 @@ void ExecutionConfiguration::printGPUStats()
     // build a status line
     ostringstream s;
 
-    // start with the device ID and name
-    int dev;
-    cudaGetDevice(&dev);
+    for (unsigned int idev = 0; idev < m_gpu_id.size(); ++idev)
+        {
+        // start with the device ID and name
+        unsigned int dev = m_gpu_id[idev];
 
-    s << " [" << dev << "]";
-    s << setw(22) << dev_prop.name;
+        s << " [" << dev << "]";
+        s << setw(22) << m_dev_prop[idev].name;
 
-    // then print the SM count and version
-    s << setw(4) << dev_prop.multiProcessorCount << " SM_" << dev_prop.major << "." << dev_prop.minor;
+        // then print the SM count and version
+        s << setw(4) << m_dev_prop[idev].multiProcessorCount << " SM_" << m_dev_prop[idev].major << "." << m_dev_prop[idev].minor;
 
-    // and the clock rate
-    float ghz = float(dev_prop.clockRate)/1e6;
-    s.precision(3);
-    s.fill('0');
-    s << " @ " << setw(4) << ghz << " GHz";
-    s.fill(' ');
+        // and the clock rate
+        float ghz = float(m_dev_prop[idev].clockRate)/1e6;
+        s.precision(3);
+        s.fill('0');
+        s << " @ " << setw(4) << ghz << " GHz";
+        s.fill(' ');
 
-    // and the total amount of memory
-    int mib = int(float(dev_prop.totalGlobalMem) / float(1024*1024));
-    s << ", " << setw(4) << mib << " MiB DRAM";
+        // and the total amount of memory
+        int mib = int(float(m_dev_prop[idev].totalGlobalMem) / float(1024*1024));
+        s << ", " << setw(4) << mib << " MiB DRAM";
 
-    // follow up with some flags to signify device features
-    if (dev_prop.kernelExecTimeoutEnabled)
-        s << ", DIS";
+        // follow up with some flags to signify device features
+        if (m_dev_prop[idev].kernelExecTimeoutEnabled)
+            s << ", DIS";
 
-    s << std::endl;
+        // follow up with some flags to signify device features
+        if (m_dev_prop[idev].concurrentManagedAccess)
+            {
+            s << ", MNG";
+            }
+        else
+            m_concurrent = false;
+
+        s << std::endl;
+        }
+
     // We print this information in rank order
     msg->collectiveNoticeStr(1,s.str());
     }
@@ -622,6 +706,7 @@ int ExecutionConfiguration::guessLocalRank()
     // setup common environment variables containing local rank information
     env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
     env_vars.push_back("OMPI_COMM_WORLD_LOCAL_RANK");
+    env_vars.push_back("JSM_NAMESPACE_LOCAL_RANK");
 
     std::vector<std::string>::iterator it;
 
@@ -677,9 +762,17 @@ void ExecutionConfiguration::setupStats()
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
         {
-        int dev;
-        cudaGetDevice(&dev);
-        cudaGetDeviceProperties(&dev_prop, dev);
+        m_dev_prop.resize(m_gpu_id.size());
+
+        for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
+            {
+            cudaSetDevice(m_gpu_id[idev]);
+            cudaGetDeviceProperties(&m_dev_prop[idev], m_gpu_id[idev]);
+            }
+
+        // initialize dev_prop with device properties of first device for now
+        dev_prop = m_dev_prop[0];
+
         printGPUStats();
 
         // GPU runs only use 1 CPU core
@@ -705,12 +798,97 @@ unsigned int ExecutionConfiguration::getNRanks() const
     }
 #endif
 
+void ExecutionConfiguration::multiGPUBarrier() const
+    {
+    #ifdef ENABLE_CUDA
+    if (getNumActiveGPUs() > 1)
+        {
+        // record the synchronization point on every GPU after the last kernel has finished, count down in reverse
+        for (int idev = m_gpu_id.size() - 1; idev >= 0; --idev)
+            {
+            cudaSetDevice(m_gpu_id[idev]);
+            cudaEventRecord(m_events[idev], 0);
+            }
+
+        // wait for all those events on all GPUs
+        for (int idev_i = m_gpu_id.size()-1; idev_i >= 0; --idev_i)
+            {
+            cudaSetDevice(m_gpu_id[idev_i]);
+            for (int idev_j = 0; idev_j < (int) m_gpu_id.size(); ++idev_j)
+                cudaStreamWaitEvent(0, m_events[idev_j], 0);
+            }
+        }
+    #endif
+    }
+
+void ExecutionConfiguration::beginMultiGPU() const
+    {
+    #ifdef ENABLE_CUDA
+    // implement a one-to-n barrier
+    if (getNumActiveGPUs() > 1)
+        {
+        // record a syncrhonization point on GPU 0
+        cudaEventRecord(m_events[0], 0);
+
+        // wait for that event on all GPUs (except GPU 0, for which we rely on implicit synchronization)
+        for (int idev = m_gpu_id.size()-1; idev >= 1; --idev)
+            {
+            cudaSetDevice(m_gpu_id[idev]);
+            cudaStreamWaitEvent(0, m_events[0], 0);
+            }
+
+        // set GPU 0
+        cudaSetDevice(m_gpu_id[0]);
+
+        if (isCUDAErrorCheckingEnabled())
+            {
+            cudaError_t err_sync = cudaGetLastError();
+            handleCUDAError(err_sync, __FILE__, __LINE__);
+            }
+        }
+    #endif
+    }
+
+void ExecutionConfiguration::endMultiGPU() const
+    {
+    #ifdef ENABLE_CUDA
+    // implement an n-to-one barrier
+    if (getNumActiveGPUs() > 1)
+        {
+        // record the synchronization point on every GPU, except GPU 0 
+        for (int idev = m_gpu_id.size() - 1; idev >= 1; --idev)
+            {
+            cudaSetDevice(m_gpu_id[idev]);
+            cudaEventRecord(m_events[idev], 0);
+            }
+
+        // wait for these events on GPU 0
+        cudaSetDevice(m_gpu_id[0]);
+        for (int idev = m_gpu_id.size()-1; idev >= 1; --idev)
+            {
+            cudaStreamWaitEvent(0, m_events[idev], 0);
+            }
+
+        if (isCUDAErrorCheckingEnabled())
+            {
+            cudaError_t err_sync = cudaGetLastError();
+            handleCUDAError(err_sync, __FILE__, __LINE__);
+            }
+        }
+    #endif
+    }
+
 void export_ExecutionConfiguration(py::module& m)
     {
     py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration> > executionconfiguration(m,"ExecutionConfiguration");
-    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, int, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
+    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, std::vector<int>, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
+        .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
+#ifdef ENABLE_CUDA
+        .def("cudaProfileStart", &ExecutionConfiguration::cudaProfileStart)
+        .def("cudaProfileStop", &ExecutionConfiguration::cudaProfileStop)
+#endif
         .def("getGPUName", &ExecutionConfiguration::getGPUName)
         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
         .def_readonly("msg", &ExecutionConfiguration::msg)
@@ -726,7 +904,7 @@ void export_ExecutionConfiguration(py::module& m)
         .def_static("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
         .def_static("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
         .def_static("_make_exec_conf_mpi_comm",  [](ExecutionConfiguration::executionMode mode,
-                                                    int gpu_id,
+                                                    std::vector<int> gpu_id,
                                                     bool min_cpu,
                                                     bool ignore_display,
                                                     std::shared_ptr<Messenger> _msg,
@@ -741,6 +919,8 @@ void export_ExecutionConfiguration(py::module& m)
         .def("setNumThreads", &ExecutionConfiguration::setNumThreads)
 #endif
         .def("getNumThreads", &ExecutionConfiguration::getNumThreads)
+        .def("setMemoryTracing", &ExecutionConfiguration::setMemoryTracing)
+        .def("getMemoryTracer", &ExecutionConfiguration::getMemoryTracer);
     ;
 
     py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration,"executionMode")

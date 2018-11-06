@@ -1310,7 +1310,7 @@ void Communicator::communicate(unsigned int timestep)
                                         }
                                       , timestep);
 
-    if (!m_compute_callbacks.empty() && m_has_ghost_particles)
+    if (!m_force_migrate && !m_compute_callbacks.empty() && m_has_ghost_particles)
         {
         // do an obligatory update before determining whether to migrate
         beginUpdateGhosts(timestep);

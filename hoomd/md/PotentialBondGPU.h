@@ -69,18 +69,18 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<System
     : PotentialBond<evaluator>(sysdef, log_suffix)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!this->exec_conf->isCUDAEnabled())
+    if (!this->m_exec_conf->isCUDAEnabled())
         {
         this->m_exec_conf->msg->error() << "Creating a PotentialBondGPU with no GPU in the execution configuration" << std::endl;
         throw std::runtime_error("Error initializing PotentialBondGPU");
         }
 
      // allocate and zero device memory
-    GPUArray<typename evaluator::param_type> params(this->m_bond_data->getNTypes(), this->exec_conf);
+    GPUArray<typename evaluator::param_type> params(this->m_bond_data->getNTypes(), this->m_exec_conf);
     this->m_params.swap(params);
 
      // allocate flags storage on the GPU
-    GPUArray<unsigned int> flags(1, this->exec_conf);
+    GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
     // reset flags
@@ -96,7 +96,7 @@ template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
 void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timestep)
     {
     // start the profile
-    if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
+    if (this->m_prof) this->m_prof->push(this->m_exec_conf, this->m_prof_name);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -145,7 +145,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
                  d_flags.data);
         }
 
-    if (this->exec_conf->isCUDAErrorCheckingEnabled())
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {
         CHECK_CUDA_ERROR();
 
@@ -160,7 +160,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
         }
     this->m_tuner->end();
 
-    if (this->m_prof) this->m_prof->pop(this->exec_conf);
+    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
     }
 
 //! Export this bond potential to python

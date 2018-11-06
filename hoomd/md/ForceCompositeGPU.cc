@@ -49,9 +49,13 @@ ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
 
     m_tuner_update.reset(new Autotuner(valid_params_update, 5, 100000, "update_composite", this->m_exec_conf));
 
-    GPUFlags<uint2> flag(m_exec_conf);
-    m_flag.swap(flag);
-    m_flag.resetFlags(make_uint2(0,0));
+    GlobalArray<uint2> flag(1, m_exec_conf);
+    std::swap(m_flag, flag);
+
+        {
+        ArrayHandle<uint2> h_flag(m_flag, access_location::host, access_mode::overwrite);
+        *h_flag.data = make_uint2(0,0);
+        }
     }
 
 ForceCompositeGPU::~ForceCompositeGPU()
@@ -69,10 +73,14 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
 
     // access local molecule data (need to move this on top because of GPUArray scoping issues)
     const Index2D& molecule_indexer = getMoleculeIndexer();
-    unsigned int nmol = molecule_indexer.getW();
+    unsigned int nmol = molecule_indexer.getH();
 
-    ArrayHandle<unsigned int> d_molecule_length(getMoleculeLengths(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_molecule_list(getMoleculeList(), access_location::device, access_mode::read);
+    const GlobalVector<unsigned int>& molecule_list = getMoleculeList();
+    const GlobalVector<unsigned int>& molecule_length = getMoleculeLengths();
+
+    ArrayHandle<unsigned int> d_molecule_length(molecule_length, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_list(molecule_list, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_idx(getMoleculeIndex(), access_location::device, access_mode::read);
 
     // access particle data
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
@@ -94,11 +102,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
-
-    m_tuner_force->begin();
-    unsigned int param = m_tuner_force->getParam();
-    unsigned int block_size = param % 10000;
-    unsigned int n_bodies_per_block = param/10000;
+    ArrayHandle<unsigned int> d_rigid_center(m_rigid_center, access_location::device, access_mode::read);
 
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = false;
@@ -107,34 +111,55 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
         compute_virial = true;
         }
 
-    // launch GPU kernel
-    gpu_rigid_force(d_force.data,
-                    d_torque.data,
-                    d_molecule_length.data,
-                    d_molecule_list.data,
-                    molecule_indexer,
-                    d_postype.data,
-                    d_orientation.data,
-                    m_body_idx,
-                    d_body_pos.data,
-                    d_body_orientation.data,
-                    d_body_len.data,
-                    d_body.data,
-                    d_tag.data,
-                    m_flag.getDeviceFlags(),
-                    d_net_force.data,
-                    d_net_torque.data,
-                    nmol,
-                    m_pdata->getN(),
-                    n_bodies_per_block,
-                    block_size,
-                    m_exec_conf->dev_prop,
-                    !compute_virial);
+        {
+        ArrayHandle<uint2> d_flag(m_flag, access_location::device, access_mode::overwrite);
 
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+        m_exec_conf->beginMultiGPU();
 
-    uint2 flag = m_flag.readFlags();
+        m_tuner_force->begin();
+        unsigned int param = m_tuner_force->getParam();
+        unsigned int block_size = param % 10000;
+        unsigned int n_bodies_per_block = param/10000;
+
+        // launch GPU kernel
+        gpu_rigid_force(d_force.data,
+                        d_torque.data,
+                        d_molecule_length.data,
+                        d_molecule_list.data,
+                        d_molecule_idx.data,
+                        d_rigid_center.data,
+                        molecule_indexer,
+                        d_postype.data,
+                        d_orientation.data,
+                        m_body_idx,
+                        d_body_pos.data,
+                        d_body_orientation.data,
+                        d_body_len.data,
+                        d_body.data,
+                        d_tag.data,
+                        d_flag.data,
+                        d_net_force.data,
+                        d_net_torque.data,
+                        nmol,
+                        m_pdata->getN(),
+                        n_bodies_per_block,
+                        block_size,
+                        m_exec_conf->dev_prop,
+                        !compute_virial,
+                        m_gpu_partition);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+
+        m_exec_conf->endMultiGPU();
+        }
+
+    uint2 flag;
+        {
+        ArrayHandle<uint2> h_flag(m_flag, access_location::host, access_mode::read);
+        flag = *h_flag.data;
+        }
+
     if (flag.x)
         {
         m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << flag.x-1 << " incomplete"
@@ -147,9 +172,9 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     if (compute_virial)
         {
         m_tuner_virial->begin();
-        param = m_tuner_virial->getParam();
-        block_size = param % 10000;
-        n_bodies_per_block = param/10000;
+        unsigned int param = m_tuner_virial->getParam();
+        unsigned int block_size = param % 10000;
+        unsigned int n_bodies_per_block = param/10000;
 
         // launch GPU kernel
         gpu_rigid_virial(d_virial.data,
@@ -193,8 +218,10 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         m_prof->push(m_exec_conf, "update");
 
     // access molecule order
+    const GlobalArray<unsigned int>& molecule_length = getMoleculeLengths();
+
     ArrayHandle<unsigned int> d_molecule_order(getMoleculeOrder(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_molecule_len(getMoleculeLengths(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_len(molecule_length, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_molecule_idx(getMoleculeIndex(), access_location::device, access_mode::read);
 
     // access the particle data arrays
@@ -202,42 +229,54 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
-    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-
     // access body positions and orientations
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
 
-    m_tuner_update->begin();
-    unsigned int block_size = m_tuner_update->getParam();
+    // lookup table
+    ArrayHandle<unsigned int> d_lookup_center(m_lookup_center, access_location::device, access_mode::read);
 
-    gpu_update_composite(m_pdata->getN(),
-        m_pdata->getNGhosts(),
-        d_body.data,
-        d_rtag.data,
-        d_postype.data,
-        d_orientation.data,
-        m_body_idx,
-        d_body_pos.data,
-        d_body_orientation.data,
-        d_body_len.data,
-        d_molecule_order.data,
-        d_molecule_len.data,
-        d_molecule_idx.data,
-        d_image.data,
-        m_pdata->getBox(),
-        m_pdata->getGlobalBox(),
-        block_size,
-        m_flag.getDeviceFlags());
+        {
+        ArrayHandle<uint2> d_flag(m_flag, access_location::device, access_mode::overwrite);
 
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+        m_exec_conf->beginMultiGPU();
 
-    m_tuner_update->end();
+        m_tuner_update->begin();
+        unsigned int block_size = m_tuner_update->getParam();
 
-    uint2 flag = m_flag.readFlags();
+        gpu_update_composite(m_pdata->getN(),
+            m_pdata->getNGhosts(),
+            d_postype.data,
+            d_orientation.data,
+            m_body_idx,
+            d_lookup_center.data,
+            d_body_pos.data,
+            d_body_orientation.data,
+            d_body_len.data,
+            d_molecule_order.data,
+            d_molecule_len.data,
+            d_molecule_idx.data,
+            d_image.data,
+            m_pdata->getBox(),
+            m_pdata->getGlobalBox(),
+            block_size,
+            d_flag.data,
+            m_pdata->getGPUPartition());
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+
+        m_tuner_update->end();
+
+        m_exec_conf->endMultiGPU();
+        }
+
+    uint2 flag;
+        {
+        ArrayHandle<uint2> h_flag(m_flag, access_location::host, access_mode::read);
+        flag = *h_flag.data;
+        }
 
     if (flag.x)
         {
@@ -270,6 +309,61 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
+    }
+
+void ForceCompositeGPU::findRigidCenters()
+    {
+    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+
+    m_rigid_center.resize(m_pdata->getN());
+    m_lookup_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
+
+    ArrayHandle<unsigned int> d_rigid_center(m_rigid_center, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_lookup_center(m_lookup_center, access_location::device, access_mode::overwrite);
+
+    unsigned int n_rigid = 0;
+    gpu_find_rigid_centers(d_body.data,
+                        d_tag.data,
+                        d_rtag.data,
+                        m_pdata->getN(),
+                        m_pdata->getNGhosts(),
+                        d_rigid_center.data,
+                        d_lookup_center.data,
+                        n_rigid);
+
+    // distribute rigid body centers over GPUs
+    m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+    m_gpu_partition.setN(n_rigid);
+    }
+
+void ForceCompositeGPU::lazyInitMem()
+    {
+    bool initialized = m_memory_initialized;
+
+    // call base class method
+    ForceComposite::lazyInitMem();
+
+    if (!initialized)
+        {
+        GlobalVector<unsigned int> rigid_center(m_exec_conf);
+        m_rigid_center.swap(rigid_center);
+        TAG_ALLOCATION(m_rigid_center);
+
+        GlobalVector<unsigned int> lookup_center(m_exec_conf);
+        m_lookup_center.swap(lookup_center);
+        TAG_ALLOCATION(m_lookup_center);
+        }
+
+    if (m_exec_conf->allConcurrentManagedAccess())
+        {
+        cudaMemAdvise(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_body_types.get(), sizeof(unsigned int)*m_body_types.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
+        }
     }
 
 void export_ForceCompositeGPU(py::module& m)

@@ -18,9 +18,12 @@
 #include "HOOMDMath.h"
 #include "GPUArray.h"
 #include "GPUVector.h"
+#include "GlobalArray.h"
+#include "GlobalVector.h"
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
+#include "GPUPartition.cuh"
 #endif
 
 #include "ExecutionConfiguration.h"
@@ -594,7 +597,7 @@ class PYBIND11_EXPORT ParticleData
         const GPUArray< unsigned int >& getTags() const { return m_tag; }
 
         //! Return reverse-lookup tags
-        const GPUVector< unsigned int >& getRTags() const { return m_rtag; }
+        const GlobalVector< unsigned int >& getRTags() const { return m_rtag; }
 
         //! Return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
@@ -1086,6 +1089,14 @@ class PYBIND11_EXPORT ParticleData
             m_o_image = make_int3(0,0,0);
             }
 
+        #ifdef ENABLE_CUDA
+        //! Return the load balancing GPU partition
+        const GPUPartition& getGPUPartition() const
+            {
+            return m_gpu_partition;
+            }
+        #endif
+
     private:
         BoxDim m_box;                               //!< The simulation box
         BoxDim m_global_box;                        //!< Global simulation box
@@ -1115,23 +1126,23 @@ class PYBIND11_EXPORT ParticleData
         bool m_accel_set;                           //!< Flag to tell if acceleration data has been set
 
         // per-particle data
-        GPUArray<Scalar4> m_pos;                    //!< particle positions and types
-        GPUArray<Scalar4> m_vel;                    //!< particle velocities and masses
-        GPUArray<Scalar3> m_accel;                  //!< particle accelerations
-        GPUArray<Scalar> m_charge;                  //!< particle charges
-        GPUArray<Scalar> m_diameter;                //!< particle diameters
-        GPUArray<int3> m_image;                     //!< particle images
-        GPUArray<unsigned int> m_tag;               //!< particle tags
-        GPUVector<unsigned int> m_rtag;             //!< reverse lookup tags
-        GPUArray<unsigned int> m_body;              //!< rigid body ids
-        GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
-        GPUArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
-        GPUArray< Scalar3 > m_inertia;              //!< Principal moments of inertia for each particle
-        GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
+        GlobalArray<Scalar4> m_pos;                    //!< particle positions and types
+        GlobalArray<Scalar4> m_vel;                    //!< particle velocities and masses
+        GlobalArray<Scalar3> m_accel;                  //!< particle accelerations
+        GlobalArray<Scalar> m_charge;                  //!< particle charges
+        GlobalArray<Scalar> m_diameter;                //!< particle diameters
+        GlobalArray<int3> m_image;                     //!< particle images
+        GlobalArray<unsigned int> m_tag;               //!< particle tags
+        GlobalVector<unsigned int> m_rtag;             //!< reverse lookup tags
+        GlobalArray<unsigned int> m_body;              //!< rigid body ids
+        GlobalArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
+        GlobalArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
+        GlobalArray< Scalar3 > m_inertia;              //!< Principal moments of inertia for each particle
+        GlobalArray<unsigned int> m_comm_flags;        //!< Array of communication flags
 
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
-        GPUVector<unsigned int> m_cached_tag_set;    //!< Cached constant-time lookup table for tags by active index
+        std::vector<unsigned int> m_cached_tag_set;   //!< Cached constant-time lookup table for tags by active index
         bool m_invalid_cached_tags;                  //!< true if m_cached_tag_set needs to be rebuilt
 
         /* Alternate particle data arrays are provided for fast swapping in and out of particle data
@@ -1143,26 +1154,26 @@ class PYBIND11_EXPORT ParticleData
            data can be written to the alternate arrays, which are then swapped in for
            the real particle data at effectively zero cost.
          */
-        GPUArray<Scalar4> m_pos_alt;                //!< particle positions and type (swap-in)
-        GPUArray<Scalar4> m_vel_alt;                //!< particle velocities and masses (swap-in)
-        GPUArray<Scalar3> m_accel_alt;              //!< particle accelerations (swap-in)
-        GPUArray<Scalar> m_charge_alt;              //!< particle charges (swap-in)
-        GPUArray<Scalar> m_diameter_alt;            //!< particle diameters (swap-in)
-        GPUArray<int3> m_image_alt;                 //!< particle images (swap-in)
-        GPUArray<unsigned int> m_tag_alt;           //!< particle tags (swap-in)
-        GPUArray<unsigned int> m_body_alt;          //!< rigid body ids (swap-in)
-        GPUArray<Scalar4> m_orientation_alt;        //!< orientations (swap-in)
-        GPUArray<Scalar4> m_angmom_alt;             //!< angular momenta (swap-in)
-        GPUArray<Scalar3> m_inertia_alt;             //!< Principal moments of inertia for each particle (swap-in)
-        GPUArray<Scalar4> m_net_force_alt;          //!< Net force (swap-in)
-        GPUArray<Scalar> m_net_virial_alt;          //!< Net virial (swap-in)
-        GPUArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
+        GlobalArray<Scalar4> m_pos_alt;                //!< particle positions and type (swap-in)
+        GlobalArray<Scalar4> m_vel_alt;                //!< particle velocities and masses (swap-in)
+        GlobalArray<Scalar3> m_accel_alt;              //!< particle accelerations (swap-in)
+        GlobalArray<Scalar> m_charge_alt;              //!< particle charges (swap-in)
+        GlobalArray<Scalar> m_diameter_alt;            //!< particle diameters (swap-in)
+        GlobalArray<int3> m_image_alt;                 //!< particle images (swap-in)
+        GlobalArray<unsigned int> m_tag_alt;           //!< particle tags (swap-in)
+        GlobalArray<unsigned int> m_body_alt;          //!< rigid body ids (swap-in)
+        GlobalArray<Scalar4> m_orientation_alt;        //!< orientations (swap-in)
+        GlobalArray<Scalar4> m_angmom_alt;             //!< angular momenta (swap-in)
+        GlobalArray<Scalar3> m_inertia_alt;             //!< Principal moments of inertia for each particle (swap-in)
+        GlobalArray<Scalar4> m_net_force_alt;          //!< Net force (swap-in)
+        GlobalArray<Scalar> m_net_virial_alt;             //!< Net virial (swap-in)
+        GlobalArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
 
         std::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
 
-        GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
-        GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle (2D GPU array of dimensions 6*number of particles)
-        GPUArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
+        GlobalArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
+        GlobalArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle (2D GPU array of dimensions 6*number of particles)
+        GlobalArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
 
         Scalar m_external_virial[6];                 //!< External potential contribution to the virial
         Scalar m_external_energy;                    //!< External potential energy
@@ -1172,11 +1183,14 @@ class PYBIND11_EXPORT ParticleData
         Scalar3 m_origin;                            //!< Tracks the position of the origin of the coordinate system
         int3 m_o_image;                              //!< Tracks the origin image
 
+        bool m_arrays_allocated;                     //!< True if arrays have been initialized
+
         #ifdef ENABLE_CUDA
         mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
-        #endif
 
-        bool m_arrays_allocated;                     //!< True if arrays have been initialized
+        GPUPartition m_gpu_partition;                //!< The partition of the local number of particles across GPUs
+        GPUPartition m_last_gpu_partition;           //!< GPU partition before last update
+        #endif
 
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
@@ -1199,6 +1213,9 @@ class PYBIND11_EXPORT ParticleData
          */
         template <class Real>
         bool inBox(const SnapshotParticleData<Real>& snap);
+
+        //! Called whenever local particles are added/sorted...
+        void updateGPUPartition();
     };
 
 #ifndef NVCC

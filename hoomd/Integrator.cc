@@ -344,17 +344,20 @@ void Integrator::computeNetForce(unsigned int timestep)
         // also sum up forces for ghosts, in case they are needed by the communicator
         unsigned int nparticles = m_pdata->getN()+m_pdata->getNGhosts();
         unsigned int net_virial_pitch = net_virial.getPitch();
+
         assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
         assert(nparticles <= net_torque.getNumElements());
 
         for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
             {
-            //phasing out ForceDataArrays
-            //ForceDataArrays force_arrays = (*force_compute)->acquire();
             GPUArray<Scalar4>& h_force_array = (*force_compute)->getForceArray();
             GPUArray<Scalar>& h_virial_array = (*force_compute)->getVirialArray();
             GPUArray<Scalar4>& h_torque_array = (*force_compute)->getTorqueArray();
+
+            assert(nparticles <= h_force_array.getNumElements());
+            assert(6*nparticles <= h_virial_array.getNumElements());
+            assert(nparticles <= h_torque_array.getNumElements());
 
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
@@ -437,8 +440,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         assert(6*nparticles <= net_virial.getNumElements());
         for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
             {
-            //phasing out ForceDataArrays
-            //ForceDataArrays force_arrays = (*force_compute)->acquire();
             GPUArray<Scalar4>& h_force_array =(*force_constraint)->getForceArray();
             GPUArray<Scalar>& h_virial_array =(*force_constraint)->getVirialArray();
             GPUArray<Scalar4>& h_torque_array = (*force_constraint)->getTorqueArray();
@@ -447,6 +448,9 @@ void Integrator::computeNetForce(unsigned int timestep)
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
             unsigned int virial_pitch = h_virial_array.getPitch();
 
+            assert(nparticles <= h_force_array.getNumElements());
+            assert(6*nparticles <= h_virial_array.getNumElements());
+            assert(nparticles <= h_torque_array.getNumElements());
 
             for (unsigned int j = 0; j < nparticles; j++)
                 {
@@ -496,6 +500,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
 
     // compute all the normal forces first
+
     std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
@@ -509,6 +514,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
     Scalar external_virial[6];
     Scalar external_energy;
+
+    m_exec_conf->beginMultiGPU();
 
         {
         // access the net force and virial arrays
@@ -644,7 +651,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                          force_list,
                                          nparticles,
                                          clear,
-                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]);
+                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                                         m_pdata->getGPUPartition());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -663,6 +671,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_pdata->setExternalVirial(k, external_virial[k]);
 
     m_pdata->setExternalEnergy(external_energy);
+
+    m_exec_conf->endMultiGPU();
 
     if (m_prof)
         {
@@ -692,6 +702,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_prof->push("Integrate");
         m_prof->push(m_exec_conf, "Net force");
         }
+
+    m_exec_conf->beginMultiGPU();
 
         {
         // access the net force and virial arrays
@@ -804,12 +816,15 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                          force_list,
                                          nparticles,
                                          clear,
-                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]);
+                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                                         m_pdata->getGPUPartition());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
         }
+
+    m_exec_conf->endMultiGPU();
 
     // add up external virials
     for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force ++)

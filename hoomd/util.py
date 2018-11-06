@@ -125,7 +125,13 @@ def cuda_profile_start():
         run(100);
 
     """
-    _hoomd.cuda_profile_start();
+    # check if initialization has occurred
+    if not hoomd.init.is_initialized():
+        hoomd.context.msg.error("Cannot start profiling before initialization\n");
+        raise RuntimeError('Error starting profile');
+
+    if hoomd.context.exec_conf.isCUDAEnabled():
+        hoomd.context.exec_conf.cudaProfileStart();
 
 def cuda_profile_stop():
     """ Stop CUDA profiling.
@@ -133,5 +139,10 @@ def cuda_profile_stop():
         See Also:
             :py:func:`cuda_profile_start()`.
     """
+    # check if initialization has occurred
+    if not hoomd.init.is_initialized():
+        hoomd.context.msg.error("Cannot stop profiling before initialization\n");
+        raise RuntimeError('Error stopping profile');
 
-    _hoomd.cuda_profile_stop();
+    if hoomd.context.exec_conf.isCUDAEnabled():
+        hoomd.context.exec_conf.cudaProfileStop();

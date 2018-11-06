@@ -77,8 +77,6 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
 
-    unsigned int num_blocks = group_size / m_block_size + 1;
-
     langevin_step_two_args args;
     args.d_gamma = d_gamma.data;
     args.n_types = m_gamma.getNumElements();
@@ -90,10 +88,25 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
     args.d_sum_bdenergy = NULL;
     args.d_partial_sum_bdenergy = NULL;
     args.block_size = m_block_size;
-    args.num_blocks = num_blocks;
+    args.num_blocks = 0; // handled in driver function
     args.tally = false;
 
     bool aniso = m_aniso;
+
+    if (m_exec_conf->allConcurrentManagedAccess())
+        {
+        // prefetch gammas
+        auto& gpu_map = m_exec_conf->getGPUIds();
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaMemPrefetchAsync(m_gamma.get(), sizeof(Scalar)*m_gamma.getNumElements(), gpu_map[idev]);
+            cudaMemPrefetchAsync(m_gamma_r.get(), sizeof(Scalar)*m_gamma_r.getNumElements(), gpu_map[idev]);
+            }
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+    m_exec_conf->beginMultiGPU();
 
     // perform the update on the GPU
     gpu_brownian_step_one(d_pos.data,
@@ -115,10 +128,13 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
                           m_deltaT,
                           D,
                           m_noiseless_t,
-                          m_noiseless_r);
+                          m_noiseless_r,
+                          m_group->getGPUPartition());
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_exec_conf->endMultiGPU();
 
     // done profiling
     if (m_prof)

@@ -569,6 +569,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
     // loop over local particles
     unsigned int nptl = m_pdata->getN();
 
+    // locality data in new configuration
+    const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+
     // access particle data
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
@@ -897,9 +900,6 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
 
     if (line && !swap)
         {
-        // locality data in new configuration
-        const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
-
         // check if particles are interacting in the new configuration
         #ifdef ENABLE_TBB
         tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
