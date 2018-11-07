@@ -54,7 +54,7 @@ $ conda update hoomd
 Download source releases directly from the web: https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 ```bash
-$ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.3.5.tar.gz
+$ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.4.0.tar.gz
 ```
 
 Or, clone using git:
