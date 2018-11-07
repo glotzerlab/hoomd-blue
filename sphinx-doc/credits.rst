@@ -204,6 +204,9 @@ Tim Moore, Vanderbilt University
 Bradley Dice, Avisek Das, University of Michigan
   * integrator.randomize_velocities()
 
+Peter Schwendeman, Jens Glaser, University of Michigan
+  * NLINK optimized multi-GPU execution
+
 HPMC developers
 ---------------
 
@@ -259,6 +262,8 @@ Jens Glaser, University of Michigan
  * Implicit depletants
  * `jit.patch.user_union` user defined patchy interactions with LLVM runtime compiled code
  * Geometric Cluster Algorithm implementation
+ * `convex_spheropolyhedron_union` shape class
+ * `test_overlap` python API
 
 Eric Harper, University of Michigan
  * Misc bug fixes to move size by particle type feature
