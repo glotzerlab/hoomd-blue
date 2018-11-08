@@ -1045,8 +1045,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             m_diameter_backup[i] = h_diameter.data[i];
             m_charge_backup[i] = h_charge.data[i];
             m_tag_backup[i] = h_tag.data[i];
-            // reset image
-            m_image_backup[i] = make_int3(0,0,0);
+            m_image_backup[i] = h_image.data[i];
             }
         }
 
@@ -1172,8 +1171,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         for (unsigned int i = 0; i < snap.size; ++i)
             {
-            // reset image
-            snap.image[i] = make_int3(0,0,0);
+            // unwrap particle pos
+            snap.pos[i] = box.shift(snap.pos[i],snap.image[i]);
 
             if (swap)
                 {
