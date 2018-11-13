@@ -808,9 +808,6 @@ protected:
         m_inertia[4] = -(intg[8] - m_volume*cyz);
         m_inertia[5] = -(intg[9] - m_volume*cxz);
         }
-private:
-    std::vector< vec3<Scalar> > points;
-    std::vector<std::vector<unsigned int> > faces;
 };
 
 //TODO: Enable true spheropolyhedron calculation
@@ -861,7 +858,7 @@ protected:
 private:
     OverlapReal m_sweep_radius;
 
-} // end namespace detail
+}; // end namespace detail
 
 template<class Shape>
 void export_massPropertiesBase(pybind11::module& m, std::string name);
