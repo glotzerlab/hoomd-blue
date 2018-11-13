@@ -301,7 +301,7 @@ public:
         build_edge_list();
         sortFaces(m_points, m_faces, zero);
         }
-        catch(shape_util_error e){
+        catch(const shape_util_error &e){
             write_pos_frame(inside);
             throw(e);
         }
@@ -858,7 +858,9 @@ protected:
 private:
     OverlapReal m_sweep_radius;
 
-}; // end namespace detail
+};
+} // end namespace detail
+
 
 template<class Shape>
 void export_massPropertiesBase(pybind11::module& m, std::string name);
