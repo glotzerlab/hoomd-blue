@@ -540,7 +540,6 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
 
     // update the image list
     auto image_list = m_mc->updateImageList();
-    auto image_hkl = m_mc->getImageHKL();
 
     // minimum AABB extent
     Scalar min_core_diameter = m_mc->getMinCoreDiameter();
@@ -673,8 +672,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // update map
                                     m_energy_old_old[p] = U;
 
-                                    int3 delta_img = -image_hkl[cur_image] + m_image_backup[i] - m_image_backup[j];
-                                    if (line && !swap && (delta_img.x || delta_img.y || delta_img.z))
+                                    int3 delta_img = m_image_backup[i] - m_image_backup[j];
+                                    bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
+                                    interacts_via_pbc |= cur_image != 0;
+
+                                    if (line && !swap && interacts_via_pbc)
                                         {
                                         // if interaction across PBC, reject cluster move
                                         m_local_reject.insert(new_tag_i);
@@ -770,8 +772,12 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 if (h_overlaps.data[overlap_idx(typ_i,typ_j)]
                                     && test_overlap(r_ij, shape_i, shape_j, err))
                                     {
-                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - m_image_backup[j];
-                                    bool reject = (line &&!swap) && (delta_img.x || delta_img.y || delta_img.z);
+
+                                    int3 delta_img = h_image.data[i] - m_image_backup[j];
+                                    bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
+                                    interacts_via_pbc |= cur_image != 0;
+
+                                    bool reject = (line &&!swap) && interacts_via_pbc;
 
                                     if (swap && ((typ_i != m_ab_types[0] && typ_i != m_ab_types[1])
                                         || (typ_j != m_ab_types[0] && typ_j != m_ab_types[1])))
@@ -872,8 +878,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // update map
                                     m_energy_new_old[p] = U;
 
-                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - m_image_backup[j];
-                                    if (line && !swap && (delta_img.x || delta_img.y || delta_img.z))
+                                    int3 delta_img = h_image.data[i] - m_image_backup[j];
+                                    bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
+                                    interacts_via_pbc |= cur_image != 0;
+
+                                    if (line && !swap && interacts_via_pbc)
                                         {
                                         // if interaction across PBC, reject cluster move
                                         m_local_reject.insert(h_tag.data[i]);
@@ -973,8 +982,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 if (interact_patch || (rsq_ij <= RaRb*RaRb && h_overlaps.data[overlap_idx(typ_i,typ_j)]
                                         && test_overlap(r_ij, shape_i, shape_j, err)))
                                     {
-                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - h_image.data[j];
-                                    if (delta_img.x || delta_img.y || delta_img.z)
+                                    int3 delta_img = h_image.data[i] - h_image.data[j];
+                                    bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
+                                    interacts_via_pbc |= cur_image != 0;
+
+                                    if (interacts_via_pbc)
                                         {
                                         // add to reject list
                                         m_local_reject.insert(h_tag.data[i]);

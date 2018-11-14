@@ -104,7 +104,6 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
 
     // update the image list
     auto image_list = m_mc_implicit->updateImageList();
-    auto image_hkl = m_mc_implicit->getImageHKL();
 
     // clear the local bond and rejection lists
     this->m_interact_old_old.clear();
@@ -196,8 +195,11 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
 
                                 this->m_interact_old_old.push_back(std::make_pair(new_tag_i,new_tag_j));
 
-                                int3 delta_img = -image_hkl[cur_image] + this->m_image_backup[i] - this->m_image_backup[j];
-                                if (line && !swap && (delta_img.x || delta_img.y || delta_img.z))
+                                int3 delta_img = this->m_image_backup[i] - this->m_image_backup[j];
+                                bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
+                                interacts_via_pbc |= cur_image != 0;
+
+                                if (line && !swap && interacts_via_pbc)
                                     {
                                     // if interaction across PBC, reject cluster move
                                     this->m_local_reject.insert(new_tag_i);
@@ -291,8 +293,11 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                 {
                                 this->m_interact_new_old.push_back(std::make_pair(h_tag.data[i],new_tag_j));
 
-                                int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - this->m_image_backup[j];
-                                if (line && !swap &&  (delta_img.x || delta_img.y || delta_img.z))
+                                int3 delta_img = h_image.data[i] - this->m_image_backup[j];
+                                bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
+                                interacts_via_pbc |= cur_image != 0;
+
+                                if (line && !swap && interacts_via_pbc)
                                     {
                                     // if interaction across PBC, reject cluster move
                                     this->m_local_reject.insert(h_tag.data[i]);
@@ -383,8 +388,11 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                     h_overlaps.data[overlap_idx(typ_j,depletant_type)] &&
                                     rsq_ij <= RaRb*RaRb)
                                     {
-                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - h_image.data[j];
-                                    if (delta_img.x || delta_img.y || delta_img.z)
+                                    int3 delta_img = h_image.data[i] - h_image.data[j];
+                                    bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
+                                    interacts_via_pbc |= cur_image != 0;
+
+                                    if (interacts_via_pbc)
                                         {
                                         // add to list
                                         this->m_local_reject.insert(h_tag.data[i]);
