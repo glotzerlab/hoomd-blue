@@ -23,7 +23,6 @@ class shape_proxy_sanity_checks (unittest.TestCase):
         context.initialize()
         self.snapshot = data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=2), particle_types=['A'])
 
-        print(" sphere");
         diam = 1.125;
         self.system = init.read_snapshot(self.snapshot)
         self.mc = hpmc.integrate.sphere(seed=2398, d=0.0)
@@ -32,7 +31,6 @@ class shape_proxy_sanity_checks (unittest.TestCase):
         del self.mc
         del self.system
         context.initialize()
-        print(" ellipsoid");
         a = 1.125;
         b = 0.238;
         c = 2.25;
@@ -47,7 +45,6 @@ class shape_proxy_sanity_checks (unittest.TestCase):
         context.initialize()
 
 
-        print(" convex_polygon");
         v = [(-1,-1), (1,-1), (1,1), (-1,1)];
         self.system = init.read_snapshot(self.snapshot)
         self.mc = hpmc.integrate.convex_polygon(seed=2398, d=0.1, a=0.1)
@@ -58,7 +55,6 @@ class shape_proxy_sanity_checks (unittest.TestCase):
         del self.system
         context.initialize()
 
-        print(" convex_spheropolygon");
         v = [(-1,-1), (1,-1), (1,1), (-1,1)];
         r = 0.1234;
         self.system = init.read_snapshot(self.snapshot)
@@ -71,7 +67,6 @@ class shape_proxy_sanity_checks (unittest.TestCase):
         del self.system
         context.initialize()
 
-        print("simple_polygon");
         v = [(-1,-1), (1,-1), (1,1), (-1,1)];
         self.system = init.read_snapshot(self.snapshot)
         self.mc = hpmc.integrate.simple_polygon(seed=2398, d=0.1, a=0.1)
@@ -82,7 +77,6 @@ class shape_proxy_sanity_checks (unittest.TestCase):
         del self.system
         context.initialize()
 
-        print(" convex_polyhedron");
         v = [(1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),(1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1)];
         self.system = init.read_snapshot(self.snapshot)
         self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.1, a=0.1)
@@ -93,7 +87,6 @@ class shape_proxy_sanity_checks (unittest.TestCase):
         del self.system
         context.initialize()
 
-        print(" polyhedron");
         import math
         v = [(-0.5, -0.5, 0), (-0.5, 0.5, 0), (0.5, -0.5, 0), (0.5, 0.5, 0), (0,0, 1.0/math.sqrt(2)),(0,0,-1.0/math.sqrt(2))];
         f = [(0,4,1),(1,4,2),(2,4,3),(3,4,0),(0,5,1),(1,5,2),(2,5,3),(3,5,0)]
@@ -110,7 +103,6 @@ class shape_proxy_sanity_checks (unittest.TestCase):
         del self.system
         context.initialize()
 
-        print(" convex_spheropolyhedron");
         v = [(1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),(1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1)];
         r = 0.1234;
         self.system = init.read_snapshot(self.snapshot)
@@ -123,7 +115,6 @@ class shape_proxy_sanity_checks (unittest.TestCase):
         del self.system
         context.initialize()
 
-        print(" faceted_sphere");
         v =  [(-1,-1,-1),(-1,-1,1),(-1,1,-1),(-1,1,1),(1,-1,-1),(1,-1,1),(1,1,-1),(1,1,1)];
         offs = [-1]*6;
         norms =[(-1,0,0), (1,0,0), (0,1,0,), (0,-1,0), (0,0,1), (0,0,-1)];
@@ -150,7 +141,6 @@ class shape_proxy_sanity_checks (unittest.TestCase):
         del self.system
         context.initialize()
 
-        print(" sphinx");
         # GPU Sphinx is not built on most the time
         if not hoomd.context.exec_conf.isCUDAEnabled():
             cent = [(0,0,0), (0,0,1.15), (0,0,-1.15)]
@@ -213,5 +203,4 @@ class shape_proxy_sanity_checks (unittest.TestCase):
 
 
 if __name__ == '__main__':
-    print("starting test")
     unittest.main(argv = ['test.py', '-v'])
