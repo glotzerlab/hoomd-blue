@@ -4,7 +4,7 @@
 #include <numeric>
 #include <algorithm>
 #include "hoomd/Updater.h"
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
 #include "IntegratorHPMCMono.h"
 #include "hoomd/HOOMDMPI.h"
 
@@ -60,7 +60,7 @@ public:
 
     void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
 
-    void registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> > move);
+    void registerShapeMove(std::shared_ptr<shape_move_function<Shape, hoomd::detail::Saru> > move);
 
     Scalar getStepSize(unsigned int typ)
         {
@@ -96,7 +96,7 @@ private:
     std::vector<unsigned int>   m_box_total;
     unsigned int                m_move_ratio;
 
-    std::shared_ptr< shape_move_function<Shape, Saru> >   m_move_function;
+    std::shared_ptr< shape_move_function<Shape, hoomd::detail::Saru> >   m_move_function;
     std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
     std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function;
 
@@ -245,7 +245,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     	return;
         }
 
-    Saru rng(m_move_ratio, m_seed, timestep);
+    hoomd::detail::Saru rng(m_move_ratio, m_seed, timestep);
     unsigned int move_type_select = rng.u32() & 0xffff;
     bool move = (move_type_select < m_move_ratio);
     if (!move)
@@ -302,7 +302,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             ArrayHandle<Scalar> h_det_backup(determinant_backup, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
 
-            Saru rng_i(m_seed + m_nselect + sweep + m_nsweeps, typ_i+1046527, timestep+7919);
+            hoomd::detail::Saru rng_i(m_seed + m_nselect + sweep + m_nsweeps, typ_i+1046527, timestep+7919);
             m_move_function->construct(timestep, typ_i, param, rng_i);
             h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
@@ -442,7 +442,7 @@ void UpdaterShape<Shape>::registerLogBoltzmannFunction(std::shared_ptr< ShapeLog
     }
 
 template< typename Shape>
-void UpdaterShape<Shape>::registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> > move)
+void UpdaterShape<Shape>::registerShapeMove(std::shared_ptr<shape_move_function<Shape, hoomd::detail::Saru> > move)
     {
     if(m_move_function) // if it exists I do not want to reset it.
         return;

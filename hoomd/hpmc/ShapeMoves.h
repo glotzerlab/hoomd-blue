@@ -1,7 +1,7 @@
 #ifndef _SHAPE_MOVES_H
 #define _SHAPE_MOVES_H
 
-#include <hoomd/extern/saruprng.h>
+#include "hoomd/Saru.h"
 #include "ShapeUtils.h"
 #include <hoomd/Variant.h>
 #include "Moves.h"
@@ -620,11 +620,11 @@ class ShapeSpring : public ShapeSpringBase< Shape >
 {
     using ShapeSpringBase< Shape >::m_reference_shape;
     using ShapeSpringBase< Shape >::m_volume;
-    //using elastic_shape_move_function<Shape, Saru>;
-    std::shared_ptr<elastic_shape_move_function<Shape, Saru> > m_shape_move;
+    //using elastic_shape_move_function<Shape, hoomd::detail::Saru>;
+    std::shared_ptr<elastic_shape_move_function<Shape, hoomd::detail::Saru> > m_shape_move;
 public:
     using ShapeSpringBase< Shape >::m_k;
-    ShapeSpring(std::shared_ptr<Variant> k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, Saru> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
+    ShapeSpring(std::shared_ptr<Variant> k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, hoomd::detail::Saru> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
         {
         }
 
