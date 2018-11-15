@@ -260,6 +260,8 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             this->m_prof->push(this->m_exec_conf, "UpdaterShape setup");
         // Shuffle the order of particles for this sweep
         m_update_order.choose(timestep+40591, m_nselect, sweep+91193); // order of the list doesn't matter the probability of each combination is the same.
+        if (this->m_prof)
+            this->m_prof->pop();
 
         Scalar log_boltz = 0.0;
         m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
