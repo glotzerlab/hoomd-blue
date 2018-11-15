@@ -50,8 +50,8 @@
     any data structures that it may need.
 
     Computes may be referenced more than once and may reference other computes. To prevent
-    uneeded data from being calculated, the time step will be passed into the compute
-    method so that it can skip caculations if they have already been done this timestep.
+    unneeded data from being calculated, the time step will be passed into the compute
+    method so that it can skip calculations if they have already been done this timestep.
     For convenience, the base class will provide a shouldCompute() method that implements
     this behaviour. Derived classes can override if more complicated behavior is needed.
 
@@ -196,7 +196,6 @@ class PYBIND11_EXPORT Compute
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
         std::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
-        std::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration
 #ifdef ENABLE_MPI
         std::shared_ptr<Communicator> m_comm;             //!< The communicator this compute is to use
 #endif

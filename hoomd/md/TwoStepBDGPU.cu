@@ -27,8 +27,8 @@ extern __shared__ Scalar s_gammas[];
     \param box simulation box
     \param d_diameter array of particle diameters
     \param d_tag array of particle tags
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
-    \param group_size Number of members in the group
+    \param d_group_members Device array listing the indices of the members of the group to integrate
+    \param nwork Number of group members to process on this GPU
     \param d_net_force Net force on each particle
     \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)
     \param d_orientation Device array of orientation quaternion
@@ -47,6 +47,7 @@ extern __shared__ Scalar s_gammas[];
     \param D Dimensionality of the system
     \param d_noiseless_t If set true, there will be no translational noise (random force)
     \param d_noiseless_r If set true, there will be no rotational noise (random torque)
+    \param offset Offset of this GPU into group indices
 
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
 
@@ -63,7 +64,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const Scalar *d_diameter,
                                   const unsigned int *d_tag,
                                   const unsigned int *d_group_members,
-                                  const unsigned int group_size,
+                                  const unsigned int nwork,
                                   const Scalar4 *d_net_force,
                                   const Scalar *d_gamma_r,
                                   Scalar4 *d_orientation,
@@ -81,7 +82,8 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const Scalar deltaT,
                                   unsigned int D,
                                   const bool d_noiseless_t,
-                                  const bool d_noiseless_r)
+                                  const bool d_noiseless_r,
+                                  const unsigned int offset)
     {
     if (!use_lambda)
         {
@@ -105,10 +107,12 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
     __syncthreads();
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
-    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int local_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (group_idx < group_size)
+    if (local_idx < nwork)
         {
+        const unsigned int group_idx = local_idx + offset;
+
         // determine the particle to work on
         unsigned int idx = d_group_members[group_idx];
         Scalar4 postype = d_pos[idx];
@@ -248,7 +252,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
     \param box simulation box
     \param d_diameter array of particle diameters
     \param d_tag array of particle tags
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
     \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)
@@ -284,45 +288,55 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   const Scalar deltaT,
                                   const unsigned int D,
                                   const bool d_noiseless_t,
-                                  const bool d_noiseless_r)
+                                  const bool d_noiseless_r,
+                                  const GPUPartition& gpu_partition
+                                  )
     {
+    unsigned int run_block_size = 256;
 
-    // setup the grid to run the kernel
-    dim3 grid(langevin_args.num_blocks, 1, 1);
-    dim3 grid1(1, 1, 1);
-    dim3 threads(langevin_args.block_size, 1, 1);
-    dim3 threads1(256, 1, 1);
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-    // run the kernel
-    gpu_brownian_step_one_kernel<<< grid, threads, max( (unsigned int)(sizeof(Scalar)*langevin_args.n_types) * 2,
-                                                        (unsigned int)(langevin_args.block_size*sizeof(Scalar))
-                                                      )>>>
-                                (d_pos,
-                                 d_vel,
-                                 d_image,
-                                 box,
-                                 d_diameter,
-                                 d_tag,
-                                 d_group_members,
-                                 group_size,
-                                 d_net_force,
-                                 d_gamma_r,
-                                 d_orientation,
-                                 d_torque,
-                                 d_inertia,
-                                 d_angmom,
-                                 langevin_args.d_gamma,
-                                 langevin_args.n_types,
-                                 langevin_args.use_lambda,
-                                 langevin_args.lambda,
-                                 langevin_args.timestep,
-                                 langevin_args.seed,
-                                 langevin_args.T,
-                                 aniso,
-                                 deltaT,
-                                 D,
-                                 d_noiseless_t,
-                                 d_noiseless_r);
+        unsigned int nwork = range.second - range.first;
+
+        // setup the grid to run the kernel
+        dim3 grid( (nwork/run_block_size) + 1, 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        // run the kernel
+        gpu_brownian_step_one_kernel<<< grid, threads, max( (unsigned int)(sizeof(Scalar)*langevin_args.n_types) * 2,
+                                                            (unsigned int)(langevin_args.block_size*sizeof(Scalar))
+                                                          )>>>
+                                    (d_pos,
+                                     d_vel,
+                                     d_image,
+                                     box,
+                                     d_diameter,
+                                     d_tag,
+                                     d_group_members,
+                                     nwork,
+                                     d_net_force,
+                                     d_gamma_r,
+                                     d_orientation,
+                                     d_torque,
+                                     d_inertia,
+                                     d_angmom,
+                                     langevin_args.d_gamma,
+                                     langevin_args.n_types,
+                                     langevin_args.use_lambda,
+                                     langevin_args.lambda,
+                                     langevin_args.timestep,
+                                     langevin_args.seed,
+                                     langevin_args.T,
+                                     aniso,
+                                     deltaT,
+                                     D,
+                                     d_noiseless_t,
+                                     d_noiseless_r,
+                                     range.first);
+        }
 
     return cudaSuccess;
     }

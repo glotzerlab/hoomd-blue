@@ -54,7 +54,7 @@ $ conda update hoomd
 Download source releases directly from the web: https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 ```bash
-$ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.3.5.tar.gz
+$ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.4.0.tar.gz
 ```
 
 Or, clone using git:
@@ -77,7 +77,6 @@ to fetch the submodules.
      * NVIDIA CUDA Toolkit >= 7.0
      * Intel Threaded Building Blocks >= 4.3
      * MPI (tested with OpenMPI, MVAPICH)
-     * sqlite3
 
 ### Compile
 

@@ -260,7 +260,7 @@ __device__ inline unsigned int computeParticleCell(const Scalar3& p,
     in the group detect an overlap. After all checks are complete, the master thread in the group applies the trial move
     update if accepted.
 
-    No __synchtreads is needed after the overlap checks because the group_size is always chosen to be a power of 2 and
+    No __syncthreads is needed after the overlap checks because the group_size is always chosen to be a power of 2 and
     smaller than the warp size. Only a __threadfence_block() is needed to ensure memory consistency.
 
     Move stats are tallied in local memory, then totaled in shared memory at the end and finally a single thread in the
@@ -434,16 +434,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
 
     // identify the active cell that this thread handles
     unsigned int active_cell_idx = 0;
-    if (gridDim.y > 1)
-        {
-        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
-        active_cell_idx = (blockIdx.x + blockIdx.y * 65535) * n_groups + group;
-        }
-    else
-        {
-        active_cell_idx = blockIdx.x * n_groups + group;
-        }
-
+    active_cell_idx = blockIdx.x * n_groups + group;
 
     // this thread is inactive if it indexes past the end of the active cell list
     if (active_cell_idx >= n_active_cells)
@@ -720,7 +711,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
                 d_active_cell_move_type_translate[active_cell_idx] = move_type_translate ? 1 : 0;
                 }
 
-            // if an auxillary array was provided, defer writing out statistics
+            // if an auxiliary array was provided, defer writing out statistics
             if (d_active_cell_ptl_idx)
                 {
                 ignore_stats = 1;
@@ -794,13 +785,11 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
 
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
-    static int sm = -1;
     static cudaFuncAttributes attr;
     if (max_block_size == -1)
         {
         cudaFuncGetAttributes(&attr, gpu_hpmc_mpmc_kernel<Shape>);
         max_block_size = attr.maxThreadsPerBlock;
-        sm = attr.binaryVersion;
         }
 
     // might need to modify group_size to make the kernel runnable
@@ -890,13 +879,6 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         }
 
     dim3 grid( args.n_active_cells / n_groups + 1, 1, 1);
-
-    // hack to enable grids of more than 65k blocks
-    if (sm < 30 && grid.x > 65535)
-        {
-        grid.y = grid.x / 65535 + 1;
-        grid.x = 65535;
-        }
 
     // bind the textures
     postype_tex.normalized = false;

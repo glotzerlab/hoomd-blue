@@ -402,9 +402,9 @@ class mode_hpmc(_integrator):
         """
 
         hoomd.util.print_status_line();
-        # check that proper initialization has occured
+        # check that proper initialization has occurred
         if self.cpp_integrator == None:
-            hoomd.context.msg.error("Bug in hoomd_script: cpp_integrator not set, please report\n");
+            hoomd.context.msg.error("Bug in hoomd: cpp_integrator not set, please report\n");
             raise RuntimeError('Error updating forces');
 
         # change the parameters
@@ -487,6 +487,34 @@ class mode_hpmc(_integrator):
         self.update_forces()
         self.cpp_integrator.communicate(True);
         return self.cpp_integrator.countOverlaps(hoomd.context.current.system.getCurrentTimeStep(), False);
+
+    def test_overlap(self,type_i, type_j, rij, qi, qj, use_images=True, exclude_self=False):
+        R""" Test overlap between two particles.
+
+        Args:
+            type_i (str): Type of first particle
+            type_j (str): Type of second particle
+            rij (tuple): Separation vector **rj**-**ri** between the particle centers
+            qi (tuple): Orientation quaternion of first particle
+            qj (tuple): Orientation quaternion of second particle
+            use_images (bool): If True, check for overlap between the periodic images of the particles by adding
+                the image vector to the separation vector
+            exclude_self (bool): If both **use_images** and **exclude_self** are true, exclude the primary image
+
+        For two-dimensional shapes, pass the third dimension of **rij** as zero.
+
+        Returns:
+            True if the particles overlap.
+        """
+        self.update_forces()
+
+        ti =  hoomd.context.current.system_definition.getParticleData().getTypeByName(type_i)
+        tj =  hoomd.context.current.system_definition.getParticleData().getTypeByName(type_j)
+
+        rij = hoomd.util.listify(rij)
+        qi = hoomd.util.listify(qi)
+        qj = hoomd.util.listify(qj)
+        return self.cpp_integrator.py_test_overlap(ti,tj,rij,qi,qj,use_images,exclude_self)
 
     def get_translate_acceptance(self):
         R""" Get the average acceptance ratio for translate moves.
@@ -696,6 +724,8 @@ def setA(cpp_integrator,a):
 # Helper method to parse depletant mode
 def depletant_mode_circumsphere(depletant_mode):
     if depletant_mode == 'circumsphere':
+        if hoomd.context.current.on_gpu():
+            hoomd.context.msg.warning("depletant_mode='circumsphere' is deprecated on the GPU if using ntrial>0. Compile with ENABLE_HPMC_REINSERT enabled to use this feature.\n")
         return True
     elif depletant_mode == 'overlap_regions':
         return False
@@ -755,10 +785,11 @@ class sphere(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewSphere(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphere(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphere(hoomd.context.current.system_definition, seed);
         else:
@@ -1155,7 +1186,7 @@ class polyhedron(mode_hpmc):
     * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
 
         * The origin **MUST** strictly be contained in the generally nonconvex volume defined by the vertices and faces
-        * The (0,0,0) centered sphere that encloses all verticies should be of minimal size for optimal performance (e.g.
+        * The (0,0,0) centered sphere that encloses all vertices should be of minimal size for optimal performance (e.g.
           don't translate the shape such that (0,0,0) right next to a face).
 
     * *faces* (**required**) - a list of vertex indices for every face
@@ -1211,10 +1242,11 @@ class polyhedron(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewPolyhedron(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitPolyhedron(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoPolyhedron(hoomd.context.current.system_definition, seed);
         else:
@@ -1286,7 +1318,7 @@ class convex_polyhedron(mode_hpmc):
     * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
 
         * The origin **MUST** be contained within the vertices.
-        * The origin centered circle that encloses all verticies should be of minimal size for optimal performance (e.g.
+        * The origin centered circle that encloses all vertices should be of minimal size for optimal performance (e.g.
           don't put the origin right next to a face).
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
@@ -1325,10 +1357,11 @@ class convex_polyhedron(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedron(hoomd.context.current.system_definition, seed);
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedron(hoomd.context.current.system_definition, seed, 0);
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewConvexPolyhedron(hoomd.context.current.system_definition, seed);
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedron(hoomd.context.current.system_definition, seed, 1);
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedron(hoomd.context.current.system_definition, seed);
         else:
@@ -1405,7 +1438,7 @@ class faceted_sphere(mode_hpmc):
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
-    A faceted sphere is a sphere interesected with halfspaces. The equation defining each halfspace is given by:
+    A faceted sphere is a sphere intersected with halfspaces. The equation defining each halfspace is given by:
 
     .. math::
         n_i\cdot r + b_i \le 0
@@ -1455,10 +1488,11 @@ class faceted_sphere(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewFacetedSphere(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedSphere(hoomd.context.current.system_definition, seed);
         else:
@@ -1555,10 +1589,11 @@ class sphinx(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoNewImplicitSphinx(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphinx(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphinx(hoomd.context.current.system_definition, seed);
         else:
@@ -1627,14 +1662,14 @@ class convex_spheropolyhedron(mode_hpmc):
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
-    A sperholpolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
+    A spheropolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
 
     Spheropolyhedron parameters:
 
     * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
 
         - The origin **MUST** be contained within the vertices.
-        - The origin centered sphere that encloses all verticies should be of minimal size for optimal performance (e.g.
+        - The origin centered sphere that encloses all vertices should be of minimal size for optimal performance (e.g.
           don't put the origin right next to a face).
         - A sphere can be represented by specifying zero vertices (i.e. vertices=[]) and a non-zero radius R
         - Two vertices and a non-zero radius R define a prolate spherocylinder.
@@ -1678,10 +1713,11 @@ class convex_spheropolyhedron(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolyhedron(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolyhedron(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewSpheropolyhedron(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolyhedron(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolyhedron(hoomd.context.current.system_definition, seed);
         else:
@@ -1799,10 +1835,11 @@ class ellipsoid(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewEllipsoid(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitEllipsoid(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoEllipsoid(hoomd.context.current.system_definition, seed);
         else:
@@ -1905,10 +1942,11 @@ class sphere_union(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewSphereUnion(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed)
         else:
@@ -1960,7 +1998,7 @@ class sphere_union(mode_hpmc):
 
         return shape_def
 
-class convex_polyhedron_union(mode_hpmc):
+class convex_spheropolyhedron_union(mode_hpmc):
     R""" HPMC integration for unions of convex polyhedra (3D).
 
     Args:
@@ -1983,6 +2021,10 @@ class convex_polyhedron_union(mode_hpmc):
     * *centers* (**required**) - list of centers of constituent polyhedra in particle coordinates.
     * *orientations* (**required**) - list of orientations of constituent polyhedra.
     * *overlap* (**default: 1 for all particles**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
+    * *sweep_radii* (**default: 0 for all particle**) - radii of spheres sweeping out each constituent polyhedron
+
+        * .. versionadded:: 2.4
+
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
 
@@ -1991,8 +2033,8 @@ class convex_polyhedron_union(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.convex_polyhedron_union(seed=27)
-        mc = hpmc.integrate.convex_polyhedron_union(seed=27, d=0.3, a=0.4)
+        mc = hpmc.integrate.convex_spheropolyhedron_union(seed=27)
+        mc = hpmc.integrate.convex_spheropolyhedron_union(seed=27, d=0.3, a=0.4)
         cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
                      [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
         mc.shape_param.set('A', vertices=[cube_verts, cube_verts],
@@ -2011,10 +2053,11 @@ class convex_polyhedron_union(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
                 if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed, 0)
                 else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed, 1)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
         else:
@@ -2051,19 +2094,89 @@ class convex_polyhedron_union(mode_hpmc):
         orientations = param.orientations
         centers = param.centers
         colors = param.colors
+        sweep_radii = [m.sweep_radius for m in param.members]
         if param.colors is None:
             # default
             colors = ["ff5984ff" for c in centers]
         N = len(centers);
-        shape_def = 'poly3d_union {0} '.format(N);
 
+        if N == 1:
+            verts = vertices[0]
+            R = sweep_radii[0]
+            if len(verts) == 1:
+                shape_def = 'sphere {0} '.format(2*R);
 
-        for verts,q,p,c in zip(vertices, orientations, centers, colors):
-            shape_def += '{0} '.format(len(verts));
-            for v in verts:
-                shape_def += '{0} {1} {2} '.format(*v);
-            shape_def += '{0} {1} {2} '.format(*p);
-            shape_def += '{0} {1} {2} {3} '.format(*q);
-            shape_def += '{0} '.format(c);
+            else:
+                shape_def = 'spoly3d {0} {1} '.format(R, len(verts));
+
+                for v in verts:
+                    shape_def += '{0} {1} 0 '.format(*v);
+        else:
+            shape_def = 'poly3d_union {0} '.format(N);
+
+            # sweep radius is ignored for now
+            for verts,q,p,c in zip(vertices, orientations, centers, colors):
+                shape_def += '{0} '.format(len(verts));
+                for v in verts:
+                    shape_def += '{0} {1} {2} '.format(*v);
+                shape_def += '{0} {1} {2} '.format(*p);
+                shape_def += '{0} {1} {2} {3} '.format(*q);
+                shape_def += '{0} '.format(c);
 
         return shape_def
+
+class convex_polyhedron_union(convex_spheropolyhedron_union):
+    R""" HPMC integration for unions of convex polyhedra (3D).
+
+     .. deprecated:: 2.4
+        Replaced by :py:class:`convex_spheropolyhedron_union`. This class stays in place for compatibility with older scripts.
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): The number of trial moves to perform in each cell.
+        implicit (bool): Flag to enable implicit depletants.
+        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
+            (added in version 2.2)
+        max_members (int): Set the maximum number of members in the convex polyhedron union
+        capacity (int): Set to the number of constituent convex polyhedra per leaf node
+
+    .. versionadded:: 2.2
+
+    Convex polyhedron union parameters:
+
+    * *vertices* (**required**) - list of vertex lists of the polyhedra in particle coordinates.
+    * *centers* (**required**) - list of centers of constituent polyhedra in particle coordinates.
+    * *orientations* (**required**) - list of orientations of constituent polyhedra.
+    * *overlap* (**default: 1 for all particles**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
+    * *sweep_radii* (**default: 0 for all particle**) - radii of spheres sweeping out each constituent polyhedron
+
+        * .. versionadded:: 2.4
+
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
+
+    Example::
+
+        mc = hpmc.integrate.convex_polyhedron_union(seed=27)
+        mc = hpmc.integrate.convex_polyhedron_union(seed=27, d=0.3, a=0.4)
+        cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
+                     [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
+        mc.shape_param.set('A', vertices=[cube_verts, cube_verts],
+                                centers=[[-1,0,0],[1,0,0]],orientations=[[1,0,0,0],[1,0,0,0]]);
+        print('vertices of the first cube = ', mc.shape_param['A'].members[0].vertices)
+        print('center of the first cube = ', mc.shape_param['A'].centers[0])
+        print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
+    """
+
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere'):
+        hoomd.util.print_status_line();
+
+        # just fall back on base class
+        convex_spheropolyhedron_union.__init__(self,seed,d,a,move_ratio,nselect, implicit, depletant_mode)
+

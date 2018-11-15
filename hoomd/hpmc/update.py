@@ -409,7 +409,7 @@ class wall(_updater):
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
         walls (:py:class:`hoomd.hpmc.field.wall`): the wall class instance to be updated
-        py_updater (callable): the python callback that performs the update moves. This must be a python method that is a function of the timestep of the simulation.
+        py_updater (`callable`): the python callback that performs the update moves. This must be a python method that is a function of the timestep of the simulation.
                It must actually update the :py:class:`hoomd.hpmc.field.wall`) managed object.
         move_ratio (float): the probability with which an update move is attempted
         seed (int): the seed of the pseudo-random number generator that determines whether or not an update move is attempted
@@ -520,7 +520,7 @@ class muvt(_updater):
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
         seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
         period (int): Number of timesteps between histogram evaluations.
-        transfer_types (list): List of type names that are being transfered from/to the reservoir or between boxes (if *None*, all types)
+        transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes (if *None*, all types)
         ngibbs (int): The number of partitions to use in Gibbs ensemble simulations (if == 1, perform grand canonical muVT)
 
     The muVT (or grand-canonical) ensemble simulates a system at constant fugacity.
@@ -570,29 +570,29 @@ class muvt(_updater):
         if self.mc.implicit is True:
             if self.mc.depletant_mode == 'overlap_regions':
                 if isinstance(mc, integrate.sphere):
-                    cls = _hpmc.UpdaterMuVTImplicitNewSphere;
+                    cls = _hpmc.UpdaterMuVTImplicitSphere;
                 elif isinstance(mc, integrate.convex_polygon):
-                    cls = _hpmc.UpdaterMuVTImplicitNewConvexPolygon;
+                    cls = _hpmc.UpdaterMuVTImplicitConvexPolygon;
                 elif isinstance(mc, integrate.simple_polygon):
-                    cls = _hpmc.UpdaterMuVTImplicitNewSimplePolygon;
+                    cls = _hpmc.UpdaterMuVTImplicitSimplePolygon;
                 elif isinstance(mc, integrate.convex_polyhedron):
-                    cls = _hpmc.UpdaterMuVTImplicitNewConvexPolyhedron;
+                    cls = _hpmc.UpdaterMuVTImplicitConvexPolyhedron;
                 elif isinstance(mc, integrate.convex_spheropolyhedron):
-                    cls = _hpmc.UpdaterMuVTImplicitNewSpheropolyhedron;
+                    cls = _hpmc.UpdaterMuVTImplicitSpheropolyhedron;
                 elif isinstance(mc, integrate.ellipsoid):
-                    cls = _hpmc.UpdaterMuVTImplicitNewEllipsoid;
+                    cls = _hpmc.UpdaterMuVTImplicitEllipsoid;
                 elif isinstance(mc, integrate.convex_spheropolygon):
-                    cls =_hpmc.UpdaterMuVTImplicitNewSpheropolygon;
+                    cls =_hpmc.UpdaterMuVTImplicitSpheropolygon;
                 elif isinstance(mc, integrate.faceted_sphere):
-                    cls =_hpmc.UpdaterMuVTImplicitNewFacetedSphere;
+                    cls =_hpmc.UpdaterMuVTImplicitFacetedSphere;
                 elif isinstance(mc, integrate.sphere_union):
-                    cls = _hpmc.UpdaterMuVTImplicitNewSphereUnion;
+                    cls = _hpmc.UpdaterMuVTImplicitSphereUnion;
                 elif isinstance(mc, integrate.convex_polyhedron_union):
-                    cls = _hpmc.UpdaterMuVTImplicitNewConvexPolyhedronUnion;
+                    cls = _hpmc.UpdaterMuVTImplicitConvexPolyhedronUnion;
                 elif isinstance(mc, integrate.polyhedron):
-                    cls =_hpmc.UpdaterMuVTImplicitNewPolyhedron;
+                    cls =_hpmc.UpdaterMuVTImplicitPolyhedron;
                 elif isinstance(mc, integrate.sphinx):
-                    cls =_hpmc.UpdaterMuVTImplicitNewSphinx;
+                    cls =_hpmc.UpdaterMuVTImplicitSphinx;
                 else:
                     hoomd.context.msg.error("update.muvt: Unsupported integrator.\n");
                     raise RuntimeError("Error initializing update.muvt");
@@ -665,7 +665,7 @@ class muvt(_updater):
         # register the muvt updater
         self.setupUpdater(period);
 
-        # set the list of transfered types
+        # set the list of transferred types
         if not isinstance(transfer_types,list):
             hoomd.context.msg.error("update.muvt: Need list of types to transfer.\n");
             raise RuntimeError("Error initializing update.muvt");
@@ -771,7 +771,7 @@ class remove_drift(_updater):
     """
     def __init__(self, mc, external_lattice, period=1):
         hoomd.util.print_status_line();
-        #initiliaze base class
+        #initialize base class
         _updater.__init__(self);
         cls = None;
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -1478,13 +1478,13 @@ class clusters(_updater):
     The GCA as described in Liu and Lujten (2004), http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape,
     patch interactions and depletants.
 
-    With depletants, Clusters are defined by a simple distance cut-off criterium. Two particles belong to the same cluster if
+    With depletants, Clusters are defined by a simple distance cut-off criterion. Two particles belong to the same cluster if
     the circumspheres of the depletant-excluded volumes overlap.
 
     Supported moves include pivot moves (point reflection), line reflections (pi rotation around an axis), and type swaps.
     Only the pivot move is rejection free. With anisotropic particles, the pivot move cannot be used because it would create a
     chiral mirror image of the particle, and only line reflections are employed. Line reflections are not rejection free because
-    of periodic boundary conditions, as dicussed in Sinkovits et al. (2012), http://doi.org/10.1063/1.3694271 .
+    of periodic boundary conditions, as discussed in Sinkovits et al. (2012), http://doi.org/10.1063/1.3694271 .
 
     The type swap move works between two types of spherical particles and exchanges their identities.
 
@@ -1498,7 +1498,7 @@ class clusters(_updater):
 
     Example::
 
-        mc = hpmc.integrate.uphere(seed=415236)
+        mc = hpmc.integrate.sphere(seed=415236)
         hpmc.update.clusters(mc=mc, seed=123)
 
     """
@@ -1542,29 +1542,29 @@ class clusters(_updater):
         else:
             if mc.depletant_mode == 'overlap_regions':
                 if isinstance(mc, integrate.sphere):
-                   cls = _hpmc.UpdaterClustersImplicitNewSphere;
+                   cls = _hpmc.UpdaterClustersImplicitSphere;
                 elif isinstance(mc, integrate.convex_polygon):
-                    cls = _hpmc.UpdaterClustersImplicitNewConvexPolygon;
+                    cls = _hpmc.UpdaterClustersImplicitConvexPolygon;
                 elif isinstance(mc, integrate.simple_polygon):
-                    cls = _hpmc.UpdaterClustersImplicitNewSimplePolygon;
+                    cls = _hpmc.UpdaterClustersImplicitSimplePolygon;
                 elif isinstance(mc, integrate.convex_polyhedron):
-                    cls = _hpmc.UpdaterClustersImplicitNewConvexPolyhedron;
+                    cls = _hpmc.UpdaterClustersImplicitConvexPolyhedron;
                 elif isinstance(mc, integrate.convex_spheropolyhedron):
-                    cls = _hpmc.UpdaterClustersImplicitNewSpheropolyhedron;
+                    cls = _hpmc.UpdaterClustersImplicitSpheropolyhedron;
                 elif isinstance(mc, integrate.ellipsoid):
-                    cls = _hpmc.UpdaterClustersImplicitNewEllipsoid;
+                    cls = _hpmc.UpdaterClustersImplicitEllipsoid;
                 elif isinstance(mc, integrate.convex_spheropolygon):
-                    cls =_hpmc.UpdaterClustersImplicitNewSpheropolygon;
+                    cls =_hpmc.UpdaterClustersImplicitSpheropolygon;
                 elif isinstance(mc, integrate.faceted_sphere):
-                    cls =_hpmc.UpdaterClustersImplicitNewFacetedSphere;
+                    cls =_hpmc.UpdaterClustersImplicitFacetedSphere;
                 elif isinstance(mc, integrate.sphere_union):
-                    cls =_hpmc.UpdaterClustersImplicitNewSphereUnion;
+                    cls =_hpmc.UpdaterClustersImplicitSphereUnion;
                 elif isinstance(mc, integrate.convex_polyhedron_union):
-                    cls =_hpmc.UpdaterClustersImplicitNewConvexPolyhedronUnion;
+                    cls =_hpmc.UpdaterClustersImplicitConvexPolyhedronUnion;
                 elif isinstance(mc, integrate.polyhedron):
-                    cls =_hpmc.UpdaterClustersImplicitNewPolyhedron;
+                    cls =_hpmc.UpdaterClustersImplicitPolyhedron;
                 elif isinstance(mc, integrate.sphinx):
-                    cls =_hpmc.UpdaterClustersImplicitNewSphinx;
+                    cls =_hpmc.UpdaterClustersImplicitSphinx;
                 else:
                     raise RuntimeError("Unsupported integrator.\n");
             else:

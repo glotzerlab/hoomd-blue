@@ -341,7 +341,7 @@ DEVICE inline bool test_confined(const CylinderWall& wall, const ShapeConvexPoly
         else
             {
             // build a spheropolyhedron for the wall and the convex polyhedron
-            // set the vertices and diamter for the wall.
+            // set the vertices and diameter for the wall.
 
             vec3<OverlapReal> r_ab, proj;
             proj = dot(shifted_pos, wall.orientation)*wall.orientation;

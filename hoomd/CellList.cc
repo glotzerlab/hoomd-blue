@@ -34,9 +34,14 @@ CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     m_box_changed = false;
     m_multiple = 1;
 
-    GPUFlags<uint3> conditions(exec_conf);
-    m_conditions.swap(conditions);
-    resetConditions();
+    GlobalArray<uint3> conditions(1, m_exec_conf);
+    std::swap(m_conditions, conditions);
+
+        {
+        // reset conditions
+        ArrayHandle<uint3> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
+        *h_conditions.data = make_uint3(0,0,0);
+        }
 
     m_actual_width = make_scalar3(0.0,0.0,0.0);
     m_ghost_width = make_scalar3(0.0,0.0,0.0);
@@ -53,7 +58,7 @@ CellList::~CellList()
     }
 
 //! Round down to the nearest multiple
-/*! \param v Value to ound
+/*! \param v Value to round
     \param m Multiple
     \returns \a v if it is a multiple of \a m, otherwise, \a v rounded down to the nearest multiple of \a m.
 */
@@ -208,7 +213,7 @@ double CellList::benchmark(unsigned int num_iters)
     {
     ClockSource t;
 
-    // ensure that any changed parameters have been propagaged and memory allocated
+    // ensure that any changed parameters have been propagated and memory allocated
     compute(0);
 
     // warm up run
@@ -292,7 +297,7 @@ void CellList::initializeMemory()
     m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
 
     // allocate memory
-    GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
+    GlobalArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
     m_cell_size.swap(cell_size);
 
     if (m_compute_adj_list)
@@ -311,7 +316,7 @@ void CellList::initializeMemory()
 
         m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
 
-        GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
+        GlobalArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
         m_cell_adj.swap(cell_adj);
         }
     else
@@ -319,46 +324,46 @@ void CellList::initializeMemory()
         m_cell_adj_indexer = Index2D();
 
         // array is not needed, discard it
-        GPUArray<unsigned int> cell_adj;
+        GlobalArray<unsigned int> cell_adj;
         m_cell_adj.swap(cell_adj);
         }
 
-    GPUArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
+    GlobalArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
     m_xyzf.swap(xyzf);
 
     if (m_compute_tdb)
         {
-        GPUArray<Scalar4> tdb(m_cell_list_indexer.getNumElements(), m_exec_conf);
+        GlobalArray<Scalar4> tdb(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_tdb.swap(tdb);
         }
     else
         {
         // array is no longer needed, discard it
-        GPUArray<Scalar4> tdb;
+        GlobalArray<Scalar4> tdb;
         m_tdb.swap(tdb);
         }
 
     if (m_compute_orientation)
         {
-        GPUArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), m_exec_conf);
+        GlobalArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_orientation.swap(orientation);
         }
     else
         {
         // array is no longer needed, discard it
-        GPUArray<Scalar4> orientation;
+        GlobalArray<Scalar4> orientation;
         m_orientation.swap(orientation);
         }
 
     if (m_compute_idx || m_sort_cell_list)
         {
-        GPUArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
+        GlobalArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_idx.swap(idx);
         }
     else
         {
         // array is no longer needed, discard it
-        GPUArray<unsigned int> idx;
+        GlobalArray<unsigned int> idx;
         m_idx.swap(idx);
         }
 
@@ -565,8 +570,11 @@ void CellList::computeCellList()
         h_cell_size.data[bin]++;
         }
 
-    // write out conditions
-    m_conditions.resetFlags(conditions);
+        {
+        // write out conditions
+        ArrayHandle<uint3> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
+        *h_conditions.data = conditions;
+        }
 
     if (m_prof)
         m_prof->pop();
@@ -622,12 +630,15 @@ bool CellList::checkConditions()
 
 void CellList::resetConditions()
     {
-    m_conditions.resetFlags(make_uint3(0,0,0));
+    // reset conditions
+    ArrayHandle<uint3> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
+    *h_conditions.data = make_uint3(0,0,0);
     }
 
 uint3 CellList::readConditions()
     {
-    return m_conditions.readFlags();
+    ArrayHandle<uint3> h_conditions(m_conditions, access_location::host, access_mode::read);
+    return *h_conditions.data;
     }
 
 /*! Generic statistics that apply to any cell list, Derived classes should
@@ -635,7 +646,7 @@ uint3 CellList::readConditions()
  */
 void CellList::printStats()
     {
-    // return earsly if the notice level is less than 1
+    // return early if the notice level is less than 1
     if (m_exec_conf->msg->getNoticeLevel() < 1)
         return;
 

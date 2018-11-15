@@ -32,12 +32,12 @@
 struct Index2D
     {
     public:
-        //! Contstructor
+        //! Constructor
         /*! \param w Width of the square 2D array
         */
         HOSTDEVICE inline Index2D(unsigned int w=0) : m_w(w), m_h(w) {}
 
-        //! Contstructor
+        //! Constructor
         /*! \param w Width of the rectangular 2D array
             \param h Height of the rectangular 2D array
         */
@@ -73,6 +73,17 @@ struct Index2D
             return m_h;
             }
 
+        //! Get the inverse mapping 1D-index -> coordinate pair
+        HOSTDEVICE inline uint2 getPair(const unsigned int idx) const
+            {
+            uint2 t;
+
+            t.y = idx / m_w;
+            t.x = idx % m_w;
+            return t;
+            }
+
+
     private:
         unsigned int m_w;   //!< Width of the 2D array
         unsigned int m_h;   //!< Height of the 2D array
@@ -85,12 +96,12 @@ struct Index2D
 struct Index3D
     {
     public:
-        //! Contstructor
+        //! Constructor
         /*! \param w Width of the square 3D array
         */
         HOSTDEVICE inline Index3D(unsigned int w=0) : m_w(w), m_h(w), m_d(w) {}
 
-        //! Contstructor
+        //! Constructor
         /*! \param w Width of the rectangular 3D array
             \param h Height of the rectangular 3D array
             \param d Depth of the rectangular 3D array
@@ -158,7 +169,7 @@ struct Index3D
 struct Index2DUpperTriangular
     {
     public:
-        //! Contstructor
+        //! Constructor
         /*! \param w Width of the 2D upper triangular array
         */
         HOSTDEVICE inline Index2DUpperTriangular(unsigned int w=0) : m_w(w)
@@ -170,7 +181,7 @@ struct Index2DUpperTriangular
         /*! \param i column index
             \param j row index
             \returns 1D array index corresponding to the 2D index (\a i, \a j) in row major order
-            \note Forumla adapted from: http://www.itl.nist.gov/div897/sqg/dads/HTML/upperTriangularMatrix.html
+            \note Formula adapted from: http://www.itl.nist.gov/div897/sqg/dads/HTML/upperTriangularMatrix.html
         */
         HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j) const
             {

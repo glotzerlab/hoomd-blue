@@ -43,9 +43,9 @@ class pppm(force._force):
     initializes and sets all parameters for its own :py:class:`hoomd.md.pair.ewald`, so do not specify an additional one.
 
     The command supports additional screening of interactions, according to the Ewald summation for Yukawa potentials.
-    This is useful if one wants to compute a screened interaction (i.e. a solution to the linerized Poisson-Boltzmann
+    This is useful if one wants to compute a screened interaction (i.e. a solution to the linearized Poisson-Boltzmann
     equation), yet the cut-off radius is so large that the computation with a purely short-ranged potential would become
-    inefficient. In that case, the inverse Debye screening length can be supplied using :py:meth`set_params()`.
+    inefficient. In that case, the inverse Debye screening length can be supplied using :py:meth:`set_params()`.
     Also see `Salin, G and Caillol, J. 2000, <http://dx.doi.org/10.1063/1.1326477>`.
 
     Parameters:
@@ -118,7 +118,7 @@ class pppm(force._force):
         self.ewald = pair.ewald(r_cut = False, nlist = self.nlist);
         hoomd.util.unquiet_status();
 
-    # overrride disable and enable to work with both of the forces
+    # override disable and enable to work with both of the forces
     def disable(self, log=False):
         hoomd.util.print_status_line();
 

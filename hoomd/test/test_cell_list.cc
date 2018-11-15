@@ -92,7 +92,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     CHECK_EQUAL_UINT(adji.getNumElements(), 5*5*5*27);
     CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 5*5*5*27);
 
-    // ********* change the nominal width and verify the reusults *********
+    // ********* change the nominal width and verify the results *********
     cl->setNominalWidth(Scalar(0.5));
     cl->compute(0);
 

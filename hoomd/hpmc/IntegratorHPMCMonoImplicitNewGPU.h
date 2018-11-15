@@ -6,7 +6,7 @@
 
 #ifdef ENABLE_CUDA
 
-#include "IntegratorHPMCMonoImplicitNew.h"
+#include "IntegratorHPMCMonoImplicit.h"
 #include "IntegratorHPMCMonoGPU.cuh"
 #include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 #include "hoomd/Autotuner.h"
@@ -38,7 +38,7 @@ namespace hpmc
     \ingroup hpmc_integrators
 */
 template< class Shape >
-class IntegratorHPMCMonoImplicitNewGPU : public IntegratorHPMCMonoImplicitNew<Shape>
+class IntegratorHPMCMonoImplicitNewGPU : public IntegratorHPMCMonoImplicit<Shape>
     {
     public:
         //! Construct the integrator
@@ -100,7 +100,7 @@ class IntegratorHPMCMonoImplicitNewGPU : public IntegratorHPMCMonoImplicitNew<Sh
         GPUArray<curandDiscreteDistribution_t> m_poisson_dist; //!< Handles for the poisson distribution histogram
         std::vector<bool> m_poisson_dist_created;               //!< Flag to indicate if Poisson distribution has been initialized
 
-        GPUArray<unsigned int> m_active_cell_ptl_idx;  //!< List of update particle indicies per active cell
+        GPUArray<unsigned int> m_active_cell_ptl_idx;  //!< List of update particle indices per active cell
         GPUArray<unsigned int> m_active_cell_accept;   //!< List of accept/reject flags per active cell
         GPUArray<unsigned int> m_active_cell_move_type_translate;   //!< Type of move proposed in active cell
 
@@ -131,7 +131,7 @@ template< class Shape >
 IntegratorHPMCMonoImplicitNewGPU< Shape >::IntegratorHPMCMonoImplicitNewGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                                    std::shared_ptr<CellList> cl,
                                                                    unsigned int seed)
-    : IntegratorHPMCMonoImplicitNew<Shape>(sysdef, seed), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
+    : IntegratorHPMCMonoImplicit<Shape>(sysdef, seed, 1), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCImplicitGPU" << std::endl;
 
@@ -580,7 +580,7 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::update(unsigned int timestep)
                         // counters
                         ArrayHandle<hpmc_implicit_counters_t> d_implicit_count(this->m_implicit_count, access_location::device, access_mode::readwrite);
 
-                        // apply acceptance/rejection criterium
+                        // apply acceptance/rejection criterion
                         detail::gpu_hpmc_implicit_accept_reject_new<Shape>(
                             detail::hpmc_implicit_args_new_t(d_postype.data,
                                 d_orientation.data,
@@ -780,7 +780,7 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::initializeExcellMem()
 template< class Shape >
 void IntegratorHPMCMonoImplicitNewGPU< Shape >::updateCellWidth()
     {
-    IntegratorHPMCMonoImplicitNew<Shape>::updateCellWidth();
+    IntegratorHPMCMonoImplicit<Shape>::updateCellWidth();
 
     this->m_cl->setNominalWidth(this->m_nominal_width);
 
@@ -807,7 +807,7 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::updateCellWidth()
 */
 template < class Shape > void export_IntegratorHPMCMonoImplicitNewGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<IntegratorHPMCMonoImplicitNewGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicitNewGPU<Shape> > >(m, name.c_str(), pybind11::base< IntegratorHPMCMonoImplicitNew<Shape> >())
+     pybind11::class_<IntegratorHPMCMonoImplicitNewGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicitNewGPU<Shape> > >(m, name.c_str(), pybind11::base< IntegratorHPMCMonoImplicit<Shape> >())
               .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
         ;
     }

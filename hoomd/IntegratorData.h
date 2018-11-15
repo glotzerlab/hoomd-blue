@@ -51,7 +51,7 @@ namespace cereal
 /*! IntegratorData keeps track of the parameters for all of the integrators
     defined in the simulation, so that they can be saved and reloaded from data files.
 
-    Each integrator must register with IntegratorData by calling registerIntegrator(), which returns an unsinged int
+    Each integrator must register with IntegratorData by calling registerIntegrator(), which returns an unsigned int
     to be used to access the variables for that integrator. The same sequence of registerIntegrator() calls will produce
     the same set of handles, so they can be used to read existing state values after loading data from a file.
 

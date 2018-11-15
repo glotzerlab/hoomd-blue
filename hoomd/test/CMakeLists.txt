@@ -6,6 +6,7 @@ set(TEST_LIST
     test_cell_list
     test_cell_list_stencil
     test_gpu_array
+    test_global_array
     test_gridshift_correct
     test_index1d
     test_messenger
@@ -20,6 +21,10 @@ set(TEST_LIST
     test_vec2
     test_vec3
     )
+
+if (ENABLE_CUDA)
+list(APPEND TEST_LIST test_warp_tools)
+endif()
 
 option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)
 

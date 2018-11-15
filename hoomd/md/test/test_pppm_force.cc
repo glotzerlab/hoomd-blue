@@ -42,11 +42,11 @@ typedef std::function<std::shared_ptr<PPPMForceCompute> (std::shared_ptr<SystemD
                                                       std::shared_ptr<NeighborList> nlist,
                                                       std::shared_ptr<ParticleGroup> group)> pppmforce_creator;
 
-//! Test the ability of the lj force compute to actually calucate forces
+//! Test the ability of the lj force compute to actually calculate forces
 void pppm_force_particle_test(pppmforce_creator pppm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this is a 2-particle of charge 1 and -1
-    // due to the complexity of FFTs, the correct resutls are not analytically computed
+    // due to the complexity of FFTs, the correct results are not analytically computed
     // but instead taken from a known working implementation of the PPPM method
     // The box lengths and grid points are different in each direction
 
@@ -116,11 +116,11 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, std::shared_ptr<Ex
 
     }
 
-//! Test the ability of the lj force compute to actually calucate forces
+//! Test the ability of the lj force compute to actually calculate forces
 void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this is a 2-particle of charge 1 and -1
-    // due to the complexity of FFTs, the correct resutls are not analytically computed
+    // due to the complexity of FFTs, the correct results are not analytically computed
     // but instead taken from a known working implementation of the PPPM method (LAMMPS ewald/disp
     // with lj/long/coul/long at RMS error = 6.14724e-06)
     // The box lengths and grid points are different in each direction

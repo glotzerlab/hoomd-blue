@@ -43,6 +43,7 @@ set(_hoomd_sources Analyzer.cc
                    LogMatrix.cc
                    LogHDF5.cc
                    Messenger.cc
+                   MemoryTraceback.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    Profiler.cc
@@ -96,11 +97,15 @@ set(_hoomd_headers
     GetarDumpIterators.h
     GetarDumpWriter.h
     GetarInitializer.h
+    GlobalArray.h
+    GlobalVector.h
     GPUArray.h
     GPUFlags.h
+    GPUPartition.cuh
     GPUVector.h
     GSDDumpWriter.h
     GSDReader.h
+    HalfStepHook.h
     HOOMDMath.h
     HOOMDMPI.h
     IMDInterface.h
@@ -116,6 +121,9 @@ set(_hoomd_headers
     LogPlainTXT.h
     LogMatrix.h
     LogHDF5.h
+    managed_allocator.h
+    ManagedArray.h
+    MemoryTraceback.h
     Messenger.h
     ParticleData.cuh
     ParticleData.h

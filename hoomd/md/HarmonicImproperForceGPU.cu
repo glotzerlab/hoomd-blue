@@ -19,7 +19,7 @@
 //! Texture for reading improper parameters
 scalar2_tex_t improper_params_tex;
 
-//! Kernel for caculating harmonic improper forces on the GPU
+//! Kernel for calculating harmonic improper forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial
@@ -261,7 +261,7 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
     \param d_params K, sign,multiplicity params packed as padded Scalar4 variables
     \param n_improper_types Number of improper types in d_params
     \param block_size Block size to use when performing calculations
-    \param copute_capability Compute capability of the device (200, 300, 350, ...)
+    \param compute_capability Compute capability of the device (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
     \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()

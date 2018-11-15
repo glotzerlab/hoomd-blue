@@ -47,7 +47,7 @@ DEVICE inline void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scal
     Scalar phi, c_phi, s_phi;
     Scalar4 kp, kq;
 
-    // apply permuation operator on p and q, get kp and kq
+    // apply permutation operator on p and q, get kp and kq
     if (k == 1)
         {
         kq.x = -q.y;  kp.x = -p.y;
@@ -191,7 +191,7 @@ DEVICE inline void vecquat(Scalar4 &a, Scalar4 &b, Scalar4 &c)
 
 //! Advance the quaternion using angular momentum and angular velocity
 /*  \param angmom Angular momentum
-    \param moment_inerta Moment of inertia
+    \param moment_inertia Moment of inertia
     \param angvel Returned angular velocity
     \param ex_space x-axis unit vector
     \param ey_space y-axis unit vector
@@ -230,7 +230,7 @@ DEVICE inline void advanceQuaternion(Scalar4& angmom,
     qhalf.w = quat.w + Scalar(0.5) * dtq * omegaq.w;
     normalize(qhalf);
 
-    // Udpate ex, ey, ez from qhalf = update A
+    // Update ex, ey, ez from qhalf = update A
     exyzFromQuaternion(qhalf, ex_space, ey_space, ez_space);
 
     // Compute angular velocity from new ex_space, ey_space and ex_space
@@ -335,11 +335,11 @@ DEVICE inline void quatconj(const Scalar4& a, Scalar4& b)
     b.w = -a.w;
     }
 
-//! Convert between quaterion and ZYX Euler angles. q is equivalent to R(z,psi)R(y,theta)R(x,phi)
-/*! \param phi Rotation angle about instrinsic x axis
+//! Convert between quaternion and ZYX Euler angles. q is equivalent to R(z,psi)R(y,theta)R(x,phi)
+/*! \param phi Rotation angle about intrinsic x axis
     \param theta Rotation angle about intrinsic y axis
-    \param psi Rotation angle about intinsic z axis
-    \param q Output quaterion
+    \param psi Rotation angle about intrinsic z axis
+    \param q Output quaternion
 */
 DEVICE inline void eulerToQuat(const Scalar phi,const Scalar theta, const Scalar psi, Scalar4& q)
     {
@@ -356,11 +356,11 @@ DEVICE inline void eulerToQuat(const Scalar phi,const Scalar theta, const Scalar
     normalize(q);
     }
 
-//! Convert between quaterion and ZYX Euler angles. q is equivalent to R(z,psi)R(y,theta)R(x,phi)
-/*!  \param q Input quaterion
-     \param phi output rotation angle about instrinsic x axis
+//! Convert between quaternion and ZYX Euler angles. q is equivalent to R(z,psi)R(y,theta)R(x,phi)
+/*!  \param q Input quaternion
+     \param phi output rotation angle about intrinsic x axis
     \param theta Output rotation angle about intrinsic y axis
-    \param psi Output rotation angle about intinsic z axis
+    \param psi Output rotation angle about intrinsic z axis
 */
 DEVICE inline void quatToEuler(const Scalar4 q, Scalar& phi, Scalar& theta, Scalar& psi)
     {

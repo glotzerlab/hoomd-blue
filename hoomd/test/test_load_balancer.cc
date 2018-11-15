@@ -32,7 +32,7 @@ void test_load_balancer_basic(std::shared_ptr<ExecutionConfiguration> exec_conf,
 {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
@@ -138,7 +138,7 @@ void test_load_balancer_multi(std::shared_ptr<ExecutionConfiguration> exec_conf,
 {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
@@ -256,7 +256,7 @@ struct ghost_layer_width_request
      */
     ghost_layer_width_request(Scalar r_ghost) : m_r_ghost(r_ghost) {}
 
-    //! Get the ghost width layey
+    //! Get the ghost layer width
     /*!
      * \param type Type index
      * \returns Constant ghost layer width for all types
@@ -273,7 +273,7 @@ void test_load_balancer_ghost(std::shared_ptr<ExecutionConfiguration> exec_conf,
 {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles

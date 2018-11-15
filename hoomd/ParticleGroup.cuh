@@ -4,9 +4,7 @@
 
 // Maintainer: jglaser
 
-#include <assert.h>
-
-#include "hoomd/extern/util/mgpucontext.h"
+#include "CachedAllocator.h"
 
 /*! \file ParticleGroup.cuh
     \brief Contains GPU kernel code used by ParticleGroup
@@ -16,11 +14,11 @@
 
 //! GPU method for rebuilding the index list of a ParticleGroup
 cudaError_t gpu_rebuild_index_list(unsigned int N,
-                                   unsigned char *d_is_member_tag,
-                                   unsigned char *d_is_member,
+                                   unsigned int *d_is_member_tag,
+                                   unsigned int *d_is_member,
                                    unsigned int *d_member_idx,
                                    unsigned int *d_tag,
                                    unsigned int &num_local_members,
                                    unsigned int *d_tmp,
-                                   mgpu::ContextPtr mgpu_context);
+                                   const CachedAllocator& alloc);
 #endif

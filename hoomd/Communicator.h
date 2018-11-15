@@ -106,7 +106,7 @@ struct rank_element
  * processors, and particles received from neighboring processors are added to the system.
  * Atoms are exchanged only infrequently, i.e. only in those steps where the neighbor list needs to be rebuilt.
  * In all other time steps, the processor that currently owns the particle continues to update its position, even if the particle
- * has moved outside the domain boundaries. It is guaruanteed that the processor can correctly calculate the forces
+ * has moved outside the domain boundaries. It is guaranteed that the processor can correctly calculate the forces
  * on its particles, by maintaining a current list of so-called 'ghost particle' positions.
  *
  * -# <b> Second stage</b>: Ghost exchange (exchangeGhosts())
@@ -182,7 +182,7 @@ class PYBIND11_EXPORT Communicator
             }
 
         //! Subscribe to list of functions that request a minimum ghost layer width
-        /*! This method keeps track of all functions that request a minimum ghost layer widht
+        /*! This method keeps track of all functions that request a minimum ghost layer width
          * The actual ghost layer width is chosen from the max over the inputs
          * \return A connection to the present class
          */
@@ -192,7 +192,7 @@ class PYBIND11_EXPORT Communicator
             }
 
         //! Subscribe to list of functions that request a minimum extra ghost layer width (added to the maximum ghost layer)
-        /*! This method keeps track of all functions that request a minimum ghost layer widht
+        /*! This method keeps track of all functions that request a minimum ghost layer width
          * The actual ghost layer width is chosen from the max over the inputs
          * \return A connection to the present class
          */
@@ -327,14 +327,14 @@ class PYBIND11_EXPORT Communicator
          * Particles sent to a neighbor are deleted from the local particle data.
          * Particles received from a neighbor in one of the six communication steps
          * are added to the local particle data, and are also considered for forwarding to a neighbor
-         * in the subseqent communication steps.
+         * in the subsequent communication steps.
          *
          * \post Every particle on every processor can be found inside the local domain boundaries.
          */
         virtual void migrateParticles();
 
         /*! Particles that are within r_ghost from a neighboring domain's boundary are exchanged with the
-         * processor that is responsible for it. Only information needed for calulating the forces (i.e.
+         * processor that is responsible for it. Only information needed for calculating the forces (i.e.
          * particle position, type, charge and diameter) is exchanged.
          *
          * \post A list of ghost atom tags has been constructed which can be used for updating the
@@ -459,7 +459,7 @@ class PYBIND11_EXPORT Communicator
         std::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
         std::shared_ptr<ParticleData> m_pdata;                      //!< Particle data
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
-        const MPI_Comm m_mpi_comm; //!< MPI communciator
+        const MPI_Comm m_mpi_comm; //!< MPI communicator
         std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition information
         std::shared_ptr<Profiler> m_prof;                           //!< Profiler
 
@@ -640,7 +640,7 @@ class PYBIND11_EXPORT Communicator
             {
             // skip the reallocation if the number of types does not change
             // this keeps old parameters when restoring a snapshot
-            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
             if (m_pdata->getNTypes() == m_r_ghost.getNumElements())
                 return;
 

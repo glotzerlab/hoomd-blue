@@ -253,7 +253,7 @@ class compress:
     # \param allowShearing allow box to shear when searching for dense packing (default True)
     # \param tuner_period interval sufficient to get statistics on at least ~10,000 particle overlaps and ~100 box changes (default 1000)
     # \param relax number of steps to run at initial box size at each sweep before starting pressure schedule (default 10,000)
-    # \param quiet suppress the noiser aspects of hoomd during compression (default True)
+    # \param quiet suppress the noisier aspects of hoomd during compression (default True)
     def __init__(self,
                  mc=None,
                  npt_updater=None,
@@ -451,8 +451,8 @@ class compress:
                     noverlaps = self.mc.count_overlaps()
                 hoomd.util.unquiet_status()
 
-            #randomize the intial configuration
-            #intial box, no shear
+            #randomize the initial configuration
+            #initial box, no shear
             pretuning_steps = relax
             hoomd.run(pretuning_steps, quiet=quiet)
 
@@ -666,7 +666,7 @@ class tune(object):
     A default ``tunable_map`` is provided but can be modified or extended by setting
     the following dictionary key/value pairs in the entry for tunable.
 
-    * get (:py:obj:`callable`): function called by tuner (no arguments) to retrieve curent tunable value
+    * get (:py:obj:`callable`): function called by tuner (no arguments) to retrieve current tunable value
     * acceptance (:py:obj:`callable`): function called by tuner (no arguments) to get relevant acceptance rate
     * set (:py:obj:`callable`): function to call to set new value (optional). Must take one argument (the new value).
       If not provided, ``obj.set_params(tunable=x)`` will be called to set the new value.
@@ -683,7 +683,7 @@ class tune(object):
 
         # The *args and **kwargs parameters allow derived tuners to be sloppy
         # with forwarding initialization, but that is not a good excuse and
-        # makes it harder to catch usage errors. They should probably be depracated...
+        # makes it harder to catch usage errors. They should probably be deprecated...
 
         # Ensure that max_val conforms to the tunable list provided
         max_val_length = len(max_val)

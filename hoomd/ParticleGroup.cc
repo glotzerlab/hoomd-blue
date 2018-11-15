@@ -8,6 +8,8 @@
 #ifdef ENABLE_CUDA
 #include "ParticleGroup.cuh"
 #include "CachedAllocator.h"
+
+#include <cuda_runtime.h>
 #endif
 
 #include <algorithm>
@@ -111,7 +113,7 @@ ParticleSelectorType::ParticleSelectorType(std::shared_ptr<SystemDefinition> sys
         m_exec_conf->msg->warning() << "group: max < min specified when selecting particle types" << endl;
 
     if (m_typ_max >= m_pdata->getNTypes())
-        m_exec_conf->msg->warning() << "group: Requesting the selection of a non-existant particle type" << endl;
+        m_exec_conf->msg->warning() << "group: Requesting the selection of a non-existent particle type" << endl;
     }
 
 /*! \param tag Tag of the particle to check
@@ -154,7 +156,7 @@ ParticleSelectorRigid::ParticleSelectorRigid(std::shared_ptr<SystemDefinition> s
     }
 
 /*! \param tag Tag of the particle to check
-    \returns true if the type of particle \a tag meets the rigid critera selected
+    \returns true if the type of particle \a tag meets the rigid criteria selected
 */
 bool ParticleSelectorRigid::isSelected(unsigned int tag) const
     {
@@ -289,10 +291,7 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
     {
     #ifdef ENABLE_CUDA
     if (m_pdata->getExecConf()->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
+        m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     #endif
 
     // update member tag arrays
@@ -355,7 +354,7 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
     sort(sorted_member_tags.begin(), sorted_member_tags.end());
 
     // store member tags
-    GPUArray<unsigned int> member_tags_array(member_tags.size(), m_exec_conf);
+    GlobalArray<unsigned int> member_tags_array(member_tags.size(), m_exec_conf);
     m_member_tags.swap(member_tags_array);
 
         {
@@ -364,24 +363,29 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
         }
 
     // one byte per particle to indicate membership in the group, initialize with current number of local particles
-    GPUArray<unsigned char> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
+    GlobalArray<unsigned int> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
 
-    GPUArray<unsigned char> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
+    GlobalArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
     m_is_member_tag.swap(is_member_tag);
 
     // build the reverse lookup table for tags
     buildTagHash();
 
-    GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
+    GlobalArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
     m_member_idx.swap(member_idx);
 
     #ifdef ENABLE_CUDA
-    if (m_pdata->getExecConf()->isCUDAEnabled())
+    if (m_pdata->getExecConf()->isCUDAEnabled() && m_pdata->getExecConf()->allConcurrentManagedAccess() && m_member_idx.getNumElements())
         {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        cudaMemAdvise(m_member_idx.get(), m_member_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
         }
+    #endif
+
+    #ifdef ENABLE_CUDA
+    if (m_pdata->getExecConf()->isCUDAEnabled())
+        m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     #endif
 
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
@@ -430,7 +434,7 @@ void ParticleGroup::updateMemberTags(bool force_update) const
         vector<unsigned int> member_tags;
 
             {
-            // loop through local particles and select those that match selection criterium
+            // loop through local particles and select those that match selection criterion
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
             for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
                 {
@@ -463,8 +467,8 @@ void ParticleGroup::updateMemberTags(bool force_update) const
             }
         #endif
 
-        // store member tags in GPUArray
-        GPUArray<unsigned int> member_tags_array(member_tags.size(), m_pdata->getExecConf());
+        // store member tags in GlobalArray
+        GlobalArray<unsigned int> member_tags_array(member_tags.size(), m_pdata->getExecConf());
         m_member_tags.swap(member_tags_array);
 
         // sort member tags
@@ -475,15 +479,23 @@ void ParticleGroup::updateMemberTags(bool force_update) const
             std::copy(member_tags.begin(), member_tags.end(), h_member_tags.data);
             }
 
-        GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
+        GlobalArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
         m_member_idx.swap(member_idx);
+
+        #ifdef ENABLE_CUDA
+        if (m_pdata->getExecConf()->isCUDAEnabled() && m_pdata->getExecConf()->allConcurrentManagedAccess() && m_member_idx.getNumElements())
+            {
+            cudaMemAdvise(m_member_idx.get(), m_member_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
+            CHECK_CUDA_ERROR();
+            }
+        #endif
         }
 
     // one byte per particle to indicate membership in the group, initialize with current number of local particles
-    GPUArray<unsigned char> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
+    GlobalArray<unsigned int> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
 
-    GPUArray<unsigned char> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
+    GlobalArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
     m_is_member_tag.swap(is_member_tag);
 
     // build the reverse lookup table for tags
@@ -500,7 +512,7 @@ void ParticleGroup::reallocate() const
     if (m_is_member_tag.getNumElements() != m_pdata->getRTags().size())
         {
         // reallocate if necessary
-        GPUArray<unsigned char> is_member_tag(m_pdata->getRTags().size(), m_exec_conf);
+        GlobalArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_exec_conf);
         m_is_member_tag.swap(is_member_tag);
 
         buildTagHash();
@@ -508,7 +520,7 @@ void ParticleGroup::reallocate() const
     }
 
 /*! \returns Total mass of all particles in the group
-    \note This method aquires the ParticleData internally
+    \note This method acquires the ParticleData internally
 */
 Scalar ParticleGroup::getTotalMass() const
     {
@@ -526,7 +538,7 @@ Scalar ParticleGroup::getTotalMass() const
     }
 
 /*! \returns The center of mass of the group, in unwrapped coordinates
-    \note This method aquires the ParticleData internally
+    \note This method acquires the ParticleData internally
 */
 Scalar3 ParticleGroup::getCenterOfMass() const
     {
@@ -703,11 +715,11 @@ std::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(std::shared_ptr<Pa
  */
 void ParticleGroup::buildTagHash() const
     {
-    ArrayHandle<unsigned char> h_is_member_tag(m_is_member_tag, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_is_member_tag(m_is_member_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
 
     // reset member ship flags
-    memset(h_is_member_tag.data, 0, sizeof(unsigned char)*(m_pdata->getRTags().size()));
+    memset(h_is_member_tag.data, 0, sizeof(unsigned int)*(m_pdata->getRTags().size()));
 
     unsigned int num_members = m_member_tags.getNumElements();
     for (unsigned int member = 0; member < num_members; member++)
@@ -736,8 +748,8 @@ void ParticleGroup::rebuildIndexList() const
         {
 
         // rebuild the membership flags for the  indices in the group and construct member list
-        ArrayHandle<unsigned char> h_is_member(m_is_member, access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned char> h_is_member_tag(m_is_member_tag, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_is_member(m_is_member, access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_is_member_tag(m_is_member_tag, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_member_idx(m_member_idx, access_location::host, access_mode::readwrite);
         unsigned int nparticles = m_pdata->getN();
@@ -745,7 +757,7 @@ void ParticleGroup::rebuildIndexList() const
         for (unsigned int idx = 0; idx < nparticles; idx ++)
             {
             assert(h_tag.data[idx] <= m_pdata->getMaximumTag());
-            unsigned char is_member = h_is_member_tag.data[h_tag.data[idx]];
+            unsigned int is_member = h_is_member_tag.data[h_tag.data[idx]];
             h_is_member.data[idx] =  is_member;
             if (is_member)
                 {
@@ -760,14 +772,22 @@ void ParticleGroup::rebuildIndexList() const
 
     // index has been rebuilt
     m_particles_sorted = false;
+
+    #ifdef ENABLE_CUDA
+    if (m_pdata->getExecConf()->isCUDAEnabled())
+        {
+        // Update GPU load balancing info
+        m_gpu_partition.setN(m_num_local_members);
+        }
+    #endif
     }
 
 #ifdef ENABLE_CUDA
 //! rebuild index list on the GPU
 void ParticleGroup::rebuildIndexListGPU() const
     {
-    ArrayHandle<unsigned char> d_is_member(m_is_member, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned char> d_is_member_tag(m_is_member_tag, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_is_member(m_is_member, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_is_member_tag(m_is_member_tag, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_member_idx(m_member_idx, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
@@ -784,7 +804,7 @@ void ParticleGroup::rebuildIndexListGPU() const
                            d_tag.data,
                            m_num_local_members,
                            d_tmp.data,
-                           m_mgpu_context);
+                           m_pdata->getExecConf()->getCachedAllocator());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }

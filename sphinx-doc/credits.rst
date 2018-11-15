@@ -132,6 +132,7 @@ Michael P. Howard, Princeton University
  * XML dump by particle group
  * Fix references when disabling/enabling objects
  * Misc. bug fixes
+ * CUDA9+V100 compatibility
 
 James Antonaglia, University of Michigan
  * pair.mie
@@ -150,7 +151,7 @@ Erin Teich, University of Michigan
 Joseph Berleant, University of Michigan
  * fix python 3.4 segfault
 
-Matthew Spellings, Univeristy of Michigan
+Matthew Spellings, University of Michigan
  * anisotropic particle integrators
  * Gay-Berne, dipole pair potentials
  * GTAR file format
@@ -202,6 +203,9 @@ Tim Moore, Vanderbilt University
 
 Bradley Dice, Avisek Das, University of Michigan
   * integrator.randomize_velocities()
+
+Peter Schwendeman, Jens Glaser, University of Michigan
+  * NLINK optimized multi-GPU execution
 
 HPMC developers
 ---------------
@@ -258,6 +262,8 @@ Jens Glaser, University of Michigan
  * Implicit depletants
  * `jit.patch.user_union` user defined patchy interactions with LLVM runtime compiled code
  * Geometric Cluster Algorithm implementation
+ * `convex_spheropolyhedron_union` shape class
+ * `test_overlap` python API
 
 Eric Harper, University of Michigan
  * Misc bug fixes to move size by particle type feature
@@ -265,7 +271,7 @@ Eric Harper, University of Michigan
 
 Khalid Ahmed, University of Michigan
  * Ported the Sphinx overlap check
- * Sphere union shape (in collaberation with Eric Irrgang)
+ * Sphere union shape (in collaboration with Eric Irrgang)
 
 Elizabeth R Chen, University of Michigan
  * Developed the Sphinx overlap check
@@ -435,7 +441,7 @@ Source code
     ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-Some **CUDA API headers** are included in the HOOMD-blue source code for code compatibility in CPU only biulds - Used under the following license::
+Some **CUDA API headers** are included in the HOOMD-blue source code for code compatibility in CPU only builds - Used under the following license::
 
     Copyright 1993-2008 NVIDIA Corporation.  All rights reserved.
 

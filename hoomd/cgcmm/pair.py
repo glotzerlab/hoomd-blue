@@ -78,7 +78,7 @@ class cgcmm(hoomd.md.force._force):
         # the same number for everything
         self.r_cut = r_cut
 
-        # setup the coefficent matrix
+        # setup the coefficient matrix
         self.pair_coeff = hoomd.md.pair.coeff();
 
         self.nlist = nlist
@@ -114,7 +114,7 @@ class cgcmm(hoomd.md.force._force):
         return r_cut_dict;
 
     def update_coeffs(self):
-        # check that the pair coefficents are valid
+        # check that the pair coefficients are valid
         if not self.pair_coeff.verify(["epsilon", "sigma", "alpha", "exponents"]):
             hoomd.context.msg.error("Not all pair coefficients are set in pair.cgcmm\n");
             raise RuntimeError("Error updating pair coefficients");

@@ -21,7 +21,7 @@
 #ifndef __CONSTRAINT_Ellipsoid_H__
 #define __CONSTRAINT_Ellipsoid_H__
 
-//! Applys a constraint force to keep a group of particles on a Ellipsoid
+//! Applies a constraint force to keep a group of particles on a Ellipsoid
 /*! \ingroup computes
 */
 class PYBIND11_EXPORT ConstraintEllipsoid : public Updater

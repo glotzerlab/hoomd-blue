@@ -121,7 +121,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.msg.error("No coefficents specified\n");
+            hoomd.context.msg.error("No coefficients specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -197,7 +197,7 @@ class coeff:
 # \brief Base class for special pair potentials
 #
 # A special pair in hoomd.* reflects a PotentialSpecialPair in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd_script
+# for all high-level management that happens behind the scenes for hoomd
 # writers. 1) The instance of the c++ bond force itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
 # net force on each particle
@@ -286,7 +286,7 @@ class lj(_special_pair):
 
     Example::
 
-        lj = special_pair.harmonic(name="mybond")
+        lj = special_pair.lj(name="my_pair")
         lj.pair_coeff.set('pairtype_1', epsilon=5.4, sigma=0.47, r_cut=1.1)
 
     Note:
@@ -300,7 +300,7 @@ class lj(_special_pair):
     def __init__(self,name=None):
         hoomd.util.print_status_line();
 
-        # initiailize the base class
+        # initialize the base class
         _special_pair.__init__(self);
 
         # check that some bonds are defined
@@ -355,8 +355,8 @@ class coulomb(_special_pair):
     Coefficients:
 
     - :math:`\alpha` - Coulomb scaling factor (defaults to 1.0)
-    - :math:`\q_{a}` - charge of particle a (in hoomd charge units)
-    - :math:`\q_{b}` - charge of particle b (in hoomd charge units)
+    - :math:`q_{a}` - charge of particle a (in hoomd charge units)
+    - :math:`q_{b}` - charge of particle b (in hoomd charge units)
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
 
     Example::

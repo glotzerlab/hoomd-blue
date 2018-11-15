@@ -94,7 +94,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(std::shared_ptr<System
     : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_param(0)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!this->exec_conf->isCUDAEnabled())
+    if (!this->m_exec_conf->isCUDAEnabled())
         {
         this->m_exec_conf->msg->error() << "Creating a PotentialPairGPU with no GPU in the execution configuration"
                   << std::endl;
@@ -107,11 +107,9 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(std::shared_ptr<System
     std::vector<unsigned int> valid_params;
     for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
         {
-        int s=1;
-        while (s <= this->m_exec_conf->dev_prop.warpSize)
+        for (auto s : Autotuner::getTppListPow2(this->m_exec_conf->dev_prop.warpSize))
             {
             valid_params.push_back(block_size*10000 + s);
-            s = s * 2;
             }
         }
 
@@ -129,7 +127,9 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     this->m_nlist->compute(timestep);
 
     // start the profile
-    if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
+    if (this->m_prof) this->m_prof->push(this->m_exec_conf, this->m_prof_name);
+
+    this->m_exec_conf->beginMultiGPU();
 
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
@@ -189,14 +189,17 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
                          threads_per_particle,
                          this->m_exec_conf->getComputeCapability()/10,
-                         this->m_exec_conf->dev_prop.maxTexture1DLinear),
+                         this->m_exec_conf->dev_prop.maxTexture1DLinear,
+                         this->m_pdata->getGPUPartition()),
              d_params.data);
 
-    if (this->exec_conf->isCUDAErrorCheckingEnabled())
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     if (!m_param) this->m_tuner->end();
 
-    if (this->m_prof) this->m_prof->pop(this->exec_conf);
+    this->m_exec_conf->endMultiGPU();
+
+    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
     }
 
 //! Export this pair potential to python

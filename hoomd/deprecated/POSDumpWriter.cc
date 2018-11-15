@@ -169,14 +169,14 @@ void POSDumpWriter::analyze(unsigned int timestep)
         if (!m_file.good())
             {
             m_exec_conf->msg->error() << "Unexpected error writing pos dump file" << endl << endl;
-            throw runtime_error("Error writting pos dump file");
+            throw runtime_error("Error writing pos dump file");
             }
         }
 
     if (!m_file.good())
         {
         m_exec_conf->msg->error() << "Unexpected error writing pos dump file" << endl << endl;
-        throw runtime_error("Error writting pos dump file");
+        throw runtime_error("Error writing pos dump file");
         }
 
     m_file << "eof" << endl;

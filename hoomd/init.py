@@ -64,7 +64,7 @@ def create_lattice(unitcell, n):
 
     hoomd.context._verify_init();
 
-    # check if initialization has already occured
+    # check if initialization has already occurred
     if is_initialized():
         hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
@@ -171,7 +171,7 @@ def read_getar(filename, modes={'any': 'any'}):
 
     hoomd.context._verify_init();
 
-    # check if initialization has already occured
+    # check if initialization has already occurred
     if is_initialized():
         hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
@@ -233,7 +233,7 @@ def read_snapshot(snapshot):
 
     hoomd.context._verify_init();
 
-    # check if initialization has already occured
+    # check if initialization has already occurred
     if is_initialized():
         hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
@@ -283,7 +283,7 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
 
     hoomd.context._verify_init();
 
-    # check if initialization has already occured
+    # check if initialization has already occurred
     if is_initialized():
         hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");

@@ -108,7 +108,7 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
         GPUArray<curandDiscreteDistribution_t> m_poisson_dist; //!< Handles for the poisson distribution histogram
         std::vector<bool> m_poisson_dist_created;               //!< Flag to indicate if Poisson distribution has been initialized
 
-        GPUArray<unsigned int> m_active_cell_ptl_idx;  //!< List of update particle indicies per active cell
+        GPUArray<unsigned int> m_active_cell_ptl_idx;  //!< List of update particle indices per active cell
         GPUArray<unsigned int> m_active_cell_accept;   //!< List of accept/reject flags per active cell
         GPUArray<unsigned int> m_active_cell_move_type_translate;   //!< Type of move proposed in active cell
 
@@ -149,7 +149,7 @@ template< class Shape >
 IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                                    std::shared_ptr<CellList> cl,
                                                                    unsigned int seed)
-    : IntegratorHPMCMonoImplicit<Shape>(sysdef, seed), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
+    : IntegratorHPMCMonoImplicit<Shape>(sysdef, seed, 0), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCImplicitGPU" << std::endl;
 
@@ -208,11 +208,6 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
     cudaDeviceProp dev_prop = this->m_exec_conf->dev_prop;
 
     unsigned int max_tpp = this->m_exec_conf->dev_prop.warpSize;
-    if (this->m_exec_conf->getComputeCapability() < 300)
-        {
-        // no wide parallelism on Fermi
-        max_tpp = 1;
-        }
 
     if (Shape::isParallel())
         {
@@ -349,6 +344,13 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
         ArrayHandle<hpmc_implicit_counters_t> h_implicit_counters(this->m_implicit_count, access_location::host, access_mode::readwrite);
         this->m_implicit_count_step_start = h_implicit_counters.data[0];
         }
+
+    #ifndef ENABLE_HPMC_REINSERT
+    if (this->m_n_trial)
+        {
+        throw std::runtime_error("ntrial > 0 not supported on the GPU. For CUDA architecture <=6.0, recompile with ENABLE_HPMC_REINSERT=ON.");
+        }
+    #endif
 
     // check if we are below a minimum image convention box size
     BoxDim box = this->m_pdata->getBox();
@@ -724,7 +726,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
 
                         m_tuner_reinsert->begin();
 
-                        // apply acceptance/rejection criterium
+                        // apply acceptance/rejection criterion
                         detail::gpu_hpmc_implicit_accept_reject<Shape>(
                             detail::hpmc_implicit_args_t(d_postype.data,
                                 d_orientation.data,

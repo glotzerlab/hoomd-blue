@@ -32,7 +32,7 @@ TableAngleForceComputeGPU::TableAngleForceComputeGPU(std::shared_ptr<SystemDefin
         }
 
      // allocate flags storage on the GPU
-    GPUArray<unsigned int> flags(1, this->exec_conf);
+    GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "table_angle", this->m_exec_conf));

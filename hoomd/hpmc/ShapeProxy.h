@@ -423,7 +423,7 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
 
     std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
 
-    // extract member parameters, posistions, and orientations and compute the radius along the way
+    // extract member parameters, positions, and orientations and compute the radius along the way
     OverlapReal diameter = OverlapReal(0.0);
     for (unsigned int i = 0; i < result.N; i++)
         {
@@ -814,7 +814,7 @@ template<typename Shape, typename AccessType >
 struct get_member_proxy<Shape, ShapeUnion<ShapeSphere>, AccessType >{ typedef sphere_param_proxy<Shape, AccessType> proxy_type; };
 
 template<typename Shape, typename AccessType >
-struct get_member_proxy<Shape, ShapeUnion<ShapeConvexPolyhedron>, AccessType >{ typedef poly3d_param_proxy<Shape, AccessType> proxy_type; };
+struct get_member_proxy<Shape, ShapeUnion<ShapeSpheropolyhedron>, AccessType >{ typedef poly3d_param_proxy<Shape, AccessType> proxy_type; };
 
 
 template< class ShapeUnionType >
@@ -1101,8 +1101,8 @@ void export_shape_params(pybind11::module& m)
     export_faceted_sphere_proxy(m, "faceted_sphere_param_proxy");
     export_sphinx_proxy(m, "sphinx3d_param_proxy");
 
-    auto export_fnct = std::bind(export_poly3d_proxy<ShapeUnion<ShapeConvexPolyhedron>, detail::access_shape_union_members< ShapeUnion<ShapeConvexPolyhedron> > >, std::placeholders::_1, std::placeholders::_2, false);
-    export_shape_union_proxy<ShapeConvexPolyhedron>(m, "convex_polyhedron_union_param_proxy", export_fnct);
+    auto export_fnct = std::bind(export_poly3d_proxy<ShapeUnion<ShapeSpheropolyhedron>, detail::access_shape_union_members< ShapeUnion<ShapeSpheropolyhedron> > >, std::placeholders::_1, std::placeholders::_2, true);
+    export_shape_union_proxy<ShapeSpheropolyhedron>(m, "convex_polyhedron_union_param_proxy", export_fnct);
 
     export_shape_union_proxy<ShapeSphere>(m, "sphere_union_param_proxy", export_sphere_proxy<ShapeUnion<ShapeSphere>, detail::access_shape_union_members< ShapeUnion<ShapeSphere> > > );
     }

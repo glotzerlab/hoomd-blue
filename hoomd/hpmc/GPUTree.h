@@ -373,7 +373,7 @@ DEVICE inline void findAscent(unsigned int a_count, unsigned int b_count, unsign
         } // end while
     }
 
-//! Traverse a binary hierachy
+//! Traverse a binary hierarchy
 /*! Returns true if an intersecting pair of leaf OBB's has been found
  * \param a First tree
  * \param b Second tree

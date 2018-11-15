@@ -116,7 +116,7 @@ UP_TEST( Index2D_20 )
             }
     }
 
-//! test case for 1x1 Index2DUpperTriangler
+//! test case for 1x1 Index2DUpperTriangular
 UP_TEST( Index2DUpperTriangular_1 )
     {
     Index2DUpperTriangular a(1);
@@ -124,7 +124,7 @@ UP_TEST( Index2DUpperTriangular_1 )
     UP_ASSERT_EQUAL(a(0,0), (unsigned int)0);
     }
 
-//! test case for 2x2 Index2DUpperTriangler
+//! test case for 2x2 Index2DUpperTriangular
 UP_TEST( Index2DUpperTriangular_2 )
     {
     Index2DUpperTriangular a(2);
@@ -134,7 +134,7 @@ UP_TEST( Index2DUpperTriangular_2 )
     UP_ASSERT_EQUAL(a(1,1), (unsigned int)2);
     }
 
-//! test case for 3x3 Index2DUpperTriangler
+//! test case for 3x3 Index2DUpperTriangular
 UP_TEST( Index2DUpperTriangular_3 )
     {
     Index2DUpperTriangular a(3);

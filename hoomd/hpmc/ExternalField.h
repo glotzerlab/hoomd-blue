@@ -50,7 +50,7 @@ class ExternalField : public Compute
 
         virtual Scalar getVolume() {return 0;}
     };
-//! Compute that accepts or rejects moves accoding to some external field
+//! Compute that accepts or rejects moves according to some external field
 /*! **Overview** <br>
 
     \ingroup hpmc_computes

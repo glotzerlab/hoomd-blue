@@ -35,7 +35,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
     {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // default initialize an empty snapshot in the reference box
@@ -526,7 +526,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator, std::sha
     {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // default initialize an empty snapshot in the reference box
@@ -774,7 +774,7 @@ UP_TEST( mpcd_communicator_overdecompose_test )
     // two ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  -1,
+                                                                  std::vector<int>(),
                                                                   false,
                                                                   false,
                                                                   std::shared_ptr<Messenger>(),
@@ -786,7 +786,7 @@ UP_TEST( mpcd_communicator_overdecompose_test )
     // four ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  -1,
+                                                                  std::vector<int>(),
                                                                   false,
                                                                   false,
                                                                   std::shared_ptr<Messenger>(),
@@ -798,7 +798,7 @@ UP_TEST( mpcd_communicator_overdecompose_test )
     // eight ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  -1,
+                                                                  std::vector<int>(),
                                                                   false,
                                                                   false,
                                                                   std::shared_ptr<Messenger>(),

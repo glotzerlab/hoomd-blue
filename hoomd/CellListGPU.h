@@ -45,12 +45,21 @@ class PYBIND11_EXPORT CellListGPU : public CellList
             }
 
     protected:
+        GlobalArray<unsigned int> m_cell_size_scratch;  //!< Number of members in each cell, one list per GPU
+        GlobalArray<unsigned int> m_cell_adj_scratch;   //!< Cell adjacency list, one list per GPU
+        GlobalArray<Scalar4> m_xyzf_scratch;            //!< Cell list with position and flags, one list per GPU
+        GlobalArray<Scalar4> m_tdb_scratch;             //!< Cell list with type,diameter,body, one list per GPU
+        GlobalArray<Scalar4> m_orientation_scratch;     //!< Cell list with orientation, one list per GPU
+        GlobalArray<unsigned int> m_idx_scratch;        //!< Cell list with index, one list per GPU
+
         //! Compute the cell list
         virtual void computeCellList();
 
-        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        // Initialize GPU-specific data storage
+        virtual void initializeMemory();
 
-        mgpu::ContextPtr m_mgpu_context;      //!< moderngpu context
+        std::unique_ptr<Autotuner> m_tuner;         //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner_combine; //!< Autotuner for block size of combine cell lists kernel
     };
 
 //! Exports CellListGPU to python

@@ -77,8 +77,8 @@ class EvaluatorPairDPDLJThermo
         typedef Scalar4 param_type;
 
         //! Constructs the pair potential evaluator
-        /*! \param _rsq Squared distance beteen the particles
-            \param _rcutsq Sqauared distance at which the potential goes to 0
+        /*! \param _rsq Squared distance between the particles
+            \param _rcutsq Squared distance at which the potential goes to 0
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairDPDLJThermo(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
@@ -137,7 +137,7 @@ class EvaluatorPairDPDLJThermo
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
                   in PotentialPair.
 
-            \return True if they are evaluated or false if they are not because we are beyond the cuttoff
+            \return True if they are evaluated or false if they are not because we are beyond the cutoff
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
@@ -173,7 +173,7 @@ class EvaluatorPairDPDLJThermo
             \note The conservative part \b only must be output to \a force_divr_cons so that the virial may be
                   computed correctly.
 
-            \return True if they are evaluated or false if they are not because we are beyond the cuttoff
+            \return True if they are evaluated or false if they are not because we are beyond the cutoff
         */
 
         DEVICE bool evalForceEnergyThermo(Scalar& force_divr, Scalar& force_divr_cons, Scalar& pair_eng, bool energy_shift)
@@ -261,6 +261,6 @@ class EvaluatorPairDPDLJThermo
         Scalar m_deltaT;   //!<  timestep size stored from constructor
     };
 
-#undef SARU
+#undef DEVICE
 
 #endif // __PAIR_EVALUATOR_DPDLJ_H__

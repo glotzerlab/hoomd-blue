@@ -113,7 +113,7 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
 
         GPUVector<double> m_sparse_val;    //!< Sparse matrix value list
 
-        //! Populate the quantities in the constraint-force equatino
+        //! Populate the quantities in the constraint-force equation
         virtual void fillMatrixVector(unsigned int timestep);
 
         //! Solve the matrix equation

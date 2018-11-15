@@ -73,7 +73,7 @@ void TablePotential::slotNumTypesChange()
 
     // skip the reallocation if the number of types does not change
     // this keeps old parameters when restoring a snapshot
-    // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+    // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
     if (m_ntypes*(m_ntypes+1)/2 == m_params.getNumElements())
         return;
 
@@ -94,9 +94,9 @@ void TablePotential::slotNumTypesChange()
     \param F Table for the potential F (must be - dV / dr)
     \param rmin Minimum r in the potential
     \param rmax Maximum r in the potential
-    \post Values from \a V and \a F are copied into the interal storage for type pair (typ1, typ2)
+    \post Values from \a V and \a F are copied into the internal storage for type pair (typ1, typ2)
     \note There is no need to call this again for typ2,typ1
-    \note See TablePotential for a detailed definiton of rmin and rmax
+    \note See TablePotential for a detailed definition of rmin and rmax
 */
 void TablePotential::setTable(unsigned int typ1,
                               unsigned int typ2,

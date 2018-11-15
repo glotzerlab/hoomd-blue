@@ -113,8 +113,8 @@ class PYBIND11_EXPORT ProfileDataElem
     the system will tally up total time in each slot. Pushing and popping different
     names on each pass will generate a jumbled mess.
 
-    There are verions of push() and pop() that take in a reference to an ExecutionConfiguration.
-    These methods automatically syncrhonize with the asynchronous GPU execution stream in order
+    There are versions of push() and pop() that take in a reference to an ExecutionConfiguration.
+    These methods automatically synchronize with the asynchronous GPU execution stream in order
     to provide accurate timing information.
 
     These profiles can of course be output via normal ostream operators.
@@ -165,7 +165,10 @@ inline void Profiler::push(std::shared_ptr<const ExecutionConfiguration> exec_co
 #if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
     if(exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        {
+        exec_conf->multiGPUBarrier();
+        cudaDeviceSynchronize();
+        }
 #endif
     push(name);
    }
@@ -175,7 +178,10 @@ inline void Profiler::pop(std::shared_ptr<const ExecutionConfiguration> exec_con
 #if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
     if(exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        {
+        exec_conf->multiGPUBarrier();
+        cudaDeviceSynchronize();
+        }
 #endif
     pop(flop_count, byte_count);
     }

@@ -39,7 +39,7 @@ IntegratorTwoStep::~IntegratorTwoStep()
     }
 
 /*! \param prof The profiler to set
-    Sets the profiler both for this class and all of the containted integration methods
+    Sets the profiler both for this class and all of the contained integration methods
 */
 void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
     {
@@ -140,6 +140,12 @@ void IntegratorTwoStep::update(unsigned int timestep)
 #endif
         computeNetForce(timestep+1);
 
+    // Call HalfStep hook
+    if (m_half_step_hook)
+        {
+        m_half_step_hook->update(timestep+1);
+        }
+
     if (m_prof)
         m_prof->push("Integrate");
 
@@ -175,7 +181,7 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
 
 /*! \param new_method New integration method to add to the integrator
     Before the method is added, it is checked to see if the group intersects with any of the groups integrated by
-    existing methods. If an interesection is found, an error is issued. If no interesection is found, setDeltaT
+    existing methods. If an intersection is found, an error is issued. If no intersection is found, setDeltaT
     is called on the method and it is added to the list.
 */
 void IntegratorTwoStep::addIntegrationMethod(std::shared_ptr<IntegrationMethodTwoStep> new_method)

@@ -9,6 +9,9 @@
 #include "hoomd/extern/util/mgpucontext.h"
 #include "hoomd/extern/kernels/localitysort.cuh"
 
+#include <thrust/device_vector.h>
+#include <thrust/sort.h>
+
 /*! \file CellListGPU.cu
     \brief Defines GPU kernel code for cell list generation on the GPU
 */
@@ -28,7 +31,7 @@
     \param N Number of particles
     \param n_ghost Number of ghost particles
     \param Nmax Maximum number of particles that can be placed in a single cell
-    \param flag_charge Set to true to store chage in the flag position in \a d_xyzf
+    \param flag_charge Set to true to store charge in the flag position in \a d_xyzf
     \param flag_type Set to true to store type in the flag position in \a d_xyzf
     \param box Box dimensions
     \param ci Indexer to compute cell id from cell grid coords
@@ -56,12 +59,16 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
                                              const BoxDim box,
                                              const Index3D ci,
                                              const Index2D cli,
-                                             const Scalar3 ghost_width)
+                                             const Scalar3 ghost_width,
+                                             const unsigned int nwork,
+                                             const unsigned int offset)
     {
     // read in the particle that belongs to this thread
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    if (idx >= N + n_ghost)
+    if (idx >= nwork)
         return;
+
+    idx += offset;
 
     Scalar4 postype = d_pos[idx];
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
@@ -132,11 +139,18 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         {
         // but ghost particles that are out of range should not produce an error
         if (idx < N)
-            (*d_conditions).z = idx+1;
+            {
+            #if (__CUDA_ARCH__ >= 600)
+            atomicMax_system(&(*d_conditions).z, idx+1);
+            #else
+            atomicMax(&(*d_conditions).z, idx+1);
+            #endif
+            }
         return;
         }
 
     unsigned int size = atomicInc(&d_cell_size[bin], 0xffffffff);
+
     if (size < Nmax)
         {
         unsigned int write_pos = cli(size, bin);
@@ -151,7 +165,11 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     else
         {
         // handle overflow
+        #if (__CUDA_ARCH__ >= 600)
+        atomicMax_system(&(*d_conditions).x, size+1);
+        #else
         atomicMax(&(*d_conditions).x, size+1);
+        #endif
         }
     }
 
@@ -175,14 +193,9 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const Index3D& ci,
                                   const Index2D& cli,
                                   const Scalar3& ghost_width,
-                                  const unsigned int block_size)
+                                  const unsigned int block_size,
+                                  const GPUPartition& gpu_partition)
     {
-    cudaError_t err;
-    err = cudaMemsetAsync(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements(),0);
-
-    if (err != cudaSuccess)
-        return err;
-
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
@@ -191,162 +204,45 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
         max_block_size = attr.maxThreadsPerBlock;
         }
 
-    unsigned int run_block_size = min(block_size, max_block_size);
-    int n_blocks = (N+n_ghost)/run_block_size + 1;
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-    gpu_compute_cell_list_kernel<<<n_blocks, run_block_size>>>(d_cell_size,
-                                                               d_xyzf,
-                                                               d_tdb,
-                                                               d_cell_orientation,
-                                                               d_cell_idx,
-                                                               d_conditions,
-                                                               d_pos,
-                                                               d_orientation,
-                                                               d_charge,
-                                                               d_diameter,
-                                                               d_body,
-                                                               N,
-                                                               n_ghost,
-                                                               Nmax,
-                                                               flag_charge,
-                                                               flag_type,
-                                                               box,
-                                                               ci,
-                                                               cli,
-                                                               ghost_width);
+        unsigned int nwork = range.second - range.first;
+
+        // process ghosts in final range
+        if (idev == (int)gpu_partition.getNumActiveGPUs()-1)
+            nwork += n_ghost;
+
+        unsigned int run_block_size = min(block_size, max_block_size);
+        int n_blocks = nwork/run_block_size + 1;
+
+        gpu_compute_cell_list_kernel<<<n_blocks, run_block_size>>>(d_cell_size+idev*ci.getNumElements(),
+                                                                   d_xyzf+idev*cli.getNumElements(),
+                                                                   d_tdb ? d_tdb+idev*cli.getNumElements(): 0,
+                                                                   d_cell_orientation ? d_cell_orientation+idev*cli.getNumElements() : 0,
+                                                                   d_cell_idx ? d_cell_idx+idev*cli.getNumElements() : 0,
+                                                                   d_conditions,
+                                                                   d_pos,
+                                                                   d_orientation,
+                                                                   d_charge,
+                                                                   d_diameter,
+                                                                   d_body,
+                                                                   N,
+                                                                   n_ghost,
+                                                                   Nmax,
+                                                                   flag_charge,
+                                                                   flag_type,
+                                                                   box,
+                                                                   ci,
+                                                                   cli,
+                                                                   ghost_width,
+                                                                   nwork,
+                                                                   range.first);
+        }
 
     return cudaSuccess;
-    }
-
-// ********************* Following are helper functions, structs, etc for the 1x optimized cell list build
-//! \internal
-/*! \param a First element
-    \param b Second element
-    The two elements are swapped
-*/
-template<class T> __device__ inline void swap(T & a, T & b)
-    {
-    T tmp = a;
-    a = b;
-    b = tmp;
-    }
-
-//! \internal
-/*! \param shared Pointer to shared memory to bitonic sort
-*/
-template<class T, unsigned int block_size> __device__ inline void bitonic_sort(T *shared)
-    {
-    unsigned int tid = threadIdx.x;
-
-    // Parallel bitonic sort.
-    for (int k = 2; k <= block_size; k *= 2)
-        {
-        // Bitonic merge:
-        for (int j = k / 2; j>0; j /= 2)
-            {
-            int ixj = tid ^ j;
-
-            if (ixj > tid)
-                {
-                if ((tid & k) == 0)
-                    {
-                    if (shared[tid] > shared[ixj])
-                        {
-                        swap(shared[tid], shared[ixj]);
-                        }
-                    }
-                else
-                    {
-                    if (shared[tid] < shared[ixj])
-                        {
-                        swap(shared[tid], shared[ixj]);
-                        }
-                    }
-                }
-
-            __syncthreads();
-            }
-        }
-    }
-
-//! \internal
-/*! \brief Pair a particle and its assigned bin together for sorting
-*/
-struct bin_id_pair
-    {
-    unsigned int bin;   //!< Cell index
-    unsigned int id;    //!< Particle id
-    unsigned int start_offset;  //!< Write offset
-    };
-
-//! \internal
-/*! \param bin Cell index
-    \param id Particle id
-*/
-__device__ inline bin_id_pair make_bin_id_pair(unsigned int bin, unsigned int id)
-    {
-    bin_id_pair res;
-    res.bin = bin;
-    res.id = id;
-    res.start_offset = 0;
-    return res;
-    }
-
-//! \internal
-/*! \param a First element
-    \param b Second element
-*/
-__device__ inline bool operator< (const bin_id_pair& a, const bin_id_pair& b)
-    {
-    if (a.bin == b.bin)
-        return (a.id < b.id);
-    else
-        return (a.bin < b.bin);
-    }
-
-//! \internal
-/*! \param a First element
-    \param b Second element
-*/
-__device__ inline bool operator> (const bin_id_pair& a, const bin_id_pair& b)
-    {
-    if (a.bin == b.bin)
-        return (a.id > b.id);
-    else
-        return (a.bin > b.bin);
-    }
-
-//! \internal
-/*! \param temp Temporary array in shared memory to scan
-*/
-template<class T, unsigned int block_size> __device__ inline void scan_naive(T *temp)
-    {
-    int thid = threadIdx.x;
-
-    int pout = 0;
-    int pin = 1;
-
-    for (int offset = 1; offset < block_size; offset *= 2)
-        {
-        pout = 1 - pout;
-        pin  = 1 - pout;
-        __syncthreads();
-
-        temp[pout*block_size+thid] = temp[pin*block_size+thid];
-
-        if (thid >= offset)
-            temp[pout*block_size+thid] += temp[pin*block_size+thid - offset];
-        }
-
-    __syncthreads();
-    // bring the data back to the initial array
-    if (pout == 1)
-        {
-        pout = 1 - pout;
-        pin  = 1 - pout;
-        temp[pout*block_size+thid] = temp[pin*block_size+thid];
-        __syncthreads();
-        }
     }
 
 __global__ void gpu_fill_indices_kernel(
@@ -391,11 +287,153 @@ __global__ void gpu_fill_indices_kernel(
 //! Lexicographic comparison operator on uint2
 struct comp_less_uint2
     {
-    __device__ bool operator()(const uint2 a, const uint2 b)
+    __device__ bool operator()(const uint2& a, const uint2& b)
         {
         return a.x < b.x || (a.x == b.x && a.y < b.y);
         }
     };
+
+//! Kernel to combine ngpu cell lists into one, in parallel
+__global__ void gpu_combine_cell_lists_kernel(
+    const unsigned int *d_cell_size_scratch,
+    unsigned int *d_cell_size,
+    const unsigned int *d_idx_scratch,
+    unsigned int *d_idx,
+    const Scalar4 *d_xyzf_scratch,
+    Scalar4 *d_xyzf,
+    const Scalar4 *d_tdb_scratch,
+    Scalar4 *d_tdb,
+    const Scalar4 *d_cell_orientation_scratch,
+    Scalar4 *d_cell_orientation,
+    const Index2D cli,
+    unsigned int igpu,
+    unsigned int ngpu,
+    const unsigned int Nmax,
+    uint3 *d_conditions)
+    {
+    unsigned int idx = threadIdx.x+blockIdx.x*blockDim.x;
+
+    if (idx >= cli.getNumElements())
+        return;
+
+    uint2 p = cli.getPair(idx);
+    unsigned int local_idx = p.x;
+    unsigned int bin = p.y;
+
+    // reduce cell sizes for 0..igpu
+    unsigned int local_size;
+    unsigned int offset = 0;
+    unsigned int total_size = 0;
+
+    for (unsigned int i = 0; i < ngpu; ++i)
+        {
+        unsigned int sz = d_cell_size_scratch[bin+i*cli.getH()];
+
+        if (i == igpu)
+            local_size = sz;
+
+        if (i < igpu)
+            offset += sz;
+
+        total_size += sz;
+        }
+
+    // write out cell size total on GPU 0
+    if (igpu == 0 && local_idx == 0)
+        d_cell_size[bin] = total_size;
+
+    // is local_idx within bounds?
+    if (local_idx >= local_size)
+        return;
+
+    unsigned int out_idx = offset + local_idx;
+
+    if (out_idx >= Nmax)
+        {
+        // handle overflow
+        #if (__CUDA_ARCH__ >= 600)
+        atomicMax_system(&(*d_conditions).x, out_idx+1);
+        #else
+        atomicMax(&(*d_conditions).x, out_idx+1);
+        #endif
+        return;
+        }
+
+    unsigned int write_pos = cli(out_idx, bin);
+
+    // copy over elements
+    if (d_idx)
+        d_idx[write_pos] = d_idx_scratch[idx+igpu*cli.getNumElements()];
+
+    d_xyzf[write_pos] = d_xyzf_scratch[idx+igpu*cli.getNumElements()];
+
+    if (d_tdb)
+        d_tdb[write_pos] = d_tdb_scratch[idx+igpu*cli.getNumElements()];
+
+    if (d_cell_orientation)
+        d_cell_orientation[write_pos] = d_cell_orientation_scratch[idx+igpu*cli.getNumElements()];
+    }
+
+/*! Driver function to sort the cell lists from different GPUs into one
+
+   This applies lexicographical order to cell idx, particle idx pairs
+   \param d_cell_size_scratch List of cell sizes (per GPU)
+   \param d_cell_size List of cell sizes
+   \param d_cell_idx_scratch List particle index (per GPU)
+   \param d_cell_idx List particle index
+   \param d_sort_idx Temporary array for storing the cell/particle indices to be sorted
+   \param d_sort_permutation Temporary array for storing the permuted cell list indices
+   \param ci Cell indexer
+   \param cli Cell list indexer
+   \param block_size GPU block size
+   \param gpu_partition multi-GPU partition
+ */
+cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
+                                unsigned int *d_cell_size,
+                                const unsigned int *d_idx_scratch,
+                                unsigned int *d_idx,
+                                const Scalar4 *d_xyzf_scratch,
+                                Scalar4 *d_xyzf,
+                                const Scalar4 *d_tdb_scratch,
+                                Scalar4 *d_tdb,
+                                const Scalar4 *d_cell_orientation_scratch,
+                                Scalar4 *d_cell_orientation,
+                                const Index2D cli,
+                                unsigned int ngpu,
+                                const unsigned int block_size,
+                                const unsigned int Nmax,
+                                uint3 *d_conditions,
+                                const GPUPartition& gpu_partition)
+    {
+    dim3 threads(block_size);
+    dim3 grid(cli.getNumElements()/block_size + 1);
+
+    // copy together cell lists in parallel
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        gpu_partition.getRangeAndSetGPU(idev);
+
+        gpu_combine_cell_lists_kernel<<<grid, threads>>>
+            (
+            d_cell_size_scratch,
+            d_cell_size,
+            d_idx_scratch,
+            d_idx,
+            d_xyzf_scratch,
+            d_xyzf,
+            d_tdb_scratch,
+            d_tdb,
+            d_cell_orientation_scratch,
+            d_cell_orientation,
+            cli,
+            idev,
+            ngpu,
+            Nmax,
+            d_conditions);
+        }
+
+    return cudaSuccess;
+    }
 
 __global__ void gpu_apply_sorted_cell_list_order(
     unsigned int cl_size,
@@ -446,8 +484,7 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
                         uint2 *d_sort_idx,
                         unsigned int *d_sort_permutation,
                         const Index3D ci,
-                        const Index2D cli,
-                        mgpu::ContextPtr mgpu_context)
+                        const Index2D cli)
     {
     unsigned int block_size = 256;
 
@@ -466,7 +503,9 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
         cli);
 
     // locality sort on those pairs
-    mgpu::LocalitySortPairs(d_sort_idx, d_sort_permutation, cli.getNumElements(), *mgpu_context, comp_less_uint2());
+    thrust::device_ptr<uint2> d_sort_idx_thrust(d_sort_idx);
+    thrust::device_ptr<unsigned int> d_sort_permutation_thrust(d_sort_permutation);
+    thrust::sort_by_key(d_sort_idx_thrust, d_sort_idx_thrust + cli.getNumElements(), d_sort_permutation_thrust, comp_less_uint2());
 
     // apply sorted order
     gpu_apply_sorted_cell_list_order<<<grid, threads>>>(

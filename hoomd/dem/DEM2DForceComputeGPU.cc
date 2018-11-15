@@ -25,7 +25,7 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
   \param nlist Neighborlist to use for computing the forces
-  \param r_cut Cuttoff radius beyond which the force is 0
+  \param r_cut Cutoff radius beyond which the force is 0
   \param potential Global potential parameters for the compute
 
   \post memory is allocated with empty shape vectors
@@ -44,7 +44,7 @@ DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::DEM2DForceComputeGPU(
     m_num_shape_vertices(this->m_pdata->getNTypes(), this->m_exec_conf)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!this->exec_conf->isCUDAEnabled())
+    if (!this->m_exec_conf->isCUDAEnabled())
         {
         this->m_exec_conf->msg->error() << "Creating a DEM2DForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing DEM2DForceComputeGPU");
@@ -86,7 +86,7 @@ void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::computeForces(unsigned
     this->m_nlist->compute(timestep);
 
     // start the profile
-    if (this->m_prof) this->m_prof->push(this->exec_conf, "DEM2D pair");
+    if (this->m_prof) this->m_prof->push(this->m_exec_conf, "DEM2D pair");
 
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
@@ -154,7 +154,7 @@ void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::computeForces(unsigned
         this->m_r_cut * this->m_r_cut,
         this->m_shapes.size(),
         particlesPerBlock, this->maxVertices());
-    if (this->exec_conf->isCUDAErrorCheckingEnabled())
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
 
@@ -162,7 +162,7 @@ void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::computeForces(unsigned
     int64_t n_calc = int64_t(avg_neigh * this->m_pdata->getN());
     int64_t mem_transfer = this->m_pdata->getN() * (4 + 16 + 20) + n_calc * (4 + 16);
     int64_t flops = n_calc * (3+12+5+2+3+11+3+8+7);
-    if (this->m_prof) this->m_prof->pop(this->exec_conf, flops, mem_transfer);
+    if (this->m_prof) this->m_prof->pop(this->m_exec_conf, flops, mem_transfer);
     }
 
 /*!

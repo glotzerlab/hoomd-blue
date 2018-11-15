@@ -14,8 +14,8 @@ import hoomd;
 ## \internal
 # \brief Base class for forces
 #
-# A force in hoomd_script reflects a ForceCompute in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd_script
+# A force in hoomd reflects a ForceCompute in c++. It is responsible
+# for all high-level management that happens behind the scenes for hoomd
 # writers. 1) The instance of the c++ analyzer itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
 # net force on each particle
@@ -29,7 +29,7 @@ class _force(hoomd.meta._metadata):
     # If specified, assigns a name to the instance
     # Assigns a name to the force in force_name;
     def __init__(self, name=None):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating force');
@@ -71,7 +71,7 @@ class _force(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd: cpp_force not set, please report\n');
             raise RuntimeError();
 
     def disable(self, log=False):
@@ -193,7 +193,7 @@ class constant(_force):
         fy (float): y component of force, retained for backwards compatibility
         fz (float): z component of force, retained for backwards compatibility
         group (:py:mod:`hoomd.group`): Group for which the force will be set.
-        callback (callable): A python callback invoked every time the forces are computed
+        callback (`callable`): A python callback invoked every time the forces are computed
 
     :py:class:`constant` specifies that a constant force should be added to every
     particle in the simulation or optionally to all particles in a group.
@@ -320,7 +320,7 @@ class constant(_force):
     R""" Set a python callback to be called before the force is evaluated
 
     Args:
-        callback (callable) The callback function
+        callback (`callable`) The callback function
 
      Examples:
         const = force.constant(fx=0.4, fy=1.0, fz=0.5)

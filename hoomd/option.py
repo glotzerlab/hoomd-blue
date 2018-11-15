@@ -68,11 +68,11 @@ class options:
 ## Parses command line options
 #
 # \internal
-# Parses all hoomd_script command line options into the module variable cmd_options
+# Parses all hoomd command line options into the module variable cmd_options
 def _parse_command_line(arg_string=None):
     parser = OptionParser();
     parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)", default='auto');
-    parser.add_option("--gpu", dest="gpu", help="GPU on which to execute");
+    parser.add_option("--gpu", dest="gpu", help="GPU or comma-separated list of GPUs on which to execute");
     parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
     parser.add_option("--minimize-cpu-usage", dest="min_cpu", action="store_true", default=False, help="Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)");
     parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
@@ -95,7 +95,7 @@ def _parse_command_line(arg_string=None):
 
     (cmd_options, args) = parser.parse_args(args=input_args);
 
-    # chedk for valid mode setting
+    # check for valid mode setting
     if cmd_options.mode is not None:
         if not (cmd_options.mode == "cpu" or cmd_options.mode == "gpu" or cmd_options.mode == "auto"):
             parser.error("--mode must be either cpu, gpu, or auto");
@@ -111,9 +111,9 @@ def _parse_command_line(arg_string=None):
     # convert gpu to an integer
     if cmd_options.gpu is not None:
         try:
-            cmd_options.gpu = int(cmd_options.gpu);
+            cmd_options.gpu = [int(gpu) for gpu in str(cmd_options.gpu).split(',')]
         except ValueError:
-            parser.error('--gpu must be an integer')
+            parser.error('--gpu must be an integer or comma-separated list of integers')
 
     # convert notice_level to an integer
     if cmd_options.notice_level is not None:
@@ -125,7 +125,7 @@ def _parse_command_line(arg_string=None):
     # Convert nx to an integer
     if cmd_options.nx is not None:
         if not _hoomd.is_MPI_available():
-            hoomd.context.msg.error("The --nx option is only avaible in MPI builds.\n");
+            hoomd.context.msg.error("The --nx option is only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
         try:
             cmd_options.nx = int(cmd_options.nx);
@@ -135,7 +135,7 @@ def _parse_command_line(arg_string=None):
     # Convert ny to an integer
     if cmd_options.ny is not None:
         if not _hoomd.is_MPI_available():
-            hoomd.context.msg.error("The --ny option is only avaible in MPI builds.\n");
+            hoomd.context.msg.error("The --ny option is only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
         try:
             cmd_options.ny = int(cmd_options.ny);
@@ -145,7 +145,7 @@ def _parse_command_line(arg_string=None):
     # Convert nz to an integer
     if cmd_options.nz is not None:
        if not _hoomd.is_MPI_available():
-            hoomd.context.msg.error("The --nz option is only avaible in MPI builds.\n");
+            hoomd.context.msg.error("The --nz option is only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
        try:
             cmd_options.nz = int(cmd_options.nz);
@@ -155,7 +155,7 @@ def _parse_command_line(arg_string=None):
     # Convert nthreads to an integer
     if cmd_options.nthreads is not None:
        if not _hoomd.is_TBB_available():
-            hoomd.context.msg.error("The --nthreads option is only avaible in TBB-enabled builds.\n");
+            hoomd.context.msg.error("The --nthreads option is only available in TBB-enabled builds.\n");
             raise RuntimeError('Error setting option');
        try:
             cmd_options.nthreads = int(cmd_options.nthreads);
@@ -195,7 +195,7 @@ def _parse_command_line(arg_string=None):
 
     if cmd_options.nrank is not None:
         if not _hoomd.is_MPI_available():
-            hoomd.context.msg.error("The --nrank option is only avaible in MPI builds.\n");
+            hoomd.context.msg.error("The --nrank option is only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
         # check validity
         nrank = int(cmd_options.nrank)

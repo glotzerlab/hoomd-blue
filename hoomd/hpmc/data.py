@@ -71,7 +71,7 @@ class param_dict(dict):
 
 
         Note:
-            Single parameters can not be updated. If both *diameter* and *length* are requred for a particle type,
+            Single parameters can not be updated. If both *diameter* and *length* are required for a particle type,
             then executing coeff.set('A', diameter=1.5) will fail one must call coeff.set('A', diameter=1.5, length=2.0)
 
         """
@@ -106,7 +106,7 @@ class _param(object):
     def set(self, **params):
         self.is_set = True;
 
-        # backwards compatbility
+        # backwards compatibility
         if 'ignore_overlaps' in params:
             # ugly workaround
             super(_param,self).__setattr__('ignore_overlaps',params['ignore_overlaps'])
@@ -367,21 +367,22 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
 
-class convex_polyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_param):
+class convex_spheropolyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_param):
     def __init__(self, mc, index):
         _hpmc.convex_polyhedron_union_param_proxy.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size templated
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
-        self._keys += ['centers', 'orientations', 'vertices', 'colors','overlap'];
-        self._py_params = ['colors'];
+        self._keys += ['centers', 'orientations', 'vertices', 'colors','overlap','sweep_radii'];
+        self.make_fn = _hpmc.make_convex_polyhedron_union_params;
 
     def __str__(self):
-        string = "convex polyhedron union(centers = {}, orientations = {}, vertices = {}, overlap = {})\n".format(self.centers, self.orientations, self.vertices, self.overlap);
+        # should we put this in the c++ side?
+        string = "convex polyhedron union(centers = {}, orientations = {}, overlap = {})\n".format(self.centers, self.orientations, self.overlap);
         ct = 0;
         members = self.members;
         for m in members:
             end = "\n" if ct < (len(members)-1) else "";
-            string+="convex polyhedron-{}(v = {}){}".format(ct, m.vertices, end)
+            string+="convex polyhedron-{}(v = {}, R = {}){}".format(ct, m.vertices, m.sweep_radius, end)
             ct+=1
         return string;
 
@@ -390,6 +391,8 @@ class convex_polyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_
         for key in self._keys:
             if key == 'vertices':
                 val = [ m.vertices for m in self.members ];
+            elif key == 'sweep_radii':
+                val = [ m.sweep_radius for m in self.members ]
             else:
                 val = getattr(self, key);
             data[key] = val;
@@ -400,8 +403,11 @@ class convex_polyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_
         if overlap is None:
             overlap = [1 for c in centers]
 
+        if sweep_radii is None:
+            sweep_radii = [0 for c in centers]
+
         members = []
-        for i, verts in enumerate(vertices):
+        for i,(verts, sweep_radius) in enumerate(zip(vertices, sweep_radii)):
             member_fn = _hpmc.make_poly3d_verts
             members.append(member_fn(cls.ensure_list(verts), float(0), ignore_statistics, hoomd.context.current.system_definition.getParticleData().getExecConf()))
 
@@ -416,3 +422,9 @@ class convex_polyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_
                             ignore_statistics,
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
+
+class convex_polyhedron_union_params(convex_spheropolyhedron_union_params):
+    # provided for backward compatibility
+    def __init__(self, mc, index):
+        # call base class constructor
+        convex_spheropolyhedron_union_params.__init__(self,mc, index)

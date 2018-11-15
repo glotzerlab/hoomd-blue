@@ -95,33 +95,34 @@ template <class Real>
 void SnapshotSystemData<Real>::broadcast_all(unsigned int root, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     #ifdef ENABLE_MPI
+    MPI_Comm hoomd_world = exec_conf->getHOOMDWorldMPICommunicator();
     int n_ranks;
-    MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+    MPI_Comm_size(hoomd_world, &n_ranks);
     if (n_ranks > 0)
         {
-        bcast(global_box, root, MPI_COMM_WORLD);
-        bcast(dimensions, root, MPI_COMM_WORLD);
-        bcast(has_particle_data, root, MPI_COMM_WORLD);
-        bcast(has_bond_data, root, MPI_COMM_WORLD);
-        bcast(has_angle_data, root, MPI_COMM_WORLD);
-        bcast(has_dihedral_data, root, MPI_COMM_WORLD);
-        bcast(has_improper_data, root, MPI_COMM_WORLD);
-        bcast(has_constraint_data, root, MPI_COMM_WORLD);
-        bcast(has_pair_data, root, MPI_COMM_WORLD);
-        bcast(has_integrator_data, root, MPI_COMM_WORLD);
+        bcast(global_box, root, hoomd_world);
+        bcast(dimensions, root, hoomd_world);
+        bcast(has_particle_data, root, hoomd_world);
+        bcast(has_bond_data, root, hoomd_world);
+        bcast(has_angle_data, root, hoomd_world);
+        bcast(has_dihedral_data, root, hoomd_world);
+        bcast(has_improper_data, root, hoomd_world);
+        bcast(has_constraint_data, root, hoomd_world);
+        bcast(has_pair_data, root, hoomd_world);
+        bcast(has_integrator_data, root, hoomd_world);
 
         if (has_particle_data)
             {
-            particle_data.bcast(root, MPI_COMM_WORLD);
-            bcast(map, root, MPI_COMM_WORLD);
+            particle_data.bcast(root, hoomd_world);
+            bcast(map, root, hoomd_world);
             }
-        if (has_bond_data) bond_data.bcast(root, MPI_COMM_WORLD);
-        if (has_angle_data) angle_data.bcast(root, MPI_COMM_WORLD);
-        if (has_dihedral_data) dihedral_data.bcast(root, MPI_COMM_WORLD);
-        if (has_improper_data) improper_data.bcast(root, MPI_COMM_WORLD);
-        if (has_constraint_data) constraint_data.bcast(root, MPI_COMM_WORLD);
-        if (has_pair_data) pair_data.bcast(root, MPI_COMM_WORLD);
-        if (has_integrator_data) bcast(integrator_data, root, MPI_COMM_WORLD);
+        if (has_bond_data) bond_data.bcast(root, hoomd_world);
+        if (has_angle_data) angle_data.bcast(root, hoomd_world);
+        if (has_dihedral_data) dihedral_data.bcast(root, hoomd_world);
+        if (has_improper_data) improper_data.bcast(root, hoomd_world);
+        if (has_constraint_data) constraint_data.bcast(root, hoomd_world);
+        if (has_pair_data) pair_data.bcast(root, hoomd_world);
+        if (has_integrator_data) bcast(integrator_data, root, hoomd_world);
         }
     #endif
     }

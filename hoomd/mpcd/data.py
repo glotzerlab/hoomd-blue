@@ -152,7 +152,7 @@ class snapshot(hoomd.meta._metadata):
         This method is intended only to be used with
         :py:meth:`hoomd.data.system_data.replicate()` **prior** to initialization
         of the MPCD system. The MPCD snapshot must be replicated to a size consistent
-        with the system at the time of initialization. An error will be rasied
+        with the system at the time of initialization. An error will be raised
         otherwise.
 
         """

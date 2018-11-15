@@ -5,7 +5,6 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
-#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 
 #include "ShapeSpheropolygon.h"
@@ -49,15 +48,12 @@ void export_spheropolygon(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSpheropolygon >(m, "IntegratorHPMCMonoSpheropolygon");
     export_IntegratorHPMCMonoImplicit< ShapeSpheropolygon >(m, "IntegratorHPMCMonoImplicitSpheropolygon");
-    export_IntegratorHPMCMonoImplicitNew< ShapeSpheropolygon >(m, "IntegratorHPMCMonoImplicitNewSpheropolygon");
     export_ComputeFreeVolume< ShapeSpheropolygon >(m, "ComputeFreeVolumeSpheropolygon");
     export_AnalyzerSDF< ShapeSpheropolygon >(m, "AnalyzerSDFSpheropolygon");
     export_UpdaterMuVT< ShapeSpheropolygon >(m, "UpdaterMuVTSpheropolygon");
     export_UpdaterClusters< ShapeSpheropolygon >(m, "UpdaterClustersSpheropolygon");
     export_UpdaterClustersImplicit< ShapeSpheropolygon, IntegratorHPMCMonoImplicit<ShapeSpheropolygon> >(m, "UpdaterClustersImplicitSpheropolygon");
-    export_UpdaterClustersImplicit< ShapeSpheropolygon, IntegratorHPMCMonoImplicitNew<ShapeSpheropolygon> >(m, "UpdaterClustersImplicitNewSpheropolygon");
     export_UpdaterMuVTImplicit< ShapeSpheropolygon, IntegratorHPMCMonoImplicit<ShapeSpheropolygon> >(m, "UpdaterMuVTImplicitSpheropolygon");
-    export_UpdaterMuVTImplicit< ShapeSpheropolygon, IntegratorHPMCMonoImplicitNew<ShapeSpheropolygon> >(m, "UpdaterMuVTImplicitNewSpheropolygon");
 
     export_ExternalFieldInterface<ShapeSpheropolygon>(m, "ExternalFieldSpheropolygon");
     export_LatticeField<ShapeSpheropolygon>(m, "ExternalFieldLatticeSpheropolygon");

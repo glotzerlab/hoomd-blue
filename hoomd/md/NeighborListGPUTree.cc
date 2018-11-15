@@ -27,13 +27,6 @@ NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysde
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUTree" << endl;
 
-    // fermi cards are currently buggy, disable them
-    if (m_exec_conf->getComputeCapability() < 300)
-        {
-        m_exec_conf->msg->error() << "nlist: BVH tree neighbor lists are not supported on Fermi (sm_20) devices." << endl;
-        throw runtime_error("BVH tree neighbor list not supported by device");
-        }
-
     m_pdata->getNumTypesChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotNumTypesChanged>(this);
     m_pdata->getBoxChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
     m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);
@@ -396,45 +389,47 @@ void NeighborListGPUTree::calcMortonCodes()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Morton codes");
 
-    // particle data and where to write it
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::overwrite);
-
-    ArrayHandle<uint64_t> d_morton_types(m_morton_types, access_location::device, access_mode::overwrite);
-
     // need a ghost layer width to get the fractional position of particles in the local box
     const BoxDim& box = m_pdata->getBox();
 
-    Scalar ghost_layer_width(0.0);
-    #ifdef ENABLE_MPI
-    if (m_comm) ghost_layer_width = m_comm->getGhostLayerMaxWidth();
-    #endif
-
-    Scalar3 ghost_width = make_scalar3(0.0, 0.0, 0.0);
-    if (!box.getPeriodic().x) ghost_width.x = ghost_layer_width;
-    if (!box.getPeriodic().y) ghost_width.y = ghost_layer_width;
-    if (this->m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
         {
-        ghost_width.z = ghost_layer_width;
+        // particle data and where to write it
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::overwrite);
+
+        ArrayHandle<uint64_t> d_morton_types(m_morton_types, access_location::device, access_mode::overwrite);
+
+        Scalar ghost_layer_width(0.0);
+        #ifdef ENABLE_MPI
+        if (m_comm) ghost_layer_width = m_comm->getGhostLayerMaxWidth();
+        #endif
+
+        Scalar3 ghost_width = make_scalar3(0.0, 0.0, 0.0);
+        if (!box.getPeriodic().x) ghost_width.x = ghost_layer_width;
+        if (!box.getPeriodic().y) ghost_width.y = ghost_layer_width;
+        if (this->m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
+            {
+            ghost_width.z = ghost_layer_width;
+            }
+
+
+        // reset the flag to zero before calling the compute
+        m_morton_conditions.resetFlags(0);
+
+        m_tuner_morton->begin();
+        gpu_nlist_morton_types(d_morton_types.data,
+                               d_map_tree_pid.data,
+                               m_morton_conditions.getDeviceFlags(),
+                               d_pos.data,
+                               m_pdata->getN(),
+                               m_pdata->getNGhosts(),
+                               box,
+                               ghost_width,
+                               m_tuner_morton->getParam());
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        m_tuner_morton->end();
         }
-
-
-    // reset the flag to zero before calling the compute
-    m_morton_conditions.resetFlags(0);
-
-    m_tuner_morton->begin();
-    gpu_nlist_morton_types(d_morton_types.data,
-                           d_map_tree_pid.data,
-                           m_morton_conditions.getDeviceFlags(),
-                           d_pos.data,
-                           m_pdata->getN(),
-                           m_pdata->getNGhosts(),
-                           box,
-                           ghost_width,
-                           m_tuner_morton->getParam());
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    m_tuner_morton->end();
 
     // error check that no local particles are out of bounds
     const unsigned int morton_conditions = m_morton_conditions.readFlags();

@@ -181,24 +181,6 @@ bool is_TBB_available()
     }
 
 
-//! Start the CUDA profiler
-void cuda_profile_start()
-    {
-    #ifdef ENABLE_CUDA
-    cudaDeviceSynchronize();
-    cudaProfilerStart();
-    #endif
-    }
-
-//! Stop the CUDA profiler
-void cuda_profile_stop()
-    {
-    #ifdef ENABLE_CUDA
-    cudaDeviceSynchronize();
-    cudaProfilerStop();
-    #endif
-    }
-
 // values used in measuring hoomd launch timing
 unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
 bool hoomd_launch_timing=false;
@@ -208,7 +190,7 @@ bool hoomd_launch_timing=false;
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 
 //! Initialize the MPI environment
-void initialize_mpi()
+int initialize_mpi()
     {
     #ifdef ENABLE_MPI_CUDA
     // if we are using an MPI-CUDA implementation, enable this feature
@@ -229,8 +211,13 @@ void initialize_mpi()
         hoomd_launch_timing = true;
         }
 
-    // initalize MPI
-    MPI_Init(0, (char ***) NULL);
+    // initialize MPI if it has not been initialized by another program
+    int external_init = 0;
+    MPI_Initialized(&external_init);
+    if (!external_init)
+        {
+        MPI_Init(0, (char ***) NULL);
+        }
 
     if (hoomd_launch_timing)
         {
@@ -239,6 +226,8 @@ void initialize_mpi()
         gettimeofday(&t, NULL);
         hoomd_mpi_init_time = t.tv_sec - hoomd_launch_time;
         }
+
+    return external_init;
     }
 
 //! Get the processor name associated to this rank
@@ -282,17 +271,20 @@ std::string mpi_bcast_str(pybind11::object string, std::shared_ptr<ExecutionConf
     }
 
 //! Create the python module
-/*! each class setup their own python exports in a function export_ClassName
+/*! each class sets up its own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
 PYBIND11_MODULE(_hoomd, m)
     {
     #ifdef ENABLE_MPI
-    // initialize MPI early
-    initialize_mpi();
+    // initialize MPI early, unless already initialized by another program
+    int external_init = initialize_mpi();
 
-    // register clean-up function
-    Py_AtExit(finalize_mpi);
+    // if HOOMD called MPI_Init, it should call MPI_Finalize at exit
+    if (!external_init)
+        {
+        Py_AtExit(finalize_mpi);
+        }
     m.def("get_mpi_proc_name", get_mpi_proc_name);
     #endif
 
@@ -317,11 +309,6 @@ PYBIND11_MODULE(_hoomd, m)
 
     m.def("is_MPI_available", &is_MPI_available);
     m.def("is_TBB_available", &is_TBB_available);
-
-    m.def("cuda_profile_start", &cuda_profile_start);
-    m.def("cuda_profile_stop", &cuda_profile_stop);
-
-    m.def("set_num_threads", &set_num_threads);
 
     pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector_scalar");
     pybind11::bind_vector< std::vector<string> >(m,"std_vector_string");
