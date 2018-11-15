@@ -1,10 +1,4 @@
-## Please go to [downloads](https://bitbucket.org/glotzer/hoomd-blue-alchemy-hpmc/downloads) to get the documentation (doc.tar) open the index.html file.
-
-
-[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/joaander/hoomd-examples)
-
 # HOOMD-blue
-###### this is a private repository.
 
 HOOMD-blue is a general purpose particle simulation toolkit. It performs hard particle Monte Carlo simulations
 of a variety of shape classes, and molecular dynamics simulations of particles with a range of pair, bond, angle,
@@ -143,3 +137,4 @@ See [ChangeLog.md](ChangeLog.md).
 ## Contributing to HOOMD-blue.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
