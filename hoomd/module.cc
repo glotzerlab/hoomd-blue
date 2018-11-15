@@ -281,14 +281,6 @@ std::string mpi_bcast_str(pybind11::object string, std::shared_ptr<ExecutionConf
     #endif
     }
 
-//! set number of TBB threads
-void set_num_threads(unsigned int num_threads)
-    {
-    #ifdef ENABLE_TBB
-    static tbb::task_scheduler_init init(num_threads);
-    #endif
-    }
-
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
