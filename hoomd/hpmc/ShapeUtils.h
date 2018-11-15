@@ -301,7 +301,7 @@ public:
         build_edge_list();
         sortFaces(m_points, m_faces, zero);
         }
-        catch(shape_util_error e){
+        catch(const shape_util_error &e){
             write_pos_frame(inside);
             throw(e);
         }
@@ -695,24 +695,26 @@ protected:
 template< >
 class mass_properties< ShapeConvexPolyhedron > : public mass_properties_base< ShapeConvexPolyhedron >
 {
-using mass_properties_base< ShapeConvexPolyhedron >::m_volume;
-using mass_properties_base< ShapeConvexPolyhedron >::m_center_of_mass;
-using mass_properties_base< ShapeConvexPolyhedron >::m_inertia;
-
 public:
     mass_properties() {}
 
-    mass_properties(const typename ShapeConvexPolyhedron::param_type& param)
+    mass_properties(const typename ShapeConvexPolyhedron::param_type& param, bool do_compute = true)
         {
         ConvexHull hull(param);
         hull.compute();
         hull.moveData(faces, points);
-        compute();
+        if (do_compute)
+            {
+            compute();
+            }
         }
 
-    mass_properties(const std::vector< vec3<Scalar> >& p, const std::vector<std::vector<unsigned int> >& f) :  points(p), faces(f)
+    mass_properties(const std::vector< vec3<Scalar> >& p, const std::vector<std::vector<unsigned int> >& f, bool do_compute = true) :  points(p), faces(f)
         {
-        compute();
+        if (do_compute)
+            {
+            compute();
+            }
         }
 
     unsigned int getFaceIndex(unsigned int i, unsigned int j) { return faces[i][j]; }
@@ -739,6 +741,11 @@ public:
         }
 
 protected:
+    using mass_properties_base< ShapeConvexPolyhedron >::m_volume;
+    using mass_properties_base< ShapeConvexPolyhedron >::m_center_of_mass;
+    using mass_properties_base< ShapeConvexPolyhedron >::m_inertia;
+    std::vector< vec3<Scalar> > points;
+    std::vector<std::vector<unsigned int> > faces;
 /*
     algorithm taken from
     http://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf
@@ -801,12 +808,59 @@ protected:
         m_inertia[4] = -(intg[8] - m_volume*cyz);
         m_inertia[5] = -(intg[9] - m_volume*cxz);
         }
-private:
-    std::vector< vec3<Scalar> > points;
-    std::vector<std::vector<unsigned int> > faces;
 };
 
+//TODO: Enable true spheropolyhedron calculation
+template < >
+class mass_properties< ShapeSpheropolyhedron > : public mass_properties < ShapeConvexPolyhedron >
+{
+using mass_properties< ShapeConvexPolyhedron >::m_inertia;
+public:
+    mass_properties(const typename ShapeSpheropolyhedron::param_type& param) 
+        // Prevent computation on construction of the parent so we can first check if it's possible.
+        : mass_properties< ShapeConvexPolyhedron >(param, false)
+        {
+        if (param.sweep_radius != 0 and param.N > 0)
+            {
+            throw std::runtime_error("The ShapeSpheropolyhedra class currently only supports the calculation of mass properties for spheres or convex polyhedra");
+            }
+    
+        // Explicit typecast required here
+        m_sweep_radius = param.sweep_radius;
+        compute();
+        }
+
+protected:
+    virtual void compute()
+        {
+        if (m_sweep_radius > 0)
+            {
+            // Ensure it's not a true spheropolyhedron
+            if (this->points.size() > 0)
+                {
+                throw std::runtime_error("The ShapeSpheropolyhedra class currently only supports the calculation of mass properties for spheres or convex polyhedra");
+                }
+            // Assuming it's a sphere, return that moment of inertia tensor
+            float moment_inertia = 2*m_sweep_radius*m_sweep_radius/5;
+            m_inertia[0] = moment_inertia;
+            m_inertia[1] = moment_inertia;
+            m_inertia[2] = moment_inertia;
+            m_inertia[3] = 0;
+            m_inertia[4] = 0;
+            m_inertia[5] = 0;
+            }
+        else
+            {
+            return mass_properties< ShapeConvexPolyhedron >::compute();
+            }
+        }
+
+private:
+    OverlapReal m_sweep_radius;
+
+};
 } // end namespace detail
+
 
 template<class Shape>
 void export_massPropertiesBase(pybind11::module& m, std::string name);

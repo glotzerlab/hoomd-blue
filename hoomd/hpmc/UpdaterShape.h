@@ -111,6 +111,8 @@ private:
     unsigned int                m_num_phase;
     detail::UpdateOrder         m_update_order;         //!< Update order
 
+    static constexpr Scalar m_tol = 0.00001; //!< The minimum move size required not to be ignored.
+
 };
 
 template < class Shape >
@@ -282,7 +284,16 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             {
             // make a trial move for i
             int typ_i = m_update_order[cur_type];
-            m_exec_conf->msg->notice(5) << " UpdaterShape making trial move for typeid=" << typ_i << ", " << cur_type << std::endl;
+            // Skip move if step size is smaller than tolerance
+            if (m_move_function->getStepSize(typ_i) < m_tol)
+                {
+                m_exec_conf->msg->notice(5) << " Skipping moves for particle typeid=" << typ_i << ", " << cur_type << std::endl;
+                continue;
+                }
+            else
+                {
+                m_exec_conf->msg->notice(5) << " UpdaterShape making trial move for typeid=" << typ_i << ", " << cur_type << std::endl;
+                }
             m_count_total[typ_i]++;
             // access parameters
             typename Shape::param_type param;
