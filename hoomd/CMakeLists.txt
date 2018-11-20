@@ -143,6 +143,7 @@ set(_hoomd_headers
     Updater.h
     Variant.h
     VectorMath.h
+    WarpTools.cuh
     )
 
 if (ENABLE_CUDA)
