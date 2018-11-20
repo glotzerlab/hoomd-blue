@@ -63,7 +63,7 @@ class integrate_langevin_tests (unittest.TestCase):
         all = group.all();
         bd = md.integrate.langevin(all, kT=1.2, seed=1);
         bd.set_gamma_r('A', 0.5);
-        bd.set_gamma_r('B', 1.0);
+        bd.set_gamma_r('B', (1.0,2.0,3.0));
 
     # test w/ empty group
     def test_empty(self):

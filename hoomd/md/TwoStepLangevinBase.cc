@@ -63,7 +63,7 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
         h_gamma.data[i] = Scalar(1.0);
 
     // allocate memory for the per-type gamma_r storage and initialize them to 0.0 (no rotational noise by default)
-    GlobalVector<Scalar> gamma_r(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar3> gamma_r(m_pdata->getNTypes(), m_exec_conf);
     m_gamma_r.swap(gamma_r);
     TAG_ALLOCATION(m_gamma_r);
 
@@ -71,13 +71,13 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_gamma.get(), sizeof(Scalar)*m_gamma.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-        cudaMemAdvise(m_gamma_r.get(), sizeof(Scalar)*m_gamma_r.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_gamma_r.get(), sizeof(Scalar3)*m_gamma_r.getNumElements(), cudaMemAdviseSetReadMostly, 0);
         }
     #endif
 
-    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma_r.size(); i++)
-        h_gamma_r.data[i] = Scalar(1.0);
+        h_gamma_r.data[i] = make_scalar3(1.0,1.0,1.0);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
     m_pdata->getNumTypesChangeSignal().connect<TwoStepLangevinBase, &TwoStepLangevinBase::slotNumTypesChange>(this);
@@ -103,12 +103,12 @@ void TwoStepLangevinBase::slotNumTypesChange()
     m_gamma_r.resize(m_pdata->getNTypes());
 
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
 
     for (unsigned int i = old_ntypes; i < m_gamma.size(); i++)
         {
         h_gamma.data[i] = Scalar(1.0);
-        h_gamma_r.data[i] = Scalar(1.0);
+        h_gamma_r.data[i] = make_scalar3(1.0,1.0,1.0);
         }
     }
 
@@ -137,12 +137,12 @@ void TwoStepLangevinBase::setGamma(unsigned int typ, Scalar gamma)
 /*! \param typ Particle type to set gamma_r (2D rotational noise) for
     \param gamma The gamma_r value to set
 */
-void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar gamma_r)
+void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar3 gamma_r)
     {
     // check for user errors
-    if (gamma_r < 0)
+    if (gamma_r.x < 0 || gamma_r.y < 0 || gamma_r. z < 0)
         {
-        m_exec_conf->msg->error() << "gamma_r should be positive or 0! " << typ << endl;
+        m_exec_conf->msg->error() << "gamma_r.(x,y,z) should be positive or 0! " << typ << endl;
         throw runtime_error("Error setting params in TwoStepLangevinBase");
         }
     if (typ >= m_pdata->getNTypes())
@@ -151,7 +151,7 @@ void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar gamma_r)
         throw runtime_error("Error setting params in TwoStepLangevinBase");
         }
 
-    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
     h_gamma_r.data[typ] = gamma_r;
     }
 
