@@ -2,6 +2,16 @@
 
 [TOC]
 
+## v2.4.1
+
+Released 2018/11/27
+
+*Bug fixes*
+
+* Install `WarpTools.cuh` for use by plugins
+* Fix potential violation of detailed balance with anisotropic particles with `hpmc.update.clusters` in periodic boundary conditions
+* Support llvm 7.0
+
 ## v2.4.0
 
 Released 2018/11/07
