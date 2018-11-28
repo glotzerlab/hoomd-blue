@@ -299,6 +299,7 @@ void CellList::initializeMemory()
     // allocate memory
     GlobalArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
     m_cell_size.swap(cell_size);
+    TAG_ALLOCATION(m_cell_size);
 
     if (m_compute_adj_list)
         {
@@ -318,6 +319,7 @@ void CellList::initializeMemory()
 
         GlobalArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
         m_cell_adj.swap(cell_adj);
+        TAG_ALLOCATION(m_cell_adj);
         }
     else
         {
@@ -330,11 +332,13 @@ void CellList::initializeMemory()
 
     GlobalArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
     m_xyzf.swap(xyzf);
+    TAG_ALLOCATION(m_xyzf);
 
     if (m_compute_tdb)
         {
         GlobalArray<Scalar4> tdb(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_tdb.swap(tdb);
+        TAG_ALLOCATION(m_tdb);
         }
     else
         {
@@ -347,6 +351,7 @@ void CellList::initializeMemory()
         {
         GlobalArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_orientation.swap(orientation);
+        TAG_ALLOCATION(m_orientation);
         }
     else
         {
@@ -359,6 +364,7 @@ void CellList::initializeMemory()
         {
         GlobalArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_idx.swap(idx);
+        TAG_ALLOCATION(m_idx);
         }
     else
         {

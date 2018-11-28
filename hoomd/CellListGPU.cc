@@ -194,14 +194,17 @@ void CellListGPU::initializeMemory()
     // allocate memory
     GlobalArray<unsigned int> cell_size_scratch(m_cell_indexer.getNumElements()*ngpu, m_exec_conf);
     m_cell_size_scratch.swap(cell_size_scratch);
+    TAG_ALLOCATION(m_cell_size_scratch);
 
     GlobalArray<Scalar4> xyzf_scratch(m_cell_list_indexer.getNumElements()*ngpu, m_exec_conf);
     m_xyzf_scratch.swap(xyzf_scratch);
+    TAG_ALLOCATION(m_xyzf_scratch);
 
     if (m_compute_tdb)
         {
         GlobalArray<Scalar4> tdb_scratch(m_cell_list_indexer.getNumElements()*ngpu, m_exec_conf);
         m_tdb_scratch.swap(tdb_scratch);
+        TAG_ALLOCATION(m_tdb_scratch);
         }
     else
         {
@@ -214,6 +217,7 @@ void CellListGPU::initializeMemory()
         {
         GlobalArray<Scalar4> orientation_scratch(m_cell_list_indexer.getNumElements()*ngpu, m_exec_conf);
         m_orientation_scratch.swap(orientation_scratch);
+        TAG_ALLOCATION(m_orientation_scratch);
         }
     else
         {
@@ -226,6 +230,7 @@ void CellListGPU::initializeMemory()
         {
         GlobalArray<unsigned int> idx_scratch(m_cell_list_indexer.getNumElements()*ngpu, m_exec_conf);
         m_idx_scratch.swap(idx_scratch);
+        TAG_ALLOCATION(m_idx_scratch);
         }
     else
         {
