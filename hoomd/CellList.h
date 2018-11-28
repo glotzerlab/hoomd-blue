@@ -121,6 +121,13 @@ class PYBIND11_EXPORT CellList : public Compute
             }
 
         //! Specify if the TDB cell list is to be computed
+        void setComputeXYZF(bool compute_xyzf)
+            {
+            m_compute_xyzf = compute_xyzf;
+            m_params_changed = true;
+            }
+
+        //! Specify if the TDB cell list is to be computed
         void setComputeTDB(bool compute_tdb)
             {
             m_compute_tdb = compute_tdb;
@@ -326,6 +333,7 @@ class PYBIND11_EXPORT CellList : public Compute
         // user specified parameters
         Scalar m_nominal_width;      //!< Minimum width of cell in any direction
         unsigned int m_radius;       //!< Radius of adjacency bins to list
+        bool m_compute_xyzf;         //!< true if the xyzf list should be computed
         bool m_compute_tdb;          //!< true if the tdb list should be computed
         bool m_compute_orientation;  //!< true if the orientation list should be computed
         bool m_compute_idx;          //!< true if the idx list should be computed

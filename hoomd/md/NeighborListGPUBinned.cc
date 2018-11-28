@@ -29,10 +29,10 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
 
     // with multiple GPUs, use indirect access via particle data arrays
     m_use_index = m_exec_conf->allConcurrentManagedAccess();
+    m_cl->setComputeXYZF(! m_use_index);
     m_cl->setComputeIdx(m_use_index);
 
     m_cl->setRadius(1);
-    // types are always required now
     m_cl->setComputeTDB(!m_use_index);
     m_cl->setFlagIndex();
 

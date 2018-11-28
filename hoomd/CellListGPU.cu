@@ -154,7 +154,8 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     if (size < Nmax)
         {
         unsigned int write_pos = cli(size, bin);
-        d_xyzf[write_pos] = make_scalar4(pos.x, pos.y, pos.z, flag);
+        if (d_xyzf != NULL)
+            d_xyzf[write_pos] = make_scalar4(pos.x, pos.y, pos.z, flag);
         if (d_tdb != NULL)
             d_tdb[write_pos] = make_scalar4(type, diameter, body, 0);
         if (d_cell_orientation != NULL)
@@ -219,8 +220,8 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
         int n_blocks = nwork/run_block_size + 1;
 
         gpu_compute_cell_list_kernel<<<n_blocks, run_block_size>>>(d_cell_size+idev*ci.getNumElements(),
-                                                                   d_xyzf+idev*cli.getNumElements(),
-                                                                   d_tdb ? d_tdb+idev*cli.getNumElements(): 0,
+                                                                   d_xyzf ? d_xyzf+idev*cli.getNumElements() : 0,
+                                                                   d_tdb ? d_tdb+idev*cli.getNumElements() : 0,
                                                                    d_cell_orientation ? d_cell_orientation+idev*cli.getNumElements() : 0,
                                                                    d_cell_idx ? d_cell_idx+idev*cli.getNumElements() : 0,
                                                                    d_conditions,
@@ -365,7 +366,8 @@ __global__ void gpu_combine_cell_lists_kernel(
     if (d_idx)
         d_idx[write_pos] = d_idx_scratch[idx+igpu*cli.getNumElements()];
 
-    d_xyzf[write_pos] = d_xyzf_scratch[idx+igpu*cli.getNumElements()];
+    if (d_xyzf)
+        d_xyzf[write_pos] = d_xyzf_scratch[idx+igpu*cli.getNumElements()];
 
     if (d_tdb)
         d_tdb[write_pos] = d_tdb_scratch[idx+igpu*cli.getNumElements()];
@@ -454,7 +456,7 @@ __global__ void gpu_apply_sorted_cell_list_order(
 
     unsigned int perm_idx = d_sort_permutation[cell_idx];
 
-    d_xyzf_new[cell_idx] = d_xyzf[perm_idx];
+    if (d_xyzf) d_xyzf_new[cell_idx] = d_xyzf[perm_idx];
     if (d_cell_idx) d_cell_idx_new[cell_idx] = d_cell_idx[perm_idx];
     if (d_tdb) d_tdb_new[cell_idx] = d_tdb[perm_idx];
     if (d_cell_orientation) d_cell_orientation_new[cell_idx] = d_cell_orientation[perm_idx];
@@ -522,8 +524,11 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
         cli);
 
     // copy back permuted arrays to original ones
-    cudaMemcpy(d_xyzf, d_xyzf_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+    if (d_xyzf)
+        cudaMemcpy(d_xyzf, d_xyzf_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+
     cudaMemcpy(d_cell_idx, d_cell_idx_new, sizeof(unsigned int)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+
     if (d_tdb)
         {
         cudaMemcpy(d_tdb, d_tdb_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
