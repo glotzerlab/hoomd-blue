@@ -48,6 +48,9 @@ class PYBIND11_EXPORT CellListGPU : public CellList
         //! Reallocate when maximum particle number changes
         virtual void reallocateMaxN();
 
+        //! update GPU mapping
+        virtual void updateGPUMapping();
+
         GlobalArray<unsigned int> m_cell_size_scratch;  //!< Number of members in each cell, one list per GPU
         GlobalArray<unsigned int> m_cell_adj_scratch;   //!< Cell adjacency list, one list per GPU
         GlobalArray<Scalar4> m_xyzf_scratch;            //!< Cell list with position and flags, one list per GPU
