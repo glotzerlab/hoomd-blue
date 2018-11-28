@@ -29,6 +29,7 @@ Released 2018/11/07
       * Improvements are only expected with NVLINK hardware. Use MPI when NVLINK is not available.
       * Combine the ``--gpu=..`` command line option with mpirun to execute on many dense nodes
     * Bundle ``libgetar`` v0.7.0 and remove ``sqlite3`` dependency
+    * When building with ENABLE_CUDA=on, CUDA 8.0 is now a minimum requirement
 
 * MD:
     * *no changes*.

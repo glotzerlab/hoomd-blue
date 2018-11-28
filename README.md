@@ -74,9 +74,10 @@ to fetch the submodules.
      * CMake >= 2.8.0
      * C++ 11 capable compiler (tested with gcc 4.8, 4.9, 5.4, 6.4, 7.0, 8.0, clang 3.8, 5.0, 6.0)
  * Optional:
-     * NVIDIA CUDA Toolkit >= 7.0
+     * NVIDIA CUDA Toolkit >= 8.0
      * Intel Threaded Building Blocks >= 4.3
      * MPI (tested with OpenMPI, MVAPICH)
+     * LLVM >= 3.6, <= 7.0.0
 
 ### Compile
 
