@@ -31,7 +31,7 @@ class PYBIND11_EXPORT CellListGPU : public CellList
         //! Construct a cell list
         CellListGPU(std::shared_ptr<SystemDefinition> sysdef);
 
-        virtual ~CellListGPU() { };
+        virtual ~CellListGPU();
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -45,12 +45,16 @@ class PYBIND11_EXPORT CellListGPU : public CellList
             }
 
     protected:
+        //! Reallocate when maximum particle number changes
+        virtual void reallocateMaxN();
+
         GlobalArray<unsigned int> m_cell_size_scratch;  //!< Number of members in each cell, one list per GPU
         GlobalArray<unsigned int> m_cell_adj_scratch;   //!< Cell adjacency list, one list per GPU
         GlobalArray<Scalar4> m_xyzf_scratch;            //!< Cell list with position and flags, one list per GPU
         GlobalArray<Scalar4> m_tdb_scratch;             //!< Cell list with type,diameter,body, one list per GPU
         GlobalArray<Scalar4> m_orientation_scratch;     //!< Cell list with orientation, one list per GPU
         GlobalArray<unsigned int> m_idx_scratch;        //!< Cell list with index, one list per GPU
+        GlobalArray<unsigned int> m_particle_cli;       //!< Lookup of cell list position per particle
 
         //! Compute the cell list
         virtual void computeCellList();
