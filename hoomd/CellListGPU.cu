@@ -240,7 +240,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                                                    d_tdb ? d_tdb+idev*cli.getNumElements(): 0,
                                                                    d_cell_orientation ? d_cell_orientation+idev*cli.getNumElements() : 0,
                                                                    d_cell_idx ? d_cell_idx+idev*cli.getNumElements() : 0,
-                                                                   d_particle_cli,
+                                                                   d_particle_cli + idev*Nptl,
                                                                    d_conditions,
                                                                    d_pos,
                                                                    d_orientation,
@@ -341,7 +341,7 @@ __global__ void gpu_combine_cell_lists_kernel(
     idx += offset;
 
     // where it is stored in the cell list
-    unsigned int cell_list_idx = d_particle_cli[idx];
+    unsigned int cell_list_idx = d_particle_cli[idx+igpu*Nptl];
 
     if (cell_list_idx == UINT_MAX)
         return;

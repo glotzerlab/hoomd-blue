@@ -31,14 +31,12 @@ CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
     m_pdata->getMaxParticleNumberChangeSignal().connect<CellListGPU, &CellListGPU::reallocateMaxN>(this);
-    m_pdata->getParticleSortSignal().connect<CellListGPU, &CellListGPU::updateGPUMapping>(this);
     }
 
 //! Destructor
 CellListGPU::~CellListGPU()
     {
     m_pdata->getMaxParticleNumberChangeSignal().disconnect<CellListGPU, &CellListGPU::reallocateMaxN>(this);
-    m_pdata->getParticleSortSignal().disconnect<CellListGPU, &CellListGPU::updateGPUMapping>(this);
     }
 
 void CellListGPU::computeCellList()
@@ -323,9 +321,6 @@ void CellListGPU::initializeMemory()
     // also initialize per-particle memory
     reallocateMaxN();
 
-    // update GPU mapping
-    updateGPUMapping();
-
     if (m_prof)
         m_prof->pop();
     }
@@ -340,30 +335,16 @@ void CellListGPU::reallocateMaxN()
     m_exec_conf->msg->notice(10) << "CellListGPU reallocating cell list index lookup" << endl;
 
     unsigned int nptl = m_pdata->getMaxN();
-    GlobalArray<unsigned int> particle_cli(nptl, m_exec_conf);
+    GlobalArray<unsigned int> particle_cli(nptl*ngpu, m_exec_conf);
     std::swap(m_particle_cli, particle_cli);
     TAG_ALLOCATION(m_particle_cli);
-    }
-
-void CellListGPU::updateGPUMapping()
-    {
-    // only need to do reverse lookup with multiGPU
-    unsigned int ngpu = m_exec_conf->getNumActiveGPUs();
-    if (ngpu == 1)
-        return;
 
     auto& gpu_map = m_exec_conf->getGPUIds();
 
     for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
         {
-        auto range = m_pdata->getGPUPartition().getRange(idev);
-        unsigned int nelem =  range.second - range.first;
-
-        if (! nelem)
-            continue;
-
-        cudaMemAdvise(m_particle_cli.get()+range.first, nelem*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-        cudaMemPrefetchAsync(m_particle_cli.get()+range.first, nelem*sizeof(unsigned int), gpu_map[idev]);
+        cudaMemAdvise(m_particle_cli.get()+idev*nptl, nptl*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+        cudaMemPrefetchAsync(m_particle_cli.get()+idev*nptl, nptl*sizeof(unsigned int), gpu_map[idev]);
         }
     }
 
