@@ -24,7 +24,6 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   Scalar4 *d_tdb,
                                   Scalar4 *d_cell_orientation,
                                   unsigned int *d_cell_idx,
-                                  unsigned int *d_particle_cli,
                                   uint3 *d_conditions,
                                   const Scalar4 *d_pos,
                                   const Scalar4 *d_orientation,
@@ -41,8 +40,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const Index2D& cli,
                                   const Scalar3& ghost_width,
                                   const unsigned int block_size,
-                                  const GPUPartition& gpu_partition,
-                                  const unsigned int Nptl);
+                                  const GPUPartition& gpu_partition);
 
 //! Driver function to combine the cell lists from different GPUs into one
 cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
@@ -55,13 +53,10 @@ cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
                                 Scalar4 *d_tdb,
                                 const Scalar4 *d_cell_orientation_scratch,
                                 Scalar4 *d_cell_orientation,
-                                const unsigned int *d_particle_cli,
                                 const Index2D cli,
                                 unsigned int ngpu,
                                 const unsigned int block_size,
                                 const unsigned int Nmax,
-                                const unsigned int Nptl,
-                                const unsigned int n_ghost,
                                 uint3 *d_conditions,
                                 const GPUPartition& gpu_partition);
 

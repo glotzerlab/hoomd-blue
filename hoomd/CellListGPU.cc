@@ -29,14 +29,6 @@ CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "cell_list", this->m_exec_conf));
     m_tuner_combine.reset(new Autotuner(32, 1024, 32, 5, 100000, "cell_list_combine", this->m_exec_conf));
 
-    // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_pdata->getMaxParticleNumberChangeSignal().connect<CellListGPU, &CellListGPU::reallocateMaxN>(this);
-    }
-
-//! Destructor
-CellListGPU::~CellListGPU()
-    {
-    m_pdata->getMaxParticleNumberChangeSignal().disconnect<CellListGPU, &CellListGPU::reallocateMaxN>(this);
     }
 
 void CellListGPU::computeCellList()
@@ -67,9 +59,6 @@ void CellListGPU::computeCellList()
     ArrayHandle<Scalar4> d_cell_orientation_scratch(m_orientation_scratch, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_cell_idx_scratch(m_idx_scratch, access_location::device, access_mode::overwrite);
 
-    // particle - cell list lookup
-    ArrayHandle<unsigned int> d_particle_cli(m_particle_cli, access_location::device, access_mode::overwrite);
-
     // error conditions
     ArrayHandle<uint3> d_conditions(m_conditions, access_location::device, access_mode::overwrite);
 
@@ -99,7 +88,6 @@ void CellListGPU::computeCellList()
                           ngpu == 1 ? d_tdb.data : d_tdb_scratch.data,
                           ngpu == 1 ? d_cell_orientation.data : d_cell_orientation_scratch.data,
                           ngpu == 1 ? d_cell_idx.data : d_cell_idx_scratch.data,
-                          d_particle_cli.data,
                           d_conditions.data,
                           d_pos.data,
                           d_orientation.data,
@@ -116,8 +104,7 @@ void CellListGPU::computeCellList()
                           m_cell_list_indexer,
                           getGhostWidth(),
                           m_tuner->getParam(),
-                          m_pdata->getGPUPartition(),
-                          m_pdata->getMaxN());
+                          m_pdata->getGPUPartition());
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
@@ -142,13 +129,10 @@ void CellListGPU::computeCellList()
                                d_tdb.data,
                                d_cell_orientation_scratch.data,
                                d_cell_orientation.data,
-                               d_particle_cli.data,
                                m_cell_list_indexer,
                                ngpu,
                                m_tuner_combine->getParam(),
                                m_Nmax,
-                               m_pdata->getMaxN(),
-                               m_pdata->getNGhosts(),
                                d_conditions.data,
                                m_pdata->getGPUPartition());
         m_tuner_combine->end();
@@ -318,34 +302,8 @@ void CellListGPU::initializeMemory()
         }
     CHECK_CUDA_ERROR();
 
-    // also initialize per-particle memory
-    reallocateMaxN();
-
     if (m_prof)
         m_prof->pop();
-    }
-
-void CellListGPU::reallocateMaxN()
-    {
-    // only need to do reverse lookup with multiGPU
-    unsigned int ngpu = m_exec_conf->getNumActiveGPUs();
-    if (ngpu == 1)
-        return;
-
-    m_exec_conf->msg->notice(10) << "CellListGPU reallocating cell list index lookup" << endl;
-
-    unsigned int nptl = m_pdata->getMaxN();
-    GlobalArray<unsigned int> particle_cli(nptl*ngpu, m_exec_conf);
-    std::swap(m_particle_cli, particle_cli);
-    TAG_ALLOCATION(m_particle_cli);
-
-    auto& gpu_map = m_exec_conf->getGPUIds();
-
-    for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-        {
-        cudaMemAdvise(m_particle_cli.get()+idev*nptl, nptl*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-        cudaMemPrefetchAsync(m_particle_cli.get()+idev*nptl, nptl*sizeof(unsigned int), gpu_map[idev]);
-        }
     }
 
 void export_CellListGPU(py::module& m)
