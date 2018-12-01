@@ -79,6 +79,34 @@ class PatchEnergy
 
     };
 
+class ForceEnergy
+    {
+    public:
+        ForceEnergy() { }
+        virtual ~ForceEnergy() { }
+
+    //! Evaluate the energy on a particle due to the force.
+    /*! \param box The system box.
+        \param type Particle type.
+        \param pos Particle position
+        \param orientation Particle orientation.
+        \param diameter Particle diameter.
+        \param charge Particle charge.
+        \returns Energy due to the force
+    */
+    virtual float eval(const boxDim& box,
+        unsigned int type,
+        vec3<Scalar> pos,
+        Scalar4 orientation
+        Scalar diameter,
+        Scalar charge
+        )
+        {
+        return 0;
+        }
+
+    };
+
 class IntegratorHPMC : public Integrator
     {
     public:
@@ -309,11 +337,30 @@ class IntegratorHPMC : public Integrator
                 return std::shared_ptr<PatchEnergy>();
             }
 
+        //! Returns the jit external force field.
+        std::shared_ptr<ForceEnergy> getForceInteraction()
+            {
+            if (!m_jit_force_log)
+                return m_jit_force;
+            else
+                return std::shared_ptr<ForceEnergy>();
+            }
+
         //! Compute the energy due to patch interactions
         /*! \param timestep the current time step
          * \returns the total patch energy
          */
         virtual float computePatchEnergy(unsigned int timestep)
+            {
+            // base class method returns 0
+            return 0.0;
+            }
+
+        //! Compute the energy due to jit external force fields
+        /*! \param timestep the current time step
+         * \returns the total patch energy
+         */
+        virtual float computeForceEnergy(unsigned int timestep)
             {
             // base class method returns 0
             return 0.0;
@@ -334,12 +381,26 @@ class IntegratorHPMC : public Integrator
             m_patch = patch;
             }
 
+        //! Set the jit external field
+        void setForceEnergy(std::shared_ptr< ForceEnergy > force)
+            {
+            m_jit_force = force;
+            }
+
         //! Enable the patch energy only for logging
         /*! \param log if True, only enabled for logging purposes
          */
         void disablePatchEnergyLogOnly(bool log)
             {
             m_patch_log = log;
+            }
+
+        //! Enable the jit force only for logging
+        /*! \param log if True, only enabled for logging purposes
+         */
+        void disableForceEnergyLogOnly(bool log)
+            {
+            m_jit_force_log = log;
             }
 
     protected:
@@ -360,6 +421,9 @@ class IntegratorHPMC : public Integrator
 
         std::shared_ptr< PatchEnergy > m_patch;     //!< Patchy Interaction
         bool m_patch_log;                           //!< If true, only use patch energy for logging
+
+        std::shared_ptr< ForceEnergy > m_jit_force;     //!< Force Interaction
+        bool m_jit_force_log;                           //!< If true, only use force energy for logging
 
         bool m_past_first_run;                      //!< Flag to test if the first run() has started
         //! Update the nominal width of the cells

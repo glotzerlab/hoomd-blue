@@ -15,4 +15,5 @@ PYBIND11_MODULE(_jit, m)
     {
     export_PatchEnergyJIT(m);
     export_PatchEnergyJITUnion(m);
+    export_ForceEnergyJIT(m);
     }

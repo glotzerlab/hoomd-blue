@@ -697,16 +697,24 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                             }
                         }  // end loop over AABB nodes
                     } // end loop over images
-
-                // Add external energetic contribution
-                if (this->m_external)
-                    {
-                    patch_field_energy_diff -= this->m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
-                    }
-
-                // Update acceptance based on patch, will only be reached if overlap check succeeded
-                accept = rng_i.d() < slow::exp(patch_field_energy_diff);
                 } // end if (m_patch)
+
+            // Add external energetic contribution
+            if (this->m_external)
+                {
+                patch_field_energy_diff -= this->m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+                }
+
+            // Add jit external field energetic contribution
+            if (m_jit_force && !this->m_jit_force_log)
+                {
+                // deltaU = U_old - U_new, so add old energy and subtract new energy
+                patch_field_energy_diff += m_jit_force->energy(box, postype_i.w, pos_old, quat_to_scalar4(shape_old.orientation), h_diameter.data[i], h_charge.data[i]);
+                patch_field_energy_diff -= m_jit_force->energy(box, postype_i.w, pos_i, quat_to_scalar4(shape_i.orientation), h_diameter.data[i], h_charge.data[i]);
+                }
+
+            // Update acceptance based on patch, will only be reached if overlap check succeeded
+            accept = rng_i.d() < slow::exp(patch_field_energy_diff);
 
             // The trial move is valid, so check if it is invalidated by depletants
             if (accept && h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])

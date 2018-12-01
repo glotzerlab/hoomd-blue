@@ -330,6 +330,12 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
         throw std::runtime_error("Error during implicit depletant integration\n");
         }
 
+    if (this->m_force && !this->m_jit_force_log)
+        {
+        this->m_exec_conf->msg->error() << "Depletant simulations with jit forces are unsupported." << std::endl;
+        throw std::runtime_error("Error during implicit depletant integration\n");
+        }
+
     IntegratorHPMC::update(timestep);
 
     // update poisson distributions

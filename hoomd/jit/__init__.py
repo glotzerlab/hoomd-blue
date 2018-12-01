@@ -15,3 +15,4 @@ existing job scripts may need to be updated. **Maintainer:** Joshua A. Anderson,
 """
 
 from hoomd.jit import patch
+from hoomd.jit import force
