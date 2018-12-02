@@ -713,11 +713,9 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 patch_field_energy_diff -= this->m_jit_force->energy(box, typ_i, pos_i, quat_to_scalar4(shape_i.orientation), h_diameter.data[i], h_charge.data[i]);
                 }
 
-            // Update acceptance based on patch, will only be reached if overlap check succeeded
-            accept = rng_i.d() < slow::exp(patch_field_energy_diff);
-
-            // The trial move is valid, so check if it is invalidated by depletants
-            if (accept && h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
+            // If no overlaps and Metropolis criterion is met, check if it is
+            // invalidated by depletants.
+            if (accept && (rng_i.d() < slow::exp(patch_field_energy_diff)) && h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
                 {
                 if (m_method == 0)
                     {
