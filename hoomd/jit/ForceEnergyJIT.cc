@@ -1,6 +1,9 @@
 #include "ForceEnergyJIT.h"
 #include "ForceEvalFactory.h"
 
+// Set preprocessor variable to avoid compiling cereal files that throw exceptions when using LLVM (which sets -fno-exceptions.
+#define NO_CEREAL_INCLUDE
+#include "hoomd/BoxDim.h"
 #include <sstream>
 
 #define FORCE_ENERGY_LOG_NAME           "force_energy"

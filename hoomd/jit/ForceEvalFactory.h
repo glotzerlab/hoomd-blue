@@ -4,9 +4,11 @@
 #define HOOMD_NOPYTHON
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
-#include "hoomd/BoxDim.h"
 
 #include "KaleidoscopeJIT.h"
+
+// Forward declare box class
+class BoxDim;
 
 class ForceEvalFactory
     {
