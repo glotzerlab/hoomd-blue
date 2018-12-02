@@ -8,7 +8,7 @@ simulation. Compiled C++ code will execute at full performance unlike interprete
 
 .. rubric:: Stability
 
-:py:mod:`hoomd.metal` is **unstable**. When upgrading from version 2.x to 2.y (y > x),
+:py:mod:`hoomd.jit` is **unstable**. When upgrading from version 2.x to 2.y (y > x),
 existing job scripts may need to be updated. **Maintainer:** Joshua A. Anderson, University of Michigan
 
 .. versionadded:: 2.3

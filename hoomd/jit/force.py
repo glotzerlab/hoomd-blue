@@ -40,7 +40,7 @@ class user(object):
 
     .. code::
 
-        float eval(const boxDim& box,
+        float eval(const BoxDim& box,
         unsigned int type,
         vec3<Scalar> pos,
         Scalar4 orientation
@@ -60,7 +60,7 @@ class user(object):
 
     .. code-block:: python
 
-        gravity = """return postype[i].z + box.getL().z/2;"""
+        gravity = """return pos.z + box.getL().z/2;"""
         force = hoomd.jit.force.user(mc=mc, code=gravity)
 
     .. rubric:: LLVM IR code
@@ -70,7 +70,7 @@ class user(object):
 
     .. code::
 
-        float eval(const boxDim& box, unsigned int type_i, vec3<Scalar> pos, Scalar4 orientation Scalar diameter, Scalar charge)
+        float eval(const BoxDim& box, unsigned int type_i, vec3<Scalar> pos, Scalar4 orientation Scalar diameter, Scalar charge)
 
     ``vec3`` and ``Scalar4`` is defined in HOOMDMath.h.
 
@@ -105,9 +105,9 @@ class user(object):
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
-        self.compute_name = "patch"
-        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir, r_cut);
-        mc.set_PatchEnergyEvaluator(self);
+        self.compute_name = "force"
+        self.cpp_evaluator = _jit.ForceEnergyJIT(hoomd.context.exec_conf, llvm_ir);
+        mc.set_ForceEnergyEvaluator(self);
 
         self.mc = mc
         self.enabled = True
@@ -127,10 +127,18 @@ class user(object):
         cpp_function = """
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
+#include "hoomd/BoxDim.h"
 
 extern "C"
 {
-float eval(const unsigned int N, const boxDim& box, const Scalar4 *postype, const Scalar4 *orientation)
+
+float eval(const BoxDim& box,
+unsigned int type,
+vec3<Scalar> pos,
+Scalar4 orientation,
+Scalar diameter,
+Scalar charge
+)
     {
 """
         cpp_function += code
@@ -176,11 +184,11 @@ float eval(const unsigned int N, const boxDim& box, const Scalar4 *postype, cons
 
         if log:
             # enable only for logging purposes
-            self.mc.cpp_integrator.disablePatchEnergyLogOnly(log)
+            self.mc.cpp_integrator.disableForceEnergyLogOnly(log)
             self.log = True
         else:
             # disable completely
-            self.mc.cpp_integrator.setPatchEnergy(None);
+            self.mc.cpp_integrator.setForceEnergy(None);
             self.log = False
 
         self.enabled = False
@@ -190,4 +198,4 @@ float eval(const unsigned int N, const boxDim& box, const Scalar4 *postype, cons
     '''
     def enable(self):
         hoomd.util.print_status_line()
-        self.mc.cpp_integrator.setPatchEnergy(self.cpp_evaluator);
+        self.mc.cpp_integrator.setForceEnergy(self.cpp_evaluator);

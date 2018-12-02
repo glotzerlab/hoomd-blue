@@ -94,10 +94,10 @@ class ForceEnergy
         \param charge Particle charge.
         \returns Energy due to the force
     */
-    virtual float eval(const boxDim& box,
+    virtual float energy(const BoxDim& box,
         unsigned int type,
         vec3<Scalar> pos,
-        Scalar4 orientation
+        Scalar4 orientation,
         Scalar diameter,
         Scalar charge
         )
@@ -382,7 +382,7 @@ class IntegratorHPMC : public Integrator
             }
 
         //! Set the jit external field
-        void setForceEnergy(std::shared_ptr< ForceEnergy > force)
+        void setJITForceEnergy(std::shared_ptr< ForceEnergy > force)
             {
             m_jit_force = force;
             }

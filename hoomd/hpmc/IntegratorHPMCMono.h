@@ -461,7 +461,7 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
         {
         if (m_jit_force)
             {
-            return computeForceEnergy(timestep);
+            return computeJITForceEnergy(timestep);
             }
         else
             {
@@ -837,8 +837,8 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             if (m_jit_force && !this->m_jit_force_log)
                 {
                 // deltaU = U_old - U_new, so add old energy and subtract new energy
-                patch_field_energy_diff += m_jit_force->energy(box, postype_i.w, pos_old, quat_to_scalar4(shape_old.orientation), h_diameter.data[i], h_charge.data[i]);
-                patch_field_energy_diff -= m_jit_force->energy(box, postype_i.w, pos_i, quat_to_scalar4(shape_i.orientation), h_diameter.data[i], h_charge.data[i]);
+                patch_field_energy_diff += m_jit_force->energy(box, typ_i, pos_old, quat_to_scalar4(shape_old.orientation), h_diameter.data[i], h_charge.data[i]);
+                patch_field_energy_diff -= m_jit_force->energy(box, typ_i, pos_i, quat_to_scalar4(shape_i.orientation), h_diameter.data[i], h_charge.data[i]);
                 }
 
             // If no overlaps and Metropolis criterion is met, accept
@@ -1202,7 +1202,7 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(unsigned int timestep)
     }
 
 template<class Shape>
-float IntegratorHPMCMono<Shape>::computeForceEnergy(unsigned int timestep)
+float IntegratorHPMCMono<Shape>::computeJITForceEnergy(unsigned int timestep)
     {
     // sum up in double precision
     double energy = 0.0;
@@ -1235,15 +1235,10 @@ float IntegratorHPMCMono<Shape>::computeForceEnergy(unsigned int timestep)
         {
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
-        Scalar4 orientation_i = h_orientation.data[i];
         unsigned int typ_i = __scalar_as_int(postype_i.w);
-        Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
-        Scalar d_i = h_diameter.data[i];
-        Scalar charge_i = h_charge.data[i];
-
-        energy += m_jit_force->energy(box, postype_i.w, pos_i, quat_to_scalar4(shape_old.orientation), h_diameter.data[i], h_charge.data[i]);
+        energy += m_jit_force->energy(m_pdata->getBox(), typ_i, pos_i, h_orientation.data[i], h_diameter.data[i], h_charge.data[i]);
 
         } // end loop over particles
 
@@ -1888,7 +1883,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
-          .def("setForceEnergy", &IntegratorHPMCMono<Shape>::setForceEnergy)
+          .def("setJITForceEnergy", &IntegratorHPMCMono<Shape>::setJITForceEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
           .def("connectGSDSignal", &IntegratorHPMCMono<Shape>::connectGSDSignal)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)

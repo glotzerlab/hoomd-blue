@@ -6,10 +6,9 @@
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/hpmc/IntegratorHPMC.h"
 
-#include "EvalFactory.h"
+#include "ForceEvalFactory.h"
 
-#define FORCE_ENERGY_LOG_NAME           "patch_energy"
-#define FORCE_ENERGY_RCUT               "patch_energy_rcut"
+#define FORCE_ENERGY_LOG_NAME           "force_energy"
 
 //! Evaluate external field forces via runtime generated code
 /*! This class enables the widest possible use-cases of external fields in HPMC with low energy barriers for users to add
@@ -32,7 +31,7 @@ class ForceEnergyJIT : public hpmc::ForceEnergy
     {
     public:
         //! Constructor
-        ForceEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut);
+        ForceEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir);
 
         //! Evaluate the energy of the force.
         /*! \param box The system box.
@@ -43,22 +42,22 @@ class ForceEnergyJIT : public hpmc::ForceEnergy
             \param charge Particle charge.
             \returns Energy due to the force
         */
-        virtual float eval(const boxDim& box,
+        virtual float energy(const BoxDim& box,
             unsigned int type,
             vec3<Scalar> pos,
-            Scalar4 orientation
+            Scalar4 orientation,
             Scalar diameter,
             Scalar charge
             )
             {
-            return m_eval(const boxDim& box, unsigned int type, vec3<Scalar> pos, Scalar4 orientation Scalar diameter, Scalar charge)
+            return m_eval(box, type, pos, orientation, diameter, charge);
             }
 
     protected:
         //! function pointer signature
-        typedef float (*EvalFnPtr)(const boxDim& box, unsigned int type, vec3<Scalar> pos, Scalar4 orientation Scalar diameter, Scalar charge);
-        std::shared_ptr<EvalFactory> m_factory;       //!< The factory for the evaluator function
-        EvalFactory::EvalFnPtr m_eval;                //!< Pointer to evaluator function inside the JIT module
+        typedef float (*ForceEvalFnPtr)(const BoxDim& box, unsigned int type, vec3<Scalar> pos, Scalar4 orientation, Scalar diameter, Scalar charge);
+        std::shared_ptr<ForceEvalFactory> m_factory;       //!< The factory for the evaluator function
+        ForceEvalFactory::ForceEvalFnPtr m_eval;                //!< Pointer to evaluator function inside the JIT module
     };
 
 //! Exports the ForceEnergyJIT class to python

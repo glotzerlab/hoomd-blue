@@ -3,6 +3,7 @@
 
 #include "PatchEnergyJIT.h"
 #include "PatchEnergyJITUnion.h"
+#include "ForceEnergyJIT.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 

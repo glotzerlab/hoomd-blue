@@ -19,12 +19,13 @@ set(_${PACKAGE_NAME}_sources
 
 # we compile a separate package just for the LLVM-interfacing part,
 # so that can be compiled with and without RTTI
-set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc)
+set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc ForceEvalFactory.cc)
 
 set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
                              PatchEnergyJITUnion.h
                              ForceEnergyJIT.h
                              EvalFactory.h
+                             ForceEvalFactory.h
                              KaleidoscopeJIT.h
    )
 
@@ -99,6 +100,7 @@ ENDMACRO(copy_file)
 
 set(files __init__.py
           patch.py
+          force.py
     )
 
 install(FILES ${files}
