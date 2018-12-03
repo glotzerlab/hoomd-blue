@@ -40,8 +40,11 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     GlobalArray<Scalar>   virial(max_num_particles,6,m_exec_conf);
     GlobalArray<Scalar4>  torque(max_num_particles,m_exec_conf);
     m_force.swap(force);
+    TAG_ALLOCATION(m_force);
     m_virial.swap(virial);
+    TAG_ALLOCATION(m_virial);
     m_torque.swap(torque);
+    TAG_ALLOCATION(m_torque);
 
         {
         ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
