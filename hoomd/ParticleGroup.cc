@@ -38,10 +38,10 @@ ParticleSelector::ParticleSelector(std::shared_ptr<SystemDefinition> sysdef)
     \returns true if the particle is selected
     \returns false if it is not
 */
-bool ParticleSelector::isSelected(unsigned int tag) const
+std::vector<unsigned int> ParticleSelector::getSelectedTags() const
     {
     // base class doesn't do anything useful
-    return false;
+    return std::vector<unsigned int>();
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -56,11 +56,19 @@ ParticleSelectorAll::ParticleSelectorAll(std::shared_ptr<SystemDefinition> sysde
 /*! \param tag All of the particle to check
     \returns true if particle is local
 */
-bool ParticleSelectorAll::isSelected(unsigned int tag) const
+std::vector<unsigned int> ParticleSelectorAll::getSelectedTags() const
     {
-    assert(tag <= m_pdata->getMaximumTag());
+    std::vector<unsigned int> member_tags;
 
-    return m_pdata->isParticleLocal(tag);
+    // loop through local particles and select those that match selection criterion
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+        {
+        unsigned int tag = h_tag.data[idx];
+        member_tags.push_back(tag);
+        }
+
+    return member_tags;
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -90,10 +98,20 @@ ParticleSelectorTag::ParticleSelectorTag(std::shared_ptr<SystemDefinition> sysde
 /*! \param tag Tag of the particle to check
     \returns true if \a m_tag_min <= \a tag <= \a m_tag_max
 */
-bool ParticleSelectorTag::isSelected(unsigned int tag) const
+std::vector<unsigned int> ParticleSelectorTag::getSelectedTags() const
     {
-    assert(tag <= m_pdata->getMaximumTag());
-    return (m_tag_min <= tag && tag <= m_tag_max);
+    std::vector<unsigned int> member_tags;
+
+    // loop through local particles and select those that match selection criterion
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+        {
+        unsigned int tag = h_tag.data[idx];
+        if (tag >= m_tag_min && tag <= m_tag_max)
+            member_tags.push_back(tag);
+        }
+
+    return member_tags;
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -119,28 +137,22 @@ ParticleSelectorType::ParticleSelectorType(std::shared_ptr<SystemDefinition> sys
 /*! \param tag Tag of the particle to check
     \returns true if the type of particle \a tag is in the inclusive range [ \a m_typ_min, \a m_typ_max ]
 */
-bool ParticleSelectorType::isSelected(unsigned int tag) const
+std::vector<unsigned int> ParticleSelectorType::getSelectedTags() const
     {
-    assert(tag <= m_pdata->getMaximumTag());
+    std::vector<unsigned int> member_tags;
 
-    // access array directly instead of going through the getType() interface
+    // loop through local particles and select those that match selection criterion
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
-    unsigned int idx = h_rtag.data[tag];
-
-    if (idx >= m_pdata->getN())
+    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
         {
-        // particle is not local
-        return false;
+        unsigned int tag = h_tag.data[idx];
+        unsigned int typ = __scalar_as_int(h_postype.data[idx].w);
+        if (m_typ_min <= typ && typ <= m_typ_max)
+            member_tags.push_back(tag);
         }
 
-    unsigned int typ = __scalar_as_int(h_postype.data[idx].w);
-
-    // see if it matches the criteria
-    bool result = (m_typ_min <= typ && typ <= m_typ_max);
-
-    return result;
+    return member_tags;
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -158,33 +170,32 @@ ParticleSelectorRigid::ParticleSelectorRigid(std::shared_ptr<SystemDefinition> s
 /*! \param tag Tag of the particle to check
     \returns true if the type of particle \a tag meets the rigid criteria selected
 */
-bool ParticleSelectorRigid::isSelected(unsigned int tag) const
+std::vector<unsigned int> ParticleSelectorRigid::getSelectedTags() const
     {
-    assert(tag <= m_pdata->getMaximumTag());
+    std::vector<unsigned int> member_tags;
 
-    // access array directly instead of going through the getBody() interface
+    // loop through local particles and select those that match selection criterion
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
-    unsigned int idx = h_rtag.data[tag];
-
-    if (idx >= m_pdata->getN())
+    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
         {
-        // particle is not local
-        return false;
+        unsigned int tag = h_tag.data[idx];
+
+        // get position of particle
+        unsigned int body = h_body.data[idx];
+
+        // see if it matches the criteria
+        bool result = false;
+        if (m_rigid && body != NO_BODY)
+            result = true;
+        if (!m_rigid && body == NO_BODY)
+            result = true;
+
+        if (result)
+            member_tags.push_back(tag);
         }
 
-    // get position of particle
-    unsigned int body = h_body.data[idx];
-
-    // see if it matches the criteria
-    bool result = false;
-    if (m_rigid && body != NO_BODY)
-        result = true;
-    if (!m_rigid && body == NO_BODY)
-        result = true;
-
-    return result;
+    return member_tags;
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -198,29 +209,26 @@ ParticleSelectorRigidCenter::ParticleSelectorRigidCenter(std::shared_ptr<SystemD
 /*! \param tag Tag of the particle to check
     \returns true if the type of particle \a tag is a center particle of a rigid body
 */
-bool ParticleSelectorRigidCenter::isSelected(unsigned int tag) const
+std::vector<unsigned int> ParticleSelectorRigidCenter::getSelectedTags() const
     {
-    assert(tag <= m_pdata->getMaximumTag());
+    std::vector<unsigned int> member_tags;
 
-    // access array directly instead of going through the getBody() interface
+    // loop through local particles and select those that match selection criterion
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
-    unsigned int idx = h_rtag.data[tag];
-
-    if (idx >= m_pdata->getN())
+    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
         {
-        // particle is not local
-        return false;
+        unsigned int tag = h_tag.data[idx];
+
+        // get position of particle
+        unsigned int body = h_body.data[idx];
+
+        if (body==tag)
+            member_tags.push_back(tag);
         }
 
-    // get position of particle
-    unsigned int body = h_body.data[idx];
-
-    // see if it matches the criteria
-    return (body == tag);
+    return member_tags;
     }
-
 
 //////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorCuboid
@@ -239,31 +247,28 @@ ParticleSelectorCuboid::ParticleSelectorCuboid(std::shared_ptr<SystemDefinition>
     Evaluation is performed by \a m_min.x <= x < \a m_max.x so that multiple cuboids stacked next to each other
     do not have overlapping sets of particles.
 */
-bool ParticleSelectorCuboid::isSelected(unsigned int tag) const
+std::vector<unsigned int> ParticleSelectorCuboid::getSelectedTags() const
     {
-    assert(tag <= m_pdata->getMaximumTag());
+    std::vector<unsigned int> member_tags;
 
-    // access array directly instead of going through the getPosition() interface
+    // loop through local particles and select those that match selection criterion
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
-    unsigned int idx = h_rtag.data[tag];
-
-    if (idx >= m_pdata->getN())
+    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
         {
-        // particle is not local
-        return false;
+        unsigned int tag = h_tag.data[idx];
+        // get position of particle
+        Scalar4 postype = h_postype.data[idx];
+
+        // see if it matches the criteria
+        bool result = (m_min.x <= postype.x && postype.x < m_max.x &&
+                       m_min.y <= postype.y && postype.y < m_max.y &&
+                       m_min.z <= postype.z && postype.z < m_max.z);
+        if (result)
+            member_tags.push_back(tag);
         }
 
-    // get position of particle
-    Scalar4 postype = h_postype.data[idx];
-
-    // see if it matches the criteria
-    bool result = (m_min.x <= postype.x && postype.x < m_max.x &&
-                   m_min.y <= postype.y && postype.y < m_max.y &&
-                   m_min.z <= postype.z && postype.z < m_max.z);
-
-    return result;
+    return member_tags;
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -431,18 +436,7 @@ void ParticleGroup::updateMemberTags(bool force_update) const
 
         // assign all of the particles that belong to the group
         // for each particle in the (global) data
-        vector<unsigned int> member_tags;
-
-            {
-            // loop through local particles and select those that match selection criterion
-            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-            for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
-                {
-                unsigned int tag = h_tag.data[idx];
-                if (m_selector->isSelected(tag))
-                    member_tags.push_back(tag);
-                }
-            }
+        vector<unsigned int> member_tags = m_selector->getSelectedTags();
 
         #ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
@@ -832,7 +826,7 @@ void export_ParticleGroup(py::module& m)
 
     py::class_<ParticleSelector, std::shared_ptr<ParticleSelector> >(m,"ParticleSelector")
             .def(py::init< std::shared_ptr<SystemDefinition> >())
-            .def("isSelected", &ParticleSelector::isSelected)
+            .def("getSelectedTags", &ParticleSelector::getSelectedTags)
             ;
 
     py::class_<ParticleSelectorAll, std::shared_ptr<ParticleSelectorAll> >(m,"ParticleSelectorAll",py::base<ParticleSelector>())
