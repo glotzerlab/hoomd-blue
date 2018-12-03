@@ -154,20 +154,10 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         void setParticlesSorted()
             {
             m_particles_sorted = true;
-
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled())
-                updateGPUMapping();
-            #endif
             }
 
         //! Reallocate internal arrays
         void reallocate();
-
-        #ifdef ENABLE_CUDA
-        //! Update memory region GPU locality
-        void updateGPUMapping();
-        #endif
 
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
 
@@ -193,10 +183,6 @@ class PYBIND11_EXPORT ForceCompute : public Compute
             \param timestep Current time step
         */
         virtual void computeForces(unsigned int timestep){}
-
-        #ifdef ENABLE_CUDA
-        GPUPartition m_last_gpu_partition;
-        #endif
     };
 
 //! Exports the ForceCompute class to python

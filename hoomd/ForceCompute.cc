@@ -68,8 +68,6 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
             cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
-
-        m_last_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
         }
     #endif
 
@@ -118,63 +116,31 @@ void ForceCompute::reallocate()
             cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
+
+        // split preferred location of particle data across GPUs
+        const GPUPartition& gpu_partition = m_pdata->getGPUPartition();
+
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            // set preferred location
+            auto range = gpu_partition.getRange(idev);
+            unsigned int nelem =  range.second - range.first;
+
+            if (!nelem)
+                continue;
+
+            cudaMemAdvise(m_force.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            for (unsigned int i = 0; i < 6; ++i)
+                cudaMemAdvise(m_virial.get()+i*m_virial.getPitch()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_torque.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            }
+        CHECK_CUDA_ERROR();
         }
     #endif
 
     // the pitch of the virial array may have changed
     m_virial_pitch = m_virial.getPitch();
     }
-
-#ifdef ENABLE_CUDA
-//! Update GPU memory locality
-void ForceCompute::updateGPUMapping()
-    {
-    if (m_last_gpu_partition == m_pdata->getGPUPartition())
-        return;
-
-    if (!m_exec_conf->allConcurrentManagedAccess())
-        return;
-
-    auto gpu_map = m_exec_conf->getGPUIds();
-
-    for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-        {
-        // reset previous hints
-        auto range = m_last_gpu_partition.getRange(idev);
-        unsigned int nelem =  range.second - range.first;
-
-        if (!nelem)
-            continue;
-
-        cudaMemAdvise(m_force.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-        for (unsigned int i = 0; i < 6; ++i)
-            cudaMemAdvise(m_virial.get()+i*m_virial.getPitch()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-        cudaMemAdvise(m_torque.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-        }
-    CHECK_CUDA_ERROR();
-
-    // split preferred location of particle data across GPUs
-    const GPUPartition& gpu_partition = m_pdata->getGPUPartition();
-
-    m_last_gpu_partition = gpu_partition;
-
-    for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-        {
-        // set preferred location
-        auto range = gpu_partition.getRange(idev);
-        unsigned int nelem =  range.second - range.first;
-
-        if (!nelem)
-            continue;
-
-        cudaMemAdvise(m_force.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-        for (unsigned int i = 0; i < 6; ++i)
-            cudaMemAdvise(m_virial.get()+i*m_virial.getPitch()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-        cudaMemAdvise(m_torque.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-        }
-    CHECK_CUDA_ERROR();
-    }
-#endif
 
 /*! Frees allocated memory
 */

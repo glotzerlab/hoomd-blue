@@ -1189,7 +1189,6 @@ class PYBIND11_EXPORT ParticleData
         mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
 
         GPUPartition m_gpu_partition;                //!< The partition of the local number of particles across GPUs
-        GPUPartition m_last_gpu_partition;           //!< GPU partition before last update
         #endif
 
         //! Helper function to allocate particle data

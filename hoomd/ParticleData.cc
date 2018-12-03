@@ -99,7 +99,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     if (m_exec_conf->isCUDAEnabled())
         {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
-        m_last_gpu_partition = m_gpu_partition;
         }
     #endif
 
@@ -174,7 +173,6 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     if (m_exec_conf->isCUDAEnabled())
         {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
-        m_last_gpu_partition = m_gpu_partition;
         }
     #endif
 
@@ -421,6 +419,12 @@ void ParticleData::allocate(unsigned int N)
     TAG_ALLOCATION(m_comm_flags);
 
     #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // update the GPU partition
+        m_gpu_partition.setNMax(N);
+        }
+
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -3085,10 +3089,8 @@ void ParticleData::updateGPUPartition()
         m_gpu_partition.setN(getN());
 
         // only call CUDA API when necessary
-        if (m_gpu_partition == m_last_gpu_partition)
+        if (m_gpu_partition.getNMax() == m_max_nparticles)
             return;
-
-        m_last_gpu_partition = m_gpu_partition;
 
         auto gpu_map = m_exec_conf->getGPUIds();
 
