@@ -31,6 +31,7 @@ NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
         m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
 
     m_cl->setRadius(1);
+    m_cl->setComputeXYZF(true);
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
 
