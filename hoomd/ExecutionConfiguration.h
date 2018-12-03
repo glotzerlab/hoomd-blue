@@ -309,6 +309,12 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         {
         return *m_cached_alloc;
         }
+
+    //! Returns the cached allocator for temporary allocations
+    const CachedAllocator& getCachedAllocatorManaged() const
+        {
+        return *m_cached_alloc_managed;
+        }
     #endif
 
     //! Set up memory tracing
@@ -368,6 +374,7 @@ private:
 
     #ifdef ENABLE_CUDA
     CachedAllocator *m_cached_alloc;       //!< Cached allocator for temporary allocations
+    CachedAllocator *m_cached_alloc_managed; //!< Cached allocator for temporary allocations in managed memory
     #endif
 
     #ifdef ENABLE_TBB

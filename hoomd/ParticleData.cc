@@ -575,6 +575,20 @@ void ParticleData::setNGlobal(unsigned int nglobal)
 
     // we have changed the global particle number, notify subscribers
     m_global_particle_num_signal.emit();
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+        {
+        auto gpu_map = m_exec_conf->getGPUIds();
+
+        // set up GPU memory mappings
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaMemAdvise(m_rtag.get(), sizeof(unsigned int)*m_rtag.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            }
+        CHECK_CUDA_ERROR();
+        }
+    #endif
     }
 
 /*! \param new_nparticles New particle number
@@ -2844,7 +2858,7 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
  *        no ghost particles are present, because ghost particle values
  *        are undefined after calling this method.
  */
-void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<unsigned int> &comm_flags)
+void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out, GlobalVector<unsigned int> &comm_flags)
     {
     if (m_prof) m_prof->push(m_exec_conf, "pack");
 
@@ -2913,7 +2927,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
             ArrayHandle<unsigned int> d_comm_flags_out(comm_flags, access_location::device, access_mode::overwrite);
 
             // get temporary buffer
-            ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocator(), getN());
+            ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocatorManaged(), getN());
 
             n_out = gpu_pdata_remove(getN(),
                            d_pos.data,
@@ -2951,7 +2965,8 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
                            d_comm_flags_out.data,
                            max_n_out,
                            d_tmp.data,
-                           m_mgpu_context);
+                           m_mgpu_context,
+                           m_gpu_partition);
            }
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
 
@@ -2992,7 +3007,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
     }
 
 //! Add new particle data (GPU version)
-void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
+void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
     {
     if (m_prof) m_prof->push(m_exec_conf, "unpack");
 

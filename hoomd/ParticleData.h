@@ -1036,12 +1036,12 @@ class PYBIND11_EXPORT ParticleData
          *        are invalidated. (call removeAllGhostAtoms() before or after
          *        this method).
          */
-        void removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<unsigned int>& comm_flags);
+        void removeParticlesGPU(GlobalVector<pdata_element>& out, GlobalVector<unsigned int>& comm_flags);
 
         //! Remove particles from local domain and add new particle data (GPU version)
         /*! \param in List of particle data elements to fill the particle data with
          */
-        void addParticlesGPU(const GPUVector<pdata_element>& in);
+        void addParticlesGPU(const GlobalVector<pdata_element>& in);
         #endif // ENABLE_CUDA
 
 #endif // ENABLE_MPI

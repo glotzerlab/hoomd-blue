@@ -169,7 +169,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         handleCUDAError(err_sync, __FILE__, __LINE__);
 
         // initialize cached allocator, max allocation 0.5*global mem
-        m_cached_alloc = new CachedAllocator((unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
+        m_cached_alloc = new CachedAllocator(false, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
+        m_cached_alloc_managed = new CachedAllocator(true, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
         }
     #endif
 
