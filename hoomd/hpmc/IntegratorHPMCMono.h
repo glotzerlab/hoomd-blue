@@ -837,8 +837,8 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             if (m_jit_force && !this->m_jit_force_log)
                 {
                 // deltaU = U_old - U_new, so add old energy and subtract new energy
-                patch_field_energy_diff += m_jit_force->energy(box, typ_i, pos_old, quat_to_scalar4(shape_old.orientation), h_diameter.data[i], h_charge.data[i]);
-                patch_field_energy_diff -= m_jit_force->energy(box, typ_i, pos_i, quat_to_scalar4(shape_i.orientation), h_diameter.data[i], h_charge.data[i]);
+                patch_field_energy_diff += m_jit_force->energy(box, typ_i, pos_old, shape_old.orientation, h_diameter.data[i], h_charge.data[i]);
+                patch_field_energy_diff -= m_jit_force->energy(box, typ_i, pos_i, shape_i.orientation, h_diameter.data[i], h_charge.data[i]);
                 }
 
             // If no overlaps and Metropolis criterion is met, accept
@@ -1227,9 +1227,6 @@ float IntegratorHPMCMono<Shape>::computeJITForceEnergy(unsigned int timestep)
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-    // access parameters and interaction matrix
-    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
-
     // Loop over all particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
@@ -1238,7 +1235,7 @@ float IntegratorHPMCMono<Shape>::computeJITForceEnergy(unsigned int timestep)
         unsigned int typ_i = __scalar_as_int(postype_i.w);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
-        energy += m_jit_force->energy(m_pdata->getBox(), typ_i, pos_i, h_orientation.data[i], h_diameter.data[i], h_charge.data[i]);
+        energy += m_jit_force->energy(m_pdata->getBox(), typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
 
         } // end loop over particles
 

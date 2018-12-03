@@ -27,7 +27,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
                                 period=None)
         wall = hpmc.field.wall(mc)
         wall.add_plane_wall([0, 0, 1], [0, 0, -system.box.Lz/2])
-        gravity_field = hoomd.jit.force.user(mc=mc, code="return pos.z + box.getL().z/2;")
+        gravity_field = hoomd.jit.force.user(mc=mc, code="return r_i.z + box.getL().z/2;")
 
         snapshot = system.take_snapshot()
         old_avg_z = np.mean(snapshot.particles.position[:, 2])

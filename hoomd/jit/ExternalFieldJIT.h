@@ -19,9 +19,9 @@
     The user provides LLVM IR code containing a function 'eval' with the defined function signature. On construction,
     this class uses the LLVM library to compile that IR down to machine code and obtain a function pointer to call.
 
-    LLVM execution is managed with the OrcLazyJIT class in m_JIT. On construction, the LLVM module is loaded and
-    compiled. OrcLazyJIT handles construction of C++ static members, etc.... When m_JIT is deleted, all of the compiled
-    code and memory used in the module is deleted. OrcLazyJIT takes care of destructing C++ static members inside the
+    LLVM execution is managed with the KaleidoscopeJIT class in m_JIT. On construction, the LLVM module is loaded and
+    compiled. KaleidoscopeJIT handles construction of C++ static members, etc.... When m_JIT is deleted, all of the compiled
+    code and memory used in the module is deleted. KaleidoscopeJIT takes care of destructing C++ static members inside the
     module.
 
     LLVM JIT is capable of calling any function in the hosts address space. ExternalFieldJIT does not take advantage of
@@ -36,26 +36,26 @@ class ExternalFieldJIT : public hpmc::ForceEnergy
         //! Evaluate the energy of the force.
         /*! \param box The system box.
             \param type Particle type.
-            \param pos Particle position
-            \param orientation Particle orientation.
+            \param r_i Particle position
+            \param q_i Particle orientation.
             \param diameter Particle diameter.
             \param charge Particle charge.
             \returns Energy due to the force
         */
         virtual float energy(const BoxDim& box,
             unsigned int type,
-            vec3<Scalar> pos,
-            Scalar4 orientation,
+            const vec3<Scalar>& r_i,
+            const quat<Scalar>& q_i,
             Scalar diameter,
             Scalar charge
             )
             {
-            return m_eval(box, type, pos, orientation, diameter, charge);
+            return m_eval(box, type, r_i, q_i, diameter, charge);
             }
 
     protected:
         //! function pointer signature
-        typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box, unsigned int type, vec3<Scalar> pos, Scalar4 orientation, Scalar diameter, Scalar charge);
+        typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box, unsigned int type, const vec3<Scalar>& r_i, const quat<Scalar>& q_i, Scalar diameter, Scalar charge);
         std::shared_ptr<ExternalFieldEvalFactory> m_factory;       //!< The factory for the evaluator function
         ExternalFieldEvalFactory::ExternalFieldEvalFnPtr m_eval;                //!< Pointer to evaluator function inside the JIT module
     };

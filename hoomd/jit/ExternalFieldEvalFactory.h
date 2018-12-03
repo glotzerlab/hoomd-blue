@@ -15,8 +15,8 @@ class ExternalFieldEvalFactory
     public:
         typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box,
             unsigned int type,
-            vec3<Scalar> pos,
-            Scalar4 orientation,
+            const vec3<Scalar>& r_i,
+            const quat<Scalar>& q_i,
             Scalar diameter,
             Scalar charge
             );
