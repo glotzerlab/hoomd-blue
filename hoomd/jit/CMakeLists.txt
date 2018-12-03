@@ -14,18 +14,18 @@ set(_${PACKAGE_NAME}_sources
      module-${PACKAGE_NAME}.cc
      PatchEnergyJIT.cc
      PatchEnergyJITUnion.cc
-     ForceEnergyJIT.cc
+     ExternalFieldJIT.cc
    )
 
 # we compile a separate package just for the LLVM-interfacing part,
 # so that can be compiled with and without RTTI
-set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc ForceEvalFactory.cc)
+set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc ExternalFieldEvalFactory.cc)
 
 set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
                              PatchEnergyJITUnion.h
-                             ForceEnergyJIT.h
+                             ExternalFieldJIT.h
                              EvalFactory.h
-                             ForceEvalFactory.h
+                             ExternalFieldEvalFactory.h
                              KaleidoscopeJIT.h
    )
 

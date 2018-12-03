@@ -1,14 +1,14 @@
-#ifndef _FORCE_ENERGY_JIT_H_
-#define _FORCE_ENERGY_JIT_H_
+#ifndef _EXTERNAL_FIELD_ENERGY_JIT_H_
+#define _EXTERNAL_FIELD_ENERGY_JIT_H_
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/hpmc/IntegratorHPMC.h"
 
-#include "ForceEvalFactory.h"
+#include "ExternalFieldEvalFactory.h"
 
-#define FORCE_ENERGY_LOG_NAME           "force_energy"
+#define EXTERNAL_FIELD_ENERGY_LOG_NAME           "force_energy"
 
 //! Evaluate external field forces via runtime generated code
 /*! This class enables the widest possible use-cases of external fields in HPMC with low energy barriers for users to add
@@ -24,14 +24,14 @@
     code and memory used in the module is deleted. OrcLazyJIT takes care of destructing C++ static members inside the
     module.
 
-    LLVM JIT is capable of calling any function in the hosts address space. ForceEnergyJIT does not take advantage of
+    LLVM JIT is capable of calling any function in the hosts address space. ExternalFieldJIT does not take advantage of
     that, limiting the user to a very specific API for computing the energy between a pair of particles.
 */
-class ForceEnergyJIT : public hpmc::ForceEnergy
+class ExternalFieldJIT : public hpmc::ForceEnergy
     {
     public:
         //! Constructor
-        ForceEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir);
+        ExternalFieldJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir);
 
         //! Evaluate the energy of the force.
         /*! \param box The system box.
@@ -55,11 +55,11 @@ class ForceEnergyJIT : public hpmc::ForceEnergy
 
     protected:
         //! function pointer signature
-        typedef float (*ForceEvalFnPtr)(const BoxDim& box, unsigned int type, vec3<Scalar> pos, Scalar4 orientation, Scalar diameter, Scalar charge);
-        std::shared_ptr<ForceEvalFactory> m_factory;       //!< The factory for the evaluator function
-        ForceEvalFactory::ForceEvalFnPtr m_eval;                //!< Pointer to evaluator function inside the JIT module
+        typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box, unsigned int type, vec3<Scalar> pos, Scalar4 orientation, Scalar diameter, Scalar charge);
+        std::shared_ptr<ExternalFieldEvalFactory> m_factory;       //!< The factory for the evaluator function
+        ExternalFieldEvalFactory::ExternalFieldEvalFnPtr m_eval;                //!< Pointer to evaluator function inside the JIT module
     };
 
-//! Exports the ForceEnergyJIT class to python
-void export_ForceEnergyJIT(pybind11::module &m);
-#endif // _FORCE_ENERGY_JIT_H_
+//! Exports the ExternalFieldJIT class to python
+void export_ExternalFieldJIT(pybind11::module &m);
+#endif // _EXTERNAL_FIELD_ENERGY_JIT_H_

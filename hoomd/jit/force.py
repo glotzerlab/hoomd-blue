@@ -106,7 +106,7 @@ class user(object):
                 llvm_ir = f.read()
 
         self.compute_name = "force"
-        self.cpp_evaluator = _jit.ForceEnergyJIT(hoomd.context.exec_conf, llvm_ir);
+        self.cpp_evaluator = _jit.ExternalFieldJIT(hoomd.context.exec_conf, llvm_ir);
         mc.set_ForceEnergyEvaluator(self);
 
         self.mc = mc

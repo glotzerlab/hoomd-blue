@@ -3,7 +3,7 @@
 
 #include "PatchEnergyJIT.h"
 #include "PatchEnergyJITUnion.h"
-#include "ForceEnergyJIT.h"
+#include "ExternalFieldJIT.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
@@ -16,5 +16,5 @@ PYBIND11_MODULE(_jit, m)
     {
     export_PatchEnergyJIT(m);
     export_PatchEnergyJITUnion(m);
-    export_ForceEnergyJIT(m);
+    export_ExternalFieldJIT(m);
     }

@@ -1,7 +1,7 @@
 #include <utility>
 #include <memory>
 #include <sstream>
-#include "ForceEvalFactory.h"
+#include "ExternalFieldEvalFactory.h"
 
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/SourceMgr.h"
@@ -18,7 +18,7 @@
 #include "llvm/Support/raw_os_ostream.h"
 
 //! C'tor
-ForceEvalFactory::ForceEvalFactory(const std::string& llvm_ir)
+ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& llvm_ir)
     {
     // set to null pointer
     m_eval = NULL;
@@ -52,7 +52,7 @@ ForceEvalFactory::ForceEvalFactory(const std::string& llvm_ir)
     if (!Mod)
         {
         // if the module didn't load, report an error
-        Err.print("ForceEvalFactory", llvm_err);
+        Err.print("ExternalFieldEvalFactory", llvm_err);
         llvm_err.flush();
         m_error_msg = sstream.str();
         return;
@@ -73,9 +73,9 @@ ForceEvalFactory::ForceEvalFactory(const std::string& llvm_ir)
         }
 
     #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
-    m_eval = (ForceEvalFnPtr)(long unsigned int)(cantFail(eval.getAddress()));
+    m_eval = (ExternalFieldEvalFnPtr)(long unsigned int)(cantFail(eval.getAddress()));
     #else
-    m_eval = (ForceEvalFnPtr) eval.getAddress();
+    m_eval = (ExternalFieldEvalFnPtr) eval.getAddress();
     #endif
 
     llvm_err.flush();

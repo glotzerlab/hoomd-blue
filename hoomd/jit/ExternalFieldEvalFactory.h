@@ -10,10 +10,10 @@
 // Forward declare box class
 class BoxDim;
 
-class ForceEvalFactory
+class ExternalFieldEvalFactory
     {
     public:
-        typedef float (*ForceEvalFnPtr)(const BoxDim& box,
+        typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box,
             unsigned int type,
             vec3<Scalar> pos,
             Scalar4 orientation,
@@ -22,10 +22,10 @@ class ForceEvalFactory
             );
 
         //! Constructor
-        ForceEvalFactory(const std::string& llvm_ir);
+        ExternalFieldEvalFactory(const std::string& llvm_ir);
 
         //! Return the evaluator
-        ForceEvalFnPtr getEval()
+        ExternalFieldEvalFnPtr getEval()
             {
             return m_eval;
             }
@@ -38,7 +38,7 @@ class ForceEvalFactory
 
     private:
         std::unique_ptr<llvm::orc::KaleidoscopeJIT> m_jit; //!< The persistent JIT engine
-        ForceEvalFnPtr m_eval;         //!< Function pointer to evaluator
+        ExternalFieldEvalFnPtr m_eval;         //!< Function pointer to evaluator
 
         std::string m_error_msg; //!< The error message if initialization fails
     };
