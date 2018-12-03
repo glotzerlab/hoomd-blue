@@ -14,7 +14,8 @@
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
-#if defined(ENABLE_MPI) && !defined(NVCC)
+// Don't include MPI when compiling with NVCC or LLVM
+#if defined(ENABLE_MPI) && !defined(NVCC) && !defined(LLVM_VERSION_MAJOR)
 #include "HOOMDMPI.h"
 #endif
 

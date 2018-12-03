@@ -5,6 +5,7 @@
 #include "hoomd/VectorMath.h"
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/hpmc/IntegratorHPMC.h"
+#include "hoomd/BoxDim.h"
 
 #include "ExternalFieldEvalFactory.h"
 

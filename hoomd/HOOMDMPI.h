@@ -30,10 +30,7 @@
 #include <cereal/types/map.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/utility.hpp> // std::pair
-// Allow compilation without cereal (which throws exceptions) when compiling with LLVM.
-#ifndef NO_CEREAL_INCLUDE
 #include <cereal/archives/binary.hpp>
-#endif
 
 #ifdef SINGLE_PRECISION
 //! Define MPI_FLOAT as Scalar MPI data type
