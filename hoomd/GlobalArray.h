@@ -208,7 +208,12 @@ class GlobalArray : public GPUArray<T>
 
         //! Destructor
         virtual ~GlobalArray()
-            { }
+            {
+            if (!isNull())
+                {
+                cudaEventDestroy(m_event);
+                }
+            }
 
         //! Copy constructor
         GlobalArray(const GlobalArray& from)
@@ -293,7 +298,8 @@ class GlobalArray : public GPUArray<T>
               m_height(std::move(other.m_height)),
               m_acquired(std::move(other.m_acquired)),
               m_tag(std::move(other.m_tag)),
-              m_align_bytes(std::move(other.m_align_bytes))
+              m_align_bytes(std::move(other.m_align_bytes)),
+              m_event(std::move(other.m_event))
             {
             }
 
@@ -312,6 +318,7 @@ class GlobalArray : public GPUArray<T>
                 m_acquired = std::move(other.m_acquired);
                 m_tag = std::move(other.m_tag);
                 m_align_bytes = std::move(other.m_align_bytes);
+                m_event = std::move(other.m_event);
                 }
 
             return *this;
@@ -371,6 +378,7 @@ class GlobalArray : public GPUArray<T>
             std::swap(m_height,from.m_height);
             std::swap(m_tag, from.m_tag);
             std::swap(m_align_bytes, from.m_align_bytes);
+            std::swap(m_event, from.m_event);
             }
 
         //! Get the underlying raw pointer
@@ -575,13 +583,9 @@ class GlobalArray : public GPUArray<T>
             bool use_device = this->m_exec_conf && this->m_exec_conf->isCUDAEnabled();
             if (!isNull() && use_device && location == access_location::host)
                 {
-                // synchronize all active GPUs
-                auto gpu_map = this->m_exec_conf->getGPUIds();
-                for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                    {
-                    cudaSetDevice(gpu_map[idev]);
-                    cudaDeviceSynchronize();
-                    }
+                // synchronize GPU 0
+                cudaEventRecord(m_event, 0);
+                cudaEventSynchronize(m_event);
                 }
             #endif
 
@@ -627,6 +631,8 @@ class GlobalArray : public GPUArray<T>
         std::string m_tag;     //!< Name tag of this buffer (optional)
 
         unsigned int m_align_bytes; //!< Size of alignment in bytes
+
+        cudaEvent_t m_event;   //! CUDA event for synchronization
 
         //! Allocate the managed array and construct the items
         void allocate()
@@ -683,6 +689,12 @@ class GlobalArray : public GPUArray<T>
             if (use_device)
                 {
                 cudaDeviceSynchronize();
+                CHECK_CUDA_ERROR();
+                }
+
+            if (use_device)
+                {
+                cudaEventCreate(&m_event);
                 CHECK_CUDA_ERROR();
                 }
             #endif
