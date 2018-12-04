@@ -780,7 +780,7 @@ void ParticleGroup::rebuildIndexList() const
     if (m_pdata->getExecConf()->isCUDAEnabled())
         {
         // Update GPU load balancing info
-        m_gpu_partition.setNMax(m_num_local_members);
+        m_gpu_partition.setN(m_num_local_members);
         }
     #endif
     }

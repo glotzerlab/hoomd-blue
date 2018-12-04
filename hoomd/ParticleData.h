@@ -1189,6 +1189,7 @@ class PYBIND11_EXPORT ParticleData
         mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
 
         GPUPartition m_gpu_partition;                //!< The partition of the local number of particles across GPUs
+        unsigned int m_memory_advice_last_Nmax;      //!< Nmax at which memory hints were last set
         #endif
 
         //! Helper function to allocate particle data
