@@ -785,6 +785,33 @@ void ParticleGroup::rebuildIndexList() const
     #endif
     }
 
+void ParticleGroup::updateGPUAdvice() const
+    {
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+        {
+        // split preferred location of group indices across GPUs
+        auto gpu_map = m_exec_conf->getGPUIds();
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            auto range = m_gpu_partition.getRange(idev);
+            unsigned int nelem =  range.second - range.first;
+
+            if (!nelem)
+                continue;
+
+            cudaMemAdvise(m_member_idx.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_is_member.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+
+            // migrate data to preferred location
+            cudaMemPrefetchAsync(m_member_idx.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_is_member.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+            }
+        CHECK_CUDA_ERROR();
+        }
+    #endif
+    }
+
 #ifdef ENABLE_CUDA
 //! rebuild index list on the GPU
 void ParticleGroup::rebuildIndexListGPU() const
