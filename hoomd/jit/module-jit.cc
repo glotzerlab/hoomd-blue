@@ -4,10 +4,11 @@
 #include "PatchEnergyJIT.h"
 #include "PatchEnergyJITUnion.h"
 
-#include "hoomd/hpmc/IntegratorHPMC.h"
-#include "hoomd/hpmc/IntegratorHPMCMono.h"
-#include "hoomd/hpmc/IntegratorHPMCMonoImplicit.h"
+//#include "hoomd/hpmc/IntegratorHPMC.h"
+//#include "hoomd/hpmc/IntegratorHPMCMono.h"
+//#include "hoomd/hpmc/IntegratorHPMCMonoImplicit.h"
 #include "ExternalFieldJIT.h"
+//#include "ExternalFieldJIT.cc"
 
 #include "hoomd/hpmc/ShapeSphere.h"
 #include "hoomd/hpmc/ShapeConvexPolygon.h"
@@ -19,8 +20,6 @@
 #include "hoomd/hpmc/ShapeEllipsoid.h"
 #include "hoomd/hpmc/ShapeFacetedSphere.h"
 #include "hoomd/hpmc/ShapeSphinx.h"
-
-#include "hoomd/hpmc/ShapeProxy.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 

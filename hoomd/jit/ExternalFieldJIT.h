@@ -33,7 +33,20 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
     {
     public:
         //! Constructor
-        ExternalFieldJIT(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir);
+        ExternalFieldJIT(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir) : hpmc::ExternalFieldMono<Shape>(sysdef)
+            {
+            // build the JIT.
+            m_factory = std::shared_ptr<ExternalFieldEvalFactory>(new ExternalFieldEvalFactory(llvm_ir));
+
+            // get the evaluator
+            m_eval = m_factory->getEval();
+
+            if (!m_eval)
+                {
+                exec_conf->msg->error() << m_factory->getError() << std::endl;
+                throw std::runtime_error("Error compiling JIT code.");
+                }
+            }
 
         //! Evaluate the energy of the force.
         /*! \param box The system box.
@@ -107,7 +120,7 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
             }
 
         //! method to calculate the energy difference for the proposed move.
-        virtual double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
+        double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
             {
             ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
             Scalar4 postype_i = h_postype.data[index];
@@ -130,6 +143,13 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
     };
 
 //! Exports the ExternalFieldJIT class to python
-template<class Shape>
-void export_ExternalFieldJIT(pybind11::module &m, std::string name);
+template< class Shape>
+void export_ExternalFieldJIT(pybind11::module &m, std::string name)
+    {
+    pybind11::class_<ExternalFieldJIT<Shape>, std::shared_ptr<ExternalFieldJIT<Shape> > >(m, name.c_str(), pybind11::base< hpmc::ExternalFieldMono <Shape> >())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>, 
+                                 std::shared_ptr<ExecutionConfiguration>,
+                                 const std::string& >())
+            .def("energy", &ExternalFieldJIT<Shape>::energy);
+    }
 #endif // _EXTERNAL_FIELD_ENERGY_JIT_H_

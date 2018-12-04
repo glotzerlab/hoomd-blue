@@ -133,7 +133,7 @@ class user(field._external):
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
-        self.cpp_evaluator = _jit.ExternalFieldJIT(hoomd.context.current.system_definition,
+        self.cpp_compute = cls(hoomd.context.current.system_definition,
             hoomd.context.exec_conf, llvm_ir);
 
         self.mc = mc
