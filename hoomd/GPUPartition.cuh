@@ -29,6 +29,8 @@ class GPUPartition
             }
 
         //! Update the number of particles
+        /*! This method allows to restrict the number of particles to any number N<Nmax
+         */
         void setN(unsigned int N)
             {
             m_N = N;
@@ -47,6 +49,7 @@ class GPUPartition
 
             // fill last GPU with remaining particles
             m_gpu_range[m_gpu_map.size()-1].second = Nmax;
+            m_N = Nmax;
             }
 
         //! Returns the current maximum number of particles
