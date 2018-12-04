@@ -3,6 +3,9 @@ from __future__ import print_function, division, absolute_import
 
 import unittest
 
+import hoomd
+hoomd.context.initialize()
+
 class jit_external_field(unittest.TestCase):
 
     def test_gravity(self):
@@ -12,11 +15,9 @@ class jit_external_field(unittest.TestCase):
         nature, but we use enough particles and a strong enough gravitational
         force that the probability of particles rising in the simulation is
         vanishingly small."""
-        import hoomd
         from hoomd import hpmc, jit
         import numpy as np
 
-        hoomd.context.initialize();
 
         # Just creating a simple cubic lattice # is fine here.
         system = hoomd.init.create_lattice(hoomd.lattice.sc(
@@ -36,12 +37,14 @@ class jit_external_field(unittest.TestCase):
         comp = hpmc.field.external_field_composite(mc, [wall, gravity_field])
 
         snapshot = system.take_snapshot()
-        old_avg_z = np.mean(snapshot.particles.position[:, 2])
+        if hoomd.comm.get_rank() == 0:
+            old_avg_z = np.mean(snapshot.particles.position[:, 2])
 
         hoomd.run(1e3)
 
         snapshot = system.take_snapshot()
-        self.assertTrue(np.mean(snapshot.particles.position[:, 2]) < old_avg_z)
+        if hoomd.comm.get_rank() == 0:
+            self.assertTrue(np.mean(snapshot.particles.position[:, 2]) < old_avg_z)
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(argv = ['test.py', '-v'])
