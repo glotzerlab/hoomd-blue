@@ -419,12 +419,6 @@ void ParticleData::allocate(unsigned int N)
     TAG_ALLOCATION(m_comm_flags);
 
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // update the GPU partition
-        m_gpu_partition.setNMax(N);
-        }
-
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -3091,6 +3085,9 @@ void ParticleData::updateGPUPartition()
         // only call CUDA API when necessary
         if (m_gpu_partition.getNMax() == m_max_nparticles)
             return;
+
+        // update the GPU partition
+        m_gpu_partition.setNMax(m_max_nparticles);
 
         auto gpu_map = m_exec_conf->getGPUIds();
 
