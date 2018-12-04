@@ -705,14 +705,6 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 patch_field_energy_diff -= this->m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
                 }
 
-            // Add jit external field energetic contribution
-            if (this->m_jit_force && !this->m_jit_force_log)
-                {
-                // deltaU = U_old - U_new, so add old energy and subtract new energy
-                patch_field_energy_diff += this->m_jit_force->energy(box, typ_i, pos_old, shape_old.orientation, h_diameter.data[i], h_charge.data[i]);
-                patch_field_energy_diff -= this->m_jit_force->energy(box, typ_i, pos_i, shape_i.orientation, h_diameter.data[i], h_charge.data[i]);
-                }
-
             accept = accept && (rng_i.d() < slow::exp(patch_field_energy_diff));
 
             // If no overlaps and Metropolis criterion is met, check if it is

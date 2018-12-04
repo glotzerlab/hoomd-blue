@@ -184,12 +184,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         throw std::runtime_error("Error during HPMC integration\n");
         }
 
-    if (this->m_jit_force && !this->m_jit_force_log)
-        {
-        this->m_exec_conf->msg->error() << "GPU simulations with jit forces are unsupported." << std::endl;
-        throw std::runtime_error("Error during HPMC integration\n");
-        }
-
     IntegratorHPMC::update(timestep);
     // compute the width of the active region
     Scalar3 npd = this->m_pdata->getBox().getNearestPlaneDistance();

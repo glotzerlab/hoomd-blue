@@ -232,7 +232,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
                 o << "orientation ";
                 }
 
-            if (m_patch || m_jit_force)
+            if (m_patch)
                 {
                 flags[comm_flag::diameter] = 1;
                 flags[comm_flag::charge] = 1;
@@ -296,12 +296,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
          * \returns the total patch energy
          */
         virtual float computePatchEnergy(unsigned int timestep);
-
-        //! Compute the energy due to jit external fields
-        /*! \param timestep the current time step
-         * \returns the total external field energy
-         */
-        virtual float computeJITForceEnergy(unsigned int timestep);
 
         //! Build the AABB tree (if needed)
         const detail::AABBTree& buildAABBTree();
@@ -422,11 +416,6 @@ std::vector< std::string > IntegratorHPMCMono<Shape>::getProvidedLogQuantities()
         result.push_back("hpmc_patch_rcut");
         }
 
-    if(m_jit_force)
-        {
-        result.push_back("hpmc_jit_force_energy");
-        }
-
     return result;
     }
 
@@ -454,18 +443,6 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
         else
             {
             this->m_exec_conf->msg->error() << "No patch enabled:" << quantity << " not registered." << std::endl;
-            throw std::runtime_error("Error getting log value");
-            }
-        }
-    else if (quantity == "hpmc_jit_force_energy")
-        {
-        if (m_jit_force)
-            {
-            return computeJITForceEnergy(timestep);
-            }
-        else
-            {
-            this->m_exec_conf->msg->error() << "No force enabled:" << quantity << " not registered." << std::endl;
             throw std::runtime_error("Error getting log value");
             }
         }
@@ -833,14 +810,6 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 patch_field_energy_diff -= m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
                 }
 
-            // Add jit external field energetic contribution
-            if (m_jit_force && !this->m_jit_force_log)
-                {
-                // deltaU = U_old - U_new, so add old energy and subtract new energy
-                patch_field_energy_diff += m_jit_force->energy(box, typ_i, pos_old, shape_old.orientation, h_diameter.data[i], h_charge.data[i]);
-                patch_field_energy_diff -= m_jit_force->energy(box, typ_i, pos_i, shape_i.orientation, h_diameter.data[i], h_charge.data[i]);
-                }
-
             // If no overlaps and Metropolis criterion is met, accept
             // trial move and update positions  and/or orientations.
             if (!overlap && rng_i.d() < slow::exp(patch_field_energy_diff))
@@ -1188,56 +1157,6 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(unsigned int timestep)
     return energy;
     }, [](float x, float y)->float { return x+y; } );
     #endif
-
-    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
-
-    #ifdef ENABLE_MPI
-    if (this->m_pdata->getDomainDecomposition())
-        {
-        MPI_Allreduce(MPI_IN_PLACE, &energy, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
-        }
-    #endif
-
-    return energy;
-    }
-
-template<class Shape>
-float IntegratorHPMCMono<Shape>::computeJITForceEnergy(unsigned int timestep)
-    {
-    // sum up in double precision
-    double energy = 0.0;
-
-    // return if nothing to do
-    if (!m_jit_force) return energy;
-
-    m_exec_conf->msg->notice(10) << "HPMC compute jit force energy: " << timestep << std::endl;
-
-    if (!m_past_first_run)
-        {
-        m_exec_conf->msg->error() << "get_force_energy only works after a run() command" << std::endl;
-        throw std::runtime_error("Error communicating in count_overlaps");
-        }
-
-    if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC compute jit force energy");
-
-    // access particle data and system box
-    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-
-    // Loop over all particles
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        {
-        // read in the current position and orientation
-        Scalar4 postype_i = h_postype.data[i];
-        unsigned int typ_i = __scalar_as_int(postype_i.w);
-        vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-
-        energy += m_jit_force->energy(m_pdata->getBox(), typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
-
-        } // end loop over particles
 
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
 
@@ -1880,7 +1799,6 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
-          .def("setJITForceEnergy", &IntegratorHPMCMono<Shape>::setJITForceEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
           .def("connectGSDSignal", &IntegratorHPMCMono<Shape>::connectGSDSignal)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)

@@ -224,10 +224,6 @@ class mode_hpmc(_integrator):
     def set_PatchEnergyEvaluator(self, patch):
         self.cpp_integrator.setPatchEnergy(patch.cpp_evaluator);
 
-    ## Set the force
-    def set_ForceEnergyEvaluator(self, force):
-        self.cpp_integrator.setJITForceEnergy(force.cpp_evaluator);
-
     def get_metadata(self):
         data = super(mode_hpmc, self).get_metadata()
         data['d'] = self.get_d()

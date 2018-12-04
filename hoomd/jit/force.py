@@ -3,6 +3,8 @@
 
 from hoomd import _hoomd
 from hoomd.jit import _jit
+from hoomd.hpmc import field
+from hoomd.hpmc import integrate
 import hoomd
 
 import tempfile
@@ -12,8 +14,8 @@ import os
 
 import numpy as np
 
-class user(object):
-    R''' Define an arbitrary force imposed by an external field on all particles in the system.
+class user(field._external):
+    R''' Define an external field imposed on all particles in the system.
 
     Args:
         code (str): C++ code to compile
@@ -80,17 +82,43 @@ class user(object):
     .. versionadded:: 2.5
     '''
     def __init__(self, mc, code=None, llvm_ir_file=None, clang_exec=None):
-        hoomd.util.print_status_line();
-
-        # check if initialization has occurred
-        if hoomd.context.exec_conf is None:
-            hoomd.context.msg.error("Cannot create force before context initialization\n");
-            raise RuntimeError('Error creating force energy');
+        super(user, self).__init__()
 
         # raise an error if this run is on the GPU
+        cls = None;
         if hoomd.context.exec_conf.isCUDAEnabled():
             hoomd.context.msg.error("JIT forces are not supported on the GPU\n");
             raise RuntimeError("Error initializing force energy");
+        else:
+            if isinstance(mc, integrate.sphere):
+                cls = _jit.ExternalFieldJITSphere;
+            elif isinstance(mc, integrate.convex_polygon):
+                cls = _jit.ExternalFieldJITConvexPolygon;
+            elif isinstance(mc, integrate.simple_polygon):
+                cls = _jit.ExternalFieldJITSimplePolygon;
+            elif isinstance(mc, integrate.convex_polyhedron):
+                cls = _jit.ExternalFieldJITConvexPolyhedron;
+            elif isinstance(mc, integrate.convex_spheropolyhedron):
+                cls = _jit.ExternalFieldJITSpheropolyhedron;
+            elif isinstance(mc, integrate.ellipsoid):
+                cls = _jit.ExternalFieldJITEllipsoid;
+            elif isinstance(mc, integrate.convex_spheropolygon):
+                cls =_jit.ExternalFieldJITSpheropolygon;
+            elif isinstance(mc, integrate.faceted_sphere):
+                cls =_jit.ExternalFieldJITFacetedSphere;
+            elif isinstance(mc, integrate.polyhedron):
+                cls =_jit.ExternalFieldJITPolyhedron;
+            elif isinstance(mc, integrate.sphinx):
+                cls =_jit.ExternalFieldJITSphinx;
+            elif isinstance(mc, integrate.sphere_union):
+                cls = _jit.ExternalFieldJITSphereUnion;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _jit.ExternalFieldJITConvexPolyhedronUnion;
+            else:
+                hoomd.context.msg.error("jit.field.user: Unsupported integrator.\n");
+                raise RuntimeError("Error initializing compute.position_lattice_field");
+
+        hoomd.util.print_status_line();
 
         # Find a clang executable if none is provided
         if clang_exec is not None:
@@ -105,9 +133,8 @@ class user(object):
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
-        self.compute_name = "force"
-        self.cpp_evaluator = _jit.ExternalFieldJIT(hoomd.context.exec_conf, llvm_ir);
-        mc.set_ForceEnergyEvaluator(self);
+        self.cpp_evaluator = _jit.ExternalFieldJIT(hoomd.context.current.system_definition,
+            hoomd.context.exec_conf, llvm_ir);
 
         self.mc = mc
         self.enabled = True
@@ -172,30 +199,3 @@ Scalar charge
             raise RuntimeError("Error initializing force.");
 
         return llvm_ir
-
-    R''' Disable the external field and optionally enable it only for logging
-
-    Args:
-        log (bool): If true, only use external field as a log quantity
-
-    '''
-    def disable(self,log=None):
-        hoomd.util.print_status_line();
-
-        if log:
-            # enable only for logging purposes
-            self.mc.cpp_integrator.disableForceEnergyLogOnly(log)
-            self.log = True
-        else:
-            # disable completely
-            self.mc.cpp_integrator.setForceEnergy(None);
-            self.log = False
-
-        self.enabled = False
-
-    R''' (Re-)Enable the external field
-
-    '''
-    def enable(self):
-        hoomd.util.print_status_line()
-        self.mc.cpp_integrator.setForceEnergy(self.cpp_evaluator);

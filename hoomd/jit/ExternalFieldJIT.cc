@@ -3,13 +3,15 @@
 
 #include <sstream>
 
-#define EXTERNAL_FIELD_ENERGY_LOG_NAME           "force_energy"
+#define EXTERNAL_FIELD_JIT_LOG_NAME           "jit_energy"
 /*! \param exec_conf The execution configuration (used for messages and MPI communication)
     \param llvm_ir Contents of the LLVM IR to load
 
     After construction, the LLVM IR is loaded, compiled, and the energy() method is ready to be called.
 */
-ExternalFieldJIT::ExternalFieldJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir)
+
+template< class Shape >
+ExternalFieldJIT<Shape>::ExternalFieldJIT(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir) : hpmc::ExternalFieldMono<Shape>(sysdef)
     {
     // build the JIT.
     m_factory = std::shared_ptr<ExternalFieldEvalFactory>(new ExternalFieldEvalFactory(llvm_ir));
@@ -25,12 +27,12 @@ ExternalFieldJIT::ExternalFieldJIT(std::shared_ptr<ExecutionConfiguration> exec_
     }
 
 
-void export_ExternalFieldJIT(pybind11::module &m)
+template< class Shape>
+void export_ExternalFieldJIT(pybind11::module &m, std::string name)
     {
-      pybind11::class_<hpmc::ForceEnergy, std::shared_ptr<hpmc::ForceEnergy> >(m, "ForceEnergy")
-              .def(pybind11::init< >());
-    pybind11::class_<ExternalFieldJIT, std::shared_ptr<ExternalFieldJIT> >(m, "ExternalFieldJIT", pybind11::base< hpmc::ForceEnergy >())
-            .def(pybind11::init< std::shared_ptr<ExecutionConfiguration>,
+    pybind11::class_<ExternalFieldJIT<Shape>, std::shared_ptr<ExternalFieldJIT<Shape> > >(m, name.c_str(), pybind11::base< hpmc::ExternalFieldMono <Shape> >())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>, 
+                                 std::shared_ptr<ExecutionConfiguration>,
                                  const std::string& >())
-            .def("energy", &ExternalFieldJIT::energy);
+            .def("energy", &ExternalFieldJIT<Shape>::energy);
     }

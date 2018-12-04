@@ -4,12 +4,12 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/ExecutionConfiguration.h"
-#include "hoomd/hpmc/IntegratorHPMC.h"
+#include "hoomd/hpmc/ExternalField.h"
 #include "hoomd/BoxDim.h"
 
 #include "ExternalFieldEvalFactory.h"
 
-#define EXTERNAL_FIELD_ENERGY_LOG_NAME           "force_energy"
+#define EXTERNAL_FIELD_JIT_LOG_NAME           "jit_energy"
 
 //! Evaluate external field forces via runtime generated code
 /*! This class enables the widest possible use-cases of external fields in HPMC with low energy barriers for users to add
@@ -28,11 +28,12 @@
     LLVM JIT is capable of calling any function in the hosts address space. ExternalFieldJIT does not take advantage of
     that, limiting the user to a very specific API for computing the energy between a pair of particles.
 */
-class ExternalFieldJIT : public hpmc::ForceEnergy
+template< class Shape>
+class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
     {
     public:
         //! Constructor
-        ExternalFieldJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir);
+        ExternalFieldJIT(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir);
 
         //! Evaluate the energy of the force.
         /*! \param box The system box.
@@ -54,6 +55,73 @@ class ExternalFieldJIT : public hpmc::ForceEnergy
             return m_eval(box, type, r_i, q_i, diameter, charge);
             }
 
+        virtual double calculateDeltaE(const Scalar4 * const position_old_arg,
+                                       const Scalar4 * const orientation_old_arg,
+                                       const BoxDim * const box_old_arg
+                                       )
+            {
+            ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
+
+            const BoxDim& box_new = this->m_pdata->getGlobalBox();
+            const Scalar4 * position_old = position_old_arg, * orientation_old = orientation_old_arg;
+            const BoxDim * box_old = box_old_arg;
+
+            if( !position_old )
+                {
+                const Scalar4 * const position_new = h_postype.data;
+                position_old = position_new;
+                }
+            if( !orientation_old )
+                {
+                const Scalar4 * const orientation_new = h_orientation.data;
+                orientation_old = orientation_new;
+                }
+            if( !box_old )
+                {
+                box_old = &box_new;
+                }
+
+            double dE = 0.0;
+            for(size_t i = 0; i < this->m_pdata->getN(); i++)
+                {
+                // read in the current position and orientation
+                Scalar4 postype_i = h_postype.data[i];
+                unsigned int typ_i = __scalar_as_int(postype_i.w);
+                vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+                
+                dE += energy(box_new, typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
+                dE -= energy(*box_old, typ_i, vec3<Scalar>(*(position_old+i)), quat<Scalar>(*(orientation_old+i)), h_diameter.data[i], h_charge.data[i]);
+                }
+
+            #ifdef ENABLE_MPI
+            if (this->m_pdata->getDomainDecomposition())
+                {
+                MPI_Allreduce(MPI_IN_PLACE, &dE, 1, MPI_HOOMD_SCALAR, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+                }
+            #endif
+
+            return dE;
+            }
+
+        //! method to calculate the energy difference for the proposed move.
+        virtual double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
+            {
+            ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
+            Scalar4 postype_i = h_postype.data[index];
+            unsigned int typ_i = __scalar_as_int(postype_i.w);
+
+            ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
+
+            double dE = 0.0;
+            dE += energy(this->m_pdata->getGlobalBox(), typ_i, position_new, shape_new.orientation, h_diameter.data[index], h_charge.data[index]);
+            dE -= energy(this->m_pdata->getGlobalBox(), typ_i, position_old, shape_old.orientation, h_diameter.data[index], h_charge.data[index]);
+            return dE;
+            }
+
     protected:
         //! function pointer signature
         typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box, unsigned int type, const vec3<Scalar>& r_i, const quat<Scalar>& q_i, Scalar diameter, Scalar charge);
@@ -62,5 +130,6 @@ class ExternalFieldJIT : public hpmc::ForceEnergy
     };
 
 //! Exports the ExternalFieldJIT class to python
-void export_ExternalFieldJIT(pybind11::module &m);
+template<class Shape>
+void export_ExternalFieldJIT(pybind11::module &m, std::string name);
 #endif // _EXTERNAL_FIELD_ENERGY_JIT_H_
