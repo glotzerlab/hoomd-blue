@@ -57,6 +57,7 @@ set(TEST_LIST_CPU
     test_implicit.py
     test_ghost_layer.py
     test_walls.py
+    test_jit_external_field.py
     muvt.py
     meta_data.py
     shape_proxy.py
