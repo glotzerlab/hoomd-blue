@@ -158,6 +158,39 @@ class managed_deleter
         size_t m_allocation_bytes; //!< Size of actual allocation
     };
 
+class event_deleter
+    {
+    public:
+        //! Default constructor
+        event_deleter()
+            {}
+
+        //! Constructor with execution configuration
+        /*! \param exec_conf The execution configuration
+         */
+        event_deleter(std::shared_ptr<const ExecutionConfiguration> exec_conf)
+            : m_exec_conf(exec_conf)
+            { }
+
+        //! Destroy the items and delete the managed array
+        /*! \param ptr Start of aligned memory allocation
+         */
+        void operator()(cudaEvent_t *ptr)
+            {
+            if (ptr == nullptr)
+                return;
+
+            #ifdef ENABLE_CUDA
+            cudaEventDestroy(*ptr);
+            CHECK_CUDA_ERROR();
+            #endif
+
+            delete ptr;
+            }
+    private:
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+    };
+
 } // end namespace detail
 
 } // end namespace hoomd
@@ -209,10 +242,6 @@ class GlobalArray : public GPUArray<T>
         //! Destructor
         virtual ~GlobalArray()
             {
-            if (!isNull())
-                {
-                cudaEventDestroy(m_event);
-                }
             }
 
         //! Copy constructor
@@ -584,8 +613,8 @@ class GlobalArray : public GPUArray<T>
             if (!isNull() && use_device && location == access_location::host)
                 {
                 // synchronize GPU 0
-                cudaEventRecord(m_event, 0);
-                cudaEventSynchronize(m_event);
+                cudaEventRecord(*m_event, 0);
+                cudaEventSynchronize(*m_event);
                 }
             #endif
 
@@ -632,7 +661,7 @@ class GlobalArray : public GPUArray<T>
 
         unsigned int m_align_bytes; //!< Size of alignment in bytes
 
-        cudaEvent_t m_event;   //! CUDA event for synchronization
+        std::unique_ptr<cudaEvent_t, hoomd::detail::event_deleter> m_event;   //! CUDA event for synchronization
 
         //! Allocate the managed array and construct the items
         void allocate()
@@ -694,7 +723,9 @@ class GlobalArray : public GPUArray<T>
 
             if (use_device)
                 {
-                cudaEventCreate(&m_event);
+                m_event = std::unique_ptr<cudaEvent_t, hoomd::detail::event_deleter>(
+                    new cudaEvent_t, hoomd::detail::event_deleter(this->m_exec_conf));
+                cudaEventCreate(m_event.get());
                 CHECK_CUDA_ERROR();
                 }
             #endif
