@@ -159,6 +159,9 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         //! Reallocate internal arrays
         void reallocate();
 
+        //! Update GPU memory hints
+        void updateGPUAdvice();
+
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
 
         GlobalArray<Scalar4> m_force;            //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE

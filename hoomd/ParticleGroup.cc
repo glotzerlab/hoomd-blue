@@ -310,6 +310,9 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
 
     // connect updateMemberTags() method to maximum particle number change signal
     m_pdata->getGlobalParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
+
+    // update GPU memory hints
+    updateGPUAdvice();
     }
 
 /*! \param sysdef System definition to build the group from
@@ -408,6 +411,9 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
 
     // connect updateMemberTags() method to maximum particle number change signal
     m_pdata->getGlobalParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
+
+    // update GPU memory hints
+    updateGPUAdvice();
     }
 
 ParticleGroup::~ParticleGroup()

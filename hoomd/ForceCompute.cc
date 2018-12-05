@@ -84,6 +84,9 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
         m_external_virial[i] = Scalar(0.0);
 
     m_external_energy = Scalar(0.0);
+
+    // initialize GPU memory hints
+    updateGPUAdvice();
     }
 
 /*! \post m_force, m_virial and m_torque are resized to the current maximum particle number
@@ -103,6 +106,15 @@ void ForceCompute::reallocate()
         memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
         }
 
+    // the pitch of the virial array may have changed
+    m_virial_pitch = m_virial.getPitch();
+
+    // update memory hints
+    updateGPUAdvice();
+    }
+
+void ForceCompute::updateGPUAdvice()
+    {
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
@@ -142,9 +154,6 @@ void ForceCompute::reallocate()
         CHECK_CUDA_ERROR();
         }
     #endif
-
-    // the pitch of the virial array may have changed
-    m_virial_pitch = m_virial.getPitch();
     }
 
 /*! Frees allocated memory

@@ -595,6 +595,15 @@ void ParticleData::setNGlobal(unsigned int nglobal)
  */
 void ParticleData::resize(unsigned int new_nparticles)
     {
+    //! Update the GPU partition
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // update the partition information
+        m_gpu_partition.setN(new_nparticles);
+        }
+    #endif
+
     // do nothing if zero size is requested
 
     if (new_nparticles == 0)
