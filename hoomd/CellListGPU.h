@@ -44,6 +44,28 @@ class PYBIND11_EXPORT CellListGPU : public CellList
             m_tuner->setEnabled(enable);
             }
 
+        //! Get the cell list containing index (per devie)
+        virtual const GlobalArray<unsigned int>& getIndexArrayPerDevice() const
+            {
+            return m_idx_scratch;
+            }
+
+        //! Get the array of cell sizes (per device)
+        virtual const GlobalArray<unsigned int>& getCellSizeArrayPerDevice() const
+            {
+            return m_cell_size_scratch;
+            }
+
+        //! Print statistics on the cell list
+        virtual void printStats()
+            {
+            // first reduce the cell size counter per device
+            if (m_exec_conf->getNumActiveGPUs() > 1)
+                combineCellLists();
+
+            CellList::printStats();
+            }
+
     protected:
         GlobalArray<unsigned int> m_cell_size_scratch;  //!< Number of members in each cell, one list per GPU
         GlobalArray<unsigned int> m_cell_adj_scratch;   //!< Cell adjacency list, one list per GPU
@@ -57,6 +79,9 @@ class PYBIND11_EXPORT CellListGPU : public CellList
 
         // Initialize GPU-specific data storage
         virtual void initializeMemory();
+
+        //! Combine the per-device cell lists
+        virtual void combineCellLists();
 
         std::unique_ptr<Autotuner> m_tuner;         //!< Autotuner for block size
         std::unique_ptr<Autotuner> m_tuner_combine; //!< Autotuner for block size of combine cell lists kernel

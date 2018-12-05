@@ -70,7 +70,8 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                                                     const unsigned int ntypes,
                                                     const Scalar3 ghost_width,
                                                     const unsigned int offset,
-                                                    const unsigned int nwork)
+                                                    const unsigned int nwork,
+                                                    const unsigned int ngpu)
     {
     bool filter_body = flags & 1;
     bool diameter_shift = flags & 2;
@@ -141,6 +142,9 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
     // index of current neighbor
     unsigned int cur_adj = 0;
 
+    // current device portion in cell list
+    unsigned int igpu = 0;
+
     // current cell
     unsigned int neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
 
@@ -150,36 +154,43 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
     // current index in cell
     int cur_offset = threadIdx.x % threads_per_particle;
 
-    bool done = false;
+    bool all_done = false;
+    bool this_thread_done = false;
 
     // total number of neighbors
     unsigned int nneigh = 0;
 
-    while (! done)
+    while (! all_done)
         {
         // initialize with default
         unsigned int neighbor;
         unsigned char has_neighbor = 0;
 
         // advance neighbor cell
-        while (cur_offset >= neigh_size && !done )
+        while (cur_offset >= neigh_size && !this_thread_done )
             {
             cur_offset -= neigh_size;
             cur_adj++;
-            if (cur_adj < cadji.getW())
+            if (cur_adj >= cadji.getW())
+                {
+                if (++igpu < ngpu)
+                    {
+                    cur_adj = 0;
+                    }
+                else
+                    {
+                    // we are past the end of the cell neighbors
+                    this_thread_done = true;
+                    }
+                }
+            if (! this_thread_done)
                 {
                 neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
-                neigh_size = d_cell_size[neigh_cell];
-                }
-            else
-                {
-                // we are past the end of the cell neighbors
-                done = true;
+                neigh_size = d_cell_size[neigh_cell+igpu*ci.getNumElements()];
                 }
             }
-
         // check for a neighbor if thread is still working
-        if (!done)
+        if (!this_thread_done)
             {
             Scalar4 cur_xyzf;
             unsigned int j;
@@ -188,7 +199,10 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                 cur_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
             else
                 {
-                j = d_cell_idx[cli(cur_offset, neigh_cell)];
+                unsigned int addr = cli(cur_offset, neigh_cell)+igpu*cli.getNumElements();
+                if (addr >= ngpu*cli.getNumElements())
+                    printf("Here %d %d %d %d (%d)\n", addr, igpu, cur_offset, neigh_cell, ci.getNumElements());
+                j = d_cell_idx[cli(cur_offset, neigh_cell)+igpu*cli.getNumElements()];
                 postype_j = d_pos[j];
                 cur_xyzf = make_scalar4(postype_j.x, postype_j.y, postype_j.z, __int_as_scalar(j));
                 }
@@ -250,8 +264,8 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
 
         // now that possible neighbor checks are finished, done (for the cta) depends only on first thread
         // neighbor list only needs to get written into if thread 0 is not done
-        done = hoomd::detail::WarpScan<bool, threads_per_particle>().Broadcast(done, 0);
-        if (!done)
+        all_done = hoomd::detail::WarpScan<bool, threads_per_particle>().Broadcast(this_thread_done, 0);
+        if (!all_done)
             {
             // scan over flags
             unsigned char k(0), n(0);
@@ -329,7 +343,8 @@ inline void launcher(unsigned int *d_nlist,
               bool diameter_shift,
               unsigned int block_size,
               std::pair<unsigned int, unsigned int> range,
-              bool use_index)
+              bool use_index,
+              const unsigned int ngpu)
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
@@ -376,7 +391,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (!diameter_shift && filter_body)
                 {
@@ -412,7 +428,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (diameter_shift && !filter_body)
                 {
@@ -448,7 +465,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (diameter_shift && filter_body)
                 {
@@ -484,7 +502,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             }
         else // use_index
@@ -523,7 +542,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (!diameter_shift && filter_body)
                 {
@@ -559,7 +579,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (diameter_shift && !filter_body)
                 {
@@ -595,7 +616,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (diameter_shift && filter_body)
                 {
@@ -631,7 +653,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             }
         }
@@ -666,7 +689,8 @@ inline void launcher(unsigned int *d_nlist,
                      diameter_shift,
                      block_size,
                      range,
-                     use_index
+                     use_index,
+                     ngpu
                      );
         }
     }
@@ -702,7 +726,8 @@ inline void launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
               bool diameter_shift,
               unsigned int block_size,
               std::pair<unsigned int, unsigned int> range,
-              bool use_index)
+              bool use_index,
+              const unsigned int ngpu)
     { }
 
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
@@ -737,6 +762,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      bool use_index)
     {
     // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    unsigned int ngpu = gpu_partition.getNumActiveGPUs();
+
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
@@ -770,7 +797,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                        diameter_shift,
                                        block_size,
                                        range,
-                                       use_index
+                                       use_index,
+                                       ngpu
                                        );
         }
     return cudaSuccess;

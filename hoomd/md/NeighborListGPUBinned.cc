@@ -29,6 +29,10 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
 
     // with multiple GPUs, use indirect access via particle data arrays
     m_use_index = m_exec_conf->allConcurrentManagedAccess();
+
+    // with multiple GPUs, request a cell list per device
+    m_cl->setPerDevice(m_exec_conf->allConcurrentManagedAccess());
+
     m_cl->setComputeXYZF(! m_use_index);
     m_cl->setComputeIdx(m_use_index);
 
@@ -129,6 +133,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cell_adj(m_cl->getCellAdjArray(), access_location::device, access_mode::read);
 
+    ArrayHandle<unsigned int> d_cell_size_per_device(m_cl->getCellSizeArrayPerDevice(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_cell_idx_per_device(m_cl->getIndexArrayPerDevice(), access_location::device, access_mode::read);
+
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
@@ -174,6 +181,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
+    unsigned int ngpu = m_exec_conf->getNumActiveGPUs();
+
     this->m_tuner->begin();
     unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
     unsigned int block_size = param / 10000;
@@ -189,9 +198,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                              d_body.data,
                              d_diameter.data,
                              m_pdata->getN(),
-                             d_cell_size.data,
+                             ngpu > 1 ? d_cell_size_per_device.data : d_cell_size.data,
                              d_cell_xyzf.data,
-                             d_cell_idx.data,
+                             ngpu > 1 ? d_cell_idx_per_device.data : d_cell_idx.data,
                              d_cell_tdb.data,
                              d_cell_adj.data,
                              m_cl->getCellIndexer(),

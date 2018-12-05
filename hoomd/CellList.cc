@@ -22,7 +22,7 @@ namespace py = pybind11;
 CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_compute_xyzf(true), m_compute_tdb(false),
       m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false), m_sort_cell_list(false),
-      m_compute_adj_list(true)
+      m_compute_adj_list(true), m_per_device(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
 
