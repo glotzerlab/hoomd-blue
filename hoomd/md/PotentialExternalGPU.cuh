@@ -125,12 +125,12 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
     if (evaluator::needsDiameter())
         di = d_diameter[idx];
     else
-        di += Scalar(1.0); // shutup compiler warning
+        di += Scalar(1.0); // shut up compiler warning
 
     if (evaluator::needsCharge())
         qi = d_charge[idx];
     else
-        qi = Scalar(0.0); // shutup compiler warning
+        qi = Scalar(0.0); // shut up compiler warning
 
 
     // initialize the force to 0

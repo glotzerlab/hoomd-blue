@@ -358,7 +358,7 @@ void System::removeCompute(const std::string& name)
     }
 
 /*! \param name Name of the compute to access
-    \returns A shared pointer to the Compute as provided previosly by addCompute()
+    \returns A shared pointer to the Compute as provided previously by addCompute()
 */
 std::shared_ptr<Compute> System::getCompute(const std::string& name)
     {
@@ -605,7 +605,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         if (m_integrator)
             m_integrator->update(m_cur_tstep);
 
-        // quit if cntrl-C was pressed
+        // quit if Ctrl-C was pressed
         if (g_sigint_recvd)
             {
             g_sigint_recvd = 0;
@@ -623,7 +623,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         callback(m_cur_tstep);
         }
 
-    // calculate averate TPS
+    // calculate average TPS
     Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
 
     m_last_TPS = TPS;
@@ -660,7 +660,7 @@ void System::enableProfiler(bool enable)
     }
 
 /*! \param logger Logger to register computes and updaters with
-    All computes and updaters registered with the system are also registerd with the logger.
+    All computes and updaters registered with the system are also registered with the logger.
 */
 void System::registerLogger(std::shared_ptr<Logger> logger)
     {
@@ -679,7 +679,7 @@ void System::registerLogger(std::shared_ptr<Logger> logger)
         logger->registerCompute(compute->second);
     }
 
-/*! \param seconds Period between statistics ouptut in seconds
+/*! \param seconds Period between statistics output in seconds
 */
 void System::setStatsPeriod(unsigned int seconds)
     {
@@ -779,6 +779,10 @@ void System::printStats()
     map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->printStats();
+
+    // output memory trace information
+    if (m_exec_conf->getMemoryTracer())
+        m_exec_conf->getMemoryTracer()->outputTraces(m_exec_conf->msg);
     }
 
 void System::resetStats()
@@ -849,7 +853,7 @@ void System::generateStatusLine()
 
 /*! \param tstep Time step for which to determine the flags
 
-    The flags needed are determiend by peeking to \a tstep and then using bitwise or to combine all of the flags from the
+    The flags needed are determined by peeking to \a tstep and then using bitwise or to combine all of the flags from the
     analyzers and updaters that are to be executed on that step.
 */
 PDataFlags System::determineFlags(unsigned int tstep)

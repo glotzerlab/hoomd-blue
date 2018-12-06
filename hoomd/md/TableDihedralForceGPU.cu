@@ -234,7 +234,7 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         Scalar3 f_d = T*b2mag/Bsq*vec_to_scalar3(B);
 
         // Now, apply the force to each individual atom a,b,c,d
-        // and accumlate the energy/virial
+        // and accumulate the energy/virial
 
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
         Scalar dihedral_eng = V*Scalar(1.0/4.0);

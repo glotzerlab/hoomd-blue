@@ -388,25 +388,25 @@ would result in no bonds! The solution to this use case is not implemented in th
 HOOMDInitializer class to avoid complications. Instead, an external python script
 to merge bonds from one file into another will be provided.
 
-Depending on the needs of the user, a variety of data can be inluced into the saved
+Depending on the needs of the user, a variety of data can be included into the saved
 dump file, including particle positions, bonds, velocities, and forces. The file format needs
 to be expandable so that in the future, charges and other quantities can be easily
 added without disrupting the existing file format.
 
 Files written during the simulation should be one file for each time step written. In
 case the simulation crashes or stops prematurely, we don't want a partially buffered file
-to be not completley written to the disk. Furthermore, the time step should be appended
+to be not completely written to the disk. Furthermore, the time step should be appended
 to the file name with 0 padding to 10 digits so that "alphabetically" sorted file names
 will be read in the order of increasing time steps.
 
 Large particle systems need to be supported with a minimum of file size. Only as much
 data as needed should be saved. However, a string of raw numbers is not very descriptive.
-Only by knowning the parameters that produced the output can one know what the numbers mean.
+Only by knowing the parameters that produced the output can one know what the numbers mean.
 So, the file format must include metadata the describes just that without requiring a
 reference to the parameters used to create the output. XML is widely used and easy to
 understand, both by humans and machines, so it will be used for the metadata.
 
-As an additional requirement for reducing file size: files ending in a ".gz" extesnion
+As an additional requirement for reducing file size: files ending in a ".gz" extension
 should be transparently decompressed. Similarly, the writer should support writing to gzipped
 files (as on option). Boost gzip streams for this: http://www.boost.org/libs/iostreams/doc/classes/gzip.html
 will be used for this.
@@ -420,7 +420,7 @@ filtering_stream<input> in;
 in.push(gzip_decompressor());
 in.push(file);
 
-in >> data; // or anythong you normally can do with an ifstream
+in >> data; // or anything you normally can do with an ifstream
 \endverbatim
 
 XML Parsers were evaluated, and I found a simple one that has a nice interface
@@ -429,11 +429,11 @@ and not a lot of overhead: http://www.applied-mathematics.net/tools/xmlParser.ht
 \section sec_file_format_requirements Requirements
 <b>File format:</b>
 -# The time step must be specified in the file
--# Box dimensions must be inluded (with units)
+-# Box dimensions must be included (with units)
 -# The number of particles in the file must be specified
 -# The number of particle types must also be specified
 -# Particle positions (with units) can optionally be included
--# Particle velocities (with units) can optionally be inluded
+-# Particle velocities (with units) can optionally be included
 -# Particle types can optionally be included
 -# Lists of numbers (positions, velocities, types) will be given as text readable numbers
 	in the order of the particle tags. Individual numbers will be separated by whitespace.
@@ -496,7 +496,7 @@ Requirements for the writer
 -# Given a base file name, say "dump/atoms.dump" for example: The writer should
 	write one file per time step, appending the time step with zero padding.
 	The example for time step 15000 would be "dump/atoms.dump.0000015000".
--# As an option, the creater of the writer can request that dump files can be saved in
+-# As an option, the creator of the writer can request that dump files can be saved in
 	a gzipped format. In this case, an additional ".gz" should be appended after the
 	time step.
 -# The box, position, velocity, and type elements need to be optionally included/excluded
@@ -528,7 +528,7 @@ The integration with python (http://trac2.assembla.com/hoomd/ticket/40) is
 likely going to require that the tracked computes, updaters, etc...
 are named.
 
-The System class will store an abritrary number of Analyzer classes,
+The System class will store an arbitrary number of Analyzer classes,
 Updater classes, and Compute classes. Computes are only stored for
 reference when saving/loading restart files.
 
@@ -586,13 +586,13 @@ are then just python commands that use these low level classes.
  -# Script commands will all be python classes, to keep some amount of sanity when programming
  -# Hide this object oriented nature as much as possible and present the user with what
  	appears to be a simple procedural script
- -# Mimimc LAMMPS commands wherever possible
+ -# Mimic LAMMPS commands wherever possible
  -# Support restart files .... somehow
  -# For progress reporting, each command called should print out (to the best
  of its ability) what the user called script command was. This facilitates
  debugging if there is a crash somewhere in the script.
 
-Note: current thouhgts on the method by which restart files will be supported are fuzzy.
+Note: current thoughts on the method by which restart files will be supported are fuzzy.
 The plan is to identify every compute/analyzer/updater etc... by an autogenerated name
 when added to the System. Then the user script can request it by name after loading the
 restart file if needed.  A fancier version may consider saving python variables from the
@@ -699,8 +699,8 @@ include a test of whether it has been disabled.
 
 A disable method should be provided so that
 forces can be disabled if desired. Instantiation of a forcecompute also needs to
-register itself with the System for later retrival. As with the Updaters and
-Analyzers, a name parameter in the constructor will result in the retrival of
+register itself with the System for later retrieval. As with the Updaters and
+Analyzers, a name parameter in the constructor will result in the retrieval of
 the ForceCompute from the System.
 
 Coefficients will be defined by a dictionary. One slick advantage is that parameters
@@ -728,7 +728,7 @@ For convenience, a get method should be provided that tries to lookup
 'A'-'B' if 'B'-'A' is not found. It should not be considered an error to specify
 parameters for types that do not exist: this could allow one to write one big
 force field pair_coeff (and import it) even when only running with a few types in a
-particular simullations. The only requirement should be that all types
+particular simulations. The only requirement should be that all types
 that ParticleData says exists are there.
 
 Bond coefficients will be held by a similar data structure, but indexed
@@ -812,13 +812,13 @@ any caller of the class doesn't need to know where the calculations are to be pe
 To get the fastest possible single workstation performance, every GPU compute/updater should execute
 on multiple GPUs. CUDA is designed for a peer to peer multi-GPU program, but that model does not
 work well with HOOMD's design. So, GPUWorker was created to allow for calling GPU kernels
-on mutiple GPUs from a single master thread. The most common data-parallel breakdown of any
+on multiple GPUs from a single master thread. The most common data-parallel breakdown of any
 portion of MD is to assign one thread per particle. Thus, HOOMD's multi-GPU implementation
 assigns N/N_gpus particles to each GPU.
 
 Some data is stored on all GPUs (like particle positions) and others only store what is needed
 on that GPU (like forces and the Neighborlist). Carefully read the documentation for these data
-structures to find out which is which. Typically, a kernel will define two idices: \a idx_local is the
+structures to find out which is which. Typically, a kernel will define two indices: \a idx_local is the
 \b local index or the index of which particle is being handled that is local to this GPU.
 \a idx_global is the global index of the particle and indexes into those data structures that
 have all particles on all GPUs.
@@ -862,7 +862,7 @@ Naming conventions through most of HOOMD are:
 
 To facilitate identifying variables that are on the host/device, code that has a member variable allocated on the GPU
 will name it like this: \b d_this_is_a_device_member_variable (\b m_gpu_ is also an acceptable prefix). Similarly,
-\b h_ will be used for host variables where there is any doubt that the particlar variable might or might not be on the
+\b h_ will be used for host variables where there is any doubt that the particular variable might or might not be on the
 device.
 
 In NVCC code, the style is C and not C++.
@@ -874,7 +874,7 @@ In NVCC code, the style is C and not C++.
 	- CUDA does support pass-by-reference, it should be used whenever possible
 
 On the C++ side, classes are usually in one file per class ClassName.cc / ClassName.h. CUDA code
-in HOOMD is often tighly coupled with a given C++ class. When this is true, that CUDA code should be
+in HOOMD is often tightly coupled with a given C++ class. When this is true, that CUDA code should be
 in ClassName.cu / ClassName.cuh.
 
 <b>Data structures</b>
@@ -903,9 +903,9 @@ code and see how things are done.
 Adding rigid body dynamics to HOOMD should be fairly straightforward from a computational standpoint. Almost
 everything is already almost there (as of HOOMD 0.8.0), we just need to add the data structures for storing
 the rigid body data and fit the update process into the integrators. The biggest problem to overcome is basically
-just the data structures. HOOMD's ParticeData setup has gotten quite bloated and is not easily extensible to
+just the data structures. HOOMD's ParticleData setup has gotten quite bloated and is not easily extensible to
 rigid bodies. A redesign is in progress that will result in the creation of a templated GPUArray class which
-encapsulates the concept of a CPU data mirrored to the GPU with read/write aquire capabilities built in. Once
+encapsulates the concept of a CPU data mirrored to the GPU with read/write acquire capabilities built in. Once
 this array is built, it will be absolutely trivial to add new fields to ParticleData and the forthcoming rigid
 data.
 
@@ -914,14 +914,14 @@ identifies which body the particle belongs to. Sentinel values (0? or -1 (0xffff
 belong to no rigid body.
 
 Executing on the GPU, this data structure is not good for the force/torque summation step. An additional data
-structure must be maintained that lists the index of each particle belonging to each body. With this auxilliary
+structure must be maintained that lists the index of each particle belonging to each body. With this auxiliary
 structure, a single thread can go down the list for a single body and sum the net force and torque on that body
 in parallel with all the other threads doing the same calculation for different bodies.
 
 A number of additional values will need to be stored for each rigid body. Along with the aux list of particle indices
 for each body, these will all be contained in RigidData each in their own GPUArray. Since adding a new data element
 will just require adding a new GPUArray member variable this can be easily done by everyone. Values are stored
-in the read/write aquire capable GPUArray so that Rigid updaters / force computes / etc.. can be easily written
+in the read/write acquire capable GPUArray so that Rigid updaters / force computes / etc.. can be easily written
 on the CPU and/or GPU in a mixed fashion for testing and implementation of new algorithms.
 
 For performance reasons in simulations not using rigid bodies, the non-rigid integrators will be left as they are.
@@ -931,7 +931,7 @@ and particles.
 One might imagine a simulations where forces are applied to rigid bodies as a whole (i.e. orientational forces)
 or even something as crazy as "pair" potentials between pairs of rigid bodies. HOOMD's architecture should allow
 for such possible future expansions. This is most naturally done by creating a RigidForceCompute class which
-is managed much like the ForceCompute class so that any concievable set of forces can be easily added. The
+is managed much like the ForceCompute class so that any conceivable set of forces can be easily added. The
 addition of the net force on each particle to the net force and torque on each rigid body can be done within
 this framework as well, with a small bit of magic in hoomd_script to maintain the list of ForceComputes as
 the source forces.

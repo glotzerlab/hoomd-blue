@@ -117,7 +117,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.msg.error("No coefficents specified\n");
+            hoomd.context.msg.error("No coefficients specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -443,7 +443,7 @@ class table(force._force):
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-        # setup the coefficent matrix
+        # setup the coefficient matrix
         self.angle_coeff = coeff();
 
         # stash the width for later use
@@ -471,7 +471,7 @@ class table(force._force):
 
 
     def update_coeffs(self):
-        # check that the angle coefficents are valid
+        # check that the angle coefficients are valid
         if not self.angle_coeff.verify(["func", "coeff"]):
             hoomd.context.msg.error("Not all angle coefficients are set for angle.table\n");
             raise RuntimeError("Error updating angle coefficients");

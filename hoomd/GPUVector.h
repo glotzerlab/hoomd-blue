@@ -21,7 +21,6 @@
 // The factor with which the array size is incremented
 #define RESIZE_FACTOR 9.f/8.f
 
-template<class T> class GPUArray;
 //! Class for managing a vector of elements on the GPU mirrored to the CPU
 /*! The GPUVector class is a simple container for a variable number of elements. Its interface is inspired
     by std::vector and it offers methods to insert new elements at the end of the list, and to remove
@@ -256,7 +255,7 @@ template<class T> void GPUVector<T>::reallocate(unsigned int size)
 
 /*! \param new_size New size of vector
  \post The GPUVector will be re-allocated if necessary to hold the new elements.
-       The newly allocated memory is \b not initialized. It is responsbility of the caller to ensure correct initialiation,
+       The newly allocated memory is \b not initialized. It is responsibility of the caller to ensure correct initialization,
        e.g. using clear()
 */
 template<class T> void GPUVector<T>::resize(unsigned int new_size)
@@ -320,9 +319,9 @@ template<class T> void GPUVector<T>::clear()
 template<class T> T * GPUVector<T>::acquireHost(const access_mode::Enum mode) const
     {
     #ifdef ENABLE_CUDA
-    return GPUArray<T>::aquire(access_location::host, access_mode::readwrite, false);
+    return GPUArray<T>::acquire(access_location::host, access_mode::readwrite, false);
     #else
-    return GPUArray<T>::aquire(access_location::host, access_mode::readwrite);
+    return GPUArray<T>::acquire(access_location::host, access_mode::readwrite);
     #endif
     }
 

@@ -28,7 +28,7 @@ template <typename R> class SharedSignalSlot;
 /*! The SharedSignal is a class that wraps the Nano::Signal class that allows for
 
     The SharedSignal has two types of signals: 1) the signal that we want to manage
-    and 2) the disconnect signal that is emited on destruction that tells all
+    and 2) the disconnect signal that is emitted on destruction that tells all
     SharedSignalSlots to disconnect.
 
     See \ref page_dev_info for more information
@@ -71,7 +71,7 @@ class SignalSlot
         virtual ~SignalSlot() {}
         virtual void disconnect() = 0;
         bool connected() { return m_connected; }
-        SignalSlot(const SignalSlot&) = delete;             // non-copiable
+        SignalSlot(const SignalSlot&) = delete;             // non-copyable
         SignalSlot& operator=(const SignalSlot&) = delete;  // non-assignable
     protected:
         bool m_connected;
@@ -79,7 +79,7 @@ class SignalSlot
 
 //! Manages signal lifetime and slot lifetime
 /*! The SharedSignalSlot class manages the connections between the functions and the
-    SharedSignal. On contruction the slot is connected to the signal. On destruction
+    SharedSignal. On construction the slot is connected to the signal. On destruction
     the slot is disconnected. The slot can be disconnected by calling disconnect()
     and once it is disconnected it can not be reconnected.
 

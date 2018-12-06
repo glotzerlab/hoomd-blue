@@ -25,7 +25,7 @@
 //! Texture for reading dihedral parameters
 scalar4_tex_t dihedral_params_tex;
 
-//! Kernel for caculating harmonic dihedral forces on the GPU
+//! Kernel for calculating harmonic dihedral forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
@@ -236,7 +236,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
         Scalar ffcz = -sz2 - ffdz;
 
         // Now, apply the force to each individual atom a,b,c,d
-        // and accumlate the energy/virial
+        // and accumulate the energy/virial
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
         //Scalar dihedral_eng = p*K*Scalar(1.0/4.0);
         Scalar dihedral_eng = p*K*Scalar(1.0/8.0); // the 1/8th term is (1/2)K * 1/4

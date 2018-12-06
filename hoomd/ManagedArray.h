@@ -7,6 +7,7 @@
 #include "managed_allocator.h"
 
 #include <algorithm>
+#include <utility>
 #endif
 
 #ifdef ENABLE_CUDA
@@ -30,27 +31,18 @@ class ManagedArray
     public:
         //! Default constructor
         DEVICE ManagedArray()
-            : data(nullptr), N(0), managed(0)
+            : data(nullptr), N(0), managed(0), align(0),
+              allocation_ptr(nullptr), allocation_bytes(0)
             { }
 
         #ifndef NVCC
-        ManagedArray(unsigned int _N, bool _managed)
-            : N(_N), managed(_managed)
+        ManagedArray(unsigned int _N, bool _managed, size_t _align = 0)
+            : data(nullptr), N(_N), managed(_managed), align(_align),
+              allocation_ptr(nullptr), allocation_bytes(0)
             {
             if (N > 0)
                 {
                 allocate();
-                }
-            }
-
-        //! Convenience constructor to fill array with values
-        ManagedArray(unsigned int _N, bool _managed, const T& value)
-            : N(_N), managed(_managed)
-            {
-            if (N > 0)
-                {
-                allocate();
-                std::fill(data,data+N,value);
                 }
             }
         #endif
@@ -63,13 +55,19 @@ class ManagedArray
             }
 
         //! Copy constructor
+        /*! \warn the copy constructor reads from the other array and assumes that array is available on the
+                  host. If the GPU isn't synced up, this can lead to erros, so proper multi-GPU synchronization
+                  needs to be ensured
+         */
         DEVICE ManagedArray(const ManagedArray<T>& other)
-            : N(other.N), managed(other.managed)
+            : data(nullptr), N(other.N), managed(other.managed), align(other.align),
+              allocation_ptr(nullptr), allocation_bytes(0)
             {
             #ifndef NVCC
             if (N > 0)
                 {
                 allocate();
+
                 std::copy(other.data, other.data+N, data);
                 }
             #else
@@ -78,6 +76,10 @@ class ManagedArray
             }
 
         //! Assignment operator
+        /*! \warn the copy assignment constructor reads from the other array and assumes that array is available on the
+                  host. If the GPU isn't synced up, this can lead to erros, so proper multi-GPU synchronization
+                  needs to be ensured
+         */
         DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
             {
             #ifndef NVCC
@@ -86,11 +88,13 @@ class ManagedArray
 
             N = other.N;
             managed = other.managed;
+            align = other.align;
 
             #ifndef NVCC
             if (N > 0)
                 {
                 allocate();
+
                 std::copy(other.data, other.data+N, data);
                 }
             #else
@@ -185,24 +189,42 @@ class ManagedArray
             available_bytes -= size_int*sizeof(int)+max_align_bytes;
             }
 
+        bool isManaged() const
+            {
+            return managed;
+            }
+
+        unsigned int size() const
+            {
+            return N;
+            }
+
+        size_t getAllocationBytes() const
+            {
+            return allocation_bytes;
+            }
+
     protected:
         #ifndef NVCC
         void allocate()
             {
-            data = managed_allocator<T>::allocate_construct(N, managed);
+            data = managed_allocator<T>::allocate_construct_aligned(N, managed, align, allocation_bytes, allocation_ptr);
             }
 
         void deallocate()
             {
             if (N > 0)
                 {
-                managed_allocator<T>::deallocate_destroy(data, N, managed);
+                managed_allocator<T>::deallocate_destroy_aligned(data, N, managed, allocation_ptr);
                 }
             }
         #endif
 
     private:
-        mutable T *data;       //!< Data pointer
-        unsigned int N;        //!< Number of data elements
-        unsigned int managed;  //!< True if we are CUDA managed
+        mutable T *data;         //!< Data pointer
+        unsigned int N;          //!< Number of data elements
+        unsigned int managed;    //!< True if we are CUDA managed
+        size_t align;            //!< Alignment size
+        void *allocation_ptr;    //!< Pointer to un-aligned start of allocation
+        size_t allocation_bytes; //!< Total size of allocation, including aligned part
     };

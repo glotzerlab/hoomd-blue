@@ -32,7 +32,7 @@
 //! Template class for computing three-body potentials
 /*! <b>Overview:</b>
     PotentialTersoff computes standard three-body potentials and forces between all particles in the
-    simulation.  It employs the use of a neighbor list to limit the number of comutations done to
+    simulation.  It employs the use of a neighbor list to limit the number of computations done to
     only those particles within the cutoff radius of each other.  the computation of the actual
     potential is not performed directly by this class, but by an evaluator class (e.g.
     EvaluatorTersoff) which is passed in as a template parameter so the computations are performed
@@ -56,7 +56,7 @@
     of force_divr_ij.
 
     rcutsq, ronsq, and the params are stored per particle type-pair. It wastes a little bit of space, but benchmarks
-    show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redudant pairs
+    show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redundant pairs
     and indexing with Index2DUpperTriangular. All of these values are stored in GPUArray
     for easy access on the GPU by a derived class. The type of the parameters is defined by \a param_type in the
     potential evaluator class passed in. See the appropriate documentation for the evaluator for the definition of each
@@ -102,7 +102,7 @@ class PotentialTersoff : public ForceCompute
     protected:
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
-        GPUArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
+        GPUArray<Scalar> m_rcutsq;                  //!< Cutoff radius squared per type pair
         GPUArray<Scalar> m_ronsq;                   //!< ron squared per type pair
         GPUArray<param_type> m_params;   //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
@@ -116,7 +116,7 @@ class PotentialTersoff : public ForceCompute
             {
             // skip the reallocation if the number of types does not change
             // this keeps old potential coefficients when restoring a snapshot
-            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
             if (m_pdata->getNTypes() == m_typpair_idx.getW())
                 return;
 
@@ -142,7 +142,7 @@ PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_typpair_idx(m_pdata->getNTypes())
     {
-    this->exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << std::endl;
+    this->m_exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << std::endl;
 
     assert(m_pdata);
     assert(m_nlist);
@@ -165,7 +165,7 @@ PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition
 template < class evaluator >
 PotentialTersoff< evaluator >::~PotentialTersoff()
     {
-    this->exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
+    this->m_exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
     m_pdata->getNumTypesChangeSignal().template disconnect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
     }
 
@@ -180,7 +180,7 @@ void PotentialTersoff< evaluator >::setParams(unsigned int typ1, unsigned int ty
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set pair params for a non existant type! "
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set pair params for a non existent type! "
                   << typ1 << "," << typ2 << std::endl << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialTersoff");
         }
@@ -192,7 +192,7 @@ void PotentialTersoff< evaluator >::setParams(unsigned int typ1, unsigned int ty
 
 /*! \param typ1 First type index in the pair
     \param typ2 Second type index in the pair
-    \param rcut Cuttoff radius to set
+    \param rcut Cutoff radius to set
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically
           set.
 */
@@ -201,7 +201,7 @@ void PotentialTersoff< evaluator >::setRcut(unsigned int typ1, unsigned int typ2
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << std::endl << "Trying to set rcut for a non existant type! "
+        m_exec_conf->msg->error() << std::endl << "Trying to set rcut for a non existent type! "
                                   << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialTersoff");
         }
@@ -222,7 +222,7 @@ void PotentialTersoff< evaluator >::setRon(unsigned int typ1, unsigned int typ2,
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << std::endl << "Trying to set ron for a non existant type! "
+        m_exec_conf->msg->error() << std::endl << "Trying to set ron for a non existent type! "
                                   << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialTersoff");
         }

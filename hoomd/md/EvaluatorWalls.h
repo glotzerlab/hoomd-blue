@@ -82,7 +82,7 @@ class EvaluatorWalls
             return evaluator::needsCharge();
             }
 
-        //! Declares additional virial cotribututions are needed for the external field
+        //! Declares additional virial contributions are needed for the external field
         DEVICE static bool requestFieldVirialTerm()
             {
             return false; //volume change dependence is not currently defined

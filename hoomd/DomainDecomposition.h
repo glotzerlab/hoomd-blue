@@ -182,7 +182,7 @@ class PYBIND11_EXPORT DomainDecomposition
         bool findDecomposition(unsigned int nranks, Scalar3 L,
             unsigned int& nx, unsigned int& ny, unsigned int& nz);
 
-        //! Find a two-level decompositon of the global grid
+        //! Find a two-level decomposition of the global grid
         void subdivide(unsigned int n_node_ranks, Scalar3 L,
             unsigned int nx, unsigned int ny, unsigned int nz,
             unsigned int& nx_intra, unsigned int &ny_intra, unsigned int& nz_intra);

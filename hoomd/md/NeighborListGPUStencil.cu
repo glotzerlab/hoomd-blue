@@ -166,7 +166,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int *d_nlist,
 
     while (! done)
         {
-        // initalize with default
+        // initialize with default
         unsigned int neighbor;
         unsigned char has_neighbor = 0;
 

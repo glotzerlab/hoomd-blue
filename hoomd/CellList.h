@@ -5,8 +5,7 @@
 // Maintainer: joaander
 
 #include "HOOMDMath.h"
-#include "GPUArray.h"
-#include "GPUFlags.h"
+#include "GlobalArray.h"
 
 #include "Index1D.h"
 #include "Compute.h"
@@ -29,9 +28,9 @@
 
 //! Computes a cell list from the particles in the system
 /*! \b Overview:
-    Cell lists are useful data structures when working with locality queries on particles. The most notable useage of
-    cell lists in HOOMD is as an auxilliary data structure used when building the neighbor list. The data layout design
-    decisions for CellList were made to optimize the performance of the neighbor list build as deteremined by
+    Cell lists are useful data structures when working with locality queries on particles. The most notable usage of
+    cell lists in HOOMD is as an auxiliary data structure used when building the neighbor list. The data layout design
+    decisions for CellList were made to optimize the performance of the neighbor list build as determined by
     microbenchmarking. However, CellList is written as generally as possible so that it can be used throughout the code
     in other locations where a cell list is needed.
 
@@ -41,7 +40,7 @@
 
     <b>Data storage:</b>
 
-    All data is stored in GPUArrays for access on the host and device.
+    All data is stored in GlobalArrays for access on the host and device, and concurrent access between GPUs.
 
      - The \c cell_size array lists the number of members in each cell.
      - The \c xyzf array contains Scalar4 elements each of which holds the x,y,z coordinates of the particle and a flag.
@@ -84,9 +83,9 @@
 
     After a set call is made to adjust a parameter, changes do not take effect until the next call to compute().
 
-    <b>Overvlow and error flag handling:</b>
-    For easy support of derived GPU classes to implement overvlow detection and error handling, all error flags are
-    stored in the GPUArray \a d_conditions.
+    <b>Overflow and error flag handling:</b>
+    For easy support of derived GPU classes to implement overflow detection and error handling, all error flags are
+    stored in the GlobalArray \a d_conditions.
      - 0: Maximum cell size (implementations are free to write to this element only in overflow conditions if they
           choose.)
      - 1: Set to non-zero if any particle has nan coordinates
@@ -281,7 +280,7 @@ class PYBIND11_EXPORT CellList : public Compute
             return m_xyzf;
             }
 
-        //! Get the cell list containting t,d,b
+        //! Get the cell list containing t,d,b
         const GPUArray<Scalar4>& getTDBArray() const
             {
             return m_tdb;
@@ -334,7 +333,7 @@ class PYBIND11_EXPORT CellList : public Compute
         bool m_flag_type;            //!< true if the flag should be set to type, it will be index otherwise
         bool m_params_changed;       //!< Set to true when parameters are changed
         bool m_particles_sorted;     //!< Set to true when the particles have been sorted
-        bool m_box_changed;          //!< Set to ttrue when the box size has changed
+        bool m_box_changed;          //!< Set to true when the box size has changed
         unsigned int m_multiple;     //!< Round cell dimensions down to a multiple of this value
 
         // parameters determined by initialize
@@ -347,13 +346,13 @@ class PYBIND11_EXPORT CellList : public Compute
         Scalar3 m_ghost_width;       //!< Width of ghost layer sized for (on one side only)
 
         // values computed by compute()
-        GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell
-        GPUArray<unsigned int> m_cell_adj;   //!< Cell adjacency list
-        GPUArray<Scalar4> m_xyzf;            //!< Cell list with position and flags
-        GPUArray<Scalar4> m_tdb;             //!< Cell list with type,diameter,body
-        GPUArray<Scalar4> m_orientation;     //!< Cell list with orientation
-        GPUArray<unsigned int> m_idx;        //!< Cell list with index
-        GPUFlags<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
+        GlobalArray<unsigned int> m_cell_size;  //!< Number of members in each cell
+        GlobalArray<unsigned int> m_cell_adj;   //!< Cell adjacency list
+        GlobalArray<Scalar4> m_xyzf;            //!< Cell list with position and flags
+        GlobalArray<Scalar4> m_tdb;             //!< Cell list with type,diameter,body
+        GlobalArray<Scalar4> m_orientation;     //!< Cell list with orientation
+        GlobalArray<unsigned int> m_idx;        //!< Cell list with index
+        GlobalArray<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
 
         bool m_sort_cell_list;               //!< If true, sort cell list
         bool m_compute_adj_list;            //!< If true, compute the cell adjacency lists
@@ -368,7 +367,7 @@ class PYBIND11_EXPORT CellList : public Compute
         void initializeWidth();
 
         //! Initialize indexers and allocate memory
-        void initializeMemory();
+        virtual void initializeMemory();
 
         //! Initializes values in the cell_adj array
         void initializeCellAdj();

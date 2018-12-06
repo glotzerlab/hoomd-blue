@@ -18,7 +18,7 @@ using namespace std;
 
 /*! \param sysdef System to which the Berendsen thermostat will be applied
     \param group Group of particles to which the Berendsen thermostat will be applied
-    \param thermo Compute for themodynamic properties
+    \param thermo Compute for thermodynamic properties
     \param tau Time constant for Berendsen thermostat
     \param T Set temperature
 */
@@ -95,7 +95,7 @@ void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
 
-    // access the aprticle data rrays for use on the GPU
+    // access the particle data arrays for use on the GPU
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
 

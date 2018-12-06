@@ -49,7 +49,7 @@ class nlist:
     """
 
     def __init__(self):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("Cannot create neighbor list before initialization\n");
             raise RuntimeError('Error creating neighbor list');
@@ -176,7 +176,7 @@ class nlist:
         hoomd.util.print_status_line();
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         # update the parameters
@@ -238,7 +238,7 @@ class nlist:
         self.is_exclusion_overridden = True;
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
             raise RuntimeError('Error resetting exclusions');
 
         # clear all of the existing exclusions
@@ -335,7 +335,7 @@ class nlist:
 
         """
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         return self.cpp_nlist.getSmallestRebuild()-1;
@@ -375,7 +375,7 @@ class nlist:
             hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
+            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
 
         # quiet the tuner starting here so that the user doesn't see all of the parameter set and run calls
@@ -751,7 +751,7 @@ class stencil(nlist):
             hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n')
+            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
 
         min_cell_width = min_width

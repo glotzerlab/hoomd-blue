@@ -31,7 +31,7 @@ will not require any modifications. **Maintainer:** Joshua A. Anderson
 
 .. attention::
 
-    This stability guaruntee only applies to modules in the :py:mod:`hoomd` package.
+    This stability guarantee only applies to modules in the :py:mod:`hoomd` package.
     Subpackages (:py:mod:`hoomd.hpmc`, :py:mod:`hoomd.md`, etc...) may or may not
     have a stable API. The documentation for each subpackage specifies the level of
     API stability it provides.
@@ -93,10 +93,10 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
         tsteps (int): Number of time steps to advance the simulation.
         profile (bool): Set to True to enable high level profiling output at the end of the run.
-        profile limit_hours (float): If not None, limit this run to a given number of hours.
+        limit_hours (float): If not None, limit this run to a given number of hours.
         limit_multiple (int): When stopping the run due to walltime limits, only stop when the time step is a
                               multiple of limit_multiple.
-        callback (callable): Sets a Python function to be called regularly during a run.
+        callback (`callable`): Sets a Python function to be called regularly during a run.
         callback_period (int): Sets the period, in time steps, between calls made to ``callback``.
         quiet (bool): Set to True to disable the status information printed to the screen by the run.
 
@@ -121,7 +121,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     cases, :py:func:`run()` should only be called after after pair forces, bond forces,
     and an integrator are specified.
 
-    When ``profile`` is **True**, a detailed breakdown of how much time was spent in each
+    When `profile` is **True**, a detailed breakdown of how much time was spent in each
     portion of the calculation is printed at the end of the run. Collecting this timing information
     slows the simulation.
 
@@ -130,7 +130,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     There are a number of mechanisms to limit the time of a running hoomd script. Use these in a job
     queuing environment to allow your script to cleanly exit before reaching the system enforced walltime limit.
 
-    Force :py:func:`run()` to end only on time steps that are a multiple of ``limit_mulitple``. Set this to the period at which you
+    Force :py:func:`run()` to end only on time steps that are a multiple of ``limit_multiple``. Set this to the period at which you
     dump restart files so that you always end a :py:func:`run()` cleanly at a point where you can restart from. Use
     ``phase=0`` on logs, file dumps, and other periodic tasks. With ``phase=0``, these tasks will continue on the same
     sequence regardless of the restart period.
@@ -164,7 +164,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     if not quiet:
         util.print_status_line();
-    # check if initialization has occured
+    # check if initialization has occurred
     if not init.is_initialized():
         context.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
@@ -223,7 +223,7 @@ def run_upto(step, **keywords):
     """
     if 'quiet' in keywords and not keywords['quiet']:
         util.print_status_line();
-    # check if initialization has occured
+    # check if initialization has occurred
     if not init.is_initialized():
         context.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');

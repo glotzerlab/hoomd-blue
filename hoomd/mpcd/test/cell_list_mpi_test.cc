@@ -1363,7 +1363,7 @@ UP_TEST( mpcd_cell_list_dimensions )
     // mpi in 1d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     -1,
+                                                                                     std::vector<int>(),
                                                                                      false,
                                                                                      false,
                                                                                      std::shared_ptr<Messenger>(),
@@ -1375,7 +1375,7 @@ UP_TEST( mpcd_cell_list_dimensions )
     // mpi in 2d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     -1,
+                                                                                     std::vector<int>(),
                                                                                      false,
                                                                                      false,
                                                                                      std::shared_ptr<Messenger>(),
@@ -1387,7 +1387,7 @@ UP_TEST( mpcd_cell_list_dimensions )
     // mpi in 3d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     -1,
+                                                                                     std::vector<int>(),
                                                                                      false,
                                                                                      false,
                                                                                      std::shared_ptr<Messenger>(),
@@ -1415,7 +1415,7 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
     // mpi in 1d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     -1,
+                                                                                     std::vector<int>(),
                                                                                      false,
                                                                                      false,
                                                                                      std::shared_ptr<Messenger>(),
@@ -1427,7 +1427,7 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
     // mpi in 2d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     -1,
+                                                                                     std::vector<int>(),
                                                                                      false,
                                                                                      false,
                                                                                      std::shared_ptr<Messenger>(),
@@ -1439,7 +1439,7 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
     // mpi in 3d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     -1,
+                                                                                     std::vector<int>(),
                                                                                      false,
                                                                                      false,
                                                                                      std::shared_ptr<Messenger>(),

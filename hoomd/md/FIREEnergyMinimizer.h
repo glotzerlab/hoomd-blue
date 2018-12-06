@@ -93,7 +93,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
         void setMinSteps(unsigned int steps) {m_run_minsteps = steps;}
 
         //! Get needed pdata flags
-        /*! FIREEnergyMinimzer needs the potential energy, so its flag is set
+        /*! FIREEnergyMinimizer needs the potential energy, so its flag is set
         */
         virtual PDataFlags getRequestedPDataFlags()
             {
@@ -106,9 +106,9 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
         //! Function to create the underlying integrator
         unsigned int m_nmin;                //!< minimum number of consecutive successful search directions before modifying alpha
         unsigned int m_n_since_negative;    //!< counts the number of consecutive successful search directions
-        unsigned int m_n_since_start;       //!< counts the number of consecutvie search attempts
-        Scalar m_finc;                      //!< fractional increase in timestep upon successful seach
-        Scalar m_fdec;                      //!< fractional decrease in timestep upon unsuccessful seach
+        unsigned int m_n_since_start;       //!< counts the number of consecutive search attempts
+        Scalar m_finc;                      //!< fractional increase in timestep upon successful search
+        Scalar m_fdec;                      //!< fractional decrease in timestep upon unsuccessful search
         Scalar m_alpha;                     //!< relative coupling strength between alpha
         Scalar m_alpha_start;               //!< starting value of alpha
         Scalar m_falpha;                    //!< fraction to rescale alpha on successful search direction
@@ -120,7 +120,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
         bool m_converged;                   //!< whether the minimization has converged
         Scalar m_deltaT_max;                //!< maximum timesteps after rescaling (set by user)
         Scalar m_deltaT_set;                //!< the initial timestep
-        unsigned int m_run_minsteps;        //!< A minimum number of seach attempts the search will use
+        unsigned int m_run_minsteps;        //!< A minimum number of search attempts the search will use
         bool m_was_reset;                   //!< whether or not the minimizer was reset
 
     private:

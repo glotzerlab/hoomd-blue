@@ -17,7 +17,6 @@ dependencies:
 - snowballstemmer=1.2.1=py35_0
 - sphinx=1.4.1=py35_0
 - sphinx_rtd_theme=0.1.9=py35_0
-- sqlite=3.13.0=0
 - tk=8.5.18=0
 - wheel=0.29.0=py35_0
 - xz=5.0.5=1

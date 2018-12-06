@@ -38,7 +38,7 @@ class EvaluatorBondHarmonic
         typedef Scalar2 param_type;
 
         //! Constructs the pair potential evaluator
-        /*! \param _rsq Squared distance beteen the particles
+        /*! \param _rsq Squared distance between the particles
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorBondHarmonic(Scalar _rsq, const param_type& _params)

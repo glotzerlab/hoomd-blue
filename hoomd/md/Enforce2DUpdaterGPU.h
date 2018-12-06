@@ -20,7 +20,7 @@
 #define __ENFORCE2DUPDATER_GPU_H__
 
 //! NVE via velocity verlet on the GPU
-/*! Enforce2DUpdaterGPU implements exactly the same caclulations as NVEUpdater, but on the GPU.
+/*! Enforce2DUpdaterGPU implements exactly the same calculations as NVEUpdater, but on the GPU.
 
     The GPU kernel that accomplishes this can be found in gpu_nve_kernel.cu
 

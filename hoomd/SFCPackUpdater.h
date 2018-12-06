@@ -24,14 +24,14 @@
 #define __SFCPACK_UPDATER_H__
 
 //! Sort the particles
-/*! Impelements an algorithm that reorders particles in the ParticleData so that particles
+/*! Implements an algorithm that reorders particles in the ParticleData so that particles
     near each other in space become near each other in memory. This transformation improves
     cache locality in almost every other calculation in HOOMD, such as LJForceCompute,
     HarmonicBondForceCompute, and NeighborListBinned, to name a few. As particles move
     through time, they will tend to unsort themselves at a rate depending on how diffusive
-    the simulation is. Tests preformed on a Leannard-Jones liquid simulation at a temperature of 1.2
+    the simulation is. Tests preformed on a Lennard-Jones liquid simulation at a temperature of 1.2
     showed that performing the sort every 1,000 time steps is sufficient to maintain the
-    benifits of the sort without significant overhead. Less diffusive systems can easily increase
+    benefits of the sort without significant overhead. Less diffusive systems can easily increase
     that value to 2,000 or more.
 
     Usage:<br>

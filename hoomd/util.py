@@ -65,7 +65,7 @@ def print_status_line():
     # get the traceback info first
     stack = traceback.extract_stack();
     if len(stack) < 3:
-        hoomd.context.msg.notice(2, "hoomd_script executing unknown command\n");
+        hoomd.context.msg.notice(2, "hoomd executing unknown command\n");
 
     if sys.version_info[:3] != (3, 5, 0):
         frame = -3
@@ -116,7 +116,7 @@ def cuda_profile_start():
 
     Example::
 
-        from hoomd_script import *
+        from hoomd import *
         init.read_xml("init.xml");
         # setup....
         run(30000);  # warm up and auto-tune kernel block sizes
@@ -125,7 +125,13 @@ def cuda_profile_start():
         run(100);
 
     """
-    _hoomd.cuda_profile_start();
+    # check if initialization has occurred
+    if not hoomd.init.is_initialized():
+        hoomd.context.msg.error("Cannot start profiling before initialization\n");
+        raise RuntimeError('Error starting profile');
+
+    if hoomd.context.exec_conf.isCUDAEnabled():
+        hoomd.context.exec_conf.cudaProfileStart();
 
 def cuda_profile_stop():
     """ Stop CUDA profiling.
@@ -133,5 +139,10 @@ def cuda_profile_stop():
         See Also:
             :py:func:`cuda_profile_start()`.
     """
+    # check if initialization has occurred
+    if not hoomd.init.is_initialized():
+        hoomd.context.msg.error("Cannot stop profiling before initialization\n");
+        raise RuntimeError('Error stopping profile');
 
-    _hoomd.cuda_profile_stop();
+    if hoomd.context.exec_conf.isCUDAEnabled():
+        hoomd.context.exec_conf.cudaProfileStop();

@@ -260,7 +260,7 @@ __device__ inline unsigned int computeParticleCell(const Scalar3& p,
     in the group detect an overlap. After all checks are complete, the master thread in the group applies the trial move
     update if accepted.
 
-    No __synchtreads is needed after the overlap checks because the group_size is always chosen to be a power of 2 and
+    No __syncthreads is needed after the overlap checks because the group_size is always chosen to be a power of 2 and
     smaller than the warp size. Only a __threadfence_block() is needed to ensure memory consistency.
 
     Move stats are tallied in local memory, then totaled in shared memory at the end and finally a single thread in the
@@ -711,7 +711,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
                 d_active_cell_move_type_translate[active_cell_idx] = move_type_translate ? 1 : 0;
                 }
 
-            // if an auxillary array was provided, defer writing out statistics
+            // if an auxiliary array was provided, defer writing out statistics
             if (d_active_cell_ptl_idx)
                 {
                 ignore_stats = 1;

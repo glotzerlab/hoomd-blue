@@ -144,13 +144,13 @@ texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
     \param ntypes Number of types in the simulation
     \param tpp Number of threads per particle
 
-    \a d_params, and \a d_rcutsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
+    \a d_params, and \a d_rcutsq must be indexed with an Index2DUpperTriangular(typei, typej) to access the
     unique value for that type pair. These values are all cached into shared memory for quick access, so a dynamic
-    amount of shared memory must be allocatd for this kernel launch. The amount is
+    amount of shared memory must be allocated for this kernel launch. The amount is
     (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
-    \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
+    \tparam evaluator EvaluatorPair class to evaluate V(r) and -delta V(r)/r
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut.
     \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
     \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
@@ -279,7 +279,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                 // apply periodic boundary conditions: (FLOPS 12)
                 dx = box.minImage(dx);
 
-                // calculate r squard (FLOPS: 5)
+                // calculate r squared (FLOPS: 5)
                 Scalar rsq = dot(dx,dx);
 
                 // calculate dv (FLOPS: 3)
@@ -381,7 +381,7 @@ inline void gpu_dpd_pair_force_bind_textures(const dpd_pair_args_t pair_args)
     pdata_dpd_pos_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_dpd_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.n_max);
 
-    // bind the diamter texture
+    // bind the diameter texture
     pdata_dpd_vel_tex.normalized = false;
     pdata_dpd_vel_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_dpd_vel_tex, pair_args.d_vel, sizeof(Scalar4) * pair_args.n_max);
@@ -416,7 +416,7 @@ struct DPDForceComputeKernel
     {
     //! Launcher for the DPD force kernel
     /*!
-     * \param args Other arugments to pass onto the kernel
+     * \param args Other arguments to pass onto the kernel
      * \param d_params Parameters for the potential, stored per type pair
      */
     static void launch(const dpd_pair_args_t& args, const typename evaluator::param_type *d_params)

@@ -107,7 +107,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.msg.error("No coefficents specified\n");
+            hoomd.context.msg.error("No coefficients specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -201,7 +201,7 @@ class harmonic(force._force):
     Examples::
 
         harmonic.improper_coeff.set('heme-ang', k=30.0, chi=1.57)
-        harmonic.improper_coeff.set('hdyro-bond', k=20.0, chi=1.57)
+        harmonic.improper_coeff.set('hydro-bond', k=20.0, chi=1.57)
 
     """
     def __init__(self):

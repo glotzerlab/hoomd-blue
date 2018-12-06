@@ -75,7 +75,7 @@ TableAngleForceCompute::~TableAngleForceCompute()
 /*! \param type Type of the angle to set parameters for
     \param V Table for the potential V
     \param T Table for the torque T (must be - dV / dtheta)
-    \post Values from \a V and \a T are copied into the interal storage for type pair (type)
+    \post Values from \a V and \a T are copied into the internal storage for type pair (type)
 */
 void TableAngleForceCompute::setTable(unsigned int type,
                               const std::vector<Scalar> &V,
@@ -177,7 +177,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         assert(angle.tag[1] <= m_pdata->getMaximumTag());
         assert(angle.tag[2] <= m_pdata->getMaximumTag());
 
-        // transform a, b, and c into indicies into the particle data arrays
+        // transform a, b, and c into indices into the particle data arrays
         // MEM TRANSFER: 6 ints
         unsigned int idx_a = h_rtag.data[angle.tag[0]];
         unsigned int idx_b = h_rtag.data[angle.tag[1]];
@@ -291,7 +291,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         angle_virial[4] = Scalar(1./3.) * ( dab.z*fab[1] + dcb.z*fcb[1] );
         angle_virial[5] = Scalar(1./3.) * ( dab.z*fab[2] + dcb.z*fcb[2] );
 
-        // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
+        // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
         // only apply force to local atoms
         if (idx_a < m_pdata->getN())
             {

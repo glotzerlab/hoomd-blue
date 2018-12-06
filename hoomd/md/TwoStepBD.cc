@@ -81,7 +81,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
-    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
 
@@ -149,8 +149,8 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         if (m_aniso)
             {
             unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
-            Scalar gamma_r = h_gamma_r.data[type_r];
-            if (gamma_r > 0)
+            Scalar3 gamma_r = h_gamma_r.data[type_r];
+            if (gamma_r.x > 0 || gamma_r.y > 0 || gamma_r.z > 0)
                 {
                 vec3<Scalar> p_vec;
                 quat<Scalar> q(h_orientation.data[j]);
@@ -160,16 +160,18 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                 bool x_zero, y_zero, z_zero;
                 x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
 
-                Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
+                Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0)*gamma_r.x*currentTemp/m_deltaT),
+                                               fast::sqrt(Scalar(2.0)*gamma_r.y*currentTemp/m_deltaT),
+                                               fast::sqrt(Scalar(2.0)*gamma_r.z*currentTemp/m_deltaT));
                 if (m_noiseless_r)
-                    sigma_r = Scalar(0.0);
+                    sigma_r = make_scalar3(0,0,0);
 
                 // original Gaussian random torque
                 // Gaussian random distribution is preferred in terms of preserving the exact math
                 vec3<Scalar> bf_torque;
-                bf_torque.x = gaussian_rng(saru, sigma_r);
-                bf_torque.y = gaussian_rng(saru, sigma_r);
-                bf_torque.z = gaussian_rng(saru, sigma_r);
+                bf_torque.x = gaussian_rng(saru, sigma_r.x);
+                bf_torque.y = gaussian_rng(saru, sigma_r.y);
+                bf_torque.z = gaussian_rng(saru, sigma_r.z);
 
                 if (x_zero) bf_torque.x = 0;
                 if (y_zero) bf_torque.y = 0;
@@ -189,7 +191,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                     }
 
                 // do the integration for quaternion
-                q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / gamma_r) * q ;
+                q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / vec3<Scalar>(gamma_r)) * q ;
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 h_orientation.data[j] = quat_to_scalar4(q);
 

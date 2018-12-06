@@ -65,7 +65,7 @@ std::vector< std::string > TwoStepLangevin::getProvidedLogQuantities()
 
 /*! \param quantity Name of the log quantity to get
     \param timestep Current time step of the simulation
-    \param my_quantity_flag passed as false, changed to true if quanity logged here
+    \param my_quantity_flag passed as false, changed to true if quantity logged here
 */
 
 Scalar TwoStepLangevin::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
@@ -96,7 +96,7 @@ void TwoStepLangevin::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
-    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -253,7 +253,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
@@ -314,14 +314,14 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
         h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
 
-        // tally the energy transfer from the bd thermal reservor to the particles
+        // tally the energy transfer from the bd thermal reservoir to the particles
         if (m_tally) bd_energy_transfer += bd_fx * h_vel.data[j].x + bd_fy * h_vel.data[j].y + bd_fz * h_vel.data[j].z;
 
         // rotational updates
         if (m_aniso)
             {
             unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
-            Scalar gamma_r = h_gamma_r.data[type_r];
+            Scalar3 gamma_r = h_gamma_r.data[type_r];
             // get body frame ang_mom
             quat<Scalar> p(h_angmom.data[j]);
             quat<Scalar> q(h_orientation.data[j]);
@@ -332,27 +332,28 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
             vec3<Scalar> s;
             s = (Scalar(1./2.) * conj(q) * p).v;
 
-            if (gamma_r > 0)
+            if (gamma_r.x > 0 || gamma_r.y > 0 || gamma_r.z > 0)
                 {
                 // first calculate in the body frame random and damping torque imposed by the dynamics
                 vec3<Scalar> bf_torque;
 
                 // original Gaussian random torque
-                // for future reference: if gamma_r is different for xyz, then we need to generate 3 sigma_r
-                Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
-                if (m_noiseless_r) sigma_r = Scalar(0.0);
+                Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0)*gamma_r.x*currentTemp/m_deltaT),
+                                               fast::sqrt(Scalar(2.0)*gamma_r.y*currentTemp/m_deltaT),
+                                               fast::sqrt(Scalar(2.0)*gamma_r.z*currentTemp/m_deltaT));
+                if (m_noiseless_r) sigma_r = make_scalar3(0.0,0.0,0.0);
 
-                Scalar rand_x = gaussian_rng(saru, sigma_r);
-                Scalar rand_y = gaussian_rng(saru, sigma_r);
-                Scalar rand_z = gaussian_rng(saru, sigma_r);
+                Scalar rand_x = gaussian_rng(saru, sigma_r.x);
+                Scalar rand_y = gaussian_rng(saru, sigma_r.y);
+                Scalar rand_z = gaussian_rng(saru, sigma_r.z);
 
                 // check for degenerate moment of inertia
                 bool x_zero, y_zero, z_zero;
                 x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
 
-                bf_torque.x = rand_x - gamma_r * (s.x / I.x);
-                bf_torque.y = rand_y - gamma_r * (s.y / I.y);
-                bf_torque.z = rand_z - gamma_r * (s.z / I.z);
+                bf_torque.x = rand_x - gamma_r.x * (s.x / I.x);
+                bf_torque.y = rand_y - gamma_r.y * (s.y / I.y);
+                bf_torque.z = rand_z - gamma_r.z * (s.z / I.z);
 
                 // ignore torque component along an axis for which the moment of inertia zero
                 if (x_zero) bf_torque.x = 0;

@@ -27,7 +27,7 @@
     being called and getLogValue called for each value to produce a line in the file. If a logged quantity
     is not registered, a 0 is printed to the file and a warning to stdout.
 
-    The removeAll method can be used to clear all registered computes and updaters. hoomd_script will
+    The removeAll method can be used to clear all registered computes and updaters. hoomd will
     removeAll() and re-register all active computes and updaters before every run()
 
     As an option, Logger can be initialized with no file. Such a logger will skip doing anything during

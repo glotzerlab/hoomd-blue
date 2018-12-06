@@ -359,9 +359,9 @@ class npt(_integration_method):
 
     For example:
 
-    - Specifying xyz copulings and x, y, and z degrees of freedom amounts to cubic symmetry (default)
+    - Specifying xyz couplings and x, y, and z degrees of freedom amounts to cubic symmetry (default)
     - Specifying xy couplings and x, y, and z degrees of freedom amounts to tetragonal symmetry.
-    - Specifing no couplings and all degrees of freedom amounts to a fully deformable triclinic unit cell
+    - Specifying no couplings and all degrees of freedom amounts to a fully deformable triclinic unit cell
 
     :py:class:`npt` Can also apply a constant stress to the simulation box. To do so, specify the symmetric
     stress tensor *S* instead of an isotropic pressure *P*.
@@ -1039,7 +1039,7 @@ class langevin(_integration_method):
 
         Args:
             a (str):  Particle type name
-            gamma_r (float): :math:`\gamma_r` for particle type a (in units of force/velocity)
+            gamma_r (float or tuple): :math:`\gamma_r` for particle type a (in units of force/velocity), optionally for all body frame directions
 
         :py:meth:`set_gamma_r()` sets the coefficient :math:`\gamma_r` for a single particle type, identified
         by name. The default is 1.0 if not specified for a type. It must be positive or zero, if set
@@ -1047,15 +1047,19 @@ class langevin(_integration_method):
 
         Examples::
 
-            bd.set_gamma_r('A', gamma_r=2.0)
+            langevin.set_gamma_r('A', gamma_r=2.0)
+            langevin.set_gamma_r('A', gamma_r=(1.0,2.0,3.0))
 
         """
 
-        if (gamma_r < 0):
-            raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
-
         hoomd.util.print_status_line();
         self.check_initialization();
+
+        if not isinstance(gamma_r,tuple):
+            gamma_r = (gamma_r, gamma_r, gamma_r)
+
+        if (gamma_r[0] < 0 or gamma_r[1] < 0 or gamma_r[2] < 0):
+            raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -1065,7 +1069,7 @@ class langevin(_integration_method):
         # change the parameters
         for i in range(0,ntypes):
             if a == type_list[i]:
-                self.cpp_method.setGamma_r(i,gamma_r);
+                self.cpp_method.setGamma_r(i,_hoomd.make_scalar3(*gamma_r));
 
 class brownian(_integration_method):
     R""" Brownian dynamics.
@@ -1248,7 +1252,7 @@ class brownian(_integration_method):
 
         Args:
             a (str):  Particle type name
-            gamma_r (float): :math:`\gamma_r` for particle type a (in units of force/velocity)
+            gamma_r (float or tuple): :math:`\gamma_r` for particle type a (in units of force/velocity), optionally for all body frame directions
 
         :py:meth:`set_gamma_r()` sets the coefficient :math:`\gamma_r` for a single particle type, identified
         by name. The default is 1.0 if not specified for a type. It must be positive or zero, if set
@@ -1257,14 +1261,18 @@ class brownian(_integration_method):
         Examples::
 
             bd.set_gamma_r('A', gamma_r=2.0)
+            bd.set_gamma_r('A', gamma_r=(1,2,3))
 
         """
 
-        if (gamma_r < 0):
-            raise ValueError("The gamma_r must be positive or zero (ignoring any rotational updates)")
-
         hoomd.util.print_status_line();
         self.check_initialization();
+
+        if not isinstance(gamma_r,tuple):
+            gamma_r = (gamma_r, gamma_r, gamma_r)
+
+        if (gamma_r[0] < 0 or gamma_r[1] < 0 or gamma_r[2] < 0):
+            raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -1274,7 +1282,7 @@ class brownian(_integration_method):
         # change the parameters
         for i in range(0,ntypes):
             if a == type_list[i]:
-                self.cpp_method.setGamma_r(i,gamma_r);
+                self.cpp_method.setGamma_r(i,_hoomd.make_scalar3(*gamma_r));
 
 class mode_minimize_fire(_integrator):
     R""" Energy Minimizer (FIRE).

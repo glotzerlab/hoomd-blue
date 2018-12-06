@@ -8,7 +8,7 @@
 
 #include <cuda_runtime_api.h>
 
-/*! \file ForceDistanceConstraingGPU.cu
+/*! \file ForceDistanceConstraintGPU.cu
     \brief Defines GPU kernel code for pairwise distance constraints on the GPU
 */
 

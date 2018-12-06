@@ -88,7 +88,7 @@ class EvaluatorExternalPeriodic
         */
         DEVICE void setCharge(Scalar qi) { }
 
-        //! Declares additional virial cotribututions are needed for the external field
+        //! Declares additional virial contributions are needed for the external field
         /*! No contributions
         */
         DEVICE static bool requestFieldVirialTerm() { return true; }
@@ -160,7 +160,7 @@ class EvaluatorExternalPeriodic
     protected:
         Scalar3 m_pos;                //!< particle position
         BoxDim m_box;                 //!< box dimensions
-        unsigned int m_index;         //!< cartesian index of direction along which the lammellae should be orientied
+        unsigned int m_index;         //!< cartesian index of direction along which the lamellae should be oriented
         Scalar m_orderParameter;      //!< ordering parameter
         Scalar m_interfaceWidth;      //!< width of interface between lamellae (relative to box length)
         unsigned int m_periodicity;   //!< number of lamellae of each type

@@ -219,7 +219,7 @@ class at(_collision_method):
             collide_class = _mpcd.ATCollisionMethodGPU
             thermo_class = _mpcd.CellThermoComputeGPU
 
-        # create an auxilliary thermo compute and disable logging on it
+        # create an auxiliary thermo compute and disable logging on it
         if hoomd.context.current.mpcd._at_thermo is None:
             rand_thermo = thermo_class(hoomd.context.current.mpcd.data)
             rand_thermo.enableLogging(False)

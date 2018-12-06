@@ -102,11 +102,11 @@ bool IntegrationMethodTwoStep::restartInfoTestValid(const IntegratorVariables& v
 /*! \param query_group Group over which to count (translational) degrees of freedom.
     A majority of the integration methods add D degrees of freedom per particle in \a query_group that is also in the
     group assigned to the method. Hence, the base class IntegrationMethodTwoStep will implement that counting.
-    Derived classes can ovveride if needed.
+    Derived classes can override if needed.
 */
 unsigned int IntegrationMethodTwoStep::getNDOF(std::shared_ptr<ParticleGroup> query_group)
     {
-    // get the size of the intersecion between query_group and m_group
+    // get the size of the intersection between query_group and m_group
     unsigned int intersect_size = ParticleGroup::groupIntersection(query_group, m_group)->getNumMembersGlobal();
 
     return m_sysdef->getNDimensions() * intersect_size;
@@ -114,7 +114,7 @@ unsigned int IntegrationMethodTwoStep::getNDOF(std::shared_ptr<ParticleGroup> qu
 
 unsigned int IntegrationMethodTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup> query_group)
     {
-    // get the size of the intersecion between query_group and m_group
+    // get the size of the intersection between query_group and m_group
     std::shared_ptr<ParticleGroup> intersect = ParticleGroup::groupIntersection(query_group, m_group);
 
     unsigned int local_group_size = intersect->getNumMembers();

@@ -110,7 +110,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.msg.error("No coefficents specified\n");
+            hoomd.context.msg.error("No coefficients specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -183,8 +183,8 @@ class coeff:
 ## \internal
 # \brief Base class for external forces
 #
-# An external_force in hoomd_script reflects a PotentialExternal in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd_script
+# An external_force in hoomd reflects a PotentialExternal in c++. It is responsible
+# for all high-level management that happens behind the scenes for hoomd
 # writers. 1) The instance of the c++ external force itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
 # net force on each particle

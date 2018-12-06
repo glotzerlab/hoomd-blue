@@ -50,7 +50,7 @@ GeneratedParticles::GeneratedParticles(std::shared_ptr<const ExecutionConfigurat
     // target a bin size of 7.0 * max_radius
     // the requirement is really only 2, 7 is to save memory
     Scalar target_size = Scalar(7.0)*max_radius;
-    // cap the size to a minimum of 2 to prevent small sizes from blowing up the memory uszge
+    // cap the size to a minimum of 2 to prevent small sizes from blowing up the memory usage
     if (target_size < Scalar(2.0))
         target_size = Scalar(2.0);
 
@@ -474,7 +474,7 @@ static Scalar random01(std::mt19937& rnd)
     \param max_attempts The maximum number of attempts to place each particle
     \param dimensions Number of dimensions in the system
 
-    A bonded pair of paritlces is \a bond_a[i] bonded to \a bond_b[i], with 0 being the first particle in the polymer.
+    A bonded pair of particles is \a bond_a[i] bonded to \a bond_b[i], with 0 being the first particle in the polymer.
     Hence, the sizes of \a bond_a and \a bond_b \b must be the same.
 */
 PolymerParticleGenerator::PolymerParticleGenerator(std::shared_ptr<const ExecutionConfiguration> exec_conf,

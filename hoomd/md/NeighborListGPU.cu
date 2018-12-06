@@ -16,7 +16,7 @@
 /*! \param d_result Device pointer to a single uint. Will be set to 1 if an update is needed
     \param d_last_pos Particle positions at the time the nlist was last updated
     \param d_pos Current particle positions
-    \param N Number of particles
+    \param nwork Number of particles this GPU processes
     \param box Box dimensions
     \param d_rcut_max The maximum rcut(i,j) that any particle of type i participates in
     \param r_buff The buffer size that particles can move in
@@ -32,14 +32,15 @@
 __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
                                                         const Scalar4 *d_last_pos,
                                                         const Scalar4 *d_pos,
-                                                        const unsigned int N,
+                                                        const unsigned int nwork,
                                                         const BoxDim box,
                                                         const Scalar *d_rcut_max,
                                                         const Scalar r_buff,
                                                         const unsigned int ntypes,
                                                         const Scalar lambda_min,
                                                         const Scalar3 lambda,
-                                                        const unsigned int checkn)
+                                                        const unsigned int checkn,
+                                                        const unsigned int offset)
     {
     // cache delta max into shared memory
     // shared data for per type pair parameters
@@ -65,8 +66,11 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
     // each thread will compare vs it's old position to see if the list needs updating
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx < N)
+    if (idx < nwork)
         {
+        // get particle index
+        idx += offset;
+
         Scalar4 cur_postype = d_pos[idx];
         Scalar3 cur_pos = make_scalar3(cur_postype.x, cur_postype.y, cur_postype.z);
         const unsigned int cur_type = __scalar_as_int(cur_postype.w);
@@ -77,7 +81,11 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
         dx = box.minImage(dx);
 
         if (dot(dx, dx) >= s_maxshiftsq[cur_type])
+            #if (__CUDA_ARCH__ >= 600)
+            atomicMax_system(d_result, checkn);
+            #else
             atomicMax(d_result, checkn);
+            #endif
         }
     }
 
@@ -91,23 +99,33 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const unsigned int ntypes,
                                              const Scalar lambda_min,
                                              const Scalar3 lambda,
-                                             const unsigned int checkn)
+                                             const unsigned int checkn,
+                                             const GPUPartition& gpu_partition)
     {
     const unsigned int shared_bytes = sizeof(Scalar) * ntypes;
 
     unsigned int block_size = 128;
-    int n_blocks = N/block_size+1;
-    gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size, shared_bytes>>>(d_result,
-                                                                                    d_last_pos,
-                                                                                    d_pos,
-                                                                                    N,
-                                                                                    box,
-                                                                                    d_rcut_max,
-                                                                                    r_buff,
-                                                                                    ntypes,
-                                                                                    lambda_min,
-                                                                                    lambda,
-                                                                                    checkn);
+
+    // iterate over active GPUs in reverse order
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+        unsigned int nwork = range.second - range.first;
+
+        int n_blocks = nwork/block_size+1;
+        gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size, shared_bytes>>>(d_result,
+                                                                                        d_last_pos,
+                                                                                        d_pos,
+                                                                                        nwork,
+                                                                                        box,
+                                                                                        d_rcut_max,
+                                                                                        r_buff,
+                                                                                        ntypes,
+                                                                                        lambda_min,
+                                                                                        lambda,
+                                                                                        checkn,
+                                                                                        range.first);
+        }
 
     return cudaSuccess;
     }
@@ -133,7 +151,7 @@ const unsigned int FILTER_BATCH_SIZE = 4;
     \b Implementation
 
     One thread is run for each particle. Exclusions \a ex_start, \a ex_start + 1, ... are loaded in for that particle
-    (or the thread returns if there are no exlusions past that point). The thread then loops over the neighbor list,
+    (or the thread returns if there are no exclusions past that point). The thread then loops over the neighbor list,
     comparing each entry to the list of exclusions. If the entry is not excluded, it is written back out. \a d_n_neigh
     is updated to reflect the current number of particles in the list at the end of the kernel call.
 */
