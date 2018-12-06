@@ -174,13 +174,10 @@ class event_deleter
             { }
 
         //! Destroy the event and free the memory location
-        /*! \param ptr Start of aligned memory allocation
+        /*! \param ptr Start of memory area
          */
         void operator()(cudaEvent_t *ptr)
             {
-            if (ptr == nullptr)
-                return;
-
             cudaEventDestroy(*ptr);
             CHECK_CUDA_ERROR();
 
@@ -616,11 +613,13 @@ class GlobalArray : public GPUArray<T>
 
             #ifdef ENABLE_CUDA
             bool use_device = this->m_exec_conf && this->m_exec_conf->isCUDAEnabled();
-            if (!isNull() && use_device && location == access_location::host)
+            if (!isNull() && use_device && location == access_location::host && !async)
                 {
                 // synchronize GPU 0
-                cudaEventRecord(*m_event, 0);
+                cudaEventRecord(*m_event);
                 cudaEventSynchronize(*m_event);
+                if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                    CHECK_CUDA_ERROR();
                 }
             #endif
 
@@ -733,7 +732,8 @@ class GlobalArray : public GPUArray<T>
                 {
                 m_event = std::unique_ptr<cudaEvent_t, hoomd::detail::event_deleter>(
                     new cudaEvent_t, hoomd::detail::event_deleter(this->m_exec_conf));
-                cudaEventCreate(m_event.get());
+
+                cudaEventCreate(m_event.get(), cudaEventDisableTiming);
                 CHECK_CUDA_ERROR();
                 }
             #endif
