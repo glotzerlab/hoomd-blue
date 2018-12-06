@@ -184,9 +184,10 @@ The compute-exclusive mode allows *only* a **single CUDA application** to run on
 4 compute-exclusive GPUs available in the system, executing a fifth instance of hoomd with ``python script.py``
 will result in the error: ``***Error! no CUDA-capable device is available``.
 
-Most compute clusters do not support automatic GPU selection, providing scheduler based approaches to assign GPUs
-that interface well with the MPI rank based GPU selection above. HOOMD only applies exclusive mode automatic
-GPU selection when built without MPI support (ENABLE_MPI=off) or executing on a single rank.
+Most compute clusters do not support automatic free GPU selection. Insteady the schedulers pin jobs to specific GPUs
+and bind the host processes to attached cores. In this case, HOOMD uses the rank-based GPU selection
+described above. HOOMD only applies exclusive mode automatic GPU selection when built without MPI support (ENABLE_MPI=off)
+or executing on a single rank.
 
 Minimize the CPU usage of HOOMD-blue
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
