@@ -758,9 +758,9 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const GPUPartition& gpu_partition,
                                      bool use_index)
     {
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
     unsigned int ngpu = gpu_partition.getNumActiveGPUs();
 
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
