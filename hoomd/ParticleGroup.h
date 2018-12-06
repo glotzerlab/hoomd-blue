@@ -134,6 +134,34 @@ class PYBIND11_EXPORT ParticleSelectorRigid : public ParticleSelector
         bool m_rigid;   //!< true if we should select rigid bodies, false if we should select non-rigid particles
     };
 
+//! Select particles based on their body body
+class PYBIND11_EXPORT ParticleSelectorBody : public ParticleSelector
+    {
+    public:
+        //! Constructs the selector
+        ParticleSelectorBody(std::shared_ptr<SystemDefinition> sysdef, bool body);
+        virtual ~ParticleSelectorBody() {}
+
+        //! Test if a particle meets the selection criteria
+        virtual bool isSelected(unsigned int tag) const;
+    protected:
+        bool m_body;   //!< true if we should select body bodies, false if we should select non-body particles
+    };
+
+//! Select particles based on their molecule body
+class PYBIND11_EXPORT ParticleSelectorMolecule : public ParticleSelector
+    {
+    public:
+        //! Constructs the selector
+        ParticleSelectorMolecule(std::shared_ptr<SystemDefinition> sysdef, bool molecule);
+        virtual ~ParticleSelectorMolecule() {}
+
+        //! Test if a particle meets the selection criteria
+        virtual bool isSelected(unsigned int tag) const;
+    protected:
+        bool m_molecule;   //!< true if we should select molecule bodies, false if we should select non-molecule particles
+    };
+
 class PYBIND11_EXPORT ParticleSelectorRigidCenter : public ParticleSelector
     {
     public:

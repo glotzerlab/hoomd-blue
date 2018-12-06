@@ -71,9 +71,9 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
             }
 
         //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
-        void setUnwrapRigid(bool enable)
+        void setUnwrapBody(bool enable)
             {
-            m_unwrap_rigid = enable;
+            m_unwrap_body = enable;
             }
 
         //! Set whether the z-component should be overwritten by the orientation angle
@@ -91,7 +91,7 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
         unsigned int m_last_written_step;   //!< Last timestep written in a a file we are appending to
         bool m_appending;                   //!< True if this instance is appending to an existing DCD file
         bool m_unwrap_full;                 //!< True if coordinates should be written out fully unwrapped in the box
-        bool m_unwrap_rigid;                //!< True if rigid bodies should be written out unwrapped
+        bool m_unwrap_body;                //!< True if rigid bodies should be written out unwrapped
         bool m_angle;                       //!< True if the z-component should be set to the orientation angle
 
         bool m_overwrite;                   //!< True if file should be overwritten

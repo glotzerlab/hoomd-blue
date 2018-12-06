@@ -177,7 +177,7 @@ void IntegrationMethodTwoStep::validateGroup()
 
             unsigned int body = h_body.data[h_rtag.data[tag]];
 
-            if (body != NO_BODY && body != tag)
+            if (body < MIN_MOLECULE && body != tag)
                 {
                 m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body, but is not its center particle. "
                     << std::endl << "This integration method does not operate on constituent particles."

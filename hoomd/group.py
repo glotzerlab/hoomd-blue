@@ -356,6 +356,122 @@ def rigid():
     # return it in the wrapper class
     return group(name, cpp_group);
 
+def nonmolecule():
+    R""" Groups particles that do not belong to any molecule (non-rigid body).
+
+    Creates a particle group from particles. All particles that **do not** belong to a molecule will be added to
+    the group. The group is always named 'nonmolecule'.
+
+    Examples::
+
+        nonmolecule = group.nonmolecule()
+
+    """
+    hoomd.util.print_status_line();
+
+    # check if initialization has occurred
+    if not hoomd.init.is_initialized():
+        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        raise RuntimeError('Error creating group');
+
+    # create the group
+    name = 'nonmolecule';
+    selector = _hoomd.ParticleSelectorMolecule(hoomd.context.current.system_definition, False);
+    cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
+
+    # notify the user of the created group
+    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
+def molecule():
+    R""" Groups particles that belong to any molecule (non-rigid body).
+
+    Creates a particle group from particles. All particles that belong to a molecule will be added to the group.
+    The group is always named 'molecule'.
+
+    Examples::
+
+        molecule = group.molecule()
+
+    """
+    hoomd.util.print_status_line();
+
+    # check if initialization has occurred
+    if not hoomd.init.is_initialized():
+        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        raise RuntimeError('Error creating group');
+
+    # create the group
+    name = 'molecule';
+    selector = _hoomd.ParticleSelectorMolecule(hoomd.context.current.system_definition,True);
+    cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
+
+    # notify the user of the created group
+    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
+def nonbody():
+    R""" Groups particles that do not belong to any body.
+
+    Creates a particle group from particles. All particles that **do not** belong to a body will be added to
+    the group. The group is always named 'nonbody'.
+
+    Examples::
+
+        nonbody = group.nonbody()
+
+    """
+    hoomd.util.print_status_line();
+
+    # check if initialization has occurred
+    if not hoomd.init.is_initialized():
+        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        raise RuntimeError('Error creating group');
+
+    # create the group
+    name = 'nonbody';
+    selector = _hoomd.ParticleSelectorBody(hoomd.context.current.system_definition, False);
+    cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
+
+    # notify the user of the created group
+    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
+def body():
+    R""" Groups particles that belong to any bodies.
+
+    Creates a particle group from particles. All particles that belong to a body will be added to the group.
+    The group is always named 'body'.
+
+    Examples::
+
+        body = group.body()
+
+    """
+    hoomd.util.print_status_line();
+
+    # check if initialization has occurred
+    if not hoomd.init.is_initialized():
+        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        raise RuntimeError('Error creating group');
+
+    # create the group
+    name = 'body';
+    selector = _hoomd.ParticleSelectorBody(hoomd.context.current.system_definition,True);
+    cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
+
+    # notify the user of the created group
+    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
 def tags(tag_min, tag_max=None, name=None, update=False):
     R""" Groups particles by tag.
 

@@ -171,7 +171,7 @@ void ConstraintSphere::validate()
 
         if (h_body.data[j] != NO_BODY)
             {
-            m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " belongs to a rigid body"
+            m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " belongs to a body"
                                       << " - cannot constrain" << endl;
             errors = true;
             }

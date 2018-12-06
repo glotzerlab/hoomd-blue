@@ -892,7 +892,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 {
                 unsigned int snap_idx = it - snapshot.pos.begin();
 
-                // if requested, do not initialize constituent particles of rigid bodies
+                // if requested, do not initialize constituent particles of bodies
                 if (ignore_bodies && snapshot.body[snap_idx] != NO_BODY)
                     {
                     continue;

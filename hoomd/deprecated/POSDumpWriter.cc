@@ -24,7 +24,7 @@ using namespace std;
     \param fname_base The base file name to write the output to
 */
 POSDumpWriter::POSDumpWriter(std::shared_ptr<SystemDefinition> sysdef, std::string fname)
-        : Analyzer(sysdef), m_unwrap_rigid(false), m_write_info(false)
+        : Analyzer(sysdef), m_unwrap_body(false), m_write_info(false)
     {
     bool is_root = true;
 
@@ -140,7 +140,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
 
         vec3<Scalar> tmp_pos = pos;
 
-        if (m_unwrap_rigid && snap.body[j] != NO_BODY)
+        if (m_unwrap_body && snap.body[j] != NO_BODY)
             {
             unsigned int central_ptl_tag = snap.body[j];
             assert(central_ptl_tag < snap.size);
@@ -191,7 +191,7 @@ void export_POSDumpWriter(py::module& m)
     py::class_<POSDumpWriter, std::shared_ptr<POSDumpWriter> >(m,"POSDumpWriter",py::base<Analyzer>())
         .def(py::init< std::shared_ptr<SystemDefinition>, std::string >())
         .def("setDef", &POSDumpWriter::setDef)
-        .def("setUnwrapRigid", &POSDumpWriter::setUnwrapRigid)
+        .def("setUnwrapBody", &POSDumpWriter::setUnwrapBody)
         .def("setAddInfo", &POSDumpWriter::setAddInfo)
         ;
     }

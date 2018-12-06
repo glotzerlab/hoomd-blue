@@ -27,13 +27,13 @@ class dcd(hoomd.analyze._analyzer):
                           file *filename* will be overwritten.
         unwrap_full (bool): When False, (the default) particle coordinates are always written inside the simulation box.
                             When True, particles will be unwrapped into their current box image before writing to the dcd file.
-        unwrap_rigid (bool): When False, (the default) individual particles are written inside the simulation box which
+        unwrap_body (bool): When False, (the default) individual particles are written inside the simulation box which
                breaks up rigid bodies near box boundaries. When True, particles belonging to the same rigid body will be
                unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
                some particles may be written just outside it. *unwrap_rigid* is ignored when *unwrap_full* is True.
         angle_z (bool): When True, the particle orientation angle is written to the z component (only useful for 2D simulations)
         phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
-
+        unwrap_rigid (bool): Alias for unwrap_body (deprecated in version 2.5).
     Every *period* time steps a new simulation snapshot is written to the
     specified file in the DCD file format. DCD only stores particle positions, in distance
     units - see :ref:`page-units`.
@@ -55,7 +55,7 @@ class dcd(hoomd.analyze._analyzer):
         * dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a
           consistent timeline
     """
-    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False, phase=0):
+    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_body=False, angle_z=False, phase=0, unwrap_rigid=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -75,7 +75,10 @@ class dcd(hoomd.analyze._analyzer):
 
         self.cpp_analyzer = _hoomd.DCDDumpWriter(hoomd.context.current.system_definition, filename, int(reported_period), group.cpp_group, overwrite);
         self.cpp_analyzer.setUnwrapFull(unwrap_full);
-        self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
+        if unwrap_rigid:
+            hoomd.context.msg.warning("The unwrap_rigid argument to hoomd.dump.dcd is deprecated, use unwrap_body instead.\n");
+            unwrap_body = unwrap_rigid
+        self.cpp_analyzer.setUnwrapBody(unwrap_rigid);
         self.cpp_analyzer.setAngleZ(angle_z);
         self.setupAnalyzer(period, phase);
 

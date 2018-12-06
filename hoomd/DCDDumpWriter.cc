@@ -69,7 +69,7 @@ DCDDumpWriter::DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                              bool overwrite)
     : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_group(group),
       m_num_frames_written(0), m_last_written_step(0), m_appending(false),
-      m_unwrap_full(false), m_unwrap_rigid(false), m_angle(false),
+      m_unwrap_full(false), m_unwrap_body(false), m_angle(false),
       m_overwrite(overwrite), m_is_initialized(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing DCDDumpWriter: " << fname << " " << period << " " << overwrite << endl;
@@ -328,7 +328,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
             {
             tmp_pos[i] = box.shift(tmp_pos[i], snapshot.image[i]);
             }
-        else if (m_unwrap_rigid && snapshot.body[i] != NO_BODY)
+        else if (m_unwrap_body && snapshot.body[i] != NO_BODY)
             {
             unsigned int central_ptl_tag = snapshot.body[i];
             int body_ix = snapshot.image[central_ptl_tag].x;
@@ -414,7 +414,7 @@ void export_DCDDumpWriter(py::module& m)
     py::class_<DCDDumpWriter, std::shared_ptr<DCDDumpWriter> >(m,"DCDDumpWriter",py::base<Analyzer>())
     .def(py::init< std::shared_ptr<SystemDefinition>, std::string, unsigned int, std::shared_ptr<ParticleGroup>, bool>())
     .def("setUnwrapFull", &DCDDumpWriter::setUnwrapFull)
-    .def("setUnwrapRigid", &DCDDumpWriter::setUnwrapRigid)
+    .def("setUnwrapBody", &DCDDumpWriter::setUnwrapBody)
     .def("setAngleZ", &DCDDumpWriter::setAngleZ)
     ;
     }

@@ -105,6 +105,9 @@ struct CScalar
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
 const unsigned int NO_BODY = 0xffffffff;
 
+//! Sentinel value in \a body to signify that this particle does not belong to a rigid body
+const unsigned int MIN_MOLECULE = 0x800000000;
+
 //! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
 
@@ -534,9 +537,9 @@ class PYBIND11_EXPORT ParticleData
             return maxdiam;
             }
 
-        /*! Returns true if there are rigid bodies in the system
+        /*! Returns true if there are bodies in the system
          */
-        bool hasRigidBodies() const
+        bool hasBodies() const
             {
             unsigned int has_bodies = 0;
             ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::read);

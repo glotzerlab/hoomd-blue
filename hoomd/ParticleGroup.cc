@@ -179,9 +179,97 @@ bool ParticleSelectorRigid::isSelected(unsigned int tag) const
 
     // see if it matches the criteria
     bool result = false;
-    if (m_rigid && body != NO_BODY)
+    if (m_rigid && body < MIN_MOLECULE)
         result = true;
-    if (!m_rigid && body == NO_BODY)
+    if (!m_rigid && body >= MIN_MOLECULE)
+        result = true;
+
+    return result;
+    }
+
+//////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorMolecule
+
+/*! \param sysdef System the particles are to be selected from
+    \param molecule true selects particles that are in molecule bodies, false selects particles that are not part of a body
+*/
+ParticleSelectorMolecule::ParticleSelectorMolecule(std::shared_ptr<SystemDefinition> sysdef,
+                                             bool molecule)
+    : ParticleSelector(sysdef), m_molecule(molecule)
+    {
+    }
+
+/*! \param tag Tag of the particle to check
+    \returns true if the type of particle \a tag meets the molecule criteria selected
+*/
+bool ParticleSelectorMolecule::isSelected(unsigned int tag) const
+    {
+    assert(tag <= m_pdata->getMaximumTag());
+
+    // access array directly instead of going through the getBody() interface
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    unsigned int idx = h_rtag.data[tag];
+
+    if (idx >= m_pdata->getN())
+        {
+        // particle is not local
+        return false;
+        }
+
+    // get position of particle
+    unsigned int body = h_body.data[idx];
+
+    // see if it matches the criteria
+    bool result = false;
+    if (m_molecule && body >= MIN_MOLECULE && body != NO_BODY)
+        result = true;
+    if (!m_molecule && (body < MIN_MOLECULE || body != NO_BODY))
+        result = true;
+
+    return result;
+    }
+
+//////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorBody
+
+/*! \param sysdef System the particles are to be selected from
+    \param rigid true selects particles that are in bodies, false selects particles that are not part of a body
+*/
+ParticleSelectorBody::ParticleSelectorBody(std::shared_ptr<SystemDefinition> sysdef,
+                                             bool body)
+    : ParticleSelector(sysdef), m_body(body)
+    {
+    }
+
+/*! \param tag Tag of the particle to check
+    \returns true if the type of particle \a tag meets the body criteria selected
+*/
+bool ParticleSelectorBody::isSelected(unsigned int tag) const
+    {
+    assert(tag <= m_pdata->getMaximumTag());
+
+    // access array directly instead of going through the getBody() interface
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    unsigned int idx = h_rtag.data[tag];
+
+    if (idx >= m_pdata->getN())
+        {
+        // particle is not local
+        return false;
+        }
+
+    // get position of particle
+    unsigned int body = h_body.data[idx];
+
+    // see if it matches the criteria
+    bool result = false;
+    if (m_body && body != NO_BODY)
+        result = true;
+    if (!m_body && body == NO_BODY)
         result = true;
 
     return result;
@@ -848,6 +936,13 @@ void export_ParticleGroup(py::module& m)
         ;
 
     py::class_<ParticleSelectorRigid, std::shared_ptr<ParticleSelectorRigid> >(m,"ParticleSelectorRigid",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
+
+    py::class_<ParticleSelectorBody, std::shared_ptr<ParticleSelectorBody> >(m,"ParticleSelectorBody",py::base<ParticleSelector>())
+
+            .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
+
+    py::class_<ParticleSelectorMolecule, std::shared_ptr<ParticleSelectorMolecule> >(m,"ParticleSelectorMolecule",py::base<ParticleSelector>())
             .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
         ;
 

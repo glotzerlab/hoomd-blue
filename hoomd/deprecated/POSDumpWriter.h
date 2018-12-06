@@ -40,9 +40,9 @@ class PYBIND11_EXPORT POSDumpWriter : public Analyzer
         void setDef(unsigned int tid, std::string def);
 
         //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
-        void setUnwrapRigid(bool enable)
+        void setUnwrapBody(bool enable)
             {
-            m_unwrap_rigid = enable;
+            m_unwrap_body = enable;
             }
 
         //! Set whether or not there is additional information to be printed via the python method addInfo
@@ -57,7 +57,7 @@ class PYBIND11_EXPORT POSDumpWriter : public Analyzer
 
         std::vector< std::string > m_defs;  //!< Shape defs
 
-        bool m_unwrap_rigid;     //!< If true, unwrap rigid bodies
+        bool m_unwrap_body;     //!< If true, unwrap rigid bodies
         bool m_write_info; //!< If true, there is additional info to write
         pybind11::object m_add_info; // method that returns additional information
     };
