@@ -51,7 +51,6 @@ CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_end.swap(end);
 
     // create cuda event
-//    cudaEventCreate(&m_event, cudaEventBlockingSync | cudaEventDisableTiming);
     cudaEventCreate(&m_event, cudaEventDisableTiming);
     }
 
