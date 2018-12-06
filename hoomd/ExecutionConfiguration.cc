@@ -824,6 +824,8 @@ void ExecutionConfiguration::multiGPUBarrier() const
 
 void ExecutionConfiguration::beginMultiGPU() const
     {
+    m_in_multigpu_block = true;
+
     #ifdef ENABLE_CUDA
     // implement a one-to-n barrier
     if (getNumActiveGPUs() > 1)
@@ -852,6 +854,8 @@ void ExecutionConfiguration::beginMultiGPU() const
 
 void ExecutionConfiguration::endMultiGPU() const
     {
+    m_in_multigpu_block = false;
+
     #ifdef ENABLE_CUDA
     // implement an n-to-one barrier
     if (getNumActiveGPUs() > 1)

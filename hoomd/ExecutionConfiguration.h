@@ -332,6 +332,12 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         return m_memory_traceback.get();
         }
 
+    //! Returns true if we are in a multi-GPU block
+    bool inMultiGPUBlock() const
+        {
+        return m_in_multigpu_block;
+        }
+
 private:
 #ifdef ENABLE_CUDA
     //! Initialize the GPU with the given id
@@ -361,6 +367,8 @@ private:
     std::vector< cudaEvent_t > m_events;      //!< A list of events to synchronize between GPUs
 #endif
     bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
+
+    mutable bool m_in_multigpu_block;       //!< Tracks whether we are in a multi-GPU block
 
 #ifdef ENABLE_MPI
     void splitPartitions(const MPI_Comm mpi_comm); //!< Create partitioned communicators

@@ -611,6 +611,12 @@ class GlobalArray : public GPUArray<T>
 
             checkAcquired(*this);
 
+            if (this->m_exec_conf->inMultiGPUBlock())
+                {
+                // we throw this error because we are not syncing all GPUs upon acquire
+                throw std::runtime_error("GlobalArray should not be acquired in a multi-GPU block.");
+                }
+
             #ifdef ENABLE_CUDA
             bool use_device = this->m_exec_conf && this->m_exec_conf->isCUDAEnabled();
             if (!isNull() && use_device && location == access_location::host && !async)
