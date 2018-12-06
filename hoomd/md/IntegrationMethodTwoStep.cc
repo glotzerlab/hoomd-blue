@@ -164,7 +164,7 @@ unsigned int IntegrationMethodTwoStep::getRotationalNDOF(std::shared_ptr<Particl
 
     The base class does nothing
 */
-void IntegrationMethodTwoStep::validateGroup(bool allow_constituent_integration)
+void IntegrationMethodTwoStep::validateGroup()
     {
     for (unsigned int gidx = 0; gidx < m_group->getNumMembersGlobal(); gidx++)
         {
@@ -177,7 +177,7 @@ void IntegrationMethodTwoStep::validateGroup(bool allow_constituent_integration)
 
             unsigned int body = h_body.data[h_rtag.data[tag]];
 
-            if (!allow_constituent_integration && body != NO_BODY && body != tag)
+            if (body != NO_BODY && body != tag)
                 {
                 m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body, but is not its center particle. "
                     << std::endl << "This integration method does not operate on constituent particles."
@@ -315,7 +315,7 @@ void export_IntegrationMethodTwoStep(py::module& m)
     {
     py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep> >(m, "IntegrationMethodTwoStep")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
-        .def("validateGroup", &IntegrationMethodTwoStep::validateGroup, py::arg("allow_constituent_integration") = false)
+        .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)
 #endif
