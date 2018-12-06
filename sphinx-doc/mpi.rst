@@ -63,18 +63,12 @@ HOOMD-blue can also execute on many **CPU cores** in parallel::
 GPU selection in MPI runs
 -------------------------
 
-GPU selection in MPI runs is handled in one of two automatically selected ways.
+HOOMD-blue uses information from ``mpirun`` to determine the *local rank* on a node (0,1,2,...). Each rank will use the
+GPU id matching the local rank modulus the number of GPUs on the node. In this mode, do not run more ranks per node than
+there are GPUs or you will oversubscribe the GPUs. This selection mechanism selects GPUs from within the set of GPUs
+provided by the cluster scheduler.
 
-1. If all GPUs in a host are set to compute exclusive mode, HOOMD-blue uses the compute exclusive mode to assign
-a single rank to each GPU. In this mode, do not run more ranks per node than there are GPUs on that node or one of the
-ranks will produce an error that all GPUs are in use.
-
-2. If *not* all GPUs are in compute exclusive mode, HOOMD-blue will use information from ``mpirun`` to determine the
-*local rank* on a node (0,1,2,... unique id for each process on a node). Each rank will use the GPU id matching
-the local rank modulus the number of GPUs on the node. In this mode, do not run more ranks per node than there are
-GPUs or you will oversubscribe the GPUs. HOOMD can identify local rank information with OpenMPI and MVAPICH.
-
-For other MPI stacks, such as Intel MPI, this information is unavailable and HOOMD falls back on selecting
+In some MPI stacks, such as Intel MPI, this information is unavailable and HOOMD falls back on selecting
 ``gpu_id = global_rank % num_gpus_on_node`` and issues a notice message.
 This mode only works on clusters where scheduling is performed by node (not by core) and there are a uniform
 number of GPUs on each node.
