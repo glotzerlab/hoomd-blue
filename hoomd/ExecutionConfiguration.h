@@ -104,9 +104,10 @@ struct PYBIND11_EXPORT ExecutionConfiguration
 
     //! Guess local rank of this processor, used for GPU initialization
     /*! \returns Local rank guessed from common environment variables
-     *           or falls back to the global rank if no information is available
+                 or falls back to the global rank if no information is available
+        \param found [output] True if a local rank was found, false otherwise
      */
-    int guessLocalRank();
+    int guessLocalRank(bool &found);
 
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on

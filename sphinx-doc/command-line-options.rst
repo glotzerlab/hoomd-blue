@@ -149,6 +149,9 @@ appropriate launcher is on your system. For more information, see :ref:`mpi-doma
 
 All command line options apply to MPI execution in the same way as single process runs.
 
+When ``n > 1`` and no explicit GPU is specified, HOOMD uses the the local MPI rank to assign GPUs to ranks on each node.
+This is the default behavior and works on most cluster schedulers.
+
 Multi-GPU execution with NVLINK
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -180,6 +183,10 @@ the compute-exclusive mode on all GPUs in the system. With this mode enabled, ru
 The compute-exclusive mode allows *only* a **single CUDA application** to run on each GPU. If you have
 4 compute-exclusive GPUs available in the system, executing a fifth instance of hoomd with ``python script.py``
 will result in the error: ``***Error! no CUDA-capable device is available``.
+
+Most compute clusters do not support automatic GPU selection, providing scheduler based approaches to assign GPUs
+that interface well with the MPI rank based GPU selection above. HOOMD only applies exclusive mode automatic
+GPU selection when built without MPI support (ENABLE_MPI=off) or executing on a single rank.
 
 Minimize the CPU usage of HOOMD-blue
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
