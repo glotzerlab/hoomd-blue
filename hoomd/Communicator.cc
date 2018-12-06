@@ -1617,7 +1617,7 @@ void Communicator::exchangeGhosts()
             const unsigned int type = __scalar_as_int(postype.w);
             Scalar3 ghost_fraction = ghost_fractions[type];
 
-            if (h_body.data[idx] != NO_BODY)
+            if (h_body.data[idx] < MIN_MOLECULE)
                 {
                 ghost_fraction += ghost_fractions_body[type];
                 }

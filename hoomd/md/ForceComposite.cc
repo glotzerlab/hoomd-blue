@@ -429,7 +429,7 @@ void ForceComposite::validateRigidBodies(bool create)
 
                 if (create)
                     {
-                    if (snap.body[i] != NO_BODY)
+                    if (snap.body[i] < MIN_MOLECULE)
                         {
                         if (!is_central_ptl)
                             {
@@ -459,7 +459,7 @@ void ForceComposite::validateRigidBodies(bool create)
 
                         count_body_ptls.insert(std::make_pair(i,0));
                         }
-                    if (snap.body[i] != NO_BODY)
+                    if (snap.body[i] < MIN_MOLECULE)
                         {
                         // check if ptl body tag correctly points to the central particle
                         if (snap.body[i] >= snap.size || snap.body[snap.body[i]] != snap.body[i])
@@ -477,7 +477,7 @@ void ForceComposite::validateRigidBodies(bool create)
                             if (it == count_body_ptls.end())
                                 {
                                 m_exec_conf->msg->error() << "constrain.rigid(): Central particle " << snap.body[i]
-                                    << " does not precede particle with tag " << snap.body[i] << std::endl;
+                                    << " does not precede particle with tag " << i << std::endl;
                                 throw std::runtime_error("Error validating rigid bodies\n");
                                 }
 
@@ -556,7 +556,7 @@ void ForceComposite::validateRigidBodies(bool create)
                 // resize and reset global molecule table
                 molecule_tag.resize(old_size+n_add_ptls, NO_MOLECULE);
 
-                // acces body data
+                // access body data
                 ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
                 ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
                 ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
@@ -652,7 +652,7 @@ void ForceComposite::validateRigidBodies(bool create)
                     {
                     assert(snap_out.type[i] < ntypes);
 
-                    if (snap_out.body[i] != NO_BODY)
+                    if (snap_out.body[i] < MIN_MOLECULE)
                         {
                         if (snap_out.body[i] == i)
                             {
@@ -957,7 +957,7 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
         {
         unsigned int central_tag = h_body.data[iptl];
 
-        if (central_tag == NO_BODY)
+        if (central_tag >= MIN_MOLECULE)
             continue;
 
         // body tag equals tag for central ptl
