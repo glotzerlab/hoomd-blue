@@ -2938,6 +2938,8 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out, GlobalVe
             // get temporary buffer
             ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocatorManaged(), getN());
 
+            m_exec_conf->beginMultiGPU();
+
             n_out = gpu_pdata_remove(getN(),
                            d_pos.data,
                            d_vel.data,
@@ -2976,8 +2978,12 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out, GlobalVe
                            d_tmp.data,
                            m_mgpu_context,
                            m_gpu_partition);
-           }
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+
+            m_exec_conf->endMultiGPU();
+            }
 
         // resize output vector
         out.resize(n_out);
