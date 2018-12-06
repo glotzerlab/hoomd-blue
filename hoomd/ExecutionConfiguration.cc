@@ -83,6 +83,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         }
 
     m_concurrent = exec_mode==GPU;
+    m_in_multigpu_block = false;
 
     // now, exec_mode should be either CPU or GPU - proceed with initialization
 
