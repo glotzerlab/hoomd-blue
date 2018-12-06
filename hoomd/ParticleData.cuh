@@ -21,7 +21,7 @@
 const unsigned int NO_BODY = 0xffffffff;
 
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
-const unsigned int MIN_MOLECULE = 0x800000000;
+const unsigned int MIN_MOLECULE = 0x80000000;
 
 //! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;

@@ -937,10 +937,12 @@ void export_ParticleGroup(py::module& m)
 
     py::class_<ParticleSelectorRigid, std::shared_ptr<ParticleSelectorRigid> >(m,"ParticleSelectorRigid",py::base<ParticleSelector>())
             .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
+        ;
 
     py::class_<ParticleSelectorBody, std::shared_ptr<ParticleSelectorBody> >(m,"ParticleSelectorBody",py::base<ParticleSelector>())
 
             .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
+        ;
 
     py::class_<ParticleSelectorMolecule, std::shared_ptr<ParticleSelectorMolecule> >(m,"ParticleSelectorMolecule",py::base<ParticleSelector>())
             .def(py::init< std::shared_ptr<SystemDefinition>, bool >())

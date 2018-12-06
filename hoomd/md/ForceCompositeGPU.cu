@@ -226,7 +226,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         }
 
     // thread 0 within this body writes out the total force and torque for the body
-    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_MOLECULE central_idx[m] < N)
+    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_MOLECULE && central_idx[m] < N)
         {
         d_force[central_idx[m]] = body_force[threadIdx.x];
         d_torque[central_idx[m]] = make_scalar4(body_torque[threadIdx.x].x, body_torque[threadIdx.x].y, body_torque[threadIdx.x].z, 0.0f);
@@ -408,7 +408,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
         }
 
     // thread 0 within this body writes out the total virial for the body
-    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_MOLECULE central_idx[m] < N)
+    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_MOLECULE && central_idx[m] < N)
         {
         d_virial[0*virial_pitch+central_idx[m]] = body_virial_xx[threadIdx.x];
         d_virial[1*virial_pitch+central_idx[m]] = body_virial_xy[threadIdx.x];
