@@ -691,8 +691,9 @@ class GlobalArray : public GPUArray<T>
                 {
                 allocation_bytes = m_num_elements*sizeof(T);
 
+                // always reserve an extra page
                 if (m_align_bytes)
-                    allocation_bytes = ((m_num_elements*sizeof(T))/m_align_bytes + 1)*m_align_bytes;
+                    allocation_bytes += m_align_bytes;
 
                 this->m_exec_conf->msg->notice(10) << "Allocating " << allocation_bytes
                     << " bytes of managed memory." << std::endl;
