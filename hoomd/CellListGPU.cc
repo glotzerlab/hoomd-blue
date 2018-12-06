@@ -175,6 +175,7 @@ void CellListGPU::combineCellLists()
     ArrayHandle<Scalar4> d_cell_orientation_scratch(m_orientation_scratch, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_cell_idx_scratch(m_idx_scratch, access_location::device, access_mode::overwrite);
 
+    // error conditions
     ArrayHandle<uint3> d_conditions(m_conditions, access_location::device, access_mode::overwrite);
 
     // have to wait for all GPUs to sync up, to have cell sizes available
