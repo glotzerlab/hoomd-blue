@@ -515,8 +515,6 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     Scalar external_virial[6];
     Scalar external_energy;
 
-    m_exec_conf->beginMultiGPU();
-
         {
         // access the net force and virial arrays
         const GPUArray< Scalar4 >& net_force  = m_pdata->getNetForce();
@@ -644,6 +642,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             // access flags
             PDataFlags flags = this->m_pdata->getFlags();
 
+            m_exec_conf->beginMultiGPU();
+
             gpu_integrator_sum_net_force(d_net_force.data,
                                          d_net_virial.data,
                                          net_virial_pitch,
@@ -656,6 +656,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
+
+            m_exec_conf->endMultiGPU();
             }
         }
 
@@ -671,8 +673,6 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_pdata->setExternalVirial(k, external_virial[k]);
 
     m_pdata->setExternalEnergy(external_energy);
-
-    m_exec_conf->endMultiGPU();
 
     if (m_prof)
         {
@@ -702,8 +702,6 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_prof->push("Integrate");
         m_prof->push(m_exec_conf, "Net force");
         }
-
-    m_exec_conf->beginMultiGPU();
 
         {
         // access the net force and virial arrays
@@ -809,6 +807,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             // access flags
             PDataFlags flags = this->m_pdata->getFlags();
 
+            m_exec_conf->beginMultiGPU();
+
             gpu_integrator_sum_net_force(d_net_force.data,
                                          d_net_virial.data,
                                          net_virial.getPitch(),
@@ -821,10 +821,10 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
+
+            m_exec_conf->endMultiGPU();
             }
         }
-
-    m_exec_conf->endMultiGPU();
 
     // add up external virials
     for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force ++)

@@ -116,8 +116,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "compute");
 
-    m_exec_conf->beginMultiGPU();
-
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
@@ -182,6 +180,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         CHECK_CUDA_ERROR();
 
     unsigned int ngpu = m_exec_conf->getNumActiveGPUs();
+
+    m_exec_conf->beginMultiGPU();
 
     this->m_tuner->begin();
     unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;

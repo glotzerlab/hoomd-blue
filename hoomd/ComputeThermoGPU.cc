@@ -59,8 +59,6 @@ void ComputeThermoGPU::computeProperties()
     if (m_group->getNumMembersGlobal() == 0)
         return;
 
-    m_exec_conf->beginMultiGPU();
-
     unsigned int group_size = m_group->getNumMembers();
 
     if (m_prof) m_prof->push(m_exec_conf,"Thermo");
@@ -126,6 +124,8 @@ void ComputeThermoGPU::computeProperties()
 
     // access the group
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+
+    m_exec_conf->beginMultiGPU();
 
     // build up args list
     compute_thermo_args args;
