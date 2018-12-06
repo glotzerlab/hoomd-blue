@@ -317,7 +317,7 @@ class PYBIND11_EXPORT CellList : public Compute
             return m_idx;
             }
 
-        //! Get the cell list containing index (per devie)
+        //! Get the cell list containing index (per device)
         virtual const GlobalArray<unsigned int>& getIndexArrayPerDevice() const
             {
             throw std::runtime_error("Per-device index array not available in base class.\n");

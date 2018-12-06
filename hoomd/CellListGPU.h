@@ -44,7 +44,7 @@ class PYBIND11_EXPORT CellListGPU : public CellList
             m_tuner->setEnabled(enable);
             }
 
-        //! Get the cell list containing index (per devie)
+        //! Get the cell list containing index (per device)
         virtual const GlobalArray<unsigned int>& getIndexArrayPerDevice() const
             {
             return m_idx_scratch;
