@@ -15,7 +15,7 @@
 #include "Index1D.h"
 #include "BoxDim.h"
 #include "ExecutionConfiguration.h"
-#include "GPUArray.h"
+#include "GlobalArray.h"
 
 #include <set>
 #include <vector>
@@ -175,8 +175,8 @@ class PYBIND11_EXPORT DomainDecomposition
         unsigned int m_max_n_node;   //!< Maximum number of ranks on a node
         bool m_twolevel;             //!< Whether we use a two-level decomposition
 
-        GPUArray<unsigned int> m_cart_ranks; //!< A lookup-table to map the cartesian grid index onto ranks
-        GPUArray<unsigned int> m_cart_ranks_inv; //!< Inverse permutation of grid index lookup table
+        GlobalArray<unsigned int> m_cart_ranks; //!< A lookup-table to map the cartesian grid index onto ranks
+        GlobalArray<unsigned int> m_cart_ranks_inv; //!< Inverse permutation of grid index lookup table
 
         //! Find a domain decomposition with given parameters
         bool findDecomposition(unsigned int nranks, Scalar3 L,

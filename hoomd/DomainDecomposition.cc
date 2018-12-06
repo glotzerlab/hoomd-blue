@@ -181,10 +181,10 @@ void DomainDecomposition::initializeDomainGrid(Scalar3 L,
     m_index = Index3D(m_nx,m_ny,m_nz);
 
     // map cartesian grid onto ranks
-    GPUArray<unsigned int> cart_ranks(nranks, m_exec_conf);
+    GlobalArray<unsigned int> cart_ranks(nranks, m_exec_conf);
     m_cart_ranks.swap(cart_ranks);
 
-    GPUArray<unsigned int> cart_ranks_inv(nranks, m_exec_conf);
+    GlobalArray<unsigned int> cart_ranks_inv(nranks, m_exec_conf);
     m_cart_ranks_inv.swap(cart_ranks_inv);
 
     ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::overwrite);
