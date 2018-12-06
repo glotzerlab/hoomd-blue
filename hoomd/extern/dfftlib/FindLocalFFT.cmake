@@ -1,5 +1,5 @@
-find_package(MKL)
-find_package(ACML)
+find_package(MKL QUIET)
+find_package(ACML QUIET)
 
 option(ENABLE_HOST "CPU FFT support" ON)
 if (MKL_LIBRARIES AND MKL_INCLUDE_DIR)
@@ -16,5 +16,4 @@ endif()
 if (NOT LOCAL_FFT_LIB)
     # fallback on bare FFT
     set(LOCAL_FFT_LIB LOCAL_LIB_BARE)
-    message(STATUS "No CPU FFT library found, falling back on SLOW internal radix-2 FFT")
 endif()
