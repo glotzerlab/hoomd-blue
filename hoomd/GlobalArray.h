@@ -158,6 +158,7 @@ class managed_deleter
         size_t m_allocation_bytes; //!< Size of actual allocation
     };
 
+#ifdef ENABLE_CUDA
 class event_deleter
     {
     public:
@@ -172,7 +173,7 @@ class event_deleter
             : m_exec_conf(exec_conf)
             { }
 
-        //! Destroy the items and delete the managed array
+        //! Destroy the event and free the memory location
         /*! \param ptr Start of aligned memory allocation
          */
         void operator()(cudaEvent_t *ptr)
@@ -180,16 +181,15 @@ class event_deleter
             if (ptr == nullptr)
                 return;
 
-            #ifdef ENABLE_CUDA
             cudaEventDestroy(*ptr);
             CHECK_CUDA_ERROR();
-            #endif
 
             delete ptr;
             }
     private:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
     };
+#endif
 
 } // end namespace detail
 
@@ -327,8 +327,10 @@ class GlobalArray : public GPUArray<T>
               m_height(std::move(other.m_height)),
               m_acquired(std::move(other.m_acquired)),
               m_tag(std::move(other.m_tag)),
-              m_align_bytes(std::move(other.m_align_bytes)),
-              m_event(std::move(other.m_event))
+              m_align_bytes(std::move(other.m_align_bytes))
+              #ifdef ENABLE_CUDA
+              , m_event(std::move(other.m_event))
+              #endif
             {
             }
 
@@ -347,7 +349,9 @@ class GlobalArray : public GPUArray<T>
                 m_acquired = std::move(other.m_acquired);
                 m_tag = std::move(other.m_tag);
                 m_align_bytes = std::move(other.m_align_bytes);
+                #ifdef ENABLE_CUDA
                 m_event = std::move(other.m_event);
+                #endif
                 }
 
             return *this;
@@ -407,7 +411,9 @@ class GlobalArray : public GPUArray<T>
             std::swap(m_height,from.m_height);
             std::swap(m_tag, from.m_tag);
             std::swap(m_align_bytes, from.m_align_bytes);
+            #ifdef ENABLE_CUDA
             std::swap(m_event, from.m_event);
+            #endif
             }
 
         //! Get the underlying raw pointer
@@ -661,7 +667,9 @@ class GlobalArray : public GPUArray<T>
 
         unsigned int m_align_bytes; //!< Size of alignment in bytes
 
+        #ifdef ENABLE_CUDA
         std::unique_ptr<cudaEvent_t, hoomd::detail::event_deleter> m_event;   //! CUDA event for synchronization
+        #endif
 
         //! Allocate the managed array and construct the items
         void allocate()
