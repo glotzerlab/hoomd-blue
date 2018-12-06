@@ -107,6 +107,7 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
     unsigned int block_size = 128;
 
     // iterate over active GPUs in reverse order
+    #pragma omp parallel for schedule(static,1)
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
@@ -126,6 +127,8 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                                                                         checkn,
                                                                                         range.first);
         }
+
+    gpu_partition.getRangeAndSetGPU(0);
 
     return cudaSuccess;
     }
