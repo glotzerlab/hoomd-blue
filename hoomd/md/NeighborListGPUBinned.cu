@@ -199,9 +199,6 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                 cur_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
             else
                 {
-                unsigned int addr = cli(cur_offset, neigh_cell)+igpu*cli.getNumElements();
-                if (addr >= ngpu*cli.getNumElements())
-                    printf("Here %d %d %d %d (%d)\n", addr, igpu, cur_offset, neigh_cell, ci.getNumElements());
                 j = d_cell_idx[cli(cur_offset, neigh_cell)+igpu*cli.getNumElements()];
                 postype_j = d_pos[j];
                 cur_xyzf = make_scalar4(postype_j.x, postype_j.y, postype_j.z, __int_as_scalar(j));
