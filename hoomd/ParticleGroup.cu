@@ -55,11 +55,7 @@ __global__ void gpu_scatter_member_indices(unsigned int N,
 cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int *d_is_member_tag,
                                    unsigned int *d_is_member,
-                                   unsigned int *d_member_idx,
-                                   unsigned int *d_tag,
-                                   unsigned int &num_local_members,
-                                   unsigned int *d_tmp,
-                                   const CachedAllocator& alloc)
+                                   unsigned int *d_tag)
     {
     assert(d_is_member);
     assert(d_is_member_tag);
@@ -73,6 +69,28 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                                          d_tag,
                                                          d_is_member_tag,
                                                          d_is_member);
+    return cudaSuccess;
+    }
+
+//! GPU method for compacting the group member indices
+/*! \param N number of local particles
+    \param d_is_member_tag Global lookup table for tag -> group membership
+    \param d_is_member Array of membership flags
+    \param d_member_idx Array of member indices
+    \param d_tag Array of tags
+    \param num_local_members Number of members on the local processor (return value)
+*/
+cudaError_t gpu_compact_index_list(unsigned int N,
+                                   unsigned int *d_is_member,
+                                   unsigned int *d_member_idx,
+                                   unsigned int &num_local_members,
+                                   unsigned int *d_tmp,
+                                   const CachedAllocator& alloc)
+    {
+    assert(d_is_member);
+    assert(d_is_member_tag);
+    assert(d_member_idx);
+    assert(d_tag);
 
     // compute member_idx offsets
     thrust::device_ptr<unsigned int> is_member(d_is_member);
@@ -87,6 +105,9 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
         is_member + N);
 
     // fill member_idx array
+    unsigned int block_size = 512;
+    unsigned int n_blocks = N/block_size + 1;
+
     gpu_scatter_member_indices<<<n_blocks, block_size>>>(N, d_tmp, d_is_member, d_member_idx);
 
     return cudaSuccess;

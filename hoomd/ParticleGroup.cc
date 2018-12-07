@@ -836,8 +836,13 @@ void ParticleGroup::rebuildIndexListGPU() const
         gpu_rebuild_index_list(m_pdata->getN(),
                            d_is_member_tag.data,
                            d_is_member.data,
+                           d_tag.data);
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+
+        gpu_compact_index_list(m_pdata->getN(),
+                           d_is_member.data,
                            d_member_idx.data,
-                           d_tag.data,
                            m_num_local_members,
                            d_tmp.data,
                            m_pdata->getExecConf()->getCachedAllocator());
