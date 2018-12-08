@@ -59,7 +59,6 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
     {
     assert(d_is_member);
     assert(d_is_member_tag);
-    assert(d_member_idx);
     assert(d_tag);
 
     unsigned int block_size = 512;
@@ -88,9 +87,7 @@ cudaError_t gpu_compact_index_list(unsigned int N,
                                    const CachedAllocator& alloc)
     {
     assert(d_is_member);
-    assert(d_is_member_tag);
     assert(d_member_idx);
-    assert(d_tag);
 
     // compute member_idx offsets
     thrust::device_ptr<unsigned int> is_member(d_is_member);
