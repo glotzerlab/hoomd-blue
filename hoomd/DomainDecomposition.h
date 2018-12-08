@@ -156,7 +156,7 @@ class PYBIND11_EXPORT DomainDecomposition
         const BoxDim calculateLocalBox(const BoxDim& global_box);
 
         //! Get the rank for a particle to be placed
-        unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
+        unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos, const unsigned int *cart_ranks);
 
         //! Get the number of grid cells in each dimension.
         uint3 getGridSize(void)const{return make_uint3(m_nx,m_ny,m_nz);}

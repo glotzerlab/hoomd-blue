@@ -557,7 +557,7 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
  * \param pos Particle position
  * \returns the rank of the processor that should receive the particle
  */
-unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar3 pos)
+unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar3 pos, const unsigned int *cart_ranks)
     {
     // get fractional coordinates in the global box
     Scalar3 f = global_box.makeFraction(pos);
@@ -607,8 +607,7 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar
     else if (iz >= (int)m_nz)
         iz--;
 
-    ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::read);
-    unsigned int rank = h_cart_ranks.data[m_index(ix, iy, iz)];
+    unsigned int rank = cart_ranks[m_index(ix, iy, iz)];
 
     return rank;
     }

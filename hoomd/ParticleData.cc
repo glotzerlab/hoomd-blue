@@ -887,6 +887,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
         if (my_rank == 0)
             {
+            ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
+
             // check the input for errors
             if (snapshot.type_mapping.size() == 0)
                 {
@@ -947,7 +949,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 global_box.wrap(pos, img, flags);
 
                 // place particle using actual domain fractions, not global box fraction
-                unsigned int rank = m_decomposition->placeParticle(m_global_box, pos);
+                unsigned int rank = m_decomposition->placeParticle(m_global_box, pos, h_cart_ranks.data);
 
                 if (rank >= n_ranks)
                     {
@@ -1916,7 +1918,8 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
         assert(!ptl_local || owner_rank == my_rank);
 
         // get rank where the particle should be according to new position
-        unsigned int new_rank = m_decomposition->placeParticle(m_global_box, tmp_pos);
+        ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
+        unsigned int new_rank = m_decomposition->placeParticle(m_global_box, tmp_pos, h_cart_ranks.data);
         bcast(new_rank, 0, m_exec_conf->getMPICommunicator());
 
         // should the particle migrate?

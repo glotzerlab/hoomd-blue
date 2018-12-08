@@ -1463,7 +1463,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
     if (this->m_pdata->getDomainDecomposition())
         {
         const BoxDim& global_box = this->m_pdata->getGlobalBox();
-        is_local = this->m_exec_conf->getRank() == this->m_pdata->getDomainDecomposition()->placeParticle(global_box, vec_to_scalar3(pos));
+        ArrayHandle<unsigned int> h_cart_ranks(this->m_pdata->getDomainDecomposition()->getCartRanks(), access_location::host, access_mode::read);
+        is_local = this->m_exec_conf->getRank() == this->m_pdata->getDomainDecomposition()->placeParticle(global_box, vec_to_scalar3(pos), h_cart_ranks.data);
         }
     #endif
 
