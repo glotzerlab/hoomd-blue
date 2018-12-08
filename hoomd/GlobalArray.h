@@ -43,6 +43,7 @@
 #include <string>
 #include <unistd.h>
 #include <vector>
+#include <sstream>
 
 #define checkAcquired(a) { \
     assert(!(a).m_acquired); \
@@ -98,12 +99,19 @@ class managed_deleter
             \param use_device whether the array is managed or on the host
             \param N number of elements
             \param allocation_ptr true start of allocation, before alignment
+            \param allocation_bytes Size of allocation
          */
         managed_deleter(std::shared_ptr<const ExecutionConfiguration> exec_conf,
             bool use_device, std::size_t N, void *allocation_ptr, size_t allocation_bytes)
             : m_exec_conf(exec_conf), m_use_device(use_device), m_N(N),
             m_allocation_ptr(allocation_ptr), m_allocation_bytes(allocation_bytes)
             { }
+
+        //! Set the tag
+        void setTag(const std::string& tag)
+            {
+            m_tag = tag;
+            }
 
         //! Destroy the items and delete the managed array
         /*! \param ptr Start of aligned memory allocation
@@ -132,8 +140,13 @@ class managed_deleter
             #ifdef ENABLE_CUDA
             if (m_use_device)
                 {
-                this->m_exec_conf->msg->notice(10) << "Freeing " << m_allocation_bytes
-                    << " bytes of managed memory." << std::endl;
+                std::ostringstream oss;
+                oss << "Freeing " << m_allocation_bytes
+                    << " bytes of managed memory";
+                if (m_tag != "")
+                    oss << " [" << m_tag << "]";
+                oss << std::endl;
+                this->m_exec_conf->msg->notice(10) << oss.str();
 
                 cudaFree(m_allocation_ptr);
                 CHECK_CUDA_ERROR();
@@ -156,6 +169,7 @@ class managed_deleter
         unsigned int m_N;      //!< Number of elements in array
         void *m_allocation_ptr;  //!< Start of unaligned allocation
         size_t m_allocation_bytes; //!< Size of actual allocation
+        std::string m_tag;     //!< Name of the array
     };
 
 #ifdef ENABLE_CUDA
@@ -591,6 +605,10 @@ class GlobalArray : public GPUArray<T>
             if (this->m_exec_conf && this->m_exec_conf->getMemoryTracer() && get() )
                 this->m_exec_conf->getMemoryTracer()->updateTag(reinterpret_cast<const void*>(get()),
                     sizeof(T)*m_num_elements, m_tag);
+
+            // set tag on deleter so it can be displayed upon free
+            if (!isNull())
+                m_data.get_deleter().setTag(tag);
             }
 
     protected:
@@ -751,6 +769,7 @@ class GlobalArray : public GPUArray<T>
             // store allocation and custom deleter in unique_ptr
             auto deleter = hoomd::detail::managed_deleter<T>(this->m_exec_conf,use_device,
                 m_num_elements, allocation_ptr, allocation_bytes);
+            deleter.setTag(m_tag);
             m_data = std::unique_ptr<T, decltype(deleter)>(reinterpret_cast<T *>(ptr), deleter);
 
             // register new allocation
