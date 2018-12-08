@@ -7,7 +7,7 @@
 #include "ParticleData.cuh"
 #include "ParticleGroup.cuh"
 
-#include <thrust/scan.h>
+#include "hoomd/extern/cub/cub/cub.cuh"
 #include <thrust/reduce.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
@@ -90,13 +90,17 @@ cudaError_t gpu_compact_index_list(unsigned int N,
     assert(d_member_idx);
 
     // compute member_idx offsets
-    thrust::device_ptr<unsigned int> is_member(d_is_member);
-    thrust::device_ptr<unsigned int> tmp(d_tmp);
-    thrust::exclusive_scan(thrust::cuda::par(alloc),
-        is_member,
-        is_member + N,
-        tmp);
+    void     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
 
+    // determine size of temporary storage
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
+
+    d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
+    alloc.deallocate((char *)d_temp_storage);
+
+    thrust::device_ptr<unsigned int> is_member(d_is_member);
     num_local_members = thrust::reduce(thrust::cuda::par(alloc),
         is_member,
         is_member + N);
