@@ -1141,7 +1141,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                     m_gpu_comm.m_n_unique_neigh,
                     n_send_ghost_groups_tot[stage],
                     m_gpu_comm.m_comm_mask[stage],
-                    m_gpu_comm.m_mgpu_context);
+                    m_gpu_comm.m_mgpu_context,
+                    m_exec_conf->getCachedAllocator());
 
                 if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
                 }
@@ -1508,7 +1509,8 @@ void CommunicatorGPU::migrateParticles()
                        m_comm_mask[stage],
                        m_mgpu_context,
                        d_tmp.data,
-                       d_in_copy.data);
+                       d_in_copy.data,
+                       m_exec_conf->getCachedAllocator());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -1877,7 +1879,8 @@ void CommunicatorGPU::exchangeGhosts()
                 m_n_unique_neigh,
                 m_n_send_ghosts_tot[stage],
                 m_comm_mask[stage],
-                m_mgpu_context);
+                m_mgpu_context,
+                m_exec_conf->getCachedAllocator());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
