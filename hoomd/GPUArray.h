@@ -322,9 +322,9 @@ template<class T> class GPUArray
 #endif
 
         //! Copy constructor
-        GPUArray(const GPUArray& from);
+        GPUArray(const GPUArray& from) noexcept;
         //! = operator
-        GPUArray& operator=(const GPUArray& rhs);
+        GPUArray& operator=(const GPUArray& rhs) noexcept;
 
         //! Move constructor
         GPUArray(GPUArray&& from) noexcept;
@@ -586,8 +586,9 @@ template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height,
     }
 #endif
 
-template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(from.m_num_elements), m_pitch(from.m_pitch),
-        m_height(from.m_height), m_acquired(false), m_data_location(data_location::host),
+template<class T> GPUArray<T>::GPUArray(const GPUArray& from) noexcept
+    : m_num_elements(from.m_num_elements), m_pitch(from.m_pitch),
+      m_height(from.m_height), m_acquired(false), m_data_location(data_location::host),
 #ifdef ENABLE_CUDA
         m_mapped(from.m_mapped),
 #endif
@@ -605,7 +606,7 @@ template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(f
         }
     }
 
-template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
+template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs) noexcept
     {
     if (this != &rhs) // protect against invalid self-assignment
         {

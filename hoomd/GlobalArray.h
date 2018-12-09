@@ -256,7 +256,7 @@ class GlobalArray : public GPUArray<T>
             }
 
         //! Copy constructor
-        GlobalArray(const GlobalArray& from)
+        GlobalArray(const GlobalArray& from) noexcept
             : GPUArray<T>(from), m_num_elements(from.m_num_elements),
               m_pitch(from.m_pitch), m_height(from.m_height), m_acquired(false),
               m_tag(from.m_tag), m_align_bytes(from.m_align_bytes)
@@ -264,8 +264,6 @@ class GlobalArray : public GPUArray<T>
             if (from.m_data.get())
                 {
                 allocate();
-
-                checkAcquired(from);
 
                 #ifdef ENABLE_CUDA
                 if (this->m_exec_conf && this->m_exec_conf->isCUDAEnabled())
@@ -285,7 +283,7 @@ class GlobalArray : public GPUArray<T>
             }
 
         //! = operator
-        GlobalArray& operator=(const GlobalArray& rhs)
+        GlobalArray& operator=(const GlobalArray& rhs) noexcept
             {
             GPUArray<T>::operator=(rhs);
 
