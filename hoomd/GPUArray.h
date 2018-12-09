@@ -625,7 +625,7 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs) noexc
         m_data_location = data_location::host;
 
         // copy over the data to the new GPUArray
-        if (rhs.h_data.get())
+        if (rhs.h_data)
             {
             // allocate and clear new memory the same size as the data in rhs
             allocate();
@@ -636,10 +636,10 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs) noexc
             }
         else
             {
-            h_data.release();
+            h_data.reset();
 
             #ifdef ENABLE_CUDA
-            d_data.release();
+            d_data.reset();
             #endif
             }
         }
@@ -757,20 +757,24 @@ template<class T> void GPUArray<T>::allocate()
 
     bool use_device = m_exec_conf && m_exec_conf->isCUDAEnabled();
 
+#ifdef ENABLE_CUDA
+    void *device_ptr = nullptr;
+    if (use_device)
+        {
+        // register pointer for DMA
+        cudaHostRegister(host_ptr,m_num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
+        CHECK_CUDA_ERROR();
+        }
+#endif
+
     // store in smart ptr with custom deleter
-    auto host_deleter = hoomd::detail::host_deleter<T>(m_exec_conf, use_device, m_num_elements);
+    hoomd::detail::host_deleter<T> host_deleter(m_exec_conf, use_device, m_num_elements);
     h_data = std::unique_ptr<T, hoomd::detail::host_deleter<T> >(reinterpret_cast<T *>(host_ptr), host_deleter);
 
 #ifdef ENABLE_CUDA
-    assert(d_data == NULL);
-
-    void *device_ptr = nullptr;
+    assert(!d_data);
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        // register pointer for DMA
-        cudaHostRegister(h_data.get(),m_num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
-        CHECK_CUDA_ERROR();
-
         // allocate and/or map host memory
         if (m_mapped)
             {
@@ -784,7 +788,7 @@ template<class T> void GPUArray<T>::allocate()
             }
 
         // store in smart pointer with custom deleter
-        auto cuda_deleter = hoomd::detail::cuda_deleter<T>(m_exec_conf, use_device, m_num_elements, m_mapped);
+        hoomd::detail::cuda_deleter<T> cuda_deleter(m_exec_conf, use_device, m_num_elements, m_mapped);
         d_data = std::unique_ptr<T, hoomd::detail::cuda_deleter<T> >(reinterpret_cast<T *>(device_ptr), cuda_deleter);
         }
 #endif
@@ -1086,7 +1090,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
 
     // update smart pointer
     bool use_device = m_exec_conf && m_exec_conf->isCUDAEnabled();
-    auto host_deleter = hoomd::detail::host_deleter<T>(m_exec_conf, use_device, num_elements);
+    hoomd::detail::host_deleter<T> host_deleter(m_exec_conf, use_device, num_elements);
     h_data = std::unique_ptr<T, hoomd::detail::host_deleter<T> >(h_tmp, host_deleter);
 
 #ifdef ENABLE_CUDA
@@ -1097,7 +1101,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
         cudaHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
 
         // no-op deleter
-        auto cuda_deleter = hoomd::detail::cuda_deleter<T>(m_exec_conf, use_device, num_elements, true);
+        hoomd::detail::cuda_deleter<T> cuda_deleter(m_exec_conf, use_device, num_elements, true);
         d_data = std::unique_ptr<T, hoomd::detail::cuda_deleter<T> >(reinterpret_cast<T *>(dev_ptr), cuda_deleter);
         }
 #endif
@@ -1145,7 +1149,7 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 
     // update smart pointer
     bool use_device = m_exec_conf && m_exec_conf->isCUDAEnabled();
-    auto host_deleter = hoomd::detail::host_deleter<T>(m_exec_conf, use_device, new_pitch*new_height);
+    hoomd::detail::host_deleter<T> host_deleter(m_exec_conf, use_device, new_pitch*new_height);
     h_data = std::unique_ptr<T, hoomd::detail::host_deleter<T> >(h_tmp, host_deleter);
 
 #ifdef ENABLE_CUDA
@@ -1156,7 +1160,7 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
         cudaHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
 
         // no-op deleter
-        auto cuda_deleter = hoomd::detail::cuda_deleter<T>(m_exec_conf, use_device, new_pitch*new_height, true);
+        hoomd::detail::cuda_deleter<T> cuda_deleter(m_exec_conf, use_device, new_pitch*new_height, true);
         d_data = std::unique_ptr<T, hoomd::detail::cuda_deleter<T> >(reinterpret_cast<T *>(dev_ptr), cuda_deleter);
         }
 
@@ -1191,7 +1195,7 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
     CHECK_CUDA_ERROR();
 
     // update smart ptr
-    auto cuda_deleter = hoomd::detail::cuda_deleter<T>(m_exec_conf, m_exec_conf->isCUDAEnabled(), num_elements, m_mapped);
+    hoomd::detail::cuda_deleter<T> cuda_deleter(m_exec_conf, m_exec_conf->isCUDAEnabled(), num_elements, m_mapped);
     d_data = std::unique_ptr<T, hoomd::detail::cuda_deleter<T> >(d_tmp, cuda_deleter);
 
     return d_data.get();
@@ -1232,7 +1236,7 @@ template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsign
         }
 
     // update smart ptr
-    auto cuda_deleter = hoomd::detail::cuda_deleter<T>(m_exec_conf, m_exec_conf->isCUDAEnabled(), new_pitch*new_height, m_mapped);
+    hoomd::detail::cuda_deleter<T> cuda_deleter(m_exec_conf, m_exec_conf->isCUDAEnabled(), new_pitch*new_height, m_mapped);
     d_data = std::unique_ptr<T, hoomd::detail::cuda_deleter<T> >(d_tmp, cuda_deleter);
 
     return d_data.get();

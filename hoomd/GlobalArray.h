@@ -320,7 +320,7 @@ class GlobalArray : public GPUArray<T>
                     }
                 else
                     {
-                    m_data.release();
+                    m_data.reset();
                     }
                 }
 
@@ -765,7 +765,7 @@ class GlobalArray : public GPUArray<T>
             for (std::size_t i = 0; i < m_num_elements; ++i) ::new ((void **) &((T *)ptr)[i]) T;
 
             // store allocation and custom deleter in unique_ptr
-            auto deleter = hoomd::detail::managed_deleter<T>(this->m_exec_conf,use_device,
+            hoomd::detail::managed_deleter<T> deleter(this->m_exec_conf,use_device,
                 m_num_elements, allocation_ptr, allocation_bytes);
             deleter.setTag(m_tag);
             m_data = std::unique_ptr<T, decltype(deleter)>(reinterpret_cast<T *>(ptr), deleter);
