@@ -18,7 +18,7 @@ set(_hpmc_sources   module.cc
                     module_spheropolygon.cc
                     module_polyhedron.cc
                     module_ellipsoid.cc
-                    module_faceted_sphere.cc
+                    module_faceted_ellipsoid.cc
                     module_sphinx.cc
                     module_union_convex_polyhedron.cc
                     module_union_sphere.cc
@@ -53,7 +53,7 @@ set(_hpmc_headers
     ShapeConvexPolygon.h
     ShapeConvexPolyhedron.h
     ShapeEllipsoid.h
-    ShapeFacetedSphere.h
+    ShapeFacetedEllipsoid.h
     ShapePolyhedron.h
     ShapeProxy.h
     ShapeSimplePolygon.h
@@ -85,7 +85,7 @@ set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      all_kernels_spheropolygon.cu
                      all_kernels_polyhedron.cu
                      all_kernels_ellipsoid.cu
-                     all_kernels_faceted_sphere.cu
+                     all_kernels_faceted_ellipsoid.cu
                      all_kernels_sphinx.cu
                      all_kernels_union_spheropolyhedron.cu
                      all_kernels_union_sphere.cu

@@ -270,26 +270,54 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
                             int(hull_only),
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
 
-class faceted_sphere_params(_hpmc.faceted_sphere_param_proxy, _param):
+class faceted_ellipsoid_params(_hpmc.faceted_ellipsoid_param_proxy, _param):
     def __init__(self, mc, index):
-        _hpmc.faceted_sphere_param_proxy.__init__(self, mc.cpp_integrator, index);
+        _hpmc.faceted_ellipsoid_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['vertices', 'normals', 'offsets', 'diameter', 'origin'];
-        self.make_fn = _hpmc.make_faceted_sphere;
+        self._keys += ['vertices', 'normals', 'offsets', 'a', 'b', 'c', 'origin'];
+        self.make_fn = _hpmc.make_faceted_ellipsoid;
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "faceted sphere(vertices = {}, normals = {}, offsets = {})".format(self.vertices, self.normals, self.offsets);
+        string = "faceted ellipsoid(vertices = {}, normals = {}, offsets = {}, a = {}, b = {}, c = {})".format(
+            self.vertices, self.normals, self.offsets, self.a, self.b, self.c);
+        return string;
+
+    def make_param(self, normals, offsets, vertices, a, b, c, origin=(0.0, 0.0, 0.0), ignore_statistics=False):
+        return self.make_fn(self.ensure_list(normals),
+                            self.ensure_list(offsets),
+                            self.ensure_list(vertices),
+                            float(a),
+                            float(b),
+                            float(c),
+                            tuple(origin),
+                            bool(ignore_statistics),
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
+
+# faceted sphere is a specialization of faceted ellipsoid
+class faceted_sphere_params(_hpmc.faceted_ellipsoid_param_proxy, _param):
+    def __init__(self, mc, index):
+        _hpmc.faceted_ellipsoid_param_proxy.__init__(self, mc.cpp_integrator, index);
+        _param.__init__(self, mc, index);
+        self._keys += ['vertices', 'normals', 'offsets', 'diameter', 'origin'];
+        self.make_fn = _hpmc.make_faceted_ellipsoid;
+
+    def __str__(self):
+        # should we put this in the c++ side?
+        string = "faceted sphere(vertices = {}, normals = {}, offsets = {}, diameter = {})".format(self.vertices, self.normals, self.offsets, self.diameter);
         return string;
 
     def make_param(self, normals, offsets, vertices, diameter, origin=(0.0, 0.0, 0.0), ignore_statistics=False):
         return self.make_fn(self.ensure_list(normals),
                             self.ensure_list(offsets),
                             self.ensure_list(vertices),
-                            float(diameter),
+                            float(diameter)/2.0,
+                            float(diameter)/2.0,
+                            float(diameter)/2.0,
                             tuple(origin),
                             bool(ignore_statistics),
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
+
 
 class sphinx_params(_hpmc.sphinx3d_param_proxy, _param):
     def __init__(self, mc, index):

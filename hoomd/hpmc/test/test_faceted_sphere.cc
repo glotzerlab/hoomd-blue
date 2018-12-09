@@ -7,7 +7,7 @@
 
 HOOMD_UP_MAIN();
 
-#include "hoomd/hpmc/ShapeFacetedSphere.h"
+#include "hoomd/hpmc/ShapeFacetedEllipsoid.h"
 
 #include <iostream>
 
@@ -24,24 +24,24 @@ UP_TEST( construction )
     o = o * (Scalar)(Scalar(1.0)/sqrt(norm2(o)));
     Scalar radius = 1.25;
 
-    detail::faceted_sphere_params p(0, false);
+    detail::faceted_ellipsoid_params p(0, false);
     p.N = 0;
-    p.diameter = 2.0*radius;
+    p.a = p.b = p.c = radius;
     p.ignore = 0;
-    p.insphere_radius = 0;
     p.verts.N = 0;
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
     // construct and check
-    ShapeFacetedSphere a(o, p);
+    ShapeFacetedEllipsoid a(o, p);
     MY_CHECK_CLOSE(a.orientation.s, o.s, tol);
     MY_CHECK_CLOSE(a.orientation.v.x, o.v.x, tol);
     MY_CHECK_CLOSE(a.orientation.v.y, o.v.y, tol);
     MY_CHECK_CLOSE(a.orientation.v.z, o.v.z, tol);
 
-    MY_CHECK_CLOSE(a.params.diameter, 2.0*radius, tol);
-    UP_ASSERT(a.params.insphere_radius==0);
+    MY_CHECK_CLOSE(a.params.a, radius, tol);
+    MY_CHECK_CLOSE(a.params.b, radius, tol);
+    MY_CHECK_CLOSE(a.params.c, radius, tol);
 
     UP_ASSERT(!a.hasOrientation());
 
@@ -60,40 +60,38 @@ UP_TEST( overlap )
     BoxDim box(100);
 
     // place test spheres
-    detail::faceted_sphere_params p(0, false);
-    p.diameter = 2.0*1.25;
+    detail::faceted_ellipsoid_params p(0, false);
+    p.a = p.b = p.c = 1.25;
     p.ignore = 0;
-    p.insphere_radius = 0;
     p.verts.N = 0;
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
-    ShapeFacetedSphere a(o, p);
+    ShapeFacetedEllipsoid a(o, p);
     r_i = vec3<Scalar>(1,2,3);
 
-    detail::faceted_sphere_params p2(0, false);
-    p2.diameter = 2*1.75;
+    detail::faceted_ellipsoid_params p2(0, false);
+    p2.a = p2.b = p2.c = 1.75;
     p2.ignore = 0;
-    p2.insphere_radius = 0;
     p2.verts.N = 0;
     p2.additional_verts.N = 0;
 
-    ShapeFacetedSphere b(o, p2);
+    ShapeFacetedEllipsoid b(o, p2);
     r_j = vec3<Scalar>(5,-2,-1);
     UP_ASSERT(!test_overlap(r_j - r_i, a,b,err_count));
     UP_ASSERT(!test_overlap(r_i - r_j, b,a,err_count));
 
-    ShapeFacetedSphere c(o, p2);
+    ShapeFacetedEllipsoid c(o, p2);
     r_j = vec3<Scalar>(3.9,2,3);
     UP_ASSERT(test_overlap(r_j - r_i, a,c,err_count));
     UP_ASSERT(test_overlap(r_i - r_j, c,a,err_count));
 
-    ShapeFacetedSphere d(o, p2);
+    ShapeFacetedEllipsoid d(o, p2);
     r_j = vec3<Scalar>(1,-0.8,3);
     UP_ASSERT(test_overlap(r_j - r_i, a,d,err_count));
     UP_ASSERT(test_overlap(r_i - r_j, d,a,err_count));
 
-    ShapeFacetedSphere e(o, p2);
+    ShapeFacetedEllipsoid e(o, p2);
     r_j = vec3<Scalar>(1,2,0.1);
     UP_ASSERT(test_overlap(r_j - r_i, a,e,err_count));
     UP_ASSERT(test_overlap(r_i - r_j, e,a,err_count));
@@ -111,23 +109,22 @@ UP_TEST( overlap_boundaries )
     vec3<Scalar> rij = pos_b - pos_a;
     rij = vec3<Scalar>(box.minImage(vec_to_scalar3(rij)));
 
-    detail::faceted_sphere_params p(0, false);
-    p.diameter = 2.0*1.00;
+    detail::faceted_ellipsoid_params p(0, false);
+    p.a = p.b = p.c = 1.00;
     p.ignore = 0;
-    p.insphere_radius = 0;
     p.verts.N = 0;
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
-    ShapeFacetedSphere a(o, p);
-    ShapeFacetedSphere b(o, p);
+    ShapeFacetedEllipsoid a(o, p);
+    ShapeFacetedEllipsoid b(o, p);
     UP_ASSERT(!test_overlap(rij,a,b,err_count));
     UP_ASSERT(!test_overlap(-rij,b,a,err_count));
 
     vec3<Scalar> pos_c(-9.1,0,0);
     rij = pos_c - pos_a;
     rij = vec3<Scalar>(box.minImage(vec_to_scalar3(rij)));
-    ShapeFacetedSphere c(o, p);
+    ShapeFacetedEllipsoid c(o, p);
     UP_ASSERT(test_overlap(rij,a,c,err_count));
     UP_ASSERT(test_overlap(-rij,c,a,err_count));
     }
@@ -141,27 +138,25 @@ UP_TEST( overlap_faceted )
     BoxDim box(100);
 
     // place test spheres
-    detail::faceted_sphere_params p(1, false);
-    p.diameter = 1.0;
+    detail::faceted_ellipsoid_params p(1, false);
+    p.a = p.b = p.c  = 0.5;
     p.n[0] = vec3<OverlapReal>(1,0,0);
     p.offset[0] = -.3;
     p.ignore = 0;
-    p.insphere_radius = .3;
     p.verts.N = 0;
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
-    ShapeFacetedSphere a(o, p);
+    ShapeFacetedEllipsoid a(o, p);
 
-    detail::faceted_sphere_params p2(1, false);
+    detail::faceted_ellipsoid_params p2(1, false);
     p2.N = 0;
-    p2.diameter = 1.0;
+    p2.a = p2.b = p2.c = 0.5;
     p2.ignore = 0;
-    p2.insphere_radius = 0;
     p2.verts.N = 0;
     p2.additional_verts.N = 0;
 
-    ShapeFacetedSphere b(o, p2);
+    ShapeFacetedEllipsoid b(o, p2);
     vec3<Scalar> r_ij = vec3<Scalar>(2,0,0);
     UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
@@ -218,7 +213,7 @@ UP_TEST( overlap_faceted )
         }
 
     // get a vertex on the intersection circle of sphere a
-    hpmc::detail::SupportFuncFacetedSphere S_a(p);
+    hpmc::detail::SupportFuncFacetedEllipsoid S_a(p);
     vec3<OverlapReal> v_or = S_a(vec3<OverlapReal>(1,-.3,0));
     vec3<Scalar> v(v_or.x, v_or.y, v_or.z);
 
@@ -247,10 +242,9 @@ UP_TEST( overlap_faceted_twofacets )
     BoxDim box(100);
 
     // place test spheres
-    detail::faceted_sphere_params p(2, false);
-    p.diameter = 1.0;
+    detail::faceted_ellipsoid_params p(2, false);
+    p.a = p.b = p.c = 0.5;
     p.ignore = 0;
-    p.insphere_radius = 0;
     p.verts.N = 0;
     p.additional_verts.N = 0;
     p.verts.diameter = 1.0;
@@ -261,17 +255,16 @@ UP_TEST( overlap_faceted_twofacets )
     p.offset[0] = -0.9*1/(2*sqrt(2));
     p.n[1] = vec3<OverlapReal>(1/sqrt(2),-1/sqrt(2),0);
     p.offset[1] = -0.9*1/(2*sqrt(2));
-    ShapeFacetedSphere::initializeVertices(p,false);
-    ShapeFacetedSphere a(o, p);
+    ShapeFacetedEllipsoid::initializeVertices(p,false);
+    ShapeFacetedEllipsoid a(o, p);
 
-    detail::faceted_sphere_params p2(0, false);
-    p2.diameter = 1.0;
+    detail::faceted_ellipsoid_params p2(0, false);
+    p2.a = p2.b = p2.c = 0.5;
     p2.ignore = 0;
-    p2.insphere_radius = 0;
     p2.verts.N = 0;
     p2.additional_verts.N = 0;
 
-    ShapeFacetedSphere b(o, p2);
+    ShapeFacetedEllipsoid b(o, p2);
     vec3<Scalar> r_ij = vec3<Scalar>(2,0,0);
     UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
@@ -300,10 +293,9 @@ UP_TEST( overlap_faceted_threefacets )
     BoxDim box(100);
 
     // place test spheres
-    detail::faceted_sphere_params p(3, false);
-    p.diameter = 1.0;
+    detail::faceted_ellipsoid_params p(3, false);
+    p.a = p.b = p.c = 0.5;
     p.ignore = 0;
-    p.insphere_radius = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
     // this shape has three facets coming together in a corner inside the sphere
@@ -320,21 +312,20 @@ UP_TEST( overlap_faceted_threefacets )
     p.verts.diameter = 1.0;
     p.verts.x[0] = 0;
     p.verts.y[0] = 0;
-    p.verts.z[0] = 0.9/2;
+    p.verts.z[0] = 0.9/2/p.c;
 
-    ShapeFacetedSphere::initializeVertices(p,false);
+    ShapeFacetedEllipsoid::initializeVertices(p,false);
 
-    ShapeFacetedSphere a(o, p);
+    ShapeFacetedEllipsoid a(o, p);
 
-    detail::faceted_sphere_params p2(0, false);
-    p2.diameter = 1.0;
+    detail::faceted_ellipsoid_params p2(0, false);
+    p2.a = p2.b = p2.c = 0.5;
     p2.ignore = 0;
-    p2.insphere_radius = 0;
     p2.verts.N = 0;
     p2.additional_verts.N = 0;
 
 
-    ShapeFacetedSphere b(o, p2);
+    ShapeFacetedEllipsoid b(o, p2);
     vec3<Scalar> r_ij = vec3<Scalar>(0,0,2);
     UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
@@ -371,28 +362,26 @@ UP_TEST( overlap_faceted_offset )
     BoxDim box(100);
 
     // place test spheres
-    detail::faceted_sphere_params p(1, false);
-    p.diameter = 1.0;
+    detail::faceted_ellipsoid_params p(1, false);
+    p.a = p.b = p.c = 0.5;
     p.n[0] = vec3<OverlapReal>(1,0,0);
     p.ignore = 0;
-    p.insphere_radius = 0;
     p.verts.N = 0;
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
 
-    ShapeFacetedSphere a(o, p);
+    ShapeFacetedEllipsoid a(o, p);
 
-    detail::faceted_sphere_params p2(0, false);
-    p2.diameter = 1.0;
+    detail::faceted_ellipsoid_params p2(0, false);
+    p2.a = p2.b = p2.c = 0.5;
     p2.ignore = 0;
-    p2.insphere_radius = 0;
     p2.verts.N = 0;
     p2.additional_verts.N = 0;
 
     p.offset[0] = -.25;
 
-    ShapeFacetedSphere b(o, p2);
+    ShapeFacetedEllipsoid b(o, p2);
     vec3<Scalar> r_ij = vec3<Scalar>(.76,0,0);
     UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
@@ -424,10 +413,9 @@ UP_TEST( overlap_faceted_offset )
 
 UP_TEST( random_support_test )
     {
-    detail::faceted_sphere_params p(6, false);
-    p.diameter = 1.0;
+    detail::faceted_ellipsoid_params p(6, false);
+    p.a = p.b = p.c = 0.5;
     p.ignore = 0;
-    p.insphere_radius = 0;
     p.verts.N = 0;
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
@@ -446,11 +434,11 @@ UP_TEST( random_support_test )
     //p.n[n] = vec3<OverlapReal>(0,0,1);
     //p.offset[n] = -0.35;
 
-    ShapeFacetedSphere::initializeVertices(p,false);
+    ShapeFacetedEllipsoid::initializeVertices(p,false);
 
     hoomd::detail::Saru rng;
 
-    detail::SupportFuncFacetedSphere support(p);
+    detail::SupportFuncFacetedEllipsoid support(p);
     for (unsigned int i = 0; i < 10000; ++i)
         {
         // draw a random vector in the excluded volume sphere of the colloid
@@ -468,10 +456,9 @@ UP_TEST( random_support_test )
 
 UP_TEST( random_support_test_2 )
     {
-    detail::faceted_sphere_params p(2, false);
-    p.diameter = 1.0;
+    detail::faceted_ellipsoid_params p(2, false);
+    p.a = p.b = p.c = 0.5;
     p.ignore = 0;
-    p.insphere_radius = 0;
     p.verts.N = 0;
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
@@ -488,11 +475,11 @@ UP_TEST( random_support_test_2 )
     //p.n[n] = vec3<OverlapReal>(0,0,1);
     //p.offset[n] = -0.35;
 
-    ShapeFacetedSphere::initializeVertices(p,false);
+    ShapeFacetedEllipsoid::initializeVertices(p,false);
 
     hoomd::detail::Saru rng;
 
-    detail::SupportFuncFacetedSphere support(p);
+    detail::SupportFuncFacetedEllipsoid support(p);
     for (unsigned int i = 0; i < 10000; ++i)
         {
         // draw a random vector in the excluded volume sphere of the colloid
@@ -513,10 +500,9 @@ UP_TEST( overlap_special_case )
     // parameters
     BoxDim box(100);
 
-    detail::faceted_sphere_params p(2, false);
-    p.diameter = 1.0;
+    detail::faceted_ellipsoid_params p(2, false);
+    p.a = p.b = p.c = 0.5;
     p.ignore = 0;
-    p.insphere_radius = 0;
     p.verts.N = 0;
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
@@ -531,11 +517,11 @@ UP_TEST( overlap_special_case )
         p.offset[i] = 0;
         }
 
-    ShapeFacetedSphere::initializeVertices(p,false);
+    ShapeFacetedEllipsoid::initializeVertices(p,false);
 
     // place test spheres
-    ShapeFacetedSphere a(quat<Scalar>(.3300283551216,vec3<Scalar>(0.01934501715004,-0.9390037059784, 0.09475778788328)),p);
-    ShapeFacetedSphere b(quat<Scalar>(-0.225227072835,vec3<Scalar>(-0.3539296984673,-0.8667258024216,-0.269801825285)),p);
+    ShapeFacetedEllipsoid a(quat<Scalar>(.3300283551216,vec3<Scalar>(0.01934501715004,-0.9390037059784, 0.09475778788328)),p);
+    ShapeFacetedEllipsoid b(quat<Scalar>(-0.225227072835,vec3<Scalar>(-0.3539296984673,-0.8667258024216,-0.269801825285)),p);
 
     vec3<Scalar> r_a(-0.1410365402699,-0.3096362948418,-0.04636116325855);
     vec3<Scalar> r_b(-0.7674461603165,-0.5918425917625,-0.3122854232788);

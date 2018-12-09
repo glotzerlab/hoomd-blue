@@ -14,7 +14,7 @@
 #include "ShapeSpheropolygon.h"
 #include "ShapeSimplePolygon.h"
 #include "ShapeEllipsoid.h"
-#include "ShapeFacetedSphere.h"
+#include "ShapeFacetedEllipsoid.h"
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 #include "AnalyzerSDF.h"
@@ -71,7 +71,7 @@ PYBIND11_MODULE(_hpmc, m)
     export_spheropolygon(m);
     export_polyhedron(m);
     export_ellipsoid(m);
-    export_faceted_sphere(m);
+    export_faceted_ellipsoid(m);
     export_sphinx(m);
     export_union_convex_polyhedron(m);
     export_union_sphere(m);
@@ -83,7 +83,7 @@ PYBIND11_MODULE(_hpmc, m)
     py::class_<poly2d_verts, std::shared_ptr<poly2d_verts> >(m, "poly2d_verts");
     py::class_<poly3d_data, std::shared_ptr<poly3d_data> >(m, "poly3d_data");
     py::class_< poly3d_verts, std::shared_ptr< poly3d_verts > >(m, "poly3d_verts");
-    py::class_<faceted_sphere_params, std::shared_ptr<faceted_sphere_params> >(m, "faceted_sphere_params");
+    py::class_<faceted_ellipsoid_params, std::shared_ptr<faceted_ellipsoid_params> >(m, "faceted_ellipsoid_params");
     py::class_<sphinx3d_params, std::shared_ptr<sphinx3d_params> >(m, "sphinx3d_params")
         .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter);
     py::class_< ShapeUnion<ShapeSphere>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere>::param_type> >(m, "msph_params");
@@ -95,7 +95,7 @@ PYBIND11_MODULE(_hpmc, m)
     m.def("make_poly3d_verts", &make_poly3d_verts);
     m.def("make_ell_params", &make_ell_params);
     m.def("make_sph_params", &make_sph_params);
-    m.def("make_faceted_sphere", &make_faceted_sphere);
+    m.def("make_faceted_ellipsoid", &make_faceted_ellipsoid);
     m.def("make_sphinx3d_params", &make_sphinx3d_params);
     m.def("make_convex_polyhedron_union_params", &make_union_params<ShapeSpheropolyhedron>);
     m.def("make_sphere_union_params", &make_union_params<ShapeSphere>);
