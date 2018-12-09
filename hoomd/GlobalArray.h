@@ -282,9 +282,6 @@ class GlobalArray : public GPUArray<T>
 
             if (&rhs != this)
                 {
-                checkAcquired(rhs);
-                checkAcquired(*this);
-
                 m_num_elements = rhs.m_num_elements;
                 m_pitch = rhs.m_pitch;
                 m_height = rhs.m_height;
