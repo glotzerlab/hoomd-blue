@@ -388,14 +388,6 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
     TAG_ALLOCATION(m_member_idx);
 
     #ifdef ENABLE_CUDA
-    if (m_pdata->getExecConf()->isCUDAEnabled() && m_pdata->getExecConf()->allConcurrentManagedAccess() && m_member_idx.getNumElements())
-        {
-        cudaMemAdvise(m_member_idx.get(), m_member_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
-        CHECK_CUDA_ERROR();
-        }
-    #endif
-
-    #ifdef ENABLE_CUDA
     if (m_pdata->getExecConf()->isCUDAEnabled())
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     #endif
@@ -487,14 +479,6 @@ void ParticleGroup::updateMemberTags(bool force_update) const
         GlobalArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
         m_member_idx.swap(member_idx);
         TAG_ALLOCATION(m_member_idx);
-
-        #ifdef ENABLE_CUDA
-        if (m_pdata->getExecConf()->isCUDAEnabled() && m_pdata->getExecConf()->allConcurrentManagedAccess() && m_member_idx.getNumElements())
-            {
-            cudaMemAdvise(m_member_idx.get(), m_member_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
-            CHECK_CUDA_ERROR();
-            }
-        #endif
         }
 
     // one byte per particle to indicate membership in the group, initialize with current number of local particles
