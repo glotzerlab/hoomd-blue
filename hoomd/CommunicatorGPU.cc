@@ -44,12 +44,6 @@ CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
     // create at ModernGPU context
     m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
 
-    GlobalArray<unsigned int> begin(NEIGH_MAX,m_exec_conf);
-    m_begin.swap(begin);
-
-    GlobalArray<unsigned int> end(NEIGH_MAX,m_exec_conf);
-    m_end.swap(end);
-
     // create cuda event
     cudaEventCreate(&m_event, cudaEventDisableTiming);
     }
