@@ -18,9 +18,8 @@
     back on GPUArray (and whenever it doesn't have an ExecutionConfiguration). This behavior is controlled
     by the result of ExecutionConfiguration::allConcurrentManagedAccess().
 
-    One difference to GPUArray is that GlobalArray doesn't zero its memory space, so don't forget to initialize
-    the data explicitly. However, if the items are objects that have a constructur, GlobalArray takes
-    care of calling constructors and destructors.
+    One difference to GPUArray is that GlobalArray doesn't zero its memory space, so it is important to
+    explicitly initialize the data.
 
     Internally, GlobalArray<> uses a smart pointer to comply with RAII semantics.
 
@@ -130,12 +129,6 @@ class managed_deleter
                 CHECK_CUDA_ERROR();
                 }
             #endif
-
-            // we used placement new in the allocation, so call destructors explicitly
-            for (std::size_t i = 0; i < m_N; ++i)
-                {
-                ptr[i].~T();
-                }
 
             #ifdef ENABLE_CUDA
             if (m_use_device)
@@ -760,9 +753,6 @@ class GlobalArray : public GPUArray<T>
                 CHECK_CUDA_ERROR();
                 }
             #endif
-
-            // construct objects explicitly using placement new
-            for (std::size_t i = 0; i < m_num_elements; ++i) ::new ((void **) &((T *)ptr)[i]) T;
 
             // store allocation and custom deleter in unique_ptr
             hoomd::detail::managed_deleter<T> deleter(this->m_exec_conf,use_device,
