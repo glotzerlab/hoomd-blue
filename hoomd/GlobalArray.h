@@ -181,7 +181,7 @@ class event_deleter
             {}
 
         //! Constructor with execution configuration
-        /*! \param exec_conf The execution configuration
+        /*! \param exec_conf The execution configuration (needed for CHECK_CUDA_ERROR)
          */
         event_deleter(std::shared_ptr<const ExecutionConfiguration> exec_conf)
             : m_exec_conf(exec_conf)
