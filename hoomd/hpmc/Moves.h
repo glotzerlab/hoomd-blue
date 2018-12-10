@@ -4,6 +4,8 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
+#include "hoomd/AABB.h"
+
 /*! \file Moves.h
     \brief Trial move generators
 */
@@ -245,6 +247,25 @@ inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>&
 
     // test depletant position
     return pos_sphere+r_cone;
+    }
+
+/* Generate a uniformly distributed random position in an AABB
+ *
+ * \param rng The random number generator
+ * \param aabb The AABB to sample in
+ */
+template<class RNG>
+inline vec3<Scalar> generatePositionInAABB(RNG& rng, const detail::AABB& aabb)
+    {
+    vec3<Scalar> p;
+    vec3<Scalar> lower = aabb.getLower();
+    vec3<Scalar> upper = aabb.getUpper();
+
+    p.x = rng.template s<Scalar>(lower.x, upper.x);
+    p.y = rng.template s<Scalar>(lower.y, upper.y);
+    p.z = rng.template s<Scalar>(lower.z, upper.z);
+
+    return p;
     }
 
 /*! Reflect a point in R3 around a line (pi rotation), given by a point p through which it passes

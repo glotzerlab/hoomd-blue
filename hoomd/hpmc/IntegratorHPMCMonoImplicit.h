@@ -783,8 +783,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     const unsigned int n_images = this->m_image_list.size();
 
     Shape shape_old(quat<Scalar>(h_orientation[i]), this->m_params[typ_i]);
-    detail::AABB aabb_i = shape_i.getAABB(vec3<Scalar>(0,0,0));
-    detail::AABB aabb_i_old = shape_old.getAABB(vec3<Scalar>(0,0,0));
+    detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+    detail::AABB aabb_i_local_old = shape_old.getAABB(vec3<Scalar>(0,0,0));
 
     #ifdef ENABLE_TBB
     std::vector< tbb::enumerable_thread_specific<hpmc_implicit_counters_t> > thread_implicit_counters(this->m_pdata->getNTypes());
@@ -819,8 +819,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             Scalar range = m_quermass ? Scalar(2.0)*m_sweep_radius : d_dep;
 
             // get old AABB and extend
-            vec3<Scalar> lower = aabb_i_old.getLower();
-            vec3<Scalar> upper = aabb_i_old.getUpper();
+            vec3<Scalar> lower = aabb_i_local_old.getLower();
+            vec3<Scalar> upper = aabb_i_local_old.getUpper();
             lower.x -= range; lower.y -= range; lower.z -= range;
             upper.x += range; upper.y += range; upper.z += range;
             detail::AABB aabb_local = detail::AABB(lower,upper);
@@ -905,7 +905,18 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
             // now, we have a list of intersecting spheres, sample in the union of intersection volumes
             // we sample from their union by checking if any generated position falls in the intersection
-            // between two 'lenses' and if so, only accepting it if it was generated from neighbor j_min
+            // of their AABBs, only accepting it if it was generated from neighbor j_min
+
+            // world AABB of particle i
+            detail::AABB aabb_i_old = aabb_i_local_old;
+            aabb_i_old.translate(pos_i_old);
+
+            // extend AABB i by sweep radius
+            range = Scalar(0.5)*d_dep+m_sweep_radius;
+            vec3<Scalar> lower_i = aabb_i_old.getLower();
+            vec3<Scalar> upper_i = aabb_i_old.getUpper();
+            lower_i.x -= range; lower_i.y -= range; lower_i.z -= range;
+            upper_i.x += range; upper_i.y += range; upper_i.z += range;
 
             // for every pairwise intersection
             #ifdef ENABLE_TBB
@@ -915,43 +926,31 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             #endif
                 {
                 unsigned int j = intersect_i[k];
-                vec3<Scalar> ri = pos_i_old;
                 Scalar4 postype_j = h_postype[j];
-                vec3<Scalar> rj = vec3<Scalar>(postype_j);
-                // shape_i is extended by the sweep radius
-                Scalar Ri = Scalar(0.5)*(shape_i.getCircumsphereDiameter()+d_dep)+m_sweep_radius;
-                Shape shape_j(quat<Scalar>(), this->m_params[__scalar_as_int(postype_j.w)]);
-                Scalar Rj = Scalar(0.5)*(shape_j.getCircumsphereDiameter()+d_dep)+m_sweep_radius;
 
-                vec3<Scalar> rij(rj-ri - this->m_image_list[image_i[k]]);
-                Scalar d = sqrt(dot(rij,rij));
+                // world AABB of shape j, in image of i
+                Shape shape_j(quat<Scalar>(h_orientation[j]), this->m_params[__scalar_as_int(postype_j.w)]);
+                detail::AABB aabb_j = shape_j.getAABB(vec3<Scalar>(postype_j)-this->m_image_list[image_i[k]]);
 
-                // whether the intersection is the entire (smaller) sphere
-                bool sphere = false;
-                Scalar V;
-                Scalar Vcap_i(0.0);
-                Scalar Vcap_j(0.0);
-                Scalar hi(0.0);
-                Scalar hj(0.0);
+                // extend AABB j by sweep radius
+                vec3<Scalar> lower_j = aabb_j.getLower();
+                vec3<Scalar> upper_j = aabb_j.getUpper();
+                lower_j.x -= range; lower_j.y -= range; lower_j.z -= range;
+                upper_j.x += range; upper_j.y += range; upper_j.z += range;
 
-                if (d + Ri - Rj < 0 || d + Rj - Ri < 0)
-                    {
-                    sphere = true;
-                    V = (Ri < Rj) ? Scalar(M_PI*4.0/3.0)*Ri*Ri*Ri : Scalar(M_PI*4.0/3.0)*Rj*Rj*Rj;
-                    }
-                else
-                    {
-                    // heights spherical caps that constitute the intersection volume
-                    hi = (Rj*Rj - (d-Ri)*(d-Ri))/(2*d);
-                    hj = (Ri*Ri - (d-Rj)*(d-Rj))/(2*d);
+                // we already know the AABBs are overlapping, compute their intersection
+                vec3<Scalar> intersect_lower, intersect_upper;
+                intersect_lower.x = std::max(lower_i.x, lower_j.x);
+                intersect_lower.y = std::max(lower_i.y, lower_j.y);
+                intersect_lower.z = std::max(lower_i.z, lower_j.z);
+                intersect_upper.x = std::min(upper_i.x, upper_j.x);
+                intersect_upper.y = std::min(upper_i.y, upper_j.y);
+                intersect_upper.z = std::min(upper_i.z, upper_j.z);
 
-                    // volumes of spherical caps
-                    Vcap_i = Scalar(M_PI/3.0)*hi*hi*(3*Ri-hi);
-                    Vcap_j = Scalar(M_PI/3.0)*hj*hj*(3*Rj-hj);
+                detail::AABB aabb_intersect(intersect_lower, intersect_upper);
 
-                    // volume of intersection
-                    V = Vcap_i + Vcap_j;
-                    }
+                // intersectionAABB volume
+                Scalar V =  (upper.z-lower.z)*(upper.y-lower.y)*(upper.z-lower.z);
 
                 // chooose the number of depletants in the intersection volume
                 std::poisson_distribution<unsigned int> poisson(m_fugacity[type]*V);
@@ -985,26 +984,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     implicit_counters[type].insert_count++;
                     #endif
 
-                    vec3<Scalar> pos_test;
-                    if (!sphere)
-                        {
-                        // choose one of the two caps randomly, with a weight proportional to their volume
-                        Scalar s = my_rng.template s<Scalar>();
-                        bool cap_i = s < Vcap_i/V;
-
-                        // generate a depletant position in the spherical cap
-                        pos_test = cap_i ? generatePositionInSphericalCap(my_rng, ri, Ri, hi, rij)
-                            : generatePositionInSphericalCap(my_rng, rj, Rj, hj, -rij)-this->m_image_list[image_i[k]];
-                        }
-                    else
-                        {
-                        // generate a random position in the smaller sphere
-                        if (Ri < Rj)
-                            pos_test = generatePositionInSphere(my_rng, ri, Ri);
-                        else
-                            pos_test = generatePositionInSphere(my_rng, rj, Rj) - this->m_image_list[image_i[k]];
-                        }
-
+                    vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect);
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
                     if (shape_test.hasOrientation())
                         {
@@ -1238,8 +1218,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             Scalar range = m_quermass ? Scalar(2.0)*m_sweep_radius : d_dep;
 
             // get new AABB and extend
-            vec3<Scalar> lower = aabb_i.getLower();
-            vec3<Scalar> upper = aabb_i.getUpper();
+            vec3<Scalar> lower = aabb_i_local.getLower();
+            vec3<Scalar> upper = aabb_i_local.getUpper();
             lower.x -= range; lower.y -= range; lower.z -= range;
             upper.x += range; upper.y += range; upper.z += range;
             detail::AABB aabb_local = detail::AABB(lower,upper);
@@ -1342,7 +1322,18 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
             // now, we have a list of intersecting spheres, sample in the union of intersection volumes
             // we sample from their union by checking if any generated position falls in the intersection
-            // between two 'lenses' and if so, only accepting it if it was generated from neighbor j_min
+            // of their AABBs and if so, only accepting it if it was generated from neighbor j_min
+
+            // world AABB of particle i
+            detail::AABB aabb_i = aabb_i_local;
+            aabb_i.translate(pos_i);
+
+            // extend AABB i by sweep radius
+            range = Scalar(0.5)*d_dep+m_sweep_radius;
+            vec3<Scalar> lower_i = aabb_i.getLower();
+            vec3<Scalar> upper_i = aabb_i.getUpper();
+            lower_i.x -= range; lower_i.y -= range; lower_i.z -= range;
+            upper_i.x += range; upper_i.y += range; upper_i.z += range;
 
             // for every pairwise intersection
             #ifdef ENABLE_TBB
@@ -1357,41 +1348,32 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #endif
 
                 unsigned int j = intersect_i[k];
-                vec3<Scalar> ri = pos_i;
                 vec3<Scalar> rj = (j == i) ? pos_i : vec3<Scalar>(h_postype[j]);
-                Scalar Ri = Scalar(0.5)*(shape_i.getCircumsphereDiameter()+d_dep)+m_sweep_radius;
-                Shape shape_j(quat<Scalar>(), this->m_params[(j == i) ? typ_i : __scalar_as_int(h_postype[j].w)]);
-                Scalar Rj = Scalar(0.5)*(shape_j.getCircumsphereDiameter()+d_dep)+m_sweep_radius;
+                quat<Scalar> qj = (j == i) ? shape_i.orientation : quat<Scalar>(h_orientation[j]);
 
-                vec3<Scalar> rij(rj-ri - this->m_image_list[image_i[k]]);
-                Scalar d = sqrt(dot(rij,rij));
+                // world AABB of shape j, in image of i
+                Shape shape_j(qj, this->m_params[(j == i) ? typ_i : __scalar_as_int(h_postype[j].w)]);
+                detail::AABB aabb_j = shape_j.getAABB(rj-this->m_image_list[image_i[k]]);
 
-                // whether the intersection is the entire (smaller) sphere
-                bool sphere = false;
-                Scalar V;
-                Scalar Vcap_i(0.0);
-                Scalar Vcap_j(0.0);
-                Scalar hi(0.0);
-                Scalar hj(0.0);
+                // extend AABB j by sweep radius
+                vec3<Scalar> lower_j = aabb_j.getLower();
+                vec3<Scalar> upper_j = aabb_j.getUpper();
+                lower_j.x -= range; lower_j.y -= range; lower_j.z -= range;
+                upper_j.x += range; upper_j.y += range; upper_j.z += range;
 
-                if (d + Ri - Rj < 0 || d + Rj - Ri < 0)
-                    {
-                    sphere = true;
-                    V = (Ri < Rj) ? Scalar(M_PI*4.0/3.0)*Ri*Ri*Ri : Scalar(M_PI*4.0/3.0)*Rj*Rj*Rj;
-                    }
-                else
-                    {
-                    // heights spherical caps that constitute the intersection volume
-                    hi = (Rj*Rj - (d-Ri)*(d-Ri))/(2*d);
-                    hj = (Ri*Ri - (d-Rj)*(d-Rj))/(2*d);
+                // we already know the AABBs are overlapping, compute their intersection
+                vec3<Scalar> intersect_lower, intersect_upper;
+                intersect_lower.x = std::max(lower_i.x, lower_j.x);
+                intersect_lower.y = std::max(lower_i.y, lower_j.y);
+                intersect_lower.z = std::max(lower_i.z, lower_j.z);
+                intersect_upper.x = std::min(upper_i.x, upper_j.x);
+                intersect_upper.y = std::min(upper_i.y, upper_j.y);
+                intersect_upper.z = std::min(upper_i.z, upper_j.z);
 
-                    // volumes of spherical caps
-                    Vcap_i = Scalar(M_PI/3.0)*hi*hi*(3*Ri-hi);
-                    Vcap_j = Scalar(M_PI/3.0)*hj*hj*(3*Rj-hj);
+                detail::AABB aabb_intersect(intersect_lower, intersect_upper);
 
-                    // volume of intersection
-                    V = Vcap_i + Vcap_j;
-                    }
+                // intersectionAABB volume
+                Scalar V =  (upper.z-lower.z)*(upper.y-lower.y)*(upper.z-lower.z);
 
                 // chooose the number of depletants in the intersection volume
                 std::poisson_distribution<unsigned int> poisson(-m_fugacity[type]*V);
@@ -1420,28 +1402,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     implicit_counters[type].insert_count++;
                     #endif
 
-                    vec3<Scalar> pos_test;
-                    if (!sphere)
-                        {
-                        // choose one of the two caps randomly, with a weight proportional to their volume
-                        Scalar s = my_rng.template s<Scalar>();
-                        bool cap_i = s < Vcap_i/V;
-
-                        // generate a depletant position in the spherical cap
-                        pos_test = cap_i ? generatePositionInSphericalCap(my_rng, ri, Ri, hi, rij)
-                            : generatePositionInSphericalCap(my_rng, rj, Rj, hj, -rij)-
-                            this->m_image_list[image_i[k]];
-                        }
-                    else
-                        {
-                        // generate a random position in the smaller sphere
-                        if (Ri < Rj)
-                            pos_test = generatePositionInSphere(my_rng, ri, Ri);
-                        else
-                            pos_test = generatePositionInSphere(my_rng, rj, Rj) -
-                                this->m_image_list[image_i[k]];
-                        }
-
+                    vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect);
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
                     if (shape_test.hasOrientation())
                         {
