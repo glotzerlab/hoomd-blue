@@ -1463,10 +1463,7 @@ class faceted_ellipsoid(mode_hpmc):
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
                 # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoid(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoid(hoomd.context.current.system_definition, seed, 1)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoid(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedEllipsoid(hoomd.context.current.system_definition, seed);
         else:
@@ -1475,10 +1472,7 @@ class faceted_ellipsoid(mode_hpmc):
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -2280,10 +2274,7 @@ class faceted_ellipsoid_union(mode_hpmc):
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
                 # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoidUnion(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoidUnion(hoomd.context.current.system_definition, seed, 1)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoidUnion(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedEllipsoidUnion(hoomd.context.current.system_definition, seed)
         else:
@@ -2292,10 +2283,7 @@ class faceted_ellipsoid_union(mode_hpmc):
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedEllipsoidUnion(hoomd.context.current.system_definition, cl_c, seed)
             else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedEllipsoidUnion(hoomd.context.current.system_definition, cl_c, seed)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUFacetedEllipsoidUnion(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedEllipsoidUnion(hoomd.context.current.system_definition, cl_c, seed)
 
         # set default parameters
         setD(self.cpp_integrator,d);
