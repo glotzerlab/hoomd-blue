@@ -992,20 +992,17 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         }
 
                     // check if depletant falls in other intersection volumes
+                    detail::AABB aabb_test = shape_test.getAABB(pos_test);
                     bool active = true;
                     for (unsigned int m = 0; m < k; ++m)
                         {
                         unsigned int p = intersect_i[m];
                         Scalar4 postype_p = h_postype[p];
                         vec3<Scalar> rp = vec3<Scalar>(postype_p);
-                        Shape shape_p(quat<Scalar>(), this->m_params[__scalar_as_int(postype_p.w)]);
+                        Shape shape_p(quat<Scalar>(h_orientation[p]), this->m_params[__scalar_as_int(postype_p.w)]);
+                        detail::AABB aabb_p = shape_p.getAABB(rp - this->m_image_list[image_i[m]]);
 
-                        vec3<Scalar> delta_r(pos_test + this->m_image_list[image_i[m]] - rp);
-                        OverlapReal rsq = dot(delta_r,delta_r);
-                        OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_p.getCircumsphereDiameter() + Scalar(2.0)*m_sweep_radius;
-                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                        if (circumsphere_overlap)
+                        if (detail::overlap(aabb_test,aabb_p))
                             {
                             active = false;
                             break;
@@ -1412,19 +1409,18 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     // check if depletant falls in other intersection volumes (new)
                     bool active = true;
 
-                    // check against any other lens preceding this
+                    // check against any other AABB preceding this
+                    detail::AABB aabb_test = shape_test.getAABB(pos_test);
+
                     for (unsigned int m = 0; m < k; ++m)
                         {
                         unsigned int p = intersect_i[m];
                         vec3<Scalar> rp = (p == i) ? pos_i : vec3<Scalar>(h_postype[p]);
-                        Shape shape_p(quat<Scalar>(), this->m_params[(p == i) ? typ_i : __scalar_as_int(h_postype[p].w)]);
+                        quat<Scalar> qp = (p == i) ? shape_i.orientation : quat<Scalar>(h_orientation[p]);
+                        Shape shape_p(quat<Scalar>(qp), this->m_params[(p == i) ? typ_i : __scalar_as_int(h_postype[p].w)]);
+                        detail::AABB aabb_p = shape_p.getAABB(rp - this->m_image_list[image_i[m]]);
 
-                        vec3<Scalar> delta_r(pos_test + this->m_image_list[image_i[m]] - rp);
-                        OverlapReal rsq = dot(delta_r,delta_r);
-                        OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_p.getCircumsphereDiameter() + OverlapReal(2.0)*m_sweep_radius;
-                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                        if (circumsphere_overlap)
+                        if (detail::overlap(aabb_test,aabb_p))
                             {
                             active = false;
                             break;
