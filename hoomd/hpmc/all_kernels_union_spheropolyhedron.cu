@@ -6,16 +6,7 @@
 #include "IntegratorHPMCMonoImplicitGPU.cuh"
 #include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
-#include "ShapeSphere.h"
-#include "ShapeConvexPolygon.h"
-#include "ShapePolyhedron.h"
 #include "ShapeSpheropolyhedron.h"
-#include "ShapeSpheropolyhedron.h"
-#include "ShapeSpheropolygon.h"
-#include "ShapeSimplePolygon.h"
-#include "ShapeEllipsoid.h"
-#include "ShapeFacetedSphere.h"
-#include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 
 namespace hpmc

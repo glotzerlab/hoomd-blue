@@ -93,14 +93,16 @@ class lattice_field(_external):
                 cls = _hpmc.ExternalFieldLatticeEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
                 cls =_hpmc.ExternalFieldLatticeSpheropolygon;
-            elif isinstance(mc, integrate.faceted_sphere):
-                cls =_hpmc.ExternalFieldLatticeFacetedSphere;
+            elif isinstance(mc, integrate.faceted_ellipsoid):
+                cls =_hpmc.ExternalFieldLatticeFacetedEllipsoid;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.ExternalFieldLatticePolyhedron;
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.ExternalFieldLatticeSphinx;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ExternalFieldLatticeSphereUnion;
+            elif isinstance(mc, integrate.faceted_ellipsoid_union):
+                cls = _hpmc.ExternalFieldlatticeFacetedEllipsoidUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
                 cls = _hpmc.ExternalFieldLatticeConvexPolyhedronUnion;
             else:
@@ -260,14 +262,16 @@ class external_field_composite(_external):
                 cls = _hpmc.ExternalFieldCompositeEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
                 cls =_hpmc.ExternalFieldCompositeSpheropolygon;
-            elif isinstance(mc, integrate.faceted_sphere):
-                cls =_hpmc.ExternalFieldCompositeFacetedSphere;
+            elif isinstance(mc, integrate.faceted_ellipsoid):
+                cls =_hpmc.ExternalFieldCompositeFacetedEllipsoid;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.ExternalFieldCompositePolyhedron;
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.ExternalFieldCompositeSphinx;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ExternalFieldCompositeSphereUnion;
+            elif isinstance(mc, integrate.faceted_ellipsoid_union):
+                cls = _hpmc.ExternalFieldCompositeFacetedEllipsoidUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
                 cls = _hpmc.ExternalFieldCompositeConvexPolyhedronUnion;
             else:
@@ -970,14 +974,18 @@ class callback(_external):
                 cls = _hpmc.ExternalCallbackEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
                 cls =_hpmc.ExternalCallbackSpheropolygon;
-            elif isinstance(mc, integrate.faceted_sphere):
-                cls =_hpmc.ExternalCallbackFacetedSphere;
+            elif isinstance(mc, integrate.faceted_ellipsoid):
+                cls =_hpmc.ExternalCallbackFacetedEllipsoid;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.ExternalCallbackPolyhedron;
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.ExternalCallbackSphinx;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ExternalCallbackSphereUnion;
+            elif isinstance(mc, integrate.faceted_ellipsoid_union):
+                cls = _hpmc.ExternalCallbackFacetedEllipsoidUnion;
+            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
+                cls = _hpmc.ExternalCallbackConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("hpmc.field.callback: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing python callback");
