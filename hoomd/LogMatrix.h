@@ -73,7 +73,7 @@ class LogMatrix : public Logger
         //! Cached matrix quantities
         std::vector< pybind11::array > m_cached_matrix_quantities;
     private:
-        //! Obtain the matrix qunatities for caching.
+        //! Obtain the matrix quantities for caching.
         virtual pybind11::array getMatrix(const std::string& quantity, unsigned int timestep);
     };
 

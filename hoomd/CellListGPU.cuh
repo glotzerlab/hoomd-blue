@@ -12,6 +12,7 @@
 #include "HOOMDMath.h"
 #include "Index1D.h"
 #include "ParticleData.cuh"
+#include "GPUPartition.cuh"
 
 /*! \file CellListGPU.cuh
     \brief Declares GPU kernel code for cell list generation on the GPU
@@ -38,7 +39,26 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const Index3D& ci,
                                   const Index2D& cli,
                                   const Scalar3& ghost_width,
-                                  const unsigned int block_size);
+                                  const unsigned int block_size,
+                                  const GPUPartition& gpu_partition);
+
+//! Driver function to combine the cell lists from different GPUs into one
+cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
+                                unsigned int *d_cell_size,
+                                const unsigned int *d_idx_scratch,
+                                unsigned int *d_idx,
+                                const Scalar4 *d_xyzf_scratch,
+                                Scalar4 *d_xyzf,
+                                const Scalar4 *d_tdb_scratch,
+                                Scalar4 *d_tdb,
+                                const Scalar4 *d_cell_orientation_scratch,
+                                Scalar4 *d_cell_orientation,
+                                const Index2D cli,
+                                unsigned int ngpu,
+                                const unsigned int block_size,
+                                const unsigned int Nmax,
+                                uint3 *d_conditions,
+                                const GPUPartition& gpu_partition);
 
 cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
                         Scalar4 *d_xyzf,

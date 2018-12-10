@@ -17,7 +17,7 @@
 // define HOOMD_NOPYTHON to prevent the need for python and pybind includes
 // this simplifies LLVM code generation
 #ifndef HOOMD_NOPYTHON
-// include python.h first to silelse _XOPEN_SOURCE redefinition warnings
+// include python.h first to silence _XOPEN_SOURCE redefinition warnings
 #include <Python.h>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
@@ -269,21 +269,21 @@ HOSTDEVICE inline Scalar3 operator/ (const Scalar3 &a, const Scalar3 &b)
                         a.y / b.y,
                         a.z / b.z);
     }
-//! Scalar - vector multiplcation
+//! Scalar - vector multiplication
 HOSTDEVICE inline Scalar3 operator* (const Scalar &a, const Scalar3 &b)
     {
     return make_scalar3(a*b.x,
                         a*b.y,
                         a*b.z);
     }
-//! Scalar - vector multiplcation
+//! Scalar - vector multiplication
 HOSTDEVICE inline Scalar3 operator* (const Scalar3 &a, const Scalar &b)
     {
     return make_scalar3(a.x*b,
                         a.y*b,
                         a.z*b);
     }
-//! Vector - scalar multiplcation
+//! Vector - scalar multiplication
 HOSTDEVICE inline Scalar3& operator*= (Scalar3 &a, const Scalar &b)
     {
     a.x *= b;
@@ -338,7 +338,7 @@ HOSTDEVICE inline int3 operator+=(int3& a, const int3& b)
     a.x += b.x; a.y += b.y; a.z += b.z;
     return a;
     }
-//! Integer vector substraction
+//! Integer vector subtraction
 HOSTDEVICE inline int3 operator-(const int3& a, const int3& b)
     {
     return make_int3(a.x - b.x, a.y - b.y, a.z - b.z);

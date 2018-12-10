@@ -142,7 +142,7 @@ __global__ void gpu_fill_molecule_table_kernel(
 
     unsigned int molidx = d_molecule_idx[idx];
     if (molidx != NO_MOLECULE)
-        d_molecule_list[molecule_idx(molidx, d_molecule_order[idx])] = idx;
+        d_molecule_list[molecule_idx(d_molecule_order[idx], molidx)] = idx;
     }
 
 cudaError_t gpu_fill_molecule_table(

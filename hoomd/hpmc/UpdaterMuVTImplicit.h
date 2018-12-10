@@ -44,7 +44,7 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
         /*! Check for overlaps in the new configuration
          * \param timestep  time step
          * \param type Type of particle to test
-         * \param pos Position of fictitous particle
+         * \param pos Position of fictitious particle
          * \param orientation Orientation of particle
          * \param lnboltzmann Log of Boltzmann weight of insertion attempt (return value)
          * \returns True if boltzmann weight is non-zero
@@ -151,8 +151,8 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
     };
 
 /*! Constructor
-    \param sysdef The system defintion
-    \param mc_implict The HPMC integrator
+    \param sysdef The system definition
+    \param mc_implicit The HPMC integrator
     \param seed RNG seed
     \param npartition How many partitions to use in parallel for Gibbs ensemble (n=1 == grand canonical)
 */
@@ -326,7 +326,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::trySwitchType(unsigned int timestep,
     // reject if depletant overlap
     if (! this->m_gibbs && n_overlap)
         {
-        // FIXME: need to apply GC acceptance criterium here for muVT
+        // FIXME: need to apply GC acceptance criterion here for muVT
         nonzero = false;
         }
 
@@ -608,7 +608,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsInUpdatedRegion(unsign
                     unsigned int j = h_rtag.data[tag];
                     assert(j < this->m_pdata->getN());
 
-                    // load the old position and orientation of the udpated particle
+                    // load the old position and orientation of the updated particle
                     Scalar4 postype_j = h_postype.data[j];
                     Scalar4 orientation_j = h_orientation.data[j];
 
@@ -987,7 +987,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsIntoOldPosition(unsign
                 unsigned int j = h_rtag.data[tag];
                 assert(j < this->m_pdata->getN());
 
-                // load the old position and orientation of the udpated particle
+                // load the old position and orientation of the updated particle
                 Scalar4 postype_j = h_postype.data[j];
                 Scalar4 orientation_j = h_orientation.data[j];
 

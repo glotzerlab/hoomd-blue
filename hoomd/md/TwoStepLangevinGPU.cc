@@ -60,7 +60,7 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
 
-    This method is copied directoy from TwoStepNVEGPU::integrateStepOne() and reimplemented here to avoid multiple.
+    This method is copied directly from TwoStepNVEGPU::integrateStepOne() and reimplemented here to avoid multiple.
 */
 void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
     {
@@ -137,7 +137,7 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
         {

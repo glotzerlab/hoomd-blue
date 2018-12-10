@@ -210,7 +210,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
         std::unique_ptr<Autotuner> m_tuner_ghost_send; //!< Autotuner for mapped memory (recv ghosts)
 
         GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< Buffer for sending particle tags
-        GPUVector<unsigned int> m_tag_ghost_recvbuf;   //!< Buffer for recveiving particle tags
+        GPUVector<unsigned int> m_tag_ghost_recvbuf;   //!< Buffer for receiving particle tags
 
         GPUVector<Scalar4> m_pos_ghost_sendbuf;        //<! Buffer for sending ghost positions
         GPUVector<Scalar4> m_pos_ghost_recvbuf;        //<! Buffer for receiving ghost positions
@@ -234,7 +234,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
         GPUVector<Scalar4> m_orientation_ghost_recvbuf;//<! Buffer for receiving ghost orientations
 
         GPUVector<unsigned int> m_tag_ghost_sendbuf_alt;   //!< Buffer for sending particle tags (standby)
-        GPUVector<unsigned int> m_tag_ghost_recvbuf_alt;   //!< Buffer for recveiving particle tags (standby)
+        GPUVector<unsigned int> m_tag_ghost_recvbuf_alt;   //!< Buffer for receiving particle tags (standby)
 
         GPUVector<Scalar4> m_pos_ghost_sendbuf_alt;        //<! Buffer for sending ghost positions (standby)
         GPUVector<Scalar4> m_pos_ghost_recvbuf_alt;        //<! Buffer for receiving ghost positions (standby)

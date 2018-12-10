@@ -26,7 +26,7 @@ namespace hpmc
 {
 
 //! Simple Polygon shape template
-/*! ShapeSimplePolygon implements IntegragorHPMC's shape protocol. It uses the same data structures as
+/*! ShapeSimplePolygon implements IntegratorHPMC's shape protocol. It uses the same data structures as
     ShapeConvexPolygon, but the overlap check is generalized to support simple polygons (i.e. concave).
 
     The parameter defining a polygon is a structure containing a list of N vertices. They are assumed to be listed

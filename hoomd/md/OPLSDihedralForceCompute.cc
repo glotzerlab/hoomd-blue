@@ -50,10 +50,10 @@ OPLSDihedralForceCompute::~OPLSDihedralForceCompute()
 }
 
 /*! \param type Type of the dihedral to set parameters for
-    \param k1 Force paramater in OPLS-style dihedral
-    \param k2 Force paramater in OPLS-style dihedral
-    \param k3 Force paramater in OPLS-style dihedral
-    \param k4 Force paramater in OPLS-style dihedral
+    \param k1 Force parameter in OPLS-style dihedral
+    \param k2 Force parameter in OPLS-style dihedral
+    \param k3 Force parameter in OPLS-style dihedral
+    \param k4 Force parameter in OPLS-style dihedral
 
     Sets the parameters for the potential of an OPLS Dihedral, storing them with the
     1/2 prefactor.

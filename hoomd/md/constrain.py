@@ -27,8 +27,8 @@ import hoomd;
 ## \internal
 # \brief Base class for constraint forces
 #
-# A constraint_force in hoomd_script reflects a ForceConstraint in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd_script
+# A constraint_force in hoomd reflects a ForceConstraint in c++. It is responsible
+# for all high-level management that happens behind the scenes for hoomd
 # writers. 1) The instance of the c++ constraint force itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
 # net force on each particle
@@ -42,7 +42,7 @@ class _constraint_force(hoomd.meta._metadata):
     # If specified, assigns a name to the instance
     # Assigns a name to the force in force_name;
     def __init__(self):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating constraint force');
@@ -86,7 +86,7 @@ class _constraint_force(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd: cpp_force not set, please report\n');
             raise RuntimeError();
 
     def disable(self):
@@ -299,7 +299,7 @@ class rigid(_constraint_force):
                                     orientation = [[1, 0, 0, 0]]);
         system = hoomd.init.create_lattice(unitcell=uc, n=[2,18,18]);
 
-        # Add consituent particles of type A and create the rods
+        # Add constituent particles of type A and create the rods
         system.particles.types.add('A');
         rigid = hoomd.md.constrain.rigid();
         rigid.set_param('R',
@@ -386,7 +386,7 @@ class rigid(_constraint_force):
 
         Example::
 
-            rigid = constrain.rigd()
+            rigid = constrain.rigid()
             rigid.set_param('A', types = ['A_const', 'A_const'], positions = [(0,0,1),(0,0,-1)])
             rigid.set_param('B', types = ['B_const', 'B_const'], positions = [(0,0,.5),(0,0,-.5)])
 

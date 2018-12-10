@@ -417,9 +417,9 @@ class mode_hpmc(_integrator):
         """
 
         hoomd.util.print_status_line();
-        # check that proper initialization has occured
+        # check that proper initialization has occurred
         if self.cpp_integrator == None:
-            hoomd.context.msg.error("Bug in hoomd_script: cpp_integrator not set, please report\n");
+            hoomd.context.msg.error("Bug in hoomd: cpp_integrator not set, please report\n");
             raise RuntimeError('Error updating forces');
 
         # change the parameters
@@ -495,6 +495,34 @@ class mode_hpmc(_integrator):
         self.update_forces()
         self.cpp_integrator.communicate(True);
         return self.cpp_integrator.countOverlaps(hoomd.context.current.system.getCurrentTimeStep(), False);
+
+    def test_overlap(self,type_i, type_j, rij, qi, qj, use_images=True, exclude_self=False):
+        R""" Test overlap between two particles.
+
+        Args:
+            type_i (str): Type of first particle
+            type_j (str): Type of second particle
+            rij (tuple): Separation vector **rj**-**ri** between the particle centers
+            qi (tuple): Orientation quaternion of first particle
+            qj (tuple): Orientation quaternion of second particle
+            use_images (bool): If True, check for overlap between the periodic images of the particles by adding
+                the image vector to the separation vector
+            exclude_self (bool): If both **use_images** and **exclude_self** are true, exclude the primary image
+
+        For two-dimensional shapes, pass the third dimension of **rij** as zero.
+
+        Returns:
+            True if the particles overlap.
+        """
+        self.update_forces()
+
+        ti =  hoomd.context.current.system_definition.getParticleData().getTypeByName(type_i)
+        tj =  hoomd.context.current.system_definition.getParticleData().getTypeByName(type_j)
+
+        rij = hoomd.util.listify(rij)
+        qi = hoomd.util.listify(qi)
+        qj = hoomd.util.listify(qj)
+        return self.cpp_integrator.py_test_overlap(ti,tj,rij,qi,qj,use_images,exclude_self)
 
     def get_translate_acceptance(self):
         R""" Get the average acceptance ratio for translate moves.
@@ -1134,7 +1162,7 @@ class polyhedron(mode_hpmc):
     * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
 
         * The origin **MUST** strictly be contained in the generally nonconvex volume defined by the vertices and faces
-        * The (0,0,0) centered sphere that encloses all verticies should be of minimal size for optimal performance (e.g.
+        * The (0,0,0) centered sphere that encloses all vertices should be of minimal size for optimal performance (e.g.
           don't translate the shape such that (0,0,0) right next to a face).
 
     * *faces* (**required**) - a list of vertex indices for every face
@@ -1255,7 +1283,7 @@ class convex_polyhedron(mode_hpmc):
     * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
 
         * The origin **MUST** be contained within the vertices.
-        * The origin centered circle that encloses all verticies should be of minimal size for optimal performance (e.g.
+        * The origin centered circle that encloses all vertices should be of minimal size for optimal performance (e.g.
           don't put the origin right next to a face).
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
@@ -1364,7 +1392,7 @@ class faceted_sphere(mode_hpmc):
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
-    A faceted sphere is a sphere interesected with halfspaces. The equation defining each halfspace is given by:
+    A faceted sphere is a sphere intersected with halfspaces. The equation defining each halfspace is given by:
 
     .. math::
         n_i\cdot r + b_i \le 0
@@ -1566,14 +1594,14 @@ class convex_spheropolyhedron(mode_hpmc):
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
-    A sperholpolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
+    A spheropolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
 
     Spheropolyhedron parameters:
 
     * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
 
         - The origin **MUST** be contained within the vertices.
-        - The origin centered sphere that encloses all verticies should be of minimal size for optimal performance (e.g.
+        - The origin centered sphere that encloses all vertices should be of minimal size for optimal performance (e.g.
           don't put the origin right next to a face).
         - A sphere can be represented by specifying zero vertices (i.e. vertices=[]) and a non-zero radius R
         - Two vertices and a non-zero radius R define a prolate spherocylinder.

@@ -35,7 +35,7 @@ class Communicator;
     - Sum accelerations at the current position
     - Update position and velocity again (w/ newly calculated accel)
 
-    It is also sometimes desierable to run part of the system with one integration method (i.e. NVE) and part with
+    It is also sometimes desirable to run part of the system with one integration method (i.e. NVE) and part with
     another (NPT). Or part of the system with an integrator and the other part none at all. To facilitate this, the
     IntegrationMethodTwoStep is being created. It is a generic class, of which sub classes (TwoStepNVT, TwoStepNVE, ...)
     will implement the specific two step integration method. A single integrator, IntegratorTwoStep, can contain
@@ -73,7 +73,7 @@ class Communicator;
     Thermodynamic properties on given groups are computed by ComputeThermo. See the documentation of ComputeThermo for
     its design and logging capabilities. To compute temperature properly, ComputeThermo needs the number of degrees of
     freedom. Only the Integrator can know that as it is the integrator that grants degrees of freedom to the particles.
-    hoomd_script will break the dependancy requirement. At the start of every run, hoomd_script will ask for an updated
+    hoomd will break the dependency requirement. At the start of every run, hoomd will ask for an updated
     NDOF for every ComputeThermo group and set it.
 
     For IntegratorTwoStep, each IntegrationMethodTwoStep will compute its own contribution to the degrees of freedom
@@ -81,7 +81,7 @@ class Communicator;
     D will be deducted from the total to get the COM motion constraint correct.
 
     <b>Design requirements</b>
-    Due to the nature of allowing multiple integration methods to run at once, some strict guidlines need to be laid
+    Due to the nature of allowing multiple integration methods to run at once, some strict guidelines need to be laid
     down.
     -# All methods must use the same \a deltaT (this is enforced by having IntegratorTwoStep call setDeltaT on all of
        the methods inside it.
@@ -96,7 +96,7 @@ class Communicator;
 
     Interaction with logger: perhaps the integrator should forward log value queries on to the integration method?
     each method could be given a user name so that they are logged in user-controlled columns. This provides a window
-    into the interally computed state variables logging per method.
+    into the internally computed state variables logging per method.
 
     \ingroup updaters
 */
@@ -260,7 +260,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
             m_sysdef->getIntegratorData()->setIntegratorVariables(m_integrator_id, variables);
             }
 
-        //! helper function to check if the restart information (if applicable) is useable
+        //! helper function to check if the restart information (if applicable) is usable
         bool restartInfoTestValid(const IntegratorVariables& v, std::string type, unsigned int nvariables);
 
         //! Set whether this restart is valid

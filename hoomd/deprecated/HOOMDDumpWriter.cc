@@ -30,7 +30,7 @@ using namespace std;
     \param group ParticleGroup to dump to file
     \param mode_restart Set to true to enable restart writing mode. False writes one XML file per time step.
 
-    \note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
+    \note .timestep.xml will be appended to the end of \a base_fname when analyze() is called.
 */
 HOOMDDumpWriter::HOOMDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                                  const std::string& base_fname,
@@ -204,7 +204,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (!f.good())
         {
         m_exec_conf->msg->error() << "dump.xml: Unable to open dump file for writing: " << fname << endl;
-        throw runtime_error("Error writting hoomd_xml dump file");
+        throw runtime_error("Error writing hoomd_xml dump file");
         }
 
     BoxDim box = m_pdata->getGlobalBox();
@@ -246,7 +246,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
 
@@ -268,7 +268,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
 
@@ -290,7 +290,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
 
@@ -312,7 +312,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
 
@@ -334,7 +334,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
 
@@ -356,7 +356,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
 
@@ -378,7 +378,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
 
@@ -400,7 +400,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
 
@@ -423,7 +423,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
 
@@ -445,7 +445,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
         f << "</orientation>" << "\n";
@@ -466,7 +466,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
 
@@ -488,7 +488,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-                throw runtime_error("Error writting HOOMD dump file");
+                throw runtime_error("Error writing HOOMD dump file");
                 }
             }
 
@@ -591,7 +591,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (!f.good())
         {
         m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
-        throw runtime_error("Error writting HOOMD dump file");
+        throw runtime_error("Error writing HOOMD dump file");
         }
 
     f.close();

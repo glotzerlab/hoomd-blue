@@ -10,6 +10,7 @@
 
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/GPUPartition.cuh"
 
 #ifndef __TWO_STEP_NVT_MTK_GPU_CUH__
 #define __TWO_STEP_NVT_MTK_GPU_CUH__
@@ -24,7 +25,9 @@ cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
                              const BoxDim& box,
                              unsigned int block_size,
                              Scalar exp_fac,
-                             Scalar deltaT);
+                             Scalar deltaT,
+                             const GPUPartition& gpu_partition
+                             );
 
 //! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
 cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
@@ -34,6 +37,7 @@ cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
                              Scalar4 *d_net_force,
                              unsigned int block_size,
                              Scalar deltaT,
-                             Scalar exp_v_fac_thermo);
+                             Scalar exp_v_fac_thermo,
+                             const GPUPartition& gpu_partition);
 
 #endif //__TWO_STEP_NVT_MTK_GPU_CUH__

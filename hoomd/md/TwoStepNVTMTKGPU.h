@@ -25,7 +25,7 @@
 /*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface, runs on the GPU
 
     In order to compute efficiently and limit the number of kernel launches integrateStepOne() performs a first
-    pass reduction on the sum of m*v^2 and stores the partial reductions. A second kernel is then launched to recude
+    pass reduction on the sum of m*v^2 and stores the partial reductions. A second kernel is then launched to reduce
     those to a final \a sum2K, which is a scalar but stored in a GPUArray for convenience.
 
     \ingroup updaters
@@ -59,20 +59,11 @@ class PYBIND11_EXPORT TwoStepNVTMTKGPU : public TwoStepNVTMTK
             m_tuner_one->setEnabled(enable);
             m_tuner_two->setPeriod(period);
             m_tuner_two->setEnabled(enable);
-            m_tuner_rescale->setPeriod(period);
-            m_tuner_rescale->setEnabled(enable);
-            m_tuner_reduce->setPeriod(period);
-            m_tuner_reduce->setEnabled(enable);
             }
 
     protected:
         std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
         std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
-        std::unique_ptr<Autotuner> m_tuner_reduce; //!< Autotuner for reduction size (step two)
-        std::unique_ptr<Autotuner> m_tuner_rescale; //!< Autotuner for temperature rescaling (step two)
-
-        GPUVector<Scalar> m_scratch;    //!< Scratch space for reduction of squared velocities
-        GPUArray<Scalar> m_temperature; //!< Stores temperature after reduction step
     };
 
 //! Exports the TwoStepNVTMTKGPU class to python

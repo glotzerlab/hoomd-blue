@@ -112,7 +112,7 @@ void Logger::removeAll()
 
 /*! \param quantities A list of quantities to log
 
-    When analyze() is called, each quantitiy in the list will, in order, be requested
+    When analyze() is called, each quantity in the list will, in order, be requested
     from the matching registered compute or updater.
 */
 void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)

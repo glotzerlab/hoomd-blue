@@ -405,7 +405,8 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 // skip if no overlap check is required
                 if (h_d.data[typ_i] == 0.0)
                     {
-                    counters.translate_accept_count++;
+                    if (!shape_i.ignoreStatistics())
+                        counters.translate_accept_count++;
                     continue;
                     }
 
@@ -424,7 +425,8 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 {
                 if (h_a.data[typ_i] == 0.0)
                     {
-                    counters.rotate_accept_count++;
+                    if (!shape_i.ignoreStatistics())
+                        counters.rotate_accept_count++;
                     continue;
                     }
 
@@ -745,7 +747,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
     In order to determine whether or not moves are accepted, particle positions are checked against a randomly generated set of depletant positions.
     In principle this function should enable multiple depletant modes, although at present only one (cirumsphere) has been implemented here.
 
-    NOTE: To avoid numerous acquires and releases of GPUArrays, ArrayHandle pointers are passed directly into this const function.
+    NOTE: To avoid numerous acquires and releases of GPUArrays, ArrayHandles are passed directly into this const function.
     */
 #ifndef ENABLE_TBB
 template<class Shape>
@@ -1092,7 +1094,6 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                     // does the depletant fall into the overlap volume with other particles?
                     bool in_intersection_volume = false;
-
                     for (unsigned int m = 0; m < intersect_i.size(); ++m)
                         {
                         // read in its position and orientation

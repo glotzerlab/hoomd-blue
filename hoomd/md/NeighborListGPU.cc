@@ -90,28 +90,43 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
     lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
 
     ArrayHandle<Scalar> d_rcut_max(m_rcut_max, access_location::device, access_mode::read);
-    gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
-                                     d_last_pos.data,
-                                     d_pos.data,
-                                     m_pdata->getN(),
-                                     box,
-                                     d_rcut_max.data,
-                                     m_r_buff,
-                                     m_pdata->getNTypes(),
-                                     lambda_min,
-                                     lambda,
-                                     ++m_checkn);
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+        {
+        ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
-    bool result = m_flags.readFlags() == m_checkn;
+        m_exec_conf->beginMultiGPU();
+
+        gpu_nlist_needs_update_check_new(d_flags.data,
+                                         d_last_pos.data,
+                                         d_pos.data,
+                                         m_pdata->getN(),
+                                         box,
+                                         d_rcut_max.data,
+                                         m_r_buff,
+                                         m_pdata->getNTypes(),
+                                         lambda_min,
+                                         lambda,
+                                         ++m_checkn,
+                                         m_pdata->getGPUPartition());
+
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+
+        m_exec_conf->endMultiGPU();
+        }
+
+    bool result;
+        {
+        // read back flags
+        ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
+        result = m_checkn == *h_flags.data;
+        }
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         if (m_prof) m_prof->push(m_exec_conf,"MPI allreduce");
-        // check if migrate criterium is fulfilled on any rank
+        // check if migrate criterion is fulfilled on any rank
         int local_result = result ? 1 : 0;
         int global_result = 0;
         MPI_Allreduce(&local_result,
@@ -130,7 +145,7 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
     return result;
     }
 
-/*! Calls gpu_nlsit_filter() to filter the neighbor list on the GPU
+/*! Calls gpu_nlist_filter() to filter the neighbor list on the GPU
 */
 void NeighborListGPU::filterNlist()
     {
@@ -200,30 +215,46 @@ void NeighborListGPU::buildHeadList()
     if (!m_pdata->getN())
         return;
 
-    if (m_prof) m_prof->push(exec_conf, "head-list");
+    if (m_prof) m_prof->push(m_exec_conf, "head-list");
 
-    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
+        {
+        ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist, access_location::host, access_mode::overwrite);
+        // reset flags
+        *h_req_size_nlist.data = 0;
+        }
 
-    m_req_size_nlist.resetFlags(0);
+        {
+        ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
 
-    m_tuner_head_list->begin();
-    gpu_nlist_build_head_list(d_head_list.data,
-                              m_req_size_nlist.getDeviceFlags(),
-                              d_Nmax.data,
-                              d_pos.data,
-                              m_pdata->getN(),
-                              m_pdata->getNTypes(),
-                              m_tuner_head_list->getParam());
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    m_tuner_head_list->end();
+        ArrayHandle<unsigned int> d_req_size_nlist(m_req_size_nlist, access_location::device, access_mode::readwrite);
 
-    unsigned int req_size_nlist = m_req_size_nlist.readFlags();
+        m_tuner_head_list->begin();
+        gpu_nlist_build_head_list(d_head_list.data,
+                                  d_req_size_nlist.data,
+                                  d_Nmax.data,
+                                  d_pos.data,
+                                  m_pdata->getN(),
+                                  m_pdata->getNTypes(),
+                                  m_tuner_head_list->getParam());
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        m_tuner_head_list->end();
+        }
+
+    unsigned int req_size_nlist;
+        {
+        ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist, access_location::host, access_mode::read);
+        req_size_nlist = *h_req_size_nlist.data;
+        }
+
     resizeNlist(req_size_nlist);
 
-    if (m_prof) m_prof->pop(exec_conf);
+    // now that the head list is complete and the neighbor list has been allocated, update memory advice
+    updateMemoryMapping();
+
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_NeighborListGPU(py::module& m)

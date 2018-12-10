@@ -36,12 +36,12 @@ HOOMD_UP_MAIN();
 typedef std::function<std::shared_ptr<PotentialPairSLJ> (std::shared_ptr<SystemDefinition> sysdef,
                                                       std::shared_ptr<NeighborList> nlist)> shiftedljforce_creator;
 
-//! Test the ability of the shiftedlj force compute to actually calucate forces
+//! Test the ability of the shiftedlj force compute to actually calculate forces
 void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
-    // such that 2 is inside the cuttoff radius of 1 and 3, but 1 and 3 are outside the cuttoff
+    // such that 2 is inside the cutoff radius of 1 and 3, but 1 and 3 are outside the cutoff
     // of course, the buffer will be set on the neighborlist so that 3 is included in it
     // thus, this case tests the ability of the force summer to sum more than one force on
     // a particle and ignore a particle outside the radius
@@ -193,7 +193,7 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, std
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
-    // test +x, -x, +y, -y, +z, and -z independantly
+    // test +x, -x, +y, -y, +z, and -z independently
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
 

@@ -15,7 +15,7 @@
 
 /*! \file EvaluatorPairMie.h
     \brief Defines the pair evaluator class for Mie potentials
-    \details As the prototypical example of a MD pair potential, this also serves as the primary documetnation and
+    \details As the prototypical example of a MD pair potential, this also serves as the primary documentation and
     base reference for the implementation of pair evaluators.
 */
 
@@ -55,7 +55,7 @@ class EvaluatorPairMie
         typedef Scalar4 param_type;
 
         //! Constructs the pair potential evaluator
-        /*! \param _rsq Squared distance beteen the particles
+        /*! \param _rsq Squared distance between the particles
             \param _rcutsq Squared distance at which the potential goes to 0
             \param _n First, larger exponent that captures hard-core repulsion
             \param -m Second, smaller exponent that captures attraction
@@ -89,7 +89,7 @@ class EvaluatorPairMie
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
                   in PotentialPair.
 
-            \return True if they are evaluated or false if they are not because we are beyond the cuttoff
+            \return True if they are evaluated or false if they are not because we are beyond the cutoff
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {

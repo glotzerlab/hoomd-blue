@@ -67,7 +67,7 @@ struct PYBIND11_EXPORT AABBNode
 
 //! AABB Tree
 /*! An AABBTree stores a binary tree of AABBs. A leaf node stores up to NODE_CAPACITY particles by index. The bounding
-    box of a leaf node is surrounds all the bounding boxes of its contained particles. Internal nodes have AABBs that
+    box of a leaf node surrounds all the bounding boxes of its contained particles. Internal nodes have AABBs that
     enclose all of their children. The tree supports the following operations:
 
     - Query  : Search through the tree and build a list of all particles that intersect with the query AABB. Runs in
@@ -80,7 +80,7 @@ struct PYBIND11_EXPORT AABBNode
 
     **Implementation details**
 
-    AABBTree stores all nodes in a flat array manged by std::vector. To easily locate particle leaf nodes for update,
+    AABBTree stores all nodes in a flat array managed by std::vector. To easily locate particle leaf nodes for update,
     a reverse mapping is stored to locate the leaf node containing a particle. m_root tracks the index of the root node
     as the tree is built. The nodes store the indices of their left and right children along with their AABB. Nodes
     are allocated as needed with allocate(). With multiple particles per leaf node, the total number of internal nodes
@@ -407,7 +407,7 @@ inline void AABBTree::buildTree(AABB *aabbs, unsigned int N)
     is computed and split on the largest length axis. The total tree is built by recursive splitting.
 
     The aabbs and idx lists are passed in by reference. Each node is given a subrange of the list to own (start to
-    start + len). When building the node, it partitions it's subrange into two sides (like quick sort).
+    start + len). When building the node, it partitions its subrange into two sides (like quick sort).
 */
 inline unsigned int AABBTree::buildNode(AABB *aabbs,
                                         std::vector<unsigned int>& idx,
@@ -471,7 +471,7 @@ inline unsigned int AABBTree::buildNode(AABB *aabbs,
                 else
                     {
                     // if on the right side, need to swap the current aabb with the one at start_right-1, subtract
-                    // one off of start_right to indicate the addition of one to the right side and subtrace 1
+                    // one off of start_right to indicate the addition of one to the right side and subtract 1
                     // from i to look at the current index (new aabb). This is quick and easy to write, but will
                     // randomize indices - might need to look into a stable partitioning algorithm!
                     std::swap(aabbs[start+i], aabbs[start+start_right-1]);
@@ -493,7 +493,7 @@ inline unsigned int AABBTree::buildNode(AABB *aabbs,
                 else
                     {
                     // if on the right side, need to swap the current aabb with the one at start_right-1, subtract
-                    // one off of start_right to indicate the addition of one to the right side and subtrace 1
+                    // one off of start_right to indicate the addition of one to the right side and subtract 1
                     // from i to look at the current index (new aabb). This is quick and easy to write, but will
                     // randomize indices - might need to look into a stable partitioning algorithm!
                     std::swap(aabbs[start+i], aabbs[start+start_right-1]);
@@ -515,7 +515,7 @@ inline unsigned int AABBTree::buildNode(AABB *aabbs,
                 else
                     {
                     // if on the right side, need to swap the current aabb with the one at start_right-1, subtract
-                    // one off of start_right to indicate the addition of one to the right side and subtrace 1
+                    // one off of start_right to indicate the addition of one to the right side and subtract 1
                     // from i to look at the current index (new aabb). This is quick and easy to write, but will
                     // randomize indices - might need to look into a stable partitioning algorithm!
                     std::swap(aabbs[start+i], aabbs[start+start_right-1]);

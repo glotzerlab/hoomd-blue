@@ -122,7 +122,7 @@ GSDReader::~GSDReader()
 /*! \param data Pointer to data to read into
     \param frame Frame index to read from
     \param name Name of the data chunk
-    \param exepected_size Expected size of the data chunk in bytes.
+    \param expected_size Expected size of the data chunk in bytes.
     \param cur_n N in the current frame.
 
     Attempts to read the data chunk of the given name at the given frame. If it is not present at this

@@ -31,7 +31,7 @@ using namespace std;
     analyze() must be called to handle any incoming connections.
     \param sysdef SystemDefinition containing the ParticleData that will be transmitted to VMD
     \param port port number to listen for connections on
-    \param pause Set to true to pause the simulation and waith for IMD_GO before continuing
+    \param pause Set to true to pause the simulation and wait for IMD_GO before continuing
     \param rate Initial rate at which to send data
     \param force Constant force used to apply forces received from VMD
     \param force_scale Factor by which to scale all forces from IMD
@@ -74,7 +74,7 @@ void IMDInterface::initConnection()
     // start by initializing memory
     m_tmp_coords = new float[m_pdata->getNGlobal() * 3];
 
-    // intialize the listening socket
+    // initialize the listening socket
     vmdsock_init();
     m_listen_sock = vmdsock_create();
 
@@ -177,7 +177,7 @@ void IMDInterface::analyze(unsigned int timestep)
                     while (m_connected_sock && messagesAvailable());
                 }
 
-            // quit if cntrl-C was pressed
+            // quit if Ctrl-C was pressed
             if (g_sigint_recvd)
                 {
                 g_sigint_recvd = 0;
@@ -209,7 +209,7 @@ void IMDInterface::analyze(unsigned int timestep)
         m_prof->pop();
     }
 
-/*! \pre \a m_connected_sock is connected and handshaking has occured
+/*! \pre \a m_connected_sock is connected and handshaking has occurred
 */
 void IMDInterface::dispatch()
     {

@@ -102,7 +102,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     protected:
         //! Swap min and max slab for a reverse flow.
         //! More efficient than separate calls of set_min_slab() and set_max_slab(),
-        //! especailly in MPI runs.
+        //! especially in MPI runs.
         void swap_min_max_slab(void);
 
         //! Group of particles, which are searched for the velocity exchange
@@ -114,7 +114,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         //!Temporary variables to store last found min vel info.
         //!
         //! x: velocity y: mass z: tag as scalar.
-        //! \note Transferring the mass is only neccessary if velocities are updated in the ghost layer. This is only
+        //! \note Transferring the mass is only necessary if velocities are updated in the ghost layer. This is only
         //! sometimes the case, but for the sake of simplicity it will be update here always. The performance loss
         //! should be only minimal.
         Scalar3 m_last_min_vel;
@@ -122,7 +122,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         //!Temporary variables to store last found max vel info
         //!
         //! x: velocity y: mass z: tag as scalar.
-        //! \note Transferring the mass is only neccessary if velocities are updated in the ghost layer. This is only
+        //! \note Transferring the mass is only necessary if velocities are updated in the ghost layer. This is only
         //! sometimes the case, but for the sake of simplicity it will be update here always. The performance loss
         //! should be only minimal.
 
@@ -155,7 +155,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
             int rank;
             int size;
             int gbl_rank; //!< global rank of zero in the comm.
-            bool initialized; //!< initialized struct, manully set.
+            bool initialized; //!< initialized struct, manually set.
             MPI_SWAP()
                 :
                 comm(MPI_COMM_NULL),

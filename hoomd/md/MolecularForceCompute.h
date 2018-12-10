@@ -24,7 +24,7 @@
     Every molecule has a unique contiguous tag, 0 <=tag <m_n_molecules_global.
 
     Derived classes take care of resizing the ghost layer accordingly so that
-    spanning molecules are communicated correctly. They connect to the Communciator
+    spanning molecules are communicated correctly. They connect to the Communicator
     signal using addGhostLayerWidthRequest() .
 
     In MPI simulations, MolecularForceCompute ensures that local molecules are complete by requesting communication of all
@@ -78,7 +78,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
             }
 
         //! Return molecule list
-        const GPUVector<unsigned int>& getMoleculeList()
+        const GlobalVector<unsigned int>& getMoleculeList()
             {
             checkParticlesSorted();
 
@@ -86,7 +86,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
             }
 
         //! Return molecule lengths
-        const GPUVector<unsigned int>& getMoleculeLengths()
+        const GlobalVector<unsigned int>& getMoleculeLengths()
             {
             checkParticlesSorted();
 
@@ -94,7 +94,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
             }
 
         //! Return molecule order
-        const GPUVector<unsigned int>& getMoleculeOrder()
+        const GlobalVector<unsigned int>& getMoleculeOrder()
             {
             checkParticlesSorted();
 
@@ -102,7 +102,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
             }
 
         //! Return reverse lookup array
-        const GPUVector<unsigned int>& getMoleculeIndex()
+        const GlobalVector<unsigned int>& getMoleculeIndex()
             {
             checkParticlesSorted();
 
@@ -127,22 +127,33 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         #endif
 
     protected:
-        GPUVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
+        GlobalVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
         unsigned int m_n_molecules_global;          //!< Global number of molecules
 
+        bool m_dirty;                               //!< True if we need to rebuild indices
+
+        //! Helper function to check if particles have been sorted and rebuild indices if necessary
+        virtual void checkParticlesSorted()
+            {
+            if (m_dirty)
+                {
+                // rebuild molecule list
+                initMolecules();
+                m_dirty = false;
+                }
+            }
+
     private:
-        GPUVector<unsigned int> m_molecule_list;    //!< 2D Array of molecule members
-        GPUVector<unsigned int> m_molecule_length;  //!< List of molecule lengths
-        GPUVector<unsigned int> m_molecule_order;   //!< Order in molecule by local ptl idx
-        GPUVector<unsigned int> m_molecule_idx;     //!< Reverse-lookup into molecule list
+        GlobalVector<unsigned int> m_molecule_list;    //!< 2D Array of molecule members
+        GlobalVector<unsigned int> m_molecule_length;  //!< List of molecule lengths
+        GlobalVector<unsigned int> m_molecule_order;   //!< Order in molecule by local ptl idx
+        GlobalVector<unsigned int> m_molecule_idx;     //!< Reverse-lookup into molecule list
 
         #ifdef ENABLE_CUDA
         std::unique_ptr<Autotuner> m_tuner_fill;    //!< Autotuner for block size for filling the molecule table
         #endif
 
         Index2D m_molecule_indexer;                 //!< Index of the molecule table
-
-        bool m_dirty;                               //!< True if we need to rebuild indices
 
         void setDirty()
             {
@@ -156,18 +167,6 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         //! construct a list of local molecules on the GPU
         virtual void initMoleculesGPU();
         #endif
-
-        //! Helper function to check if particles have been sorted and rebuild indices if necessary
-        void checkParticlesSorted()
-            {
-            if (m_dirty)
-                {
-                // rebuild molecule list
-                initMolecules();
-                m_dirty = false;
-                }
-            }
-
 
     };
 

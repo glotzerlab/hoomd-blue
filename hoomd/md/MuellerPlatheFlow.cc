@@ -76,7 +76,7 @@ void MuellerPlatheFlow::update(unsigned int timestep)
       }
 
     // Determine switch direction for this update call
-    // Switch outside while loop, to prevent oscilations around the target.
+    // Switch outside while loop, to prevent oscillations around the target.
     bool bigger_swap_needed = m_flow_target->getValue(timestep) > this->summed_exchanged_momentum()/area;
     bigger_swap_needed &=  this->get_min_slab() > this->get_max_slab();
     bool smaller_swap_needed = m_flow_target->getValue(timestep) < this->summed_exchanged_momentum()/area;
@@ -88,7 +88,7 @@ void MuellerPlatheFlow::update(unsigned int timestep)
         {
         this->swap_min_max_slab();
         }
-    //Sign for summed exchanged momentum depends on hierachy of min and max slab.
+    //Sign for summed exchanged momentum depends on hierarchy of min and max slab.
     const int sign = this->get_max_slab() > this->get_min_slab() ? 1 : -1;
 
     unsigned int counter = 0;
@@ -215,7 +215,7 @@ void MuellerPlatheFlow::update_domain_decomposition(void)
         const unsigned int my_pos = m_slab_direction == flow_enum::X ? pos.x :( m_slab_direction == flow_enum::Y ? pos.y : pos.z);
         if( m_N_slabs % my_grid != 0)
             {
-            m_exec_conf->msg->warning()<<"MuellerPlatheFlow::N_slabs does is divideable "
+            m_exec_conf->msg->warning()<<"MuellerPlatheFlow::N_slabs does is divisible "
                 " by the domain decomposition. Adjusting N_slabs.\n"<<endl;
             m_N_slabs += m_N_slabs % my_grid;
             m_min_slab = static_cast<unsigned int>(min_frac*m_N_slabs);
@@ -456,7 +456,7 @@ void export_MuellerPlatheFlow(py::module& m)
         .def("getFlowEpsilon",&MuellerPlatheFlow::get_flow_epsilon)
         .def("setFlowEpsilon",&MuellerPlatheFlow::set_flow_epsilon)
         .def("getSummedExchangedMomentum",&MuellerPlatheFlow::summed_exchanged_momentum)
-        // Functions not needed for pyhton interface users.
+        // Functions not needed for python interface users.
         // .def("setMinSlab",&MuellerPlatheFlow::set_min_slab)
         // .def("setMaxSlab",&MuellerPlatheFlow::set_max_slab)
         // .def("swapMinMaxSlab",&MuellerPlatheFlow::swap_min_max_slab)

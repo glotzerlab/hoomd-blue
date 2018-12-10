@@ -33,8 +33,18 @@ ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
 
     assert(m_pdata);
-    GPUArray< Scalar > properties(thermo_index::num_quantities, m_exec_conf);
+    GlobalArray< Scalar > properties(thermo_index::num_quantities, m_exec_conf);
     m_properties.swap(properties);
+    TAG_ALLOCATION(m_properties);
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+        {
+        // store in host memory for faster access from CPU
+        cudaMemAdvise(m_properties.get(), m_properties.getNumElements()*sizeof(Scalar), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
+        CHECK_CUDA_ERROR();
+        }
+    #endif
 
     m_logname_list.push_back(string("temperature") + suffix);
     m_logname_list.push_back(string("translational_temperature") + suffix);
@@ -373,7 +383,7 @@ void ComputeThermo::computeProperties()
     Scalar pressure_yz = (pressure_kinetic_yz + virial_yz) / volume;
     Scalar pressure_zz = (pressure_kinetic_zz + virial_zz) / volume;
 
-    // fill out the GPUArray
+    // fill out the GlobalArray
     ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::overwrite);
     h_properties.data[thermo_index::translational_kinetic_energy] = Scalar(ke_trans_total);
     h_properties.data[thermo_index::rotational_kinetic_energy] = Scalar(ke_rot_total);

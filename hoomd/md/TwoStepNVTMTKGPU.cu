@@ -17,11 +17,12 @@
     \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
     \param d_image array of particle images
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
-    \param group_size Number of members in the group
+    \param d_group_members Device array listing the indices of the members of the group to integrate
+    \param work_size Number of members in the group for this GPU
     \param box Box dimensions for periodic boundary condition handling
     \param exp_fac Velocity rescaling factor from thermostat
     \param deltaT Amount of real time to step forward in one time step
+    \param offset The offset of this GPU into the list of particles
 
     Take the first half step forward in the NVT integration.
 
@@ -33,17 +34,18 @@ void gpu_nvt_mtk_step_one_kernel(Scalar4 *d_pos,
                              const Scalar3 *d_accel,
                              int3 *d_image,
                              unsigned int *d_group_members,
-                             unsigned int group_size,
+                             unsigned int work_size,
                              BoxDim box,
                              Scalar exp_fac,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             unsigned int offset)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (group_idx < group_size)
+    if (group_idx < work_size)
         {
-        unsigned int idx = d_group_members[group_idx];
+        unsigned int idx = d_group_members[group_idx + offset];
 
         // update positions to the next timestep and update velocities to the next half step
         Scalar4 postype = d_pos[idx];
@@ -78,7 +80,7 @@ void gpu_nvt_mtk_step_one_kernel(Scalar4 *d_pos,
     \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
     \param d_image array of particle images
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
     \param block_size Size of the block to run
@@ -94,7 +96,8 @@ cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
                              const BoxDim& box,
                              unsigned int block_size,
                              Scalar exp_fac,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             const GPUPartition& gpu_partition)
     {
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -106,46 +109,58 @@ cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 grid( (group_size/run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-    // run the kernel
-    gpu_nvt_mtk_step_one_kernel<<< grid, threads >>>(d_pos,
-                         d_vel,
-                         d_accel,
-                         d_image,
-                         d_group_members,
-                         group_size,
-                         box,
-                         exp_fac,
-                         deltaT);
+        unsigned int nwork = range.second - range.first;
+
+        // setup the grid to run the kernel
+        dim3 grid( (nwork/run_block_size) + 1, 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        // run the kernel, starting with offset range.first
+        gpu_nvt_mtk_step_one_kernel<<< grid, threads >>>(d_pos,
+                             d_vel,
+                             d_accel,
+                             d_image,
+                             d_group_members,
+                             nwork,
+                             box,
+                             exp_fac,
+                             deltaT,
+                             range.first);
+        }
+
     return cudaSuccess;
     }
 
 //! Takes the second 1/2 step forward in the NVT integration step
 /*! \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
-    \param group_size Number of members in the group
+    \param d_group_members Device array listing the indices of the members of the group to integrate
+    \param work_size Number of members in the group for this GPU
     \param d_net_force Net force on each particle
     \param deltaT Amount of real time to step forward in one time step
+    \param offset The offset of this GPU into the list of particles
 */
 extern "C" __global__
 void gpu_nvt_mtk_step_two_kernel(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
-                             unsigned int group_size,
+                             unsigned int work_size,
                              Scalar4 *d_net_force,
                              Scalar deltaT,
-                             Scalar exp_v_fac_thermo)
+                             Scalar exp_v_fac_thermo,
+                             unsigned int offset)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (group_idx < group_size)
+    if (group_idx < work_size)
         {
-        unsigned int idx = d_group_members[group_idx];
+        unsigned int idx = d_group_members[group_idx+offset];
 
         // read in the net force and calculate the acceleration
         Scalar4 net_force = d_net_force[idx];
@@ -173,7 +188,7 @@ void gpu_nvt_mtk_step_two_kernel(Scalar4 *d_vel,
 
 /*! \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
     \param block_size Size of the block to execute on the device
@@ -187,7 +202,8 @@ cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
                              Scalar4 *d_net_force,
                              unsigned int block_size,
                              Scalar deltaT,
-                             Scalar exp_v_fac_thermo)
+                             Scalar exp_v_fac_thermo,
+                             const GPUPartition& gpu_partition)
     {
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -199,12 +215,20 @@ cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 grid( (group_size/run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-    // run the kernel
-    gpu_nvt_mtk_step_two_kernel<<< grid, threads >>>(d_vel, d_accel, d_group_members, group_size, d_net_force, deltaT, exp_v_fac_thermo);
+        unsigned int nwork = range.second - range.first;
+
+        // setup the grid to run the kernel
+        dim3 grid( (nwork/run_block_size) + 1, 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        // run the kernel
+        gpu_nvt_mtk_step_two_kernel<<< grid, threads >>>(d_vel, d_accel, d_group_members, nwork, d_net_force, deltaT, exp_v_fac_thermo, range.first);
+        }
 
     return cudaSuccess;
     }

@@ -33,7 +33,7 @@ HOOMD_UP_MAIN()
 using namespace std;
 using namespace std::placeholders;
 
-//! Typedef for function that creates the Communnicator on the CPU or GPU
+//! Typedef for function that creates the Communicator on the CPU or GPU
 typedef std::function<std::shared_ptr<Communicator> (std::shared_ptr<SystemDefinition> sysdef,
                                                   std::shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
 
@@ -532,7 +532,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
 
     // particle 0 crosses the global boundary in +x direction
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(1.1,-0.5,-0.5)),false);
-    //  particle 1 crosses the global bounadry in the -x direction
+    //  particle 1 crosses the global boundary in the -x direction
     pdata->setPosition(1, TO_TRICLINIC(make_scalar3(-1.1, 0.5, -0.5)),false);
     // particle 2 crosses the global boundary in the + y direction
     pdata->setPosition(2, TO_TRICLINIC(make_scalar3(0.2, 1.3, -0.5)),false);
@@ -831,7 +831,7 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, std::
 
     // particle 0 crosses the global boundary in +x direction
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(1.1,-0.751,0.251)),false);
-    //  particle 1 crosses the global bounadry in the -x direction
+    //  particle 1 crosses the global boundary in the -x direction
     pdata->setPosition(1, TO_TRICLINIC(make_scalar3(-1.1, -0.251, 0.251)),false);
     // particle 2 crosses the global boundary in the + y direction
     pdata->setPosition(2, TO_TRICLINIC(make_scalar3(0.51, 1.3, 0.251)),false);

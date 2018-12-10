@@ -11,6 +11,7 @@
 #include "hoomd/ParticleData.cuh"
 #include "TwoStepLangevinGPU.cuh"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/GPUPartition.cuh"
 
 #ifndef __TWO_STEP_BD_GPU_CUH__
 #define __TWO_STEP_BD_GPU_CUH__
@@ -25,7 +26,7 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   const unsigned int *d_group_members,
                                   const unsigned int group_size,
                                   const Scalar4 *d_net_force,
-                                  const Scalar *d_gamma_r,
+                                  const Scalar3 *d_gamma_r,
                                   Scalar4 *d_orientation,
                                   Scalar4 *d_torque,
                                   const Scalar3 *d_inertia,
@@ -35,6 +36,7 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   const Scalar deltaT,
                                   const unsigned int D,
                                   const bool d_noiseless_t,
-                                  const bool d_noiseless_r);
+                                  const bool d_noiseless_r,
+                                  const GPUPartition& gpu_partition);
 
 #endif //__TWO_STEP_BD_GPU_CUH__

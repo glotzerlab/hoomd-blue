@@ -19,7 +19,7 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
-    \param r_cut Cuttoff radius beyond which the force is 0
+    \param r_cut Cutoff radius beyond which the force is 0
 
     \post memory is allocated and all parameters ljX are set to 0.0
 
@@ -39,7 +39,7 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(std::shared_ptr<SystemDefinition> sys
         }
 
     // allocate the coeff data on the CPU
-    GPUArray<Scalar4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),exec_conf);
+    GPUArray<Scalar4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),m_exec_conf);
     m_coeffs.swap(coeffs);
     }
 
@@ -53,12 +53,12 @@ void CGCMMForceComputeGPU::slotNumTypesChange()
     CGCMMForceCompute::slotNumTypesChange();
 
     // re-allocate the coeff data on the CPU
-    GPUArray<Scalar4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),exec_conf);
+    GPUArray<Scalar4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),m_exec_conf);
     m_coeffs.swap(coeffs);
     }
 
 /*! \param block_size Size of the block to run on the device
-    Performance of the code may be dependant on the block size run
+    Performance of the code may be dependent on the block size run
     on the GPU. \a block_size should be set to be a multiple of 32.
 */
 void CGCMMForceComputeGPU::setBlockSize(int block_size)
@@ -89,7 +89,7 @@ void CGCMMForceComputeGPU::setBlockSize(int block_size)
     - \a lj4 = 0.0
 
     Setting the parameters for typ1,typ2 automatically sets the same parameters for typ2,typ1: there
-    is no need to call this funciton for symmetric pairs. Any pairs that this function is not called
+    is no need to call this function for symmetric pairs. Any pairs that this function is not called
     for will have lj12 through lj4 set to 0.0.
 
     \param typ1 Specifies one type of the pair
@@ -103,7 +103,7 @@ void CGCMMForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scala
     {
     if (typ1 >= m_ntypes || typ2 >= m_ntypes)
         {
-        m_exec_conf->msg->error() << "pair.cgccm: Trying to set params for a non existant type! " << typ1 << "," << typ2 << endl;
+        m_exec_conf->msg->error() << "pair.cgcmm: Trying to set params for a non existent type! " << typ1 << "," << typ2 << endl;
         throw runtime_error("CGCMMForceComputeGpu::setParams argument error");
         }
 
@@ -168,14 +168,14 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
                              m_block_size,
                              m_exec_conf->getComputeCapability()/10,
                              m_exec_conf->dev_prop.maxTexture1DLinear);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     Scalar avg_neigh = m_nlist->estimateNNeigh();
     int64_t n_calc = int64_t(avg_neigh * m_pdata->getN());
     int64_t mem_transfer = m_pdata->getN() * (4 + 16 + 20) + n_calc * (4 + 16);
     int64_t flops = n_calc * (3+12+5+2+3+11+3+8+7);
-    if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
+    if (m_prof) m_prof->pop(m_exec_conf, flops, mem_transfer);
     }
 
 void export_CGCMMForceComputeGPU(py::module& m)

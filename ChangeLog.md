@@ -2,18 +2,45 @@
 
 [TOC]
 
+## v2.4.1
+
+Released 2018/11/27
+
+*Bug fixes*
+
+* Install `WarpTools.cuh` for use by plugins
+* Fix potential violation of detailed balance with anisotropic particles with `hpmc.update.clusters` in periodic boundary conditions
+* Support llvm 7.0
+
 ## v2.4.0
 
-Not yet released
+Released 2018/11/07
 
 *New features*
 
 * General:
     * Misc documentation updates
     * Accept `mpi4py` communicators in `context.initialize`.
+    * CUDA 10 support and testing
+    * Sphinx 1.8 support
+    * Flush message output so that `python -u` is no longer required to obtain output on some batch job systems
+    * Support multi-GPU execution on dense nodes using CUDA managed memory. Execute with ``--gpu=0,1,..,n-1`` command line option to run on the first n GPUs (Pascal and above).
+      * Node-local acceleration is implemented for a subset of kernels. Performance improvements may vary.
+      * Improvements are only expected with NVLINK hardware. Use MPI when NVLINK is not available.
+      * Combine the ``--gpu=..`` command line option with mpirun to execute on many dense nodes
+    * Bundle ``libgetar`` v0.7.0 and remove ``sqlite3`` dependency
+    * When building with ENABLE_CUDA=on, CUDA 8.0 is now a minimum requirement
+
 * MD:
+    * *no changes*.
 
 * HPMC:
+    * Add `convex_spheropolyhedron_union` shape class.
+    * Correctly count acceptance rate when maximum particle move is is zero in ``hpmc.integrate.*``.
+    * Correctly count acceptance rate when maximum box move size is zero in ``hpmc.update.boxmc``.
+    * Fix a bug that may have led to overlaps between polygon soups with ``hpmc.integrate.polyhedron``.
+    * Improve performance in sphere trees used in ``hpmc.integrate.sphere_union``.
+    * Add `test_overlap` method to python API
 
 * API:
     * Allow external callers of HOOMD to set the MPI communicator
@@ -27,6 +54,16 @@ Not yet released
     * HPMC: The implicit depletant mode `circumsphere` with `ntrial > 0` does not support compute 7.0 (Volta) and newer GPUs and is now disabled by default.
             To enable this functionality, configure HOOMD with option the `-DENABLE_HPMC_REINSERT=ON`, which will not function properly on compute 7.0 (Volta)
             and newer GPUs.
+    * HPMC: `convex_polyhedron_union` is replaced by `convex_spheropolyhedron_union` (when sweep_radii are 0 for all particles)
+
+## v2.3.5
+
+Released 2018/10/07
+
+*Bug fixes*
+
+* Document ``--single-mpi`` command line option.
+* HPMC: Fix a bug where ``hpmc.field.lattice_field`` did not resize 2D systems properly in combination with ``update.box_resize``.
 
 ## v2.3.4
 

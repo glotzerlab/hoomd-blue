@@ -45,7 +45,7 @@ CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
     // allocate memory
     allocateBuffers();
 
-    // initialize communciation stages
+    // initialize communication stages
     initializeCommunicationStages();
 
     // Initialize cache configuration
@@ -103,7 +103,7 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<pdata_element> gpu_recvbuf(m_exec_conf,mapped);
     m_gpu_recvbuf.swap(gpu_recvbuf);
 
-    // Communciation flags for every particle sent
+    // Communication flags for every particle sent
     GPUVector<unsigned int> comm_flags(m_exec_conf);
     m_comm_flags.swap(comm_flags);
 
@@ -182,7 +182,7 @@ void CommunicatorGPU::allocateBuffers()
     m_netvirial_ghost_recvbuf.swap(netvirial_ghost_recvbuf);
 
     #ifndef ENABLE_MPI_CUDA
-    // initialize standby buffers (oppposite mapped setting)
+    // initialize standby buffers (opposite mapped setting)
     GPUVector<unsigned int> tag_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
     m_tag_ghost_sendbuf_alt.swap(tag_ghost_sendbuf_alt);
 
@@ -270,7 +270,7 @@ void CommunicatorGPU::initializeCommunicationStages()
         m_max_stages = 3;
         }
 
-    // accesss neighbors and adjacency  array
+    // access neighbors and adjacency  array
     ArrayHandle<unsigned int> h_adj_mask(m_adj_mask, access_location::host, access_mode::read);
 
     Index3D di= m_decomposition->getDomainIndexer();
@@ -357,7 +357,7 @@ void CommunicatorGPU::initializeCommunicationStages()
                 break; // associate neighbor with stage of lowest index
                 }
 
-    m_exec_conf->msg->notice(4) << "ComunicatorGPU: Using " << m_num_stages
+    m_exec_conf->msg->notice(4) << "CommunicatorGPU: Using " << m_num_stages
         << " communication stage(s)." << std::endl;
     }
 
@@ -505,7 +505,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         // resize bitmasks
         m_rank_mask.resize(m_gdata->getN());
 
-        // resize temporary arry
+        // resize temporary array
         m_scan.resize(m_gdata->getN());
 
         unsigned int n_out_ranks;
@@ -1064,7 +1064,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
         unsigned int old_ngroups = m_gdata->getN();
 
-        // resize group arrays to accomodate additional groups (there can still be duplicates with local groups)
+        // resize group arrays to accommodate additional groups (there can still be duplicates with local groups)
         m_gdata->addGroups(n_recv_unique);
 
             {
@@ -2812,7 +2812,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
             //only unpack in non-CUDA MPI builds
             if (m_prof) m_prof->push(m_exec_conf,"unpack");
                 {
-                // begin measurement of host-device transfer time for recveived ghosts
+                // begin measurement of host-device transfer time for received ghosts
                 m_tuner_ghost_recv->begin();
 
                 // access receive buffers
@@ -2894,7 +2894,7 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
         CommFlags flags = m_last_flags;
         if (m_prof) m_prof->push(m_exec_conf,"unpack");
             {
-            // begin measurement of host-device transfer time for recveived ghosts
+            // begin measurement of host-device transfer time for received ghosts
             m_tuner_ghost_recv->begin();
 
             // access receive buffers

@@ -258,7 +258,7 @@ class SupportFuncConvexPolygon
 }; // end namespace detail
 
 //! Convex Polygon shape template
-/*! ShapeConvexPolygon implements IntegragorHPMC's shape protocol. It serves at the simplest example of an orientable
+/*! ShapeConvexPolygon implements IntegratorHPMC's shape protocol. It serves at the simplest example of an orientable
     shape for HPMC.
 
     The parameter defining a polygon is a structure containing a list of N vertices. They are assumed to be listed

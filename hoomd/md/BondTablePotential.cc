@@ -70,8 +70,8 @@ BondTablePotential::~BondTablePotential()
     \param F Table for the potential F (must be - dV / dr)
     \param rmin Minimum r in the potential
     \param rmax Maximum r in the potential
-    \post Values from \a V and \a F are copied into the interal storage for type pair (type)
-    \note See BondTablePotential for a detailed definiton of rmin and rmax
+    \post Values from \a V and \a F are copied into the internal storage for type pair (type)
+    \note See BondTablePotential for a detailed definition of rmin and rmax
 */
 void BondTablePotential::setTable(unsigned int type,
                               const std::vector<Scalar> &V,
@@ -185,7 +185,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
         assert(bond.tag[0] < m_pdata->getN());
         assert(bond.tag[1] < m_pdata->getN());
 
-        // transform a and b into indicies into the particle data arrays
+        // transform a and b into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[bond.tag[0]];
         unsigned int idx_b = h_rtag.data[bond.tag[1]];

@@ -42,15 +42,15 @@
     for use with this integrator. They are added via calling
     addForceCompute(). Any number of forces can be added in this way.
 
-    All forces added via addForceCompute() are computed independantly and then totaled up to calculate the net force
-    and enrgy on each particle. Constraint forces (ForceConstraint) are unique in that they need to be computed
+    All forces added via addForceCompute() are computed independently and then totaled up to calculate the net force
+    and energy on each particle. Constraint forces (ForceConstraint) are unique in that they need to be computed
     \b after the net forces is already available. To implement this behavior, call addForceConstraint() to add any
-    number of constraint forces. All constraint forces will be computed independantly and will be able to read the
+    number of constraint forces. All constraint forces will be computed independently and will be able to read the
     current unconstrained net force. Separate constraint forces should not overlap. Degrees of freedom removed
     via the constraint forces can be totaled up with a call to getNDOFRemoved for convenience in derived classes
     implementing correct counting in getNDOF().
 
-    Integrators take "ownership" of the particle's accellerations. Any other updater
+    Integrators take "ownership" of the particle's accelerations. Any other updater
     that modifies the particles accelerations will produce undefined results. If
     accelerations are to be modified, they must be done through forces, and added to
     an Integrator via addForceCompute().
@@ -160,7 +160,7 @@ class PYBIND11_EXPORT Integrator : public Updater
 #endif
 
 #ifdef ENABLE_MPI
-        //! helper function to determine the ghost communciation flags
+        //! helper function to determine the ghost communication flags
         CommFlags determineFlags(unsigned int timestep);
 #endif
 

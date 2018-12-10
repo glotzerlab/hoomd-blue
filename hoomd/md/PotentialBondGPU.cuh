@@ -20,7 +20,7 @@
 #ifndef __POTENTIAL_BOND_GPU_CUH__
 #define __POTENTIAL_BOND_GPU_CUH__
 
-//! Wrapps arguments to gpu_cgbf
+//! Wraps arguments to gpu_cgbf
 struct bond_args_t
     {
     //! Construct a bond_args_t
@@ -105,7 +105,7 @@ scalar_tex_t pdata_charge_tex;
 
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
-    \tparam evaluator EvaluatorBond class to evualuate V(r) and -delta V(r)/r
+    \tparam evaluator EvaluatorBond class to evaluate V(r) and -delta V(r)/r
 
 */
 template< class evaluator >
@@ -160,7 +160,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         diam = texFetchScalar(d_diameter, pdata_diam_tex, idx);
         }
     else
-        diam += 0; // shutup compiler warning
+        diam += 0; // shut up compiler warning
 
     Scalar q(0);
     if (evaluator::needsCharge())
@@ -168,7 +168,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         q = texFetchScalar(d_charge, pdata_charge_tex, idx);
         }
     else
-        q += 0; // shutup compiler warning
+        q += 0; // shut up compiler warning
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(0, 0, 0, 0);
@@ -254,7 +254,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
 
 #include <iostream>
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
-/*! \param bond_args Other arugments to pass onto the kernel
+/*! \param bond_args Other arguments to pass onto the kernel
     \param d_params Parameters for the potential, stored per bond type
     \param d_flags flags on the device - a 1 will be written if evaluation
                    of forces failed for any bond
@@ -269,7 +269,7 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     assert(d_params);
     assert(bond_args.n_bond_types > 0);
 
-    // chck that block_size is valid
+    // check that block_size is valid
     assert(bond_args.block_size != 0);
 
     static unsigned int max_block_size = UINT_MAX;
@@ -295,7 +295,7 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
         if (error != cudaSuccess)
             return error;
 
-        // bind the diamter texture
+        // bind the diameter texture
         pdata_diam_tex.normalized = false;
         pdata_diam_tex.filterMode = cudaFilterModePoint;
         error = cudaBindTexture(0, pdata_diam_tex, bond_args.d_diameter, sizeof(Scalar) *(bond_args.n_max));

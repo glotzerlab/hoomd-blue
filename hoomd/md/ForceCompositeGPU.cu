@@ -6,6 +6,13 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
 
+#include "ForceCompositeGPU.cuh"
+#include <thrust/copy.h>
+#include <thrust/transform.h>
+#include <thrust/device_ptr.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
+
 // Maintainer: jglaser
 
 /*! \file ForceComposite.cu
@@ -42,6 +49,8 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                  Scalar4* d_torque,
                                                  const unsigned int *d_molecule_len,
                                                  const unsigned int *d_molecule_list,
+                                                 const unsigned int *d_molecule_idx,
+                                                 const unsigned int *d_rigid_center,
                                                  Index2D molecule_indexer,
                                                  const Scalar4 *d_postype,
                                                  const Scalar4* d_orientation,
@@ -59,7 +68,9 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                  unsigned int window_size,
                                                  unsigned int thread_mask,
                                                  unsigned int n_bodies_per_block,
-                                                 bool zero_force)
+                                                 bool zero_force,
+                                                 unsigned int first_body,
+                                                 unsigned int nwork)
     {
     // determine which body (0 ... n_bodies_per_block-1) this thread is working on
     // assign threads 0, 1, 2, ... to body 0, n, n+1, n+2, ... to body 1, and so on.
@@ -87,10 +98,10 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         {
         // thread 0 for this body reads in the body id and orientation and stores them in shared memory
         int group_idx = blockIdx.x*n_bodies_per_block + m;
-        if (group_idx < n_mol)
+        if (group_idx < nwork)
             {
-            mol_idx[m] = group_idx;
-            central_idx[m] = d_molecule_list[molecule_indexer(group_idx, 0)];
+            central_idx[m] = d_rigid_center[group_idx + first_body];
+            mol_idx[m] = d_molecule_idx[central_idx[m]];
 
             if (d_tag[central_idx[m]] != d_body[central_idx[m]])
                 {
@@ -128,7 +139,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
             if (k < mol_len)
                 {
                 // determine the particle idx of the particle
-                unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
+                unsigned int pidx = d_molecule_list[molecule_indexer(k,mol_idx[m])];
 
                 // if this particle is not the central particle
                 if (body_type[m] != 0xffffffff && pidx != central_idx[m])
@@ -282,7 +293,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
             mol_idx[m] = group_idx;
 
             // first ptl is central ptl
-            central_idx[m] = d_molecule_list[molecule_indexer(group_idx, 0)];
+            central_idx[m] = d_molecule_list[molecule_indexer(0,group_idx)];
 
             if (d_tag[central_idx[m]] != d_body[central_idx[m]])
                 {
@@ -320,7 +331,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
             if (k < mol_len)
                 {
                 // determine the particle idx of the particle
-                unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
+                unsigned int pidx = d_molecule_list[molecule_indexer(k,mol_idx[m])];
 
                 if (body_type[m] != 0xffffffff && pidx != central_idx[m])
                     {
@@ -345,7 +356,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                     d_net_virial[4*net_virial_pitch+pidx] = Scalar(0.0);
                     d_net_virial[5*net_virial_pitch+pidx] = Scalar(0.0);
 
-                    // if this particle is not the central particle (incomplete molcules can't have local members)
+                    // if this particle is not the central particle (incomplete molecules can't have local members)
                     if (central_idx[m] < N)
                         {
                         vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], k-1)]);
@@ -415,6 +426,8 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  Scalar4* d_torque,
                  const unsigned int *d_molecule_len,
                  const unsigned int *d_molecule_list,
+                 const unsigned int *d_molecule_idx,
+                 const unsigned int *d_rigid_center,
                  Index2D molecule_indexer,
                  const Scalar4 *d_postype,
                  const Scalar4* d_orientation,
@@ -432,69 +445,80 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  unsigned int n_bodies_per_block,
                  unsigned int block_size,
                  const cudaDeviceProp& dev_prop,
-                 bool zero_force)
+                 bool zero_force,
+                 const GPUPartition &gpu_partition)
     {
     // reset force and torque
     cudaMemset(d_force, 0, sizeof(Scalar4)*N);
     cudaMemset(d_torque, 0, sizeof(Scalar4)*N);
 
-    dim3 force_grid(n_mol / n_bodies_per_block + 1, 1, 1);
-
-    static unsigned int max_block_size = UINT_MAX;
-    static cudaFuncAttributes attr;
-    if (max_block_size == UINT_MAX)
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
-        cudaFuncGetAttributes(&attr, (const void *) gpu_rigid_force_sliding_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+
+        dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
+
+        static unsigned int max_block_size = UINT_MAX;
+        static cudaFuncAttributes attr;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncGetAttributes(&attr, (const void *) gpu_rigid_force_sliding_kernel);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
+
+        // round down to nearest power of two
+        unsigned int b = 1;
+        while (b * 2 <= run_block_size) { b *= 2; }
+        run_block_size = b;
+
+        unsigned int window_size = run_block_size / n_bodies_per_block;
+        unsigned int thread_mask = window_size - 1;
+
+        unsigned int shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3));
+
+        while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
+            {
+            // block size is power of two
+            run_block_size /= 2;
+
+            shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3));
+
+            window_size = run_block_size / n_bodies_per_block;
+            thread_mask = window_size - 1;
+            }
+
+        gpu_rigid_force_sliding_kernel<<< force_grid, run_block_size, shared_bytes >>>(
+            d_force,
+            d_torque,
+            d_molecule_len,
+            d_molecule_list,
+            d_molecule_idx,
+            d_rigid_center,
+            molecule_indexer,
+            d_postype,
+            d_orientation,
+            body_indexer,
+            d_body_pos,
+            d_body_orientation,
+            d_body_len,
+            d_body,
+            d_tag,
+            d_flag,
+            d_net_force,
+            d_net_torque,
+            n_mol,
+            N,
+            window_size,
+            thread_mask,
+            n_bodies_per_block,
+            zero_force,
+            range.first,
+            nwork);
         }
-
-    unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
-
-    // round down to nearest power of two
-    unsigned int b = 1;
-    while (b * 2 <= run_block_size) { b *= 2; }
-    run_block_size = b;
-
-    unsigned int window_size = run_block_size / n_bodies_per_block;
-    unsigned int thread_mask = window_size - 1;
-
-    unsigned int shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3));
-
-    while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
-        {
-        // block size is power of two
-        run_block_size /= 2;
-
-        shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3));
-
-        window_size = run_block_size / n_bodies_per_block;
-        thread_mask = window_size - 1;
-        }
-
-    gpu_rigid_force_sliding_kernel<<< force_grid, run_block_size, shared_bytes >>>(
-        d_force,
-        d_torque,
-        d_molecule_len,
-        d_molecule_list,
-        molecule_indexer,
-        d_postype,
-        d_orientation,
-        body_indexer,
-        d_body_pos,
-        d_body_orientation,
-        d_body_len,
-        d_body,
-        d_tag,
-        d_flag,
-        d_net_force,
-        d_net_torque,
-        n_mol,
-        N,
-        window_size,
-        thread_mask,
-        n_bodies_per_block,
-        zero_force);
-
     return cudaSuccess;
     }
 
@@ -582,9 +606,10 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
 
 
 __global__ void gpu_update_composite_kernel(unsigned int N,
+    unsigned int nwork,
+    unsigned int offset,
     unsigned int n_ghost,
-    const unsigned int *d_body,
-    const unsigned int *d_rtag,
+    const unsigned int *d_lookup_center,
     Scalar4 *d_postype,
     Scalar4 *d_orientation,
     Index2D body_indexer,
@@ -602,13 +627,14 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= N+n_ghost) return;
+    if (idx >= nwork)
+        return;
 
-    unsigned int central_tag = d_body[idx];
+    idx += offset;
 
-    if (central_tag == NO_BODY) return;
-
-    unsigned int central_idx = d_rtag[central_tag];
+    unsigned int central_idx = d_lookup_center[idx];
+    if (central_idx == NO_BODY)
+        return;
 
     if (central_idx >= N + n_ghost)
         {
@@ -674,11 +700,10 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 
 void gpu_update_composite(unsigned int N,
     unsigned int n_ghost,
-    const unsigned int *d_body,
-    const unsigned int *d_rtag,
     Scalar4 *d_postype,
     Scalar4 *d_orientation,
     Index2D body_indexer,
+    const unsigned int *d_lookup_center,
     const Scalar3 *d_body_pos,
     const Scalar4 *d_body_orientation,
     const unsigned int *d_body_len,
@@ -689,7 +714,8 @@ void gpu_update_composite(unsigned int N,
     const BoxDim box,
     const BoxDim global_box,
     unsigned int block_size,
-    uint2 *d_flag)
+    uint2 *d_flag,
+    const GPUPartition &gpu_partition)
     {
     unsigned int run_block_size = block_size;
 
@@ -706,22 +732,91 @@ void gpu_update_composite(unsigned int N,
         run_block_size = max_block_size;
         }
 
-    unsigned int n_blocks = (N+n_ghost)/run_block_size + 1;
-    gpu_update_composite_kernel<<<n_blocks,run_block_size>>>(N,
-        n_ghost,
-        d_body,
-        d_rtag,
-        d_postype,
-        d_orientation,
-        body_indexer,
-        d_body_pos,
-        d_body_orientation,
-        d_body_len,
-        d_molecule_order,
-        d_molecule_len,
-        d_molecule_idx,
-        d_image,
-        box,
-        global_box,
-        d_flag);
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function 
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev) 
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+
+        // process ghosts in final range
+        if (idev == (int)gpu_partition.getNumActiveGPUs()-1)
+            nwork += n_ghost;
+
+        unsigned int n_blocks = nwork/run_block_size + 1;
+        gpu_update_composite_kernel<<<n_blocks,run_block_size>>>(N,
+            nwork,
+            range.first,
+            n_ghost,
+            d_lookup_center,
+            d_postype,
+            d_orientation,
+            body_indexer,
+            d_body_pos,
+            d_body_orientation,
+            d_body_len,
+            d_molecule_order,
+            d_molecule_len,
+            d_molecule_idx,
+            d_image,
+            box,
+            global_box,
+            d_flag);
+        }
+    }
+
+struct is_center
+    {
+    __host__ __device__
+    bool operator()(const thrust::tuple<unsigned int, unsigned int>& t)
+        {
+        return t.get<0>() == t.get<1>();
+        }
+    };
+
+// create a lookup table ptl idx -> center idx
+struct lookup_op : thrust::unary_function<unsigned int, unsigned int>
+    {
+    __host__ __device__ lookup_op(const unsigned int *_d_rtag)
+        : d_rtag(_d_rtag) {}
+
+    __device__ unsigned int operator()(const unsigned int& body)
+        {
+        return (body != NO_BODY) ? d_rtag[body] : NO_BODY;
+        }
+
+    const unsigned int *d_rtag;
+    };
+
+
+cudaError_t gpu_find_rigid_centers(const unsigned int *d_body,
+                                const unsigned int *d_tag,
+                                const unsigned int *d_rtag,
+                                const unsigned int N,
+                                const unsigned int nghost,
+                                unsigned int *d_rigid_center,
+                                unsigned int *d_lookup_center,
+                                unsigned int &n_rigid)
+    {
+    thrust::device_ptr<const unsigned int> body(d_body);
+    thrust::device_ptr<const unsigned int> tag(d_tag);
+    thrust::device_ptr<unsigned int> rigid_center(d_rigid_center);
+    thrust::counting_iterator<unsigned int> count(0);
+
+    // create a contiguos list of rigid center indicies
+    auto it = thrust::copy_if(count,
+                    count + N,
+                    thrust::make_zip_iterator(thrust::make_tuple(body, tag)),
+                    rigid_center,
+                    is_center());
+
+    n_rigid = it - rigid_center;
+
+    thrust::device_ptr<unsigned int> lookup_center(d_lookup_center);
+    thrust::transform(body,
+        body + N + nghost,
+        lookup_center,
+        lookup_op(d_rtag));
+
+    return cudaSuccess;
     }

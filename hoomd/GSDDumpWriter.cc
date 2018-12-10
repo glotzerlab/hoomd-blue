@@ -155,7 +155,7 @@ GSDDumpWriter::~GSDDumpWriter()
 /*! \param timestep Current time step of the simulation
 
     The first call to analyze() will create or overwrite the file and write out the current system configuration
-    as frame 0. Subsequent calls will append frames to the file, or keep ovewriting frame 0 if m_truncate is true.
+    as frame 0. Subsequent calls will append frames to the file, or keep overwriting frame 0 if m_truncate is true.
 */
 void GSDDumpWriter::analyze(unsigned int timestep)
     {

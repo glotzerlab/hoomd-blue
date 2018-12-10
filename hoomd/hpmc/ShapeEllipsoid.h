@@ -38,7 +38,7 @@ namespace hpmc
 {
 
 //! Ellipsoid shape template
-/*! ShapeEllipsoid implements IntegragorHPMC's shape protocol.
+/*! ShapeEllipsoid implements IntegratorHPMC's shape protocol.
 
     The parameter defining an ellipsoid is a OverlapReal4. First three components list the major axis in that direction.
     The last component (w) is a ignore flag for overlaps. If w!=0, for both particles in overlap check, then overlaps
@@ -307,7 +307,7 @@ DEVICE inline int test_overlap_ellipsoids(OverlapReal *M1, OverlapReal *M2)
                      M2[0] * t0_1 - M2[1] * t1_1 + M2[3] * t2_1 - M2[6] * t3_1;
     double a0 = M2[0] * t0_0 - M2[1] * t1_0 + M2[3] * t2_0 - M2[6] * t3_0;
 
-    // SECOND: analyse the polynomial for overlaps
+    // SECOND: analyze the polynomial for overlaps
     // a4 * x^4 + a3 * x^3 + a2 * x^2 + a1 * x + a0 = 0
     // We are looking for one (at least one) positive root of this polynomial.
     // If there is one, then the ellipsoids overlap!
@@ -316,7 +316,7 @@ DEVICE inline int test_overlap_ellipsoids(OverlapReal *M1, OverlapReal *M2)
     //NOTE [BEN]: Above comment appears to be an error.
     //In the implementation, it appears as though the we're actually searching for
     //roots between -infinity and 0, so a1 and a3 flip sign. All of these sign changes cancel
-    //out in the sturm thereom check
+    //out in the sturm theorem check
 
     //(i) Descartes rule of signs check (if all coeffs are <0, then overlap)
     if (a1 < 0.0 && a2 < 0.0 && a3 < 0.0) return ELLIPSOID_OVERLAP_TRUE;

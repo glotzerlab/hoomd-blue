@@ -42,7 +42,7 @@ namespace hpmc
     **required** that the origin is inside the shape, and it is best if the origin is the center of mass.
 
     ShapeSpheropolygon interprets two additional fields in the verts struct that ShapeConvexPolyhedron lacks.
-    The first is sweep_radius which defines the radius of the sphere to sweep around the polyong. The 2nd
+    The first is sweep_radius which defines the radius of the sphere to sweep around the polygon. The 2nd
     is ignore. When two shapes are checked for overlap, if both of them have ignore set to true (non-zero) then
     there is assumed to be no collision. This is intended for use with the penetrable hard-sphere model for depletants,
     but could be useful in other cases.

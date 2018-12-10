@@ -91,7 +91,7 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
 /*! \param d_pos array of particle positions
     \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param exp_thermo_fac Update factor for thermostat
     \param mat_exp_v Matrix exponential for velocity update
@@ -263,7 +263,7 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4 *d_vel,
 
 /*! \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param mat_exp_v Matrix exponential for velocity update
     \param d_net_force Net force on each particle

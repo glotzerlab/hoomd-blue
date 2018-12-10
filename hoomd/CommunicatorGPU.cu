@@ -384,7 +384,7 @@ __global__ void gpu_make_ghost_exchange_plan_kernel(
     if (f.z < ghost_fraction.z)
         plan |= send_down;
 
-    // filter out non-communiating directions
+    // filter out non-communicating directions
     plan &= mask;
 
     d_plan[idx] = plan;
@@ -1325,11 +1325,11 @@ __global__ void gpu_mark_groups_kernel(
     \param d_members Array of group member tags
     \param d_group_tag Array of group tags
     \param d_group_rtag Array of group rtags
-    \param d_group_ranks Auxillary array of group member ranks
+    \param d_group_ranks Auxiliary array of group member ranks
     \param d_rtag Particle data reverse-lookup table for tags
     \param di Domain decomposition indexer
     \param my_pos Integer triple of domain coordinates
-    \param incomplete If true, initially update auxillary rank information
+    \param incomplete If true, initially update auxiliary rank information
  */
 template<unsigned int group_size, typename group_t, typename ranks_t>
 void gpu_mark_groups(

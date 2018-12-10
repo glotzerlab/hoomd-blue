@@ -119,7 +119,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.msg.error("No coefficents specified\n");
+            hoomd.context.msg.error("No coefficients specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -193,8 +193,8 @@ class coeff:
 ## \internal
 # \brief Base class for bond potentials
 #
-# A bond in hoomd_script reflects a PotentialBond in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd_script
+# A bond in hoomd reflects a PotentialBond in c++. It is responsible
+# for all high-level management that happens behind the scenes for hoomd
 # writers. 1) The instance of the c++ bond force itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
 # net force on each particle
@@ -279,7 +279,7 @@ class harmonic(_bond):
     def __init__(self,name=None):
         hoomd.util.print_status_line();
 
-        # initiailize the base class
+        # initialize the base class
         _bond.__init__(self);
 
         # check that some bonds are defined
@@ -440,7 +440,7 @@ class table(force._force):
     .. rubric:: Set a table from a file
 
     When you have no function for for *V* or *F*, or you otherwise have the data listed in a file, :py:class:`table` can use the given
-    values direcly. You must first specify the number of rows in your tables when initializing bond.table. Then use
+    values directly. You must first specify the number of rows in your tables when initializing bond.table. Then use
     :py:meth:`set_from_file()` to read the file::
 
         btable = bond.table(width=1000)
@@ -451,7 +451,7 @@ class table(force._force):
         not diverge near r=0, then a setting of ``rmin=0`` is valid.
 
     Note:
-        Ensure that ``rmin`` and ``rmax`` cover the range of possible bond lengths. When gpu eror checking is on, a error will
+        Ensure that ``rmin`` and ``rmax`` cover the range of possible bond lengths. When gpu error checking is on, a error will
         be thrown if a bond distance is outside than this range.
     """
     def __init__(self, width, name=None):
@@ -469,7 +469,7 @@ class table(force._force):
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-        # setup the coefficent matrix
+        # setup the coefficients matrix
         self.bond_coeff = coeff();
 
         # stash the width for later use
@@ -497,7 +497,7 @@ class table(force._force):
 
 
     def update_coeffs(self):
-        # check that the bond coefficents are valid
+        # check that the bond coefficients are valid
         if not self.bond_coeff.verify(["func", "rmin", "rmax", "coeff"]):
             hoomd.context.msg.error("Not all bond coefficients are set for bond.table\n");
             raise RuntimeError("Error updating bond coefficients");

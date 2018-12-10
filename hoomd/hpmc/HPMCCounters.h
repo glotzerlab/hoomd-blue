@@ -268,7 +268,7 @@ struct hpmc_muvt_counters_t
         }
 
 
-    //! Get the volume ecceptance
+    //! Get the volume acceptance
     /*! \returns The ratio of volume moves that are accepted, or 0 if there are no volume moves
     */
     DEVICE double getVolumeAcceptance()
@@ -298,7 +298,7 @@ struct hpmc_muvt_counters_t
 
     };
 
-//! Storage for cluseter move acceptance counters
+//! Storage for cluster move acceptance counters
 /*! \ingroup hpmc_data_structs */
 struct hpmc_clusters_counters_t
     {

@@ -108,7 +108,7 @@ void OneDConstraint::computeForces(unsigned int timestep)
         m_prof->pop();
     }
 
-/*! OneDCOnstraint removes 2 degrees of freedom per particle in the group
+/*! OneDConstraint removes 2 degrees of freedom per particle in the group
 */
 unsigned int OneDConstraint::getNDOFRemoved()
     {

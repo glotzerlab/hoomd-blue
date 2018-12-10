@@ -9,7 +9,7 @@ may have rotational degrees of freedom. When any torque-producing potential or c
 integrators automatically integrate both the rotational and translational degrees of freedom of the system.
 Anisotropic integration can also be explicitly enabled or disabled through the ``aniso`` argument of :py:class:`hoomd.md.integrate.mode_standard`.
 :py:class:`hoomd.md.pair.gb`, :py:mod:`hoomd.dem`, :py:class:`hoomd.md.constrain.rigid` are examples of potentials and
-constraints that produce toruqes on particles.
+constraints that produce torques on particles.
 
 The integrators detect what rotational degrees of freedom exist per particle. Each particle has a diagonal moment
 of inertia tensor that specifies the moment of inertia about the 3 principle axes in the particle's local reference

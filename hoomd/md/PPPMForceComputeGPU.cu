@@ -675,7 +675,7 @@ __global__ void kernel_calculate_pe_partial(
         __syncthreads();
         }
 
-    // write result to global memeory
+    // write result to global memory
     if (tidx == 0)
        sum_partial[blockIdx.x] = sdata[0];
     }
@@ -1233,7 +1233,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     // apply periodic boundary conditions: (FLOPS 12)
                     dx = box.minImage(dx);
 
-                    // calculate r squard (FLOPS: 5)
+                    // calculate r squared (FLOPS: 5)
                     Scalar rsq = dot(dx,dx);
                     Scalar r = sqrtf(rsq);
                     Scalar qiqj = qi * qj;

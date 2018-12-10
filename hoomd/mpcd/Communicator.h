@@ -116,7 +116,7 @@ class PYBIND11_EXPORT Communicator
          * Particles sent to a neighbor are deleted from the local particle data.
          * Particles received from a neighbor in one of the six communication steps
          * are added to the local particle data, and are also considered for forwarding to a neighbor
-         * in the subseqent communication steps.
+         * in the subsequent communication steps.
          *
          * \post Every particle on every processor can be found inside the local domain boundaries.
          */
@@ -157,7 +157,7 @@ class PYBIND11_EXPORT Communicator
         std::shared_ptr<::ParticleData> m_pdata;                    //!< HOOMD particle data
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
         std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;           //!< MPCD particle data
-        const MPI_Comm m_mpi_comm;                                  //!< MPI communciator
+        const MPI_Comm m_mpi_comm;                                  //!< MPI communicator
         std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition information
         std::shared_ptr<Profiler> m_prof;                           //!< Profiler
 

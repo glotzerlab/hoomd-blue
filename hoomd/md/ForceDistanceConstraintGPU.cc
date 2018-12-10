@@ -471,7 +471,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
 
             // set parameters
             // nzero is the value below which zero pivot is flagged.
-            // nboost is the value which is substitured for zero pivot.
+            // nboost is the value which is substituted for zero pivot.
             double nzero = 0.0;
             double nboost= 0.0;
 
