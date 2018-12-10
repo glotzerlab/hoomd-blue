@@ -626,10 +626,16 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 r_cut_patch = m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i);
                 }
 
-            // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0),
-                r_cut_patch-getMinCoreDiameter()/(OverlapReal)2.0);
-            detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+            // get AABB and extend
+            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+            vec3<Scalar> lower = aabb_i_local.getLower();
+            vec3<Scalar> upper = aabb_i_local.getUpper();
+            vec3<Scalar> center = Scalar(0.5)*(lower+upper);
+            vec3<Scalar> lengths = Scalar(0.5)*(upper-lower);
+            lengths.x = std::max(lengths.x, (Scalar) r_cut_patch);
+            lengths.y = std::max(lengths.y, (Scalar) r_cut_patch);
+            lengths.z = std::max(lengths.z, (Scalar) r_cut_patch);
+            detail::AABB aabb_i_local_query = detail::AABB(center-lengths,center+lengths);
 
             // patch + field interaction deltaU
             double patch_field_energy_diff = 0;
@@ -640,7 +646,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
-                detail::AABB aabb = aabb_i_local;
+                detail::AABB aabb = aabb_i_local_query;
                 aabb.translate(pos_i_image);
 
                 // stackless search
@@ -731,10 +737,21 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             // calculate old patch energy only if m_patch not NULL and no overlaps
             if (m_patch && !m_patch_log && !overlap)
                 {
+                // get old AABB and extend
+                detail::AABB aabb_i_local_old = shape_old.getAABB(vec3<Scalar>(0,0,0));
+                lower = aabb_i_local_old.getLower();
+                upper = aabb_i_local_old.getUpper();
+                center = Scalar(0.5)*(lower+upper);
+                lengths = Scalar(0.5)*(upper-lower);
+                lengths.x = std::max(lengths.x, (Scalar) r_cut_patch);
+                lengths.y = std::max(lengths.y, (Scalar) r_cut_patch);
+                lengths.z = std::max(lengths.z, (Scalar) r_cut_patch);
+                aabb_i_local_old = detail::AABB(center-lengths,center+lengths);
+
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_i_image = pos_old + m_image_list[cur_image];
-                    detail::AABB aabb = aabb_i_local;
+                    detail::AABB aabb = aabb_i_local_old;
                     aabb.translate(pos_i_image);
 
                     // stackless search
