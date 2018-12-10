@@ -515,7 +515,7 @@ class faceted_ellipsoid_union_params(_hpmc.faceted_ellipsoid_union_param_proxy,_
         members = []
         for i,(cur_vertices, cur_normals, cur_offsets, cur_axes, cur_origin) in enumerate(zip(vertices, normals, offsets, axes, origins)):
             member_fn = _hpmc.make_faceted_ellipsoid
-            members.append(member_fn(self.ensure_list(cur_vertices),
+            members.append(member_fn(self.ensure_list(cur_normals),
                                      self.ensure_list(cur_offsets),
                                      self.ensure_list(cur_vertices),
                                      float(cur_axes[0]),

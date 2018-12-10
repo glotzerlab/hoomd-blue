@@ -243,6 +243,34 @@ class convex_spheropolyhedron_union_test(unittest.TestCase):
         del self.system
         context.initialize();
 
+class faceted_ellipsoid_union_test(unittest.TestCase):
+    def setUp(self):
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=3), particle_types=['A'])
+
+        self.mc = hpmc.integrate.faceted_ellipsoid_union(seed=10);
+        self.mc.shape_param.set('A', normals=[[(1,0,0)],[(0,0,1)]], offsets=[[-0.2],[-0.3]],
+            vertices=[[],[]], origins=[(0,0,0),(0,0,0)],
+            axes=[(0.5,0.5,0.5),(0.5,0.5,1)],centers=[(-0.25, 0, 0), (0.25, 0, 0)],
+            orientations=[(1,0,0,0),(0,0,0,1)], capacity=16);
+
+        context.current.sorter.set_params(grid=8)
+
+    def test_sphere_union(self):
+        self.system.particles[0].position = (0,0,0);
+        self.system.particles[0].orientation = (1,0,0,0);
+
+        # verify that the particle is created correctly
+        run(1);
+
+        # verify that there are no overlaps
+        self.assertEqual(self.mc.count_overlaps(), 0);
+
+    def tearDown(self):
+        del self.mc
+        del self.system
+        context.initialize();
+
+
 class convex_spheropolygon_test(unittest.TestCase):
     def setUp(self):
         self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
