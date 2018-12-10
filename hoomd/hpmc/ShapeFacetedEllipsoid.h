@@ -105,8 +105,9 @@ class SupportFuncFacetedEllipsoid
         //! Construct a support function for a faceted sphere
         /*! \param _params Parameters of the faceted sphere
         */
-        DEVICE SupportFuncFacetedEllipsoid(const faceted_ellipsoid_params& _params)
-            : params(_params)
+        DEVICE SupportFuncFacetedEllipsoid(const faceted_ellipsoid_params& _params,
+            const OverlapReal& _sweep_radius)
+            : params(_params), sweep_radius(_sweep_radius)
             {
             }
 
@@ -128,9 +129,10 @@ class SupportFuncFacetedEllipsoid
         /*! \param n Normal vector input (in the local frame)
             \returns Local coords of the point furthest in the direction of n
         */
-        DEVICE vec3<OverlapReal> operator() (vec3<OverlapReal> n) const
+        DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& n_in) const
             {
             // transform support direction into coordinate system of the unit sphere
+            vec3<OverlapReal> n(n_in);
             n.x *= params.a; n.y *= params.b; n.z *= params.c;
 
             OverlapReal nsq = dot(n,n);
@@ -223,11 +225,16 @@ class SupportFuncFacetedEllipsoid
             // transform vertex on unit sphere back onto ellipsoid surface
             max_vec.x *= params.a; max_vec.y *= params.b; max_vec.z *= params.c;
 
-            return max_vec - params.origin;
+            // origin shift
+            max_vec -= params.origin;
+
+            // extend out by sweep radius
+            return max_vec + (sweep_radius * fast::rsqrt(dot(n_in,n_in))) * n_in;
             }
 
     private:
         const faceted_ellipsoid_params& params;      //!< Definition of faceted sphere
+        const OverlapReal sweep_radius;             //!< The radius of a sphere sweeping the shape
     };
 
 
@@ -290,7 +297,7 @@ struct ShapeFacetedEllipsoid
     //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
-        return false;
+        return true;
         }
 
     /*!
@@ -439,7 +446,7 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \ingroup shape
 */
 template <>
-DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(const vec3<Scalar>& r_ab, const ShapeFacetedEllipsoid& a, const ShapeFacetedEllipsoid& b
+DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(const vec3<Scalar>& r_ab, const ShapeFacetedEllipsoid& a, const ShapeFacetedEllipsoid& b,
     unsigned int& err, Scalar sweep_radius_a, Scalar sweep_radius_b)
     {
     vec3<OverlapReal> dr(r_ab);
@@ -447,8 +454,8 @@ DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(co
     // prepend with ellipsoid overlap check?
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return detail::xenocollide_3d(detail::SupportFuncFacetedEllipsoid(a.params),
-                           detail::SupportFuncFacetedEllipsoid(b.params),
+    return detail::xenocollide_3d(detail::SupportFuncFacetedEllipsoid(a.params, sweep_radius_a),
+                           detail::SupportFuncFacetedEllipsoid(b.params, sweep_radius_b),
                            rotate(conj(quat<OverlapReal>(a.orientation)), dr + rotate(quat<OverlapReal>(b.orientation),b.params.origin))-a.params.origin,
                            conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
                            DaDb/2.0,

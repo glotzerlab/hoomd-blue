@@ -1389,8 +1389,6 @@ class faceted_ellipsoid(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1447,17 +1445,17 @@ class faceted_ellipsoid(mode_hpmc):
 
     Depletants Example::
 
-        mc = hpmc.integrate.pathcy_sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
+        mc = hpmc.integrate.pathcy_sphere(seed=415236, d=0.3, a=0.4, implicit=True)
         mc.set_param(nselect=1,nR=3,depletant_type='B')
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],a=1.0, b=0.5, c=0.25);
         # depletant sphere
         mc.shape_param.set('B', normals=[],a=0.1,b=0.1,c=0.1);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere', restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -2219,8 +2217,6 @@ class faceted_ellipsoid_union(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
         max_members (int): Set the maximum number of members in the convex polyhedron union
         capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
@@ -2264,11 +2260,11 @@ class faceted_ellipsoid_union(mode_hpmc):
         print('vertices of the first faceted ellipsoid = ', mc.shape_param['A'].members[0].vertices)
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere'):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+        mode_hpmc.__init__(self,implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
