@@ -73,6 +73,8 @@ class free_volume(_compute):
                 cls =_hpmc.ComputeFreeVolumeSphinx;
             elif isinstance(mc, integrate.convex_polyhedron_union):
                 cls = _hpmc.ComputeFreeVolumeConvexPolyhedronUnion
+            elif isinstance(mc, integrate.faceted_ellipsoid_union):
+                cls = _hpmc.ComputeFreeVolumeFacetedEllipsoidUnion
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ComputeFreeVolumeSphereUnion;
             else:
@@ -101,6 +103,8 @@ class free_volume(_compute):
                 cls =_hpmc.ComputeFreeVolumeGPUSphinx;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ComputeFreeVolumeGPUSphereUnion;
+            elif isinstance(mc, integrate.faceted_ellipsoid_union):
+                cls = _hpmc.ComputeFreeVolumeGPUFacetedEllipsoidUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
                 cls = _hpmc.ComputeFreeVolumeGPUConvexPolyhedronUnion;
             else:
