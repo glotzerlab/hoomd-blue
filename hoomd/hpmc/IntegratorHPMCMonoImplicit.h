@@ -950,7 +950,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 detail::AABB aabb_intersect(intersect_lower, intersect_upper);
 
                 // intersectionAABB volume
-                Scalar V =  (upper.z-lower.z)*(upper.y-lower.y)*(upper.z-lower.z);
+                Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y)*(intersect_upper.z-intersect_lower.z);
 
                 // chooose the number of depletants in the intersection volume
                 std::poisson_distribution<unsigned int> poisson(m_fugacity[type]*V);
@@ -1367,8 +1367,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                 detail::AABB aabb_intersect(intersect_lower, intersect_upper);
 
-                // intersectionAABB volume
-                Scalar V =  (upper.z-lower.z)*(upper.y-lower.y)*(upper.z-lower.z);
+                // intersection AABB volume
+                Scalar V = (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y)*(intersect_upper.z-intersect_lower.z);
 
                 // chooose the number of depletants in the intersection volume
                 std::poisson_distribution<unsigned int> poisson(-m_fugacity[type]*V);
