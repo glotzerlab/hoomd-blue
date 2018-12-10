@@ -298,9 +298,9 @@ struct ShapeFacetedEllipsoid
         vec3<Scalar> e_x(1,0,0);
         vec3<Scalar> e_y(0,1,0);
         vec3<Scalar> e_z(0,0,1);
-        vec3<Scalar> s_x = rotate(orientation, sfunc(rotate(conj(orientation),e_x)));
-        vec3<Scalar> s_y = rotate(orientation, sfunc(rotate(conj(orientation),e_y)));
-        vec3<Scalar> s_z = rotate(orientation, sfunc(rotate(conj(orientation),e_z)));
+        vec3<Scalar> s_x = rotate(orientation, sfunc(rotate(conj(orientation),e_x))+vec3<Scalar>(params.origin));
+        vec3<Scalar> s_y = rotate(orientation, sfunc(rotate(conj(orientation),e_y))+vec3<Scalar>(params.origin));
+        vec3<Scalar> s_z = rotate(orientation, sfunc(rotate(conj(orientation),e_z))+vec3<Scalar>(params.origin));
 
         // translate out from the position by the furthest extent
         vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, pos.z + s_z.z);
@@ -313,8 +313,20 @@ struct ShapeFacetedEllipsoid
     //! Return a tight fitting OBB
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
-        // just use the AABB for now
-        return detail::OBB(getAABB(pos));
+        vec3<Scalar> e_x(1,0,0);
+        vec3<Scalar> e_y(0,1,0);
+        vec3<Scalar> e_z(0,0,1);
+        vec3<Scalar> s_x = sfunc(e_x)+vec3<Scalar>(params.origin);
+        vec3<Scalar> s_y = sfunc(e_y)+vec3<Scalar>(params.origin);
+        vec3<Scalar> s_z = sfunc(e_z)+vec3<Scalar>(params.origin);
+
+        detail::OBB obb;
+        obb.center = pos;
+        obb.rotation = orientation;
+        obb.lengths.x = s_x.x;
+        obb.lengths.y = s_y.y;
+        obb.lengths.z = s_z.z;
+        return obb;
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
