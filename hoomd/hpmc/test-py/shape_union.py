@@ -328,6 +328,57 @@ class shape_union(unittest.TestCase):
         del p
         del self.mc
 
+    # Test randomly generated dumbbells (special case of faceted ellipsoid)
+    def test_dumbbells_fellipsoid (self):
+        spheres = numpy.array([[-0.5, 0, 0],[0.5, 0, 0]])      # positions of spheres in dumbbell coordinates
+
+        # use fixed seed
+        numpy.random.seed(self.seed)
+
+        self.mc = hpmc.integrate.faceted_ellipsoid_union(seed=self.seed);
+        self.mc.shape_param.set("A", axes=[(0.5,0.5,0.5)]*2, offsets=[[]]*2, normals=[[]]*2,vertices=[[]]*2,
+            centers=spheres, orientations=[(1,0,0,0)]*2);
+
+        num_iter = 50 # number of times to generate new configurations
+        for i in range(num_iter):
+            # randomly create "dumbbells" as pairs of spheres located anywhere in the box
+            positions = (numpy.random.random((self.N,self.ndim)) - 0.5) * self.L  # positions of dumbbells in box
+            # not uniformly sampling orientations, but that's okay
+            orientations = numpy.random.random((self.N,4)) - 0.5
+            # normalize to unit quaternions
+            o2 = numpy.einsum('ij,ij->i', orientations, orientations)
+            orientations = numpy.einsum('ij,i->ij', orientations, 1./numpy.sqrt(o2)) # orientations of dumbbells
+
+            dumbbell = numpy.array([[quatRot(q, spheres[0]) + r, quatRot(q, spheres[1]) + r] for r,q in zip(positions, orientations)])
+
+            # perform brute force overlap check
+            overlaps = False
+            for i in range(self.N-1):
+                for j in range(i+1, self.N):
+                    if dumbbell_overlap(dumbbell[i], dumbbell[j], [self.L,self.L,self.L]):
+                        overlaps = True
+                        break
+                if overlaps == True:
+                    break
+            sphere_overlaps = overlaps
+
+            # use HPMC overlap check
+            for p, r, q in zip(self.system.particles, positions, orientations):
+                p.position = r
+                p.orientation = q
+
+            dumbbell_overlaps = False
+            run(0, quiet=True)
+            if self.mc.count_overlaps() > 0:
+                dumbbell_overlaps = True
+
+            # verify agreement on configurations with overlaps
+            self.assertEqual(sphere_overlaps, dumbbell_overlaps);
+
+        del p
+        del self.mc
+
+
     # Test randomly generated cube dimers
     # 1) generate N cube dimer positions and orientations
     # 2) place 2N cubes and determine if system has overlapping cube dimers

@@ -74,6 +74,7 @@ PYBIND11_MODULE(_hpmc, m)
     export_faceted_ellipsoid(m);
     export_sphinx(m);
     export_union_convex_polyhedron(m);
+    export_union_faceted_ellipsoid(m);
     export_union_sphere(m);
     export_convex_polyhedron(m);
     export_convex_spheropolyhedron(m);
@@ -89,6 +90,7 @@ PYBIND11_MODULE(_hpmc, m)
     py::class_< ShapeUnion<ShapeSphere>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere>::param_type> >(m, "msph_params");
 
     py::class_< ShapeUnion<ShapeSpheropolyhedron>::param_type, std::shared_ptr< ShapeUnion<ShapeSpheropolyhedron>::param_type> >(m, "mpoly3d_params");
+    py::class_< ShapeUnion<ShapeFacetedEllipsoid>::param_type, std::shared_ptr< ShapeUnion<ShapeFacetedEllipsoid>::param_type> >(m, "mfellipsoid_params");
 
     m.def("make_poly2d_verts", &make_poly2d_verts);
     m.def("make_poly3d_data", &make_poly3d_data);
@@ -98,6 +100,7 @@ PYBIND11_MODULE(_hpmc, m)
     m.def("make_faceted_ellipsoid", &make_faceted_ellipsoid);
     m.def("make_sphinx3d_params", &make_sphinx3d_params);
     m.def("make_convex_polyhedron_union_params", &make_union_params<ShapeSpheropolyhedron>);
+    m.def("make_faceted_ellipsoid_union_params", &make_union_params<ShapeFacetedEllipsoid>);
     m.def("make_sphere_union_params", &make_union_params<ShapeSphere>);
     m.def("make_overlapreal3", &make_overlapreal3);
     m.def("make_overlapreal4", &make_overlapreal4);

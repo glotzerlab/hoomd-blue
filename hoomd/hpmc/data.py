@@ -461,3 +461,79 @@ class convex_polyhedron_union_params(convex_spheropolyhedron_union_params):
     def __init__(self, mc, index):
         # call base class constructor
         convex_spheropolyhedron_union_params.__init__(self,mc, index)
+
+class faceted_ellipsoid_union_params(_hpmc.faceted_ellipsoid_union_param_proxy,_param):
+    def __init__(self, mc, index):
+        _hpmc.faceted_ellipsoid_union_param_proxy.__init__(self, mc.cpp_integrator, index);
+        _param.__init__(self, mc, index);
+        self.__dict__.update(dict(colors=None));
+        self._keys += ['centers', 'orientations', 'vertices', 'normals', 'offsets', 'colors','overlap','a', 'b', 'c', 'origins'];
+        self.make_fn = _hpmc.make_faceted_ellipsoid_union_params
+
+    def __str__(self):
+        # should we put this in the c++ side?
+        string = "faceted ellipsoid union(centers = {}, orientations = {}, overlap = {})\n".format(self.centers, self.orientations, self.overlap);
+        ct = 0;
+        members = self.members;
+        for m in members:
+            end = "\n" if ct < (len(members)-1) else "";
+            string+="faceted ellipsoid-{}(v = {}, n = {}, offsets = {}, a = {}, b = {}, c = {}){}".format(
+                ct, m.vertices, m.normals, m.offsets, m.a, m.b, m.c, mend)
+            ct+=1
+        return string;
+
+    def get_metadata(self):
+        data = {}
+        for key in self._keys:
+            if key == 'vertices':
+                val = [ m.vertices for m in self.members ];
+            if key == 'normals':
+                val = [ m.normals for m in self.members ];
+            if key == 'offsets':
+                val = [ m.offsets for m in self.members ];
+            if key == 'a':
+                val = [ m.a for m in self.members ];
+            if key == 'b':
+                val = [ m.b for m in self.members ];
+            if key == 'c':
+                val = [ m.c for m in self.members ];
+            if key == 'origins':
+                val = [ m.origin for m in self.members ];
+            else:
+                val = getattr(self, key);
+            data[key] = val;
+        return data;
+
+    def make_param(self, centers, orientations, vertices, normals, offsets, axes, origins=None, overlap=None,
+        ignore_statistics=False, colors=None, capacity=4):
+        if overlap is None:
+            overlap = [1 for c in centers]
+
+        if origins is None:
+            origins = [(0,0,0) for c in centers]
+
+        members = []
+        for i,(cur_vertices, cur_normals, cur_offsets, cur_axes, cur_origin) in enumerate(zip(vertices, normals, offsets, axes, origins)):
+            member_fn = _hpmc.make_faceted_ellipsoid
+            members.append(member_fn(self.ensure_list(cur_vertices),
+                                     self.ensure_list(cur_offsets),
+                                     self.ensure_list(cur_vertices),
+                                     float(cur_axes[0]),
+                                     float(cur_axes[1]),
+                                     float(cur_axes[2]),
+                                     tuple(cur_origin),
+                                     False, # ignore_statistics
+                                     hoomd.context.current.system_definition.getParticleData().getExecConf()))
+
+        N = len(vertices)
+        if len(centers) != N or len(orientations)!= N:
+            raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
+        self.colors = None if colors is None else self.ensure_list(colors);
+
+        return self.make_fn(self.ensure_list(members),
+                            self.ensure_list(centers),
+                            self.ensure_list(orientations),
+                            self.ensure_list(overlap),
+                            ignore_statistics,
+                            capacity,
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
