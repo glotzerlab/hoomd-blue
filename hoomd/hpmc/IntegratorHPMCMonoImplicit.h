@@ -441,8 +441,17 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 {
                 r_cut_patch = this->m_patch->getRCut() + 0.5*this->m_patch->getAdditiveCutoff(typ_i);
                 }
-            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), r_cut_patch-this->getMinCoreDiameter()/(OverlapReal)2.0);
-            detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+            // get AABB and extend
+            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+            vec3<Scalar> lower = aabb_i_local.getLower();
+            vec3<Scalar> upper = aabb_i_local.getUpper();
+            vec3<Scalar> center = Scalar(0.5)*(lower+upper);
+            vec3<Scalar> lengths = Scalar(0.5)*(upper-lower);
+            lengths.x = std::max(lengths.x, (Scalar) r_cut_patch);
+            lengths.y = std::max(lengths.y, (Scalar) r_cut_patch);
+            lengths.z = std::max(lengths.z, (Scalar) r_cut_patch);
+            detail::AABB aabb_i_local_query = detail::AABB(center-lengths,center+lengths);
 
             // patch + field interaction deltaU
             double patch_field_energy_diff = 0;
@@ -452,7 +461,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_image = pos_i + this->m_image_list[cur_image];
-                detail::AABB aabb = aabb_i_local;
+                detail::AABB aabb = aabb_i_local_query;
                 aabb.translate(pos_i_image);
 
                 // stackless search
@@ -554,12 +563,24 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             // depletants, so do that first. Calculate old patch energy only if
             // m_patch not NULL and no overlaps. Note that we are computing U_old-U_new
             // and then exponentiating directly (rather than exp(-(U_new-U_old)))
+
+            // get old AABB and extend
+            detail::AABB aabb_i_local_old = shape_old.getAABB(vec3<Scalar>(0,0,0));
+            lower = aabb_i_local_old.getLower();
+            upper = aabb_i_local_old.getUpper();
+            center = Scalar(0.5)*(lower+upper);
+            lengths = Scalar(0.5)*(upper-lower);
+            lengths.x = std::max(lengths.x, (Scalar) r_cut_patch);
+            lengths.y = std::max(lengths.y, (Scalar) r_cut_patch);
+            lengths.z = std::max(lengths.z, (Scalar) r_cut_patch);
+            aabb_i_local_old = detail::AABB(center-lengths,center+lengths);
+
             if (this->m_patch && !this->m_patch_log && accept)
                 {
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_i_image = pos_old + this->m_image_list[cur_image];
-                    detail::AABB aabb = aabb_i_local;
+                    detail::AABB aabb = aabb_i_local_old;
                     aabb.translate(pos_i_image);
 
                     // stackless search
@@ -762,6 +783,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     const unsigned int n_images = this->m_image_list.size();
 
     Shape shape_old(quat<Scalar>(h_orientation[i]), this->m_params[typ_i]);
+    detail::AABB aabb_i = shape_i.getAABB(vec3<Scalar>(0,0,0));
+    detail::AABB aabb_i_old = shape_old.getAABB(vec3<Scalar>(0,0,0));
 
     #ifdef ENABLE_TBB
     std::vector< tbb::enumerable_thread_specific<hpmc_implicit_counters_t> > thread_implicit_counters(this->m_pdata->getNTypes());
@@ -795,7 +818,13 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
             Scalar range = m_quermass ? Scalar(2.0)*m_sweep_radius : d_dep;
 
-            detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+range);
+            // get old AABB and extend
+            vec3<Scalar> lower = aabb_i_old.getLower();
+            vec3<Scalar> upper = aabb_i_old.getUpper();
+            lower.x -= range; lower.y -= range; lower.z -= range;
+            upper.x += range; upper.y += range; upper.z += range;
+            detail::AABB aabb_local = detail::AABB(lower,upper);
+
             vec3<Scalar> pos_i_old(h_postype[i]);
 
             // All image boxes (including the primary)
@@ -1207,7 +1236,13 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
             // find neighbors whose circumspheres overlap particle i's excluded volume circumsphere in the new configuration
             Scalar range = m_quermass ? Scalar(2.0)*m_sweep_radius : d_dep;
-            detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+range);
+
+            // get new AABB and extend
+            vec3<Scalar> lower = aabb_i.getLower();
+            vec3<Scalar> upper = aabb_i.getUpper();
+            lower.x -= range; lower.y -= range; lower.z -= range;
+            upper.x += range; upper.y += range; upper.z += range;
+            detail::AABB aabb_local = detail::AABB(lower,upper);
 
             // All image boxes (including the primary)
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
