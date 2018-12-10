@@ -807,6 +807,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
         std::vector<unsigned int> intersect_i;
         std::vector<unsigned int> image_i;
+        std::vector<detail::AABB> aabbs_i;
 
         if (accept && m_fugacity[type] > 0.0)
             {
@@ -850,19 +851,18 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                                 // load the old position and orientation of the j particle
                                 Scalar4 postype_j = h_postype[j];
-                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_old_image;
+                                vec3<Scalar> pos_j(postype_j);
+                                vec3<Scalar> r_ij = pos_j - pos_i_old_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
                                 Shape shape_j(quat<Scalar>(), this->m_params[typ_j]);
                                 if (shape_j.hasOrientation())
                                     shape_j.orientation = quat<Scalar>(h_orientation[j]);
 
-                                // check circumsphere overlap
-                                OverlapReal rsq = dot(r_ij,r_ij);
-                                OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter() + 2*range;
-                                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                                detail::AABB aabb_j = shape_j.getAABB(pos_j);
 
-                                bool overlap_excluded = circumsphere_overlap;
+                                // check AABB overlap
+                                bool overlap_excluded = detail::overlap(aabb, aabb_j);
 
                                 // currently ignore overlap flags with quermass==true
                                 overlap_excluded = overlap_excluded && (m_quermass || h_overlaps[this->m_overlap_idx(type,typ_j)]);
@@ -891,6 +891,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                     {
                                     intersect_i.push_back(j);
                                     image_i.push_back(cur_image);
+
+                                    // cache the translated AABB of particle j
+                                    aabb_j.translate(-this->m_image_list[cur_image]);
+                                    aabbs_i.push_back(aabb_j);
                                     }
                                 }
                             }
@@ -925,12 +929,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             for (unsigned int k = 0; k < intersect_i.size(); ++k)
             #endif
                 {
-                unsigned int j = intersect_i[k];
-                Scalar4 postype_j = h_postype[j];
-
                 // world AABB of shape j, in image of i
-                Shape shape_j(quat<Scalar>(h_orientation[j]), this->m_params[__scalar_as_int(postype_j.w)]);
-                detail::AABB aabb_j = shape_j.getAABB(vec3<Scalar>(postype_j)-this->m_image_list[image_i[k]]);
+                detail::AABB aabb_j = aabbs_i[k];
 
                 // extend AABB j by sweep radius
                 vec3<Scalar> lower_j = aabb_j.getLower();
@@ -992,17 +992,19 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         }
 
                     // check if depletant falls in other intersection volumes
+
+                    // load the depletant's AABB and extend it
                     detail::AABB aabb_test = shape_test.getAABB(pos_test);
+                    vec3<Scalar> lower_test = aabb_test.getLower();
+                    vec3<Scalar> upper_test = aabb_test.getUpper();
+                    lower_test.x -= m_sweep_radius; lower_test.y -= m_sweep_radius; lower_test.z -= m_sweep_radius;
+                    upper_test.x += m_sweep_radius; upper_test.y += m_sweep_radius; upper_test.z += m_sweep_radius;
+                    aabb_test = detail::AABB(lower_test, upper_test);
+
                     bool active = true;
                     for (unsigned int m = 0; m < k; ++m)
                         {
-                        unsigned int p = intersect_i[m];
-                        Scalar4 postype_p = h_postype[p];
-                        vec3<Scalar> rp = vec3<Scalar>(postype_p);
-                        Shape shape_p(quat<Scalar>(h_orientation[p]), this->m_params[__scalar_as_int(postype_p.w)]);
-                        detail::AABB aabb_p = shape_p.getAABB(rp - this->m_image_list[image_i[m]]);
-
-                        if (detail::overlap(aabb_test,aabb_p))
+                        if (detail::overlap(aabb_test,aabbs_i[m]))
                             {
                             active = false;
                             break;
@@ -1240,15 +1242,14 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                 // read in its position and orientation
                                 unsigned int j = this->m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
-                                vec3<Scalar> r_ij;
                                 unsigned int typ_j;
+                                vec3<Scalar> pos_j;
                                 if (i == j)
                                     {
                                     if (cur_image == 0)
                                         continue;
                                     else
                                         {
-                                        r_ij = pos_i - pos_i_image;
                                         typ_j = typ_i;
                                         }
                                     }
@@ -1256,10 +1257,11 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                     {
                                     // load the old position and orientation of the j particle
                                     Scalar4 postype_j = h_postype[j];
-                                    r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+                                    pos_j = vec3<Scalar>(postype_j);
                                     typ_j = __scalar_as_int(postype_j.w);
                                     }
 
+                                vec3<Scalar> r_ij = pos_j - pos_i_image;
                                 Shape shape_j(quat<Scalar>(), this->m_params[typ_j]);
 
                                 if (shape_j.hasOrientation())
@@ -1270,12 +1272,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                         shape_j.orientation = quat<Scalar>(h_orientation[j]);
                                     }
 
-                                // check circumsphere overlap
-                                OverlapReal rsq = dot(r_ij,r_ij);
-                                OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter() + 2*range;
-                                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                                bool overlap_excluded = circumsphere_overlap;
+                                // check excluded volume overlap
+                                detail::AABB aabb_j = shape_j.getAABB(pos_j);
+                                bool overlap_excluded = detail::overlap(aabb,aabb_j);
 
                                 // currently ignore overlap flags with quermass==true
                                 overlap_excluded = overlap_excluded && (m_quermass || h_overlaps[this->m_overlap_idx(type,typ_j)]);
@@ -1304,6 +1303,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                     {
                                     intersect_i.push_back(j);
                                     image_i.push_back(cur_image);
+
+                                    // cache the translated AABB of particle j
+                                    aabb_j.translate(-this->m_image_list[cur_image]);
+                                    aabbs_i.push_back(aabb_j);
                                     }
                                 }
                             }
@@ -1344,13 +1347,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     return;
                 #endif
 
-                unsigned int j = intersect_i[k];
-                vec3<Scalar> rj = (j == i) ? pos_i : vec3<Scalar>(h_postype[j]);
-                quat<Scalar> qj = (j == i) ? shape_i.orientation : quat<Scalar>(h_orientation[j]);
-
                 // world AABB of shape j, in image of i
-                Shape shape_j(qj, this->m_params[(j == i) ? typ_i : __scalar_as_int(h_postype[j].w)]);
-                detail::AABB aabb_j = shape_j.getAABB(rj-this->m_image_list[image_i[k]]);
+                detail::AABB aabb_j = aabbs_i[k];
 
                 // extend AABB j by sweep radius
                 vec3<Scalar> lower_j = aabb_j.getLower();
@@ -1410,17 +1408,18 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     bool active = true;
 
                     // check against any other AABB preceding this
+
+                    // load the depletant's AABB and extend it
                     detail::AABB aabb_test = shape_test.getAABB(pos_test);
+                    vec3<Scalar> lower_test = aabb_test.getLower();
+                    vec3<Scalar> upper_test = aabb_test.getUpper();
+                    lower_test.x -= m_sweep_radius; lower_test.y -= m_sweep_radius; lower_test.z -= m_sweep_radius;
+                    upper_test.x += m_sweep_radius; upper_test.y += m_sweep_radius; upper_test.z += m_sweep_radius;
+                    aabb_test = detail::AABB(lower_test, upper_test);
 
                     for (unsigned int m = 0; m < k; ++m)
                         {
-                        unsigned int p = intersect_i[m];
-                        vec3<Scalar> rp = (p == i) ? pos_i : vec3<Scalar>(h_postype[p]);
-                        quat<Scalar> qp = (p == i) ? shape_i.orientation : quat<Scalar>(h_orientation[p]);
-                        Shape shape_p(quat<Scalar>(qp), this->m_params[(p == i) ? typ_i : __scalar_as_int(h_postype[p].w)]);
-                        detail::AABB aabb_p = shape_p.getAABB(rp - this->m_image_list[image_i[m]]);
-
-                        if (detail::overlap(aabb_test,aabb_p))
+                        if (detail::overlap(aabb_test,aabbs_i[m]))
                             {
                             active = false;
                             break;
