@@ -278,10 +278,36 @@ struct ShapeFacetedEllipsoid
         return 0.0;
         }
 
+    //! Support function of the shape (in local coordinates), used in getAABB
+    /*! \param n Vector to query support function (must be normalized)
+    */
+    DEVICE vec3<Scalar> sfunc(vec3<Scalar> n) const
+        {
+        vec3<Scalar> numerator(params.a*params.a*n.x, params.b*params.b*n.y, params.c*params.c*n.z);
+        vec3<Scalar> dvec(params.a*n.x, params.b*n.y, params.c*n.z);
+        return numerator / fast::sqrt(dot(dvec, dvec));
+        }
+
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, getCircumsphereDiameter()/Scalar(2.0));
+        //OverlapReal max_axis = detail::max(axes.x, detail::max(axes.y, axes.z));
+        //return detail::AABB(pos, max_axis);
+
+        // use support function of the ellipsoid to determine the furthest extent in each direction
+        vec3<Scalar> e_x(1,0,0);
+        vec3<Scalar> e_y(0,1,0);
+        vec3<Scalar> e_z(0,0,1);
+        vec3<Scalar> s_x = rotate(orientation, sfunc(rotate(conj(orientation),e_x)));
+        vec3<Scalar> s_y = rotate(orientation, sfunc(rotate(conj(orientation),e_y)));
+        vec3<Scalar> s_z = rotate(orientation, sfunc(rotate(conj(orientation),e_z)));
+
+        // translate out from the position by the furthest extent
+        vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, pos.z + s_z.z);
+        // the furthest extent is symmetrical
+        vec3<Scalar> lower(pos.x - s_x.x, pos.y - s_y.y, pos.z - s_z.z);
+
+        return detail::AABB(lower, upper);
         }
 
     //! Return a tight fitting OBB

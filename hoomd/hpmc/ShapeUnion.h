@@ -94,6 +94,8 @@ struct union_params : param_base
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
     unsigned int N;                           //!< Number of member shapes
     unsigned int ignore;                     //!<  Bitwise ignore flag for stats. 1 will ignore, 0 will not ignore
+    vec3<OverlapReal> lower;                 //!< Lower corner of local AABB
+    vec3<OverlapReal> upper;                 //!< Upper corner of local AABB
     } __attribute__((aligned(32)));
 
 } // end namespace detail
@@ -157,7 +159,135 @@ struct ShapeUnion
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, members.diameter/OverlapReal(2.0));
+        //return detail::AABB(pos, members.diameter/OverlapReal(2.0));
+
+        // rotate local AABB into world coordinates
+        vec3<OverlapReal> lower_a = members.lower;
+        vec3<OverlapReal> upper_a = members.upper;
+        vec3<OverlapReal> lower_b = pos;
+        vec3<OverlapReal> upper_b = pos;
+
+        rotmat3<OverlapReal> M(orientation);
+
+        OverlapReal e, f;
+        e = M.row0.x*lower_a.x;
+        f = M.row0.x*upper_a.x;
+        if (e < f)
+            {
+            lower_b.x += e;
+            upper_b.x += f;
+            }
+        else
+            {
+            lower_b.x += f;
+            upper_b.x += e;
+            }
+
+        e = M.row0.y*lower_a.y;
+        f = M.row0.y*upper_a.y;
+        if (e < f)
+            {
+            lower_b.x += e;
+            upper_b.x += f;
+            }
+        else
+            {
+            lower_b.x += f;
+            upper_b.x += e;
+            }
+
+        e = M.row0.z*lower_a.z;
+        f = M.row0.z*upper_a.z;
+        if (e < f)
+            {
+            lower_b.x += e;
+            upper_b.x += f;
+            }
+        else
+            {
+            lower_b.x += f;
+            upper_b.x += e;
+            }
+
+        e = M.row1.x*lower_a.x;
+        f = M.row1.x*upper_a.x;
+        if (e < f)
+            {
+            lower_b.y += e;
+            upper_b.y += f;
+            }
+        else
+            {
+            lower_b.y += f;
+            upper_b.y += e;
+            }
+
+        e = M.row1.y*lower_a.y;
+        f = M.row1.y*upper_a.y;
+        if (e < f)
+            {
+            lower_b.y += e;
+            upper_b.y += f;
+            }
+        else
+            {
+            lower_b.y += f;
+            upper_b.y += e;
+            }
+
+        e = M.row1.z*lower_a.z;
+        f = M.row1.z*upper_a.z;
+        if (e < f)
+            {
+            lower_b.y += e;
+            upper_b.y += f;
+            }
+        else
+            {
+            lower_b.y += f;
+            upper_b.y += e;
+            }
+
+        e = M.row2.x*lower_a.x;
+        f = M.row2.x*upper_a.x;
+        if (e < f)
+            {
+            lower_b.z += e;
+            upper_b.z += f;
+            }
+        else
+            {
+            lower_b.z += f;
+            upper_b.z += e;
+            }
+
+        e = M.row2.y*lower_a.y;
+        f = M.row2.y*upper_a.y;
+        if (e < f)
+            {
+            lower_b.z += e;
+            upper_b.z += f;
+            }
+        else
+            {
+            lower_b.z += f;
+            upper_b.z += e;
+            }
+
+        e = M.row2.z*lower_a.z;
+        f = M.row2.z*upper_a.z;
+        if (e < f)
+            {
+            lower_b.z += e;
+            upper_b.z += f;
+            }
+        else
+            {
+            lower_b.z += f;
+            upper_b.z += e;
+            }
+
+        return detail::AABB(lower_b, upper_b);
         }
 
     //! Return a tight fitting OBB
