@@ -60,9 +60,12 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
 
     // create CUDA events
     #ifdef ENABLE_CUDA
-    cudaEventCreate(&m_start);
-    cudaEventCreate(&m_stop);
-    CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        cudaEventCreate(&m_start);
+        cudaEventCreate(&m_stop);
+        CHECK_CUDA_ERROR();
+        }
     #endif
 
     m_sync = false;
@@ -136,9 +139,12 @@ Autotuner::~Autotuner()
     {
     m_exec_conf->msg->notice(5) << "Destroying Autotuner " << m_name << endl;
     #ifdef ENABLE_CUDA
-    cudaEventDestroy(m_start);
-    cudaEventDestroy(m_stop);
-    CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        cudaEventDestroy(m_start);
+        cudaEventDestroy(m_stop);
+        CHECK_CUDA_ERROR();
+        }
     #endif
     }
 
@@ -148,15 +154,22 @@ void Autotuner::begin()
     if (!m_enabled)
         return;
 
-    #ifdef ENABLE_CUDA
     // if we are scanning, record a cuda event - otherwise do nothing
     if (m_state == STARTUP || m_state == SCANNING)
         {
-        cudaEventRecord(m_start, 0);
-        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
+        #ifdef ENABLE_CUDA
+        if (m_exec_conf->isCUDAEnabled())
+            {
+            cudaEventRecord(m_start, 0);
+            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        else
+        #endif
+            {
+            m_start_time = m_clk.getTime();
+            }
         }
-    #endif
     }
 
 void Autotuner::end()
@@ -165,20 +178,31 @@ void Autotuner::end()
     if (!m_enabled)
         return;
 
-    #ifdef ENABLE_CUDA
     // handle timing updates if scanning
     if (m_state == STARTUP || m_state == SCANNING)
         {
-        cudaEventRecord(m_stop, 0);
-        cudaEventSynchronize(m_stop);
-        cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
+        #ifdef ENABLE_CUDA
+        if (m_exec_conf->isCUDAEnabled())
+            {
+            cudaEventRecord(m_stop, 0);
+            cudaEventSynchronize(m_stop);
+            // get time in ms
+            cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
+
+            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        else
+        #endif
+            {
+            // get time in ns
+            m_end_time = m_clk.getTime();
+            m_samples[m_current_element][m_current_sample] = (float)(m_end_time - m_start_time)/1000000.0;
+            }
+
         m_exec_conf->msg->notice(9) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
                                      << ") = " << m_samples[m_current_element][m_current_sample] << endl;
-
-        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
         }
-    #endif
 
     // handle state data updates and transitions
     if (m_state == STARTUP)

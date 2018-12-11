@@ -10,6 +10,7 @@
     \brief Declaration of Autotuner
 */
 
+#include "ClockSource.h"
 #include "ExecutionConfiguration.h"
 
 #include <vector>
@@ -25,12 +26,12 @@
 
 //! Autotuner for low level GPU kernel parameters
 /*! **Overview** <br>
-    Autotuner is a helper class that autotunes GPU kernel parameters (such as block size) for performance. It runs an
-    internal state machine and makes sweeps over all valid parameter values. Performance is measured just for the single
-    kernel in question with cudaEvent timers. A number of sweeps are combined with a median to determine the fastest
-    parameter. Additional timing sweeps are performed at a defined period in order to update to changing conditions.
-    The sampling mode can also be changed to average or maximum. The latter is helpful when the distribution of kernel
-    runtimes is bimodal, e.g. because it depends on input of variable size.
+    Autotuner is a helper class that autotunes parallellization parameters (such as GPU block size, or TBB granularity)
+    for performance. It runs an internal state machine and makes sweeps over all valid parameter values. Performance is
+    measured just for the single kernel in question with cudaEvent timers. A number of sweeps are combined with a median
+    to determine the fastest parameter. Additional timing sweeps are performed at a defined period in order to update to
+    changing conditions.  The sampling mode can also be changed to average or maximum. The latter is helpful when the distribution
+    of kernel runtimes is bimodal, e.g. because it depends on input of variable size.
 
     The begin() and end() methods must be called before and after the kernel launch to be tuned. The value of the tuned
     parameter should be set to the return value of getParam(). begin() and end() drive the state machine to choose
@@ -44,8 +45,8 @@
 
     Each Autotuner instance has a string name to help identify it's output on the notice stream.
 
-    Autotuner is not useful in non-GPU builds. Timing is performed with CUDA events and requires ENABLE_CUDA=on.
-    Behavior of Autotuner is undefined when ENABLE_CUDA=off.
+    Autotuner can be used with GPU or CPU builds. When running on the dvice, timing is performed with CUDA events,
+    otherwise using the ClockSource.
 
     ** Implementation ** <br>
     Internally, m_nsamples is the number of samples to take (odd for median computation). m_current_sample is the
@@ -215,6 +216,11 @@ class PYBIND11_EXPORT Autotuner
         cudaEvent_t m_start;      //!< CUDA event for recording start times
         cudaEvent_t m_stop;       //!< CUDA event for recording end times
         #endif
+
+        int64_t m_start_time;     //!< Time of tuning begin
+        int64_t m_end_time;       //!< Time of tuning end
+
+        ClockSource m_clk;  //!< Clock to provide timing information
 
         bool m_sync;              //!< If true, synchronize results via MPI
         mode_Enum m_mode;         //!< The sampling mode
