@@ -154,6 +154,24 @@ class _force(hoomd.meta._metadata):
         """
         return self.cpp_force.calcEnergyGroup(group.cpp_group)
 
+    def get_force(self,group,index):
+        R""" Get the force of a particle group.
+
+        Args:
+            group (:py:mod:`hoomd.group`): The particle group to query the force for.
+            index (unsigned int): The index of the force queried (x,y,z)
+
+        Returns:
+            The last computed energy for the members in the group for the given index.
+
+        Examples:
+
+            g = group.all()
+            force = force.get_force(g,index)
+        """
+        return self.cpp_force.calcForceGroup(group.cpp_group,index)
+
+
     ## \internal
     # \brief updates force coefficients
     def update_coeffs(self):

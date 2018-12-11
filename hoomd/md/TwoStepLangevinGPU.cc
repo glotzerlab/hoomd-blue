@@ -137,7 +137,7 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
         {
