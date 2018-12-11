@@ -27,6 +27,8 @@
 #include <thread>
 #endif
 
+const unsigned int grain_size = 1;
+
 namespace hpmc
 {
 
@@ -793,7 +795,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
     #ifdef ENABLE_TBB
     try {
-    tbb::parallel_for((unsigned int)0, (unsigned int)this->m_pdata->getNTypes(), [&](unsigned int type)
+    tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)this->m_pdata->getNTypes(),
+        grain_size),
+        [&](const tbb::blocked_range<unsigned int>& r) {
+    for (unsigned int type = r.begin(); type != r.end(); ++type)
     #else
     for (unsigned int type = 0; type < this->m_pdata->getNTypes(); ++type)
     #endif
@@ -924,7 +929,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
             // for every pairwise intersection
             #ifdef ENABLE_TBB
-            tbb::parallel_for((unsigned int)0, (unsigned int)intersect_i.size(), [&](unsigned int k)
+            tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size(),
+                grain_size),
+                [&](const tbb::blocked_range<unsigned int>& s) {
+            for (unsigned int k = s.begin(); k != s.end(); ++k)
             #else
             for (unsigned int k = 0; k < intersect_i.size(); ++k)
             #endif
@@ -962,7 +970,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                 // for every depletant
                 #ifdef ENABLE_TBB
-                tbb::parallel_for((unsigned int)0, (unsigned int)n, [&](unsigned int l)
+                tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n,
+                    grain_size),
+                    [&](const tbb::blocked_range<unsigned int>& t) {
+                for (unsigned int l = t.begin(); l != t.end(); ++l)
                 #else
                 for (unsigned int l = 0; l < n; ++l)
                 #endif
@@ -1195,7 +1206,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         }
                     } // end loop over depletants
                 #ifdef ENABLE_TBB
-                    );
+                    });
                 #endif
 
                 #ifndef ENABLE_TBB
@@ -1204,7 +1215,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #endif
                 } // end loop over overlapping spheres
             #ifdef ENABLE_TBB
-                );
+                });
             #endif
             }
         // Depletant check for negative fugacity
@@ -1337,7 +1348,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
             // for every pairwise intersection
             #ifdef ENABLE_TBB
-            tbb::parallel_for((unsigned int)0, (unsigned int)intersect_i.size(), [&](unsigned int k)
+            tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size(),
+                grain_size),
+                [&](const tbb::blocked_range<unsigned int>& r) {
+            for (unsigned int k = r.begin(); k != r.end(); ++k)
             #else
             for (unsigned int k = 0; k < intersect_i.size(); ++k)
             #endif
@@ -1380,7 +1394,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                 // for every depletant
                 #ifdef ENABLE_TBB
-                tbb::parallel_for((unsigned int)0, (unsigned int)n, [&](unsigned int l)
+                tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n,
+                    grain_size),
+                    [&](const tbb::blocked_range<unsigned int>& s) {
+                for (unsigned int l = s.begin(); l != s.end(); ++l)
                 #else
                 for (unsigned int l = 0; l < n; ++l)
                 #endif
@@ -1616,7 +1633,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         }
                     } // end loop over depletants
                 #ifdef ENABLE_TBB
-                    );
+                    });
                 #endif
 
                 #ifndef ENABLE_TBB
@@ -1624,12 +1641,12 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #endif
                 } // end loop over overlapping spheres
             #ifdef ENABLE_TBB
-                );
+                });
             #endif
             } // end depletant placement
         }
     #ifdef ENABLE_TBB
-        ); } catch (bool b) { }
+        }); } catch (bool b) { }
     #endif
 
     #ifdef ENABLE_TBB
