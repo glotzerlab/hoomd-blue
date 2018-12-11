@@ -246,7 +246,7 @@ IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<
         {
         for (unsigned int grain_size_intersections = 1; grain_size_intersections <= 128;  grain_size_intersections*=2)
             {
-            for (unsigned int grain_size_depletants = 1; grain_size_depletants <= 32768; grain_size_depletants*=2)
+            for (unsigned int grain_size_depletants = 1; grain_size_depletants <= 65536; grain_size_depletants*=2)
                 {
                 valid_params.push_back(grain_size_type + grain_size_intersections*10 + grain_size_depletants*10000);
                 }
