@@ -229,6 +229,36 @@ Scalar ForceCompute::calcEnergyGroup(std::shared_ptr<ParticleGroup> group)
 #endif
     return Scalar(pe_total);
     }
+/*! Sums the force of a particle group calculated by the last call to compute() and returns it.
+*/
+Scalar ForceCompute::calcEnergyGroup(std::shared_ptr<ParticleGroup> group, unsigned int index)
+    {
+    unsigned int group_size = group->getNumMembers();
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);
+
+    double f_total = 0.0;
+
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int j = group->getMemberIndex(group_idx);
+        if (index == 0)
+            f_total += (double)h_force.data[j].x;
+        else if (index == 1) 
+            f_total += (double)h_force.data[j].y;
+        else if (index ==2)
+            f_total += (double)h_force.data[j].z;
+        }
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // reduce potential energy on all processors
+        MPI_Allreduce(MPI_IN_PLACE, &f_total, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+#endif
+    return Scalar(f_total);
+    }
+
 
 
 /*! Performs the force computation.
@@ -385,5 +415,6 @@ void export_ForceCompute(py::module& m)
     .def("getVirial", &ForceCompute::getVirial)
     .def("getEnergy", &ForceCompute::getEnergy)
     .def("calcEnergyGroup", &ForceCompute::calcEnergyGroup)
+    .def("calcForceGroup", &ForceCompute::calcForceGroup)
     ;
     }
