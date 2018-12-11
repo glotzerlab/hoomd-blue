@@ -58,6 +58,8 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
             // call base class method first
+            IntegratorHPMCMonoImplicit<Shape>::setAutotunerParams(enable, period);
+
             unsigned int ndim = this->m_sysdef->getNDimensions();
             if (ndim == 3)
                 {
