@@ -162,8 +162,10 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            #ifdef ENABLE_TBB
             // call base class method first
+            IntegratorHPMCMono<Shape>::setAutotunerParams(enable,period);
+
+            #ifdef ENABLE_TBB
             m_tuner_tbb->setEnabled(enable);
 
             m_tuner_period = period;
@@ -175,6 +177,9 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         //! Slot to be called whenever local particles are rearranged
         virtual void slotSorted()
             {
+            // call base class method
+            IntegratorHPMCMono<Shape>::slotSorted();
+
             #ifdef ENABLE_TBB
             // Autotuner runs per particle, so adjust period
             m_tuner_tbb->setPeriod(m_tuner_period*this->m_pdata->getN()*this->m_nselect);
