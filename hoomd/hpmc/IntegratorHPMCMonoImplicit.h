@@ -491,6 +491,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
 
             // get AABB and extend
             detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+
             vec3<Scalar> lower = aabb_i_local.getLower();
             vec3<Scalar> upper = aabb_i_local.getUpper();
             vec3<Scalar> center = Scalar(0.5)*(lower+upper);
@@ -611,19 +612,20 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             // m_patch not NULL and no overlaps. Note that we are computing U_old-U_new
             // and then exponentiating directly (rather than exp(-(U_new-U_old)))
 
-            // get old AABB and extend
-            detail::AABB aabb_i_local_old = shape_old.getAABB(vec3<Scalar>(0,0,0));
-            lower = aabb_i_local_old.getLower();
-            upper = aabb_i_local_old.getUpper();
-            center = Scalar(0.5)*(lower+upper);
-            lengths = Scalar(0.5)*(upper-lower);
-            lengths.x = std::max(lengths.x, (Scalar) r_cut_patch);
-            lengths.y = std::max(lengths.y, (Scalar) r_cut_patch);
-            lengths.z = std::max(lengths.z, (Scalar) r_cut_patch);
-            aabb_i_local_old = detail::AABB(center-lengths,center+lengths);
-
             if (this->m_patch && !this->m_patch_log && accept)
                 {
+                // get old AABB and extend
+                detail::AABB aabb_i_local_old = shape_old.getAABB(vec3<Scalar>(0,0,0));
+                lower = aabb_i_local_old.getLower();
+                upper = aabb_i_local_old.getUpper();
+                center = Scalar(0.5)*(lower+upper);
+                lengths = Scalar(0.5)*(upper-lower);
+                lengths.x = std::max(lengths.x, (Scalar) r_cut_patch);
+                lengths.y = std::max(lengths.y, (Scalar) r_cut_patch);
+                lengths.z = std::max(lengths.z, (Scalar) r_cut_patch);
+                aabb_i_local_old = detail::AABB(center-lengths,center+lengths);
+
+
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_i_image = pos_old + this->m_image_list[cur_image];
@@ -1020,7 +1022,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #ifdef ENABLE_TBB
                 tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n,
                     grain_size_depletants),
-                    [=, &accept, &rng_parallel, &rng_parallel_mt,
+                    [=, &accept, &rng_parallel,
                         &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
                 for (unsigned int l = t.begin(); l != t.end(); ++l)
                 #else
@@ -1424,7 +1426,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #ifdef ENABLE_TBB
                 tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n,
                     grain_size_depletants),
-                    [=, &accept, &rng_parallel, &rng_parallel_mt,
+                    [=, &accept, &rng_parallel,
                         &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
                 for (unsigned int l = t.begin(); l != t.end(); ++l)
                 #else
