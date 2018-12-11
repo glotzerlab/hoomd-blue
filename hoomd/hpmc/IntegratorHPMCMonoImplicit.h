@@ -855,11 +855,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     #endif
         {
         if (!h_overlaps[this->m_overlap_idx(type, typ_i)] && !m_quermass)
-            #ifdef ENABLE_TBB
-            return;
-            #else
             continue;
-            #endif
 
         std::vector<unsigned int> intersect_i;
         std::vector<unsigned int> image_i;
@@ -982,7 +978,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             #ifdef ENABLE_TBB
             tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size(),
                 grain_size_intersections),
-                [&](const tbb::blocked_range<unsigned int>& s) {
+                [=, &accept, &rng_parallel, &rng_parallel_mt,
+                    &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& s) {
             for (unsigned int k = s.begin(); k != s.end(); ++k)
             #else
             for (unsigned int k = 0; k < intersect_i.size(); ++k)
@@ -1023,17 +1020,13 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #ifdef ENABLE_TBB
                 tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n,
                     grain_size_depletants),
-                    [&](const tbb::blocked_range<unsigned int>& t) {
+                    [=, &accept, &rng_parallel, &rng_parallel_mt,
+                        &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
                 for (unsigned int l = t.begin(); l != t.end(); ++l)
                 #else
                 for (unsigned int l = 0; l < n; ++l)
                 #endif
                     {
-                    #ifdef ENABLE_TBB
-                    if (!accept)
-                        return;
-                    #endif
-
                     #ifdef ENABLE_TBB
                     hoomd::detail::Saru& my_rng = rng_parallel.local();
                     #else
@@ -1074,11 +1067,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         }
 
                     if (!active)
-                    #ifdef ENABLE_TBB
-                        return;
-                    #else
                         continue;
-                    #endif
 
                     // depletant falls in intersection volume between circumspheres
 
@@ -1116,11 +1105,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                         // if not intersecting ptl i in old config, ignore
                         if (!overlap_old)
-                        #ifdef ENABLE_TBB
-                            return;
-                        #else
                             continue;
-                        #endif
 
                         // Check if the new configuration of particle i generates an overlap
                         bool overlap_new = false;
@@ -1155,11 +1140,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             }
 
                         if (overlap_new)
-                        #ifdef ENABLE_TBB
-                            return;
-                        #else
                             continue;
-                        #endif
                         }
 
                     // does the depletant fall into the overlap volume with other particles?
@@ -1401,17 +1382,13 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             #ifdef ENABLE_TBB
             tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size(),
                 grain_size_intersections),
-                [&](const tbb::blocked_range<unsigned int>& r) {
-            for (unsigned int k = r.begin(); k != r.end(); ++k)
+                [=, &accept, &rng_parallel, &rng_parallel_mt,
+                    &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& s) {
+            for (unsigned int k = s.begin(); k != s.end(); ++k)
             #else
             for (unsigned int k = 0; k < intersect_i.size(); ++k)
             #endif
                 {
-                #ifdef ENABLE_TBB
-                if (!accept)
-                    return;
-                #endif
-
                 // world AABB of shape j, in image of i
                 detail::AABB aabb_j = aabbs_i[k];
 
@@ -1447,8 +1424,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #ifdef ENABLE_TBB
                 tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n,
                     grain_size_depletants),
-                    [&](const tbb::blocked_range<unsigned int>& s) {
-                for (unsigned int l = s.begin(); l != s.end(); ++l)
+                    [=, &accept, &rng_parallel, &rng_parallel_mt,
+                        &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
+                for (unsigned int l = t.begin(); l != t.end(); ++l)
                 #else
                 for (unsigned int l = 0; l < n; ++l)
                 #endif
@@ -1495,11 +1473,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                         }
 
                     if (!active)
-                    #ifdef ENABLE_TBB
-                        return;
-                    #else
                         continue;
-                    #endif
 
                     // depletant falls in intersection volume between circumspheres
 
@@ -1538,11 +1512,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             }
 
                         if (!overlap_new)
-                        #ifdef ENABLE_TBB
-                            return;
-                        #else
                             continue;
-                        #endif
 
                         // Check if the old configuration of particle i generates an overlap
                         bool overlap_old = false;
@@ -1575,12 +1545,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                             }
 
                         if (overlap_old)
+                            {
                             // all is ok
-                        #ifdef ENABLE_TBB
-                            return;
-                        #else
                             continue;
-                        #endif
+                            }
                         }
 
                     bool in_new_intersection_volume = false;
