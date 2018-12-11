@@ -443,6 +443,17 @@ class GlobalArray : public GPUArray<T>
             return m_num_elements;
             }
 
+        //! Test if the GPUArray is NULL
+        virtual bool isNull() const
+            {
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
+            if (!this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
+                return GPUArray<T>::isNull();
+            #endif
+
+            return !m_data;
+            }
+
         //! Get the width of the allocated rows in elements
         /*!
          - For 2-D allocated GPUArrays, this is the total width of a row in memory (including the padding added for coalescing)
@@ -584,7 +595,7 @@ class GlobalArray : public GPUArray<T>
                     sizeof(T)*m_num_elements, m_tag);
 
             // set tag on deleter so it can be displayed upon free
-            if (!this->isNull())
+            if (!isNull())
                 m_data.get_deleter().setTag(tag);
             }
 
@@ -614,7 +625,7 @@ class GlobalArray : public GPUArray<T>
 
             #ifdef ENABLE_CUDA
             bool use_device = this->m_exec_conf && this->m_exec_conf->isCUDAEnabled();
-            if (!this->isNull() && use_device && location == access_location::host && !async)
+            if (!isNull() && use_device && location == access_location::host && !async)
                 {
                 // synchronize GPU 0
                 cudaEventRecord(*m_event);
