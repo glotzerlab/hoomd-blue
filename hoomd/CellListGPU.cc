@@ -18,7 +18,7 @@ using namespace std;
 /*! \param sysdef system to compute the cell list of
 */
 CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
-    : CellList(sysdef)
+    : CellList(sysdef), m_per_device(false)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {

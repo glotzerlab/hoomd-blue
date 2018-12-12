@@ -208,9 +208,16 @@ class PYBIND11_EXPORT CellList : public Compute
             }
 
         //! Request a multi-GPU cell list
-        void setPerDevice(bool per_device)
+        virtual void setPerDevice(bool per_device)
             {
-            m_per_device = per_device;
+            // base class does nothing
+            }
+
+        //! Return true if we maintain a cell list per device
+        virtual bool getPerDevice()
+            {
+            // base class doesn't support GPU
+            return false;
             }
 
         // @}
@@ -320,7 +327,8 @@ class PYBIND11_EXPORT CellList : public Compute
         //! Get the cell list containing index (per device)
         virtual const GlobalArray<unsigned int>& getIndexArrayPerDevice() const
             {
-            throw std::runtime_error("Per-device index array not available in base class.\n");
+            // base class returns an empty array
+            throw std::runtime_error("Per-device cell index array not available in base class.\n");
             }
 
         //! Compute the cell list given the current particle positions
@@ -381,7 +389,6 @@ class PYBIND11_EXPORT CellList : public Compute
 
         bool m_sort_cell_list;               //!< If true, sort cell list
         bool m_compute_adj_list;            //!< If true, compute the cell adjacency lists
-        bool m_per_device;                  //!< If true, generate a cell list per GPU device
 
         //! Computes what the dimensions should me
         uint3 computeDimensions();
