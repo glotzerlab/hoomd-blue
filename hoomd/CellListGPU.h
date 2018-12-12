@@ -51,7 +51,7 @@ class PYBIND11_EXPORT CellListGPU : public CellList
             }
 
         //! Return true if we maintain a cell list per device
-        virtual bool getPerDevice()
+        virtual bool getPerDevice() const
             {
             return m_per_device;
             }

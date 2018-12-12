@@ -214,7 +214,7 @@ class PYBIND11_EXPORT CellList : public Compute
             }
 
         //! Return true if we maintain a cell list per device
-        virtual bool getPerDevice()
+        virtual bool getPerDevice() const
             {
             // base class doesn't support GPU
             return false;
