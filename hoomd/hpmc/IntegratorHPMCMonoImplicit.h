@@ -555,24 +555,26 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                                     }
 
                                 // put particles in coordinate system of particle i
-                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+                                vec3<Scalar> pos_j(postype_j);
+                                vec3<Scalar> r_ij = pos_j - pos_i_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
                                 Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
 
                                 counters.overlap_checks++;
 
-                                // check circumsphere overlap
+                                // check AABB overlap
+                                detail::AABB aabb_j = shape_j.getAABB(pos_j);
+                                bool overlap_excluded = detail::overlap(aabb, aabb_j);
+
                                 OverlapReal rsq = dot(r_ij,r_ij);
-                                OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
-                                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
                                 Scalar r_cut_ij = 0.0;
                                 if (this->m_patch)
                                     r_cut_ij = r_cut_patch + 0.5*this->m_patch->getAdditiveCutoff(typ_j);
 
                                 if (h_overlaps.data[this->m_overlap_idx(typ_i,typ_j)]
-                                    && circumsphere_overlap
+                                    && overlap_excluded
                                     && test_overlap(r_ij, shape_i, shape_j, counters.overlap_err_count))
                                     {
                                     overlap = true;
