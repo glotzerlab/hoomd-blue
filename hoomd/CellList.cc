@@ -20,7 +20,7 @@ namespace py = pybind11;
 /*! \param sysdef system to compute the cell list of
 */
 CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
-    : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_compute_tdb(false),
+    : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_compute_xyzf(true), m_compute_tdb(false),
       m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false), m_sort_cell_list(false),
       m_compute_adj_list(true)
     {
@@ -299,6 +299,7 @@ void CellList::initializeMemory()
     // allocate memory
     GlobalArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
     m_cell_size.swap(cell_size);
+    TAG_ALLOCATION(m_cell_size);
 
     if (m_compute_adj_list)
         {
@@ -318,6 +319,7 @@ void CellList::initializeMemory()
 
         GlobalArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
         m_cell_adj.swap(cell_adj);
+        TAG_ALLOCATION(m_cell_adj);
         }
     else
         {
@@ -328,13 +330,23 @@ void CellList::initializeMemory()
         m_cell_adj.swap(cell_adj);
         }
 
-    GlobalArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
-    m_xyzf.swap(xyzf);
+    if (m_compute_xyzf)
+        {
+        GlobalArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
+        m_xyzf.swap(xyzf);
+        TAG_ALLOCATION(m_xyzf);
+        }
+    else
+        {
+        GlobalArray<Scalar4> xyzf;
+        m_xyzf.swap(xyzf);
+        }
 
     if (m_compute_tdb)
         {
         GlobalArray<Scalar4> tdb(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_tdb.swap(tdb);
+        TAG_ALLOCATION(m_tdb);
         }
     else
         {
@@ -347,6 +359,7 @@ void CellList::initializeMemory()
         {
         GlobalArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_orientation.swap(orientation);
+        TAG_ALLOCATION(m_orientation);
         }
     else
         {
@@ -359,6 +372,7 @@ void CellList::initializeMemory()
         {
         GlobalArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_idx.swap(idx);
+        TAG_ALLOCATION(m_idx);
         }
     else
         {
@@ -542,7 +556,11 @@ void CellList::computeCellList()
 
         if (offset < m_Nmax)
             {
-            h_xyzf.data[cli(offset, bin)] = make_scalar4(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z, flag);
+            if (m_compute_xyzf)
+                {
+                h_xyzf.data[cli(offset, bin)] = make_scalar4(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z, flag);
+                }
+
             if (m_compute_tdb)
                 {
                 h_tdb.data[cli(offset, bin)] = make_scalar4(h_pos.data[n].w,

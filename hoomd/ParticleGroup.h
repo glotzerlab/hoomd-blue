@@ -16,6 +16,7 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #include "GlobalArray.h"
@@ -38,12 +39,12 @@
     <b>Implementation details</b>
     So that an infinite range of selection criteria can be applied (i.e. particles with mass > 2.0, or all particles
     bonded to particle j, ...) the selector will get a reference to the SystemDefinition on construction, along with
-    any parameters to specify the selection criteria. Then, a simple isSelected() test is provided that will acquire the
-    needed data and will return true if that particle meets the criteria.
+    any parameters to specify the selection criteria. Then, a simple getSelectedTags() call will return
+    a list of particle tags meeting the criteria.
 
-    In parallel simulations, isSelected() should return false if the requested particle with tag 'tag' is not local.
+    In parallel simulations, getSelectedTags() should return only local tags.
 
-    The base class isSelected() method will simply reject all particles. Derived classes will implement specific
+    The base class getSelectedTags() method will simply return an empty list.
     selection semantics.
 */
 class PYBIND11_EXPORT ParticleSelector
@@ -54,7 +55,7 @@ class PYBIND11_EXPORT ParticleSelector
         virtual ~ParticleSelector() {}
 
         //! Test if a particle meets the selection criteria
-        virtual bool isSelected(unsigned int tag) const;
+        virtual std::vector<unsigned int> getSelectedTags() const;
 
     protected:
         std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
@@ -71,7 +72,7 @@ class PYBIND11_EXPORT ParticleSelectorAll : public ParticleSelector
         virtual ~ParticleSelectorAll() {}
 
         //! Test if a particle meets the selection criteria
-        virtual bool isSelected(unsigned int tag) const;
+        virtual std::vector<unsigned int> getSelectedTags() const;
     };
 
 
@@ -84,7 +85,7 @@ class PYBIND11_EXPORT ParticleSelectorTag : public ParticleSelector
         virtual ~ParticleSelectorTag() {}
 
         //! Test if a particle meets the selection criteria
-        virtual bool isSelected(unsigned int tag) const;
+        virtual std::vector<unsigned int> getSelectedTags() const;
     protected:
         unsigned int m_tag_min;     //!< Minimum tag to select
         unsigned int m_tag_max;     //!< Maximum tag to select (inclusive)
@@ -99,7 +100,7 @@ class PYBIND11_EXPORT ParticleSelectorType : public ParticleSelector
         virtual ~ParticleSelectorType() {}
 
         //! Test if a particle meets the selection criteria
-        virtual bool isSelected(unsigned int tag) const;
+        virtual std::vector<unsigned int> getSelectedTags() const;
     protected:
         unsigned int m_typ_min;     //!< Minimum type to select
         unsigned int m_typ_max;     //!< Maximum type to select (inclusive)
@@ -114,7 +115,7 @@ class PYBIND11_EXPORT ParticleSelectorCuboid : public ParticleSelector
         virtual ~ParticleSelectorCuboid() {}
 
         //! Test if a particle meets the selection criteria
-        virtual bool isSelected(unsigned int tag) const;
+        virtual std::vector<unsigned int> getSelectedTags() const;
     protected:
         Scalar3 m_min;     //!< Minimum type to select (inclusive)
         Scalar3 m_max;     //!< Maximum type to select (exclusive)
@@ -129,7 +130,7 @@ class PYBIND11_EXPORT ParticleSelectorRigid : public ParticleSelector
         virtual ~ParticleSelectorRigid() {}
 
         //! Test if a particle meets the selection criteria
-        virtual bool isSelected(unsigned int tag) const;
+        virtual std::vector<unsigned int> getSelectedTags() const;
     protected:
         bool m_rigid;   //!< true if we should select rigid bodies, false if we should select non-rigid particles
     };
@@ -142,7 +143,7 @@ class PYBIND11_EXPORT ParticleSelectorRigidCenter : public ParticleSelector
         virtual ~ParticleSelectorRigidCenter() {}
 
         //! Test if a particle meets the selection criteria
-        virtual bool isSelected(unsigned int tag) const;
+        virtual std::vector<unsigned int> getSelectedTags() const;
     };
 
 
