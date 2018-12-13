@@ -7,6 +7,9 @@
 #include "Index1D.h"
 #include "ParticleGroup.h"
 
+#include "GlobalArray.h"
+#include "GPUArray.h"
+
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
 #endif
