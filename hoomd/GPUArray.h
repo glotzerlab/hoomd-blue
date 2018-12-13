@@ -299,7 +299,7 @@ A future modification of GPUArray will allow mirroring or splitting the data acr
 
 \ingroup data_structs
 */
-template<class T> class __attribute__ ((__visibility__("default"))) GPUArray
+template<class T> class GPUArray
     {
     public:
         //! Constructs a NULL GPUArray
