@@ -387,7 +387,7 @@ class ArrayHandleAsync
         virtual inline ~ArrayHandleAsync() = default;
 
     private:
-        const ArrayHandleDispatch<T>& dispatch; //!< Reference to the dispatch object that manages the acquire/release
+        ArrayHandleDispatch<T> dispatch; //!< Dispatch object that manages the acquire/release
 
     public:
         T* const data;          //!< Pointer to data
