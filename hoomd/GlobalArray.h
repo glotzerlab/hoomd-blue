@@ -200,7 +200,7 @@ class event_deleter
 } // end namespace hoomd
 
 template<class T>
-class GlobalArray : public GPUArray<T>
+class __attribute__ ((__visibility__("default"))) GlobalArray : public GPUArray<T>
     {
     public:
         //! Empty constructor
