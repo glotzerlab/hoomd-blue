@@ -80,6 +80,9 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
             set_target_properties(${CUR_TEST} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
         endif(MPI_LINK_FLAGS)
     endif (ENABLE_MPI)
+
+    # workaround for a weird linker issue with gcc8
+    set_property(TARGET ${CUR_TEST} PROPERTY CMAKE_POSITION_INDEPENDENT_CODE ON)
 endforeach (CUR_TEST)
 
 # add non-MPI tests to test list first
