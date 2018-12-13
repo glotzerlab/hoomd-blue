@@ -433,7 +433,7 @@ class GlobalArray : public GPUArray<T>
          - For 1-D allocated GPUArrays, this is the number of elements allocated.
          - For 2-D allocated GPUArrays, this is the \b total number of elements (\a pitch * \a height) allocated
         */
-        inline virtual unsigned int getNumElements() const override
+        inline unsigned int getNumElements() const override
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!this->m_exec_conf || !this->m_exec_conf->allConcurrentManagedAccess())
@@ -444,7 +444,7 @@ class GlobalArray : public GPUArray<T>
             }
 
         //! Test if the GPUArray is NULL
-        inline virtual bool isNull() const override
+        inline bool isNull() const override
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
@@ -459,7 +459,7 @@ class GlobalArray : public GPUArray<T>
          - For 2-D allocated GPUArrays, this is the total width of a row in memory (including the padding added for coalescing)
          - For 1-D allocated GPUArrays, this is the simply the number of elements allocated.
         */
-        inline virtual unsigned int getPitch() const override
+        inline unsigned int getPitch() const override
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
@@ -474,7 +474,7 @@ class GlobalArray : public GPUArray<T>
          - For 2-D allocated GPUArrays, this is the height given to the constructor
          - For 1-D allocated GPUArrays, this is the simply 1.
         */
-        inline virtual unsigned int getHeight() const override
+        inline unsigned int getHeight() const override
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
@@ -488,7 +488,7 @@ class GlobalArray : public GPUArray<T>
         /*! This method resizes the array by allocating a new array and copying over the elements
             from the old array. Resizing is a slow operation.
         */
-        inline virtual void resize(unsigned int num_elements) override
+        inline void resize(unsigned int num_elements) override
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (! this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
@@ -532,7 +532,7 @@ class GlobalArray : public GPUArray<T>
             }
 
         //! Resize a 2D GlobalArray
-        inline virtual void resize(unsigned int width, unsigned int height) override
+        inline void resize(unsigned int width, unsigned int height) override
             {
             assert(this->m_exec_conf);
 
@@ -600,7 +600,7 @@ class GlobalArray : public GPUArray<T>
             }
 
     protected:
-        virtual inline T* acquire(const access_location::Enum location, const access_mode::Enum mode
+        inline T* acquire(const access_location::Enum location, const access_mode::Enum mode
         #ifdef ENABLE_CUDA
                          , bool async = false
         #endif
@@ -641,7 +641,7 @@ class GlobalArray : public GPUArray<T>
             }
 
         //! Release the data pointer
-        virtual inline void release() const override
+        inline void release() const override
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
@@ -655,7 +655,7 @@ class GlobalArray : public GPUArray<T>
             }
 
         //! Returns the acquire state
-        virtual inline bool isAcquired() const override
+        inline bool isAcquired() const override
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
