@@ -20,8 +20,7 @@
 #include "CommunicatorGPU.cuh"
 
 #include "GPUFlags.h"
-#include "GPUArray.h"
-#include "GlobalVector.h"
+#include "GPUVector.h"
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -112,14 +111,14 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
                  * \param mask Mask for allowed sending directions
                  */
 
-                void markGhostParticles(const GPUArray<unsigned int>& plans, unsigned int mask);
+                void markGhostParticles(const GlobalVector<unsigned int>& plans, unsigned int mask);
 
                 //! Copy 'ghost groups' between domains
                 /*! Both members of a ghost group are inside the ghost layer
                  *
                  * \param plans The ghost particle send directions determined by Communicator
                  */
-                void exchangeGhostGroups(const GPUArray<unsigned int>& plans);
+                void exchangeGhostGroups(const GlobalVector<unsigned int>& plans);
 
             private:
                 CommunicatorGPU& m_gpu_comm;                            //!< The outer class

@@ -285,7 +285,7 @@ class PYBIND11_EXPORT ParticleGroup
             \note This method CAN access the particle data tag array if the index is rebuilt.
                   Hence, the tag array may not be accessed in the same scope in which this method is called.
         */
-        const GPUArray<unsigned int>& getIndexArray() const
+        const GlobalArray<unsigned int>& getIndexArray() const
             {
             checkRebuild();
 

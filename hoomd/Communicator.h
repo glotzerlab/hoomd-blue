@@ -18,8 +18,8 @@
 #define NFACE 6
 
 #include "HOOMDMath.h"
-#include "GPUArray.h"
-#include "GlobalVector.h"
+#include "GlobalArray.h"
+#include "GPUVector.h"
 #include "ParticleData.h"
 #include "BondedGroupData.h"
 #include "DomainDecomposition.h"
@@ -220,7 +220,7 @@ class PYBIND11_EXPORT Communicator
          * \param subscriber The callback
          * \returns a connection to this class
          */
-        Nano::Signal<void (const GPUArray<unsigned int> &)>& getCommunicationCallbackSignal()
+        Nano::Signal<void (const GlobalArray<unsigned int> &)>& getCommunicationCallbackSignal()
             {
             return m_comm_callbacks;
             }
@@ -248,13 +248,13 @@ class PYBIND11_EXPORT Communicator
             }
 
         //! Get the array of unique neighbors
-        const GPUArray<unsigned int>& getUniqueNeighbors() const
+        const GlobalArray<unsigned int>& getUniqueNeighbors() const
             {
             return m_unique_neighbors;
             }
 
         //! Get the current ghost layer width array
-        const GPUArray<Scalar>& getGhostLayerWidth() const
+        const GlobalArray<Scalar>& getGhostLayerWidth() const
             {
             return m_r_ghost;
             }
@@ -411,7 +411,7 @@ class PYBIND11_EXPORT Communicator
                  * \param plans Array of particle plans to write to
                  * \param mask Mask for allowed sending directions
                  */
-                void markGhostParticles(const GPUArray<unsigned int>& plans, unsigned int mask);
+                void markGhostParticles(const GlobalVector<unsigned int>& plans, unsigned int mask);
 
                 //! Copy 'ghost groups' between domains
                 /*! Both members of a ghost group are inside the ghost layer
@@ -419,7 +419,7 @@ class PYBIND11_EXPORT Communicator
                  * \param plans The ghost particle send directions determined by Communicator
                  * \param mask Mask for allowed sending directions
                  */
-                void exchangeGhostGroups(const GPUArray<unsigned int>& plans, unsigned int mask);
+                void exchangeGhostGroups(const GlobalArray<unsigned int>& plans, unsigned int mask);
 
             private:
                 Communicator& m_comm;                            //!< The outer class
@@ -540,7 +540,7 @@ class PYBIND11_EXPORT Communicator
         Nano::Signal<void (unsigned int timestep)>
             m_compute_callbacks;   //!< List of functions that are called after ghost communication
 
-        Nano::Signal<void (const GPUArray<unsigned int>& )>
+        Nano::Signal<void (const GlobalArray<unsigned int>& )>
             m_comm_callbacks;   //!< List of functions that are called after the compute callbacks
 
         CommFlags m_flags;                       //!< The ghost communication flags

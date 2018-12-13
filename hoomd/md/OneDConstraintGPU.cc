@@ -50,10 +50,10 @@ void OneDConstraintGPU::computeForces(unsigned int timestep)
     assert(m_pdata);
 
     // access the particle data arrays
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
 
-    const GPUArray< unsigned int >& group_members = m_group->getIndexArray();
+    const GlobalArray< unsigned int >& group_members = m_group->getIndexArray();
     ArrayHandle<unsigned int> d_group_members(group_members, access_location::device, access_mode::read);
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);

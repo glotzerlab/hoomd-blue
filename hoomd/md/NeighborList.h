@@ -6,7 +6,7 @@
 
 #include "hoomd/Compute.h"
 #include "hoomd/GlobalArray.h"
-#include "hoomd/GlobalVector.h"
+#include "hoomd/GPUVector.h"
 #include "hoomd/GPUFlags.h"
 #include "hoomd/Index1D.h"
 
@@ -232,31 +232,31 @@ class PYBIND11_EXPORT NeighborList : public Compute
         // @{
 
         //! Get the number of neighbors array
-        const GPUArray<unsigned int>& getNNeighArray()
+        const GlobalArray<unsigned int>& getNNeighArray()
             {
             return m_n_neigh;
             }
 
         //! Get the neighbor list
-        const GPUArray<unsigned int>& getNListArray()
+        const GlobalArray<unsigned int>& getNListArray()
             {
             return m_nlist;
             }
 
         //! Get the head list
-        const GPUArray<unsigned int>& getHeadList()
+        const GlobalArray<unsigned int>& getHeadList()
             {
             return m_head_list;
             }
 
         //! Get the number of exclusions array
-        const GPUArray<unsigned int>& getNExArray()
+        const GlobalArray<unsigned int>& getNExArray()
             {
             return m_n_ex_idx;
             }
 
          //! Get the exclusion list
-         const GPUArray<unsigned int>& getExListArray()
+         const GlobalArray<unsigned int>& getExListArray()
             {
             return m_ex_list_idx;
             }

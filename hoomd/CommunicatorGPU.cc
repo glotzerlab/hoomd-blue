@@ -1017,7 +1017,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
 template<class group_data>
 void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
-    const GPUArray<unsigned int>& plans)
+    const GlobalVector<unsigned int>& plans)
     {
     if (m_gdata->getNGlobal())
         {
@@ -1369,7 +1369,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
 //! Mark ghost particles
 template<class group_data>
 void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
-    const GPUArray<unsigned int>& plans,
+    const GlobalVector<unsigned int>& plans,
     unsigned int mask)
     {
     if (m_gdata->getNGlobal())

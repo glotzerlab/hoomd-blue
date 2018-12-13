@@ -8,7 +8,7 @@
 #include "ParticleGroup.h"
 
 #include "GlobalArray.h"
-#include "GPUArray.h"
+#include "GlobalArray.h"
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
@@ -96,19 +96,19 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         Scalar getEnergy(unsigned int tag);
 
         //! Get the array of computed forces
-        GPUArray<Scalar4>& getForceArray()
+        GlobalArray<Scalar4>& getForceArray()
             {
             return m_force;
             }
 
         //! Get the array of computed virials
-        GPUArray<Scalar>& getVirialArray()
+        GlobalArray<Scalar>& getVirialArray()
             {
             return m_virial;
             }
 
         //! Get the array of computed torques
-        GPUArray<Scalar4>& getTorqueArray()
+        GlobalArray<Scalar4>& getTorqueArray()
             {
             return m_torque;
             }

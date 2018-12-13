@@ -82,13 +82,13 @@ class PYBIND11_EXPORT DomainDecomposition
             }
 
         //! Get the cartesian ranks lookup table (linear cartesian index -> rank)
-        const GPUArray<unsigned int>& getCartRanks() const
+        const GlobalArray<unsigned int>& getCartRanks() const
             {
             return m_cart_ranks;
             }
 
         //! Get the inverse lookup table (rank -> linear cartesian index)
-        const GPUArray<unsigned int>& getInverseCartRanks() const
+        const GlobalArray<unsigned int>& getInverseCartRanks() const
             {
             return m_cart_ranks_inv;
             }

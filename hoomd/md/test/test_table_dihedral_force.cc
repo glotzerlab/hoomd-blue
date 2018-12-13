@@ -71,8 +71,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     fc_4->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_1 =  fc_4->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_4->getVirialArray();
+    GlobalArray<Scalar4>& force_array_1 =  fc_4->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  fc_4->getVirialArray();
     unsigned int pitch = 0;
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
@@ -96,8 +96,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
 
     {
     // this time there should be a force
-    GPUArray<Scalar4>& force_array_2 =  fc_4->getForceArray();
-    GPUArray<Scalar>& virial_array_2 =  fc_4->getVirialArray();
+    GlobalArray<Scalar4>& force_array_2 =  fc_4->getForceArray();
+    GlobalArray<Scalar>& virial_array_2 =  fc_4->getVirialArray();
     unsigned int pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
@@ -151,8 +151,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     fc_4->compute(1);
 
     {
-    GPUArray<Scalar4>& force_array_3 =  fc_4->getForceArray();
-    GPUArray<Scalar>& virial_array_3 =  fc_4->getVirialArray();
+    GlobalArray<Scalar4>& force_array_3 =  fc_4->getForceArray();
+    GlobalArray<Scalar>& virial_array_3 =  fc_4->getVirialArray();
     unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
@@ -209,8 +209,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
 
     fc_4->compute(2);
     {
-    GPUArray<Scalar4>& force_array_3 =  fc_4->getForceArray();
-    GPUArray<Scalar>& virial_array_3 =  fc_4->getVirialArray();
+    GlobalArray<Scalar4>& force_array_3 =  fc_4->getForceArray();
+    GlobalArray<Scalar>& virial_array_3 =  fc_4->getVirialArray();
     unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
@@ -256,8 +256,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     fc_4->compute(3);
 
     {
-    GPUArray<Scalar4>& force_array_3 =  fc_4->getForceArray();
-    GPUArray<Scalar>& virial_array_3 =  fc_4->getVirialArray();
+    GlobalArray<Scalar4>& force_array_3 =  fc_4->getForceArray();
+    GlobalArray<Scalar>& virial_array_3 =  fc_4->getVirialArray();
     unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
@@ -329,13 +329,13 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
 
     // verify that the forces are identical (within roundoff errors)
     {
-    GPUArray<Scalar4>& force_array_7 =  fc1->getForceArray();
-    GPUArray<Scalar>& virial_array_7 =  fc1->getVirialArray();
+    GlobalArray<Scalar4>& force_array_7 =  fc1->getForceArray();
+    GlobalArray<Scalar>& virial_array_7 =  fc1->getVirialArray();
     unsigned int pitch = virial_array_7.getPitch();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
-    GPUArray<Scalar4>& force_array_8 =  fc2->getForceArray();
-    GPUArray<Scalar>& virial_array_8 =  fc2->getVirialArray();
+    GlobalArray<Scalar4>& force_array_8 =  fc2->getForceArray();
+    GlobalArray<Scalar>& virial_array_8 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_8(force_array_8,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_8(virial_array_8,access_location::host,access_mode::read);
 

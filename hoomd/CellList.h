@@ -277,7 +277,7 @@ class PYBIND11_EXPORT CellList : public Compute
         // @{
 
         //! Get the array of cell sizes
-        const GPUArray<unsigned int>& getCellSizeArray() const
+        const GlobalArray<unsigned int>& getCellSizeArray() const
             {
             return m_cell_size;
             }
@@ -289,7 +289,7 @@ class PYBIND11_EXPORT CellList : public Compute
             }
 
         //! Get the adjacency list
-        const GPUArray<unsigned int>& getCellAdjArray() const
+        const GlobalArray<unsigned int>& getCellAdjArray() const
             {
             if (!m_compute_adj_list)
                 {
@@ -301,25 +301,25 @@ class PYBIND11_EXPORT CellList : public Compute
             }
 
         //! Get the cell list containing x,y,z,flag
-        const GPUArray<Scalar4>& getXYZFArray() const
+        const GlobalArray<Scalar4>& getXYZFArray() const
             {
             return m_xyzf;
             }
 
         //! Get the cell list containing t,d,b
-        const GPUArray<Scalar4>& getTDBArray() const
+        const GlobalArray<Scalar4>& getTDBArray() const
             {
             return m_tdb;
             }
 
         //! Get the cell list containing orientation
-        const GPUArray<Scalar4>& getOrientationArray() const
+        const GlobalArray<Scalar4>& getOrientationArray() const
             {
             return m_orientation;
             }
 
         //! Get the cell list containing index
-        const GPUArray<unsigned int>& getIndexArray() const
+        const GlobalArray<unsigned int>& getIndexArray() const
             {
             return m_idx;
             }

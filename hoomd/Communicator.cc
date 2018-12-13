@@ -694,7 +694,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
 //! Mark ghost particles
 template<class group_data>
 void Communicator::GroupCommunicator<group_data>::markGhostParticles(
-    const GPUArray<unsigned int>& plans,
+    const GlobalVector<unsigned int>& plans,
     unsigned int mask)
     {
     if (m_gdata->getNGlobal())
@@ -796,7 +796,7 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
 
 template<class group_data>
 void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
-    const GPUArray<unsigned int>& plans, unsigned int mask)
+    const GlobalArray<unsigned int>& plans, unsigned int mask)
     {
     if (m_gdata->getNGlobal())
         {
