@@ -48,6 +48,7 @@ class PYBIND11_EXPORT CellListGPU : public CellList
         virtual void setPerDevice(bool per_device)
             {
             m_per_device = per_device;
+            m_params_changed = true;
             }
 
         //! Return true if we maintain a cell list per device
