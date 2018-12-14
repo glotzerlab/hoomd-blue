@@ -340,7 +340,7 @@ class ArrayHandle
         virtual inline ~ArrayHandle() = default;
 
     private:
-        const ArrayHandleDispatch<T>& dispatch; //!< Reference to the dispatch object that manages the acquire/release
+        ArrayHandleDispatch<T> dispatch; //!< Reference to the dispatch object that manages the acquire/release
 
     public:
         T* const data;          //!< Pointer to data
