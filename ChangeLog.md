@@ -11,6 +11,8 @@ Released 2018/11/27
 * Install `WarpTools.cuh` for use by plugins
 * Fix potential violation of detailed balance with anisotropic particles with `hpmc.update.clusters` in periodic boundary conditions
 * Support llvm 7.0
+* Fix MuellerPlatheFlow, cast input parameter to int to avoid C++ constructor type mismatch
+
 
 ## v2.4.0
 
