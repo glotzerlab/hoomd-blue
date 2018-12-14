@@ -278,16 +278,6 @@ struct ShapeFacetedEllipsoid
         return 0.0;
         }
 
-    //! Support function of the shape (in local coordinates), used in getAABB
-    /*! \param n Vector to query support function (must be normalized)
-    */
-    DEVICE vec3<Scalar> sfunc(vec3<Scalar> n) const
-        {
-        vec3<Scalar> numerator(params.a*params.a*n.x, params.b*params.b*n.y, params.c*params.c*n.z);
-        vec3<Scalar> dvec(params.a*n.x, params.b*n.y, params.c*n.z);
-        return numerator / fast::sqrt(dot(dvec, dvec));
-        }
-
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
@@ -295,12 +285,15 @@ struct ShapeFacetedEllipsoid
         //return detail::AABB(pos, max_axis);
 
         // use support function of the ellipsoid to determine the furthest extent in each direction
-        vec3<Scalar> e_x(1,0,0);
-        vec3<Scalar> e_y(0,1,0);
-        vec3<Scalar> e_z(0,0,1);
-        vec3<Scalar> s_x = rotate(orientation, sfunc(rotate(conj(orientation),e_x))+vec3<Scalar>(params.origin));
-        vec3<Scalar> s_y = rotate(orientation, sfunc(rotate(conj(orientation),e_y))+vec3<Scalar>(params.origin));
-        vec3<Scalar> s_z = rotate(orientation, sfunc(rotate(conj(orientation),e_z))+vec3<Scalar>(params.origin));
+        detail::SupportFuncFacetedEllipsoid sfunc(params, 0.0);
+
+        vec3<OverlapReal> e_x(1,0,0);
+        vec3<OverlapReal> e_y(0,1,0);
+        vec3<OverlapReal> e_z(0,0,1);
+        quat<OverlapReal> q(orientation);
+        vec3<OverlapReal> s_x = rotate(q, sfunc(rotate(conj(q),e_x))+vec3<OverlapReal>(params.origin));
+        vec3<OverlapReal> s_y = rotate(q, sfunc(rotate(conj(q),e_y))+vec3<OverlapReal>(params.origin));
+        vec3<OverlapReal> s_z = rotate(q, sfunc(rotate(conj(q),e_z))+vec3<OverlapReal>(params.origin));
 
         // translate out from the position by the furthest extent
         vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, pos.z + s_z.z);
@@ -313,12 +306,13 @@ struct ShapeFacetedEllipsoid
     //! Return a tight fitting OBB
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
-        vec3<Scalar> e_x(1,0,0);
-        vec3<Scalar> e_y(0,1,0);
-        vec3<Scalar> e_z(0,0,1);
-        vec3<Scalar> s_x = sfunc(e_x)+vec3<Scalar>(params.origin);
-        vec3<Scalar> s_y = sfunc(e_y)+vec3<Scalar>(params.origin);
-        vec3<Scalar> s_z = sfunc(e_z)+vec3<Scalar>(params.origin);
+        detail::SupportFuncFacetedEllipsoid sfunc(params, 0.0);
+        vec3<OverlapReal> e_x(1,0,0);
+        vec3<OverlapReal> e_y(0,1,0);
+        vec3<OverlapReal> e_z(0,0,1);
+        vec3<OverlapReal> s_x = sfunc(e_x)+vec3<OverlapReal>(params.origin);
+        vec3<OverlapReal> s_y = sfunc(e_y)+vec3<OverlapReal>(params.origin);
+        vec3<OverlapReal> s_z = sfunc(e_z)+vec3<OverlapReal>(params.origin);
 
         detail::OBB obb;
         obb.center = pos;
