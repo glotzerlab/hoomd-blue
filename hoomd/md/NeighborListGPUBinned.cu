@@ -154,20 +154,19 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
     // current index in cell
     int cur_offset = threadIdx.x % threads_per_particle;
 
-    bool all_done = false;
-    bool this_thread_done = false;
+    bool done = false;
 
     // total number of neighbors
     unsigned int nneigh = 0;
 
-    while (! all_done)
+    while (! done)
         {
         // initialize with default
         unsigned int neighbor;
         unsigned char has_neighbor = 0;
 
         // advance neighbor cell
-        while (cur_offset >= neigh_size && !this_thread_done )
+        while (cur_offset >= neigh_size && !done )
             {
             cur_offset -= neigh_size;
             cur_adj++;
@@ -180,17 +179,17 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                 else
                     {
                     // we are past the end of the cell neighbors
-                    this_thread_done = true;
+                    done = true;
                     }
                 }
-            if (! this_thread_done)
+            if (! done)
                 {
                 neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
                 neigh_size = d_cell_size[neigh_cell+igpu*ci.getNumElements()];
                 }
             }
         // check for a neighbor if thread is still working
-        if (!this_thread_done)
+        if (!done)
             {
             Scalar4 cur_xyzf;
             unsigned int j;
@@ -261,8 +260,8 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
 
         // now that possible neighbor checks are finished, done (for the cta) depends only on first thread
         // neighbor list only needs to get written into if thread 0 is not done
-        all_done = hoomd::detail::WarpScan<bool, threads_per_particle>().Broadcast(this_thread_done, 0);
-        if (!all_done)
+        done = hoomd::detail::WarpScan<bool, threads_per_particle>().Broadcast(done, 0);
+        if (!done)
             {
             // scan over flags
             unsigned char k(0), n(0);
