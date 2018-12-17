@@ -180,6 +180,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                     {
                     // we are past the end of the cell neighbors
                     done = true;
+                    neigh_size = 0;
                     }
                 }
             if (! done)
