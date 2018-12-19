@@ -71,7 +71,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
     const Scalar currentTemp = m_T->getValue(timestep);
     const unsigned int D = Scalar(m_sysdef->getNDimensions());
 
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);

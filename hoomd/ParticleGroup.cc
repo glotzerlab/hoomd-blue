@@ -310,6 +310,9 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
 
     // connect updateMemberTags() method to maximum particle number change signal
     m_pdata->getGlobalParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
+
+    // update GPU memory hints
+    updateGPUAdvice();
     }
 
 /*! \param sysdef System definition to build the group from
@@ -361,6 +364,7 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
     // store member tags
     GlobalArray<unsigned int> member_tags_array(member_tags.size(), m_exec_conf);
     m_member_tags.swap(member_tags_array);
+    TAG_ALLOCATION(m_member_tags);
 
         {
         ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::overwrite);
@@ -370,23 +374,18 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
     // one byte per particle to indicate membership in the group, initialize with current number of local particles
     GlobalArray<unsigned int> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
+    TAG_ALLOCATION(m_is_member);
 
     GlobalArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
     m_is_member_tag.swap(is_member_tag);
+    TAG_ALLOCATION(m_is_member_tag);
 
     // build the reverse lookup table for tags
     buildTagHash();
 
     GlobalArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
     m_member_idx.swap(member_idx);
-
-    #ifdef ENABLE_CUDA
-    if (m_pdata->getExecConf()->isCUDAEnabled() && m_pdata->getExecConf()->allConcurrentManagedAccess() && m_member_idx.getNumElements())
-        {
-        cudaMemAdvise(m_member_idx.get(), m_member_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
-        CHECK_CUDA_ERROR();
-        }
-    #endif
+    TAG_ALLOCATION(m_member_idx);
 
     #ifdef ENABLE_CUDA
     if (m_pdata->getExecConf()->isCUDAEnabled())
@@ -404,6 +403,9 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
 
     // connect updateMemberTags() method to maximum particle number change signal
     m_pdata->getGlobalParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
+
+    // update GPU memory hints
+    updateGPUAdvice();
     }
 
 ParticleGroup::~ParticleGroup()
@@ -464,6 +466,7 @@ void ParticleGroup::updateMemberTags(bool force_update) const
         // store member tags in GlobalArray
         GlobalArray<unsigned int> member_tags_array(member_tags.size(), m_pdata->getExecConf());
         m_member_tags.swap(member_tags_array);
+        TAG_ALLOCATION(m_member_tags);
 
         // sort member tags
         std::sort(member_tags.begin(), member_tags.end());
@@ -475,22 +478,17 @@ void ParticleGroup::updateMemberTags(bool force_update) const
 
         GlobalArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
         m_member_idx.swap(member_idx);
-
-        #ifdef ENABLE_CUDA
-        if (m_pdata->getExecConf()->isCUDAEnabled() && m_pdata->getExecConf()->allConcurrentManagedAccess() && m_member_idx.getNumElements())
-            {
-            cudaMemAdvise(m_member_idx.get(), m_member_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
-            CHECK_CUDA_ERROR();
-            }
-        #endif
+        TAG_ALLOCATION(m_member_idx);
         }
 
     // one byte per particle to indicate membership in the group, initialize with current number of local particles
     GlobalArray<unsigned int> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
+    TAG_ALLOCATION(m_is_member);
 
     GlobalArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
     m_is_member_tag.swap(is_member_tag);
+    TAG_ALLOCATION(m_is_member_tag);
 
     // build the reverse lookup table for tags
     buildTagHash();
@@ -508,6 +506,7 @@ void ParticleGroup::reallocate() const
         // reallocate if necessary
         GlobalArray<unsigned int> is_member_tag(m_pdata->getRTags().size(), m_exec_conf);
         m_is_member_tag.swap(is_member_tag);
+        TAG_ALLOCATION(m_is_member_tag);
 
         buildTagHash();
         }
@@ -776,6 +775,33 @@ void ParticleGroup::rebuildIndexList() const
     #endif
     }
 
+void ParticleGroup::updateGPUAdvice() const
+    {
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+        {
+        // split preferred location of group indices across GPUs
+        auto gpu_map = m_exec_conf->getGPUIds();
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            auto range = m_gpu_partition.getRange(idev);
+            unsigned int nelem =  range.second - range.first;
+
+            if (!nelem)
+                continue;
+
+            cudaMemAdvise(m_member_idx.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_is_member.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+
+            // migrate data to preferred location
+            cudaMemPrefetchAsync(m_member_idx.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_is_member.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+            }
+        CHECK_CUDA_ERROR();
+        }
+    #endif
+    }
+
 #ifdef ENABLE_CUDA
 //! rebuild index list on the GPU
 void ParticleGroup::rebuildIndexListGPU() const
@@ -794,8 +820,13 @@ void ParticleGroup::rebuildIndexListGPU() const
         gpu_rebuild_index_list(m_pdata->getN(),
                            d_is_member_tag.data,
                            d_is_member.data,
+                           d_tag.data);
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+
+        gpu_compact_index_list(m_pdata->getN(),
+                           d_is_member.data,
                            d_member_idx.data,
-                           d_tag.data,
                            m_num_local_members,
                            d_tmp.data,
                            m_pdata->getExecConf()->getCachedAllocator());

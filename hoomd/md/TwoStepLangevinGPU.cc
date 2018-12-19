@@ -126,7 +126,7 @@ void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
     {
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // profile this step
     if (m_prof)

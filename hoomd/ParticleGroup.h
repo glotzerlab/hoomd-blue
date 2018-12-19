@@ -285,7 +285,7 @@ class PYBIND11_EXPORT ParticleGroup
             \note This method CAN access the particle data tag array if the index is rebuilt.
                   Hence, the tag array may not be accessed in the same scope in which this method is called.
         */
-        const GPUArray<unsigned int>& getIndexArray() const
+        const GlobalArray<unsigned int>& getIndexArray() const
             {
             checkRebuild();
 
@@ -362,6 +362,7 @@ class PYBIND11_EXPORT ParticleGroup
         void checkRebuild() const
             {
             // carry out rebuild in correct order
+            bool update_gpu_advice = false;
             if (m_global_ptl_num_change)
                 {
                 updateMemberTags(false);
@@ -371,11 +372,16 @@ class PYBIND11_EXPORT ParticleGroup
                 {
                 reallocate();
                 m_reallocated = false;
+                update_gpu_advice = true;
                 }
              if (m_particles_sorted)
                 {
                 rebuildIndexList();
                 m_particles_sorted = false;
+                }
+            if (update_gpu_advice)
+                {
+                updateGPUAdvice();
                 }
             }
 
@@ -390,6 +396,9 @@ class PYBIND11_EXPORT ParticleGroup
             {
             m_particles_sorted = true;
             }
+
+        //! Update the GPU memory advice
+        void updateGPUAdvice() const;
 
         //! Helper function to be called when particles are added/removed
         void slotGlobalParticleNumChange()
