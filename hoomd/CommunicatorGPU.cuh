@@ -15,6 +15,7 @@
 #include "Index1D.h"
 
 #include "hoomd/extern/util/mgpucontext.h"
+#include "hoomd/CachedAllocator.h"
 
 #ifdef NVCC
 //! The flags used for indicating the itinerary of a particle
@@ -71,7 +72,8 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    const unsigned int mask,
                    mgpu::ContextPtr mgpu_context,
                    unsigned int *d_tmp,
-                   pdata_element *d_in_copy);
+                   pdata_element *d_in_copy,
+                   const CachedAllocator& alloc);
 
 //! Apply boundary conditions
 void gpu_wrap_particles(const unsigned int n_recv,
@@ -119,7 +121,8 @@ void gpu_exchange_ghosts_make_indices(
     unsigned int n_unique_neigh,
     unsigned int n_out,
     unsigned int mask,
-    mgpu::ContextPtr mgpu_context);
+    mgpu::ContextPtr mgpu_context,
+    const CachedAllocator& alloc);
 
 //! Pack ghosts in output buffers
 void gpu_exchange_ghosts_pack(

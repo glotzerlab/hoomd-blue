@@ -51,8 +51,8 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, std::shared_pt
 
     {
     //New Force data access pattern
-    GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
 
@@ -75,8 +75,8 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, std::shared_pt
 
     {
     // this time there should be a force
-    GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_2.data[0].x, -0.061684, tol);
@@ -113,8 +113,8 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, std::shared_pt
     fc_3->compute(1);
 
     {
-    GPUArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
 
@@ -156,8 +156,8 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, std::shared_pt
 
     {
     // check that the forces are correctly computed
-    GPUArray<Scalar4>& force_array_4 =  fc_6->getForceArray();
-    GPUArray<Scalar>& virial_array_4 =  fc_6->getVirialArray();
+    GlobalArray<Scalar4>& force_array_4 =  fc_6->getForceArray();
+    GlobalArray<Scalar>& virial_array_4 =  fc_6->getVirialArray();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
 
@@ -254,8 +254,8 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, std::shared_pt
     fc_4->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_5 =  fc_4->getForceArray();
-    GPUArray<Scalar>& virial_array_5 =  fc_4->getVirialArray();
+    GlobalArray<Scalar4>& force_array_5 =  fc_4->getForceArray();
+    GlobalArray<Scalar>& virial_array_5 =  fc_4->getVirialArray();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
 
@@ -328,12 +328,12 @@ void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_an
 
     {
     // verify that the forces are identical (within roundoff errors)
-    GPUArray<Scalar4>& force_array_6 =  fc1->getForceArray();
-    GPUArray<Scalar>& virial_array_6 =  fc1->getVirialArray();
+    GlobalArray<Scalar4>& force_array_6 =  fc1->getForceArray();
+    GlobalArray<Scalar>& virial_array_6 =  fc1->getVirialArray();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
-    GPUArray<Scalar4>& force_array_7 =  fc2->getForceArray();
-    GPUArray<Scalar>& virial_array_7 =  fc2->getVirialArray();
+    GlobalArray<Scalar4>& force_array_7 =  fc2->getForceArray();
+    GlobalArray<Scalar>& virial_array_7 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
 

@@ -83,6 +83,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         }
 
     m_concurrent = exec_mode==GPU;
+    m_in_multigpu_block = false;
 
     // now, exec_mode should be either CPU or GPU - proceed with initialization
 
@@ -169,7 +170,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         handleCUDAError(err_sync, __FILE__, __LINE__);
 
         // initialize cached allocator, max allocation 0.5*global mem
-        m_cached_alloc = new CachedAllocator((unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
+        m_cached_alloc = new CachedAllocator(false, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
+        m_cached_alloc_managed = new CachedAllocator(true, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
         }
     #endif
 
@@ -838,6 +840,8 @@ void ExecutionConfiguration::multiGPUBarrier() const
 
 void ExecutionConfiguration::beginMultiGPU() const
     {
+    m_in_multigpu_block = true;
+
     #ifdef ENABLE_CUDA
     // implement a one-to-n barrier
     if (getNumActiveGPUs() > 1)
@@ -866,6 +870,8 @@ void ExecutionConfiguration::beginMultiGPU() const
 
 void ExecutionConfiguration::endMultiGPU() const
     {
+    m_in_multigpu_block = false;
+
     #ifdef ENABLE_CUDA
     // implement an n-to-one barrier
     if (getNumActiveGPUs() > 1)

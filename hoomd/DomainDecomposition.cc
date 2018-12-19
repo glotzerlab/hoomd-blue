@@ -181,10 +181,10 @@ void DomainDecomposition::initializeDomainGrid(Scalar3 L,
     m_index = Index3D(m_nx,m_ny,m_nz);
 
     // map cartesian grid onto ranks
-    GPUArray<unsigned int> cart_ranks(nranks, m_exec_conf);
+    GlobalArray<unsigned int> cart_ranks(nranks, m_exec_conf);
     m_cart_ranks.swap(cart_ranks);
 
-    GPUArray<unsigned int> cart_ranks_inv(nranks, m_exec_conf);
+    GlobalArray<unsigned int> cart_ranks_inv(nranks, m_exec_conf);
     m_cart_ranks_inv.swap(cart_ranks_inv);
 
     ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::overwrite);
@@ -557,7 +557,7 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
  * \param pos Particle position
  * \returns the rank of the processor that should receive the particle
  */
-unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar3 pos)
+unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar3 pos, const unsigned int *cart_ranks)
     {
     // get fractional coordinates in the global box
     Scalar3 f = global_box.makeFraction(pos);
@@ -607,8 +607,7 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar
     else if (iz >= (int)m_nz)
         iz--;
 
-    ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::read);
-    unsigned int rank = h_cart_ranks.data[m_index(ix, iy, iz)];
+    unsigned int rank = cart_ranks[m_index(ix, iy, iz)];
 
     return rank;
     }

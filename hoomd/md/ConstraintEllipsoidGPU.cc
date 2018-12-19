@@ -53,7 +53,7 @@ void ConstraintEllipsoidGPU::update(unsigned int timestep)
     assert(m_pdata);
 
     // access the particle data arrays
-    const GPUArray< unsigned int >& group_members = m_group->getIndexArray();
+    const GlobalArray< unsigned int >& group_members = m_group->getIndexArray();
     ArrayHandle<unsigned int> d_group_members(group_members, access_location::device, access_mode::read);
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);

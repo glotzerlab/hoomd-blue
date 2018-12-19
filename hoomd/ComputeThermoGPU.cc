@@ -59,8 +59,6 @@ void ComputeThermoGPU::computeProperties()
     if (m_group->getNumMembersGlobal() == 0)
         return;
 
-    m_exec_conf->beginMultiGPU();
-
     unsigned int group_size = m_group->getNumMembers();
 
     if (m_prof) m_prof->push(m_exec_conf,"Thermo");
@@ -112,8 +110,8 @@ void ComputeThermoGPU::computeProperties()
 
     { // scope these array handles so they are released before the additional terms are added
     // access the net force, pe, and virial
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray< Scalar >& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
@@ -126,6 +124,8 @@ void ComputeThermoGPU::computeProperties()
 
     // access the group
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+
+    m_exec_conf->beginMultiGPU();
 
     // build up args list
     compute_thermo_args args;
@@ -176,6 +176,9 @@ void ComputeThermoGPU::computeProperties()
                         args,
                         flags[pdata_flag::pressure_tensor],
                         flags[pdata_flag::rotational_kinetic_energy]);
+
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     }
 
     #ifdef ENABLE_MPI
