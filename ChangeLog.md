@@ -2,6 +2,24 @@
 
 [TOC]
 
+## v2.5.0
+
+Not yet released
+
+*New features*
+
+* General:
+
+* MD:
+    * Generalize `md.integrate.brownian` and `md.integrate.langevin` to support anisotropic friction coefficients for rotational Brownian motion.
+
+* HPMC:
+
+* API:
+
+* Deprecated:
+
+
 ## v2.4.2
 
 Released 2018/12/20
