@@ -48,8 +48,8 @@ class PYBIND11_EXPORT SFCPackUpdaterGPU : public SFCPackUpdater
         virtual void reallocate();
 
     private:
-        GPUArray<unsigned int> m_gpu_particle_bins;    //!< Particle bins
-        GPUArray<unsigned int> m_gpu_sort_order;       //!< Generated sort order of the particles
+        GlobalArray<unsigned int> m_gpu_particle_bins;    //!< Particle bins
+        GlobalArray<unsigned int> m_gpu_sort_order;       //!< Generated sort order of the particles
 
         //! Helper function that actually performs the sort
         virtual void getSortedOrder2D();

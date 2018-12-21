@@ -70,8 +70,8 @@ void fslj_force_particle_test(ljforce_creator lj_creator, std::shared_ptr<Execut
 
 
     {
-    GPUArray<Scalar4>& force_array_1 =  fc_no_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_no_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_1 =  fc_no_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  fc_no_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
 
@@ -82,8 +82,8 @@ void fslj_force_particle_test(ljforce_creator lj_creator, std::shared_ptr<Execut
     }
 
     {
-    GPUArray<Scalar4>& force_array_2 =  fc_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_2 =  fc_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_2 =  fc_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_2 =  fc_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_2.data[0].x,  1.0819510987449876 , tol);

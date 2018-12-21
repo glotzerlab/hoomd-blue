@@ -30,8 +30,9 @@ class __attribute__((visibility("default"))) CachedAllocator
          /*  \param max_cached_bytes Maximum size of cache
          *   \param cache_reltol Relative tolerance for cache hits
          */
-        CachedAllocator( unsigned int max_cached_bytes=100u*1024u*1024u, float cache_reltol = 0.1f)
-            : m_num_bytes_tot(0),
+        CachedAllocator(bool managed, unsigned int max_cached_bytes=100u*1024u*1024u, float cache_reltol = 0.1f)
+            : m_managed(managed),
+              m_num_bytes_tot(0),
               m_max_cached_bytes(max_cached_bytes),
               m_cache_reltol(cache_reltol)
             { }
@@ -80,6 +81,8 @@ class __attribute__((visibility("default"))) CachedAllocator
     private:
         typedef std::multimap<std::ptrdiff_t, char*> free_blocks_type;
         typedef std::map<char *, std::ptrdiff_t> allocated_blocks_type;
+
+        bool m_managed;  //! True if we use unified memory
 
         mutable unsigned int m_num_bytes_tot;
         unsigned int m_max_cached_bytes;
@@ -174,7 +177,10 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements) const
 //        m_exec_conf->msg->notice(10) << "CachedAllocator: no free block found;"
 //            << " allocating " << float(num_bytes)/1024.0f/1024.0f << " MB" << std::endl;
 
-        cudaMalloc((void **) &result, num_bytes);
+        if (m_managed)
+            cudaMallocManaged((void **) &result, num_bytes);
+        else
+            cudaMalloc((void **) &result, num_bytes);
 //        CHECK_CUDA_ERROR();
 
         m_num_bytes_tot += num_bytes;
