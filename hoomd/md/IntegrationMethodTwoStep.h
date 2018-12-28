@@ -228,7 +228,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
             m_shouldRandomize = true;
             }
 
-        void randomizeVelocities(unsigned int timestep);
+        virtual void randomizeVelocities(unsigned int timestep);
 
         //! Reinitialize the integration variables if needed (implemented in the actual subclasses)
         virtual void initializeIntegratorVariables() {}

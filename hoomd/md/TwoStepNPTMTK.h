@@ -166,10 +166,10 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             }
 
         //! Returns a list of log quantities this compute calculates
-        std::vector< std::string > getProvidedLogQuantities();
+        virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Returns logged values
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
         //! Initialize integrator variables
         virtual void initializeIntegratorVariables()
@@ -180,6 +180,9 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             v.variable.resize(10,Scalar(0.0));
             setIntegratorVariables(v);
             }
+
+        //! Randomize the barostat variables
+        virtual void randomizeVelocities(unsigned int timestep);
 
     protected:
         std::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
