@@ -1569,7 +1569,7 @@ class faceted_ellipsoid(mode_hpmc):
     def format_param_pos(self, param):
         raise RuntimeError("faceted_ellipsoid shape doesn't have a .pos representation")
 
-class faceted_sphere(mode_hpmc):
+class faceted_sphere(faceted_ellipsoid):
     R""" HPMC integration for faceted spheres (3D).
 
     Args:
