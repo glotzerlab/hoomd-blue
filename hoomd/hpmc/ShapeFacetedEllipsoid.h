@@ -9,6 +9,7 @@
 #include "XenoCollide3D.h"
 #include "ShapeConvexPolyhedron.h"
 #include "hoomd/AABB.h"
+#include "OBB.h"
 
 #ifndef __SHAPE_FACETED_SPHERE_H__
 #define __SHAPE_FACETED_SPHERE_H__
