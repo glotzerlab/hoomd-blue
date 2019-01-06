@@ -144,7 +144,7 @@ class PYBIND11_EXPORT ParticleSelectorBody : public ParticleSelector
         virtual ~ParticleSelectorBody() {}
 
         //! Test if a particle meets the selection criteria
-        virtual bool isSelected(unsigned int tag) const;
+        virtual std::vector<unsigned int> getSelectedTags() const;
     protected:
         bool m_body;   //!< true if we should select body bodies, false if we should select non-body particles
     };
@@ -158,7 +158,7 @@ class PYBIND11_EXPORT ParticleSelectorMolecule : public ParticleSelector
         virtual ~ParticleSelectorMolecule() {}
 
         //! Test if a particle meets the selection criteria
-        virtual bool isSelected(unsigned int tag) const;
+        virtual std::vector<unsigned int> getSelectedTags() const;
     protected:
         bool m_molecule;   //!< true if we should select molecule bodies, false if we should select non-molecule particles
     };

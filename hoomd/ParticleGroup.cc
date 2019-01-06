@@ -151,7 +151,6 @@ std::vector<unsigned int> ParticleSelectorType::getSelectedTags() const
         if (m_typ_min <= typ && typ <= m_typ_max)
             member_tags.push_back(tag);
         }
-
     return member_tags;
     }
 
@@ -169,7 +168,7 @@ ParticleSelectorBody::ParticleSelectorBody(std::shared_ptr<SystemDefinition> sys
     }
 
 /*! \param tag Tag of the particle to check
-    \returns true if the type of particle \a tag meets the rigid criteria selected
+    \returns true if the type of particle \a tag meets the body criteria selected
 */
 std::vector<unsigned int> ParticleSelectorBody::getSelectedTags() const
     {
@@ -195,14 +194,15 @@ std::vector<unsigned int> ParticleSelectorBody::getSelectedTags() const
         if (result)
             member_tags.push_back(tag);
         }
-    return member_tags; }
+    return member_tags;
+    }
 
 
 //////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorRigid
 
 /*! \param sysdef System the particles are to be selected from
-    \param rigid true selects particles that are in rigid bodies, false selects particles that are not part of a body
+    \param rigid true selects particles that are in rigid bodies, false selects particles that are not part of a rigid body
 */
 ParticleSelectorRigid::ParticleSelectorRigid(std::shared_ptr<SystemDefinition> sysdef,
                                              bool rigid)
@@ -245,7 +245,7 @@ std::vector<unsigned int> ParticleSelectorRigid::getSelectedTags() const
 // ParticleSelectorMolecule
 
 /*! \param sysdef System the particles are to be selected from
-    \param molecule true selects particles that are in molecule bodies, false selects particles that are not part of a body
+    \param molecule true selects particles that are in molecule bodies, false selects particles that are not part of a molecule (non-rigid body)
 */
 ParticleSelectorMolecule::ParticleSelectorMolecule(std::shared_ptr<SystemDefinition> sysdef,
                                              bool molecule)
@@ -312,9 +312,9 @@ std::vector<unsigned int> ParticleSelectorRigidCenter::getSelectedTags() const
         if (body==tag)
             member_tags.push_back(tag);
         }
-
     return member_tags;
     }
+
 
 //////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorCuboid
