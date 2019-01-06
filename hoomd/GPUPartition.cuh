@@ -4,6 +4,8 @@
 
 #include <string>
 #include <vector>
+#include <stdexcept>
+#include <algorithm>
 
 #include <cuda_runtime.h>
 
@@ -71,18 +73,12 @@ class GPUPartition
             // set the active GPU
             cudaSetDevice(gpu_id);
 
-            return m_gpu_range[igpu];
+            return getRange(igpu);
             };
-
-        //! Comparison operator
-        bool operator==(const GPUPartition& other)
-            {
-            return m_gpu_map == other.m_gpu_map
-                && m_gpu_range == other.m_gpu_range;
-            }
 
     private:
         std::vector<unsigned int> m_gpu_map;
+
         std::vector<std::pair<unsigned int, unsigned int> > m_gpu_range;
     };
 

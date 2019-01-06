@@ -57,7 +57,7 @@ class EvaluatorExternalPeriodic
 
         //! type of parameters this external potential accepts
         typedef Scalar4 param_type;
-        typedef struct field{}field_type;
+        typedef Scalar field_type; // dummy type
 
         //! Constructs the constraint evaluator
         /*! \param X position of particle

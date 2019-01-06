@@ -72,8 +72,8 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, std::shared_
     fc_3->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
@@ -123,8 +123,8 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, std::shared_
     {
     // recompute the forces at the same timestep, they should be updated
     fc_3->compute(1);
-    GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_2.data[0].x, 1.009813410413, tol);
@@ -167,13 +167,13 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
 
     {
     // verify that the forces are identical (within roundoff errors)
-    GPUArray<Scalar4>& force_array_3 =  fc1->getForceArray();
-    GPUArray<Scalar>& virial_array_3 =  fc1->getVirialArray();
+    GlobalArray<Scalar4>& force_array_3 =  fc1->getForceArray();
+    GlobalArray<Scalar>& virial_array_3 =  fc1->getVirialArray();
     unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
-    GPUArray<Scalar4>& force_array_4 =  fc2->getForceArray();
-    GPUArray<Scalar>& virial_array_4 =  fc2->getVirialArray();
+    GlobalArray<Scalar4>& force_array_4 =  fc2->getForceArray();
+    GlobalArray<Scalar>& virial_array_4 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
 

@@ -240,7 +240,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // profile this step
     if (m_prof)

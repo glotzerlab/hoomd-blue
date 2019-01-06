@@ -16,10 +16,9 @@
 #define __PARTICLE_DATA_H__
 
 #include "HOOMDMath.h"
-#include "GPUArray.h"
+#include "GlobalArray.h"
 #include "GPUVector.h"
 #include "GlobalArray.h"
-#include "GlobalVector.h"
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
@@ -266,10 +265,10 @@ struct pdata_element
 /*! <h1> General </h1>
     ParticleData stores and manages particle coordinates, velocities, accelerations, type,
     and tag information. This data must be available both via the CPU and GPU memories.
-    All copying of data back and forth from the GPU is accomplished transparently by GPUArray.
+    All copying of data back and forth from the GPU is accomplished transparently by GlobalArray.
 
     For performance reasons, data is stored as simple arrays. Once a handle to the particle data
-    GPUArrays has been acquired, the coordinates of the particle with
+    GlobalArrays has been acquired, the coordinates of the particle with
     <em>index</em> \c i can be accessed with <code>pos_array_handle.data[i].x</code>,
     <code>pos_array_handle.data[i].y</code>, and <code>pos_array_handle.data[i].z</code>
     where \c i runs from 0 to <code>getN()</code>.
@@ -359,7 +358,7 @@ struct pdata_element
     an individual moment of inertia which is summed up correctly to determine the composite body's total moment of
     inertia.
 
-    Access the orientation quaternion of each particle with the GPUArray gotten from getOrientationArray(), the net
+    Access the orientation quaternion of each particle with the GlobalArray gotten from getOrientationArray(), the net
     torque with getTorqueArray(). Individual inertia tensor values can be accessed with getMomentsOfInertia() and
     setMomentsOfInertia()
 
@@ -579,31 +578,31 @@ class PYBIND11_EXPORT ParticleData
             }
 
         //! Return positions and types
-        const GPUArray< Scalar4 >& getPositions() const { return m_pos; }
+        const GlobalArray< Scalar4 >& getPositions() const { return m_pos; }
 
         //! Return velocities and masses
-        const GPUArray< Scalar4 >& getVelocities() const { return m_vel; }
+        const GlobalArray< Scalar4 >& getVelocities() const { return m_vel; }
 
         //! Return accelerations
-        const GPUArray< Scalar3 >& getAccelerations() const { return m_accel; }
+        const GlobalArray< Scalar3 >& getAccelerations() const { return m_accel; }
 
         //! Return charges
-        const GPUArray< Scalar >& getCharges() const { return m_charge; }
+        const GlobalArray< Scalar >& getCharges() const { return m_charge; }
 
         //! Return diameters
-        const GPUArray< Scalar >& getDiameters() const { return m_diameter; }
+        const GlobalArray< Scalar >& getDiameters() const { return m_diameter; }
 
         //! Return images
-        const GPUArray< int3 >& getImages() const { return m_image; }
+        const GlobalArray< int3 >& getImages() const { return m_image; }
 
         //! Return tags
-        const GPUArray< unsigned int >& getTags() const { return m_tag; }
+        const GlobalArray< unsigned int >& getTags() const { return m_tag; }
 
         //! Return reverse-lookup tags
         const GlobalVector< unsigned int >& getRTags() const { return m_rtag; }
 
         //! Return body ids
-        const GPUArray< unsigned int >& getBodies() const { return m_body; }
+        const GlobalArray< unsigned int >& getBodies() const { return m_body; }
 
         /*!
          * Access methods to stand-by arrays for fast swapping in of reordered particle data
@@ -627,82 +626,82 @@ class PYBIND11_EXPORT ParticleData
          */
 
         //! Return positions and types (alternate array)
-        const GPUArray< Scalar4 >& getAltPositions() const { return m_pos_alt; }
+        const GlobalArray< Scalar4 >& getAltPositions() const { return m_pos_alt; }
 
         //! Swap in positions
         inline void swapPositions() { m_pos.swap(m_pos_alt); }
 
         //! Return velocities and masses (alternate array)
-        const GPUArray< Scalar4 >& getAltVelocities() const { return m_vel_alt; }
+        const GlobalArray< Scalar4 >& getAltVelocities() const { return m_vel_alt; }
 
         //! Swap in velocities
         inline void swapVelocities() { m_vel.swap(m_vel_alt); }
 
         //! Return accelerations (alternate array)
-        const GPUArray< Scalar3 >& getAltAccelerations() const { return m_accel_alt; }
+        const GlobalArray< Scalar3 >& getAltAccelerations() const { return m_accel_alt; }
 
         //! Swap in accelerations
         inline void swapAccelerations() { m_accel.swap(m_accel_alt); }
 
         //! Return charges (alternate array)
-        const GPUArray< Scalar >& getAltCharges() const { return m_charge_alt; }
+        const GlobalArray< Scalar >& getAltCharges() const { return m_charge_alt; }
 
         //! Swap in accelerations
         inline void swapCharges() { m_charge.swap(m_charge_alt); }
 
         //! Return diameters (alternate array)
-        const GPUArray< Scalar >& getAltDiameters() const { return m_diameter_alt; }
+        const GlobalArray< Scalar >& getAltDiameters() const { return m_diameter_alt; }
 
         //! Swap in diameters
         inline void swapDiameters() { m_diameter.swap(m_diameter_alt); }
 
         //! Return images (alternate array)
-        const GPUArray< int3 >& getAltImages() const { return m_image_alt; }
+        const GlobalArray< int3 >& getAltImages() const { return m_image_alt; }
 
         //! Swap in images
         inline void swapImages() { m_image.swap(m_image_alt); }
 
         //! Return tags (alternate array)
-        const GPUArray< unsigned int >& getAltTags() const { return m_tag_alt; }
+        const GlobalArray< unsigned int >& getAltTags() const { return m_tag_alt; }
 
         //! Swap in tags
         inline void swapTags() { m_tag.swap(m_tag_alt); }
 
         //! Return body ids (alternate array)
-        const GPUArray< unsigned int >& getAltBodies() const { return m_body_alt; }
+        const GlobalArray< unsigned int >& getAltBodies() const { return m_body_alt; }
 
         //! Swap in bodies
         inline void swapBodies() { m_body.swap(m_body_alt); }
 
         //! Get the net force array (alternate array)
-        const GPUArray< Scalar4 >& getAltNetForce() const { return m_net_force_alt; }
+        const GlobalArray< Scalar4 >& getAltNetForce() const { return m_net_force_alt; }
 
         //! Swap in net force
         inline void swapNetForce() { m_net_force.swap(m_net_force_alt); }
 
         //! Get the net virial array (alternate array)
-        const GPUArray< Scalar >& getAltNetVirial() const { return m_net_virial_alt; }
+        const GlobalArray< Scalar >& getAltNetVirial() const { return m_net_virial_alt; }
 
         //! Swap in net virial
         inline void swapNetVirial() { m_net_virial.swap(m_net_virial_alt); }
 
         //! Get the net torque array (alternate array)
-        const GPUArray< Scalar4 >& getAltNetTorqueArray() const { return m_net_torque_alt; }
+        const GlobalArray< Scalar4 >& getAltNetTorqueArray() const { return m_net_torque_alt; }
 
         //! Swap in net torque
         inline void swapNetTorque() { m_net_torque.swap(m_net_torque_alt); }
 
         //! Get the orientations (alternate array)
-        const GPUArray< Scalar4 >& getAltOrientationArray() const { return m_orientation_alt; }
+        const GlobalArray< Scalar4 >& getAltOrientationArray() const { return m_orientation_alt; }
 
         //! Swap in orientations
         inline void swapOrientations() { m_orientation.swap(m_orientation_alt); }
 
         //! Get the angular momenta (alternate array)
-        const GPUArray< Scalar4 >& getAltAngularMomentumArray() const { return m_angmom_alt; }
+        const GlobalArray< Scalar4 >& getAltAngularMomentumArray() const { return m_angmom_alt; }
 
         //! Get the moments of inertia array (alternate array)
-        const GPUArray< Scalar3 >& getAltMomentsOfInertiaArray() const { return m_inertia_alt; }
+        const GlobalArray< Scalar3 >& getAltMomentsOfInertiaArray() const { return m_inertia_alt; }
 
         //! Swap in angular momenta
         inline void swapAngularMomenta() { m_angmom.swap(m_angmom_alt); }
@@ -786,25 +785,25 @@ class PYBIND11_EXPORT ParticleData
         void setTypeName(unsigned int type, const std::string& name);
 
         //! Get the net force array
-        const GPUArray< Scalar4 >& getNetForce() const { return m_net_force; }
+        const GlobalArray< Scalar4 >& getNetForce() const { return m_net_force; }
 
         //! Get the net virial array
-        const GPUArray< Scalar >& getNetVirial() const { return m_net_virial; }
+        const GlobalArray< Scalar >& getNetVirial() const { return m_net_virial; }
 
         //! Get the net torque array
-        const GPUArray< Scalar4 >& getNetTorqueArray() const { return m_net_torque; }
+        const GlobalArray< Scalar4 >& getNetTorqueArray() const { return m_net_torque; }
 
         //! Get the orientation array
-        const GPUArray< Scalar4 >& getOrientationArray() const { return m_orientation; }
+        const GlobalArray< Scalar4 >& getOrientationArray() const { return m_orientation; }
 
         //! Get the angular momentum array
-        const GPUArray< Scalar4 >& getAngularMomentumArray() const { return m_angmom; }
+        const GlobalArray< Scalar4 >& getAngularMomentumArray() const { return m_angmom; }
 
         //! Get the angular momentum array
-        const GPUArray< Scalar3 >& getMomentsOfInertiaArray() const { return m_inertia; }
+        const GlobalArray< Scalar3 >& getMomentsOfInertiaArray() const { return m_inertia; }
 
         //! Get the communication flags array
-        const GPUArray< unsigned int >& getCommFlags() const { return m_comm_flags; }
+        const GlobalArray< unsigned int >& getCommFlags() const { return m_comm_flags; }
 
         #ifdef ENABLE_MPI
         //! Find the processor that owns a particle
@@ -1039,12 +1038,12 @@ class PYBIND11_EXPORT ParticleData
          *        are invalidated. (call removeAllGhostAtoms() before or after
          *        this method).
          */
-        void removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<unsigned int>& comm_flags);
+        void removeParticlesGPU(GlobalVector<pdata_element>& out, GlobalVector<unsigned int>& comm_flags);
 
         //! Remove particles from local domain and add new particle data (GPU version)
         /*! \param in List of particle data elements to fill the particle data with
          */
-        void addParticlesGPU(const GPUVector<pdata_element>& in);
+        void addParticlesGPU(const GlobalVector<pdata_element>& in);
         #endif // ENABLE_CUDA
 
 #endif // ENABLE_MPI
@@ -1192,7 +1191,7 @@ class PYBIND11_EXPORT ParticleData
         mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
 
         GPUPartition m_gpu_partition;                //!< The partition of the local number of particles across GPUs
-        GPUPartition m_last_gpu_partition;           //!< GPU partition before last update
+        unsigned int m_memory_advice_last_Nmax;      //!< Nmax at which memory hints were last set
         #endif
 
         //! Helper function to allocate particle data

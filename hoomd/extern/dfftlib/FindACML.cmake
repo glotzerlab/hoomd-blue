@@ -30,7 +30,6 @@ find_file(ACML_LIBRARIES
 )
 
 if(NOT ACML_LIBRARIES)
-    message(STATUS "Multi-threaded library not found, looking for single-threaded")
     find_library(ACML_LIBRARIES
         NAMES
         acml acml_mv

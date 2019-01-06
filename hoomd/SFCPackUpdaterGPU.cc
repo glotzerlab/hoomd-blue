@@ -34,11 +34,13 @@ SFCPackUpdaterGPU::SFCPackUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
     // perform lots of sanity checks
     assert(m_pdata);
 
-    GPUArray<unsigned int> gpu_sort_order(m_pdata->getMaxN(), m_exec_conf);
+    GlobalArray<unsigned int> gpu_sort_order(m_pdata->getMaxN(), m_exec_conf);
     m_gpu_sort_order.swap(gpu_sort_order);
+    TAG_ALLOCATION(m_gpu_sort_order);
 
-    GPUArray<unsigned int> gpu_particle_bins(m_pdata->getMaxN(), m_exec_conf);
+    GlobalArray<unsigned int> gpu_particle_bins(m_pdata->getMaxN(), m_exec_conf);
     m_gpu_particle_bins.swap(gpu_particle_bins);
+    TAG_ALLOCATION(m_gpu_particle_bins);
 
     // create at ModernGPU context
     m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);

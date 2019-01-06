@@ -120,7 +120,7 @@ void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
 
     // access the force data
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle< Scalar4 > h_net_force(net_force, access_location::host, access_mode::read);
 
     // profile this step

@@ -159,7 +159,7 @@ __device__ __forceinline__ double shfl_up(double var,
 
 ////////////////////////////////////////////////////////////////////////////////
 // shfl_add
-
+#if 0
 MGPU_DEVICE int shfl_add(int x, int offset, int width = WARP_SIZE) {
 	int result = 0;
 #if __CUDA_ARCH__ >= 300
@@ -189,6 +189,7 @@ MGPU_DEVICE int shfl_max(int x, int offset, int width = WARP_SIZE) {
 #endif
 	return result;
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // brev, popc, clz, bfe, bfi, prmt

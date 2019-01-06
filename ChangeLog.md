@@ -2,6 +2,47 @@
 
 [TOC]
 
+## v2.5.0
+
+Not yet released
+
+*New features*
+
+* General:
+
+* MD:
+    * Generalize `md.integrate.brownian` and `md.integrate.langevin` to support anisotropic friction coefficients for rotational Brownian motion.
+
+* HPMC:
+
+* API:
+
+* Deprecated:
+
+
+## v2.4.2
+
+Released 2018/12/20
+
+*Bug fixes*
+
+* Miscellaneous documentation updates
+* Fix compile error with `with -DALWAYS_USE_MANAGED_MEMORY=ON`
+* Fix MuellerPlatheFlow, cast input parameter to int to avoid C++ constructor type mismatch
+* Improve startup time with multi-GPU simulations
+* Correctly assign GPUs to MPI processes on Summit when launching with more than one GPU per resource set
+* Optimize multi-GPU performance with NVLINK
+* Do not use mapped memory with MPI/GPU anymore
+* Fix some cases where a multi-GPU simulation fails with an alignment error
+* Eliminate remaining instance of unsafe `__shfl`
+* Hide CMake warnings regarding missing CPU math libraries
+* Hide CMake warning regarding missing MPI<->CUDA interoperability
+* Refactor memory management to fix linker errors with some compilers
+
+*C++ API Changes*
+
+* May break some plug-ins which rely on `GPUArray` data type being returned from `ParticleData` and other classes (replace by `GlobalArray`)
+
 ## v2.4.1
 
 Released 2018/11/27

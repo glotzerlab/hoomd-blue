@@ -6,6 +6,8 @@
 
 #include <memory>
 #include "hoomd/ForceCompute.h"
+#include "hoomd/GPUArray.h"
+#include "hoomd/GlobalArray.h"
 
 /*! \file PotentialExternal.h
     \brief Declares a class for computing an external force field

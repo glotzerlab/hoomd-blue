@@ -213,8 +213,8 @@ void ComputeThermo::computeProperties()
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
 
     // access the net force, pe, and virial
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray< Scalar >& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::read);
 

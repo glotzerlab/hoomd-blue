@@ -29,10 +29,14 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
 
     // with multiple GPUs, use indirect access via particle data arrays
     m_use_index = m_exec_conf->allConcurrentManagedAccess();
+
+    // with multiple GPUs, request a cell list per device
+    m_cl->setPerDevice(m_exec_conf->allConcurrentManagedAccess());
+
+    m_cl->setComputeXYZF(! m_use_index);
     m_cl->setComputeIdx(m_use_index);
 
     m_cl->setRadius(1);
-    // types are always required now
     m_cl->setComputeTDB(!m_use_index);
     m_cl->setFlagIndex();
 
@@ -112,8 +116,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "compute");
 
-    m_exec_conf->beginMultiGPU();
-
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
@@ -128,6 +130,13 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_cell_idx(m_cl->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cell_adj(m_cl->getCellAdjArray(), access_location::device, access_mode::read);
+
+    const ArrayHandle<unsigned int>& d_cell_size_per_device = m_cl->getPerDevice() ?
+        ArrayHandle<unsigned int>(m_cl->getCellSizeArrayPerDevice(),access_location::device, access_mode::read) :
+        ArrayHandle<unsigned int>(GlobalArray<unsigned int>(), access_location::device, access_mode::read);
+    const ArrayHandle<unsigned int>& d_cell_idx_per_device = m_cl->getPerDevice() ?
+        ArrayHandle<unsigned int>(m_cl->getIndexArrayPerDevice(), access_location::device, access_mode::read) :
+        ArrayHandle<unsigned int>(GlobalArray<unsigned int>(), access_location::device, access_mode::read);
 
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
@@ -161,23 +170,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     auto& gpu_map = m_exec_conf->getGPUIds();
 
-    // prefetch cell list
+    // prefetch some cell list arrays
     if (m_exec_conf->allConcurrentManagedAccess())
         {
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            cudaMemPrefetchAsync(d_cell_size.data, m_cl->getCellIndexer().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
-
-            if (! m_use_index)
-                cudaMemPrefetchAsync(d_cell_xyzf.data, m_cl->getCellListIndexer().getNumElements()*sizeof(Scalar4), gpu_map[idev]);
-
-            if (d_cell_idx.data)
-                cudaMemPrefetchAsync(d_cell_idx.data, m_cl->getCellListIndexer().getNumElements()*sizeof(unsigned int), gpu_map[idev]);
-
-            if (d_cell_tdb.data)
-                cudaMemPrefetchAsync(d_cell_tdb.data, m_cl->getCellListIndexer().getNumElements()*sizeof(Scalar4), gpu_map[idev]);
-            }
-
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
             // prefetch cell adjacency
@@ -187,6 +182,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_exec_conf->beginMultiGPU();
 
     this->m_tuner->begin();
     unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
@@ -203,9 +200,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                              d_body.data,
                              d_diameter.data,
                              m_pdata->getN(),
-                             d_cell_size.data,
+                             m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
                              d_cell_xyzf.data,
-                             d_cell_idx.data,
+                             m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
                              d_cell_tdb.data,
                              d_cell_adj.data,
                              m_cl->getCellIndexer(),
