@@ -13,7 +13,7 @@ class jit_external_field(unittest.TestCase):
         box in the z-dimension and adding an effective gravitational
         potential with a wall. Note that it is technically probabilistic in
         nature, but we use enough particles and a strong enough gravitational
-        force that the probability of particles rising in the simulation is
+        potential that the probability of particles rising in the simulation is
         vanishingly small."""
         from hoomd import hpmc, jit
         import numpy as np
@@ -33,7 +33,7 @@ class jit_external_field(unittest.TestCase):
                                 period=None)
         wall = hpmc.field.wall(mc)
         wall.add_plane_wall([0, 0, 1], [0, 0, -system.box.Lz/2])
-        gravity_field = hoomd.jit.force.user(mc=mc, code="return 1000*(r_i.z + box.getL().z/2);")
+        gravity_field = hoomd.jit.external.user(mc=mc, code="return 1000*(r_i.z + box.getL().z/2);")
         comp = hpmc.field.external_field_composite(mc, [wall, gravity_field])
 
         snapshot = system.take_snapshot()

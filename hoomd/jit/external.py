@@ -22,9 +22,9 @@ class user(field._external):
         llvm_ir_fname (str): File name of the llvm IR file to load.
         clang_exec (str): The Clang executable to use
 
-    Forces in jit.force behave similarly to force fields assigned via
-    hpmc.field.callback. Forces added using force.user are added to the total
-    force calculation in :py:mod:`hpmc <hoomd.hpmc>` integrators. The
+    Potentials in jit.external behave similarly to external fields assigned via
+    hpmc.field.callback. Potentials added using external.user are added to the total
+    energy calculation in :py:mod:`hpmc <hoomd.hpmc>` integrators. The
     :py:class:`user` external field takes C++ code, JIT compiles it at run time
     and executes the code natively in the MC loop at with full performance. It
     enables researchers to quickly and easily implement custom energetic
@@ -43,27 +43,28 @@ class user(field._external):
     .. code::
 
         float eval(const BoxDim& box,
-        unsigned int type,
+        unsigned int type_i,
         const vec3<Scalar>& r_i,
         const quat<Scalar>& q_i
         Scalar diameter,
         Scalar charge
         )
 
-    * ``Scalar4`` is defined in HOOMDMath.h.
-    * box is the system box.
-    * type is the particle type.
-    * r_i is the particle position
-    * q_i the particle orientation.
-    * diameter the particle diameter.
-    * charge the particle charge.
+    * ``vec3`` and ``quat`` are is defined in HOOMDMath.h.
+    * *box* is the system box.
+    * *type_i* is the particle type.
+    * *r_i* is the particle position
+    * *q_i* the particle orientation.
+    * *diameter* the particle diameter.
+    * *charge* the particle charge.
+    * Your code *must* return a value.
 
     Example:
 
     .. code-block:: python
 
         gravity = """return r_i.z + box.getL().z/2;"""
-        force = hoomd.jit.force.user(mc=mc, code=gravity)
+        external = hoomd.jit.external.user(mc=mc, code=gravity)
 
     .. rubric:: LLVM IR code
 
@@ -72,9 +73,9 @@ class user(field._external):
 
     .. code::
 
-        float eval(const BoxDim& box, unsigned int type_i, const vec3<Scalar>& pos, const quat<Scalar>& orientation Scalar diameter, Scalar charge)
+        float eval(const BoxDim& box, unsigned int type_i, const vec3<Scalar>& r_i, const quat<Scalar>& q_i, Scalar diameter, Scalar charge)
 
-    ``vec3`` and ``Scalar4`` is defined in HOOMDMath.h.
+    ``vec3`` and ``quat`` is defined in HOOMDMath.h.
 
     Compile the file with clang: ``clang -O3 --std=c++11 -DHOOMD_LLVMJIT_BUILD -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
     the LLVM IR in ``code.ll``.
@@ -160,7 +161,7 @@ extern "C"
 {
 
 float eval(const BoxDim& box,
-unsigned int type,
+unsigned int type_i,
 const vec3<Scalar> r_i,
 const quat<Scalar>& q_i,
 Scalar diameter,

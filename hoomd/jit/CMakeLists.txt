@@ -99,7 +99,7 @@ ENDMACRO(copy_file)
 
 set(files __init__.py
           patch.py
-          force.py
+          external.py
     )
 
 install(FILES ${files}
