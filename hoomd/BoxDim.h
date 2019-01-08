@@ -14,8 +14,8 @@
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
-// Don't include MPI when compiling with NVCC or LLVM
-#if defined(ENABLE_MPI) && !defined(NVCC) && !defined(LLVM_VERSION_MAJOR)
+// Don't include MPI when compiling with NVCC or an LLVM JIT build
+#if defined(ENABLE_MPI) && !defined(NVCC) && !defined(HOOMD_LLVMJIT_BUILD)
 #include "HOOMDMPI.h"
 #endif
 

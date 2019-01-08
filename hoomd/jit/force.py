@@ -76,7 +76,7 @@ class user(field._external):
 
     ``vec3`` and ``Scalar4`` is defined in HOOMDMath.h.
 
-    Compile the file with clang: ``clang -O3 --std=c++11 -DHOOMD_NOPYTHON -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
+    Compile the file with clang: ``clang -O3 --std=c++11 -DHOOMD_LLVMJIT_BUILD -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
     the LLVM IR in ``code.ll``.
 
     .. versionadded:: 2.5
@@ -183,9 +183,9 @@ Scalar charge
             clang = 'clang';
 
         if fn is not None:
-            cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-I', include_patsource, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
+            cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_patsource, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
         else:
-            cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-I', include_patsource, '-S', '-emit-llvm','-x','c++', '-o','-','-']
+            cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_patsource, '-S', '-emit-llvm','-x','c++', '-o','-','-']
         p = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
         # pass C++ function to stdin
