@@ -80,7 +80,8 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         //! Sum the potential energy of a group
         Scalar calcEnergyGroup(std::shared_ptr<ParticleGroup> group);
 
-        Scalar calcForceGroup(std::shared_ptr<ParticleGroup> group, unsigned int index);
+        //! Sum the all forces for a group
+        Scalar calcForceGroup(std::shared_ptr<ParticleGroup> group);
 
         //! Easy access to the torque on a single particle
         Scalar4 getTorque(unsigned int tag);

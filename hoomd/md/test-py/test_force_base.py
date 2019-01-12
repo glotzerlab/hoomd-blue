@@ -30,9 +30,9 @@ class force_base_tests (unittest.TestCase):
         energy = lj.get_energy(g)
         self.assertAlmostEqual(energy, self.s.particles.get(0).net_energy, places=5);
 
-        force_x = lj.get_force(g, index=0)
-        force_y = lj.get_force(g, index=1)
-        force_z = lj.get_force(g, index=2)
+        force_x = lj.get_force(g)
+        force_y = lj.get_force(g)
+        force_z = lj.get_force(g)
         self.assertAlmostEqual(force_x, self.s.particles.get(0).net_force[0], places=5);
         self.assertAlmostEqual(force_y, self.s.particles.get(0).net_force[1], places=5);
         self.assertAlmostEqual(force_z, self.s.particles.get(0).net_force[2], places=5);
