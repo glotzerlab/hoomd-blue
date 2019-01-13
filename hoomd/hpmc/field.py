@@ -237,9 +237,9 @@ class external_field_composite(_external):
     Examples::
 
         mc = hpmc.integrate.shape(...);
-        walls = hpmc.compute.walls(...)
-        lattice = hpmc.compute.lattice(...)
-        composite_field = hpmc.compute.external_field_composite(mc, fields=[walls, lattice])
+        walls = hpmc.field.walls(...)
+        lattice = hpmc.field.lattice(...)
+        composite_field = hpmc.field.external_field_composite(mc, fields=[walls, lattice])
 
     """
     def __init__(self, mc, fields = None):
