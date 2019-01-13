@@ -166,13 +166,6 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
                     dE += energy(box, typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
                     }
 
-                #ifdef ENABLE_MPI
-                if (this->m_pdata->getDomainDecomposition())
-                    {
-                    MPI_Allreduce(MPI_IN_PLACE, &dE, 1, MPI_HOOMD_SCALAR, MPI_SUM, this->m_exec_conf->getMPICommunicator());
-                    }
-                #endif
-
                 return dE;
                 }
             else
