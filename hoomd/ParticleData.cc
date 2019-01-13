@@ -3221,7 +3221,7 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
         vec3<Real> p = pos[i];
         int3 img = image[i];
 
-        // need to cast to a scalar and back because the Box is in Scalars, but we might be in a differen type
+        // need to cast to a scalar and back because the Box is in Scalars, but we might be in a different type
         p = vec3<Real>(old_box.shift(vec3<Scalar>(p), img));
         vec3<Real> f = old_box.makeFraction(p);
 
@@ -3258,8 +3258,12 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
                     diameter[k] = diameter[i];
                     // This math also accounts for molecules since body[i] is
                     // already greater than MIN_MOLECULE, so the new body id
-                    // body[k] is guaranteed to be so as well.
+                    // body[k] is guaranteed to be so as well. However, we
+                    // check to ensure that something that wasn't originally a
+                    // floppy body doesn't overflow into the floppy body tags.
                     body[k] = (body[i] != NO_BODY ? j*old_size + body[i] : NO_BODY);
+                    if (body[i] < MIN_MOLECULE && body[k] >= MIN_MOLECULE)
+                        throw std::runtime_error("Replication would create more distinct rigid bodies than HOOMD supports!");
                     orientation[k] = orientation[i];
                     angmom[k] = angmom[i];
                     inertia[k] = inertia[i];

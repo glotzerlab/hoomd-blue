@@ -274,7 +274,7 @@ std::vector<unsigned int> ParticleSelectorMolecule::getSelectedTags() const
         bool result = false;
         if (m_molecule && body >= MIN_MOLECULE && body != NO_BODY)
             result = true;
-        if (!m_molecule && (body < MIN_MOLECULE || body != NO_BODY))
+        if (!m_molecule && (body < MIN_MOLECULE || body == NO_BODY))
             result = true;
 
         if (result)
