@@ -135,11 +135,59 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
             return dE;
             }
 
+        //! Returns a list of log quantities this compute calculates
+        std::vector< std::string > getProvidedLogQuantities()
+            {
+            std::vector<std::string> provided_quantities;
+            provided_quantities.push_back(std::string("external_field_jit"));
+            return provided_quantities;
+            }
+
+        //! Calculates the requested log value and returns it
+        Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+            {
+            if ( quantity == "external_field_jit" )
+                {
+                ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
+                ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+                ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(), access_location::host, access_mode::read);
+                ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
+
+                const BoxDim& box = this->m_pdata->getGlobalBox();
+
+                double dE = 0.0;
+                for(size_t i = 0; i < this->m_pdata->getN(); i++)
+                    {
+                    // read in the current position and orientation
+                    Scalar4 postype_i = h_postype.data[i];
+                    unsigned int typ_i = __scalar_as_int(postype_i.w);
+                    vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+
+                    dE += energy(box, typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
+                    }
+
+                #ifdef ENABLE_MPI
+                if (this->m_pdata->getDomainDecomposition())
+                    {
+                    MPI_Allreduce(MPI_IN_PLACE, &dE, 1, MPI_HOOMD_SCALAR, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+                    }
+                #endif
+
+                return dE;
+                }
+            else
+                {
+                this->m_exec_conf->msg->error() << "jit.external.user: " << quantity << " is not a valid log quantity" << std::endl;
+                throw std::runtime_error("Error getting log value");
+                }
+            }
+
     protected:
         //! function pointer signature
         typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box, unsigned int type, const vec3<Scalar>& r_i, const quat<Scalar>& q_i, Scalar diameter, Scalar charge);
         std::shared_ptr<ExternalFieldEvalFactory> m_factory;       //!< The factory for the evaluator function
         ExternalFieldEvalFactory::ExternalFieldEvalFnPtr m_eval;                //!< Pointer to evaluator function inside the JIT module
+
     };
 
 //! Exports the ExternalFieldJIT class to python

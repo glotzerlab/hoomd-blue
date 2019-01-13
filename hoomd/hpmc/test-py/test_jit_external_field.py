@@ -40,11 +40,19 @@ class jit_external_field(unittest.TestCase):
         if hoomd.comm.get_rank() == 0:
             old_avg_z = np.mean(snapshot.particles.position[:, 2])
 
+        log = hoomd.analyze.log(filename=None, quantities=['external_field_jit'], period=None);
+
+        hoomd.run(1)
+        original_energy = log.query('external_field_jit')
         hoomd.run(1e3)
 
         snapshot = system.take_snapshot()
         if hoomd.comm.get_rank() == 0:
-            self.assertTrue(np.mean(snapshot.particles.position[:, 2]) < old_avg_z)
+            self.assertLess(np.mean(snapshot.particles.position[:, 2]), old_avg_z)
+
+        if hoomd.comm.get_rank() == 0:
+            self.assertLess(log.query('external_field_jit'), original_energy)
+
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

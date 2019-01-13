@@ -134,8 +134,10 @@ class user(field._external):
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
+        self.compute_name = "external_field_jit"
         self.cpp_compute = cls(hoomd.context.current.system_definition,
             hoomd.context.exec_conf, llvm_ir);
+        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
 
         self.mc = mc
         self.enabled = True
