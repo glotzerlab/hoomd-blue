@@ -232,18 +232,18 @@ Scalar ForceCompute::calcEnergyGroup(std::shared_ptr<ParticleGroup> group)
 /*! Sums the force of a particle group calculated by the last call to compute() and returns it.
 */
 
-Scalar ForceCompute::calcForceGroup(std::shared_ptr<ParticleGroup> group)
+vec3<Scalar> ForceCompute::calcForceGroup(std::shared_ptr<ParticleGroup> group)
     {
     unsigned int group_size = group->getNumMembers();
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);
 
-    double f_total = 0.0;
+    vec3<Scalar> f_total = vec3<Scalar>();
 
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = group->getMemberIndex(group_idx);
 
-        f_total += (double)h_force.data[j].w;
+        f_total += (vec3<Scalar>)h_force.data[j];
         }
 #ifdef ENABLE_MPI
     if (m_comm)
@@ -252,7 +252,7 @@ Scalar ForceCompute::calcForceGroup(std::shared_ptr<ParticleGroup> group)
         MPI_Allreduce(MPI_IN_PLACE, &f_total, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
         }
 #endif
-    return Scalar(f_total);
+    return vec3<Scalar>(f_total);
     }
 
 

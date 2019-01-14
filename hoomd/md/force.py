@@ -168,6 +168,7 @@ class _force(hoomd.meta._metadata):
             g = group.all()
             force = force.get_force(g)
         """
+        print(self.cpp_force.calcForceGroup(group.cpp_group))
         return self.cpp_force.calcForceGroup(group.cpp_group)
 
 
