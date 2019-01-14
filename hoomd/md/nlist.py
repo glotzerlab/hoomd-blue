@@ -27,7 +27,12 @@ system and hardware, you should carefully test which option is fastest for your 
 
 Particles can be excluded from the neighbor list based on certain criteria. Setting :math:`r_\mathrm{cut}(i,j) \le 0`
 will exclude this cross interaction from the neighbor list on build time. Particles can also be excluded by topology
-or for belonging to the same rigid body (see :py:meth:`nlist.reset_exclusions()`).
+or for belonging to the same rigid body (see :py:meth:`nlist.reset_exclusions()`). To support molecular structures,
+the body flag can also be used to exclude particles that are not part of a rigid structure. All particles with
+positive values of the body flag are considered part of a rigid body (see :py:class:`hoomd.md.constrain.rigid`),
+while the default value of -1 indicates that a particle is free. Any other negative value of the body flag indicates
+that the particles are part of a molecule; such particles are integrated separately, but are automatically excluded from
+the neighbor list as well.
 
 Examples::
 
@@ -200,7 +205,7 @@ class nlist:
 
         - Directly bonded particles.
         - Directly constrained particles.
-        - Particles that are in the same rigid body.
+        - Particles that are in the same body (i.e. have the same body flag). Note that these bodies need not be rigid.
 
         reset_exclusions allows the defaults to be overridden to add other exclusions or to remove
         the exclusion for bonded or constrained particles.

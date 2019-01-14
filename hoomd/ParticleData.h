@@ -354,6 +354,11 @@ struct pdata_element
     of course) where integration methods like NVERigid will handle updating the degrees of freedom of the composite
     body and then set the constrained position, velocity, and orientation of the constituent particles.
 
+    Particles that are part of a molecule, i.e. a non-rigid body, will have the same value of the body flag, but that value must be a
+    negative number less than -1 (which is reserved as NO_BODY). Such particles do not need to be treated specially by the integrator;
+    they are integrated independently of one another, but they do not interact. This lack of interaction is enforced through the neighbor
+    list, in which particles that belong to the same body are excluded by default.
+
     To enable correct initialization of the composite body moment of inertia, each particle is also assigned
     an individual moment of inertia which is summed up correctly to determine the composite body's total moment of
     inertia.
