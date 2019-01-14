@@ -633,7 +633,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     idx += offset;
 
     unsigned int central_idx = d_lookup_center[idx];
-    if (central_idx >= MIN_MOLECULE)
+    if (central_idx != NO_BODY)
         return;
 
     if (central_idx >= N + n_ghost)
@@ -782,7 +782,7 @@ struct lookup_op : thrust::unary_function<unsigned int, unsigned int>
 
     __device__ unsigned int operator()(const unsigned int& body)
         {
-        return (body < MIN_MOLECULE) ? d_rtag[body] : (body != NO_BODY ? body : NO_BODY);
+        return (body < MIN_MOLECULE) ? d_rtag[body] : NO_BODY;
         }
 
     const unsigned int *d_rtag;

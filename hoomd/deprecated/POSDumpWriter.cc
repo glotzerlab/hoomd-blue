@@ -140,7 +140,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
 
         vec3<Scalar> tmp_pos = pos;
 
-        if (m_unwrap_rigid && snap.body[j] != MIN_MOLECULE)
+        if (m_unwrap_rigid && snap.body[j] < MIN_MOLECULE)
             {
             unsigned int central_ptl_tag = snap.body[j];
             assert(central_ptl_tag < snap.size);
