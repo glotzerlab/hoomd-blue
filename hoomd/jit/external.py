@@ -59,6 +59,10 @@ class user(field._external):
     * *charge* the particle charge.
     * Your code *must* return a value.
 
+    Once initialized, the following log quantities are provided to analyze.log:
+
+    * **external_field_jit** -- total energy of the field
+
     Example:
 
     .. code-block:: python
