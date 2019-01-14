@@ -154,7 +154,7 @@ class _force(hoomd.meta._metadata):
         """
         return self.cpp_force.calcEnergyGroup(group.cpp_group)
 
-    def get_force(self,group):
+    def get_net_force(self,group):
         R""" Get the force of a particle group.
 
         Args:
@@ -166,10 +166,10 @@ class _force(hoomd.meta._metadata):
         Examples:
 
             g = group.all()
-            force = force.get_force(g)
+            force = force.get_net_force(g)
         """
-        print(self.cpp_force.calcForceGroup(group.cpp_group))
-        return self.cpp_force.calcForceGroup(group.cpp_group)
+        print(tuple(self.cpp_force.calcForceGroup(group.cpp_group)))
+        return tuple(self.cpp_force.calcForceGroup(group.cpp_group))
 
 
     ## \internal
