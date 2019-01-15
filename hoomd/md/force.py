@@ -10,6 +10,7 @@ from hoomd import _hoomd
 from hoomd.md import _md;
 import sys;
 import hoomd;
+import numpy as np
 
 ## \internal
 # \brief Base class for forces
@@ -168,8 +169,8 @@ class _force(hoomd.meta._metadata):
             g = group.all()
             force = force.get_net_force(g)
         """
-        print(tuple(self.cpp_force.calcForceGroup(group.cpp_group)))
-        return tuple(self.cpp_force.calcForceGroup(group.cpp_group))
+
+        return (self.cpp_force.calcForceGroup(group.cpp_group).x, self.cpp_force.calcForceGroup(group.cpp_group).y, self.cpp_force.calcForceGroup(group.cpp_group).z)
 
 
     ## \internal

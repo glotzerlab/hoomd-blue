@@ -30,12 +30,12 @@ class force_base_tests (unittest.TestCase):
         energy = lj.get_energy(g)
         self.assertAlmostEqual(energy, self.s.particles.get(0).net_energy, places=5);
 
-        force_x = lj.get_net_force(g)
-        force_y = lj.get_net_force(g)
+        force_x = lj.get_net_force(g)[0]
+        force_y = lj.get_net_force(g)[1]
         force_z = lj.get_net_force(g)[2]
-        self.assertAlmostEqual(force_x, self.s.particles.get(0).net_force[0], places=5);
-        self.assertAlmostEqual(force_y, self.s.particles.get(0).net_force[1], places=5);
-        self.assertAlmostEqual(force_z, self.s.particles.get(0).net_force[2], places=5);
+        self.assertAlmostEqual(lj.get_net_force(g)[0], self.s.particles.get(0).net_force[0], places=5);
+        self.assertAlmostEqual(lj.get_net_force(g)[1], self.s.particles.get(0).net_force[1], places=5);
+        self.assertAlmostEqual(lj.get_net_force(g)[2], self.s.particles.get(0).net_force[2], places=5);
 
     def tearDown(self):
         self.s = None
