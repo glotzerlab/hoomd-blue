@@ -1213,8 +1213,8 @@ class PYBIND11_EXPORT ParticleData
         template <class Real>
         bool inBox(const SnapshotParticleData<Real>& snap);
 
-        //! Called whenever local particles are added/sorted...
-        void updateGPUPartition();
+        //! Update the CUDA memory hints
+        void setGPUAdvice();
     };
 
 #ifndef NVCC
