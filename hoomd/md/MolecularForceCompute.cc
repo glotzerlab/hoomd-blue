@@ -92,8 +92,7 @@ void MolecularForceCompute::initMoleculesGPU()
 
         ScopedAllocation<unsigned int> d_lowest_idx(m_exec_conf->getCachedAllocator(), m_n_molecules_global);
         ScopedAllocation<unsigned int> d_lowest_idx_in_molecules(m_exec_conf->getCachedAllocator(), m_n_molecules_global);
-        ScopedAllocation<unsigned int> d_lowest_idx_by_molecule_tag(m_exec_conf->getCachedAllocator(), m_n_molecules_global);
-        ScopedAllocation<unsigned int> d_molecule_sort(m_exec_conf->getCachedAllocator(), m_n_molecules_global);
+        ScopedAllocation<unsigned int> d_lowest_idx_by_molecule_tag(m_exec_conf->getCachedAllocator(), m_molecule_tag.getNumElements());
 
         gpu_sort_by_molecule(nptl_local,
             d_tag.data,
@@ -107,7 +106,6 @@ void MolecularForceCompute::initMoleculesGPU()
             d_lowest_idx.data,
             d_lowest_idx_in_molecules.data,
             d_lowest_idx_by_molecule_tag.data,
-            d_molecule_sort.data,
             d_molecule_length.data,
             n_local_molecules,
             nmax,

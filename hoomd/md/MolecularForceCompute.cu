@@ -36,7 +36,6 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     unsigned int *d_lowest_idx,
     unsigned int *d_lowest_idx_in_molecules,
     unsigned int *d_lowest_idx_by_molecule_tag,
-    unsigned int *d_molecule_sort,
     unsigned int *d_molecule_length,
     unsigned int &n_local_molecules,
     unsigned int &max_len,
@@ -139,21 +138,14 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     thrust::device_ptr<unsigned int> max_ptr = thrust::max_element(molecule_length, molecule_length + n_local_molecules);
     cudaMemcpy(&max_len, max_ptr.get(), sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
-    // sort the list of molecules according to first particle index
-    thrust::device_ptr<unsigned int> molecule_sort(d_molecule_sort);
-    thrust::copy(thrust::cuda::par(alloc),
-        iter,
-        iter + n_local_molecules,
-        molecule_sort);
-
-    auto zip_it = thrust::make_zip_iterator(thrust::make_tuple(local_unique_molecule_tags, molecule_length, molecule_sort));
+    auto zip_it = thrust::make_zip_iterator(thrust::make_tuple(local_unique_molecule_tags, molecule_length));
     thrust::sort_by_key(thrust::cuda::par(alloc),
         lowest_idx,
         lowest_idx + n_local_molecules,
         zip_it);
 
     // create a global lookup table for lowest idx by molecule tag
-    thrust::device_ptr<unsigned int> lowest_idx_by_molecule_tag(d_lowest_idx_by_molecule_tag); 
+    thrust::device_ptr<unsigned int> lowest_idx_by_molecule_tag(d_lowest_idx_by_molecule_tag);
     thrust::scatter(thrust::cuda::par(alloc),
         lowest_idx,
         lowest_idx + n_local_molecules,
