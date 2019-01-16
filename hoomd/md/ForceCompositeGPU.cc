@@ -114,6 +114,10 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
         {
         ArrayHandle<uint2> d_flag(m_flag, access_location::device, access_mode::overwrite);
 
+        // reset force and torque
+        cudaMemsetAsync(d_force.data, 0, sizeof(Scalar4)*m_pdata->getN());
+        cudaMemsetAsync(d_torque.data, 0, sizeof(Scalar4)*m_pdata->getN());
+
         m_exec_conf->beginMultiGPU();
 
         m_tuner_force->begin();
