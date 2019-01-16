@@ -117,8 +117,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
         // reset force and torque
         m_exec_conf->beginMultiGPU();
 
-        // reset force and torque
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+        for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; idev--)
             {
             std::pair<unsigned int, unsigned int> range = m_pdata->getGPUPartition().getRangeAndSetGPU(idev);
             unsigned int nelem = range.second - range.first;
@@ -126,6 +125,9 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
             cudaMemsetAsync(d_force.data+range.first, 0, sizeof(Scalar4)*nelem);
             cudaMemsetAsync(d_torque.data+range.first, 0, sizeof(Scalar4)*nelem);
             }
+        m_exec_conf->endMultiGPU();
+
+        m_exec_conf->beginMultiGPU();
 
         m_tuner_force->begin();
         unsigned int param = m_tuner_force->getParam();
