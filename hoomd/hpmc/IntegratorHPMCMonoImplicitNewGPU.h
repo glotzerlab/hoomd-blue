@@ -245,7 +245,7 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::update(unsigned int timestep)
     {
     if (this->m_patch && !this->m_patch_log)
         {
-        this->m_exec_conf->msg->error() << "Depletant simulations with patches are unsupported." << std::endl;
+        this->m_exec_conf->msg->error() << "GPU simulations with patches are unsupported." << std::endl;
         throw std::runtime_error("Error during implicit depletant integration\n");
         }
 

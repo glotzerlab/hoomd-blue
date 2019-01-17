@@ -441,7 +441,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 }
             else
                 {
-                m_exec_conf->msg->error() << "compute.lattice_field: " << quantity << " is not a valid log quantity" << std::endl;
+                m_exec_conf->msg->error() << "field.lattice_field: " << quantity << " is not a valid log quantity" << std::endl;
                 throw std::runtime_error("Error getting log value");
                 }
             }

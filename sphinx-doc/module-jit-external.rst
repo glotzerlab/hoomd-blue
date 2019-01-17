@@ -1,4 +1,4 @@
-jit.patch
+jit.external
 ------------------
 
 .. rubric:: Overview
@@ -8,11 +8,10 @@ jit.patch
 .. autosummary::
     :nosignatures:
 
-    jit.patch.user
-    jit.patch.user_union
+    jit.external.user
 
 .. rubric:: Details
 
-.. automodule:: hoomd.jit.patch
-    :synopsis: JIT compiled patch potentials.
+.. automodule:: hoomd.jit.external
+    :synopsis: JIT compiled external potentials.
     :members:

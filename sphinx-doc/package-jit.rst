@@ -12,4 +12,5 @@ jit
 .. toctree::
     :maxdepth: 3
 
+    module-jit-external
     module-jit-patch
