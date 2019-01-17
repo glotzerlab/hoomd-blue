@@ -35,7 +35,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda8.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python2.7 -DENABLE_CUDA=ON -DENABLE_MPI=OFF -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY= -GNinja
+                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda8.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python2.7 -DENABLE_CUDA=ON -DENABLE_MPI=OFF -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -GNinja
                                    '''
 
                                 sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda8.simg ninja -j 3'
@@ -89,7 +89,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda9.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY= -GNinja
+                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda9.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -GNinja
                                    '''
 
                                 sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda9.simg ninja -j 3'
@@ -143,7 +143,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY= -GNinja
+                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=ON -GNinja
                                    '''
 
                                 sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg ninja -j 3'
@@ -205,7 +205,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY= -GNinja
+                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -GNinja
                                    '''
 
                                 sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg ninja -j 3'
@@ -259,7 +259,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY= -GNinja
+                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -GNinja
                                    '''
 
                                 sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg ninja -j 3'
@@ -313,7 +313,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY= -GNinja
+                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -GNinja
                                    '''
 
                                 sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg ninja -j 3'
@@ -367,7 +367,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY= -GNinja
+                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -GNinja
                                    '''
 
                                 sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg ninja -j 3'
