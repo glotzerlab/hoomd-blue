@@ -271,6 +271,9 @@ class nvt(_integration_method):
 
         .. versionadded:: 2.3
 
+        Starting in version 2.5, `randomize_velocities` also chooses random values
+        for the internal integrator variables.
+
         Args:
             seed (int): Random number seed
 
@@ -654,6 +657,9 @@ class npt(_integration_method):
 
         .. versionadded:: 2.3
 
+        Starting in version 2.5, `randomize_velocities` also chooses random values
+        for the internal integrator variables.
+
         Args:
             seed (int): Random number seed
 
@@ -718,6 +724,9 @@ class nph(npt):
         removes drift (the center of mass velocity).
 
         .. versionadded:: 2.3
+
+        Starting in version 2.5, `randomize_velocities` also chooses random values
+        for the internal integrator variables.
 
         Args:
             kT (float): Temperature (in energy units)

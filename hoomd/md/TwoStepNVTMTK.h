@@ -109,6 +109,9 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             setIntegratorVariables(v);
             }
 
+        //! Randomize the thermostat variable
+        virtual void randomizeVelocities(unsigned int timestep);
+
     protected:
         std::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
 
