@@ -249,7 +249,7 @@ vec3<double> ForceCompute::calcForceGroup(std::shared_ptr<ParticleGroup> group)
     if (m_comm)
         {
         // reduce potential energy on all processors
-        MPI_Allreduce(MPI_IN_PLACE, &f_total, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &f_total, 3, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
         }
 #endif
     return vec3<double>(f_total);
