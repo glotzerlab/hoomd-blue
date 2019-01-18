@@ -52,7 +52,7 @@ void MuellerPlatheFlowGPU::search_min_max_velocity(void)
     const ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),access_location::device, access_mode::read);
     const ArrayHandle<unsigned int> d_tag(m_pdata->getTags(),access_location::device, access_mode::read);
     const ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(),access_location::device, access_mode::read);
-    const GPUArray< unsigned int >& group_members = m_group->getIndexArray();
+    const GlobalArray< unsigned int >& group_members = m_group->getIndexArray();
     const ArrayHandle<unsigned int> d_group_members(group_members, access_location::device, access_mode::read);
 
     const BoxDim& gl_box = m_pdata->getGlobalBox();

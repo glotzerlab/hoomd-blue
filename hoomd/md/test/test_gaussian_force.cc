@@ -70,8 +70,8 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, std::shared_ptr
     fc_3->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
@@ -122,8 +122,8 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, std::shared_ptr
     fc_3->compute(1);
 
     {
-    GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_2.data[0].x, 0.622542302888418, tol);
@@ -182,8 +182,8 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, std::shared_ptr
     fc_6->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_3 =  fc_6->getForceArray();
-    GPUArray<Scalar>& virial_array_3 =  fc_6->getVirialArray();
+    GlobalArray<Scalar4>& force_array_3 =  fc_6->getForceArray();
+    GlobalArray<Scalar>& virial_array_3 =  fc_6->getVirialArray();
     unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
@@ -272,13 +272,13 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
 
     {
     // verify that the forces are identical (within roundoff errors)
-    GPUArray<Scalar4>& force_array_4 =  fc1->getForceArray();
-    GPUArray<Scalar>& virial_array_4 =  fc1->getVirialArray();
+    GlobalArray<Scalar4>& force_array_4 =  fc1->getForceArray();
+    GlobalArray<Scalar>& virial_array_4 =  fc1->getVirialArray();
     unsigned int pitch = virial_array_4.getPitch();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
-    GPUArray<Scalar4>& force_array_5 =  fc2->getForceArray();
-    GPUArray<Scalar>& virial_array_5 =  fc2->getVirialArray();
+    GlobalArray<Scalar4>& force_array_5 =  fc2->getForceArray();
+    GlobalArray<Scalar>& virial_array_5 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
 
@@ -345,8 +345,8 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, std::shared_ptr<Ex
     fc_shift->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_6 =  fc_no_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_6 =  fc_no_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_6 =  fc_no_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_6 =  fc_no_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
 
@@ -355,8 +355,8 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, std::shared_ptr<Ex
     MY_CHECK_CLOSE(h_force_6.data[1].x, 0.055555065284237, tol);
     MY_CHECK_CLOSE(h_force_6.data[1].w, 0.019841094744370/2.0, tol);
 
-    GPUArray<Scalar4>& force_array_7 =  fc_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_7 =  fc_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_7 =  fc_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_7 =  fc_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
 
@@ -375,12 +375,12 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, std::shared_ptr<Ex
     fc_shift->compute(2);
 
     {
-    GPUArray<Scalar4>& force_array_8 =  fc_no_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_8 =  fc_no_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_8 =  fc_no_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_8 =  fc_no_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_8(force_array_8,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_8(virial_array_8,access_location::host,access_mode::read);
-    GPUArray<Scalar4>& force_array_9 =  fc_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_9 =  fc_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_9 =  fc_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_9 =  fc_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_9(force_array_9,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_9(virial_array_9,access_location::host,access_mode::read);
 

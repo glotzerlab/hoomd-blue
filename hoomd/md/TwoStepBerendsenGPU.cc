@@ -92,7 +92,7 @@ void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
         m_prof->push("Berendsen");
 
     // get the net force
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
 
     // access the particle data arrays for use on the GPU

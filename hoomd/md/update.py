@@ -261,6 +261,11 @@ class mueller_plathe_flow(_updater):
         if max_slab < 0:
             max_slab = n_slabs/2
 
+        #Cast input to int to avoid mismatch of types in calling the constructor
+        n_slabs = int(n_slabs)
+        min_slab = int(min_slab)
+        max_slab = int(max_slab)
+
         assert (max_slab>-1 and max_slab < n_slabs),"Invalid max_slab in [0,"+str(n_slabs)+")."
         assert (min_slab>-1 and min_slab < n_slabs),"Invalid min_slab in [0,"+str(n_slabs)+")."
         assert (min_slab != max_slab),"Invalid min/max slabs. Both have the same value."
