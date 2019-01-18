@@ -633,7 +633,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     idx += offset;
 
     unsigned int central_idx = d_lookup_center[idx];
-    if (central_idx != NO_BODY)
+    if (central_idx == NO_BODY)
         return;
 
     if (central_idx >= N + n_ghost)
