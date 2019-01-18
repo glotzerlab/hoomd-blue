@@ -18,11 +18,13 @@ set(_${PACKAGE_NAME}_sources
 
 # we compile a separate package just for the LLVM-interfacing part,
 # so that can be compiled with and without RTTI
-set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc)
+set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc ExternalFieldEvalFactory.cc)
 
 set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
                              PatchEnergyJITUnion.h
+                             ExternalFieldJIT.h
                              EvalFactory.h
+                             ExternalFieldEvalFactory.h
                              KaleidoscopeJIT.h
    )
 
@@ -97,6 +99,7 @@ ENDMACRO(copy_file)
 
 set(files __init__.py
           patch.py
+          external.py
     )
 
 install(FILES ${files}

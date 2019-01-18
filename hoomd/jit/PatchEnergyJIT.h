@@ -25,9 +25,9 @@
     into a generic LLVM module class. (i.e. handle broadcasting the string and compiling it in one place,
     with specific implementations requesting the function pointers they need).
 
-    LLVM execution is managed with the OrcLazyJIT class in m_JIT. On construction, the LLVM module is loaded and
-    compiled. OrcLazyJIT handles construction of C++ static members, etc.... When m_JIT is deleted, all of the compiled
-    code and memory used in the module is deleted. OrcLazyJIT takes care of destructing C++ static members inside the
+    LLVM execution is managed with the KaleidoscopeJIT class in m_JIT. On construction, the LLVM module is loaded and
+    compiled. KaleidoscopeJIT handles construction of C++ static members, etc.... When m_JIT is deleted, all of the compiled
+    code and memory used in the module is deleted. KaleidoscopeJIT takes care of destructing C++ static members inside the
     module.
 
     LLVM JIT is capable of calling any function in the hosts address space. PatchEnergyJIT does not take advantage of

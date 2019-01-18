@@ -78,6 +78,7 @@ void Logger::registerUpdater(std::shared_ptr<Updater> updater)
             m_exec_conf->msg->warning() << "analyze.log: The log quantity " << provided_quantities[i] <<
                  " has been registered more than once. Only the most recent registration takes effect" << endl;
         m_updater_quantities[provided_quantities[i]] = updater;
+        m_exec_conf->msg->notice(6) << "analyze.log: Registering log quantity " << provided_quantities[i] << endl;
         }
     }
 

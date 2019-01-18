@@ -14,9 +14,9 @@
 // bring in math.h
 #ifndef NVCC
 
-// define HOOMD_NOPYTHON to prevent the need for python and pybind includes
+// define HOOMD_LLVMJIT_BUILD to prevent the need for python and pybind includes
 // this simplifies LLVM code generation
-#ifndef HOOMD_NOPYTHON
+#ifndef HOOMD_LLVMJIT_BUILD
 // include python.h first to silence _XOPEN_SOURCE redefinition warnings
 #include <Python.h>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -367,7 +367,7 @@ HOSTDEVICE inline bool operator!= (const int3 &a, const int3 &b)
 
 //! Export relevant hoomd math functions to python
 #ifndef NVCC
-#ifndef HOOMD_NOPYTHON
+#ifndef HOOMD_LLVMJIT_BUILD
 void export_hoomd_math_functions(pybind11::module& m);
 #endif
 #endif

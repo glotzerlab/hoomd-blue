@@ -7,24 +7,25 @@
 
 #include "KaleidoscopeJIT.h"
 
-class EvalFactory
+// Forward declare box class
+class BoxDim;
+
+class ExternalFieldEvalFactory
     {
     public:
-        typedef float (*EvalFnPtr)(const vec3<float>& r_ij,
-            unsigned int type_i,
-            const quat<float>& q_i,
-            float d_i,
-            float charge_i,
-            unsigned int type_j,
-            const quat<float>& q_j,
-            float d_j,
-            float charge_j);
+        typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box,
+            unsigned int type,
+            const vec3<Scalar>& r_i,
+            const quat<Scalar>& q_i,
+            Scalar diameter,
+            Scalar charge
+            );
 
         //! Constructor
-        EvalFactory(const std::string& llvm_ir);
+        ExternalFieldEvalFactory(const std::string& llvm_ir);
 
         //! Return the evaluator
-        EvalFnPtr getEval()
+        ExternalFieldEvalFnPtr getEval()
             {
             return m_eval;
             }
@@ -37,7 +38,7 @@ class EvalFactory
 
     private:
         std::unique_ptr<llvm::orc::KaleidoscopeJIT> m_jit; //!< The persistent JIT engine
-        EvalFnPtr m_eval;         //!< Function pointer to evaluator
+        ExternalFieldEvalFnPtr m_eval;         //!< Function pointer to evaluator
 
         std::string m_error_msg; //!< The error message if initialization fails
     };

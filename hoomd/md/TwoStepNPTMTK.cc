@@ -8,6 +8,7 @@
 
 #include "TwoStepNPTMTK.h"
 #include "hoomd/VectorMath.h"
+#include "hoomd/Saru.h"
 
 using namespace std;
 namespace py = pybind11;
@@ -942,6 +943,106 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
         }
 
     setIntegratorVariables(v);
+    }
+
+void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
+    {
+    if (m_shouldRandomize == false)
+        {
+        return;
+        }
+
+    m_exec_conf->msg->notice(6) << "TwoStepNPTMTK randomizing velocities" << std::endl;
+
+    IntegratorVariables v = getIntegratorVariables();
+
+    hoomd::detail::Saru saru(0x9db2f0ab, timestep, m_seed_randomize);
+
+    bool master = m_exec_conf->getRank() == 0;
+
+    if (!m_nph)
+        {
+        // randomize thermostat variables
+        Scalar& xi = v.variable[1];
+
+        unsigned int g = m_thermo_group->getNDOF();
+        Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_T_randomize*m_tau*m_tau);
+
+        if (master)
+            {
+            // draw a random Gaussian thermostat variable on rank 0
+            xi = gaussian_rng(saru, sqrt(sigmasq_t));
+            }
+
+        if (m_aniso)
+            {
+            // update thermostat for rotational DOF
+            Scalar &xi_rot = v.variable[8];
+            Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_thermo_group->getRotationalNDOF()*m_T_randomize*m_tau*m_tau);
+
+            if (master)
+                {
+                xi_rot = gaussian_rng(saru, sqrt(sigmasq_r));
+                }
+            }
+        }
+
+    // randomize barostat variables
+    Scalar& nuxx = v.variable[2];  // Barostat tensor, xx component
+    Scalar& nuxy = v.variable[3];  // Barostat tensor, xy component
+    Scalar& nuxz = v.variable[4];  // Barostat tensor, xz component
+    Scalar& nuyy = v.variable[5];  // Barostat tensor, yy component
+    Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
+    Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
+
+    unsigned int d = m_sysdef->getNDimensions();
+    Scalar sigmasq_baro = Scalar(1.0)/((Scalar)(m_ndof+d)/(Scalar)d*m_T_randomize*m_tauP*m_tauP);
+
+    if (master)
+        {
+        if (m_flags & baro_x)
+            {
+            nuxx = gaussian_rng(saru,sqrt(sigmasq_baro));
+            }
+
+        if (m_flags & baro_xy)
+            {
+            nuxy = gaussian_rng(saru,sqrt(sigmasq_baro));
+            }
+
+        if (m_flags & baro_xz)
+            {
+            nuxz = gaussian_rng(saru,sqrt(sigmasq_baro));
+            }
+
+        if (m_flags & baro_y)
+            {
+            nuyy = gaussian_rng(saru,sqrt(sigmasq_baro));
+            }
+
+        if (m_flags & baro_yz)
+            {
+            nuyz = gaussian_rng(saru,sqrt(sigmasq_baro));
+            }
+
+        if (m_flags & baro_z)
+            {
+            nuzz = gaussian_rng(saru,sqrt(sigmasq_baro));
+            }
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // broadcast integrator variables from rank 0 to other processors
+        MPI_Bcast(&v.variable.front(), 10, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    setIntegratorVariables(v);
+
+    // call base class method
+    IntegrationMethodTwoStep::randomizeVelocities(timestep);
     }
 
 void export_TwoStepNPTMTK(py::module& m)
