@@ -22,13 +22,20 @@ class force_base_tests (unittest.TestCase):
         lj.update_coeffs();
 
         all = group.all();
-        md.integrate.mode_standard(dt=0.0)
+        md.integrate.mode_standard(dt=0.005)
         md.integrate.nvt(group=all, kT=1.2, tau=0.5)
         run(1, quiet=True);
 
         g = group.tag_list(name='ptl0', tags=[0])
         energy = lj.get_energy(g)
         self.assertAlmostEqual(energy, self.s.particles.get(0).net_energy, places=5);
+
+        force_x = lj.get_net_force(g)[0]
+        force_y = lj.get_net_force(g)[1]
+        force_z = lj.get_net_force(g)[2]
+        self.assertAlmostEqual(lj.get_net_force(g)[0], self.s.particles.get(0).net_force[0], places=5);
+        self.assertAlmostEqual(lj.get_net_force(g)[1], self.s.particles.get(0).net_force[1], places=5);
+        self.assertAlmostEqual(lj.get_net_force(g)[2], self.s.particles.get(0).net_force[2], places=5);
 
     def tearDown(self):
         self.s = None

@@ -10,6 +10,7 @@ from hoomd import _hoomd
 from hoomd.md import _md;
 import sys;
 import hoomd;
+import numpy as np
 
 ## \internal
 # \brief Base class for forces
@@ -153,6 +154,24 @@ class _force(hoomd.meta._metadata):
             energy = force.get_energy(g)
         """
         return self.cpp_force.calcEnergyGroup(group.cpp_group)
+
+    def get_net_force(self,group):
+        R""" Get the force of a particle group.
+
+        Args:
+            group (:py:mod:`hoomd.group`): The particle group to query the force for.
+
+        Returns:
+            The last computed force for the members in the group.
+
+        Examples:
+
+            g = group.all()
+            force = force.get_net_force(g)
+        """
+
+        return (self.cpp_force.calcForceGroup(group.cpp_group).x, self.cpp_force.calcForceGroup(group.cpp_group).y, self.cpp_force.calcForceGroup(group.cpp_group).z)
+
 
     ## \internal
     # \brief updates force coefficients
