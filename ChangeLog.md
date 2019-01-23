@@ -15,6 +15,7 @@ Not yet released
     * Generalize `md.integrate.brownian` and `md.integrate.langevin` to support anisotropic friction coefficients for rotational Brownian motion.
     * Improve NVLINK performance with rigid bodies
     * `randomize_velocities` now chooses random values for the internal integrator thermostat and barostat variables.
+    * `get_net_force` returns the net force on a group of particles due to a specific force compute
 
 * HPMC:
     * Fix a bug where external fields were ignored with the HPMC implicit integrator unless a patch potential was also in use.
