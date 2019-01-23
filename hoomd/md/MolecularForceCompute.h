@@ -168,6 +168,9 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         virtual void initMoleculesGPU();
         #endif
 
+        #ifdef ENABLE_CUDA
+        GPUPartition m_gpu_partition;               //!< Partition of the molecules on GPUs
+        #endif
     };
 
 //! Exports the MolecularForceCompute to python

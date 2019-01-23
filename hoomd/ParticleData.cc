@@ -263,8 +263,11 @@ void ParticleData::notifyParticleSort()
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
         {
-        // need to update GPUPartition before calling subscribers, so that updated information is available
-        updateGPUPartition();
+        // need to update GPUPartition if particle number changes
+        m_gpu_partition.setN(getN());
+
+        // update our CUDA hints
+        setGPUAdvice();
         }
     #endif
 
@@ -595,6 +598,12 @@ void ParticleData::setNGlobal(unsigned int nglobal)
  */
 void ParticleData::resize(unsigned int new_nparticles)
     {
+    // update the partition information, so it is available to subscribers of various signals early
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        m_gpu_partition.setN(new_nparticles);
+    #endif
+
     if (new_nparticles == 0)
         {
         // guarantee that arrays are allocated
@@ -3083,14 +3092,11 @@ void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 
-void ParticleData::updateGPUPartition()
+void ParticleData::setGPUAdvice()
     {
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
         {
-        // update the partition information
-        m_gpu_partition.setN(getN());
-
         // only call CUDA API when necessary
         if (m_memory_advice_last_Nmax == m_max_nparticles)
             return;
