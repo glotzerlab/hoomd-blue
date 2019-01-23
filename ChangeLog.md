@@ -9,16 +9,19 @@ Not yet released
 *New features*
 
 * General:
+    * Fix BondedGroupData and CommunicatorGPU compile errors in certain build configurations
 
 * MD:
     * Generalize `md.integrate.brownian` and `md.integrate.langevin` to support anisotropic friction coefficients for rotational Brownian motion.
+    * Improve NVLINK performance with rigid bodies
+    * `randomize_velocities` now chooses random values for the internal integrator thermostat and barostat variables.
 
 * HPMC:
+    * Fix a bug where external fields were ignored with the HPMC implicit integrator unless a patch potential was also in use.
 
-* API:
-
-* Deprecated:
-
+* JIT:
+    * Add `jit.external.user` to specify user-defined external fields in HPMC.
+    * Use `-DHOOMD_LLVMJIT_BUILD` now instead of `-DHOOMD_NOPYTHON`
 
 ## v2.4.2
 

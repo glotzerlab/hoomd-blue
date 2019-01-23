@@ -20,6 +20,7 @@
 #include <thrust/binary_search.h>
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
+#include <thrust/system/cuda/execution_policy.h>
 
 // moderngpu
 #include "hoomd/extern/util/mgpucontext.h"
