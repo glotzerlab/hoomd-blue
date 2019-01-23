@@ -90,6 +90,8 @@ Jens Glaser, University of Michigan
  * hpmc interaction_matrix
  * special_pair framework
  * TBB support
+ * randomize integrator variables
+ * GPUArray refactoring
 
 Pavani Medapuram, University of Minnesota
  * Framework for external potentials
@@ -200,12 +202,25 @@ Lin Yang, Alex Travesset, Iowa State University
 
 Tim Moore, Vanderbilt University
   * angle.cosinesq
+  * Documentation fixes
 
 Bradley Dice, Avisek Das, University of Michigan
   * integrator.randomize_velocities()
 
+Bradley Dice, Simon Adorf, University of Michigan
+  * SSAGES support
+
+Bradley Dice, University of Michigan
+  * Documentation improvements
+
 Peter Schwendeman, Jens Glaser, University of Michigan
-  * NLINK optimized multi-GPU execution
+  * NVLINK optimized multi-GPU execution
+
+Alyssa Travitz, University of Michigan
+  * `get_net_force` implementation
+
+Mike Henry, Boise State University
+  * Documentation improvements
 
 HPMC developers
 ---------------
@@ -293,6 +308,7 @@ Paul Dodd, Erin Teich, University of Michigan
 Vyas Ramasubramani, University of Michigan
  * hpmc.util.tune fixes for tuning by type
  * hpmc.update.boxmc fixes for non-orthorhombic box volume moves
+ * `jit.external.user` implementation
 
 William Zygmunt, Luis Rivera-Rivera, University of Michigan
  * Patchy interaction support in HPMC CPU integrators
