@@ -2,6 +2,13 @@
 
 [TOC]
 
+## Not yet released
+
+*Bug fixes*
+
+* Fix BondedGroupData and CommunicatorGPU compile errors in certain build configurations
+* Improve NVLINK performance with rigid bodies
+
 ## v2.4.2
 
 Released 2018/12/20
