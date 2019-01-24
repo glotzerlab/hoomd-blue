@@ -40,7 +40,7 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     unsigned int &n_local_molecules,
     unsigned int &max_len,
     unsigned int &n_local_ptls_in_molecules,
-    const CachedAllocator& alloc)
+    CachedAllocator& alloc)
     {
     thrust::device_ptr<const unsigned int> tag(d_tag);
     thrust::device_ptr<const unsigned int> molecule_tag(d_molecule_tag);
@@ -208,7 +208,7 @@ cudaError_t gpu_fill_molecule_table(
     unsigned int *d_molecule_list,
     unsigned int *d_molecule_order,
     unsigned int block_size,
-    const CachedAllocator& alloc
+    CachedAllocator& alloc
     )
     {
     thrust::device_ptr<unsigned int> molecule_order(d_molecule_order);

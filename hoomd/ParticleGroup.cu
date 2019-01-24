@@ -84,7 +84,7 @@ cudaError_t gpu_compact_index_list(unsigned int N,
                                    unsigned int *d_member_idx,
                                    unsigned int &num_local_members,
                                    unsigned int *d_tmp,
-                                   const CachedAllocator& alloc)
+                                   CachedAllocator& alloc)
     {
     assert(d_is_member);
     assert(d_member_idx);

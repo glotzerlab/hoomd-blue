@@ -33,7 +33,7 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     unsigned int &n_local_molecules,
     unsigned int &max_len,
     unsigned int &n_local_ptls_in_molecules,
-    const CachedAllocator& alloc);
+    CachedAllocator& alloc);
 
 cudaError_t gpu_fill_molecule_table(
     unsigned int nptl,
@@ -45,6 +45,6 @@ cudaError_t gpu_fill_molecule_table(
     unsigned int *d_molecule_list,
     unsigned int *d_molecule_order,
     unsigned int block_size,
-    const CachedAllocator& alloc);
+    CachedAllocator& alloc);
 
 #endif
