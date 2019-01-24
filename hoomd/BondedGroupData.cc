@@ -870,7 +870,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
             ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::readwrite);
 
             // allocate scratch buffers
-            const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
+            CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
             unsigned int tmp_size = m_groups.size()*group_size;
             unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
             ScopedAllocation<unsigned int> d_scratch_g(alloc, tmp_size);

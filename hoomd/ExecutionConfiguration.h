@@ -306,13 +306,13 @@ struct PYBIND11_EXPORT ExecutionConfiguration
 
     #ifdef ENABLE_CUDA
     //! Returns the cached allocator for temporary allocations
-    const CachedAllocator& getCachedAllocator() const
+    CachedAllocator& getCachedAllocator() const
         {
         return *m_cached_alloc;
         }
 
     //! Returns the cached allocator for temporary allocations
-    const CachedAllocator& getCachedAllocatorManaged() const
+    CachedAllocator& getCachedAllocatorManaged() const
         {
         return *m_cached_alloc_managed;
         }

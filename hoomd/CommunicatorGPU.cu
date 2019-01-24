@@ -231,7 +231,7 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    mgpu::ContextPtr mgpu_context,
                    unsigned int *d_tmp,
                    pdata_element *d_in_copy,
-                   const CachedAllocator& alloc)
+                   CachedAllocator& alloc)
     {
     // Wrap input & output
     thrust::device_ptr<pdata_element> in_ptr(d_in);
@@ -727,7 +727,7 @@ void gpu_exchange_ghosts_make_indices(
     unsigned int n_out,
     unsigned int mask,
     mgpu::ContextPtr mgpu_context,
-    const CachedAllocator& alloc)
+    CachedAllocator& alloc)
     {
     /*
      * expand each tag by the number of neighbors to send the corresponding ptl to

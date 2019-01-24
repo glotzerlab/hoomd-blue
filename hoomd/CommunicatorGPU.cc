@@ -1320,7 +1320,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                 ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
 
-                const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
+                CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
                 ScopedAllocation<unsigned int> d_keep(alloc, n_recv_ghost_groups_tot[stage]);
                 ScopedAllocation<unsigned int> d_scan(alloc, n_recv_ghost_groups_tot[stage]);
 
@@ -1492,7 +1492,7 @@ void CommunicatorGPU::migrateParticles()
 
             // get temporary buffers
             unsigned int nsend = m_gpu_sendbuf.size();
-            const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
+            CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
             ScopedAllocation<pdata_element> d_in_copy(alloc, nsend);
             ScopedAllocation<unsigned int> d_tmp(alloc, nsend);
 
