@@ -121,9 +121,10 @@ UP_TEST( GlobalArray_transfer_tests )
         }
 
     // data has been overwitten on the host. Increment it on the device in overwrite mode
-    // and verify that the data was not copied from the host to device
+    // because there may be only a single array shared between the host and the device, there is no guarantee
+    // that the add_one operates on separate different copy of the data
         {
-        ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::overwrite);
+        ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
@@ -131,36 +132,13 @@ UP_TEST( GlobalArray_transfer_tests )
         exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__);
         }
 
-    // copy it back to the host and verify
+    // read back on host
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
         UP_ASSERT(h_handle.data != NULL);
         for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
             {
-            UP_ASSERT_EQUAL(h_handle.data[i], i*i+1);
-            // overwrite the data as we verify
-            h_handle.data[i] = 100+i;
-            }
-        }
-
-    // access it on the device in read only mode, but be a bad boy and overwrite the data
-    // the verify on the host should then still show the overwritten data as the internal state
-    // should still be hostdevice and not copy the data back from the device
-        {
-        ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::read);
-        UP_ASSERT(d_handle.data != NULL);
-
-        gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        cudaError_t err_sync = cudaGetLastError();
-        exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__);
-        }
-
-        {
-        ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
-        UP_ASSERT(h_handle.data != NULL);
-        for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
-            {
-            UP_ASSERT_EQUAL(h_handle.data[i], 100+i);
+            UP_ASSERT_EQUAL(h_handle.data[i], 101+i);
             }
         }
 
@@ -321,25 +299,9 @@ UP_TEST( GlobalArray_resize_tests )
        UP_ASSERT_EQUAL(h_handle.data[1], (unsigned int)456);
        UP_ASSERT_EQUAL(h_handle.data[2], (unsigned int)789);
 
-       // check that other elements of that row zero
-       for (unsigned int i = 3; i< 17; i++)
-           UP_ASSERT_EQUAL(h_handle.data[i], (unsigned int)0);
-
        UP_ASSERT_EQUAL(h_handle.data[0+pitch], (unsigned int)1234);
        UP_ASSERT_EQUAL(h_handle.data[1+pitch], (unsigned int)3456);
        UP_ASSERT_EQUAL(h_handle.data[2+pitch], (unsigned int)5678);
-
-       // check that other elements of that row are zero
-       for (unsigned int i = 3; i< 17; i++)
-           UP_ASSERT_EQUAL(h_handle.data[i+pitch], (unsigned int)0);
-
-       // check that the two new rows are zero
-       for (unsigned int i = 0; i< 17; i++)
-           {
-           UP_ASSERT_EQUAL(h_handle.data[i+2*pitch], (unsigned int)0);
-           UP_ASSERT_EQUAL(h_handle.data[i+3*pitch], (unsigned int)0);
-           }
-
        }
    }
 
