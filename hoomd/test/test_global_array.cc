@@ -120,29 +120,7 @@ UP_TEST( GlobalArray_transfer_tests )
             }
         }
 
-    // data has been overwitten on the host. Increment it on the device in overwrite mode
-    // because there may be only a single array shared between the host and the device, there is no guarantee
-    // that the add_one operates on separate different copy of the data
-        {
-        ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
-        UP_ASSERT(d_handle.data != NULL);
-
-        gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        cudaError_t err_sync = cudaGetLastError();
-        exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__);
-        }
-
-    // read back on host
-        {
-        ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
-        UP_ASSERT(h_handle.data != NULL);
-        for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
-            {
-            UP_ASSERT_EQUAL(h_handle.data[i], 101+i);
-            }
-        }
-
-    // finally, test host-> device copies
+    // test host-> device copies
         {
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
         UP_ASSERT(d_handle.data != NULL);
