@@ -19,6 +19,21 @@
 #include <map>
 #include <cassert>
 
+//! Need to define an error checking macro that can be used in .cu files
+#define CHECK_CUDA() \
+    { \
+    cudaError_t err = cudaDeviceSynchronize(); \
+    if (err != cudaSuccess) \
+        { \
+        throw std::runtime_error("CUDA Error in CachedAllocator "+std::string(cudaGetErrorString(err))); \
+        } \
+    err = cudaGetLastError(); \
+    if (err != cudaSuccess) \
+        { \
+        throw std::runtime_error("CUDA Error in CachedAllocator "+std::string(cudaGetErrorString(err))); \
+        } \
+    }
+
 //! CachedAllocator: a simple allocator for caching allocation requests
 class __attribute__((visibility("default"))) CachedAllocator
     {
@@ -40,6 +55,9 @@ class __attribute__((visibility("default"))) CachedAllocator
         CachedAllocator(const CachedAllocator&) = delete;
         CachedAllocator& operator=(const CachedAllocator&) = delete;
 
+        CachedAllocator(const CachedAllocator&&) = delete;
+        CachedAllocator& operator=(const CachedAllocator&&) = delete;
+
         //! Set maximum cache size
         void setMaxCachedBytes(unsigned int max_cached_bytes)
             {
@@ -47,11 +65,11 @@ class __attribute__((visibility("default"))) CachedAllocator
             }
 
         //! Destructor
-        ~CachedAllocator()
-        {
-          // free all allocations when cached_allocator goes out of scope
-          free_all();
-        }
+        virtual ~CachedAllocator()
+            {
+            // free all allocations when cached_allocator goes out of scope
+            free_all();
+            }
 
         //! Allocate a temporary block
         /*! \param num_bytes Number of elements to allocate
@@ -104,14 +122,14 @@ class __attribute__((visibility("default"))) CachedAllocator
             for(free_blocks_type::iterator i = m_free_blocks.begin(); i != m_free_blocks.end(); ++i)
                 {
                 cudaFree((void *) i->second);
-//                CHECK_CUDA_ERROR();
+                CHECK_CUDA();
                 }
 
             for(allocated_blocks_type::iterator i = m_allocated_blocks.begin();
                 i != m_allocated_blocks.end(); ++i)
                 {
                 cudaFree((void *) i->first);
-//                CHECK_CUDA_ERROR();
+                CHECK_CUDA();
                 }
             }
     };
@@ -184,7 +202,7 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements)
             cudaMallocManaged((void **) &result, num_bytes);
         else
             cudaMalloc((void **) &result, num_bytes);
-//        CHECK_CUDA_ERROR();
+        CHECK_CUDA();
 
         m_num_bytes_tot += num_bytes;
 
@@ -199,7 +217,7 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements)
 
             // transform the pointer to cuda::pointer before calling cuda::free
             cudaFree((void *) i->second);
-//            CHECK_CUDA_ERROR();
+            CHECK_CUDA();
             m_num_bytes_tot -= i->first;
 
             m_free_blocks.erase((++i).base());
@@ -228,5 +246,6 @@ ScopedAllocation<T>::~ScopedAllocation()
     }
 
 
+#undef CHECK_CUDA
 #endif // ENABLE_CUDA
 #endif // __CACHED_ALLOCATOR_H__
