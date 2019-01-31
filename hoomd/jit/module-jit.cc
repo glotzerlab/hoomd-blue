@@ -44,6 +44,6 @@ PYBIND11_MODULE(_jit, m)
     export_ExternalFieldJIT<ShapeSpheropolygon>(m, "ExternalFieldJITSpheropolygon");
     export_ExternalFieldJIT<ShapeSimplePolygon>(m, "ExternalFieldJITSimplePolygon");
     export_ExternalFieldJIT<ShapeEllipsoid>(m, "ExternalFieldJITEllipsoid");
-    export_ExternalFieldJIT<ShapeFacetedSphere>(m, "ExternalFieldJITFacetedSphere");
+    export_ExternalFieldJIT<ShapeFacetedEllipsoid>(m, "ExternalFieldJITFacetedEllipsoid");
     export_ExternalFieldJIT<ShapeSphinx>(m, "ExternalFieldJITSphinx");
     }
