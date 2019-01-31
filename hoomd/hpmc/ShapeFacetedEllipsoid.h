@@ -230,7 +230,7 @@ class SupportFuncFacetedEllipsoid
             }
 
     private:
-        const faceted_ellipsoid_params& params;      //!< Definition of faceted sphere
+        const faceted_ellipsoid_params& params;      //!< Definition of faceted ellipsoid
     };
 
 
