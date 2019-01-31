@@ -1641,8 +1641,8 @@ class faceted_sphere(faceted_ellipsoid):
         hoomd.util.print_status_line();
 
         # initialize base class
-        super(faceted_sphere, self).__init__(self, seed, d, a, move_ratio, nselect, implicit, depletant_mode,
-            restore_state)
+        super(faceted_sphere, self).__init__(seed=seed, d=d, a=a, move_ratio=move_ratio,
+            nselect=nselect, implicit=implicit, depletant_mode=depletant_mode, restore_state=restore_state)
 
     # \internal
     # \brief Format shape parameters for pos file output
