@@ -2,12 +2,27 @@
 
 [TOC]
 
-## Not yet released
+## v2.5.0
 
-*Bug fixes*
+Not yet released
 
-* Fix BondedGroupData and CommunicatorGPU compile errors in certain build configurations
-* Improve NVLINK performance with rigid bodies
+*New features*
+
+* General:
+    * Fix BondedGroupData and CommunicatorGPU compile errors in certain build configurations
+
+* MD:
+    * Generalize `md.integrate.brownian` and `md.integrate.langevin` to support anisotropic friction coefficients for rotational Brownian motion.
+    * Improve NVLINK performance with rigid bodies
+    * `randomize_velocities` now chooses random values for the internal integrator thermostat and barostat variables.
+    * `get_net_force` returns the net force on a group of particles due to a specific force compute
+
+* HPMC:
+    * Fix a bug where external fields were ignored with the HPMC implicit integrator unless a patch potential was also in use.
+
+* JIT:
+    * Add `jit.external.user` to specify user-defined external fields in HPMC.
+    * Use `-DHOOMD_LLVMJIT_BUILD` now instead of `-DHOOMD_NOPYTHON`
 
 ## v2.4.2
 

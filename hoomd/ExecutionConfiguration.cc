@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -876,7 +876,7 @@ void ExecutionConfiguration::endMultiGPU() const
     // implement an n-to-one barrier
     if (getNumActiveGPUs() > 1)
         {
-        // record the synchronization point on every GPU, except GPU 0 
+        // record the synchronization point on every GPU, except GPU 0
         for (int idev = m_gpu_id.size() - 1; idev >= 1; --idev)
             {
             cudaSetDevice(m_gpu_id[idev]);
