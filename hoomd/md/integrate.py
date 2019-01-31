@@ -264,7 +264,10 @@ class nvt(_integration_method):
             self.tau = tau
 
     def randomize_velocities(self, seed):
-        R""" Assign random velocities to particles in the group.
+        R""" Assign random velocities and angular momenta to particles in the
+        group, sampling from the Maxwell-Boltzmann distribution. This method
+        considers the dimensionality of the system and particle anisotropy, and
+        removes drift (the center of mass velocity).
 
         .. versionadded:: 2.3
 
@@ -644,7 +647,10 @@ class npt(_integration_method):
         return data
 
     def randomize_velocities(self, seed):
-        R""" Assign random velocities to particles in the group.
+        R""" Assign random velocities and angular momenta to particles in the
+        group, sampling from the Maxwell-Boltzmann distribution. This method
+        considers the dimensionality of the system and particle anisotropy, and
+        removes drift (the center of mass velocity).
 
         .. versionadded:: 2.3
 
@@ -706,7 +712,10 @@ class nph(npt):
         hoomd.util.unquiet_status();
 
     def randomize_velocities(self, kT, seed):
-        R""" Assign random velocities to particles in the group.
+        R""" Assign random velocities and angular momenta to particles in the
+        group, sampling from the Maxwell-Boltzmann distribution. This method
+        considers the dimensionality of the system and particle anisotropy, and
+        removes drift (the center of mass velocity).
 
         .. versionadded:: 2.3
 
@@ -821,7 +830,10 @@ class nve(_integration_method):
             self.cpp_method.setZeroForce(zero_force);
 
     def randomize_velocities(self, kT, seed):
-        R""" Assign random velocities to particles in the group.
+        R""" Assign random velocities and angular momenta to particles in the
+        group, sampling from the Maxwell-Boltzmann distribution. This method
+        considers the dimensionality of the system and particle anisotropy, and
+        removes drift (the center of mass velocity).
 
         .. versionadded:: 2.3
 
@@ -1537,7 +1549,10 @@ class berendsen(_integration_method):
         self.metadata_fields = ['kT','tau']
 
     def randomize_velocities(self, seed):
-        R""" Assign random velocities to particles in the group.
+        R""" Assign random velocities and angular momenta to particles in the
+        group, sampling from the Maxwell-Boltzmann distribution. This method
+        considers the dimensionality of the system and particle anisotropy, and
+        removes drift (the center of mass velocity).
 
         .. versionadded:: 2.3
 

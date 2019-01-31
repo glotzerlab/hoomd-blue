@@ -99,7 +99,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     if (m_exec_conf->isCUDAEnabled())
         {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
-        m_last_gpu_partition = m_gpu_partition;
+        m_memory_advice_last_Nmax = UINT_MAX;
         }
     #endif
 
@@ -174,7 +174,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     if (m_exec_conf->isCUDAEnabled())
         {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
-        m_last_gpu_partition = m_gpu_partition;
+        m_memory_advice_last_Nmax = UINT_MAX;
         }
     #endif
 
@@ -263,8 +263,11 @@ void ParticleData::notifyParticleSort()
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
         {
-        // need to update GPUPartition before calling subscribers, so that updated information is available
-        updateGPUPartition();
+        // need to update GPUPartition if particle number changes
+        m_gpu_partition.setN(getN());
+
+        // update our CUDA hints
+        setGPUAdvice();
         }
     #endif
 
@@ -575,13 +578,31 @@ void ParticleData::setNGlobal(unsigned int nglobal)
 
     // we have changed the global particle number, notify subscribers
     m_global_particle_num_signal.emit();
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+        {
+        auto gpu_map = m_exec_conf->getGPUIds();
+
+        // set up GPU memory mappings
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaMemAdvise(m_rtag.get(), sizeof(unsigned int)*m_rtag.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            }
+        CHECK_CUDA_ERROR();
+        }
+    #endif
     }
 
 /*! \param new_nparticles New particle number
  */
 void ParticleData::resize(unsigned int new_nparticles)
     {
-    // do nothing if zero size is requested
+    // update the partition information, so it is available to subscribers of various signals early
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        m_gpu_partition.setN(new_nparticles);
+    #endif
 
     if (new_nparticles == 0)
         {
@@ -875,6 +896,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
         if (my_rank == 0)
             {
+            ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
+
             // check the input for errors
             if (snapshot.type_mapping.size() == 0)
                 {
@@ -935,7 +958,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 global_box.wrap(pos, img, flags);
 
                 // place particle using actual domain fractions, not global box fraction
-                unsigned int rank = m_decomposition->placeParticle(m_global_box, pos);
+                unsigned int rank = m_decomposition->placeParticle(m_global_box, pos, h_cart_ranks.data);
 
                 if (rank >= n_ranks)
                     {
@@ -1904,7 +1927,8 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
         assert(!ptl_local || owner_rank == my_rank);
 
         // get rank where the particle should be according to new position
-        unsigned int new_rank = m_decomposition->placeParticle(m_global_box, tmp_pos);
+        ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
+        unsigned int new_rank = m_decomposition->placeParticle(m_global_box, tmp_pos, h_cart_ranks.data);
         bcast(new_rank, 0, m_exec_conf->getMPICommunicator());
 
         // should the particle migrate?
@@ -2844,7 +2868,7 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
  *        no ghost particles are present, because ghost particle values
  *        are undefined after calling this method.
  */
-void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<unsigned int> &comm_flags)
+void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out, GlobalVector<unsigned int> &comm_flags)
     {
     if (m_prof) m_prof->push(m_exec_conf, "pack");
 
@@ -2913,7 +2937,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
             ArrayHandle<unsigned int> d_comm_flags_out(comm_flags, access_location::device, access_mode::overwrite);
 
             // get temporary buffer
-            ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocator(), getN());
+            ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocatorManaged(), getN());
+
+            m_exec_conf->beginMultiGPU();
 
             n_out = gpu_pdata_remove(getN(),
                            d_pos.data,
@@ -2951,9 +2977,14 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
                            d_comm_flags_out.data,
                            max_n_out,
                            d_tmp.data,
-                           m_mgpu_context);
-           }
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+                           m_mgpu_context,
+                           m_gpu_partition);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+
+            m_exec_conf->endMultiGPU();
+            }
 
         // resize output vector
         out.resize(n_out);
@@ -2992,7 +3023,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
     }
 
 //! Add new particle data (GPU version)
-void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
+void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
     {
     if (m_prof) m_prof->push(m_exec_conf, "unpack");
 
@@ -3061,19 +3092,16 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 
-void ParticleData::updateGPUPartition()
+void ParticleData::setGPUAdvice()
     {
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
         {
-        // update the partition information
-        m_gpu_partition.setN(getN());
-
         // only call CUDA API when necessary
-        if (m_gpu_partition == m_last_gpu_partition)
+        if (m_memory_advice_last_Nmax == m_max_nparticles)
             return;
 
-        m_last_gpu_partition = m_gpu_partition;
+        m_memory_advice_last_Nmax = m_max_nparticles;
 
         auto gpu_map = m_exec_conf->getGPUIds();
 

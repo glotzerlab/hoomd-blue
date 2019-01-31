@@ -503,7 +503,7 @@ class BondedGroupData
          */
 
         //! Return GPU bonded groups list
-        const GPUArray<members_t>& getGPUTable()
+        const GPUVector<members_t>& getGPUTable()
             {
             // rebuild lookup table if necessary
             if (m_groups_dirty)

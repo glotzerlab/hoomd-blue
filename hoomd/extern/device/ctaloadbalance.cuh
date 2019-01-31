@@ -34,6 +34,7 @@
 
 #pragma once
 
+#include "../device/ctamerge.cuh"
 #include "../device/ctasearch.cuh"
 #include "../device/loadstore.cuh"
 

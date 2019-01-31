@@ -8,6 +8,8 @@
 
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
+#include <thrust/gather.h>
+#include <thrust/scatter.h>
 #include <thrust/device_vector.h>
 #include <thrust/binary_search.h>
 #include <thrust/scan.h>
@@ -26,15 +28,19 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     const unsigned int *d_tag,
     const unsigned int *d_molecule_tag,
     unsigned int *d_local_molecule_tags,
+    unsigned int *d_local_molecules_lowest_idx,
     unsigned int *d_local_unique_molecule_tags,
     unsigned int *d_local_molecule_idx,
     unsigned int *d_sorted_by_tag,
     unsigned int *d_idx_sorted_by_tag,
+    unsigned int *d_lowest_idx,
+    unsigned int *d_lowest_idx_in_molecules,
+    unsigned int *d_lowest_idx_by_molecule_tag,
     unsigned int *d_molecule_length,
     unsigned int &n_local_molecules,
     unsigned int &max_len,
     unsigned int &n_local_ptls_in_molecules,
-    const CachedAllocator& alloc)
+    CachedAllocator& alloc)
     {
     thrust::device_ptr<const unsigned int> tag(d_tag);
     thrust::device_ptr<const unsigned int> molecule_tag(d_molecule_tag);
@@ -111,19 +117,66 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     #endif
     n_local_molecules = new_end.first - local_unique_molecule_tags;
 
+    // find the index of the particle with lowest tag in every molecule
+    thrust::device_ptr<unsigned int> lowest_idx_in_molecules(d_lowest_idx_in_molecules);
+    thrust::device_ptr<unsigned int> lowest_idx(d_lowest_idx);
+
+    thrust::lower_bound(thrust::cuda::par(alloc),
+        local_molecule_tags,
+        local_molecule_tags + n_local_ptls_in_molecules,
+        local_unique_molecule_tags,
+        local_unique_molecule_tags + n_local_molecules,
+        lowest_idx_in_molecules);
+
+    thrust::gather(thrust::cuda::par(alloc),
+        lowest_idx_in_molecules,
+        lowest_idx_in_molecules + n_local_molecules,
+        idx_sorted_by_tag,
+        lowest_idx);
+
     // compute maximum molecule length
     thrust::device_ptr<unsigned int> max_ptr = thrust::max_element(molecule_length, molecule_length + n_local_molecules);
     cudaMemcpy(&max_len, max_ptr.get(), sizeof(unsigned int), cudaMemcpyDeviceToHost);
+
+    auto zip_it = thrust::make_zip_iterator(thrust::make_tuple(local_unique_molecule_tags, molecule_length));
+    thrust::sort_by_key(thrust::cuda::par(alloc),
+        lowest_idx,
+        lowest_idx + n_local_molecules,
+        zip_it);
+
+    // create a global lookup table for lowest idx by molecule tag
+    thrust::device_ptr<unsigned int> lowest_idx_by_molecule_tag(d_lowest_idx_by_molecule_tag);
+    thrust::scatter(thrust::cuda::par(alloc),
+        lowest_idx,
+        lowest_idx + n_local_molecules,
+        local_unique_molecule_tags,
+        lowest_idx_by_molecule_tag);
+
+    // sort the list of particles in molecules again according to first particle index, keeping order in molecule
+    auto lowest_idx_by_ptl_in_molecule = thrust::make_permutation_iterator(
+        lowest_idx_by_molecule_tag,
+        local_molecule_tags);
+
+    thrust::device_ptr<unsigned int> local_molecules_lowest_idx(d_local_molecules_lowest_idx);
+    thrust::copy(thrust::cuda::par(alloc),
+        lowest_idx_by_ptl_in_molecule,
+        lowest_idx_by_ptl_in_molecule + n_local_ptls_in_molecules,
+        local_molecules_lowest_idx);
+
+    thrust::stable_sort_by_key(thrust::cuda::par(alloc),
+        local_molecules_lowest_idx,
+        local_molecules_lowest_idx + n_local_ptls_in_molecules,
+        idx_sorted_by_tag);
 
     // assign local molecule tags to particles
     thrust::fill(thrust::cuda::par(alloc),
         local_molecule_idx, local_molecule_idx+nptl,NO_MOLECULE);
     auto idx_lookup = thrust::make_permutation_iterator(local_molecule_idx, idx_sorted_by_tag);
     thrust::lower_bound(thrust::cuda::par(alloc),
-        local_unique_molecule_tags,
-        local_unique_molecule_tags + n_local_molecules,
-        local_molecule_tags,
-        end,
+        lowest_idx,
+        lowest_idx + n_local_molecules,
+        local_molecules_lowest_idx,
+        local_molecules_lowest_idx + n_local_ptls_in_molecules,
         idx_lookup);
 
     return cudaSuccess;
@@ -155,7 +208,7 @@ cudaError_t gpu_fill_molecule_table(
     unsigned int *d_molecule_list,
     unsigned int *d_molecule_order,
     unsigned int block_size,
-    const CachedAllocator& alloc
+    CachedAllocator& alloc
     )
     {
     thrust::device_ptr<unsigned int> molecule_order(d_molecule_order);

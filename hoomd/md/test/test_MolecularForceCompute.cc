@@ -76,19 +76,19 @@ void basic_molecule_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         ArrayHandle<unsigned int> h_molecule_list(mfc.getMoleculeList(), access_location::host, access_mode::read);
         Index2D molecule_indexer = mfc.getMoleculeIndexer();
 
-        UP_ASSERT_EQUAL(molecule_indexer.getW(),2);
-        UP_ASSERT_EQUAL(molecule_indexer.getH(),3); // max length
+        UP_ASSERT_EQUAL(molecule_indexer.getW(),2); // max length
+        UP_ASSERT_EQUAL(molecule_indexer.getH(),3);
 
-        // molecule list is sorted by molecule tag
+        // molecule list is sorted by lowest molecule member index
         UP_ASSERT_EQUAL(h_molecule_length.data[0],2);
-        UP_ASSERT_EQUAL(h_molecule_length.data[1],2);
-        UP_ASSERT_EQUAL(h_molecule_length.data[2],1);
+        UP_ASSERT_EQUAL(h_molecule_length.data[1],1);
+        UP_ASSERT_EQUAL(h_molecule_length.data[2],2);
 
-        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(0,0)],3);
-        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(1,0)],4);
-        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(0,1)],0);
-        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(1,1)],1);
-        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(0,2)],2);
+        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(0,0)],0);
+        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(1,0)],1);
+        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(0,1)],2);
+        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(0,2)],3);
+        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(1,2)],4);
         }
 
         {
@@ -115,19 +115,19 @@ void basic_molecule_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         ArrayHandle<unsigned int> h_molecule_list(mfc.getMoleculeList(), access_location::host, access_mode::read);
         Index2D molecule_indexer = mfc.getMoleculeIndexer();
 
-        UP_ASSERT_EQUAL(molecule_indexer.getW(),2);
-        UP_ASSERT_EQUAL(molecule_indexer.getH(),3); // max length
+        UP_ASSERT_EQUAL(molecule_indexer.getW(),2); // max length
+        UP_ASSERT_EQUAL(molecule_indexer.getH(),3);
 
-        // molecule list is sorted by molecule tag
+        // molecule list is sorted by lowest molecule member index
         UP_ASSERT_EQUAL(h_molecule_length.data[0],2);
-        UP_ASSERT_EQUAL(h_molecule_length.data[1],2);
-        UP_ASSERT_EQUAL(h_molecule_length.data[2],1);
+        UP_ASSERT_EQUAL(h_molecule_length.data[1],1);
+        UP_ASSERT_EQUAL(h_molecule_length.data[2],2);
 
         UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(0,0)],1);
         UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(1,0)],0);
-        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(0,1)],4);
-        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(1,1)],3);
-        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(0,2)],2);
+        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(0,1)],2);
+        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(0,2)],4);
+        UP_ASSERT_EQUAL(h_molecule_list.data[molecule_indexer(1,2)],3);
         }
     }
 

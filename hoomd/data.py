@@ -247,7 +247,7 @@ and can change it::
 **All** particles must **always** remain inside the box. If a box is set in this way such that a particle ends up outside of the box, expect
 errors to be thrown or for hoomd to just crash. The dimensionality of the system cannot change after initialization.
 
-.. rubric:: Particle properties<
+.. rubric:: Particle properties
 
 For a list of all particle properties that can be read and/or set, see :py:class:`hoomd.data.particle_data_proxy`.
 The examples here only demonstrate changing a few of them.
@@ -348,7 +348,7 @@ of type 'A', do::
         if p.type == 'A'
             tags.append(p.tag)
 
-Then remove each of the bonds by their unique tag::
+Then remove each of the particles by their unique tag::
 
     for t in tags:
         system.particles.remove(t)
@@ -366,7 +366,7 @@ particles of type A to 0::
     for p in groupA:
         p.velocity = (0,0,0)
 
-.. rubric:: Bond Data<
+.. rubric:: Bond Data
 
 Bonds may be added at any time in the job script::
 

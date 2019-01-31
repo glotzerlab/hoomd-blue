@@ -32,15 +32,12 @@ CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
       m_constraint_comm(*this, m_sysdef->getConstraintData()),
       m_pair_comm(*this, m_sysdef->getPairData())
     {
-    // default value
-    #ifndef ENABLE_MPI_CUDA
-    m_mapped_ghost_recv = true;
-    m_mapped_ghost_send = true;
-    #else
-    // do not use host buffers with CUDA-aware MPI
-    m_mapped_ghost_recv = false;
-    m_mapped_ghost_send = false;
-    #endif
+    if (m_exec_conf->allConcurrentManagedAccess())
+        {
+        // inform the user to use a cuda-aware MPI
+        m_exec_conf->msg->notice(2) << "Using unified memory with MPI. Make sure to enable CUDA-awareness in your MPI."
+            << std::endl;
+        }
 
     // allocate memory
     allocateBuffers();
@@ -54,28 +51,8 @@ CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
     // create at ModernGPU context
     m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
 
-    GPUArray<unsigned int> begin(NEIGH_MAX,m_exec_conf,true);
-    m_begin.swap(begin);
-
-    GPUArray<unsigned int> end(NEIGH_MAX,m_exec_conf,true);
-    m_end.swap(end);
-
     // create cuda event
-//    cudaEventCreate(&m_event, cudaEventBlockingSync | cudaEventDisableTiming);
     cudaEventCreate(&m_event, cudaEventDisableTiming);
-
-    #ifndef ENABLE_MPI_CUDA
-    // set up autotuners to determine whether to use mapped memory (boolean values)
-    std::vector<unsigned int> valid_params(2);
-    valid_params[0] = 0; valid_params[1]  = 1;
-
-    m_tuner_ghost_recv.reset(new Autotuner(valid_params, 5, 100000, "comm_ghost_recv_mapped", this->m_exec_conf));
-    m_tuner_ghost_send.reset(new Autotuner(valid_params, 5, 100000, "comm_ghost_send_mapped", this->m_exec_conf));
-
-    // synchronize autotuner results across ranks
-    m_tuner_ghost_recv->setSync(true);
-    m_tuner_ghost_send->setSync(true);
-    #endif
     }
 
 //! Destructor
@@ -87,167 +64,109 @@ CommunicatorGPU::~CommunicatorGPU()
 
 void CommunicatorGPU::allocateBuffers()
     {
-    #ifndef ENABLE_MPI_CUDA
-    // mapped buffers for particle migration
-    bool mapped = true;
-    #else
-    bool mapped = false;
-    #endif
-
     /*
      * Particle migration
      */
-    GPUVector<pdata_element> gpu_sendbuf(m_exec_conf,mapped);
+    GlobalVector<pdata_element> gpu_sendbuf(m_exec_conf);
     m_gpu_sendbuf.swap(gpu_sendbuf);
 
-    GPUVector<pdata_element> gpu_recvbuf(m_exec_conf,mapped);
+    GlobalVector<pdata_element> gpu_recvbuf(m_exec_conf);
     m_gpu_recvbuf.swap(gpu_recvbuf);
 
     // Communication flags for every particle sent
-    GPUVector<unsigned int> comm_flags(m_exec_conf);
+    GlobalVector<unsigned int> comm_flags(m_exec_conf);
     m_comm_flags.swap(comm_flags);
 
     // Key for every particle sent
-    GPUVector<unsigned int> send_keys(m_exec_conf);
+    GlobalVector<unsigned int> send_keys(m_exec_conf);
     m_send_keys.swap(send_keys);
 
     /*
      * Ghost communication
      */
 
-    GPUVector<unsigned int> tag_ghost_sendbuf(m_exec_conf,m_mapped_ghost_send);
+    GlobalVector<unsigned int> tag_ghost_sendbuf(m_exec_conf);
     m_tag_ghost_sendbuf.swap(tag_ghost_sendbuf);
 
-    GPUVector<unsigned int> tag_ghost_recvbuf(m_exec_conf,m_mapped_ghost_recv);
+    GlobalVector<unsigned int> tag_ghost_recvbuf(m_exec_conf);
     m_tag_ghost_recvbuf.swap(tag_ghost_recvbuf);
 
-    GPUVector<Scalar4> pos_ghost_sendbuf(m_exec_conf,m_mapped_ghost_send);
+    GlobalVector<Scalar4> pos_ghost_sendbuf(m_exec_conf);
     m_pos_ghost_sendbuf.swap(pos_ghost_sendbuf);
 
-    GPUVector<Scalar4> pos_ghost_recvbuf(m_exec_conf,m_mapped_ghost_recv);
+    GlobalVector<Scalar4> pos_ghost_recvbuf(m_exec_conf);
     m_pos_ghost_recvbuf.swap(pos_ghost_recvbuf);
 
-    GPUVector<Scalar4> vel_ghost_sendbuf(m_exec_conf,m_mapped_ghost_send);
+    GlobalVector<Scalar4> vel_ghost_sendbuf(m_exec_conf);
     m_vel_ghost_sendbuf.swap(vel_ghost_sendbuf);
 
-    GPUVector<Scalar4> vel_ghost_recvbuf(m_exec_conf,m_mapped_ghost_recv);
+    GlobalVector<Scalar4> vel_ghost_recvbuf(m_exec_conf);
     m_vel_ghost_recvbuf.swap(vel_ghost_recvbuf);
 
-    GPUVector<Scalar> charge_ghost_sendbuf(m_exec_conf,m_mapped_ghost_send);
+    GlobalVector<Scalar> charge_ghost_sendbuf(m_exec_conf);
     m_charge_ghost_sendbuf.swap(charge_ghost_sendbuf);
 
-    GPUVector<Scalar> charge_ghost_recvbuf(m_exec_conf,m_mapped_ghost_recv);
+    GlobalVector<Scalar> charge_ghost_recvbuf(m_exec_conf);
     m_charge_ghost_recvbuf.swap(charge_ghost_recvbuf);
 
-    GPUVector<unsigned int> body_ghost_sendbuf(m_exec_conf,m_mapped_ghost_send);
+    GlobalVector<unsigned int> body_ghost_sendbuf(m_exec_conf);
     m_body_ghost_sendbuf.swap(body_ghost_sendbuf);
 
-    GPUVector<unsigned int> body_ghost_recvbuf(m_exec_conf,m_mapped_ghost_recv);
+    GlobalVector<unsigned int> body_ghost_recvbuf(m_exec_conf);
     m_body_ghost_recvbuf.swap(body_ghost_recvbuf);
 
-    GPUVector<int3> image_ghost_sendbuf(m_exec_conf,m_mapped_ghost_send);
+    GlobalVector<int3> image_ghost_sendbuf(m_exec_conf);
     m_image_ghost_sendbuf.swap(image_ghost_sendbuf);
 
-    GPUVector<int3> image_ghost_recvbuf(m_exec_conf,m_mapped_ghost_recv);
+    GlobalVector<int3> image_ghost_recvbuf(m_exec_conf);
     m_image_ghost_recvbuf.swap(image_ghost_recvbuf);
 
-    GPUVector<Scalar> diameter_ghost_sendbuf(m_exec_conf,m_mapped_ghost_send);
+    GlobalVector<Scalar> diameter_ghost_sendbuf(m_exec_conf);
     m_diameter_ghost_sendbuf.swap(diameter_ghost_sendbuf);
 
-    GPUVector<Scalar> diameter_ghost_recvbuf(m_exec_conf,m_mapped_ghost_recv);
+    GlobalVector<Scalar> diameter_ghost_recvbuf(m_exec_conf);
     m_diameter_ghost_recvbuf.swap(diameter_ghost_recvbuf);
 
-    GPUVector<Scalar4> orientation_ghost_sendbuf(m_exec_conf,m_mapped_ghost_send);
+    GlobalVector<Scalar4> orientation_ghost_sendbuf(m_exec_conf);
     m_orientation_ghost_sendbuf.swap(orientation_ghost_sendbuf);
 
-    GPUVector<Scalar4> orientation_ghost_recvbuf(m_exec_conf,m_mapped_ghost_recv);
+    GlobalVector<Scalar4> orientation_ghost_recvbuf(m_exec_conf);
     m_orientation_ghost_recvbuf.swap(orientation_ghost_recvbuf);
 
-    GPUVector<Scalar4> netforce_ghost_sendbuf(m_exec_conf);
+    GlobalVector<Scalar4> netforce_ghost_sendbuf(m_exec_conf);
     m_netforce_ghost_sendbuf.swap(netforce_ghost_sendbuf);
 
-    GPUVector<Scalar4> netforce_ghost_recvbuf(m_exec_conf);
+    GlobalVector<Scalar4> netforce_ghost_recvbuf(m_exec_conf);
     m_netforce_ghost_recvbuf.swap(netforce_ghost_recvbuf);
 
-    GPUVector<Scalar4> nettorque_ghost_sendbuf(m_exec_conf);
+    GlobalVector<Scalar4> nettorque_ghost_sendbuf(m_exec_conf);
     m_nettorque_ghost_sendbuf.swap(nettorque_ghost_sendbuf);
 
-    GPUVector<Scalar4> nettorque_ghost_recvbuf(m_exec_conf);
+    GlobalVector<Scalar4> nettorque_ghost_recvbuf(m_exec_conf);
     m_nettorque_ghost_recvbuf.swap(nettorque_ghost_recvbuf);
 
-    GPUVector<Scalar> netvirial_ghost_sendbuf(m_exec_conf);
+    GlobalVector<Scalar> netvirial_ghost_sendbuf(m_exec_conf);
     m_netvirial_ghost_sendbuf.swap(netvirial_ghost_sendbuf);
 
-    GPUVector<Scalar> netvirial_ghost_recvbuf(m_exec_conf);
+    GlobalVector<Scalar> netvirial_ghost_recvbuf(m_exec_conf);
     m_netvirial_ghost_recvbuf.swap(netvirial_ghost_recvbuf);
 
-    #ifndef ENABLE_MPI_CUDA
-    // initialize standby buffers (opposite mapped setting)
-    GPUVector<unsigned int> tag_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
-    m_tag_ghost_sendbuf_alt.swap(tag_ghost_sendbuf_alt);
-
-    GPUVector<unsigned int> tag_ghost_recvbuf_alt(m_exec_conf,!m_mapped_ghost_recv);
-    m_tag_ghost_recvbuf_alt.swap(tag_ghost_recvbuf_alt);
-
-    GPUVector<Scalar4> pos_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
-    m_pos_ghost_sendbuf_alt.swap(pos_ghost_sendbuf_alt);
-
-    GPUVector<Scalar4> pos_ghost_recvbuf_alt(m_exec_conf,!m_mapped_ghost_recv);
-    m_pos_ghost_recvbuf_alt.swap(pos_ghost_recvbuf_alt);
-
-    GPUVector<Scalar4> vel_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
-    m_vel_ghost_sendbuf_alt.swap(vel_ghost_sendbuf_alt);
-
-    GPUVector<Scalar4> vel_ghost_recvbuf_alt(m_exec_conf,!m_mapped_ghost_recv);
-    m_vel_ghost_recvbuf_alt.swap(vel_ghost_recvbuf_alt);
-
-    GPUVector<Scalar> charge_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
-    m_charge_ghost_sendbuf_alt.swap(charge_ghost_sendbuf_alt);
-
-    GPUVector<Scalar> charge_ghost_recvbuf_alt(m_exec_conf,!m_mapped_ghost_recv);
-    m_charge_ghost_recvbuf_alt.swap(charge_ghost_recvbuf_alt);
-
-    GPUVector<unsigned int> body_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
-    m_body_ghost_sendbuf_alt.swap(body_ghost_sendbuf_alt);
-
-    GPUVector<unsigned int> body_ghost_recvbuf_alt(m_exec_conf,!m_mapped_ghost_recv);
-    m_body_ghost_recvbuf_alt.swap(body_ghost_recvbuf_alt);
-
-    GPUVector<int3> image_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
-    m_image_ghost_sendbuf_alt.swap(image_ghost_sendbuf_alt);
-
-    GPUVector<int3> image_ghost_recvbuf_alt(m_exec_conf,!m_mapped_ghost_recv);
-    m_image_ghost_recvbuf_alt.swap(image_ghost_recvbuf_alt);
-
-    GPUVector<Scalar> diameter_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
-    m_diameter_ghost_sendbuf_alt.swap(diameter_ghost_sendbuf_alt);
-
-    GPUVector<Scalar> diameter_ghost_recvbuf_alt(m_exec_conf,!m_mapped_ghost_recv);
-    m_diameter_ghost_recvbuf_alt.swap(diameter_ghost_recvbuf_alt);
-
-    GPUVector<Scalar4> orientation_ghost_sendbuf_alt(m_exec_conf,!m_mapped_ghost_send);
-    m_orientation_ghost_sendbuf_alt.swap(orientation_ghost_sendbuf_alt);
-
-    GPUVector<Scalar4> orientation_ghost_recvbuf_alt(m_exec_conf,!m_mapped_ghost_recv);
-    m_orientation_ghost_recvbuf_alt.swap(orientation_ghost_recvbuf_alt);
-    #endif
-
-    GPUVector<unsigned int> ghost_begin(m_exec_conf,true);
+    GlobalVector<unsigned int> ghost_begin(m_exec_conf);
     m_ghost_begin.swap(ghost_begin);
 
-    GPUVector<unsigned int> ghost_end(m_exec_conf,true);
+    GlobalVector<unsigned int> ghost_end(m_exec_conf);
     m_ghost_end.swap(ghost_end);
 
-    GPUVector<unsigned int> ghost_plan(m_exec_conf);
+    GlobalVector<unsigned int> ghost_plan(m_exec_conf);
     m_ghost_plan.swap(ghost_plan);
 
-    GPUVector<uint2> ghost_idx_adj(m_exec_conf);
+    GlobalVector<uint2> ghost_idx_adj(m_exec_conf);
     m_ghost_idx_adj.swap(ghost_idx_adj);
 
-    GPUVector<unsigned int> ghost_neigh(m_exec_conf);
+    GlobalVector<unsigned int> ghost_neigh(m_exec_conf);
     m_ghost_neigh.swap(ghost_neigh);
 
-    GPUVector<unsigned int> neigh_counts(m_exec_conf);
+    GlobalVector<unsigned int> neigh_counts(m_exec_conf);
     m_neigh_counts.swap(neigh_counts);
     }
 
@@ -435,41 +354,34 @@ CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(Communic
       m_ghost_group_begin(m_exec_conf), m_ghost_group_end(m_exec_conf),m_ghost_group_idx_adj(m_exec_conf),
       m_ghost_group_neigh(m_exec_conf), m_ghost_group_plan(m_exec_conf), m_neigh_counts(m_exec_conf)
     {
-    // accelerate copying of data for host MPI
-    #ifdef ENABLE_MPI_CUDA
-    bool mapped = false;
-    #else
-    bool mapped = true;
-    #endif
-
-    GPUVector<unsigned int> rank_mask(m_exec_conf);
+    GlobalVector<unsigned int> rank_mask(m_exec_conf);
     m_rank_mask.swap(rank_mask);
 
-    GPUVector<unsigned int> scratch(m_exec_conf);
+    GlobalVector<unsigned int> scratch(m_exec_conf);
     m_scan.swap(scratch);
 
-    GPUVector<rank_element_t> ranks_out(m_exec_conf,mapped);
+    GlobalVector<rank_element_t> ranks_out(m_exec_conf);
     m_ranks_out.swap(ranks_out);
 
-    GPUVector<rank_element_t> ranks_sendbuf(m_exec_conf,mapped);
+    GlobalVector<rank_element_t> ranks_sendbuf(m_exec_conf);
     m_ranks_sendbuf.swap(ranks_sendbuf);
 
-    GPUVector<rank_element_t> ranks_recvbuf(m_exec_conf,mapped);
+    GlobalVector<rank_element_t> ranks_recvbuf(m_exec_conf);
     m_ranks_recvbuf.swap(ranks_recvbuf);
 
-    GPUVector<group_element_t> groups_out(m_exec_conf,mapped);
+    GlobalVector<group_element_t> groups_out(m_exec_conf);
     m_groups_out.swap(groups_out);
 
-    GPUVector<unsigned int> rank_mask_out(m_exec_conf,mapped);
+    GlobalVector<unsigned int> rank_mask_out(m_exec_conf);
     m_rank_mask_out.swap(rank_mask_out);
 
-    GPUVector<group_element_t> groups_sendbuf(m_exec_conf,mapped);
+    GlobalVector<group_element_t> groups_sendbuf(m_exec_conf);
     m_groups_sendbuf.swap(groups_sendbuf);
 
-    GPUVector<group_element_t> groups_recvbuf(m_exec_conf,mapped);
+    GlobalVector<group_element_t> groups_recvbuf(m_exec_conf);
     m_groups_recvbuf.swap(groups_recvbuf);
 
-    GPUVector<group_element_t> groups_in(m_exec_conf, mapped);
+    GlobalVector<group_element_t> groups_in(m_exec_conf);
     m_groups_in.swap(groups_in);
 
     // the size of the bit field must be larger or equal the group size
@@ -1105,7 +1017,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
 template<class group_data>
 void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
-    const GPUArray<unsigned int>& plans)
+    const GlobalVector<unsigned int>& plans)
     {
     if (m_gdata->getNGlobal())
         {
@@ -1230,7 +1142,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                     m_gpu_comm.m_n_unique_neigh,
                     n_send_ghost_groups_tot[stage],
                     m_gpu_comm.m_comm_mask[stage],
-                    m_gpu_comm.m_mgpu_context);
+                    m_gpu_comm.m_mgpu_context,
+                    m_exec_conf->getCachedAllocator());
 
                 if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
                 }
@@ -1407,7 +1320,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                 ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
 
-                const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
+                CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
                 ScopedAllocation<unsigned int> d_keep(alloc, n_recv_ghost_groups_tot[stage]);
                 ScopedAllocation<unsigned int> d_scan(alloc, n_recv_ghost_groups_tot[stage]);
 
@@ -1456,7 +1369,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
 //! Mark ghost particles
 template<class group_data>
 void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
-    const GPUArray<unsigned int>& plans,
+    const GlobalVector<unsigned int>& plans,
     unsigned int mask)
     {
     if (m_gdata->getNGlobal())
@@ -1579,7 +1492,7 @@ void CommunicatorGPU::migrateParticles()
 
             // get temporary buffers
             unsigned int nsend = m_gpu_sendbuf.size();
-            const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
+            CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
             ScopedAllocation<pdata_element> d_in_copy(alloc, nsend);
             ScopedAllocation<unsigned int> d_tmp(alloc, nsend);
 
@@ -1597,7 +1510,8 @@ void CommunicatorGPU::migrateParticles()
                        m_comm_mask[stage],
                        m_mgpu_context,
                        d_tmp.data,
-                       d_in_copy.data);
+                       d_in_copy.data,
+                       m_exec_conf->getCachedAllocator());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -1966,7 +1880,8 @@ void CommunicatorGPU::exchangeGhosts()
                 m_n_unique_neigh,
                 m_n_send_ghosts_tot[stage],
                 m_comm_mask[stage],
-                m_mgpu_context);
+                m_mgpu_context,
+                m_exec_conf->getCachedAllocator());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
@@ -2508,69 +2423,6 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
     // main communication loop
     for (unsigned int stage = 0; stage < m_num_stages; ++stage)
         {
-        #ifndef ENABLE_MPI_CUDA
-        bool mapped_ghost_recv = m_tuner_ghost_recv->getParam();
-        bool mapped_ghost_send = m_tuner_ghost_send->getParam();
-
-        // switch between mapped and non-mapped
-        if (mapped_ghost_recv != m_mapped_ghost_recv)
-            {
-            m_pos_ghost_recvbuf_alt.resize(m_pos_ghost_recvbuf.size());
-            m_pos_ghost_recvbuf.swap(m_pos_ghost_recvbuf_alt);
-
-            m_vel_ghost_recvbuf_alt.resize(m_vel_ghost_recvbuf.size());
-            m_vel_ghost_recvbuf.swap(m_vel_ghost_recvbuf_alt);
-
-            m_orientation_ghost_recvbuf_alt.resize(m_orientation_ghost_recvbuf.size());
-            m_orientation_ghost_recvbuf.swap(m_orientation_ghost_recvbuf_alt);
-
-            m_tag_ghost_recvbuf_alt.resize(m_tag_ghost_recvbuf.size());
-            m_tag_ghost_recvbuf.swap(m_tag_ghost_recvbuf_alt);
-
-            m_charge_ghost_recvbuf_alt.resize(m_charge_ghost_recvbuf.size());
-            m_charge_ghost_recvbuf.swap(m_charge_ghost_recvbuf_alt);
-
-            m_diameter_ghost_recvbuf_alt.resize(m_diameter_ghost_recvbuf.size());
-            m_diameter_ghost_recvbuf.swap(m_diameter_ghost_recvbuf_alt);
-
-            m_body_ghost_recvbuf_alt.resize(m_body_ghost_recvbuf.size());
-            m_body_ghost_recvbuf.swap(m_body_ghost_recvbuf_alt);
-
-            m_image_ghost_recvbuf_alt.resize(m_image_ghost_recvbuf.size());
-            m_image_ghost_recvbuf.swap(m_image_ghost_recvbuf_alt);
-
-            m_mapped_ghost_recv = mapped_ghost_recv;
-            }
-        if (mapped_ghost_send != m_mapped_ghost_send)
-            {
-            m_pos_ghost_sendbuf_alt.resize(m_pos_ghost_sendbuf.size());
-            m_pos_ghost_sendbuf.swap(m_pos_ghost_sendbuf_alt);
-
-            m_vel_ghost_sendbuf_alt.resize(m_vel_ghost_sendbuf.size());
-            m_vel_ghost_sendbuf.swap(m_vel_ghost_sendbuf_alt);
-
-            m_orientation_ghost_sendbuf_alt.resize(m_orientation_ghost_sendbuf.size());
-            m_orientation_ghost_sendbuf.swap(m_orientation_ghost_sendbuf_alt);
-
-            m_tag_ghost_sendbuf_alt.resize(m_tag_ghost_sendbuf.size());
-            m_tag_ghost_sendbuf.swap(m_tag_ghost_sendbuf_alt);
-
-            m_charge_ghost_sendbuf_alt.resize(m_charge_ghost_sendbuf.size());
-            m_charge_ghost_sendbuf.swap(m_charge_ghost_sendbuf_alt);
-
-            m_diameter_ghost_sendbuf_alt.resize(m_diameter_ghost_sendbuf.size());
-            m_diameter_ghost_sendbuf.swap(m_diameter_ghost_sendbuf_alt);
-
-            m_body_ghost_sendbuf_alt.resize(m_body_ghost_sendbuf.size());
-            m_body_ghost_sendbuf.swap(m_body_ghost_sendbuf_alt);
-
-            m_image_ghost_sendbuf_alt.resize(m_image_ghost_sendbuf.size());
-            m_image_ghost_sendbuf.swap(m_image_ghost_sendbuf_alt);
-
-            m_mapped_ghost_send = mapped_ghost_send;
-            }
-        #endif
-
         if (m_prof) m_prof->push(m_exec_conf,"pack");
             {
             // access particle data
@@ -2580,11 +2432,6 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
 
             // access ghost send indices
             ArrayHandle<uint2> d_ghost_idx_adj(m_ghost_idx_adj, access_location::device, access_mode::read);
-
-            #ifndef ENABLE_MPI_CUDA
-            // begin measurement of device-host transfer time
-            m_tuner_ghost_send->begin();
-            #endif
 
             // access output buffers
             ArrayHandle<unsigned int> d_tag_ghost_sendbuf(m_tag_ghost_sendbuf, access_location::device, access_mode::overwrite);
@@ -2675,9 +2522,6 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
             ArrayHandleAsync<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::host, access_mode::read);
             ArrayHandleAsync<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::host, access_mode::read);
             ArrayHandleAsync<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::host, access_mode::read);
-
-            // end measurement of device-host transfer time
-            m_tuner_ghost_send->end();
 
             ArrayHandleAsync<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
             ArrayHandleAsync<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
@@ -2812,9 +2656,6 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
             //only unpack in non-CUDA MPI builds
             if (m_prof) m_prof->push(m_exec_conf,"unpack");
                 {
-                // begin measurement of host-device transfer time for received ghosts
-                m_tuner_ghost_recv->begin();
-
                 // access receive buffers
                 ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf, access_location::device, access_mode::read);
                 ArrayHandle<Scalar4> d_vel_ghost_recvbuf(m_vel_ghost_recvbuf, access_location::device, access_mode::read);
@@ -2853,9 +2694,6 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                     flags[comm_flag::orientation]);
 
                 if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-
-                // end measurement
-                m_tuner_ghost_recv->end();
                 }
             if (m_prof) m_prof->pop(m_exec_conf);
             #endif
@@ -2894,9 +2732,6 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
         CommFlags flags = m_last_flags;
         if (m_prof) m_prof->push(m_exec_conf,"unpack");
             {
-            // begin measurement of host-device transfer time for received ghosts
-            m_tuner_ghost_recv->begin();
-
             // access receive buffers
             ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_vel_ghost_recvbuf(m_vel_ghost_recvbuf, access_location::device, access_mode::read);
@@ -2935,9 +2770,6 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
                 flags[comm_flag::orientation]);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-
-            // end measurement
-            m_tuner_ghost_recv->end();
             }
         if (m_prof) m_prof->pop(m_exec_conf);
         #endif

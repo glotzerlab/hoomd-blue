@@ -7,6 +7,9 @@
 #include "Index1D.h"
 #include "ParticleGroup.h"
 
+#include "GlobalArray.h"
+#include "GlobalArray.h"
+
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
 #endif
@@ -93,19 +96,19 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         Scalar getEnergy(unsigned int tag);
 
         //! Get the array of computed forces
-        GPUArray<Scalar4>& getForceArray()
+        GlobalArray<Scalar4>& getForceArray()
             {
             return m_force;
             }
 
         //! Get the array of computed virials
-        GPUArray<Scalar>& getVirialArray()
+        GlobalArray<Scalar>& getVirialArray()
             {
             return m_virial;
             }
 
         //! Get the array of computed torques
-        GPUArray<Scalar4>& getTorqueArray()
+        GlobalArray<Scalar4>& getTorqueArray()
             {
             return m_torque;
             }
@@ -154,20 +157,13 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         void setParticlesSorted()
             {
             m_particles_sorted = true;
-
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled())
-                updateGPUMapping();
-            #endif
             }
 
         //! Reallocate internal arrays
         void reallocate();
 
-        #ifdef ENABLE_CUDA
-        //! Update memory region GPU locality
-        void updateGPUMapping();
-        #endif
+        //! Update GPU memory hints
+        void updateGPUAdvice();
 
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
 
@@ -193,10 +189,6 @@ class PYBIND11_EXPORT ForceCompute : public Compute
             \param timestep Current time step
         */
         virtual void computeForces(unsigned int timestep){}
-
-        #ifdef ENABLE_CUDA
-        GPUPartition m_last_gpu_partition;
-        #endif
     };
 
 //! Exports the ForceCompute class to python

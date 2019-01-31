@@ -64,8 +64,8 @@ void periodic_force_particle_test(periodicforce_creator periodic_creator, std::s
     fc_3->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
@@ -123,13 +123,13 @@ void periodic_force_comparison_test(periodicforce_creator periodic_creator1, per
 
     {
     // verify that the forces are identical (within roundoff errors)
-    GPUArray<Scalar4>& force_array_5 =  fc1->getForceArray();
-    GPUArray<Scalar>& virial_array_5 =  fc1->getVirialArray();
+    GlobalArray<Scalar4>& force_array_5 =  fc1->getForceArray();
+    GlobalArray<Scalar>& virial_array_5 =  fc1->getVirialArray();
     unsigned int pitch = virial_array_5.getPitch();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
-    GPUArray<Scalar4>& force_array_6 =  fc2->getForceArray();
-    GPUArray<Scalar>& virial_array_6 =  fc2->getVirialArray();
+    GlobalArray<Scalar4>& force_array_6 =  fc2->getForceArray();
+    GlobalArray<Scalar>& virial_array_6 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
 
