@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -15,7 +15,7 @@
 #include "Index1D.h"
 #include "BoxDim.h"
 #include "ExecutionConfiguration.h"
-#include "GPUArray.h"
+#include "GlobalArray.h"
 
 #include <set>
 #include <vector>
@@ -82,13 +82,13 @@ class PYBIND11_EXPORT DomainDecomposition
             }
 
         //! Get the cartesian ranks lookup table (linear cartesian index -> rank)
-        const GPUArray<unsigned int>& getCartRanks() const
+        const GlobalArray<unsigned int>& getCartRanks() const
             {
             return m_cart_ranks;
             }
 
         //! Get the inverse lookup table (rank -> linear cartesian index)
-        const GPUArray<unsigned int>& getInverseCartRanks() const
+        const GlobalArray<unsigned int>& getInverseCartRanks() const
             {
             return m_cart_ranks_inv;
             }
@@ -156,7 +156,7 @@ class PYBIND11_EXPORT DomainDecomposition
         const BoxDim calculateLocalBox(const BoxDim& global_box);
 
         //! Get the rank for a particle to be placed
-        unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
+        unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos, const unsigned int *cart_ranks);
 
         //! Get the number of grid cells in each dimension.
         uint3 getGridSize(void)const{return make_uint3(m_nx,m_ny,m_nz);}
@@ -175,8 +175,8 @@ class PYBIND11_EXPORT DomainDecomposition
         unsigned int m_max_n_node;   //!< Maximum number of ranks on a node
         bool m_twolevel;             //!< Whether we use a two-level decomposition
 
-        GPUArray<unsigned int> m_cart_ranks; //!< A lookup-table to map the cartesian grid index onto ranks
-        GPUArray<unsigned int> m_cart_ranks_inv; //!< Inverse permutation of grid index lookup table
+        GlobalArray<unsigned int> m_cart_ranks; //!< A lookup-table to map the cartesian grid index onto ranks
+        GlobalArray<unsigned int> m_cart_ranks_inv; //!< Inverse permutation of grid index lookup table
 
         //! Find a domain decomposition with given parameters
         bool findDecomposition(unsigned int nranks, Scalar3 L,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "MuellerPlatheFlowGPU.h"
@@ -52,7 +52,7 @@ void MuellerPlatheFlowGPU::search_min_max_velocity(void)
     const ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),access_location::device, access_mode::read);
     const ArrayHandle<unsigned int> d_tag(m_pdata->getTags(),access_location::device, access_mode::read);
     const ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(),access_location::device, access_mode::read);
-    const GPUArray< unsigned int >& group_members = m_group->getIndexArray();
+    const GlobalArray< unsigned int >& group_members = m_group->getIndexArray();
     const ArrayHandle<unsigned int> d_group_members(group_members, access_location::device, access_mode::read);
 
     const BoxDim& gl_box = m_pdata->getGlobalBox();

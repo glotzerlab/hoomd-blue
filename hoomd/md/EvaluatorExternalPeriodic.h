@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -57,7 +57,7 @@ class EvaluatorExternalPeriodic
 
         //! type of parameters this external potential accepts
         typedef Scalar4 param_type;
-        typedef struct field{}field_type;
+        typedef Scalar field_type; // dummy type
 
         //! Constructs the constraint evaluator
         /*! \param X position of particle

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -30,11 +30,15 @@ class __attribute__((visibility("default"))) CachedAllocator
          /*  \param max_cached_bytes Maximum size of cache
          *   \param cache_reltol Relative tolerance for cache hits
          */
-        CachedAllocator( unsigned int max_cached_bytes=100u*1024u*1024u, float cache_reltol = 0.1f)
-            : m_num_bytes_tot(0),
+        CachedAllocator(bool managed, unsigned int max_cached_bytes=100u*1024u*1024u, float cache_reltol = 0.1f)
+            : m_managed(managed),
+              m_num_bytes_tot(0),
               m_max_cached_bytes(max_cached_bytes),
               m_cache_reltol(cache_reltol)
             { }
+
+        CachedAllocator(const CachedAllocator&) = delete;
+        CachedAllocator& operator=(const CachedAllocator&) = delete;
 
         //! Set maximum cache size
         void setMaxCachedBytes(unsigned int max_cached_bytes)
@@ -54,16 +58,16 @@ class __attribute__((visibility("default"))) CachedAllocator
          * \returns a pointer to the allocated buffer
          */
         template<typename T>
-        T *getTemporaryBuffer(unsigned int num_elements) const;
+        T *getTemporaryBuffer(unsigned int num_elements);
 
         // Specifically allocate a char* buffer
-        char *allocate(std::ptrdiff_t num_bytes) const
+        char *allocate(std::ptrdiff_t num_bytes)
             {
             return getTemporaryBuffer<char>(num_bytes);
             }
 
         //! Release a previously allocated block
-        void deallocate(char *ptr, size_t n = 0) const
+        void deallocate(char *ptr, size_t n = 0)
             {
             if (ptr == NULL) return;
 
@@ -81,15 +85,17 @@ class __attribute__((visibility("default"))) CachedAllocator
         typedef std::multimap<std::ptrdiff_t, char*> free_blocks_type;
         typedef std::map<char *, std::ptrdiff_t> allocated_blocks_type;
 
-        mutable unsigned int m_num_bytes_tot;
+        bool m_managed;  //! True if we use unified memory
+
+        unsigned int m_num_bytes_tot;
         unsigned int m_max_cached_bytes;
         float m_cache_reltol;
 
-        mutable free_blocks_type m_free_blocks;
-        mutable allocated_blocks_type m_allocated_blocks;
+        free_blocks_type m_free_blocks;
+        allocated_blocks_type m_allocated_blocks;
 
         //! Free all allocated blocks
-        void free_all() const
+        void free_all()
             {
 //            m_exec_conf->msg->notice(5) << "CachedAllocator: Cleaning up after ourselves"
 //                << std::endl;
@@ -118,7 +124,7 @@ class ScopedAllocation
     {
     public:
         //! Copy constructor
-        ScopedAllocation(const CachedAllocator& alloc, unsigned int num_elements);
+        ScopedAllocation(CachedAllocator& alloc, unsigned int num_elements);
 
         //! Destructor
         ~ScopedAllocation();
@@ -133,13 +139,13 @@ class ScopedAllocation
     private:
         ScopedAllocation(char *ptr, CachedAllocator& alloc);
 
-        const CachedAllocator& m_alloc;
+        CachedAllocator& m_alloc;
 
         friend class CachedAllocator;
     };
 
 template<typename T>
-T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements) const
+T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements)
     {
     std::ptrdiff_t num_bytes = sizeof(T)*num_elements;
     char *result = 0;
@@ -174,7 +180,10 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements) const
 //        m_exec_conf->msg->notice(10) << "CachedAllocator: no free block found;"
 //            << " allocating " << float(num_bytes)/1024.0f/1024.0f << " MB" << std::endl;
 
-        cudaMalloc((void **) &result, num_bytes);
+        if (m_managed)
+            cudaMallocManaged((void **) &result, num_bytes);
+        else
+            cudaMalloc((void **) &result, num_bytes);
 //        CHECK_CUDA_ERROR();
 
         m_num_bytes_tot += num_bytes;
@@ -205,7 +214,7 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements) const
 
 //! Constructor
 template<typename T>
-ScopedAllocation<T>::ScopedAllocation(const CachedAllocator& alloc, unsigned int num_elements)
+ScopedAllocation<T>::ScopedAllocation(CachedAllocator& alloc, unsigned int num_elements)
     : m_alloc(alloc)
     {
     data = m_alloc.getTemporaryBuffer<T>(num_elements);

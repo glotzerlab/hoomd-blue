@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2018 The Regents of the University of Michigan
+# Copyright (c) 2009-2019 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 from hoomd import _hoomd
@@ -1445,11 +1445,11 @@ class faceted_ellipsoid(mode_hpmc):
 
     Depletants Example::
 
-        mc = hpmc.integrate.pathcy_sphere(seed=415236, d=0.3, a=0.4, implicit=True)
-        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],a=1.0, b=0.5, c=0.25);
         # depletant sphere
         mc.shape_param.set('B', normals=[],a=0.1,b=0.1,c=0.1);
+        mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
@@ -1493,7 +1493,7 @@ class faceted_ellipsoid(mode_hpmc):
     def format_param_pos(self, param):
         raise RuntimeError("faceted_ellipsoid shape doesn't have a .pos representation")
 
-class faceted_sphere(mode_hpmc):
+class faceted_sphere(faceted_ellipsoid):
     R""" HPMC integration for faceted spheres (3D).
 
     Args:
@@ -1547,15 +1547,14 @@ class faceted_sphere(mode_hpmc):
         # polyedron vertices
         slab_verts = [[-.1,-.5,-.5],[-.1,-.5,.5],[-.1,.5,.5],[-.1,.5,-.5], [.5,-.5,-.5],[.5,-.5,.5],[.5,.5,.5],[.5,.5,-.5]]
 
-        mc = hpmc.integrate.faceted_ellipsoid(seed=415236)
-        mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.faceted_sphere(seed=415236)
+        mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', normals=slab_normals,offsets=slab_offsets, vertices=slab_verts,diameter=1.0);
         print('diameter = ', mc.shape_param['A'].diameter)
 
     Depletants Example::
 
-        mc = hpmc.integrate.pathcy_sphere(seed=415236, d=0.3, a=0.4, implicit=True)
-        mc.set_param(nselect=1)
+        mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
         mc.shape_param.set('B', normals=[],diameter=0.1);
         mc.set_fugacity('B',fugacity=3.0)
@@ -1563,35 +1562,8 @@ class faceted_sphere(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
-        # initialize base class
-        mode_hpmc.__init__(self,implicit);
-
-        # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoid(hoomd.context.current.system_definition, seed)
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedEllipsoid(hoomd.context.current.system_definition, seed);
-        else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
-
-        # set default parameters
-        setD(self.cpp_integrator,d);
-        setA(self.cpp_integrator,a);
-        self.cpp_integrator.setMoveRatio(move_ratio)
-        self.cpp_integrator.setNSelect(nselect);
-
-        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.initialize_shape_params();
-
-        if restore_state:
-            self.restore_state()
-
+        super(faceted_sphere, self).__init__(seed=seed, d=d, a=a, move_ratio=move_ratio,
+            nselect=nselect, implicit=implicit, restore_state=restore_state)
 
     # \internal
     # \brief Format shape parameters for pos file output

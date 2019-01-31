@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -104,9 +104,10 @@ struct PYBIND11_EXPORT ExecutionConfiguration
 
     //! Guess local rank of this processor, used for GPU initialization
     /*! \returns Local rank guessed from common environment variables
-     *           or falls back to the global rank if no information is available
+                 or falls back to the global rank if no information is available
+        \param found [output] True if a local rank was found, false otherwise
      */
-    int guessLocalRank();
+    int guessLocalRank(bool &found);
 
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
@@ -305,9 +306,15 @@ struct PYBIND11_EXPORT ExecutionConfiguration
 
     #ifdef ENABLE_CUDA
     //! Returns the cached allocator for temporary allocations
-    const CachedAllocator& getCachedAllocator() const
+    CachedAllocator& getCachedAllocator() const
         {
         return *m_cached_alloc;
+        }
+
+    //! Returns the cached allocator for temporary allocations
+    CachedAllocator& getCachedAllocatorManaged() const
+        {
+        return *m_cached_alloc_managed;
         }
     #endif
 
@@ -324,6 +331,12 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     const MemoryTraceback *getMemoryTracer() const
         {
         return m_memory_traceback.get();
+        }
+
+    //! Returns true if we are in a multi-GPU block
+    bool inMultiGPUBlock() const
+        {
+        return m_in_multigpu_block;
         }
 
 private:
@@ -356,6 +369,8 @@ private:
 #endif
     bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 
+    mutable bool m_in_multigpu_block;       //!< Tracks whether we are in a multi-GPU block
+
 #ifdef ENABLE_MPI
     void splitPartitions(const MPI_Comm mpi_comm); //!< Create partitioned communicators
 
@@ -368,6 +383,7 @@ private:
 
     #ifdef ENABLE_CUDA
     CachedAllocator *m_cached_alloc;       //!< Cached allocator for temporary allocations
+    CachedAllocator *m_cached_alloc_managed; //!< Cached allocator for temporary allocations in managed memory
     #endif
 
     #ifdef ENABLE_TBB

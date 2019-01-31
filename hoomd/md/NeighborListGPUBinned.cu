@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -70,7 +70,8 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                                                     const unsigned int ntypes,
                                                     const Scalar3 ghost_width,
                                                     const unsigned int offset,
-                                                    const unsigned int nwork)
+                                                    const unsigned int nwork,
+                                                    const unsigned int ngpu)
     {
     bool filter_body = flags & 1;
     bool diameter_shift = flags & 2;
@@ -141,6 +142,9 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
     // index of current neighbor
     unsigned int cur_adj = 0;
 
+    // current device portion in cell list
+    unsigned int igpu = 0;
+
     // current cell
     unsigned int neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
 
@@ -166,18 +170,25 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
             {
             cur_offset -= neigh_size;
             cur_adj++;
-            if (cur_adj < cadji.getW())
+            if (cur_adj >= cadji.getW())
+                {
+                if (++igpu < ngpu)
+                    {
+                    cur_adj = 0;
+                    }
+                else
+                    {
+                    // we are past the end of the cell neighbors
+                    done = true;
+                    neigh_size = 0;
+                    }
+                }
+            if (! done)
                 {
                 neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
-                neigh_size = d_cell_size[neigh_cell];
-                }
-            else
-                {
-                // we are past the end of the cell neighbors
-                done = true;
+                neigh_size = d_cell_size[neigh_cell+igpu*ci.getNumElements()];
                 }
             }
-
         // check for a neighbor if thread is still working
         if (!done)
             {
@@ -188,7 +199,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                 cur_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
             else
                 {
-                j = d_cell_idx[cli(cur_offset, neigh_cell)];
+                j = d_cell_idx[cli(cur_offset, neigh_cell)+igpu*cli.getNumElements()];
                 postype_j = d_pos[j];
                 cur_xyzf = make_scalar4(postype_j.x, postype_j.y, postype_j.z, __int_as_scalar(j));
                 }
@@ -329,7 +340,8 @@ inline void launcher(unsigned int *d_nlist,
               bool diameter_shift,
               unsigned int block_size,
               std::pair<unsigned int, unsigned int> range,
-              bool use_index)
+              bool use_index,
+              const unsigned int ngpu)
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
@@ -376,7 +388,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (!diameter_shift && filter_body)
                 {
@@ -412,7 +425,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (diameter_shift && !filter_body)
                 {
@@ -448,7 +462,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (diameter_shift && filter_body)
                 {
@@ -484,7 +499,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             }
         else // use_index
@@ -523,7 +539,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (!diameter_shift && filter_body)
                 {
@@ -559,7 +576,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (diameter_shift && !filter_body)
                 {
@@ -595,7 +613,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             else if (diameter_shift && filter_body)
                 {
@@ -631,7 +650,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                                              ntypes,
                                                                                              ghost_width,
                                                                                              offset,
-                                                                                             nwork);
+                                                                                             nwork,
+                                                                                             ngpu);
                 }
             }
         }
@@ -666,7 +686,8 @@ inline void launcher(unsigned int *d_nlist,
                      diameter_shift,
                      block_size,
                      range,
-                     use_index
+                     use_index,
+                     ngpu
                      );
         }
     }
@@ -702,7 +723,8 @@ inline void launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
               bool diameter_shift,
               unsigned int block_size,
               std::pair<unsigned int, unsigned int> range,
-              bool use_index)
+              bool use_index,
+              const unsigned int ngpu)
     { }
 
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
@@ -736,6 +758,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const GPUPartition& gpu_partition,
                                      bool use_index)
     {
+    unsigned int ngpu = gpu_partition.getNumActiveGPUs();
+
     // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
@@ -770,7 +794,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                        diameter_shift,
                                        block_size,
                                        range,
-                                       use_index
+                                       use_index,
+                                       ngpu
                                        );
         }
     return cudaSuccess;

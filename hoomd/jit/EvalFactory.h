@@ -1,7 +1,7 @@
 #pragma once
 
 // do not include python headers
-#define HOOMD_NOPYTHON
+#define HOOMD_LLVMJIT_BUILD
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 

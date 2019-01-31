@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -15,6 +15,7 @@
 #include "Index1D.h"
 
 #include "hoomd/extern/util/mgpucontext.h"
+#include "hoomd/CachedAllocator.h"
 
 #ifdef NVCC
 //! The flags used for indicating the itinerary of a particle
@@ -71,7 +72,8 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    const unsigned int mask,
                    mgpu::ContextPtr mgpu_context,
                    unsigned int *d_tmp,
-                   pdata_element *d_in_copy);
+                   pdata_element *d_in_copy,
+                   CachedAllocator& alloc);
 
 //! Apply boundary conditions
 void gpu_wrap_particles(const unsigned int n_recv,
@@ -119,7 +121,8 @@ void gpu_exchange_ghosts_make_indices(
     unsigned int n_unique_neigh,
     unsigned int n_out,
     unsigned int mask,
-    mgpu::ContextPtr mgpu_context);
+    mgpu::ContextPtr mgpu_context,
+    CachedAllocator& alloc);
 
 //! Pack ghosts in output buffers
 void gpu_exchange_ghosts_pack(

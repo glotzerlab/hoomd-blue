@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -82,7 +82,7 @@ std::string hoomd_compile_flags()
     #endif
 
     #ifdef ALWAYS_USE_MANAGED_MEMORY
-    o << "ALWAYS_MANAGED "
+    o << "ALWAYS_MANAGED ";
     #endif
 
     return o.str();
@@ -100,7 +100,7 @@ string output_version_info()
 
     // output the compiled date and copyright information
     o << "Compiled: " << COMPILE_DATE << endl;
-    o << "Copyright 2009-2018 The Regents of the University of Michigan." << endl;
+    o << "Copyright (c) 2009-2019 The Regents of the University of Michigan." << endl;
 
     // warn the user if they are running a debug or GPU emulation build
 #ifndef NDEBUG

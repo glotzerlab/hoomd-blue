@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -6,6 +6,8 @@
 
 #include <memory>
 #include "hoomd/ForceCompute.h"
+#include "hoomd/GPUArray.h"
+#include "hoomd/GlobalArray.h"
 
 /*! \file PotentialExternal.h
     \brief Declares a class for computing an external force field

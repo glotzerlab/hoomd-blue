@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2018 The Regents of the University of Michigan
+# Copyright (c) 2009-2019 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 """ Shape data structures.
@@ -278,7 +278,6 @@ class faceted_ellipsoid_params(_hpmc.faceted_ellipsoid_param_proxy, _param):
         self.make_fn = _hpmc.make_faceted_ellipsoid;
 
     def __str__(self):
-        # should we put this in the c++ side?
         string = "faceted ellipsoid(vertices = {}, normals = {}, offsets = {}, a = {}, b = {}, c = {})".format(
             self.vertices, self.normals, self.offsets, self.a, self.b, self.c);
         return string;
@@ -303,7 +302,6 @@ class faceted_sphere_params(_hpmc.faceted_ellipsoid_param_proxy, _param):
         self.make_fn = _hpmc.make_faceted_ellipsoid;
 
     def __str__(self):
-        # should we put this in the c++ side?
         string = "faceted sphere(vertices = {}, normals = {}, offsets = {}, diameter = {})".format(self.vertices, self.normals, self.offsets, self.diameter);
         return string;
 

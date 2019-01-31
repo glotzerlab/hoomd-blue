@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -31,6 +31,7 @@ NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
         m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
 
     m_cl->setRadius(1);
+    m_cl->setComputeXYZF(true);
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -150,6 +150,7 @@ void mpcd::ParticleData::initializeFromSnapshot(const std::shared_ptr<const mpcd
             {
             const Index3D& di = m_decomposition->getDomainIndexer();
             unsigned int n_ranks = m_exec_conf->getNRanks();
+            ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
 
             // loop over particles in snapshot, place them into domains
             for (auto it = snapshot->position.begin(); it != snapshot->position.end(); ++it)
@@ -189,7 +190,7 @@ void mpcd::ParticleData::initializeFromSnapshot(const std::shared_ptr<const mpcd
                 wrapping_box.wrap(pos, img, flags);
 
                 // place particle into the computational domain
-                unsigned int rank = m_decomposition->placeParticle(global_box, pos);
+                unsigned int rank = m_decomposition->placeParticle(global_box, pos, h_cart_ranks.data);
                 if (rank >= n_ranks)
                     {
                     m_exec_conf->msg->error() << "init.*: Particle " << snap_idx << " out of bounds." << std::endl;

@@ -9,6 +9,7 @@ jit.patch
     :nosignatures:
 
     jit.patch.user
+    jit.patch.user_union
 
 .. rubric:: Details
 

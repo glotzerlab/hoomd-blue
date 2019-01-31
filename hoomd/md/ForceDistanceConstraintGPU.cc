@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -54,19 +54,18 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(std::shared_ptr<SystemDef
     cusparseSetMatIndexBase(m_cusparse_mat_descr_U,CUSPARSE_INDEX_BASE_ZERO);
     cusparseSetMatDiagType(m_cusparse_mat_descr_U, CUSPARSE_DIAG_TYPE_NON_UNIT);
 
-    // use mapped memory for matrices
-    GPUVector<int> csr_rowptr(m_exec_conf,true);
+    GPUVector<int> csr_rowptr(m_exec_conf);
     m_csr_rowptr.swap(csr_rowptr);
 
-    GPUVector<int> csr_colind(m_exec_conf,true);
+    GPUVector<int> csr_colind(m_exec_conf);
     m_csr_colind.swap(csr_colind);
     #endif
 
-    GPUVector<double> sparse_val(m_exec_conf,true);
+    GPUVector<double> sparse_val(m_exec_conf);
     m_sparse_val.swap(sparse_val);
 
     // reallocate base class array
-    GPUVector<int> sparse_idxlookup(m_exec_conf, true);
+    GPUVector<int> sparse_idxlookup(m_exec_conf);
     m_sparse_idxlookup.swap(sparse_idxlookup);
     }
 

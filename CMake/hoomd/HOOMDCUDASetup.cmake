@@ -4,7 +4,7 @@
 ## Find CUDA
 # If CUDA is enabled, set it up
 if (ENABLE_CUDA)
-	find_package(CUDA 7.0 REQUIRED)
+    find_package(CUDA 8.0 REQUIRED)
     find_package(Thrust 1.5.0 REQUIRED)
 
     # first thrust, then CUDA (to allow for local thrust installation
@@ -46,8 +46,6 @@ if (ENABLE_CUDA)
         set(CUDA_ARCH_LIST 30 35 50 60 70 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     elseif (CUDA_VERSION VERSION_GREATER 7.99)
         set(CUDA_ARCH_LIST 30 35 50 60 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-    elseif (CUDA_VERSION VERSION_GREATER 6.99)
-        set(CUDA_ARCH_LIST 30 35 50 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     endif()
 
     foreach(_cuda_arch ${CUDA_ARCH_LIST})
@@ -82,28 +80,17 @@ endif (ENABLE_CUDA)
 
 # set CUSOLVER_AVAILABLE depending on CUDA Toolkit version
 if (ENABLE_CUDA)
-    if(${CUDA_VERSION} VERSION_LESS 7.5)
-        set(CUSOLVER_AVAILABLE FALSE)
-    elseif(${CUDA_VERSION} VERSION_LESS 8.0)
-        # CUDA 7.5 has a functioning cusolver, if cmake found it
-        if (NOT ${CUDA_cusolver_LIBRARY} STREQUAL "")
-            set(CUSOLVER_AVAILABLE TRUE)
-        else()
-            set(CUSOLVER_AVAILABLE FALSE)
-        endif()
-    else()
-        # CUDA 8.0 requires that libgomp be linked in - see if we can link it
-        try_compile(_can_link_gomp
-                    ${CMAKE_CURRENT_BINARY_DIR}/tmp
-                    ${CMAKE_CURRENT_LIST_DIR}/test.cc
-                    LINK_LIBRARIES gomp
-                   )
+    # CUDA 8.0 requires that libgomp be linked in - see if we can link it
+    try_compile(_can_link_gomp
+                ${CMAKE_CURRENT_BINARY_DIR}/tmp
+                ${CMAKE_CURRENT_LIST_DIR}/test.cc
+                LINK_LIBRARIES gomp
+               )
 
-        if (NOT ${CUDA_cusolver_LIBRARY} STREQUAL "" AND _can_link_gomp)
-            set(CUSOLVER_AVAILABLE TRUE)
-        else()
-            set(CUSOLVER_AVAILABLE FALSE)
-        endif()
+    if (NOT ${CUDA_cusolver_LIBRARY} STREQUAL "" AND _can_link_gomp)
+        set(CUSOLVER_AVAILABLE TRUE)
+    else()
+        set(CUSOLVER_AVAILABLE FALSE)
     endif()
 
 if (NOT CUSOLVER_AVAILABLE)

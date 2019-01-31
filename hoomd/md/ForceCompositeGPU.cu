@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -448,10 +448,6 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  bool zero_force,
                  const GPUPartition &gpu_partition)
     {
-    // reset force and torque
-    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
-    cudaMemset(d_torque, 0, sizeof(Scalar4)*N);
-
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
@@ -732,8 +728,8 @@ void gpu_update_composite(unsigned int N,
         run_block_size = max_block_size;
         }
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function 
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev) 
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
 

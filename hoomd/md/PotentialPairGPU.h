@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -129,8 +129,6 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     // start the profile
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, this->m_prof_name);
 
-    this->m_exec_conf->beginMultiGPU();
-
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
@@ -162,6 +160,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
 
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
+
+    this->m_exec_conf->beginMultiGPU();
 
     if (! m_param) this->m_tuner->begin();
     unsigned int param = !m_param ?  this->m_tuner->getParam() : m_param;

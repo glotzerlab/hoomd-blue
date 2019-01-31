@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2018 The Regents of the University of Michigan
+# Copyright (c) 2009-2019 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 """ JIT
@@ -8,10 +8,11 @@ simulation. Compiled C++ code will execute at full performance unlike interprete
 
 .. rubric:: Stability
 
-:py:mod:`hoomd.metal` is **unstable**. When upgrading from version 2.x to 2.y (y > x),
+:py:mod:`hoomd.jit` is **unstable**. When upgrading from version 2.x to 2.y (y > x),
 existing job scripts may need to be updated. **Maintainer:** Joshua A. Anderson, University of Michigan
 
 .. versionadded:: 2.3
 """
 
 from hoomd.jit import patch
+from hoomd.jit import external

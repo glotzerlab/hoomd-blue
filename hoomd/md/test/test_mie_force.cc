@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -75,8 +75,8 @@ void mie_force_particle_test(mieforce_creator mie_creator, std::shared_ptr<Execu
     fc_3->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
@@ -113,8 +113,8 @@ void mie_force_particle_test(mieforce_creator mie_creator, std::shared_ptr<Execu
     fc_3->compute(1);
 
     {
-    GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     unsigned int pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
@@ -167,8 +167,8 @@ void mie_force_particle_test(mieforce_creator mie_creator, std::shared_ptr<Execu
     fc_3->compute(1);
 
     {
-    GPUArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_3.data[0].x, 109.7321922512963, tol);
@@ -214,13 +214,13 @@ void mie_force_comparison_test(mieforce_creator mie_creator1, mieforce_creator m
 
     {
     // verify that the forces are identical (within roundoff errors)
-    GPUArray<Scalar4>& force_array_5 =  fc1->getForceArray();
-    GPUArray<Scalar>& virial_array_5 =  fc1->getVirialArray();
+    GlobalArray<Scalar4>& force_array_5 =  fc1->getForceArray();
+    GlobalArray<Scalar>& virial_array_5 =  fc1->getVirialArray();
     unsigned int pitch = virial_array_5.getPitch();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
-    GPUArray<Scalar4>& force_array_6 =  fc2->getForceArray();
-    GPUArray<Scalar>& virial_array_6 =  fc2->getVirialArray();
+    GlobalArray<Scalar4>& force_array_6 =  fc2->getForceArray();
+    GlobalArray<Scalar>& virial_array_6 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
 
@@ -304,8 +304,8 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     fc_xplor->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_7 =  fc_no_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_7 =  fc_no_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_7 =  fc_no_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_7 =  fc_no_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
 
@@ -315,8 +315,8 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     MY_CHECK_CLOSE(h_force_7.data[1].w, -0.0023556136748908, tol);
 
     // shifted just has pe shifted by a given amount
-    GPUArray<Scalar4>& force_array_8 =  fc_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_8 =  fc_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_8 =  fc_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_8 =  fc_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_8(force_array_8,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_8(virial_array_8,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_8.data[0].x, 0.010928042234617, tol);
@@ -325,8 +325,8 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     MY_CHECK_CLOSE(h_force_8.data[1].w, -0.00085085631210834, tol);
 
     // xplor has slight tweaks
-    GPUArray<Scalar4>& force_array_9 =  fc_xplor->getForceArray();
-    GPUArray<Scalar>& virial_array_9 =  fc_xplor->getVirialArray();
+    GlobalArray<Scalar4>& force_array_9 =  fc_xplor->getForceArray();
+    GlobalArray<Scalar>& virial_array_9 =  fc_xplor->getVirialArray();
     ArrayHandle<Scalar4> h_force_9(force_array_9,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_9(virial_array_9,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_9.data[0].x, 0.0071326060066445, tol);
@@ -348,8 +348,8 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     fc_xplor->compute(1);
 
     {
-    GPUArray<Scalar4>& force_array_10 =  fc_no_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_10 =  fc_no_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_10 =  fc_no_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_10 =  fc_no_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_10(force_array_10,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_10(virial_array_10,access_location::host,access_mode::read);
 
@@ -359,8 +359,8 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     MY_CHECK_CLOSE(h_force_10.data[1].w, -0.12828256582666, tol);
 
     // shifted just has pe shifted by a given amount
-    GPUArray<Scalar4>& force_array_11 =  fc_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_11 =  fc_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_11 =  fc_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_11 =  fc_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_11(force_array_11,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_11(virial_array_11,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_11.data[0].x, 1.0373505201621, tol);
@@ -369,8 +369,8 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     MY_CHECK_CLOSE(h_force_11.data[1].w, -0.12677780846387, tol);
 
     // xplor has slight tweaks
-    GPUArray<Scalar4>& force_array_12 =  fc_xplor->getForceArray();
-    GPUArray<Scalar>& virial_array_12 =  fc_xplor->getVirialArray();
+    GlobalArray<Scalar4>& force_array_12 =  fc_xplor->getForceArray();
+    GlobalArray<Scalar>& virial_array_12 =  fc_xplor->getVirialArray();
     ArrayHandle<Scalar4> h_force_12(force_array_12,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_12(virial_array_12,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_12.data[0].x, 1.0373505201621, tol);
@@ -392,8 +392,8 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     fc_xplor->compute(2);
 
     {
-    GPUArray<Scalar4>& force_array_13 =  fc_no_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_13 =  fc_no_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_13 =  fc_no_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_13 =  fc_no_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_13(force_array_13,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_13(virial_array_13,access_location::host,access_mode::read);
 
@@ -403,8 +403,8 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     MY_CHECK_SMALL(h_force_13.data[1].w, tol_small);
 
     // shifted just has pe shifted by a given amount
-    GPUArray<Scalar4>& force_array_14 =  fc_shift->getForceArray();
-    GPUArray<Scalar>& virial_array_14 =  fc_shift->getVirialArray();
+    GlobalArray<Scalar4>& force_array_14 =  fc_shift->getForceArray();
+    GlobalArray<Scalar>& virial_array_14 =  fc_shift->getVirialArray();
     ArrayHandle<Scalar4> h_force_14(force_array_14,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_14(virial_array_14,access_location::host,access_mode::read);
     MY_CHECK_SMALL(h_force_14.data[0].x, tol_small);
@@ -413,8 +413,8 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     MY_CHECK_SMALL(h_force_14.data[1].w, tol_small);
 
     // xplor has slight tweaks
-    GPUArray<Scalar4>& force_array_15 =  fc_xplor->getForceArray();
-    GPUArray<Scalar>& virial_array_15 =  fc_xplor->getVirialArray();
+    GlobalArray<Scalar4>& force_array_15 =  fc_xplor->getForceArray();
+    GlobalArray<Scalar>& virial_array_15 =  fc_xplor->getVirialArray();
     ArrayHandle<Scalar4> h_force_15(force_array_15,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_15(virial_array_15,access_location::host,access_mode::read);
     MY_CHECK_SMALL(h_force_15.data[0].x, tol_small);

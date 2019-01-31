@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -9,6 +9,7 @@
 #include "XenoCollide3D.h"
 #include "ShapeConvexPolyhedron.h"
 #include "hoomd/AABB.h"
+#include "OBB.h"
 
 #ifndef __SHAPE_FACETED_SPHERE_H__
 #define __SHAPE_FACETED_SPHERE_H__
@@ -17,13 +18,14 @@
     \brief Defines the faceted ellipsoid shape
 */
 
-/*! The faceted ellispoid is defined by the intersection of an ellipsoid of half axes a,b,c with planes given by the face
- * normals n and offsets b, obeying the equation:
+/*! The faceted ellipoid is defined by the intersection of an ellipsoid of half axes a,b,c with
+ * planes given by the face normals n and offsets b, obeying the equation:
  *
  * r.n + b <= 0
  *
  * Intersections of planes within the ellipsoid volume are accounted for.
- * Internally, the overlap check works by computing the support function for an ellipsoid deformed into a unit sphere.
+ * Internally, the overlap check works by computing the support function for an ellipsoid
+ * deformed into a unit sphere.
  *
  */
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -117,6 +119,7 @@ class SupportFuncFacetedEllipsoid
             vec3<OverlapReal> np = params.n[plane];
 
             // transform plane normal into the coordinate system of the unit sphere
+            // so that dot(np,v) has dimensions of b [length], since v is a unit vector
             np.x *= params.a; np.y *= params.b; np.z *= params.c;
             OverlapReal b = params.offset[plane];
 
@@ -233,7 +236,7 @@ class SupportFuncFacetedEllipsoid
             }
 
     private:
-        const faceted_ellipsoid_params& params;      //!< Definition of faceted sphere
+        const faceted_ellipsoid_params& params;      //!< Definition of faceted ellipsoid
         const OverlapReal sweep_radius;             //!< The radius of a sphere sweeping the shape
     };
 
@@ -281,9 +284,6 @@ struct ShapeFacetedEllipsoid
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        //OverlapReal max_axis = detail::max(axes.x, detail::max(axes.y, axes.z));
-        //return detail::AABB(pos, max_axis);
-
         // use support function of the ellipsoid to determine the furthest extent in each direction
         detail::SupportFuncFacetedEllipsoid sfunc(params, 0.0);
 
@@ -405,7 +405,7 @@ struct ShapeFacetedEllipsoid
                         }
                     }
 
-                if (allowed && dot(v1,v1) <= OverlapReal(1.0)*(1+SMALL))
+                if (allowed && dot(v1,v1) <= OverlapReal(1.0+SMALL))
                     {
                     _params.additional_verts.x[_params.additional_verts.N] = v1.x;
                     _params.additional_verts.y[_params.additional_verts.N] = v1.y;
@@ -433,7 +433,7 @@ struct ShapeFacetedEllipsoid
                         }
                     }
 
-                if (allowed && dot(v2,v2) <= (OverlapReal(1.0)+SMALL))
+                if (allowed && dot(v2,v2) <= (OverlapReal(1.0+SMALL)))
                     {
                     _params.additional_verts.x[_params.additional_verts.N] = v2.x;
                     _params.additional_verts.y[_params.additional_verts.N] = v2.y;
@@ -482,8 +482,6 @@ DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(co
     unsigned int& err, Scalar sweep_radius_a, Scalar sweep_radius_b)
     {
     vec3<OverlapReal> dr(r_ab);
-
-    // prepend with ellipsoid overlap check?
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
     return detail::xenocollide_3d(detail::SupportFuncFacetedEllipsoid(a.params, sweep_radius_a),

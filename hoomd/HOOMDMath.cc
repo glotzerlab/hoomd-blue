@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -140,10 +140,18 @@ void export_hoomd_math_functions(py::module& m)
         .def_readwrite("z", &vec3<float>::z)
         ;
 
+    py::class_< vec3<double>, std::shared_ptr<vec3<double> > >(m,"vec3_double")
+        .def(py::init<double, double, double>())
+        .def_readwrite("x", &vec3<double>::x)
+        .def_readwrite("y", &vec3<double>::y)
+        .def_readwrite("z", &vec3<double>::z)
+        ;
+
     py::class_< quat<float>, std::shared_ptr<quat<float> > >(m,"quat_float")
         .def(py::init<float, const vec3<float>&>())
         .def_readwrite("s", &quat<float>::s)
         .def_readwrite("v", &quat<float>::v)
         .def_static("fromAxisAngle", &quat<float>::fromAxisAngle)
         ;
+
     }

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -121,6 +121,13 @@ class PYBIND11_EXPORT CellList : public Compute
             }
 
         //! Specify if the TDB cell list is to be computed
+        void setComputeXYZF(bool compute_xyzf)
+            {
+            m_compute_xyzf = compute_xyzf;
+            m_params_changed = true;
+            }
+
+        //! Specify if the TDB cell list is to be computed
         void setComputeTDB(bool compute_tdb)
             {
             m_compute_tdb = compute_tdb;
@@ -200,6 +207,19 @@ class PYBIND11_EXPORT CellList : public Compute
             m_params_changed = true;
             }
 
+        //! Request a multi-GPU cell list
+        virtual void setPerDevice(bool per_device)
+            {
+            // base class does nothing
+            }
+
+        //! Return true if we maintain a cell list per device
+        virtual bool getPerDevice() const
+            {
+            // base class doesn't support GPU
+            return false;
+            }
+
         // @}
         //! \name Get properties
         // @{
@@ -257,13 +277,19 @@ class PYBIND11_EXPORT CellList : public Compute
         // @{
 
         //! Get the array of cell sizes
-        const GPUArray<unsigned int>& getCellSizeArray() const
+        const GlobalArray<unsigned int>& getCellSizeArray() const
             {
             return m_cell_size;
             }
 
+        //! Get the array of cell sizes (per device)
+        virtual const GlobalArray<unsigned int>& getCellSizeArrayPerDevice() const
+            {
+            throw std::runtime_error("Per-device cell size array not available in base class.\n");
+            }
+
         //! Get the adjacency list
-        const GPUArray<unsigned int>& getCellAdjArray() const
+        const GlobalArray<unsigned int>& getCellAdjArray() const
             {
             if (!m_compute_adj_list)
                 {
@@ -275,29 +301,35 @@ class PYBIND11_EXPORT CellList : public Compute
             }
 
         //! Get the cell list containing x,y,z,flag
-        const GPUArray<Scalar4>& getXYZFArray() const
+        const GlobalArray<Scalar4>& getXYZFArray() const
             {
             return m_xyzf;
             }
 
         //! Get the cell list containing t,d,b
-        const GPUArray<Scalar4>& getTDBArray() const
+        const GlobalArray<Scalar4>& getTDBArray() const
             {
             return m_tdb;
             }
 
         //! Get the cell list containing orientation
-        const GPUArray<Scalar4>& getOrientationArray() const
+        const GlobalArray<Scalar4>& getOrientationArray() const
             {
             return m_orientation;
             }
 
         //! Get the cell list containing index
-        const GPUArray<unsigned int>& getIndexArray() const
+        const GlobalArray<unsigned int>& getIndexArray() const
             {
             return m_idx;
             }
 
+        //! Get the cell list containing index (per device)
+        virtual const GlobalArray<unsigned int>& getIndexArrayPerDevice() const
+            {
+            // base class returns an empty array
+            throw std::runtime_error("Per-device cell index array not available in base class.\n");
+            }
 
         //! Compute the cell list given the current particle positions
         void compute(unsigned int timestep);
@@ -326,6 +358,7 @@ class PYBIND11_EXPORT CellList : public Compute
         // user specified parameters
         Scalar m_nominal_width;      //!< Minimum width of cell in any direction
         unsigned int m_radius;       //!< Radius of adjacency bins to list
+        bool m_compute_xyzf;         //!< true if the xyzf list should be computed
         bool m_compute_tdb;          //!< true if the tdb list should be computed
         bool m_compute_orientation;  //!< true if the orientation list should be computed
         bool m_compute_idx;          //!< true if the idx list should be computed

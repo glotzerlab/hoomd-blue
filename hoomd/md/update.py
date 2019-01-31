@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2018 The Regents of the University of Michigan
+# Copyright (c) 2009-2019 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -260,6 +260,11 @@ class mueller_plathe_flow(_updater):
             min_slab = 0
         if max_slab < 0:
             max_slab = n_slabs/2
+
+        #Cast input to int to avoid mismatch of types in calling the constructor
+        n_slabs = int(n_slabs)
+        min_slab = int(min_slab)
+        max_slab = int(max_slab)
 
         assert (max_slab>-1 and max_slab < n_slabs),"Invalid max_slab in [0,"+str(n_slabs)+")."
         assert (min_slab>-1 and min_slab < n_slabs),"Invalid min_slab in [0,"+str(n_slabs)+")."

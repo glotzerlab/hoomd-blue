@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -80,8 +80,6 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
         m_prof->push(m_exec_conf, "NVT MTK step 1");
         }
 
-    m_exec_conf->beginMultiGPU();
-
         {
         // access all the needed data
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
@@ -91,6 +89,8 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
 
         BoxDim box = m_pdata->getBox();
         ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+
+        m_exec_conf->beginMultiGPU();
 
         // perform the update on the GPU
         m_tuner_one->begin();
@@ -109,9 +109,9 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_one->end();
-        }
 
-    m_exec_conf->endMultiGPU();
+        m_exec_conf->endMultiGPU();
+        }
 
     if (m_aniso)
         {
@@ -154,13 +154,11 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // profile this step
     if (m_prof)
         m_prof->push(m_exec_conf, "NVT MTK step 2");
-
-    m_exec_conf->beginMultiGPU();
 
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -168,6 +166,8 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
+
+        m_exec_conf->beginMultiGPU();
 
         // perform the update on the GPU
         m_tuner_two->begin();
@@ -184,9 +184,9 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
         if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_two->end();
-        }
 
-    m_exec_conf->endMultiGPU();
+        m_exec_conf->endMultiGPU();
+        }
 
     if (m_aniso)
         {
