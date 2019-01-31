@@ -734,7 +734,7 @@ public:
         {
         std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
         access_type& param = m_access(params[m_typeid]);
-        return 2.0*param.a; // first half-axis
+        return OverlapReal(2)*detail::max(param.a, detail::max(param.b, param.c));
         }
 
     OverlapReal getHalfAxisA()
@@ -748,14 +748,14 @@ public:
         {
         std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
         access_type& param = m_access(params[m_typeid]);
-        return param.b; // first half-axis
+        return param.b; // second half-axis
         }
 
     OverlapReal getHalfAxisC()
         {
         std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
         access_type& param = m_access(params[m_typeid]);
-        return param.c; // first half-axis
+        return param.c; // third half-axis
         }
 
     pybind11::list getOffsets()

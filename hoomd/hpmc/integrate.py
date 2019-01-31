@@ -1515,7 +1515,7 @@ class faceted_ellipsoid(mode_hpmc):
 
     Depletants Example::
 
-        mc = hpmc.integrate.pathcy_sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
+        mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
         mc.set_param(nselect=1,nR=3,depletant_type='B')
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],a=1.0, b=0.5, c=0.25);
         # depletant sphere
@@ -1625,14 +1625,14 @@ class faceted_sphere(faceted_ellipsoid):
         # polyedron vertices
         slab_verts = [[-.1,-.5,-.5],[-.1,-.5,.5],[-.1,.5,.5],[-.1,.5,-.5], [.5,-.5,-.5],[.5,-.5,.5],[.5,.5,.5],[.5,.5,-.5]]
 
-        mc = hpmc.integrate.faceted_ellipsoid(seed=415236)
-        mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.faceted_sphere(seed=415236)
+        mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', normals=slab_normals,offsets=slab_offsets, vertices=slab_verts,diameter=1.0);
         print('diameter = ', mc.shape_param['A'].diameter)
 
     Depletants Example::
 
-        mc = hpmc.integrate.pathcy_sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
+        mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
         mc.set_param(nselect=1,nR=3,depletant_type='B')
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
         mc.shape_param.set('B', normals=[],diameter=0.1);
@@ -1641,44 +1641,8 @@ class faceted_sphere(faceted_ellipsoid):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
-
-        # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(implicit):
-                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoid(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoid(hoomd.context.current.system_definition, seed, 1)
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedEllipsoid(hoomd.context.current.system_definition, seed);
-        else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
-            else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
-
-        # set default parameters
-        setD(self.cpp_integrator,d);
-        setA(self.cpp_integrator,a);
-        self.cpp_integrator.setMoveRatio(move_ratio)
-        self.cpp_integrator.setNSelect(nselect);
-
-        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
-
-        if restore_state:
-            self.restore_state()
-
+        super(faceted_sphere, self).__init__(self, seed, d, a, move_ratio, nselect, implicit, depletant_mode,
+            restore_state)
 
     # \internal
     # \brief Format shape parameters for pos file output
