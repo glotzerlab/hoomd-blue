@@ -796,14 +796,14 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
 
     // make sure a null array can be acquired
     if (!this->m_exec_conf || isNull() )
-        return ArrayHandleDispatch<T>(nullptr);
+        return GlobalArrayDispatch<T>(nullptr, *this);
 
     checkAcquired(*this);
 
     if (this->m_exec_conf && this->m_exec_conf->inMultiGPUBlock())
         {
         // we throw this error because we are not syncing all GPUs upon acquire
-        throw std::runtime_error("lobalArray should not be acquired in a multi-GPU block.");
+        throw std::runtime_error("GlobalArray should not be acquired in a multi-GPU block.");
         }
 
     #ifdef ENABLE_CUDA
