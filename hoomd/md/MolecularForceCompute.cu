@@ -27,7 +27,7 @@
     cudaError_t err = cudaDeviceSynchronize(); \
     if (err != cudaSuccess) \
         { \
-        throw std::runtime_error("CUDA error "+std::string(cudaGetErrorString(err))); \
+        throw std::runtime_error("CUDA error in MolecularForceCompute "+std::string(cudaGetErrorString(err))); \
         } \
     err = cudaGetLastError(); \
     if (err != cudaSuccess) \
@@ -59,7 +59,8 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     unsigned int &n_local_molecules,
     unsigned int &max_len,
     unsigned int &n_local_ptls_in_molecules,
-    CachedAllocator& alloc)
+    CachedAllocator& alloc,
+    bool check_cuda)
     {
     thrust::device_ptr<const unsigned int> tag(d_tag);
     thrust::device_ptr<const unsigned int> molecule_tag(d_molecule_tag);
@@ -121,7 +122,7 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
         molecule_tag_lookup_sorted_by_tag,
         molecule_tag_lookup_sorted_by_tag+nptl,
         molecule_by_idx);
-    CHECK_CUDA();
+    if (check_cuda) CHECK_CUDA();
 
     // sort local particle indices by global molecule tag, keeping tag order (radix sort is stable)
     d_temp_storage = NULL;
@@ -153,7 +154,7 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
         local_molecule_tags,
         local_molecule_tags + nptl,
         NO_MOLECULE);
-    CHECK_CUDA();
+    if (check_cuda) CHECK_CUDA();
 
     n_local_ptls_in_molecules = end - local_molecule_tags;
 
@@ -187,7 +188,7 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
         n_local_ptls_in_molecules);
 
     cudaMemcpy(&n_local_molecules, d_num_runs_out, sizeof(unsigned int), cudaMemcpyDeviceToHost);
-    CHECK_CUDA();
+    if (check_cuda) CHECK_CUDA();
 
     alloc.deallocate((char *) d_temp_storage);
     alloc.deallocate((char *) d_num_runs_out);
@@ -203,7 +204,7 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
         local_unique_molecule_tags_tmp,
         local_unique_molecule_tags_tmp + n_local_molecules,
         lowest_idx_in_molecules);
-    CHECK_CUDA();
+    if (check_cuda) CHECK_CUDA();
 
     thrust::device_ptr<unsigned int> idx_sorted_by_molecule_and_tag(d_idx_sorted_by_molecule_and_tag);
     thrust::gather(thrust::cuda::par(alloc),
@@ -211,7 +212,7 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
         lowest_idx_in_molecules + n_local_molecules,
         idx_sorted_by_molecule_and_tag,
         lowest_idx);
-    CHECK_CUDA();
+    if (check_cuda) CHECK_CUDA();
 
     // compute maximum molecule length
     d_temp_storage = NULL;
@@ -232,7 +233,7 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     cudaMemcpy(&max_len, d_max, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     alloc.deallocate((char *) d_max);
 
-    CHECK_CUDA();
+    if (check_cuda) CHECK_CUDA();
 
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
@@ -288,13 +289,13 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
         lowest_idx_sort + n_local_molecules,
         local_unique_molecule_tags,
         lowest_idx_by_molecule_tag);
-    CHECK_CUDA();
+    if (check_cuda) CHECK_CUDA();
 
     // sort the list of particles in molecules again according to first particle index, keeping order in molecule
     auto lowest_idx_by_ptl_in_molecule = thrust::make_permutation_iterator(
         lowest_idx_by_molecule_tag,
         local_molecule_tags);
-    CHECK_CUDA();
+    if (check_cuda) CHECK_CUDA();
 
     // get temp buffer
     unsigned int *d_local_molecules_lowest_idx_unsorted = alloc.getTemporaryBuffer<unsigned int>(n_local_ptls_in_molecules);
@@ -304,7 +305,7 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
         lowest_idx_by_ptl_in_molecule,
         lowest_idx_by_ptl_in_molecule + n_local_ptls_in_molecules,
         local_molecules_lowest_idx_unsorted);
-    CHECK_CUDA();
+    if (check_cuda) CHECK_CUDA();
 
     // radix sort is stable
     d_temp_storage = NULL;
@@ -344,7 +345,7 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
         local_molecules_lowest_idx,
         local_molecules_lowest_idx + n_local_ptls_in_molecules,
         idx_lookup);
-    CHECK_CUDA();
+    if (check_cuda) CHECK_CUDA();
 
     return cudaSuccess;
     }
