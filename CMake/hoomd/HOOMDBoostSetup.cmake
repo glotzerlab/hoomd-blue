@@ -26,7 +26,7 @@ set(REQUIRED_BOOST_COMPONENTS thread filesystem ${BOOST_PYTHON_COMPONENT} signal
 
 message(STATUS "First attempt to find boost, it's OK if it fails")
 # first, see if we can get any supported version of Boost
-find_package(Boost 1.32.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS})
+find_package(Boost 1.65.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS})
 
 # if python is not found, try looking for python or python3
 string(TOUPPER ${BOOST_PYTHON_COMPONENT} UPPER_BOOST_PYTHON_COMPONENT )
@@ -41,6 +41,15 @@ else()
 endif()
 
 list(APPEND REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT})
+
+if (PYTHON_VERSION VERSION_GREATER 3)
+     SET(BOOST_NUMPY_COMPONENT "numpy3")
+else()
+     SET(BOOST_NUMPY_COMPONENT "numpy")
+endif()
+list(APPEND REQUIRED_BOOST_COMPONENTS ${BOOST_NUMPY_COMPONENT})
+
+
 endif()
 
 # if we get boost 1.35 or greator, we need to get the system library too
@@ -53,7 +62,7 @@ if (Boost_MINOR_VERSION GREATER 59)
 list(APPEND REQUIRED_BOOST_COMPONENTS "timer" "chrono")
 endif ()
 
-find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
+find_package(Boost 1.65.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
 
 # add include directories
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})

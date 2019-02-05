@@ -125,7 +125,7 @@ NeighborListGPUStencil::NeighborListGPUStencil(boost::shared_ptr<SystemDefinitio
 
     #ifdef ENABLE_MPI
     // synchronize over MPI
-    m_tuner->setSync(m_pdata->getDomainDecomposition());
+    m_tuner->setSync(m_pdata->getDomainDecomposition() != 0);
     #endif
 
     // call this class's special setRCut

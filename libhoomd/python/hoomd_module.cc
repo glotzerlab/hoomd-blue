@@ -200,13 +200,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "num_util.h"
 
 #include <boost/python.hpp>
+#include <boost/python/tuple.hpp>
+#include <boost/python/numpy.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 
 using namespace boost::filesystem;
 using namespace boost::python;
-namespace bnp=boost::python::numeric;
 
 #include <iostream>
 #include <sstream>
@@ -305,7 +306,7 @@ int get_num_procs()
 //! Get the hoomd version as a tuple
 object get_hoomd_version_tuple()
     {
-    return make_tuple(HOOMD_VERSION_MAJOR, HOOMD_VERSION_MINOR, HOOMD_VERSION_PATCH);
+    return boost::python::make_tuple(HOOMD_VERSION_MAJOR, HOOMD_VERSION_MINOR, HOOMD_VERSION_PATCH);
     }
 
 //! Get the CUDA version as a tuple
@@ -314,7 +315,7 @@ object get_cuda_version_tuple()
     #ifdef ENABLE_CUDA
     int major = CUDA_VERSION / 1000;
     int minor = CUDA_VERSION / 10 % 100;
-    return make_tuple(major, minor);
+    return boost::python::make_tuple(major, minor);
     #else
     return make_tuple(0,0);
     #endif
@@ -533,7 +534,7 @@ BOOST_PYTHON_MODULE(hoomd)
 
     // setup needed for numpy
     my_import_array();
-    bnp::array::set_module_and_type("numpy", "ndarray");
+    boost::python::numpy::initialize();
 
     def("abort_mpi", abort_mpi);
     def("mpi_barrier_world", mpi_barrier_world);

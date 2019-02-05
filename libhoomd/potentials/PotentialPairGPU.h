@@ -176,7 +176,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
     m_tuner.reset(new Autotuner(valid_params, 5, 100000, "pair_" + evaluator::getName(), this->m_exec_conf));
     #ifdef ENABLE_MPI
     // synchronize autotuner results across ranks
-    m_tuner->setSync(this->m_pdata->getDomainDecomposition());
+    m_tuner->setSync(this->m_pdata->getDomainDecomposition() != 0);
     #endif
 
     m_precompute = false;

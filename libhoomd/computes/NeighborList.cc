@@ -1441,7 +1441,7 @@ void export_NeighborList()
     {
     class_< std::vector<unsigned int> >("std_vector_uint")
     .def(vector_indexing_suite<std::vector<unsigned int> >())
-    .def("push_back", &std::vector<unsigned int>::push_back)
+//    .def("push_back", &std::vector<unsigned int>::push_back)
     ;
 
     scope in_nlist = class_<NeighborList, boost::shared_ptr<NeighborList>, bases<Compute>, boost::noncopyable >
