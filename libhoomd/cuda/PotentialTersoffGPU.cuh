@@ -119,14 +119,16 @@ scalar4_tex_t pdata_pos_tex;
 //! Texture for reading neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
-#ifndef SINGLE_PRECISION
+#if !defined(SINGLE_PRECISION)
+
+#if (__CUDA_ARCH__ < 600)
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
 
     \param address Address to write the double to
     \param val Value to add to address
 */
-static __device__ inline double atomicAdd(double* address, double val)
+__device__ double myAtomicAdd(double* address, double val)
     {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
@@ -140,7 +142,18 @@ static __device__ inline double atomicAdd(double* address, double val)
 
     return __longlong_as_double(old);
     }
+#else // CUDA_ARCH > 600)
+__device__ double myAtomicAdd(double* address, double val)
+    {
+    return atomicAdd(address, val);
+    }
 #endif
+#endif
+
+__device__ float myAtomicAdd(float* address, float val)
+    {
+    return atomicAdd(address, val);
+    }
 
 //! Kernel for calculating the Tersoff forces
 /*! This kernel is called to calculate the forces on all N particles. Actual evaluation of the potentials and
@@ -441,9 +454,9 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         forcek.y += force_divr_ij.z * dxij.y + force_divr_ik.z * dxik.y;
                         forcek.z += force_divr_ij.z * dxij.z + force_divr_ik.z * dxik.z;
 
-                        atomicAdd(&d_force[cur_k].x, forcek.x);
-                        atomicAdd(&d_force[cur_k].y, forcek.y);
-                        atomicAdd(&d_force[cur_k].z, forcek.z);
+                        myAtomicAdd(&d_force[cur_k].x, forcek.x);
+                        myAtomicAdd(&d_force[cur_k].y, forcek.y);
+                        myAtomicAdd(&d_force[cur_k].z, forcek.z);
                         }
                     }
                 }
@@ -451,19 +464,19 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             // potential energy of j must be halved
             forcej.w *= Scalar(0.5);
             // write out the result for particle j
-            atomicAdd(&d_force[cur_j].x, forcej.x);
-            atomicAdd(&d_force[cur_j].y, forcej.y);
-            atomicAdd(&d_force[cur_j].z, forcej.z);
-            atomicAdd(&d_force[cur_j].w, forcej.w);
+            myAtomicAdd(&d_force[cur_j].x, forcej.x);
+            myAtomicAdd(&d_force[cur_j].y, forcej.y);
+            myAtomicAdd(&d_force[cur_j].z, forcej.z);
+            myAtomicAdd(&d_force[cur_j].w, forcej.w);
             }
         }
     // potential energy per particle must be halved
     forcei.w *= Scalar(0.5);
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    atomicAdd(&d_force[idx].x, forcei.x);
-    atomicAdd(&d_force[idx].y, forcei.y);
-    atomicAdd(&d_force[idx].z, forcei.z);
-    atomicAdd(&d_force[idx].w, forcei.w);
+    myAtomicAdd(&d_force[idx].x, forcei.x);
+    myAtomicAdd(&d_force[idx].y, forcei.y);
+    myAtomicAdd(&d_force[idx].z, forcei.z);
+    myAtomicAdd(&d_force[idx].w, forcei.w);
     }
 
 //! Kernel for zeroing forces before computation with atomic additions.

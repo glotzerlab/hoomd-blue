@@ -121,14 +121,16 @@ __device__ Scalar gpu_sinc(Scalar x)
     return sinc;
     }
 
-#ifndef SINGLE_PRECISION
+#if !defined(SINGLE_PRECISION)
+
+#if (__CUDA_ARCH__ < 600)
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
 
     \param address Address to write the double to
     \param val Value to add to address
 */
-static __device__ inline double atomicAdd(double* address, double val)
+__device__ double myAtomicAdd_pppm(double* address, double val)
     {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
@@ -136,19 +138,29 @@ static __device__ inline double atomicAdd(double* address, double val)
     do {
         assumed = old;
         old = atomicCAS(address_as_ull,
-            assumed,
-            __double_as_longlong(val + __longlong_as_double(assumed)));
+                        assumed,
+                        __double_as_longlong(val + __longlong_as_double(assumed)));
     } while (assumed != old);
 
     return __longlong_as_double(old);
     }
-
+#else // CUDA_ARCH > 600)
+__device__ double myAtomicAdd_pppm(double* address, double val)
+    {
+    return atomicAdd(address, val);
+    }
 #endif
+#endif
+
+__device__ float myAtomicAdd_pppm(float* address, float val)
+    {
+    return atomicAdd(address, val);
+    }
 
 //! The developer has chosen not to document this function
 __device__ inline void AddToGridpoint(int X, int Y, int Z, CUFFTCOMPLEX* array, Scalar value, int Ny, int Nz)
     {
-    atomicAdd(&array[Z + Nz * (Y + Ny * X)].x, value);
+    myAtomicAdd_pppm(&array[Z + Nz * (Y + Ny * X)].x, value);
     }
 
 
