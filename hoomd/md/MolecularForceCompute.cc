@@ -114,7 +114,8 @@ void MolecularForceCompute::initMoleculesGPU()
             n_local_molecules,
             nmax,
             n_local_ptls_in_molecules,
-            m_exec_conf->getCachedAllocator());
+            m_exec_conf->getCachedAllocator(),
+            m_exec_conf->isCUDAErrorCheckingEnabled());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
