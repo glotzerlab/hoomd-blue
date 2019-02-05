@@ -170,8 +170,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         handleCUDAError(err_sync, __FILE__, __LINE__);
 
         // initialize cached allocator, max allocation 0.5*global mem
-        m_cached_alloc = new CachedAllocator(false, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
-        m_cached_alloc_managed = new CachedAllocator(true, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
+        m_cached_alloc.reset(new CachedAllocator(false, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem)));
+        m_cached_alloc_managed.reset(new CachedAllocator(true, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem)));
         }
     #endif
 
@@ -258,11 +258,15 @@ ExecutionConfiguration::~ExecutionConfiguration()
         }
     #endif
 
+    #ifdef ENABLE_CUDA
+    // the destructors of these objects can issue cuda calls, so free them before the device reset
+    m_cached_alloc.reset();
+    m_cached_alloc_managed.reset();
+    #endif
+
     #if defined(ENABLE_CUDA)
     if (exec_mode == GPU)
         {
-        delete m_cached_alloc;
-
         #ifndef ENABLE_MPI_CUDA
         cudaDeviceReset();
         #endif

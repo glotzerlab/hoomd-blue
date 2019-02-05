@@ -62,9 +62,9 @@ void basic_molecule_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     // three molecules, consecutive in memory
     unsigned int nmol = 3;
     std::vector<unsigned int> molecule_tags(5);
-    molecule_tags[0] = 4;
-    molecule_tags[1] = 4;
-    molecule_tags[2] = 7;
+    molecule_tags[0] = 1;
+    molecule_tags[1] = 1;
+    molecule_tags[2] = 3;
     molecule_tags[3] = 2;
     molecule_tags[4] = 2;
 

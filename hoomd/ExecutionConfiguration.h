@@ -382,8 +382,8 @@ private:
     unsigned int m_rank;                   //!< Rank of this processor (0 if running in single-processor mode)
 
     #ifdef ENABLE_CUDA
-    CachedAllocator *m_cached_alloc;       //!< Cached allocator for temporary allocations
-    CachedAllocator *m_cached_alloc_managed; //!< Cached allocator for temporary allocations in managed memory
+    std::unique_ptr<CachedAllocator> m_cached_alloc;       //!< Cached allocator for temporary allocations
+    std::unique_ptr<CachedAllocator> m_cached_alloc_managed; //!< Cached allocator for temporary allocations in managed memory
     #endif
 
     #ifdef ENABLE_TBB
