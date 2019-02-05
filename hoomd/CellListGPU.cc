@@ -111,6 +111,7 @@ void CellListGPU::computeCellList()
         m_exec_conf->endMultiGPU();
         }
 
+    if (m_sort_cell_list)
         {
         ArrayHandle<unsigned int> d_cell_size(m_cell_size, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_xyzf(m_xyzf, access_location::device, access_mode::overwrite);
@@ -118,11 +119,17 @@ void CellListGPU::computeCellList()
         ArrayHandle<Scalar4> d_cell_orientation(m_orientation, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_cell_idx(m_idx, access_location::device, access_mode::overwrite);
 
-        if (m_sort_cell_list)
-            {
-            if (m_per_device)
-                throw std::runtime_error("Deterministic cell list not available with multi-GPU execution.");
+        // access the per-GPU cell list arrays (only needed with ngpu>1)
+        ArrayHandle<unsigned int> d_cell_size_scratch(m_cell_size_scratch, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_xyzf_scratch(m_xyzf_scratch, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_tdb_scratch(m_tdb_scratch, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_cell_orientation_scratch(m_orientation_scratch, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_cell_idx_scratch(m_idx_scratch, access_location::device, access_mode::overwrite);
 
+
+        // sort partial cell lists
+        for (unsigned int i = 0; i < m_exec_conf->getNumActiveGPUs(); ++i)
+            {
             ScopedAllocation<uint2> d_sort_idx(m_exec_conf->getCachedAllocator(), m_cell_list_indexer.getNumElements());
             ScopedAllocation<unsigned int> d_sort_permutation(m_exec_conf->getCachedAllocator(), m_cell_list_indexer.getNumElements());
             ScopedAllocation<unsigned int> d_cell_idx_new(m_exec_conf->getCachedAllocator(), m_idx.getNumElements());
@@ -130,14 +137,14 @@ void CellListGPU::computeCellList()
             ScopedAllocation<Scalar4> d_cell_orientation_new(m_exec_conf->getCachedAllocator(), m_orientation.getNumElements());
             ScopedAllocation<Scalar4> d_tdb_new(m_exec_conf->getCachedAllocator(), m_tdb.getNumElements());
 
-            gpu_sort_cell_list(d_cell_size.data,
-                               d_xyzf.data,
+            gpu_sort_cell_list(!m_per_device ? d_cell_size.data : d_cell_size_scratch.data + i*m_cell_indexer.getNumElements(),
+                               !m_per_device ? d_xyzf.data : d_xyzf_scratch.data + i*m_cell_list_indexer.getNumElements(),
                                d_xyzf_new.data,
-                               d_tdb.data,
+                               !m_per_device ? d_tdb.data : d_tdb_scratch.data + i*m_cell_list_indexer.getNumElements(),
                                d_tdb_new.data,
-                               d_cell_orientation.data,
+                               !m_per_device ? d_cell_orientation.data : d_cell_orientation_scratch.data + i*m_cell_list_indexer.getNumElements(),
                                d_cell_orientation_new.data,
-                               d_cell_idx.data,
+                               !m_per_device ? d_cell_idx.data : d_cell_idx_scratch.data + i*m_cell_list_indexer.getNumElements(),
                                d_cell_idx_new.data,
                                d_sort_idx.data,
                                d_sort_permutation.data,

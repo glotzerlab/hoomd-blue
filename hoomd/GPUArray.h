@@ -1058,7 +1058,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
 
     // base case - handle acquiring a NULL GPUArray by simply returning NULL to prevent any memcpys from being attempted
     if (isNull())
-        return ArrayHandleDispatch<T>(nullptr);
+        return GPUArrayDispatch<T>(nullptr, *this);
 
     // first, break down based on where the data is to be acquired
     if (location == access_location::host)
