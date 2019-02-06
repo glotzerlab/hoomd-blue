@@ -641,19 +641,6 @@ class mode_hpmc(_integrator):
         """
         return self.cpp_integrator.getNSelect();
 
-    def get_ntrial(self):
-        R""" Get ntrial parameter.
-
-        Returns:
-            The current value of the 'ntrial' parameter of the integrator.
-
-        """
-        if not self.implicit:
-            hoomd.context.msg.warning("ntrial only available in simulations with non-interacting depletants. Returning 0.\n")
-            return 0;
-
-        return self.cpp_integrator.getNTrial();
-
     def set_fugacity(self,type,fugacity):
         R""" Set depletant fugacity of a given type
             * .. versionadded:: 3.0
