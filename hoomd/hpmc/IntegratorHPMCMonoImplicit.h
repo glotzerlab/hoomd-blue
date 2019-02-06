@@ -921,7 +921,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             // for every pairwise intersection
             #ifdef ENABLE_TBB
             tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size()),
-                [=, &accept, &rng_parallel, &rng_parallel_mt,
+                [=, &intersect_i, &image_i, &aabbs_i,
+                    &accept, &rng_parallel, &rng_parallel_mt,
                     &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& s) {
             for (unsigned int k = s.begin(); k != s.end(); ++k)
             #else
@@ -962,7 +963,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 // for every depletant
                 #ifdef ENABLE_TBB
                 tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n),
-                    [=, &accept, &rng_parallel,
+                    [=, &intersect_i, &image_i, &aabbs_i,
+                        &accept, &rng_parallel,
                         &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
                 for (unsigned int l = t.begin(); l != t.end(); ++l)
                 #else
@@ -1323,7 +1325,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             // for every pairwise intersection
             #ifdef ENABLE_TBB
             tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size()),
-                [=, &accept, &rng_parallel, &rng_parallel_mt,
+                [=, &intersect_i, &image_i, &aabbs_i,
+                    &accept, &rng_parallel, &rng_parallel_mt,
                     &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& s) {
             for (unsigned int k = s.begin(); k != s.end(); ++k)
             #else
@@ -1364,7 +1367,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 // for every depletant
                 #ifdef ENABLE_TBB
                 tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n),
-                    [=, &accept, &rng_parallel,
+                    [=, &intersect_i, &image_i, &aabbs_i,
+                        &accept, &rng_parallel,
                         &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
                 for (unsigned int l = t.begin(); l != t.end(); ++l)
                 #else
