@@ -326,6 +326,8 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::trySwitchType(unsigned int timestep,
         d_colloid_old = shape_old.getCircumsphereDiameter();
         }
 
+    if (m_mc_implicit->getQuermassMode())
+        throw std::runtime_error("update.muvt() doesn't support quermass mode\n");
 
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
@@ -425,6 +427,10 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::tryRemoveParticle(unsigned int times
         }
 
     auto& params = this->m_mc->getParams();
+
+    if (m_mc_implicit->getQuermassMode())
+        throw std::runtime_error("update.muvt() doesn't support quermass mode\n");
+
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
         if (!nonzero)
@@ -1457,7 +1463,13 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::boxResizeAndScale(unsigned int times
 
         unsigned int overlap_count = 0;
 
+        if (m_mc_implicit->getQuermassMode())
+            throw std::runtime_error("update.muvt() doesn't support quermass mode\n");
+
         // loop over depletant types
+        if (m_mc_implicit->getQuermassMode())
+            throw std::runtime_error("update.muvt() doesn't support quermass mode\n");
+
         for (unsigned int type_d = 0; type_d < this->m_pdata->getN(); ++type_d)
             {
             if (m_mc_implicit->getDepletantFugacity(type_d) == 0.0)
