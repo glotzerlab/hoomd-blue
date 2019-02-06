@@ -932,7 +932,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             #endif
                 {
                 // world AABB of shape j, in image of i
-                detail::AABB aabb_j = aabbs_i[k];
+                const detail::AABB aabb_j = aabbs_i[k];
 
                 // extend AABB j by sweep radius
                 vec3<Scalar> lower_j = aabb_j.getLower();
