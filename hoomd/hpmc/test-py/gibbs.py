@@ -45,6 +45,7 @@ class gibbs_ensemble_test(unittest.TestCase):
         # needs to be run with 2 partitions
         muvt=hpmc.update.muvt(mc=self.mc,seed=456,ngibbs=2,transfer_types=['A'])
 
+        muvt.set_params(n_trial=20)
         muvt.set_params(dV=0.01)
         muvt.set_params(move_ratio=.01)
 
