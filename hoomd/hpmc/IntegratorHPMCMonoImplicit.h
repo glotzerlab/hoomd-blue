@@ -791,7 +791,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
     #ifdef ENABLE_TBB
     try {
-    tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)this->m_pdata->getNTypes())
+    tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)this->m_pdata->getNTypes()),
         [&](const tbb::blocked_range<unsigned int>& r) {
     for (unsigned int type = r.begin(); type != r.end(); ++type)
     #else
