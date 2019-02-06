@@ -2,8 +2,6 @@
 #ifndef _UPDATER_HPMC_CLUSTERS_IMPLICIT_
 #define _UPDATER_HPMC_CLUSTERS_IMPLICIT_
 
-#if 0 // currently disabled
-
 /*! \file UpdaterBoxClusters.h
     \brief Declaration of UpdaterBoxClusters
 */
@@ -54,13 +52,20 @@ class UpdaterClustersImplicit : public UpdaterClusters<Shape>
             // access parameters
             auto& params = m_mc_implicit->getParams();
 
-            if (m_mc_implicit->getDepletantDensity() > Scalar(0.0))
+            // add range of depletion interaction
+            Scalar d_dep(0.0);
+            for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
                 {
-                // add range of depletion interaction
-                quat<Scalar> o;
-                Shape tmp(o, params[m_mc_implicit->getDepletantType()]);
-                nominal_width += tmp.getCircumsphereDiameter();
+                if (m_mc_implicit->getDepletantFugacity(itype) != Scalar(0.0))
+                    {
+                    quat<Scalar> o;
+                    Shape tmp(o, params[itype]);
+                    // max over all depletant types
+                    d_dep = std::max(d_dep, (Scalar) tmp.getCircumsphereDiameter());
+                    }
                 }
+
+            nominal_width += d_dep;
 
             auto patch = m_mc_implicit->getPatchInteraction();
             if (patch) nominal_width = std::max(nominal_width, patch->getRCut());
@@ -94,16 +99,6 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
     // access parameters
     auto& params = m_mc_implicit->getParams();
 
-    // Depletant diameter
-    Scalar d_dep;
-    unsigned int depletant_type = m_mc_implicit->getDepletantType();
-        {
-        // add range of depletion interaction
-        quat<Scalar> o;
-        Shape tmp(o, params[depletant_type]);
-        d_dep = tmp.getCircumsphereDiameter();
-        }
-
     // update the image list
     auto image_list = m_mc_implicit->updateImageList();
 
@@ -124,318 +119,325 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
     ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::read);
 
-    // test old configuration against itself
-
-    #ifdef ENABLE_TBB
-    tbb::parallel_for((unsigned int)0,this->m_n_particles_old, [&](unsigned int i)
-    #else
-    for (unsigned int i = 0; i < this->m_n_particles_old; ++i)
-    #endif
-        {
-        unsigned int typ_i = __scalar_as_int(this->m_postype_backup[i].w);
-
-        vec3<Scalar> pos_i(this->m_postype_backup[i]);
-        quat<Scalar> orientation_i(this->m_orientation_backup[i]);
-
-        Shape shape_i(orientation_i, params[typ_i]);
-        Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
-
-        detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
-
-        const unsigned int n_images = image_list.size();
-
-        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-            {
-            vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
-
-            detail::AABB aabb_i_image = aabb_local;
-            aabb_i_image.translate(pos_i_image);
-
-            // stackless search
-            for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree_old.getNumNodes(); cur_node_idx++)
-                {
-                if (detail::overlap(this->m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
-                    {
-                    if (this->m_aabb_tree_old.isNodeLeaf(cur_node_idx))
-                        {
-                        for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree_old.getNodeNumParticles(cur_node_idx); cur_p++)
-                            {
-                            // read in its position and orientation
-                            unsigned int j = this->m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
-
-                            if (this->m_tag_backup[i] == this->m_tag_backup[j] && cur_image == 0) continue;
-
-                            // load the position and orientation of the j particle
-                            vec3<Scalar> pos_j = vec3<Scalar>(this->m_postype_backup[j]);
-                            unsigned int typ_j = __scalar_as_int(this->m_postype_backup[j].w);
-                            Shape shape_j(quat<Scalar>(this->m_orientation_backup[j]), params[typ_j]);
-
-                            // put particles in coordinate system of particle i
-                            vec3<Scalar> r_ij = pos_j - pos_i_image;
-
-                            // check for excluded volume sphere overlap
-                            Scalar r_excl_j = shape_j.getCircumsphereDiameter()/Scalar(2.0);
-                            Scalar RaRb = r_excl_i + r_excl_j + d_dep;
-                            Scalar rsq_ij = dot(r_ij, r_ij);
-
-                            if (h_overlaps.data[overlap_idx(typ_i,depletant_type)] &&
-                                h_overlaps.data[overlap_idx(typ_j,depletant_type)] &&
-                                rsq_ij <= RaRb*RaRb)
-                                {
-                                unsigned int new_tag_i;
-                                    {
-                                    auto it = map.find(this->m_tag_backup[i]);
-                                    assert(it != map.end());
-                                    new_tag_i = it->second;
-                                    }
-                                unsigned int new_tag_j;
-                                    {
-                                    auto it = map.find(this->m_tag_backup[j]);
-                                    assert(it!=map.end());
-                                    new_tag_j = it->second;
-                                    }
-
-                                this->m_interact_old_old.push_back(std::make_pair(new_tag_i,new_tag_j));
-
-                                int3 delta_img = this->m_image_backup[i] - this->m_image_backup[j];
-                                bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
-                                interacts_via_pbc |= cur_image != 0;
-
-                                if (line && !swap && interacts_via_pbc)
-                                    {
-                                    // if interaction across PBC, reject cluster move
-                                    this->m_local_reject.insert(new_tag_i);
-                                    this->m_local_reject.insert(new_tag_j);
-                                    }
-                                } // end if overlap
-
-                            } // end loop over AABB tree leaf
-                        } // end is leaf
-                    } // end if overlap
-                else
-                    {
-                    // skip ahead
-                    cur_node_idx += this->m_aabb_tree_old.getNodeSkip(cur_node_idx);
-                    }
-
-                } // end loop over nodes
-
-            } // end loop over images
-
-        } // end loop over old configuration
-    #ifdef ENABLE_TBB
-        );
-    #endif
-
-    // loop over new configuration
-    #ifdef ENABLE_TBB
-    tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
-    #else
-    for (unsigned int i = 0; i < nptl; ++i)
-    #endif
-        {
-        unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
-
-        vec3<Scalar> pos_i_new(h_postype.data[i]);
-        quat<Scalar> orientation_i_new(h_orientation.data[i]);
-
-        Shape shape_i(orientation_i_new, params[typ_i]);
-        Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
-
-        // All image boxes (including the primary)
-        const unsigned int n_images = image_list.size();
-
-        // check overlap of depletant-excluded volumes
-        detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
-
-        // query new against old
-        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-            {
-            vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
-
-            detail::AABB aabb_i_image = aabb_local;
-            aabb_i_image.translate(pos_i_image);
-
-            // stackless search
-            for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree_old.getNumNodes(); cur_node_idx++)
-                {
-                if (detail::overlap(this->m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
-                    {
-                    if (this->m_aabb_tree_old.isNodeLeaf(cur_node_idx))
-                        {
-                        for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree_old.getNodeNumParticles(cur_node_idx); cur_p++)
-                            {
-                            // read in its position and orientation
-                            unsigned int j = this->m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
-
-                            unsigned int new_tag_j;
-                                {
-                                auto it = map.find(this->m_tag_backup[j]);
-                                assert(it != map.end());
-                                new_tag_j = it->second;
-                                }
-
-                            if (h_tag.data[i] == new_tag_j && cur_image == 0) continue;
-
-                            vec3<Scalar> pos_j(this->m_postype_backup[j]);
-                            unsigned int typ_j = __scalar_as_int(this->m_postype_backup[j].w);
-                            Shape shape_j(quat<Scalar>(this->m_orientation_backup[j]), params[typ_j]);
-
-                            // put particles in coordinate system of particle i
-                            vec3<Scalar> r_ij = pos_j - pos_i_image;
-
-                            // check for excluded volume sphere overlap
-                            Scalar r_excl_j = shape_j.getCircumsphereDiameter()/Scalar(2.0);
-                            Scalar RaRb = r_excl_i + r_excl_j + d_dep;
-                            Scalar rsq_ij = dot(r_ij, r_ij);
-
-                            if (h_overlaps.data[overlap_idx(typ_i,depletant_type)] &&
-                                h_overlaps.data[overlap_idx(typ_j,depletant_type)] &&
-                                rsq_ij <= RaRb*RaRb)
-                                {
-                                this->m_interact_new_old.push_back(std::make_pair(h_tag.data[i],new_tag_j));
-
-                                int3 delta_img = h_image.data[i] - this->m_image_backup[j];
-                                bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
-                                interacts_via_pbc |= cur_image != 0;
-
-                                if (line && !swap && interacts_via_pbc)
-                                    {
-                                    // if interaction across PBC, reject cluster move
-                                    this->m_local_reject.insert(h_tag.data[i]);
-                                    this->m_local_reject.insert(new_tag_j);
-                                    }
-                                }
-                            } // end loop over AABB tree leaf
-                        } // end is leaf
-                    } // end if overlap
-                else
-                    {
-                    // skip ahead
-                    cur_node_idx += this->m_aabb_tree_old.getNodeSkip(cur_node_idx);
-                    }
-
-                } // end loop over nodes
-
-            } // end loop over images
-
-        } // end loop over local particles
-    #ifdef ENABLE_TBB
-        );
-    #endif
-
     // locality data in new configuration
     const detail::AABBTree& aabb_tree = m_mc_implicit->buildAABBTree();
 
-    if (line && !swap)
+    // for every depletant type
+    for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
-        // check if particles are interacting in the new configuration
-        #ifdef ENABLE_TBB
-        tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
-        #else
-        for (unsigned int i = 0; i < nptl; ++i)
-        #endif
+        if (m_mc_implicit->getDepletantFugacity(type_d) != Scalar(0.0))
             {
-            unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
+            Shape tmp(quat<Scalar>(), params[type_d]);
+            Scalar d_dep = tmp.getCircumsphereDiameter();
 
-            vec3<Scalar> pos_i_new(h_postype.data[i]);
-            quat<Scalar> orientation_i_new(h_orientation.data[i]);
+            // test old configuration against itself
 
-            Shape shape_i(orientation_i_new, params[typ_i]);
-            Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
-
-            // add depletant diameter to search radius
-            detail::AABB aabb_i(pos_i_new, Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
-
-            // All image boxes (including the primary)
-            const unsigned int n_images = image_list.size();
-
-            // check against new AABB tree
-            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+            #ifdef ENABLE_TBB
+            tbb::parallel_for((unsigned int)0,this->m_n_particles_old, [&](unsigned int i)
+            #else
+            for (unsigned int i = 0; i < this->m_n_particles_old; ++i)
+            #endif
                 {
-                vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
+                unsigned int typ_i = __scalar_as_int(this->m_postype_backup[i].w);
 
-                detail::AABB aabb_i_image = aabb_i;
-                aabb_i_image.translate(image_list[cur_image]);
+                vec3<Scalar> pos_i(this->m_postype_backup[i]);
+                quat<Scalar> orientation_i(this->m_orientation_backup[i]);
 
-                // stackless search
-                for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+                Shape shape_i(orientation_i, params[typ_i]);
+                Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
+
+                detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
+
+                const unsigned int n_images = image_list.size();
+
+                for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
-                    if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb_i_image))
+                    vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
+
+                    detail::AABB aabb_i_image = aabb_local;
+                    aabb_i_image.translate(pos_i_image);
+
+                    // stackless search
+                    for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                         {
-                        if (aabb_tree.isNodeLeaf(cur_node_idx))
+                        if (detail::overlap(this->m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
                             {
-                            for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                            if (this->m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                                 {
-                                // read in its position and orientation
-                                unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                // no trivial bonds
-                                if (h_tag.data[i] == h_tag.data[j] && cur_image == 0) continue;
-
-                                // load the position and orientation of the j particle
-                                vec3<Scalar> pos_j = vec3<Scalar>(h_postype.data[j]);
-                                unsigned int typ_j = __scalar_as_int(h_postype.data[j].w);
-                                Shape shape_j(quat<Scalar>(h_orientation.data[j]), params[typ_j]);
-
-                                // put particles in coordinate system of particle i
-                                vec3<Scalar> r_ij = pos_j - pos_i_image;
-
-                                // check for circumsphere overlap
-                                Scalar r_excl_j = shape_j.getCircumsphereDiameter()/Scalar(2.0);
-                                Scalar RaRb = r_excl_i + r_excl_j + d_dep;
-                                Scalar rsq_ij = dot(r_ij, r_ij);
-
-                                if (h_overlaps.data[overlap_idx(typ_i,depletant_type)] &&
-                                    h_overlaps.data[overlap_idx(typ_j,depletant_type)] &&
-                                    rsq_ij <= RaRb*RaRb)
+                                for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree_old.getNodeNumParticles(cur_node_idx); cur_p++)
                                     {
-                                    int3 delta_img = h_image.data[i] - h_image.data[j];
-                                    bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
-                                    interacts_via_pbc |= cur_image != 0;
+                                    // read in its position and orientation
+                                    unsigned int j = this->m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                                    if (interacts_via_pbc)
+                                    if (this->m_tag_backup[i] == this->m_tag_backup[j] && cur_image == 0) continue;
+
+                                    // load the position and orientation of the j particle
+                                    vec3<Scalar> pos_j = vec3<Scalar>(this->m_postype_backup[j]);
+                                    unsigned int typ_j = __scalar_as_int(this->m_postype_backup[j].w);
+                                    Shape shape_j(quat<Scalar>(this->m_orientation_backup[j]), params[typ_j]);
+
+                                    // put particles in coordinate system of particle i
+                                    vec3<Scalar> r_ij = pos_j - pos_i_image;
+
+                                    // check for excluded volume sphere overlap
+                                    Scalar r_excl_j = shape_j.getCircumsphereDiameter()/Scalar(2.0);
+                                    Scalar RaRb = r_excl_i + r_excl_j + d_dep;
+                                    Scalar rsq_ij = dot(r_ij, r_ij);
+
+                                    if (h_overlaps.data[overlap_idx(typ_i,type_d)] &&
+                                        h_overlaps.data[overlap_idx(typ_j,type_d)] &&
+                                        rsq_ij <= RaRb*RaRb)
                                         {
-                                        // add to list
-                                        this->m_local_reject.insert(h_tag.data[i]);
-                                        this->m_local_reject.insert(h_tag.data[j]);
+                                        unsigned int new_tag_i;
+                                            {
+                                            auto it = map.find(this->m_tag_backup[i]);
+                                            assert(it != map.end());
+                                            new_tag_i = it->second;
+                                            }
+                                        unsigned int new_tag_j;
+                                            {
+                                            auto it = map.find(this->m_tag_backup[j]);
+                                            assert(it!=map.end());
+                                            new_tag_j = it->second;
+                                            }
 
-                                        this->m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
-                                        }
-                                    } // end if overlap
+                                        this->m_interact_old_old.push_back(std::make_pair(new_tag_i,new_tag_j));
 
-                                } // end loop over AABB tree leaf
-                            } // end is leaf
-                        } // end if overlap
-                    else
+                                        int3 delta_img = this->m_image_backup[i] - this->m_image_backup[j];
+                                        bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
+                                        interacts_via_pbc |= cur_image != 0;
+
+                                        if (line && !swap && interacts_via_pbc)
+                                            {
+                                            // if interaction across PBC, reject cluster move
+                                            this->m_local_reject.insert(new_tag_i);
+                                            this->m_local_reject.insert(new_tag_j);
+                                            }
+                                        } // end if overlap
+
+                                    } // end loop over AABB tree leaf
+                                } // end is leaf
+                            } // end if overlap
+                        else
+                            {
+                            // skip ahead
+                            cur_node_idx += this->m_aabb_tree_old.getNodeSkip(cur_node_idx);
+                            }
+
+                        } // end loop over nodes
+
+                    } // end loop over images
+
+                } // end loop over old configuration
+            #ifdef ENABLE_TBB
+                );
+            #endif
+
+            // loop over new configuration
+            #ifdef ENABLE_TBB
+            tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
+            #else
+            for (unsigned int i = 0; i < nptl; ++i)
+            #endif
+                {
+                unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
+
+                vec3<Scalar> pos_i_new(h_postype.data[i]);
+                quat<Scalar> orientation_i_new(h_orientation.data[i]);
+
+                Shape shape_i(orientation_i_new, params[typ_i]);
+                Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
+
+                // All image boxes (including the primary)
+                const unsigned int n_images = image_list.size();
+
+                // check overlap of depletant-excluded volumes
+                detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
+
+                // query new against old
+                for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                    {
+                    vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
+
+                    detail::AABB aabb_i_image = aabb_local;
+                    aabb_i_image.translate(pos_i_image);
+
+                    // stackless search
+                    for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                         {
-                        // skip ahead
-                        cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                        }
+                        if (detail::overlap(this->m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
+                            {
+                            if (this->m_aabb_tree_old.isNodeLeaf(cur_node_idx))
+                                {
+                                for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree_old.getNodeNumParticles(cur_node_idx); cur_p++)
+                                    {
+                                    // read in its position and orientation
+                                    unsigned int j = this->m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                    } // end loop over nodes
-                } // end loop over images
-            } // end loop over local particles
-        #ifdef ENABLE_TBB
-            );
-        #endif
+                                    unsigned int new_tag_j;
+                                        {
+                                        auto it = map.find(this->m_tag_backup[j]);
+                                        assert(it != map.end());
+                                        new_tag_j = it->second;
+                                        }
+
+                                    if (h_tag.data[i] == new_tag_j && cur_image == 0) continue;
+
+                                    vec3<Scalar> pos_j(this->m_postype_backup[j]);
+                                    unsigned int typ_j = __scalar_as_int(this->m_postype_backup[j].w);
+                                    Shape shape_j(quat<Scalar>(this->m_orientation_backup[j]), params[typ_j]);
+
+                                    // put particles in coordinate system of particle i
+                                    vec3<Scalar> r_ij = pos_j - pos_i_image;
+
+                                    // check for excluded volume sphere overlap
+                                    Scalar r_excl_j = shape_j.getCircumsphereDiameter()/Scalar(2.0);
+                                    Scalar RaRb = r_excl_i + r_excl_j + d_dep;
+                                    Scalar rsq_ij = dot(r_ij, r_ij);
+
+                                    if (h_overlaps.data[overlap_idx(typ_i,type_d)] &&
+                                        h_overlaps.data[overlap_idx(typ_j,type_d)] &&
+                                        rsq_ij <= RaRb*RaRb)
+                                        {
+                                        this->m_interact_new_old.push_back(std::make_pair(h_tag.data[i],new_tag_j));
+
+                                        int3 delta_img = h_image.data[i] - this->m_image_backup[j];
+                                        bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
+                                        interacts_via_pbc |= cur_image != 0;
+
+                                        if (line && !swap && interacts_via_pbc)
+                                            {
+                                            // if interaction across PBC, reject cluster move
+                                            this->m_local_reject.insert(h_tag.data[i]);
+                                            this->m_local_reject.insert(new_tag_j);
+                                            }
+                                        }
+                                    } // end loop over AABB tree leaf
+                                } // end is leaf
+                            } // end if overlap
+                        else
+                            {
+                            // skip ahead
+                            cur_node_idx += this->m_aabb_tree_old.getNodeSkip(cur_node_idx);
+                            }
+
+                        } // end loop over nodes
+
+                    } // end loop over images
+
+                } // end loop over local particles
+            #ifdef ENABLE_TBB
+                );
+            #endif
+
+            if (line && !swap)
+                {
+                // check if particles are interacting in the new configuration
+                #ifdef ENABLE_TBB
+                tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
+                #else
+                for (unsigned int i = 0; i < nptl; ++i)
+                #endif
+                    {
+                    unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
+
+                    vec3<Scalar> pos_i_new(h_postype.data[i]);
+                    quat<Scalar> orientation_i_new(h_orientation.data[i]);
+
+                    Shape shape_i(orientation_i_new, params[typ_i]);
+                    Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
+
+                    // add depletant diameter to search radius
+                    detail::AABB aabb_i(pos_i_new, Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
+
+                    // All image boxes (including the primary)
+                    const unsigned int n_images = image_list.size();
+
+                    // check against new AABB tree
+                    for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                        {
+                        vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
+
+                        detail::AABB aabb_i_image = aabb_i;
+                        aabb_i_image.translate(image_list[cur_image]);
+
+                        // stackless search
+                        for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+                            {
+                            if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb_i_image))
+                                {
+                                if (aabb_tree.isNodeLeaf(cur_node_idx))
+                                    {
+                                    for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                        {
+                                        // read in its position and orientation
+                                        unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                        // no trivial bonds
+                                        if (h_tag.data[i] == h_tag.data[j] && cur_image == 0) continue;
+
+                                        // load the position and orientation of the j particle
+                                        vec3<Scalar> pos_j = vec3<Scalar>(h_postype.data[j]);
+                                        unsigned int typ_j = __scalar_as_int(h_postype.data[j].w);
+                                        Shape shape_j(quat<Scalar>(h_orientation.data[j]), params[typ_j]);
+
+                                        // put particles in coordinate system of particle i
+                                        vec3<Scalar> r_ij = pos_j - pos_i_image;
+
+                                        // check for circumsphere overlap
+                                        Scalar r_excl_j = shape_j.getCircumsphereDiameter()/Scalar(2.0);
+                                        Scalar RaRb = r_excl_i + r_excl_j + d_dep;
+                                        Scalar rsq_ij = dot(r_ij, r_ij);
+
+                                        if (h_overlaps.data[overlap_idx(typ_i,type_d)] &&
+                                            h_overlaps.data[overlap_idx(typ_j,type_d)] &&
+                                            rsq_ij <= RaRb*RaRb)
+                                            {
+                                            int3 delta_img = h_image.data[i] - h_image.data[j];
+                                            bool interacts_via_pbc = delta_img.x || delta_img.y || delta_img.z;
+                                            interacts_via_pbc |= cur_image != 0;
+
+                                            if (interacts_via_pbc)
+                                                {
+                                                // add to list
+                                                this->m_local_reject.insert(h_tag.data[i]);
+                                                this->m_local_reject.insert(h_tag.data[j]);
+
+                                                this->m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
+                                                }
+                                            } // end if overlap
+
+                                        } // end loop over AABB tree leaf
+                                    } // end is leaf
+                                } // end if overlap
+                            else
+                                {
+                                // skip ahead
+                                cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+                                }
+
+                            } // end loop over nodes
+                        } // end loop over images
+                    } // end loop over local particles
+                #ifdef ENABLE_TBB
+                    );
+                #endif
+                }
+            } // end if depletant fugacity != 0.0
         }
 
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
     }
 
 } // end namespace hpmc
-#endif
 
 template < class Shape, class Integrator > void export_UpdaterClustersImplicit(pybind11::module& m, const std::string& name)
     {
-    #if 0
-    pybind11::class_< UpdaterClustersImplicit<Shape,Integrator>, std::shared_ptr< UpdaterClustersImplicit<Shape,Integrator> > >(m, name.c_str(), pybind11::base<UpdaterClusters<Shape> >())
+    pybind11::class_< hpmc::UpdaterClustersImplicit<Shape,Integrator>, std::shared_ptr< hpmc::UpdaterClustersImplicit<Shape,Integrator> > >(m, name.c_str(), pybind11::base<hpmc::UpdaterClusters<Shape> >())
           .def( pybind11::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr< Integrator >,
                          unsigned int >())
     ;
-    #endif
     }
 
 #endif // _UPDATER_HPMC_CLUSTERS_IMPLICIT_
