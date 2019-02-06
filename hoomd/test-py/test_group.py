@@ -239,14 +239,14 @@ class body_group_tests(unittest.TestCase):
             self.assertEqual(len(hoomd.group.rigid_center()), 2)
             self.assertEqual(len(hoomd.group.rigid()), 4)
 
-    def test_molecule(self):
+    def test_floppy(self):
         snap = hoomd.data.make_snapshot(N=8, box=hoomd.data.boxdim(L=2), particle_types=['A'])
         if hoomd.comm.get_rank() == 0:
             snap.particles.position[:] = [[x/10.0, 0, 0] for x in range(8)]
             snap.particles.body[:] = [-2]*4 + [-1]*4
 
         system = hoomd.init.read_snapshot(snap)
-        self.assertEqual(len(hoomd.group.molecule()), 4)
+        self.assertEqual(len(hoomd.group.floppy()), 4)
 
     def test_mixed(self):
         snap = hoomd.data.make_snapshot(N=9, box=hoomd.data.boxdim(L=5), particle_types=['A', 'B'])
@@ -270,8 +270,8 @@ class body_group_tests(unittest.TestCase):
         self.assertEqual(len(hoomd.group.rigid_center()), 4)
         self.assertEqual(len(hoomd.group.rigid()), 8)
         self.assertEqual(len(hoomd.group.nonrigid()), 5)
-        self.assertEqual(len(hoomd.group.molecule()), 5)
-        self.assertEqual(len(hoomd.group.nonmolecule()), 8)
+        self.assertEqual(len(hoomd.group.floppy()), 5)
+        self.assertEqual(len(hoomd.group.nonfloppy()), 8)
         self.assertEqual(len(hoomd.group.nonbody()), 0)
 
     def tearDown(self):

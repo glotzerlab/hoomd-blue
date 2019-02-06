@@ -356,15 +356,15 @@ def rigid():
     # return it in the wrapper class
     return group(name, cpp_group);
 
-def nonmolecule():
-    R""" Groups particles that do not belong to any molecule (non-rigid body).
+def nonfloppy():
+    R""" Groups particles that do not belong to any floppy body.
 
-    Creates a particle group from particles. All particles that **do not** belong to a molecule will be added to
-    the group. The group is always named 'nonmolecule'.
+    Creates a particle group from particles. All particles that **do not** belong to a floppy body will be added to
+    the group. The group is always named 'nonfloppy'.
 
     Examples::
 
-        nonmolecule = group.nonmolecule()
+        nonfloppy = group.nonfloppy()
 
     """
     hoomd.util.print_status_line();
@@ -375,8 +375,8 @@ def nonmolecule():
         raise RuntimeError('Error creating group');
 
     # create the group
-    name = 'nonmolecule';
-    selector = _hoomd.ParticleSelectorMolecule(hoomd.context.current.system_definition, False);
+    name = 'nonfloppy';
+    selector = _hoomd.ParticleSelectorFloppy(hoomd.context.current.system_definition, False);
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
 
     # notify the user of the created group
@@ -385,15 +385,15 @@ def nonmolecule():
     # return it in the wrapper class
     return group(name, cpp_group);
 
-def molecule():
-    R""" Groups particles that belong to any molecule (non-rigid body).
+def floppy():
+    R""" Groups particles that belong to any floppy body.
 
-    Creates a particle group from particles. All particles that belong to a molecule will be added to the group.
-    The group is always named 'molecule'.
+    Creates a particle group from particles. All particles that belong to a floppy will be added to the group.
+    The group is always named 'floppy'.
 
     Examples::
 
-        molecule = group.molecule()
+        floppy = group.floppy()
 
     """
     hoomd.util.print_status_line();
@@ -404,8 +404,8 @@ def molecule():
         raise RuntimeError('Error creating group');
 
     # create the group
-    name = 'molecule';
-    selector = _hoomd.ParticleSelectorMolecule(hoomd.context.current.system_definition,True);
+    name = 'floppy';
+    selector = _hoomd.ParticleSelectorFloppy(hoomd.context.current.system_definition, True);
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
 
     # notify the user of the created group

@@ -104,7 +104,7 @@ struct CScalar
 //! Sentinel value in \a body to signify that this particle does not belong to a body
 const unsigned int NO_BODY = 0xffffffff;
 
-//! Unsigned value equivalent to a sign flip in a signed int. All larger values of the \a body flag indicate a floppy body (molecule).
+//! Unsigned value equivalent to a sign flip in a signed int. All larger values of the \a body flag indicate a floppy body (forces between are ignored, but they are integrated independently).
 const unsigned int MIN_MOLECULE = 0x80000000;
 
 //! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
@@ -354,7 +354,7 @@ struct pdata_element
     of course) where integration methods like NVERigid will handle updating the degrees of freedom of the composite
     body and then set the constrained position, velocity, and orientation of the constituent particles.
 
-    Particles that are part of a molecule, i.e. a non-rigid body, will have the same value of the body flag, but that value must be a
+    Particles that are part of a floppy body will have the same value of the body flag, but that value must be a
     negative number less than -1 (which is reserved as NO_BODY). Such particles do not need to be treated specially by the integrator;
     they are integrated independently of one another, but they do not interact. This lack of interaction is enforced through the neighbor
     list, in which particles that belong to the same body are excluded by default.

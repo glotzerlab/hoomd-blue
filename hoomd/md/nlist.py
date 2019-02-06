@@ -31,8 +31,8 @@ or for belonging to the same rigid body (see :py:meth:`nlist.reset_exclusions()`
 the body flag can also be used to exclude particles that are not part of a rigid structure. All particles with
 positive values of the body flag are considered part of a rigid body (see :py:class:`hoomd.md.constrain.rigid`),
 while the default value of -1 indicates that a particle is free. Any other negative value of the body flag indicates
-that the particles are part of a molecule; such particles are integrated separately, but are automatically excluded from
-the neighbor list as well.
+that the particles are part of a floppy body; such particles are integrated
+separately, but are automatically excluded from the neighbor list as well.
 
 Examples::
 

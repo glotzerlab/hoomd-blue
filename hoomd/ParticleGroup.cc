@@ -242,21 +242,21 @@ std::vector<unsigned int> ParticleSelectorRigid::getSelectedTags() const
 
 
 //////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorMolecule
+// ParticleSelectorFloppy
 
 /*! \param sysdef System the particles are to be selected from
-    \param molecule true selects particles that are in molecule bodies, false selects particles that are not part of a molecule (non-rigid body)
+    \param floppy true selects particles that are in floppy bodies, false selects particles that are not part of a floppy (non-rigid body)
 */
-ParticleSelectorMolecule::ParticleSelectorMolecule(std::shared_ptr<SystemDefinition> sysdef,
-                                             bool molecule)
-    : ParticleSelector(sysdef), m_molecule(molecule)
+ParticleSelectorFloppy::ParticleSelectorFloppy(std::shared_ptr<SystemDefinition> sysdef,
+                                             bool floppy)
+    : ParticleSelector(sysdef), m_floppy(floppy)
     {
     }
 
 /*! \param tag Tag of the particle to check
     \returns true if the type of particle \a tag meets the rigid criteria selected
 */
-std::vector<unsigned int> ParticleSelectorMolecule::getSelectedTags() const
+std::vector<unsigned int> ParticleSelectorFloppy::getSelectedTags() const
     {
     std::vector<unsigned int> member_tags;
 
@@ -272,9 +272,9 @@ std::vector<unsigned int> ParticleSelectorMolecule::getSelectedTags() const
 
         // see if it matches the criteria
         bool result = false;
-        if (m_molecule && body >= MIN_MOLECULE && body != NO_BODY)
+        if (m_floppy && body >= MIN_MOLECULE && body != NO_BODY)
             result = true;
-        if (!m_molecule && (body < MIN_MOLECULE || body == NO_BODY))
+        if (!m_floppy && (body < MIN_MOLECULE || body == NO_BODY))
             result = true;
 
         if (result)
@@ -967,7 +967,7 @@ void export_ParticleGroup(py::module& m)
             .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
         ;
 
-    py::class_<ParticleSelectorMolecule, std::shared_ptr<ParticleSelectorMolecule> >(m,"ParticleSelectorMolecule",py::base<ParticleSelector>())
+    py::class_<ParticleSelectorFloppy, std::shared_ptr<ParticleSelectorFloppy> >(m,"ParticleSelectorFloppy",py::base<ParticleSelector>())
             .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
         ;
 

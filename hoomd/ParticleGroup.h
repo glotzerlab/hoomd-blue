@@ -132,10 +132,10 @@ class PYBIND11_EXPORT ParticleSelectorRigid : public ParticleSelector
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags() const;
     protected:
-        bool m_rigid;   //!< true if we should select rigid bodies, false if we should select non-rigid particles
+        bool m_rigid;   //!< true if we should select particles in rigid bodies, false if we should select non-rigid particles
     };
 
-//! Select particles based on their body body
+//! Select particles based on their body
 class PYBIND11_EXPORT ParticleSelectorBody : public ParticleSelector
     {
     public:
@@ -146,21 +146,21 @@ class PYBIND11_EXPORT ParticleSelectorBody : public ParticleSelector
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags() const;
     protected:
-        bool m_body;   //!< true if we should select body bodies, false if we should select non-body particles
+        bool m_body;   //!< true if we should select particles in a body, false if we should select non-body particles
     };
 
-//! Select particles based on their molecule body
-class PYBIND11_EXPORT ParticleSelectorMolecule : public ParticleSelector
+//! Select particles based on their floppy body
+class PYBIND11_EXPORT ParticleSelectorFloppy : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorMolecule(std::shared_ptr<SystemDefinition> sysdef, bool molecule);
-        virtual ~ParticleSelectorMolecule() {}
+        ParticleSelectorFloppy(std::shared_ptr<SystemDefinition> sysdef, bool molecule);
+        virtual ~ParticleSelectorFloppy() {}
 
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags() const;
     protected:
-        bool m_molecule;   //!< true if we should select molecule bodies, false if we should select non-molecule particles
+        bool m_floppy;   //!< true if we should select particles in floppy bodies, false if we should select non-floppy particles
     };
 
 class PYBIND11_EXPORT ParticleSelectorRigidCenter : public ParticleSelector
