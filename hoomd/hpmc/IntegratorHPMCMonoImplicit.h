@@ -1,8 +1,7 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#ifndef __HPMC_MONO_IMPLICIT__H__
-#define __HPMC_MONO_IMPLICIT__H__
+# pragma once
 
 #include "IntegratorHPMCMono.h"
 #include "hoomd/Autotuner.h"
@@ -792,14 +791,12 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     #ifdef ENABLE_TBB
     std::vector< tbb::enumerable_thread_specific<hpmc_implicit_counters_t> > thread_implicit_counters(this->m_pdata->getNTypes());
     tbb::enumerable_thread_specific<hpmc_counters_t> thread_counters;
-
-    try {
-    tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)this->m_pdata->getNTypes()),
-        [&](const tbb::blocked_range<unsigned int>& r) {
-    for (unsigned int type = r.begin(); type != r.end(); ++type)
-    #else
-    for (unsigned int type = 0; type < this->m_pdata->getNTypes(); ++type)
     #endif
+
+    #ifdef ENABLE_TBB
+    try {
+    #endif
+    for (unsigned int type = 0; type < this->m_pdata->getNTypes(); ++type)
         {
         if (!h_overlaps[this->m_overlap_idx(type, typ_i)] && !m_quermass)
             continue;
@@ -932,7 +929,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             #endif
                 {
                 // world AABB of shape j, in image of i
-                const detail::AABB aabb_j = aabbs_i[k];
+                detail::AABB aabb_j = aabbs_i[k];
 
                 // extend AABB j by sweep radius
                 vec3<Scalar> lower_j = aabb_j.getLower();
@@ -1608,7 +1605,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             } // end depletant placement
         }
     #ifdef ENABLE_TBB
-        }); } catch (bool b) { }
+    } catch (bool b) { }
     #endif
 
     #ifdef ENABLE_TBB
@@ -1777,5 +1774,3 @@ inline void export_hpmc_implicit_counters(pybind11::module& m)
     ;
     }
 } // end namespace hpmc
-
-#endif // __HPMC_MONO_IMPLICIT__H__
