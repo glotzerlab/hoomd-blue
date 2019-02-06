@@ -660,7 +660,7 @@ class mode_hpmc(_integrator):
 
         Args:
             type (string): Type for which fugacity is returned
-            fugacity (Scalar): Ideal gas density of the depletant, can take any scalar value
+            fugacity (float): Ideal gas density of the depletant, can take any scalar value
 
         """
         if not self.implicit:
