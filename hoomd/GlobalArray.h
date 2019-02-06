@@ -120,7 +120,8 @@ class managed_deleter
             if (ptr == nullptr)
                 return;
 
-            assert(m_exec_conf);
+            if (!m_exec_conf)
+                return;
 
             #ifdef ENABLE_CUDA
             if (m_use_device)
@@ -531,7 +532,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             allocate();
 
             #ifdef ENABLE_CUDA
-            if (this->m_exec_conf->isCUDAEnabled())
+            if (this->m_exec_conf && this->m_exec_conf->isCUDAEnabled())
                 {
                 // synchronize all active GPUs
                 auto gpu_map = this->m_exec_conf->getGPUIds();
@@ -745,7 +746,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             m_data = std::unique_ptr<T, decltype(deleter)>(reinterpret_cast<T *>(ptr), deleter);
 
             // register new allocation
-            if (this->m_exec_conf->getMemoryTracer())
+            if (this->m_exec_conf && this->m_exec_conf->getMemoryTracer())
                 this->m_exec_conf->getMemoryTracer()->registerAllocation(reinterpret_cast<const void *>(m_data.get()),
                     sizeof(T)*m_num_elements, typeid(T).name(), m_tag);
             }
@@ -796,14 +797,14 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
 
     // make sure a null array can be acquired
     if (!this->m_exec_conf || isNull() )
-        return ArrayHandleDispatch<T>(nullptr);
+        return GlobalArrayDispatch<T>(nullptr, *this);
 
     checkAcquired(*this);
 
     if (this->m_exec_conf && this->m_exec_conf->inMultiGPUBlock())
         {
         // we throw this error because we are not syncing all GPUs upon acquire
-        throw std::runtime_error("lobalArray should not be acquired in a multi-GPU block.");
+        throw std::runtime_error("GlobalArray should not be acquired in a multi-GPU block.");
         }
 
     #ifdef ENABLE_CUDA

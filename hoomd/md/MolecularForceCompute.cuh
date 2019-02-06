@@ -26,14 +26,17 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     unsigned int *d_local_molecule_idx,
     unsigned int *d_sorted_by_tag,
     unsigned int *d_idx_sorted_by_tag,
+    unsigned int *d_idx_sorted_by_molecule_and_tag,
     unsigned int *d_lowest_idx,
+    unsigned int *d_lowest_idx_sort,
     unsigned int *d_lowest_idx_in_molecules,
     unsigned int *d_lowest_idx_by_molecule_tag,
     unsigned int *d_molecule_length,
     unsigned int &n_local_molecules,
     unsigned int &max_len,
     unsigned int &n_local_ptls_in_molecules,
-    CachedAllocator& alloc);
+    CachedAllocator& alloc,
+    bool check_cuda);
 
 cudaError_t gpu_fill_molecule_table(
     unsigned int nptl,

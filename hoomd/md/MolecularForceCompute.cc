@@ -89,8 +89,10 @@ void MolecularForceCompute::initMoleculesGPU()
         ScopedAllocation<unsigned int> d_local_molecule_tags(m_exec_conf->getCachedAllocator(), nptl_local);
         ScopedAllocation<unsigned int> d_local_unique_molecule_tags(m_exec_conf->getCachedAllocator(), m_n_molecules_global);
         ScopedAllocation<unsigned int> d_sorted_by_tag(m_exec_conf->getCachedAllocator(), nptl_local);
+        ScopedAllocation<unsigned int> d_idx_sorted_by_molecule_and_tag(m_exec_conf->getCachedAllocator(), nptl_local);
 
         ScopedAllocation<unsigned int> d_lowest_idx(m_exec_conf->getCachedAllocator(), m_n_molecules_global);
+        ScopedAllocation<unsigned int> d_lowest_idx_sort(m_exec_conf->getCachedAllocator(), m_n_molecules_global);
         ScopedAllocation<unsigned int> d_lowest_idx_in_molecules(m_exec_conf->getCachedAllocator(), m_n_molecules_global);
         ScopedAllocation<unsigned int> d_lowest_idx_by_molecule_tag(m_exec_conf->getCachedAllocator(), m_molecule_tag.getNumElements());
 
@@ -103,14 +105,17 @@ void MolecularForceCompute::initMoleculesGPU()
             d_molecule_idx.data,
             d_sorted_by_tag.data,
             d_idx_sorted_by_tag.data,
+            d_idx_sorted_by_molecule_and_tag.data,
             d_lowest_idx.data,
+            d_lowest_idx_sort.data,
             d_lowest_idx_in_molecules.data,
             d_lowest_idx_by_molecule_tag.data,
             d_molecule_length.data,
             n_local_molecules,
             nmax,
             n_local_ptls_in_molecules,
-            m_exec_conf->getCachedAllocator());
+            m_exec_conf->getCachedAllocator(),
+            m_exec_conf->isCUDAErrorCheckingEnabled());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -172,18 +177,21 @@ void MolecularForceCompute::initMoleculesGPU()
             if (nelem == 0)
                 continue;
 
+            cudaMemAdvise(m_molecule_length.get()+range.first,
+                sizeof(unsigned int)*nelem,
+                cudaMemAdviseSetPreferredLocation,
+                gpu_map[idev]);
+            cudaMemPrefetchAsync(m_molecule_length.get()+range.first,
+                sizeof(unsigned int)*nelem,
+                gpu_map[idev]);
+
+            if (m_molecule_indexer.getW() == 0)
+                continue;
+
             cudaMemAdvise(m_molecule_list.get()+m_molecule_indexer(0,range.first),
                 sizeof(unsigned int)*nelem*m_molecule_indexer.getW(),
                 cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_molecule_length.get()+range.first,
-                sizeof(unsigned int)*nelem*m_molecule_indexer.getW(),
-                cudaMemAdviseSetPreferredLocation,
-                gpu_map[idev]);
-
             cudaMemPrefetchAsync(m_molecule_list.get()+m_molecule_indexer(0,range.first),
-                sizeof(unsigned int)*nelem*m_molecule_indexer.getW(),
-                gpu_map[idev]);
-            cudaMemPrefetchAsync(m_molecule_length.get()+range.first,
                 sizeof(unsigned int)*nelem*m_molecule_indexer.getW(),
                 gpu_map[idev]);
             }
