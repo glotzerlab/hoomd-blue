@@ -229,9 +229,9 @@ std::vector<unsigned int> ParticleSelectorRigid::getSelectedTags() const
 
         // see if it matches the criteria
         bool result = false;
-        if (m_rigid && body < MIN_MOLECULE)
+        if (m_rigid && body < MIN_FLOPPY)
             result = true;
-        if (!m_rigid && body >= MIN_MOLECULE)
+        if (!m_rigid && body >= MIN_FLOPPY)
             result = true;
 
         if (result)
@@ -272,9 +272,9 @@ std::vector<unsigned int> ParticleSelectorFloppy::getSelectedTags() const
 
         // see if it matches the criteria
         bool result = false;
-        if (m_floppy && body >= MIN_MOLECULE && body != NO_BODY)
+        if (m_floppy && body >= MIN_FLOPPY && body != NO_BODY)
             result = true;
-        if (!m_floppy && (body < MIN_MOLECULE || body == NO_BODY))
+        if (!m_floppy && (body < MIN_FLOPPY || body == NO_BODY))
             result = true;
 
         if (result)

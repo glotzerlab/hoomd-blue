@@ -55,7 +55,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     // add up the momentum of every free particle (including floppy body particles) and every central particle of a rigid body
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        if (h_body.data[i] >= MIN_MOLECULE || h_body.data[i] == h_tag.data[i])
+        if (h_body.data[i] >= MIN_FLOPPY || h_body.data[i] == h_tag.data[i])
             {
             Scalar mass = h_vel.data[i].w;
             sum_px += mass*h_vel.data[i].x;
@@ -83,7 +83,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     // subtract this momentum from every free particle (including floppy body particles) and every central particle of a rigid body
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        if (h_body.data[i] >= MIN_MOLECULE || h_body.data[i] == h_tag.data[i])
+        if (h_body.data[i] >= MIN_FLOPPY || h_body.data[i] == h_tag.data[i])
             {
             Scalar mass = h_vel.data[i].w;
             h_vel.data[i].x -= avg_px/mass;

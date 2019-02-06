@@ -169,7 +169,7 @@ void ConstraintSphere::validate()
             errors = true;
             }
 
-        if (h_body.data[j] < MIN_MOLECULE)
+        if (h_body.data[j] < MIN_FLOPPY)
             {
             m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " belongs to a rigid body"
                                       << " - cannot constrain" << endl;

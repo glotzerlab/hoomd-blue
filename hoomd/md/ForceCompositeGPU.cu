@@ -123,7 +123,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
 
     __syncthreads();
 
-    if (mol_idx[m] < MIN_MOLECULE)
+    if (mol_idx[m] < MIN_FLOPPY)
         {
         // compute the number of windows that we need to loop over
         unsigned int mol_len = d_molecule_len[mol_idx[m]];
@@ -226,7 +226,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         }
 
     // thread 0 within this body writes out the total force and torque for the body
-    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_MOLECULE && central_idx[m] < N)
+    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_FLOPPY && central_idx[m] < N)
         {
         d_force[central_idx[m]] = body_force[threadIdx.x];
         d_torque[central_idx[m]] = make_scalar4(body_torque[threadIdx.x].x, body_torque[threadIdx.x].y, body_torque[threadIdx.x].z, 0.0f);
@@ -315,7 +315,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
 
     __syncthreads();
 
-    if (mol_idx[m] < MIN_MOLECULE)
+    if (mol_idx[m] < MIN_FLOPPY)
         {
         // compute the number of windows that we need to loop over
         unsigned int mol_len = d_molecule_len[mol_idx[m]];
@@ -333,7 +333,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                 // determine the particle idx of the particle
                 unsigned int pidx = d_molecule_list[molecule_indexer(k,mol_idx[m])];
 
-                if (body_type[m] < MIN_MOLECULE && pidx != central_idx[m])
+                if (body_type[m] < MIN_FLOPPY && pidx != central_idx[m])
                     {
                     // calculate body force and torques
                     Scalar4 fi = d_net_force[pidx];
@@ -408,7 +408,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
         }
 
     // thread 0 within this body writes out the total virial for the body
-    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_MOLECULE && central_idx[m] < N)
+    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_FLOPPY && central_idx[m] < N)
         {
         d_virial[0*virial_pitch+central_idx[m]] = body_virial_xx[threadIdx.x];
         d_virial[1*virial_pitch+central_idx[m]] = body_virial_xy[threadIdx.x];
@@ -782,7 +782,7 @@ struct lookup_op : thrust::unary_function<unsigned int, unsigned int>
 
     __device__ unsigned int operator()(const unsigned int& body)
         {
-        return (body < MIN_MOLECULE) ? d_rtag[body] : NO_BODY;
+        return (body < MIN_FLOPPY) ? d_rtag[body] : NO_BODY;
         }
 
     const unsigned int *d_rtag;

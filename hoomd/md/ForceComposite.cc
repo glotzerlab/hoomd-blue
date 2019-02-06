@@ -429,7 +429,7 @@ void ForceComposite::validateRigidBodies(bool create)
 
                 if (create)
                     {
-                    if (snap.body[i] < MIN_MOLECULE)
+                    if (snap.body[i] < MIN_FLOPPY)
                         {
                         if (!is_central_ptl)
                             {
@@ -459,7 +459,7 @@ void ForceComposite::validateRigidBodies(bool create)
 
                         count_body_ptls.insert(std::make_pair(i,0));
                         }
-                    if (snap.body[i] < MIN_MOLECULE)
+                    if (snap.body[i] < MIN_FLOPPY)
                         {
                         // check if ptl body tag correctly points to the central particle
                         if (snap.body[i] >= snap.size || snap.body[snap.body[i]] != snap.body[i])
@@ -652,7 +652,7 @@ void ForceComposite::validateRigidBodies(bool create)
                     {
                     assert(snap_out.type[i] < ntypes);
 
-                    if (snap_out.body[i] < MIN_MOLECULE)
+                    if (snap_out.body[i] < MIN_FLOPPY)
                         {
                         if (snap_out.body[i] == i)
                             {
@@ -957,7 +957,7 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
         {
         unsigned int central_tag = h_body.data[iptl];
 
-        if (central_tag >= MIN_MOLECULE)
+        if (central_tag >= MIN_FLOPPY)
             continue;
 
         // body tag equals tag for central ptl

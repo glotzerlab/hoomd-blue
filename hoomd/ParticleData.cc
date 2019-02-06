@@ -907,7 +907,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 unsigned int snap_idx = it - snapshot.pos.begin();
 
                 // if requested, do not initialize constituent particles of bodies
-                if (ignore_bodies && snapshot.body[snap_idx] < MIN_MOLECULE)
+                if (ignore_bodies && snapshot.body[snap_idx] < MIN_FLOPPY)
                     {
                     continue;
                     }
@@ -3257,12 +3257,12 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
                     charge[k] = charge[i];
                     diameter[k] = diameter[i];
                     // This math also accounts for floppy bodies since body[i]
-                    // is already greater than MIN_MOLECULE, so the new body id
+                    // is already greater than MIN_FLOPPY, so the new body id
                     // body[k] is guaranteed to be so as well. However, we
                     // check to ensure that something that wasn't originally a
                     // floppy body doesn't overflow into the floppy body tags.
                     body[k] = (body[i] != NO_BODY ? j*old_size + body[i] : NO_BODY);
-                    if (body[i] < MIN_MOLECULE && body[k] >= MIN_MOLECULE)
+                    if (body[i] < MIN_FLOPPY && body[k] >= MIN_FLOPPY)
                         throw std::runtime_error("Replication would create more distinct rigid bodies than HOOMD supports!");
                     orientation[k] = orientation[i];
                     angmom[k] = angmom[i];
