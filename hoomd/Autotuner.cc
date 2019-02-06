@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -60,12 +60,9 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
 
     // create CUDA events
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        cudaEventCreate(&m_start);
-        cudaEventCreate(&m_stop);
-        CHECK_CUDA_ERROR();
-        }
+    cudaEventCreate(&m_start);
+    cudaEventCreate(&m_stop);
+    CHECK_CUDA_ERROR();
     #endif
 
     m_sync = false;
@@ -139,12 +136,9 @@ Autotuner::~Autotuner()
     {
     m_exec_conf->msg->notice(5) << "Destroying Autotuner " << m_name << endl;
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        cudaEventDestroy(m_start);
-        cudaEventDestroy(m_stop);
-        CHECK_CUDA_ERROR();
-        }
+    cudaEventDestroy(m_start);
+    cudaEventDestroy(m_stop);
+    CHECK_CUDA_ERROR();
     #endif
     }
 
@@ -154,22 +148,15 @@ void Autotuner::begin()
     if (!m_enabled)
         return;
 
+    #ifdef ENABLE_CUDA
     // if we are scanning, record a cuda event - otherwise do nothing
     if (m_state == STARTUP || m_state == SCANNING)
         {
-        #ifdef ENABLE_CUDA
-        if (m_exec_conf->isCUDAEnabled())
-            {
-            cudaEventRecord(m_start, 0);
-            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
-            }
-        else
-        #endif
-            {
-            m_start_time = m_clk.getTime();
-            }
+        cudaEventRecord(m_start, 0);
+        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
+    #endif
     }
 
 void Autotuner::end()
@@ -178,31 +165,20 @@ void Autotuner::end()
     if (!m_enabled)
         return;
 
+    #ifdef ENABLE_CUDA
     // handle timing updates if scanning
     if (m_state == STARTUP || m_state == SCANNING)
         {
-        #ifdef ENABLE_CUDA
-        if (m_exec_conf->isCUDAEnabled())
-            {
-            cudaEventRecord(m_stop, 0);
-            cudaEventSynchronize(m_stop);
-            // get time in ms
-            cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
-
-            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
-            }
-        else
-        #endif
-            {
-            // get time in ns
-            m_end_time = m_clk.getTime();
-            m_samples[m_current_element][m_current_sample] = (float)(m_end_time - m_start_time)/1000000.0;
-            }
-
+        cudaEventRecord(m_stop, 0);
+        cudaEventSynchronize(m_stop);
+        cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
         m_exec_conf->msg->notice(9) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
                                      << ") = " << m_samples[m_current_element][m_current_sample] << endl;
+
+        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
+    #endif
 
     // handle state data updates and transitions
     if (m_state == STARTUP)

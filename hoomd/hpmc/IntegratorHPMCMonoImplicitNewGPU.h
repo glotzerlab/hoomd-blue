@@ -131,7 +131,7 @@ template< class Shape >
 IntegratorHPMCMonoImplicitNewGPU< Shape >::IntegratorHPMCMonoImplicitNewGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                                    std::shared_ptr<CellList> cl,
                                                                    unsigned int seed)
-    : IntegratorHPMCMonoImplicit<Shape>(sysdef, seed, 1), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
+    : IntegratorHPMCMonoImplicit<Shape>(sysdef, seed), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCImplicitGPU" << std::endl;
 
@@ -243,6 +243,9 @@ IntegratorHPMCMonoImplicitNewGPU< Shape >::~IntegratorHPMCMonoImplicitNewGPU()
 template< class Shape >
 void IntegratorHPMCMonoImplicitNewGPU< Shape >::update(unsigned int timestep)
     {
+    throw std::runtime_error("Depletants on GPU temporarily disabled.\n");
+
+    #if 0
     if (this->m_patch && !this->m_patch_log)
         {
         this->m_exec_conf->msg->error() << "GPU simulations with patches are unsupported." << std::endl;
@@ -668,11 +671,13 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::update(unsigned int timestep)
 
     // all particle have been moved, the aabb tree is now invalid
     this->m_aabb_tree_invalid = true;
+    #endif
     }
 
 template<class Shape>
 void IntegratorHPMCMonoImplicitNewGPU< Shape >::initializePoissonDistribution()
     {
+    #if 0
     // resize GPUArray
     m_poisson_dist.resize(this->m_pdata->getNTypes());
     m_poisson_dist_created.resize(this->m_pdata->getNTypes(), false);
@@ -709,6 +714,7 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::initializePoissonDistribution()
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+    #endif
     }
 
 template< class Shape >

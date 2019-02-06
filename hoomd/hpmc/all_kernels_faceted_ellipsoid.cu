@@ -3,7 +3,6 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
-#include "IntegratorHPMCMonoImplicitGPU.cuh"
 #include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
 #include "ShapeFacetedEllipsoid.h"
@@ -18,10 +17,6 @@ namespace detail
 template cudaError_t gpu_hpmc_free_volume<ShapeFacetedEllipsoid>(const hpmc_free_volume_args_t &args,
                                                        const typename ShapeFacetedEllipsoid::param_type *d_params);
 template cudaError_t gpu_hpmc_update<ShapeFacetedEllipsoid>(const hpmc_args_t& args,
-                                                  const typename ShapeFacetedEllipsoid::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_count_overlaps<ShapeFacetedEllipsoid>(const hpmc_implicit_args_t& args,
-                                                  const typename ShapeFacetedEllipsoid::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject<ShapeFacetedEllipsoid>(const hpmc_implicit_args_t& args,
                                                   const typename ShapeFacetedEllipsoid::param_type *d_params);
 template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeFacetedEllipsoid>(const hpmc_implicit_args_new_t& args,
                                                   const typename ShapeFacetedEllipsoid::param_type *d_params);

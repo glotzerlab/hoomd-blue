@@ -255,7 +255,7 @@ inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>&
  * \param aabb The AABB to sample in
  */
 template<class RNG>
-inline vec3<Scalar> generatePositionInAABB(RNG& rng, const detail::AABB& aabb)
+DEVICE inline vec3<Scalar> generatePositionInAABB(RNG& rng, const detail::AABB& aabb)
     {
     vec3<Scalar> p;
     vec3<Scalar> lower = aabb.getLower();

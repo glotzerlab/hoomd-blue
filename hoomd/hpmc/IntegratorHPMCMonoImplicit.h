@@ -156,36 +156,6 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         //! Slot to be called when number of types changes
         void slotNumTypesChange();
 
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-        */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            // call base class method first
-            IntegratorHPMCMono<Shape>::setAutotunerParams(enable,period);
-
-            #ifdef ENABLE_TBB
-            m_tuner_tbb->setEnabled(enable);
-
-            m_tuner_period = period;
-            m_tuner_tbb->setPeriod(m_tuner_period*this->m_pdata->getN()*this->m_nselect);
-            #endif
-            }
-
-
-        //! Slot to be called whenever local particles are rearranged
-        virtual void slotSorted()
-            {
-            // call base class method
-            IntegratorHPMCMono<Shape>::slotSorted();
-
-            #ifdef ENABLE_TBB
-            // Autotuner runs per particle, so adjust period
-            m_tuner_tbb->setPeriod(m_tuner_period*this->m_pdata->getN()*this->m_nselect);
-            #endif
-            }
-
     protected:
         std::vector<Scalar> m_fugacity;                          //!< Average depletant number density in free volume, per type
 
@@ -195,11 +165,6 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
 
         bool m_quermass;                                         //!< True if quermass integration mode is enabled
         Scalar m_sweep_radius;                                   //!< Radius of sphere to sweep shapes by
-
-        #ifdef ENABLE_TBB
-        std::unique_ptr<Autotuner> m_tuner_tbb;                  //!< Tuner for parallel depletant insertion
-        unsigned int m_tuner_period;                             //!< Autotuner base period
-        #endif
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
@@ -228,7 +193,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
 template< class Shape >
 IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<SystemDefinition> sysdef,
                                                                    unsigned int seed)
-    : IntegratorHPMCMono<Shape>(sysdef, seed), m_quermass(false), m_sweep_radius(0.0), m_tuner_period(100000)
+    : IntegratorHPMCMono<Shape>(sysdef, seed), m_quermass(false), m_sweep_radius(0.0)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCImplicit" << std::endl;
 
@@ -245,23 +210,6 @@ IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<
     m_implicit_count_step_start.resize(this->m_pdata->getNTypes());
 
     m_fugacity.resize(this->m_pdata->getNTypes(),0.0);
-
-    std::vector<unsigned int> valid_params;
-    for (unsigned int grain_size_type = 1; grain_size_type <= 8; grain_size_type *= 2)
-        {
-        for (unsigned int grain_size_intersections = 1; grain_size_intersections <= 128;  grain_size_intersections*=2)
-            {
-            for (unsigned int grain_size_depletants = 1; grain_size_depletants <= 65536; grain_size_depletants*=2)
-                {
-                valid_params.push_back(grain_size_type + grain_size_intersections*10 + grain_size_depletants*10000);
-                }
-            }
-        }
-
-    #ifdef ENABLE_TBB
-    // Autotuner runs per particle
-    m_tuner_tbb.reset(new Autotuner(valid_params, 100, m_tuner_period*this->m_pdata->getN()*this->m_nselect, "hpmc_depletants", this->m_exec_conf));
-    #endif
     }
 
 //! Destructor
@@ -842,20 +790,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     detail::AABB aabb_i_local_old = shape_old.getAABB(vec3<Scalar>(0,0,0));
 
     #ifdef ENABLE_TBB
-    std::vector< tbb::enumerable_thread_specific<hpmc_implicit_counters_t> > thread_implicit_counters(this->m_pdata->getNTypes());
-    tbb::enumerable_thread_specific<hpmc_counters_t> thread_counters;
-
-    m_tuner_tbb->begin();
-    unsigned int params = m_tuner_tbb->getParam();
-    unsigned int grain_size_type = params % 10;
-    unsigned int grain_size_intersections = (params / 10) % 1000;
-    unsigned int grain_size_depletants = params / 10000;
-    #endif
-
-    #ifdef ENABLE_TBB
     try {
-    tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)this->m_pdata->getNTypes(),
-        grain_size_type),
+    tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)this->m_pdata->getNTypes())
         [&](const tbb::blocked_range<unsigned int>& r) {
     for (unsigned int type = r.begin(); type != r.end(); ++type)
     #else
@@ -984,8 +920,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
             // for every pairwise intersection
             #ifdef ENABLE_TBB
-            tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size(),
-                grain_size_intersections),
+            tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size()),
                 [=, &accept, &rng_parallel, &rng_parallel_mt,
                     &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& s) {
             for (unsigned int k = s.begin(); k != s.end(); ++k)
@@ -1026,8 +961,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                 // for every depletant
                 #ifdef ENABLE_TBB
-                tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n,
-                    grain_size_depletants),
+                tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n),
                     [=, &accept, &rng_parallel,
                         &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
                 for (unsigned int l = t.begin(); l != t.end(); ++l)
@@ -1388,8 +1322,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
             // for every pairwise intersection
             #ifdef ENABLE_TBB
-            tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size(),
-                grain_size_intersections),
+            tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size()),
                 [=, &accept, &rng_parallel, &rng_parallel_mt,
                     &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& s) {
             for (unsigned int k = s.begin(); k != s.end(); ++k)
@@ -1430,8 +1363,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                 // for every depletant
                 #ifdef ENABLE_TBB
-                tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n,
-                    grain_size_depletants),
+                tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n),
                     [=, &accept, &rng_parallel,
                         &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
                 for (unsigned int l = t.begin(); l != t.end(); ++l)
@@ -1674,8 +1606,6 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
         }
     #ifdef ENABLE_TBB
         }); } catch (bool b) { }
-
-    m_tuner_tbb->end();
     #endif
 
     #ifdef ENABLE_TBB
