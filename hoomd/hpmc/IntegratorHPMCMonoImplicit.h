@@ -790,6 +790,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     detail::AABB aabb_i_local_old = shape_old.getAABB(vec3<Scalar>(0,0,0));
 
     #ifdef ENABLE_TBB
+    std::vector< tbb::enumerable_thread_specific<hpmc_implicit_counters_t> > thread_implicit_counters(this->m_pdata->getNTypes());
+    tbb::enumerable_thread_specific<hpmc_counters_t> thread_counters;
+
     try {
     tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)this->m_pdata->getNTypes()),
         [&](const tbb::blocked_range<unsigned int>& r) {
