@@ -21,7 +21,7 @@ class gibbs_ensemble_test(unittest.TestCase):
         self.system = init.create_lattice(unitcell=unitcell, n=5)
 
         self.system.particles.types.add('B')
-        self.mc = hpmc.integrate.sphere(seed=123+p,implicit=True,depletant_mode='overlap_regions')
+        self.mc = hpmc.integrate.sphere(seed=123+p,implicit=True)
         self.mc.set_params(d=0.1)
 
     def tearDown(self):
@@ -36,9 +36,8 @@ class gibbs_ensemble_test(unittest.TestCase):
         ntrial = 20
         p = comm.get_partition()
 
-        self.mc.set_params(ntrial=ntrial)
         nR = etap/(math.pi/6.0*math.pow(q,3.0))
-        self.mc.set_params(nR=nR,depletant_type='B')
+        self.mc.set_fugacity('B',nR)
 
         self.mc.shape_param.set('A', diameter=1.0)
         self.mc.shape_param.set('B', diameter=q)
