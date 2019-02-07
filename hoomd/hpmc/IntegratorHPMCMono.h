@@ -1328,19 +1328,33 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
         // access the type parameters
         ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
 
-       // for each type, create a temporary shape and return the maximum sum of diameter and move size
-        for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
+        // access interaction matrix
+        ArrayHandle<unsigned int> h_overlaps(this->m_overlaps, access_location::host, access_mode::read);
+
+        // for each type, create a temporary shape and return the maximum sum of diameter and move size
+        for (unsigned int typ_i = 0; typ_i < this->m_pdata->getNTypes(); typ_i++)
             {
-            Shape temp(quat<Scalar>(), m_params[typ]);
+            Shape temp_i(quat<Scalar>(), m_params[typ_i]);
 
-            Scalar r_cut_patch(0.0);
+            Scalar r_cut_patch_i(0.0);
             if (m_patch)
-                {
-                r_cut_patch = (Scalar)m_patch->getRCut() + m_patch->getAdditiveCutoff(typ);
-                }
+                r_cut_patch_i = (Scalar)m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i);
 
-            Scalar range_i = detail::max((Scalar)temp.getCircumsphereDiameter(),r_cut_patch);
-            max_trans_d_and_diam = detail::max(max_trans_d_and_diam, range_i+Scalar(m_nselect)*h_d.data[typ]);
+            Scalar range_i(0.0);
+            for (unsigned int typ_j = 0; typ_j < this->m_pdata->getNTypes(); typ_j++)
+                {
+                Scalar r_cut_patch_ij(0.0);
+                if (m_patch)
+                    r_cut_patch_ij = r_cut_patch_i + 0.5*m_patch->getAdditiveCutoff(typ_j);
+
+                Shape temp_j(quat<Scalar>(), m_params[typ_j]);
+                Scalar r_cut_shape(0.0);
+                if (h_overlaps.data[m_overlap_idx(typ_i,typ_j)])
+                    r_cut_shape = 0.5*(temp_i.getCircumsphereDiameter()+temp_j.getCircumsphereDiameter());
+                Scalar range_ij = detail::max(r_cut_shape,r_cut_patch_ij);
+                range_i = detail::max(range_i,range_ij);
+                }
+            max_trans_d_and_diam = detail::max(max_trans_d_and_diam, range_i+Scalar(m_nselect)*h_d.data[typ_i]);
             }
         }
 
