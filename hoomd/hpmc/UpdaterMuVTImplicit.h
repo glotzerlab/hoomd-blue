@@ -1470,7 +1470,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::boxResizeAndScale(unsigned int times
         if (m_mc_implicit->getQuermassMode())
             throw std::runtime_error("update.muvt() doesn't support quermass mode\n");
 
-        for (unsigned int type_d = 0; type_d < this->m_pdata->getN(); ++type_d)
+        for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
             {
             if (m_mc_implicit->getDepletantFugacity(type_d) == 0.0)
                 continue;
@@ -1694,6 +1694,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::boxResizeAndScale(unsigned int times
 
         result = !overlap_count;
         }
+
     return result;
     }
 } // end namespace
