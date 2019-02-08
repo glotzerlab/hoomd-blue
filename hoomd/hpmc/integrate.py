@@ -177,21 +177,6 @@ class mode_hpmc(_integrator):
 
     See the *State data* section of the `HOOMD GSD schema <http://gsd.readthedocs.io/en/latest/schema-hoomd.html>`_ for
     details on GSD data chunk names and how the data are stored.
-
-    .. rubric:: Depletants
-
-    HPMC supports integration with depletants. An ideal gas of depletants is generated 'on-the-fly' and
-    and used in the Metropolis acceptance criterion for the 'colloid' particles. Depletants
-    are of arbitrary shape, however they are assumed to be 'hard' only with respect
-    to the colloids, and mutually interpenetrable. The main idea is described in
-    See `J. Glaser et. al. 2015 <http://dx.doi.org/10.1063/1.4935175>`_ .
-
-    As of version 2.2, the acceptance rule has been improved and has been made
-    the default acceptance rule for implicit depletants in 3.0. The new
-    criterion results in free diffusion of colloids that do not share any
-    overlap volume with other colloids. This speeds up equilibration of dilute
-    systems of colloids in a dense depletant bath. Both modes yield the same
-    equilibrium statistics, but different dynamics (Glaser, to be published).
     """
 
     ## \internal
@@ -409,7 +394,7 @@ class mode_hpmc(_integrator):
             move_ratio (float): (if set) New value for the move ratio.
             nselect (int): (if set) New value for the number of particles to select for trial moves in one cell.
             quermass (bool): (if set) **Implicit depletants only**: Enable/disable quermass integration mode
-            sweep_radius (float): (if set): **Implicit depletants only**: Additional radius of a sphere to sweep the shapes and the depletant by
+            sweep_radius (float): (if set): **Implicit depletants only**: Additional radius of a sphere to sweep the shapes by in **quermass** mode
             deterministic (bool): (if set) Make HPMC integration deterministic on the GPU by sorting the cell list.
 
         .. note:: Simulations are only deterministic with respect to the same execution configuration (CPU or GPU) and
