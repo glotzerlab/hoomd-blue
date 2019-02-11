@@ -61,8 +61,8 @@ class nvt_lj_sphere_energy(unittest.TestCase):
         if use_depletants:
             # set up a dummy depletant
             system.particles.types.add('B')
-            mc.set_params(depletant_type='B',nR=0)
             mc.shape_param.set('B', diameter=0)
+            mc.set_fugacity('B',0)
 
         lennard_jones = """
                         float rsq = dot(r_ij, r_ij);

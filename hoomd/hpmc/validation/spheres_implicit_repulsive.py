@@ -28,9 +28,6 @@ import random
 p = int(option.get_user()[0])
 (seed, phi_c, eta_p_r) = params[p % len(params)]
 
-# are we using update.cluster?
-use_clusters = p//len(params)
-
 context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
 
 # test the equation of state for the free volume fraction of hard spheres, when simultaneously
@@ -81,7 +78,7 @@ class depletion_test(unittest.TestCase):
         self.mc.set_fugacity('B',nR)
 
         # set negative fugacity to same amount to cancel
-        self.mc.set_params('C',-nR)
+        self.mc.set_fugacity('C',-nR)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
         log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume'], overwrite=True,period=1000)
@@ -92,8 +89,8 @@ class depletion_test(unittest.TestCase):
             alpha_measure.append(v)
             self.assertEqual(log.query('hpmc_overlap_count'),0)
 
-            if comm.get_rank() == 0:
-                print('alpha =', v);
+#            if comm.get_rank() == 0:
+#                print('alpha =', v);
 
         run(4e5,callback=log_callback,callback_period=100)
 
