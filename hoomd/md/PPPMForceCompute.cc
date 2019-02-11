@@ -1425,7 +1425,7 @@ void PPPMForceCompute::computeBodyCorrection()
 
         if (m_group->getNumMembers() != nptl)
             {
-            m_exec_conf->msg->warning() << "charge.pppm: Operating on a group which is not group.all(). Rigid body self-energies may be wrong." << std::endl;
+            m_exec_conf->msg->warning() << "charge.pppm: Operating on a group which is not group.all(). Body self-energies may be wrong." << std::endl;
             }
 
         // save references to each body's constituent particles
