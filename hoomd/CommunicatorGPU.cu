@@ -376,7 +376,7 @@ __global__ void gpu_make_ghost_exchange_plan_kernel(
     const unsigned int type = __scalar_as_int(postype.w);
     Scalar3 ghost_fraction = s_ghost_fractions[type];
 
-    if (d_body[idx] != NO_BODY)
+    if (d_body[idx] < MIN_FLOPPY)
         {
         ghost_fraction += s_body_ghost_fractions[type];
         }

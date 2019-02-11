@@ -132,7 +132,35 @@ class PYBIND11_EXPORT ParticleSelectorRigid : public ParticleSelector
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags() const;
     protected:
-        bool m_rigid;   //!< true if we should select rigid bodies, false if we should select non-rigid particles
+        bool m_rigid;   //!< true if we should select particles in rigid bodies, false if we should select non-rigid particles
+    };
+
+//! Select particles based on their body
+class PYBIND11_EXPORT ParticleSelectorBody : public ParticleSelector
+    {
+    public:
+        //! Constructs the selector
+        ParticleSelectorBody(std::shared_ptr<SystemDefinition> sysdef, bool body);
+        virtual ~ParticleSelectorBody() {}
+
+        //! Test if a particle meets the selection criteria
+        virtual std::vector<unsigned int> getSelectedTags() const;
+    protected:
+        bool m_body;   //!< true if we should select particles in a body, false if we should select non-body particles
+    };
+
+//! Select particles based on their floppy body
+class PYBIND11_EXPORT ParticleSelectorFloppy : public ParticleSelector
+    {
+    public:
+        //! Constructs the selector
+        ParticleSelectorFloppy(std::shared_ptr<SystemDefinition> sysdef, bool molecule);
+        virtual ~ParticleSelectorFloppy() {}
+
+        //! Test if a particle meets the selection criteria
+        virtual std::vector<unsigned int> getSelectedTags() const;
+    protected:
+        bool m_floppy;   //!< true if we should select particles in floppy bodies, false if we should select non-floppy particles
     };
 
 class PYBIND11_EXPORT ParticleSelectorRigidCenter : public ParticleSelector
