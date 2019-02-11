@@ -212,18 +212,6 @@ workflows:
           threads: "3"
 
       - build_and_test:
-          name: clang4-py36-cm310-llvm4-tbb3
-          image: ubuntu18.04
-          cc: clang-4.0
-          cxx: clang++-4.0
-          llvm-version: "4.0"
-          python-version: "3.6"
-          enable-mpi: on
-          enable-tbb: off
-          build-jit: on
-          threads: "3"
-
-      - build_and_test:
           name: gcc54-py35-cm35-llvm6-mpi-tbb3
           image: ubuntu16.04
           cc: gcc-5
@@ -246,14 +234,3 @@ workflows:
           enable-tbb: on
           build-jit: off
           threads: "3"
-
-      - build_and_test:
-          name: clang38-py35-llvm38-cm35
-          image: ubuntu16.04
-          cc: clang-3.8
-          cxx: clang++-3.8
-          llvm-version: "3.8"
-          python-version: "3.5"
-          enable-mpi: off
-          enable-tbb: off
-          build-jit: on
