@@ -180,18 +180,14 @@ class implicit_test (unittest.TestCase):
         self.mc.set_params(d=0.1,a=0.1)
         self.mc.shape_param.set('A', diameter=d_sphere)
 
-        # the quermass interaction process with a negative depletant radius that cancels the sweep_radius
-        # is equivalent to regular depletion
-
-        # yes, this may look weird
-        self.mc.shape_param.set('B', diameter=-q*d_sphere)
+        # the quermass interaction process with a point depletant is equivalent to regular depletion
+        # with a depletant radius equal to sweep_radius
+        self.mc.set_params(sweep_radius=0.5*d_sphere*q,quermass=True)
+        self.mc.shape_param.set('B', diameter=0)
 
         # add one type for measuring free volume
         self.system.particles.types.add('C')
         self.mc.shape_param.set('C', diameter=d_sphere*q)
-
-        self.mc.set_params(quermass=True)
-        self.mc.set_params(sweep_radius=0.5*d_sphere*q)
 
         self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
         for i in range(10):
@@ -211,11 +207,15 @@ class implicit_test (unittest.TestCase):
         def log_callback(timestep):
             v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity_B')
             eta_p_measure.append(v)
-            if comm.get_rank() == 0:
-                print('eta_p =', v);
+#            if comm.get_rank() == 0:
+#                print('eta_p =', v);
 
         if use_clusters:
             hpmc.update.clusters(self.mc,period=1,seed=seed+1)
+
+            # quermass not supported with clusters
+            self.assertRaises(RuntimeErorr, run, 1)
+            return
 
         run(4e5,callback=log_callback,callback_period=100)
 
