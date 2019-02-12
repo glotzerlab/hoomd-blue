@@ -552,7 +552,7 @@ class gsd(hoomd.analyze._analyzer):
         * constraints/
         * pairs/
 
-    See https://bitbucket.org/glotzer/gsd and http://gsd.readthedocs.io/ for more information on GSD files.
+    See https://github.com/glotzerlab/gsd and http://gsd.readthedocs.io/ for more information on GSD files.
 
     If you only need to store a subset of the system, you can save file size and time spent analyzing data by
     specifying a group to write out. :py:class:`gsd` will write out all of the particles in the group in ascending

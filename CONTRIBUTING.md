@@ -1,8 +1,8 @@
-Contributions are welcomed via pull requests on Bitbucket. First contact the HOOMD-blue developers prior to beginning
+Contributions are welcomed via pull requests on Github. First contact the HOOMD-blue developers prior to beginning
 your work to ensure that your plans mesh well with the planned development direction and standards set for the project.
 Then implement your code.
 
-Submit a pull request on bitbucket. Multiple developers and/or users will review requested changes and make comments.
+Submit a pull request on Github. Multiple developers and/or users will review requested changes and make comments.
 This The rest of this file will be used as a checklist to review the pull request. The lead developer will merge into
 the mainline after the review is complete and approved.
 
