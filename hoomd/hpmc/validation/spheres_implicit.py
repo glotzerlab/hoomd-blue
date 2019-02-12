@@ -214,7 +214,7 @@ class implicit_test (unittest.TestCase):
             hpmc.update.clusters(self.mc,period=1,seed=seed+1)
 
             # quermass not supported with clusters
-            self.assertRaises(RuntimeErorr, run, 1)
+            self.assertRaises(RuntimeError, run, 1)
             return
 
         run(4e5,callback=log_callback,callback_period=100)
