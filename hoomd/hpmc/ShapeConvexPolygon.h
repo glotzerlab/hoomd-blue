@@ -19,8 +19,10 @@
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #include <iostream>
 #if defined (__SSE__)
 #include <immintrin.h>
@@ -520,4 +522,6 @@ DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec
 
 }; // end namespace hpmc
 
+#undef DEVICE
+#undef HOSTDEVICE
 #endif //__SHAPE_CONVEX_POLYGON_H__
