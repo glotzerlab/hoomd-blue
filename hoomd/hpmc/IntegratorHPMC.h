@@ -79,7 +79,7 @@ class PatchEnergy
 
     };
 
-class IntegratorHPMC : public Integrator
+class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     {
     public:
         //! Constructor
