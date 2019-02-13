@@ -18,8 +18,10 @@
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 #include "SphinxOverlap.h"  //< This is the main overlap function.
@@ -634,4 +636,6 @@ DEVICE inline OverlapReal initVolume(bool disjoint, OverlapReal r[MAX_SPHERE_CEN
 
 }; // end namespace hpmc
 
+#undef DEVICE
+#undef HOSTDEVICE
 #endif // __SHAPE_SPHINX_H__

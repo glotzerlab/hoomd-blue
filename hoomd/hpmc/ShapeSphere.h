@@ -417,4 +417,6 @@ DEVICE inline bool test_overlap_intersection(const ShapeSphere& a, const ShapeSp
 
 }; // end namespace hpmc
 
+#undef DEVICE
+#undef HOSTDEVICE
 #endif //__SHAPE_SPHERE_H__
