@@ -30,6 +30,7 @@ set(_hpmc_sources   module.cc
 
 set(_hpmc_headers
     AnalyzerSDF.h
+    ComputeFreeVolumeGPU.cuh
     ComputeFreeVolumeGPU.h
     ComputeFreeVolume.h
     ExternalFieldComposite.h
@@ -41,10 +42,12 @@ set(_hpmc_headers
     HPMCCounters.h
     HPMCPrecisionSetup.h
     IntegratorHPMC.h
+    IntegratorHPMCMonoGPU.cuh
     IntegratorHPMCMonoGPU.h
     IntegratorHPMCMono.h
     IntegratorHPMCMonoImplicitGPU.h
     IntegratorHPMCMonoImplicit.h
+    IntegratorHPMCMonoImplicitNewGPU.cuh
     IntegratorHPMCMonoImplicitNewGPU.h
     MinkowskiMath.h
     modules.h
