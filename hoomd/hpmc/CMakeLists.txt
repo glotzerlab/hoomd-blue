@@ -37,6 +37,7 @@ set(_hpmc_headers
     ExternalField.h
     ExternalFieldLattice.h
     ExternalFieldWall.h
+    GSDHPMCSchema.h
     GPUTree.h
     HPMCCounters.h
     HPMCMiscFunctions.h
