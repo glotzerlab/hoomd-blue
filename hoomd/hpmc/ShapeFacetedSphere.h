@@ -435,4 +435,6 @@ DEVICE inline bool test_overlap<ShapeFacetedSphere, ShapeFacetedSphere>(const ve
 
 }; // end namespace hpmc
 
+#undef DEVICE
+#undef HOSTDEVICE
 #endif //__SHAPE_FACETED_SPHERE_H__
