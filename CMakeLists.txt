@@ -101,7 +101,8 @@ endif (libgetar_DIR)
 ################################
 # install cmake scripts into hoomd/CMake
 
-set(cmake_files CMake/hoomd/HOOMDCFlagsSetup.cmake
+set(cmake_files CMake/hoomd/FindTBB.cmake
+                CMake/hoomd/HOOMDCFlagsSetup.cmake
                 CMake/hoomd/HOOMDCommonLibsSetup.cmake
                 CMake/hoomd/HOOMDCUDASetup.cmake
                 CMake/hoomd/test.cc
