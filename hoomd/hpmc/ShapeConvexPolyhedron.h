@@ -723,4 +723,6 @@ DEVICE inline bool test_overlap_intersection(const ShapeConvexPolyhedron& a,
 
 }; // end namespace hpmc
 
+#undef DEVICE
+#undef HOSTDEVICE
 #endif //__SHAPE_CONVEX_POLYHEDRON_H__

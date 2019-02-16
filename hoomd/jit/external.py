@@ -109,8 +109,8 @@ class user(field._external):
                 cls = _jit.ExternalFieldJITEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
                 cls =_jit.ExternalFieldJITSpheropolygon;
-            elif isinstance(mc, integrate.faceted_sphere):
-                cls =_jit.ExternalFieldJITFacetedSphere;
+            elif isinstance(mc, integrate.faceted_ellipsoid):
+                cls =_jit.ExternalFieldJITFacetedEllipsoid;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_jit.ExternalFieldJITPolyhedron;
             elif isinstance(mc, integrate.sphinx):

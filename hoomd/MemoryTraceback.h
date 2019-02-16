@@ -13,12 +13,11 @@
 
 #include "Messenger.h"
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 class PYBIND11_EXPORT MemoryTraceback
     {
     public:
-        //! Constructor
-        MemoryTraceback() {}
-
         //! Register a memory allocation along with a stacktrace
         /*! \param ptr The pointer to the memory address being allocated
             \param nbytes The size of the allocation in bytes
