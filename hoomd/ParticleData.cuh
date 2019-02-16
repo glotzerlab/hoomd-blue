@@ -18,8 +18,12 @@
 */
 
 #ifdef NVCC
-//! Sentinel value in \a body to signify that this particle does not belong to a rigid body
+//! Sentinel value in \a body to signify that this particle does not belong to a body
 const unsigned int NO_BODY = 0xffffffff;
+
+//! Unsigned value equivalent to a sign flip in a signed int. All larger values of the \a body flag indicate a floppy body (forces between are ignored, but they are integrated independently).
+const unsigned int MIN_FLOPPY = 0x80000000;
+
 //! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
 #endif

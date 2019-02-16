@@ -7,7 +7,7 @@
 #include "ShapeSpheropolyhedron.h" // check
 #include "ShapeSimplePolygon.h" // check
 #include "ShapeEllipsoid.h" // check
-#include "ShapeFacetedSphere.h"
+#include "ShapeFacetedEllipsoid.h"
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 #include "hoomd/extern/gsd.h"
