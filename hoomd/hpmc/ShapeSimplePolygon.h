@@ -86,7 +86,8 @@ struct ShapeSimplePolygon
     //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
-        return false;
+        return true;
+        //return false;
         }
 
     quat<Scalar> orientation;    //!< Orientation of the polygon
