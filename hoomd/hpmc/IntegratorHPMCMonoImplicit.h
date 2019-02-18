@@ -78,12 +78,13 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
             {
             // check if supported
             if (sweep_radius != 0.0 && !Shape::supportsSweepRadius())
-                throw std::runtime_error("This shape doesn's support setting a sweep radius to extend the surface out.\n");
+                throw std::runtime_error("This shape doesn't support setting a sweep radius to extend the surface out.\n");
 
             m_sweep_radius = sweep_radius;
             }
 
         //! Get the sweep radius
+        // TODO: what happens if this is called on a shape where setting a sweep radius isn't supported?
         Scalar getSweepRadius()
              {
              return m_sweep_radius;
@@ -160,7 +161,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
 
         GPUArray<hpmc_implicit_counters_t> m_implicit_count;     //!< Counter of active cell cluster moves
         std::vector<hpmc_implicit_counters_t> m_implicit_count_run_start;     //!< Counter of active cell cluster moves at run start
-        std::vector<hpmc_implicit_counters_t> m_implicit_count_step_start;    //!< Counter of active cell cluster moves at run start
+        std::vector<hpmc_implicit_counters_t> m_implicit_count_step_start;    //!< Counter of active cell cluster moves at step start
 
         bool m_quermass;                                         //!< True if quermass integration mode is enabled
         Scalar m_sweep_radius;                                   //!< Radius of sphere to sweep shapes by
