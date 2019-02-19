@@ -5,36 +5,38 @@
 [![docker](https://img.shields.io/badge/docker-glotzerlab/software-blue.svg)](https://hub.docker.com/r/glotzerlab/software)
 [![conda-forge Downloads](https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
 [![CircleCI (all branches)](https://img.shields.io/circleci/project/github/glotzerlab/hoomd-blue.svg?style=flat)](https://circleci.com/gh/glotzerlab/hoomd-blue)
-[![ReadTheDocs](https://readthedocs.org/projects/hoomd-blue/badge/?version=stable)](https://hoomd-blue.readthedocs.io/en/stable/?badge=stable)
+[![Read the Docs](https://img.shields.io/readthedocs/hoomd-blue/stable.svg)](https://hoomd-blue.readthedocs.io/en/stable/?badge=stable)
 [![Contributors](https://img.shields.io/github/contributors/glotzerlab/hoomd-blue.svg?style=flat)](https://hoomd-blue.readthedocs.io/en/stable/credits.html)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
 
-HOOMD-blue is a general purpose particle simulation toolkit. It performs hard particle Monte Carlo simulations
+**HOOMD-blue** is a general purpose particle simulation toolkit.It performs hard particle Monte Carlo simulations
 of a variety of shape classes, and molecular dynamics simulations of particles with a range of pair, bond, angle,
-and other potentials. HOOMD-blue runs fast on NVIDIA GPUs, and can scale across
-thousands of nodes. For more information, see the [HOOMD-blue website](https://glotzerlab.engin.umich.edu/hoomd-blue/).
+and other potentials. **HOOMD-blue** runs fast on NVIDIA GPUs, and can scale across thousands of nodes.
+For more information, see the [**HOOMD-blue** website](https://glotzerlab.engin.umich.edu/hoomd-blue/).
 
-## Quick Reference
+## Resources
 
-- [Documentation](https://hoomd-blue.readthedocs.io/)
-- [hoomd-users Google Group](https://groups.google.com/d/forum/hoomd-users)
-- [Tutorials](https://nbviewer.jupyter.org/github/glotzerlab/hoomd-examples/blob/master/index.ipynb)
-- [HOOMD-blue website](https://glotzerlab.engin.umich.edu/hoomd-blue/)
-
-## Tutorial
-
-[Read the HOOMD-blue tutorial online](https://nbviewer.jupyter.org/github/glotzerlab/hoomd-examples/blob/master/index.ipynb).
+- [Reference Documentation](https://hoomd-blue.readthedocs.io/):
+  Full package Python API, usage information, and feature reference.
+- [hoomd-users Google Group](https://groups.google.com/d/forum/hoomd-users):
+  Ask questions to the **HOOMD-blue** community.
+- [**HOOMD-blue** Tutorial](https://nbviewer.jupyter.org/github/glotzerlab/hoomd-examples/blob/master/index.ipynb):
+  Beginner's guide, code examples, and sample scripts.
+- [**HOOMD-blue** website](https://glotzerlab.engin.umich.edu/hoomd-blue/):
+  Additional information, benchmarks, and publications.
 
 ## Installation
 
-**HOOMD-blue** binary images are available via the [Docker image glotzerlab/software](https://hub.docker.com/r/glotzerlab/software) and for Linux and macOS via the [hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd). Details on using these images are below.
+**HOOMD-blue** binary images are available via the
+[Docker image glotzerlab/software](https://hub.docker.com/r/glotzerlab/software) and for Linux and macOS via the
+[hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd). See below for details on using these images.
 
 ### Docker images
 
 Pull the [glotzerlab/software](https://hub.docker.com/r/glotzerlab/software/) to get **HOOMD-blue** along with
-many other tools commonly used in simulation and analysis workflows. Use these images to execute HOOMD-blue in
-Docker/Singularity containers on Mac, Linux, and cloud systems you control and on HPC clusters with Singularity support.
-CUDA and MPI operate with native performance on supported HPC systems
+many other tools commonly used in simulation and analysis workflows. Use these images to execute **HOOMD-blue** in
+Docker/Singularity containers on macOS, Linux, cloud systems you control, or HPC clusters with Singularity support.
+CUDA and MPI operate with native performance on supported HPC systems.
 See full usage information on the [glotzerlab/software docker hub page](https://hub.docker.com/r/glotzerlab/software/).
 
 Singularity:
@@ -73,14 +75,14 @@ Download source releases directly from the web: https://glotzerlab.engin.umich.e
 $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.5.0.tar.gz
 ```
 
-Or, clone using git:
+Or clone using git:
 
 ```bash
 $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 ```
 
-**HOOMD-blue** uses git submodules. Either clone with the ``--recursive`` option, or execute ``git submodule update --init``
-to fetch the submodules.
+**HOOMD-blue** uses git submodules.
+Clone with the ``--recursive`` option or execute ``git submodule update --init`` to fetch the submodules.
 
 #### Prerequisites
 
@@ -100,10 +102,10 @@ to fetch the submodules.
 Configure with `cmake` and compile with `make`. Replace `${PREFIX}` with your desired installation location.
 
 ```bash
-mkdir build
-cd build
-cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX}/lib/python
-make install -j10
+$ mkdir build
+$ cd build
+$ cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX}/lib/python
+$ make install -j10
 ```
 
 Add `${PREFIX}/lib/python` to your `PYTHONPATH` to use **HOOMD-blue**.
@@ -119,7 +121,7 @@ For more detailed instructions, [see the documentation](https://hoomd-blue.readt
 HOOMD-blue job scripts are Python scripts. You can control system initialization, run protocols, analyze simulation data,
 or develop complex workflows all with Python code in your job.
 
-Here is a simple example.
+Here is a simple example:
 
 ```python
 import hoomd
@@ -143,11 +145,7 @@ hoomd.md.integrate.langevin(group=all, kT=1.2, seed=4)
 hoomd.run(10e3)
 ```
 
-Save this as `lj.py` and run with `python lj.py` (or `singularity exec software.simg python3 lj.py` if using containers).
-
-## Reference Documentation
-
-Read the [reference documentation on ReadTheDocs](https://hoomd-blue.readthedocs.io).
+Save this script as `lj.py` and run it with `python lj.py` (or `singularity exec software.simg python3 lj.py` if using Singularity containers).
 
 ## Change log
 
@@ -155,4 +153,4 @@ See [ChangeLog.md](ChangeLog.md).
 
 ## Contributing to HOOMD-blue
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcomed via [pull requests on GitHub](https://github.com/glotzerlab/hoomd-blue/pulls). Please report bugs and suggest feature enhancements via the [issue tracker](https://github.com/glotzerlab/hoomd-blue/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
