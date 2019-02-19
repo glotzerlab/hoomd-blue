@@ -27,9 +27,9 @@ For more information, see the [**HOOMD-blue** website](https://glotzerlab.engin.
 
 ## Installation
 
-**HOOMD-blue** binary images are available via the
+**HOOMD-blue** binaries are available via the
 [Docker image glotzerlab/software](https://hub.docker.com/r/glotzerlab/software) and for Linux and macOS via the
-[hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd). See below for details on using these images.
+[hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd).
 
 ### Docker image
 
