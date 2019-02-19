@@ -31,10 +31,10 @@ For more information, see the [**HOOMD-blue** website](https://glotzerlab.engin.
 [Docker image glotzerlab/software](https://hub.docker.com/r/glotzerlab/software) and for Linux and macOS via the
 [hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd). See below for details on using these images.
 
-### Docker images
+### Docker image
 
-Pull the [glotzerlab/software](https://hub.docker.com/r/glotzerlab/software/) to get **HOOMD-blue** along with
-many other tools commonly used in simulation and analysis workflows. Use these images to execute **HOOMD-blue** in
+Pull the [glotzerlab/software](https://hub.docker.com/r/glotzerlab/software/) image to get **HOOMD-blue** along with
+many other tools commonly used in simulation and analysis workflows. Use this image to execute **HOOMD-blue** in
 Docker/Singularity containers on macOS, Linux, cloud systems you control, or HPC clusters with Singularity support.
 CUDA and MPI operate with native performance on supported HPC systems.
 See full usage information on the [glotzerlab/software docker hub page](https://hub.docker.com/r/glotzerlab/software/).
