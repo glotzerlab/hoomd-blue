@@ -28,16 +28,11 @@ For more information, see the [**HOOMD-blue** website](https://glotzerlab.engin.
 ## Installation
 
 **HOOMD-blue** binaries are available via the
-[Docker image glotzerlab/software](https://hub.docker.com/r/glotzerlab/software) and for Linux and macOS via the
-[hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd).
+[Docker image glotzerlab/software](https://hub.docker.com/r/glotzerlab/software)
+and for Linux and macOS via the
+[hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd). See links for more information.
 
-### Docker image
-
-Pull the [glotzerlab/software](https://hub.docker.com/r/glotzerlab/software/) image to get **HOOMD-blue** along with
-many other tools commonly used in simulation and analysis workflows. Use this image to execute **HOOMD-blue** in
-Docker/Singularity containers on macOS, Linux, cloud systems you control, or HPC clusters with Singularity support.
-CUDA and MPI operate with native performance on supported HPC systems.
-See full usage information on the [glotzerlab/software docker hub page](https://hub.docker.com/r/glotzerlab/software/).
+### Using the Docker image
 
 Singularity:
 ```bash
@@ -50,54 +45,20 @@ Docker:
 $ docker pull glotzerlab/software
 ```
 
-### Conda package
-
-**HOOMD-blue** is available for Linux and macOS via [conda-forge](https://conda-forge.org/).
-To install, first download and install [miniconda](https://docs.conda.io/en/latest/miniconda.html).
-Then add the `conda-forge` channel and install ``hoomd``:
+### Install with conda
 
 ```bash
-$ conda config --add channels conda-forge
-$ conda install hoomd
+$ conda install -c conda-forge hoomd
 ```
 
-If you have already installed ``hoomd`` with ``conda``, you can upgrade to the latest version with:
+### Compiling from source
 
-```bash
-$ conda update hoomd
-```
+See the [compilation guide](https://hoomd-blue.readthedocs.io/en/stable/compiling.html#) for the list of prerequisites and more detailed instructions for building **HOOMD-blue** from source.
 
-### Compile from source
-
-Download source releases directly from the web: https://glotzerlab.engin.umich.edu/Downloads/hoomd
-
-```bash
-$ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.5.0.tar.gz
-```
-
-Or clone using git:
-
+Clone using git:
 ```bash
 $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 ```
-
-**HOOMD-blue** uses git submodules.
-Clone with the ``--recursive`` option or execute ``git submodule update --init`` to fetch the submodules.
-
-#### Prerequisites
-
- * Required:
-     * Python >= 2.7
-     * numpy >= 1.7
-     * CMake >= 2.8.0
-     * C++11 capable compiler (tested with gcc 4.8, 4.9, 5.4, 6.4, 7.0, 8.0, clang 5.0, 6.0)
- * Optional:
-     * NVIDIA CUDA Toolkit >= 8.0
-     * Intel Threaded Building Blocks >= 4.3
-     * MPI (tested with OpenMPI, MVAPICH)
-     * LLVM >= 3.6, <= 7.0.0
-
-#### Compile
 
 Configure with `cmake` and compile with `make`. Replace `${PREFIX}` with your desired installation location.
 
@@ -113,8 +74,6 @@ Add `${PREFIX}/lib/python` to your `PYTHONPATH` to use **HOOMD-blue**.
 ```bash
 $ export PYTHONPATH=$PYTHONPATH:${PREFIX}/lib/python
 ```
-
-For more detailed instructions, [see the documentation](https://hoomd-blue.readthedocs.io/en/stable/compiling.html).
 
 ## Job scripts
 
