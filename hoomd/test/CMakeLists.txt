@@ -24,7 +24,9 @@ set(TEST_LIST
 
 if (ENABLE_CUDA)
 list(APPEND TEST_LIST test_warp_tools)
-endif()
+set(SYNC_TEST_LIST
+    test_warp_tools)
+endif (ENABLE_CUDA)
 
 option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)
 
@@ -85,3 +87,26 @@ foreach (CUR_TEST ${MPI_TEST_LIST})
              ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
              $<TARGET_FILE:${CUR_TEST}>)
 endforeach(CUR_TEST)
+
+# run tests under cuda-memcheck --tool synccheck
+if(ENABLE_CUDA)
+# cuda-memcheck executable
+find_program(CUDA_MEMCHECK_EXECUTABLE
+  NAMES cuda-memcheck
+  PATHS "${CUDA_TOOLKIT_ROOT_DIR}/bin"
+        "${CUDA_TOOLKIT_ROOT_DIR}/bin64"
+  ENV CUDA_BIN_PATH
+  NO_DEFAULT_PATH
+  )
+mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
+
+foreach (CUR_TEST ${SYNC_TEST_LIST})
+    if (ENABLE_MPI)
+        add_test(NAME ${CUR_TEST}-synccheck
+                 COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
+                         ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool synccheck $<TARGET_FILE:${CUR_TEST}>)
+    else()
+        add_test(NAME ${CUR_TEST}-synccheck COMMAND ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool synccheck $<TARGET_FILE:${CUR_TEST}>)
+    endif()
+endforeach (CUR_TEST)
+endif(ENABLE_CUDA)
