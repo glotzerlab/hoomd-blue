@@ -1419,7 +1419,7 @@ class faceted_ellipsoid(mode_hpmc):
 
     Depletants Example::
 
-        mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
+        mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4, implicit=True)
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],a=1.0, b=0.5, c=0.25);
         # depletant sphere
         mc.shape_param.set('B', normals=[],a=0.1,b=0.1,c=0.1);
@@ -1454,9 +1454,6 @@ class faceted_ellipsoid(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
         if restore_state:
             self.restore_state()
@@ -1528,7 +1525,7 @@ class faceted_sphere(faceted_ellipsoid):
 
     Depletants Example::
 
-        mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
+        mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4, implicit=True)
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
         mc.shape_param.set('B', normals=[],diameter=0.1);
         mc.set_fugacity('B',fugacity=3.0)
@@ -2238,9 +2235,6 @@ class faceted_ellipsoid_union(mode_hpmc):
 
         # meta data
         self.metadata_fields = ['capacity']
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
 
     # \internal
     # \brief Format shape parameters for pos file output
