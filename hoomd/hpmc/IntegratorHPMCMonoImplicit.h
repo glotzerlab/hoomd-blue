@@ -153,7 +153,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         virtual bool attemptBoxResize(unsigned int timestep, const BoxDim& new_box);
 
         //! Slot to be called when number of types changes
-        void slotNumTypesChange();
+        virtual void slotNumTypesChange();
 
     protected:
         std::vector<Scalar> m_fugacity;                          //!< Average depletant number density in free volume, per type
