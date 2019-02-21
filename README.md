@@ -60,7 +60,7 @@ $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.5.0.tar.gz
 Or, clone using git:
 
 ```bash
-$ git clone --recursive  https://bitbucket.org/glotzer/hoomd-blue
+$ git clone --recursive  https://github.com/glotzerlab/hoomd-blue
 ```
 
 **HOOMD-blue** uses git submodules. Either clone with the ``--recursive`` option, or execute ``git submodule update --init``

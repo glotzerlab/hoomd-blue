@@ -80,7 +80,7 @@ Set the environment variable SOFTWARE_ROOT to the location you wish to install H
 
 Clone the git repository to get the source::
 
-    $ git clone --recursive https://bitbucket.org/glotzer/hoomd-blue
+    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
 By default, the *maint* branch will be checked out. This branch includes all bug fixes since the last stable release.
 HOOMD-blue uses submodules, you the ``--recursive`` option to clone instructs git to fetch all of the submodules.
