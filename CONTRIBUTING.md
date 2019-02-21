@@ -1,10 +1,10 @@
-Contributions are welcomed via pull requests on Bitbucket. First contact the HOOMD-blue developers prior to beginning
-your work to ensure that your plans mesh well with the planned development direction and standards set for the project.
-Then implement your code.
+Contributions are welcomed via [pull requests on GitHub](https://github.com/glotzerlab/hoomd-blue/pulls). First contact
+the HOOMD-blue developers prior to beginning your work to ensure that your plans mesh well with the planned development
+direction and standards set for the project. Then implement your code.
 
-Submit a pull request on bitbucket. Multiple developers and/or users will review requested changes and make comments.
-This The rest of this file will be used as a checklist to review the pull request. The lead developer will merge into
-the mainline after the review is complete and approved.
+Submit a [pull request on GitHub](https://github.com/glotzerlab/hoomd-blue/pulls). Multiple developers and/or users will
+review requested changes and make comments. This The rest of this file will be used as a checklist to review the pull
+request. The lead developer will merge into the mainline after the review is complete and approved.
 
 # Features
 
