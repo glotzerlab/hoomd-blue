@@ -185,11 +185,11 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
             vec3<Scalar>& pos, quat<Scalar>& orientation, const typename Shape::param_type& params_depletants);
     };
 
-/*! \param sysdef System definition
+/*! Constructor
+    \param sysdef System definition
     \param cl Cell list
     \param seed Random number generator seed
     */
-
 template< class Shape >
 IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<SystemDefinition> sysdef,
                                                                    unsigned int seed)
@@ -391,6 +391,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             #endif
 
             // make a trial move for i
+            // need to update for 2d systems
             hoomd::detail::Saru rng_i(i, this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), this->m_params[typ_i]);
@@ -784,6 +785,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     bool accept = true;
 
     const unsigned int n_images = this->m_image_list.size();
+    unsigned int ndim = this->m_sysdef->getNDimensions();
 
     Shape shape_old(quat<Scalar>(h_orientation[i]), this->m_params[typ_i]);
     detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
@@ -950,8 +952,14 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                 detail::AABB aabb_intersect(intersect_lower, intersect_upper);
 
-                // intersectionAABB volume
-                Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y)*(intersect_upper.z-intersect_lower.z);
+                // intersectionAABB volume; use area for 2D
+                Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
+                unsigned int ndim = this->m_sysdef->getNDimensions();
+                if(ndim == 3)
+                    {
+                        V *= intersect_upper.z-intersect_lower.z;
+
+                    }
 
                 // chooose the number of depletants in the intersection volume
                 std::poisson_distribution<unsigned int> poisson(m_fugacity[type]*V);
@@ -962,6 +970,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 unsigned int n = poisson(rng_poisson);
 
                 // for every depletant
+                // somewhere in here, I need to change the behavior for 2d systems
                 #ifdef ENABLE_TBB
                 tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n),
                     [=, &intersect_i, &image_i, &aabbs_i,
@@ -985,6 +994,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     #endif
 
                     vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect);
+                    if(ndim == 2)
+                        pos_test.z = Scalar(0);
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
                     if (shape_test.hasOrientation())
                         {
@@ -1355,7 +1366,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 detail::AABB aabb_intersect(intersect_lower, intersect_upper);
 
                 // intersection AABB volume
-                Scalar V = (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y)*(intersect_upper.z-intersect_lower.z);
+                Scalar V = (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
+                if(ndim == 3)
+                    V *= intersect_upper.z-intersect_lower.z;
 
                 // chooose the number of depletants in the intersection volume
                 std::poisson_distribution<unsigned int> poisson(-m_fugacity[type]*V);
@@ -1389,6 +1402,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     #endif
 
                     vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect);
+                    if (ndim == 2)
+                        pos_test.z = Scalar(0);
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
                     if (shape_test.hasOrientation())
                         {

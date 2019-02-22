@@ -631,7 +631,7 @@ class mode_hpmc(_integrator):
             * .. versionadded:: 3.0
 
         Args:
-            type (string): Type for which fugacity is returned
+            type (str): Type for which fugacity is returned
             fugacity (float): Ideal gas density of the depletant, can take any scalar value
 
         """
@@ -646,7 +646,7 @@ class mode_hpmc(_integrator):
             * .. versionadded:: 3.0
 
         Args:
-            type (string): Type for which fugacity is returned
+            type (str): Type for which fugacity is returned
         """
         if not self.implicit:
             hoomd.context.msg.warning("get_fugacity only available in simulations with non-interacting depletants. Returning 0.\n")
@@ -1054,15 +1054,21 @@ class simple_polygon(mode_hpmc):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False,
+            implicit=False):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,False);
+        mode_hpmc.__init__(self, implicit);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_integrator = _hpmc.IntegratorHPMCMonoSimplePolygon(hoomd.context.current.system_definition, seed);
+            if implicit:
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSimplePolygon(
+                        hoomd.context.current.system_definition, seed);
+            else:
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSimplePolygon(
+                        hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
