@@ -95,7 +95,7 @@ class log(hoomd.analyze._analyzer):
             hoomd.context.msg.error("HDF5 file descriptor is no instance of h5py.File, which is the hoomd thin wrapper for hdf5 file descriptors.")
             raise RuntimeError("Error creating hoomd.hdf5.log")
         # store metadata
-        self.metadata_fields = ['h5file', 'period']
+        self.metadata_fields.extend(['h5file', 'period'])
         self.h5file = h5file
         self.period = period
 

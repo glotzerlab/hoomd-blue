@@ -49,6 +49,7 @@ class _analyzer(hoomd.meta._metadata):
 
         # base class constructor
         hoomd.meta._metadata.__init__(self)
+        self.metadata_fields.append('enabled')
 
     ## \internal
     # \brief Helper function to setup analyzer period
@@ -178,7 +179,6 @@ class _analyzer(hoomd.meta._metadata):
     # \brief Get metadata
     def get_metadata(self):
         data = hoomd.meta._metadata.get_metadata(self)
-        data['enabled'] = self.enabled
         return data
 
     @classmethod

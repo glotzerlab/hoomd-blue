@@ -51,7 +51,7 @@ class _collision_method(hoomd.meta._metadata):
             raise RuntimeError('Multiple initialization of collision method')
 
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','seed','group','shift','enabled']
+        self.metadata_fields.extend(['period','seed','group','shift','enabled'])
 
         self.period = period
         self.seed = seed

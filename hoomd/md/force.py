@@ -281,7 +281,7 @@ class constant(_force):
             self.cpp_force.setCallback(callback)
 
         # store metadata
-        self.metadata_fields = ['fvec', 'tvec']
+        self.metadata_fields.extend(['fvec', 'tvec'])
         if group is not None:
             self.metadata_fields.append('group')
             self.group = group
@@ -453,7 +453,7 @@ class active(_force):
 
 
         # store metadata
-        self.metadata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
+        self.metadata_fields.extend(['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint'])
         self.group = group
         self.seed = seed
         self.orientation_link = orientation_link
@@ -493,7 +493,7 @@ class dipole(_force):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # store metadata
-        self.metadata_fields = ['field_x', 'field_y', 'field_z']
+        self.metadata_fields.extend(['field_x', 'field_y', 'field_z'])
         self.field_x = field_x
         self.field_y = field_y
         self.field_z = field_z

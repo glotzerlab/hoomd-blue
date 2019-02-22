@@ -347,11 +347,11 @@ class ExecutionContext(hoomd.meta._metadata):
     # \brief Constructs the context object
     def __init__(self):
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = [
+        self.metadata_fields.extend([
             'hostname', 'gpu', 'mode', 'num_ranks',
             'username', 'wallclocktime', 'cputime',
             'job_id', 'job_name'
-            ]
+            ])
         if _hoomd.is_TBB_available():
             self.metadata_fields.append('num_threads')
 
@@ -439,10 +439,10 @@ class HOOMDContext(hoomd.meta._metadata):
     # \brief Constructs the context object
     def __init__(self):
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = [
+        self.metadata_fields.extend([
             'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
             'hoomd_compile_flags', 'cuda_version', 'compiler_version',
-            ]
+            ])
 
     # \brief Return the hoomd version.
     @property

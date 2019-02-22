@@ -63,7 +63,7 @@ class sort(hoomd.update._updater):
             cpp_class = _mpcd.SorterGPU
         self.cpp_updater = cpp_class(system.data)
 
-        self.metadata_fields = ['period']
+        self.metadata_fields.append('period')
         self.period = 50
 
         self.setupUpdater(self.period)

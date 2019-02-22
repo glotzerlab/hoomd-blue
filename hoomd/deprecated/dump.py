@@ -94,7 +94,7 @@ class xml(hoomd.analyze._analyzer):
         # store metadata
         self.filename = filename
         self.period = period
-        self.metadata_fields = ['group','filename','period']
+        self.metadata_fields.extend(['group','filename','period'])
 
     def set_params(self,
                    all=None,
@@ -322,7 +322,7 @@ class pos(hoomd.analyze._analyzer):
         self.filename = filename
         self.period = period
         self.unwrap_rigid = unwrap_rigid
-        self.metadata_fields = ['filename', 'period', 'unwrap_rigid']
+        self.metadata_fields.extend(['filename', 'period', 'unwrap_rigid'])
 
     def set_def(self, typ, shape):
         R""" Set a pos def string for a given type

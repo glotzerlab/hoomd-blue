@@ -194,7 +194,7 @@ class sphere(_constraint_force):
         self.group = group
         self.P = P
         self.r = r
-        self.metadata_fields = ['group','P', 'r']
+        self.metadata_fields.extend(['group','P', 'r'])
 
 class distance(_constraint_force):
     R""" Constrain pairwise particle distances.
@@ -517,7 +517,7 @@ class oneD(_constraint_force):
         # store metadata
         self.group = group
         self.constraint_vector = constraint_vector
-        self.metadata_fields = ['group','constraint_vector']
+        self.metadata_fields.extend(['group','constraint_vector'])
 
 
 

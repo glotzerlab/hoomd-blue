@@ -46,6 +46,7 @@ class _updater(hoomd.meta._metadata):
 
         # base class constructor
         hoomd.meta._metadata.__init__(self)
+        self.metadata_fields.append('enabled')
 
     ## \internal
     #
@@ -175,14 +176,6 @@ class _updater(hoomd.meta._metadata):
             hoomd.context.msg.warning("A period cannot be changed to a variable one");
         else:
             hoomd.context.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
-
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = hoomd.meta._metadata.get_metadata(self)
-        data['enabled'] = self.enabled
-
-        return data
 
     @classmethod
     def _gsd_state_name(cls):
@@ -334,8 +327,6 @@ class box_resize(_updater):
         # initialize base class
         _updater.__init__(self);
 
-        self.metadata_fields = ['period']
-
         if L is not None:
             Lx = L;
             Ly = L;
@@ -377,7 +368,7 @@ class box_resize(_updater):
         self.xy = xy
         self.xz = xz
         self.yz = yz
-        self.metadata_fields = ['Lx','Ly','Lz','xy','xz','yz']
+        self.metadata_fields.extend(['period', 'Lx','Ly','Lz','xy','xz','yz'])
 
         # create the c++ mirror class
         self.cpp_updater = _hoomd.BoxResizeUpdater(hoomd.context.current.system_definition, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant,
@@ -462,7 +453,7 @@ class balance(_updater):
         self.setupUpdater(period,phase)
 
         # stash arguments to metadata
-        self.metadata_fields = ['tolerance','maxiter','period','phase']
+        self.metadata_fields.extend(['tolerance','maxiter','period','phase'])
         self.period = period
         self.phase = phase
 

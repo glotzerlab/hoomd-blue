@@ -108,7 +108,7 @@ class group(hoomd.meta._metadata):
 
         # base class constructor
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['name']
+        self.metadata_fields.extend(['name'])
 
     def force_update(self):
         R""" Force an update of the group.

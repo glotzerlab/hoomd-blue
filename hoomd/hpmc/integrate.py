@@ -2204,7 +2204,7 @@ class convex_spheropolyhedron_union(mode_hpmc):
         self.initialize_shape_params();
 
         # meta data
-        self.metadata_fields = ['capacity']
+        self.metadata_fields += ['capacity']
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
@@ -2395,7 +2395,7 @@ class faceted_ellipsoid_union(mode_hpmc):
         self.initialize_shape_params();
 
         # meta data
-        self.metadata_fields = ['capacity']
+        self.metadata_fields += ['capacity']
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']

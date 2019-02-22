@@ -88,19 +88,19 @@ class boxmc(_updater):
         self.aspect_delta = 0.0;
         self.aspect_weight = 0.0;
 
-        self.metadata_fields = ['betaP',
-                                 'seed',
-                                 'volume_delta',
-                                 'volume_weight',
-                                 'ln_volume_delta',
-                                 'ln_volume_weight',
-                                 'length_delta',
-                                 'length_weight',
-                                 'shear_delta',
-                                 'shear_weight',
-                                 'shear_reduce',
-                                 'aspect_delta',
-                                 'aspect_weight']
+        self.metadata_fields.extend(['betaP',
+                                     'seed',
+                                     'volume_delta',
+                                     'volume_weight',
+                                     'ln_volume_delta',
+                                     'ln_volume_weight',
+                                     'length_delta',
+                                     'length_weight',
+                                     'shear_delta',
+                                     'shear_weight',
+                                     'shear_reduce',
+                                     'aspect_delta',
+                                     'aspect_weight'])
 
     def set_betap(self, betaP):
         R""" Update the pressure set point for Metropolis Monte Carlo volume updates.

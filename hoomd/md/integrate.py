@@ -92,7 +92,7 @@ class mode_standard(_integrator):
         # Store metadata
         self.dt = dt
         self.aniso = aniso
-        self.metadata_fields = ['dt', 'aniso']
+        self.metadata_fields.extend(['dt', 'aniso'])
 
         # initialize the reflected c++ class
         self.cpp_integrator = _md.IntegratorTwoStep(hoomd.context.current.system_definition, dt);
@@ -224,7 +224,7 @@ class nvt(_integration_method):
         self.group = group
         self.kT = kT
         self.tau = tau
-        self.metadata_fields = ['group', 'kT', 'tau']
+        self.metadata_fields.extend(['group', 'kT', 'tau'])
 
         # setup suffix
         suffix = '_' + group.name;
@@ -810,7 +810,7 @@ class nve(_integration_method):
         # store metadata
         self.group = group
         self.limit = limit
-        self.metadata_fields = ['group', 'limit']
+        self.metadata_fields.extend(['group', 'limit'])
 
     def set_params(self, limit=None, zero_force=None):
         R""" Changes parameters of an existing integrator.
@@ -984,7 +984,7 @@ class langevin(_integration_method):
         self.dscale = dscale
         self.noiseless_t = noiseless_t
         self.noiseless_r = noiseless_r
-        self.metadata_fields = ['group', 'kT', 'seed', 'dscale','noiseless_t','noiseless_r']
+        self.metadata_fields.extend(['group', 'kT', 'seed', 'dscale','noiseless_t','noiseless_r'])
 
     def set_params(self, kT=None, tally=None):
         R""" Change langevin integrator parameters.
@@ -1202,7 +1202,7 @@ class brownian(_integration_method):
         self.dscale = dscale
         self.noiseless_t = noiseless_t
         self.noiseless_r = noiseless_r
-        self.metadata_fields = ['group', 'kT', 'seed', 'dscale','noiseless_t','noiseless_r']
+        self.metadata_fields.extend(['group', 'kT', 'seed', 'dscale','noiseless_t','noiseless_r'])
 
     def set_params(self, kT=None):
         R""" Change langevin integrator parameters.
@@ -1408,7 +1408,7 @@ class mode_minimize_fire(_integrator):
 
         # change the set parameters if not None
         self.dt = dt
-        self.metadata_fields = ['dt','aniso']
+        self.metadata_fields.extend(['dt','aniso'])
 
         self.cpp_integrator.setNmin(Nmin);
         self.Nmin = Nmin
@@ -1428,23 +1428,23 @@ class mode_minimize_fire(_integrator):
 
         self.cpp_integrator.setFalpha(falpha);
         self.falpha = falpha
-        self.metadata_fields.append(falpha)
+        self.metadata_fields.append('falpha')
 
         self.cpp_integrator.setFtol(ftol);
         self.ftol = ftol
-        self.metadata_fields.append(ftol)
+        self.metadata_fields.append('ftol')
 
         self.cpp_integrator.setWtol(wtol);
         self.wtol = wtol
-        self.metadata_fields.append(wtol)
+        self.metadata_fields.append('wtol')
 
         self.cpp_integrator.setEtol(Etol);
         self.Etol = Etol
-        self.metadata_fields.append(Etol)
+        self.metadata_fields.append('Etol')
 
         self.cpp_integrator.setMinSteps(min_steps);
         self.min_steps = min_steps
-        self.metadata_fields.append(min_steps)
+        self.metadata_fields.append('min_steps')
 
     ## \internal
     #  \brief Cached set of anisotropic mode enums for ease of access
@@ -1555,7 +1555,7 @@ class berendsen(_integration_method):
         # store metadata
         self.kT = kT
         self.tau = tau
-        self.metadata_fields = ['kT','tau']
+        self.metadata_fields.extend(['kT','tau'])
 
     def randomize_velocities(self, seed):
         R""" Assign random velocities and angular momenta to particles in the

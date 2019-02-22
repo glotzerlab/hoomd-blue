@@ -196,4 +196,3 @@ def load_metadata(system, metadata=None, filename=None):
         name = obj.__module__ + '.' + obj.__class__.__name__
         objects[name] = instance
     return objects
-
