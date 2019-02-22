@@ -131,7 +131,9 @@ def dump_metadata(filename=None,user=None,indent=4):
         try:
             return obj.get_metadata()
         except (AttributeError, NotImplementedError):
-            return None
+            hoomd.context.msg.error(
+                "The {} class does not provide metadata dumping".format(obj))
+            raise
 
     # dump to JSON
     meta_str = json.dumps(
@@ -191,7 +193,12 @@ def load_metadata(system, metadata=None, filename=None):
         while parts:
             obj = getattr(obj, parts.pop(0))
 
-        instance = obj.from_metadata(vals)
+        if obj.__name__ == "system_data":
+            # System data is the special case that needs the actual system
+            # object to be passed through as well.
+            instance = obj.from_metadata(vals, system)
+        else:
+            instance = obj.from_metadata(vals)
 
         name = obj.__module__ + '.' + obj.__class__.__name__
         objects[name] = instance

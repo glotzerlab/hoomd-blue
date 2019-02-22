@@ -18,7 +18,7 @@ import hoomd;
 import sys;
 import math;
 
-class coeff:
+class coeff(force._coeff):
     R""" Defines external potential coefficients.
 
     The coefficients for all external forces are specified using this class. Coefficients are specified per particle
@@ -30,34 +30,6 @@ class coeff:
         my_external_force.force_coeff.set('B', A=-1.0, i=1, w=0.02, p=3)
 
     """
-
-    ## \internal
-    # \brief Initializes the class
-    # \details
-    # The main task to be performed during initialization is just to init some variables
-    # \param self Python required class instance variable
-    def __init__(self):
-        self.values = {};
-        self.default_coeff = {}
-
-    ## \var values
-    # \internal
-    # \brief Contains the vector of set values in a dictionary
-
-    ## \var default_coeff
-    # \internal
-    # \brief default_coeff['coeff'] lists the default value for \a coeff, if it is set
-
-    ## \internal
-    # \brief Sets a default value for a given coefficient
-    # \details
-    # \param name Name of the coefficient to for which to set the default
-    # \param value Default value to set
-    #
-    # Some coefficients have reasonable default values and the user should not be burdened with typing them in
-    # all the time. set_default_coeff() sets
-    def set_default_coeff(self, name, value):
-        self.default_coeff[name] = value;
 
     def set(self, type, **coeffs):
         R""" Sets parameters for particle types.

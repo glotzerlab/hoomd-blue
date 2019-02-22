@@ -915,6 +915,24 @@ class system_data(hoomd.meta._metadata):
         data['timestep'] = hoomd.context.current.system.getCurrentTimeStep()
         return data
 
+    @classmethod
+    def from_metadata(cls, params, system):
+        for prop, data in params.items():
+            if prop == 'box':
+                for attr, val in data.items():
+                    if attr == 'd':
+                        assert system.box.dimensions == val
+                    else:
+                        setattr(system.box, attr, val)
+            elif prop in ('timestep', 'number_density'):
+                continue
+            else:
+                # The other items should all be set by the initialization, so
+                # we'll just check that everything matches.
+                if prop != 'constraints':  # No types for constraints
+                    assert set(data['types']) == set(p.type for p in getattr(system, prop))
+                assert data['N'] == len(getattr(system, prop))
+
     ## Get the system box
     @property
     def box(self):

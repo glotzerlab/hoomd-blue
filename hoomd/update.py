@@ -12,6 +12,7 @@ it in some way. See the documentation of specific updaters to find out what they
 from hoomd import _hoomd;
 import hoomd;
 import sys;
+import copy
 
 ## \internal
 # \brief Base class for updaters
@@ -176,6 +177,18 @@ class _updater(hoomd.meta._metadata):
             hoomd.context.msg.warning("A period cannot be changed to a variable one");
         else:
             hoomd.context.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
+
+    @classmethod
+    def from_metadata(cls, params):
+        # TODO: Still need to check the enabled parameter.
+        updaters = []
+        for p in params:
+            enabled = p.pop('enabled', True)
+            updater = cls(**p)
+            if not enabled:
+                updater.disable()
+            updaters.append(updater)
+        return updaters
 
     @classmethod
     def _gsd_state_name(cls):
@@ -368,7 +381,9 @@ class box_resize(_updater):
         self.xy = xy
         self.xz = xz
         self.yz = yz
-        self.metadata_fields.extend(['period', 'Lx','Ly','Lz','xy','xz','yz'])
+        self.period = period
+        self.phase = phase
+        self.metadata_fields.extend(['period', 'Lx','Ly','Lz','xy','xz','yz', 'phase'])
 
         # create the c++ mirror class
         self.cpp_updater = _hoomd.BoxResizeUpdater(hoomd.context.current.system_definition, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant,
@@ -379,6 +394,20 @@ class box_resize(_updater):
             self.cpp_updater.update(hoomd.context.current.system.getCurrentTimeStep());
         else:
             self.setupUpdater(period, phase);
+
+    # Check for possibility of variants, which are stored in list form.
+    @classmethod
+    def from_metadata(cls, params):
+        # Make a deep copy to avoid modifying the original metadata info in
+        # place.
+        params = copy.deepcopy(params)
+        for p in params:
+            for key, points in p.items():
+                # Variants are stored as lists, which can be passed to the
+                # constructor of the variant.
+                if isinstance(p[key], list):
+                    p[key] = hoomd.variant.linear_interp(points)
+        return super(cls, cls).from_metadata(params)
 
 class balance(_updater):
     R""" Adjusts the boundaries of a domain decomposition on a regular 3D grid.

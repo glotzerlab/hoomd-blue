@@ -284,3 +284,16 @@ class _integration_method(hoomd.meta._metadata):
         data = hoomd.meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
         return data
+
+    @classmethod
+    def from_metadata(cls, params):
+        params = copy.deepcopy(params)
+        methods = []
+        for p in params:
+            enabled = p.pop('enabled', True)
+            p['group'] = getattr(hoomd.group, p['group']['name'])()
+            method = cls(**p)
+            if not enabled:
+                method.disable()
+            methods.append(method)
+        return methods

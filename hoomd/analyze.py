@@ -182,6 +182,17 @@ class _analyzer(hoomd.meta._metadata):
         return data
 
     @classmethod
+    def from_metadata(cls, params):
+        analyzers = []
+        for p in params:
+            enabled = p.pop('enabled', True)
+            analyzer = cls(**p)
+            if not enabled:
+                analyzer.disable()
+            analyzers.append(analyzer)
+        return analyzers
+
+    @classmethod
     def _gsd_state_name(cls):
         raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 
@@ -450,9 +461,13 @@ class log(_analyzer):
         hoomd.context.current.loggers.append(self);
 
         # store metadata
-        self.metadata_fields = ['filename','period']
+        self.metadata_fields = ['filename', 'period', 'quantities', 'header_prefix', 'phase', 'overwrite']
         self.filename = filename
+        self.quantities = quantities
+        self.header_prefix = header_prefix
         self.period = period
+        self.phase = phase
+        self.overwrite = overwrite
 
     def set_params(self, quantities=None, delimiter=None):
         R""" Change the parameters of the log.
@@ -472,6 +487,7 @@ class log(_analyzer):
 
         if quantities is not None:
             # set the logged quantities
+            self.quantities = quantities
             quantity_list = _hoomd.std_vector_string();
             for item in quantities:
                 quantity_list.append(str(item));

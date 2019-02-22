@@ -22,7 +22,7 @@ import hoomd;
 import math;
 import sys;
 
-class coeff:
+class coeff(force._coeff):
     R""" Define improper coefficients.
 
     The coefficients for all improper force are specified using this class. Coefficients are
@@ -34,28 +34,6 @@ class coeff:
         my_improper_force.improper_coeff.set('polymer', k=330.0, r=0.84)
         my_improper_force.improper_coeff.set('backbone', k=330.0, r=0.84)
     """
-    def __init__(self):
-        self.values = {};
-        self.default_coeff = {}
-
-    ## \var values
-    # \internal
-    # \brief Contains the vector of set values in a dictionary
-
-    ## \var default_coeff
-    # \internal
-    # \brief default_coeff['coeff'] lists the default value for \a coeff, if it is set
-
-    ## \internal
-    # \brief Sets a default value for a given coefficient
-    # \details
-    # \param name Name of the coefficient to for which to set the default
-    # \param value Default value to set
-    #
-    # Some coefficients have reasonable default values and the user should not be burdened with typing them in
-    # all the time. set_default_coeff() sets
-    def set_default_coeff(self, name, value):
-        self.default_coeff[name] = value;
 
     def set(self, type, **coeffs):
         R""" Sets parameters for one improper type.

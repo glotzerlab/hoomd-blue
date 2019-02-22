@@ -9,8 +9,45 @@ R""" Apply forces to particles.
 from hoomd import _hoomd
 from hoomd.md import _md;
 import sys;
+import copy
 import hoomd;
 import numpy as np
+
+## \internal
+# \brief Base class for coefficients
+#
+# All forces in HOOMD involve parameters corresponding to coefficients in the
+# mathematical form of the force equation. The _coeff class manages the common
+# functionalities of all coefficients.
+class _coeff(hoomd.meta._metadata):
+    ## \var values
+    # \internal
+    # \brief Contains the matrix of set values in a dictionary
+
+    ## \var default_coeff
+    # \internal
+    # \brief default_coeff['coeff'] lists the default value for \a coeff, if it is set
+
+    ## \internal
+    # \brief Initializes the class
+    # \details
+    # The main task to be performed during initialization is just to init some variables
+    # \param self Python required class instance variable
+    def __init__(self):
+        self.values = {};
+        self.default_coeff = {}
+
+    ## \internal
+    # \brief Sets a default value for a given coefficient
+    # \details
+    # \param name Name of the coefficient to for which to set the default
+    # \param value Default value to set
+    #
+    # Some coefficients have reasonable default values and the user should not be burdened with typing them in
+    # all the time. set_default_coeff() sets
+    def set_default_coeff(self, name, value):
+        self.default_coeff[name] = value;
+
 
 ## \internal
 # \brief Base class for forces
@@ -198,6 +235,30 @@ class _force(hoomd.meta._metadata):
             data['name'] = self.name
 
         return data
+
+    @classmethod
+    def from_metadata(cls, params):
+        forces = []
+        params = copy.deepcopy(params)
+        for p in params:
+            enabled = p.pop('enabled', True)
+            log = p.pop('log', True)
+
+            # Extract the coeff
+            for coeff_type in p.keys():
+                if 'coeff' in coeff_type:
+                    break
+            coeff_values = p.pop(coeff_type)
+
+            force = cls(**p)
+            coeff = getattr(force, coeff_type)
+            for name, settings in coeff_values.items():
+                coeff.set(name, **settings)
+
+            if not enabled:
+                force.disable(log=log)
+            forces.append(force)
+        return forces
 
 # set default counter
 _force.cur_id = 0;

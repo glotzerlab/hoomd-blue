@@ -159,6 +159,10 @@ class mode_standard(_integrator):
         self.check_initialization();
         self.cpp_integrator.initializeIntegrationMethods();
 
+    @classmethod
+    def from_metadata(cls, params):
+        return cls(**params)
+
 
 class nvt(_integration_method):
     R""" NVT Integration via the Nosé-Hoover thermostat.

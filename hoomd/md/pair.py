@@ -34,10 +34,11 @@ import hoomd;
 
 import math;
 import sys;
+import copy
 
 from collections import OrderedDict
 
-class coeff:
+class coeff(force._coeff):
     R""" Define pair coefficients
 
     All pair forces use :py:class:`coeff` to specify the coefficients between different
@@ -70,16 +71,6 @@ class coeff:
         my_force.pair_coeff = force_field.my_coeffs
 
     """
-
-    ## \internal
-    # \brief Initializes the class
-    # \details
-    # The main task to be performed during initialization is just to init some variables
-    # \param self Python required class instance variable
-    def __init__(self):
-        self.values = {};
-        self.default_coeff = {}
-
     ## \internal
     # \brief Return a compact representation of the pair coefficients
     def get_metadata(self):
@@ -93,25 +84,6 @@ class coeff:
                 item[coeff] = self.values[(a,b)][coeff]
             l.append(item)
         return l
-
-    ## \var values
-    # \internal
-    # \brief Contains the matrix of set values in a dictionary
-
-    ## \var default_coeff
-    # \internal
-    # \brief default_coeff['coeff'] lists the default value for \a coeff, if it is set
-
-    ## \internal
-    # \brief Sets a default value for a given coefficient
-    # \details
-    # \param name Name of the coefficient to for which to set the default
-    # \param value Default value to set
-    #
-    # Some coefficients have reasonable default values and the user should not be burdened with typing them in
-    # all the time. set_default_coeff() sets
-    def set_default_coeff(self, name, value):
-        self.default_coeff[name] = value;
 
     def set(self, a, b, **coeffs):
         R""" Sets parameters for one type pair.
@@ -362,12 +334,13 @@ class pair(force._force):
         # convert r_cut False to a floating point type
         if r_cut is False:
             r_cut = -1.0
-        self.global_r_cut = r_cut;
+        self.r_cut = r_cut;
 
         # setup the coefficient matrix
         self.pair_coeff = coeff();
-        self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
-        self.pair_coeff.set_default_coeff('r_on', self.global_r_cut);
+        self.pair_coeff.set_default_coeff('r_cut', self.r_cut);
+        self.pair_coeff.set_default_coeff('r_on', self.r_cut);
+        self.metadata_fields.extend(['r_cut', 'nlist'])
 
         # setup the neighbor list
         self.nlist = nlist
@@ -487,7 +460,7 @@ class pair(force._force):
                     else:
                         r_cut_dict.set_pair(type_list[i],type_list[j], r_cut);
                 else: # use the global default
-                    r_cut_dict.set_pair(type_list[i],type_list[j],self.global_r_cut);
+                    r_cut_dict.set_pair(type_list[i],type_list[j],self.r_cut);
 
         return r_cut_dict;
 
@@ -501,6 +474,37 @@ class pair(force._force):
 
         data['pair_coeff'] = self.pair_coeff
         return data
+
+    # Override parent method because the get_metadata definition above leads to
+    # different nesting than what's used for other forces (i.e. a list of dicts
+    # instead of a dict of dicts). Additionally, we need to capture the
+    # neighborlist here.
+    @classmethod
+    def from_metadata(cls, params):
+        pairs = []
+        params = copy.deepcopy(params)
+        for p in params:
+            enabled = p.pop('enabled', True)
+            log = p.pop('log', True)
+
+            # Extract the coeff
+            coeff_values = p.pop('pair_coeff')
+
+            nlist_values = p.pop('nlist')
+            nlist_type = nlist_values.pop('nlist_type')
+            nlist = getattr(nl, nlist_type)(**nlist_values)
+            p['nlist'] = nlist
+
+            pair = cls(**p)
+            for settings in coeff_values:
+                a = settings.pop('typei')
+                b = settings.pop('typej')
+                pair.pair_coeff.set(a, b, **settings)
+
+            if not enabled:
+                pair.disable(log=log)
+            pairs.append(pair)
+        return pairs
 
     def compute_energy(self, tags1, tags2):
         R""" Compute the energy between two sets of particles.
@@ -2118,11 +2122,11 @@ class ai_pair(pair):
         # initialize the base class
         force._force.__init__(self, name);
 
-        self.global_r_cut = r_cut;
+        self.r_cut = r_cut;
 
         # setup the coefficient matrix
         self.pair_coeff = coeff();
-        self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
+        self.pair_coeff.set_default_coeff('r_cut', self.r_cut);
 
         # setup the neighbor list
         self.nlist = nlist

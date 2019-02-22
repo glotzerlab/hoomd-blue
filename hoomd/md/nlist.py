@@ -47,7 +47,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd;
 
-class nlist:
+class nlist(hoomd.meta._metadata):
     R""" Base class neighbor list.
 
     Methods provided by this base class are available to all subclasses.
@@ -59,6 +59,8 @@ class nlist:
             hoomd.context.msg.error("Cannot create neighbor list before initialization\n");
             raise RuntimeError('Error creating neighbor list');
 
+        super(nlist, self).__init__()
+
         # default exclusions
         self.is_exclusion_overridden = False;
         self.exclusions = None  # Excluded groups
@@ -67,6 +69,9 @@ class nlist:
         # save the parameters we set
         self.r_cut = rcut();
         self.r_buff = 0.4;
+
+        self.metadata_fields.append('nlist_type')
+        self.nlist_type = type(self).__name__
 
         # save a list of subscribers that may have a say in determining the maximum r_cut
         self.subscriber_callbacks = [];
@@ -190,9 +195,12 @@ class nlist:
             self.r_buff = r_buff;
 
         if check_period is not None:
+            self.check_period = check_period
+            self.dist_check = dist_check
             self.cpp_nlist.setEvery(check_period, dist_check);
 
         if d_max is not None:
+            self.d_max = d_max
             self.cpp_nlist.setMaximumDiameter(d_max);
 
     def reset_exclusions(self, exclusions = None):
@@ -614,10 +622,14 @@ class cell(nlist):
         # register this neighbor list with the context
         hoomd.context.current.neighbor_lists += [self]
 
-        # save the user defined parameters
+        # save the user defined parameters and setup metadata
+        self.metadata_fields.extend(['r_buff', 'check_period', 'd_max', 'dist_check', 'name', 'deterministic'])
+        self.d_max = d_max  # Have to initialize this, set_params won't if it's None
+        self.deterministic = deterministic
         hoomd.util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check)
         hoomd.util.unquiet_status()
+
 
 cell.cur_id = 0
 
@@ -713,6 +725,10 @@ class stencil(nlist):
         hoomd.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
+        self.metadata_fields.extend(['r_buff', 'check_period', 'd_max', 'dist_check', 'cell_width', 'name', 'deterministic'])
+        self.d_max = d_max  # Have to initialize this, set_params won't if it's None
+        self.deterministic = deterministic
+
         hoomd.util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check)
         self.set_cell_width(cell_width)
@@ -726,6 +742,7 @@ class stencil(nlist):
         """
         hoomd.util.print_status_line()
         if cell_width is not None:
+            self.cell_width = cell_width
             self.cpp_nlist.setCellWidth(float(cell_width))
 
     def tune_cell_width(self, warmup=200000, min_width=None, max_width=None, jumps=20, steps=5000):
@@ -895,6 +912,8 @@ class tree(nlist):
         hoomd.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
+        self.metadata_fields.extend(['r_buff', 'check_period', 'd_max', 'dist_check', 'name'])
+        self.d_max = d_max  # Have to initialize this, set_params won't if it's None
         hoomd.util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check)
         hoomd.util.unquiet_status()
