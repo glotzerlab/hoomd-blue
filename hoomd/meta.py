@@ -21,6 +21,7 @@ import json, collections;
 import time
 import datetime
 import copy
+import warnings
 
 from collections import OrderedDict
 from collections import Mapping
@@ -141,3 +142,58 @@ def dump_metadata(filename=None,user=None,indent=4):
         with open(filename, 'w') as file:
             file.write(meta_str)
     return json.loads(meta_str)
+
+def load_metadata(system, metadata=None, filename=None):
+    R"""Initialize system information from metadata.
+
+    This function must be called after the system is initialized, but before
+    any other HOOMD functions are called. This function will update the system
+    data with any bonds, constraints, etc that are encoded in the metadata.
+    Additionally, it will instantiate any pair potentials, forces, etc that
+    need to be created. All of the created objects will be returned to the
+    user, who can modify them or create new objects as necessary.
+
+    Args:
+        system (:py:class:`hoomd.data.system_data`): The initial system.
+        metadata (dict): The metadata to initialize with. Defaults to None, but
+                         must be provided unless a filename is given.
+        filename (str): A file containing metadata. Is ignored if a metadata
+                        dictionary is provided.
+
+    Returns:
+        dict: A mapping from class to the instance created by this function.
+    """
+    # For now, only use filename if no metadata is given.
+    if filename is not None:
+        if metadata is None:
+            with open(filename) as f:
+                metadata = json.load(f)
+        else:
+            warnings.warn(
+                "Both filename and data specified. Ignoring provided file.")
+    elif metadata is None:
+        raise RuntimeError(
+            "You must provide either a dictionary with metadata or a file to "
+            "read from.")
+
+    # Ignored keys are those we don't need to do anything with
+    ignored_keys = ['timestamp', 'context', 'hoomd']
+    objects = {}
+    for key, vals in metadata.items():
+        if key in ignored_keys:
+            continue
+
+        # Top level is always hoomd, but may be removed
+        parts = key.split('.')
+        if parts[0] == 'hoomd':
+            parts.pop(0)
+        obj = hoomd
+        while parts:
+            obj = getattr(obj, parts.pop(0))
+
+        instance = obj.from_metadata(vals)
+
+        name = obj.__module__ + '.' + obj.__class__.__name__
+        objects[name] = instance
+    return objects
+
