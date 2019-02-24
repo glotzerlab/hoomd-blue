@@ -179,7 +179,7 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
  * \param R radius of insertion sphere
  */
 template<class RNG>
-inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_sphere, Scalar R)
+DEVICE inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_sphere, Scalar R)
     {
     // draw a random vector in the excluded volume sphere of the colloid
     Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
