@@ -64,6 +64,9 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         //! Set quermass integration mode
         void setQuermassMode(bool enable_quermass)
             {
+            if (enable_quermass && !Shape::supportsSweepRadius())
+                throw std::runtime_error("Quermass integration not supported for this shape");
+
             m_quermass = enable_quermass;
             }
 
