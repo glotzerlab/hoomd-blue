@@ -158,9 +158,9 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
     protected:
         std::vector<Scalar> m_fugacity;                          //!< Average depletant number density in free volume, per type
 
-        GPUArray<hpmc_implicit_counters_t> m_implicit_count;     //!< Counter of active cell cluster moves
-        std::vector<hpmc_implicit_counters_t> m_implicit_count_run_start;     //!< Counter of active cell cluster moves at run start
-        std::vector<hpmc_implicit_counters_t> m_implicit_count_step_start;    //!< Counter of active cell cluster moves at run start
+        GlobalArray<hpmc_implicit_counters_t> m_implicit_count;               //!< Counter of depletant insertions
+        std::vector<hpmc_implicit_counters_t> m_implicit_count_run_start;     //!< Counter of depletant insertions at run start
+        std::vector<hpmc_implicit_counters_t> m_implicit_count_step_start;    //!< Counter of depletant insertions at step start
 
         bool m_quermass;                                         //!< True if quermass integration mode is enabled
         Scalar m_sweep_radius;                                   //!< Radius of sphere to sweep shapes by
@@ -196,7 +196,7 @@ IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCImplicit" << std::endl;
 
-    GPUArray<hpmc_implicit_counters_t> implicit_count(this->m_pdata->getNTypes(),this->m_exec_conf);
+    GlobalArray<hpmc_implicit_counters_t> implicit_count(this->m_pdata->getNTypes(),this->m_exec_conf);
     m_implicit_count.swap(implicit_count);
 
         {

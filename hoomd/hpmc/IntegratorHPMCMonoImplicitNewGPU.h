@@ -211,7 +211,7 @@ IntegratorHPMCMonoImplicitNewGPU< Shape >::IntegratorHPMCMonoImplicitNewGPU(std:
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_excell_block_size", this->m_exec_conf));
     m_tuner_implicit.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_insert_depletants", this->m_exec_conf));
 
-    GPUArray<hpmc_implicit_counters_t> implicit_count(1,this->m_exec_conf);
+    GlobalArray<hpmc_implicit_counters_t> implicit_count(1,this->m_exec_conf);
     this->m_implicit_count.swap(implicit_count);
 
     GPUArray<curandDiscreteDistribution_t> poisson_dist(1,this->m_exec_conf);
