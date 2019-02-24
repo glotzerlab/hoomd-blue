@@ -954,13 +954,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                 // intersectionAABB volume; use area for 2D
                 Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
-                unsigned int ndim = this->m_sysdef->getNDimensions();
                 if(ndim == 3)
-                    {
-                        V *= intersect_upper.z-intersect_lower.z;
-
-                    }
-
+                    V *= intersect_upper.z-intersect_lower.z;
+                this->m_exec_conf->msg->notice(9) << "AABB intersection volume = "  << V << std::endl;
+                
                 // chooose the number of depletants in the intersection volume
                 std::poisson_distribution<unsigned int> poisson(m_fugacity[type]*V);
                 #ifdef ENABLE_TBB
@@ -968,6 +965,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #endif
 
                 unsigned int n = poisson(rng_poisson);
+                this->m_exec_conf->msg->notice(9) << "Number of trial depletants = "  << n << std::endl;
 
                 // for every depletant
                 // somewhere in here, I need to change the behavior for 2d systems
@@ -1369,6 +1367,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 Scalar V = (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
                 if(ndim == 3)
                     V *= intersect_upper.z-intersect_lower.z;
+                this->m_exec_conf->msg->notice(9) << "AABB intersection volume = "  << V << std::endl;
 
                 // chooose the number of depletants in the intersection volume
                 std::poisson_distribution<unsigned int> poisson(-m_fugacity[type]*V);
@@ -1377,6 +1376,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #endif
 
                 unsigned int n = poisson(rng_poisson);
+                this->m_exec_conf->msg->notice(9) << "Number of trial depletants = "  << n << std::endl;
 
                 // for every depletant
                 #ifdef ENABLE_TBB
