@@ -170,10 +170,10 @@ class coeff(force._coeff):
 
         return self.values[type][coeff_name];
 
-    ## \internal
-    # \brief Return metadata
-    def get_metadata(self):
-        return self.values
+    # ## \internal
+    # # \brief Return metadata
+    # def get_metadata(self):
+        # return self.values
 
 class harmonic(force._force):
     R""" Harmonic dihedral potential.
@@ -246,16 +246,16 @@ class harmonic(force._force):
 
             self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['d'], coeff_dict['n']);
 
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = force._force.get_metadata(self)
+    # ## \internal
+    # # \brief Get metadata
+    # def get_metadata(self):
+        # data = force._force.get_metadata(self)
 
-        # make sure coefficients are up-to-date
-        self.update_coeffs()
+        # # make sure coefficients are up-to-date
+        # self.update_coeffs()
 
-        data['dihedral_coeff'] = self.dihedral_coeff
-        return data
+        # data['dihedral_coeff'] = self.dihedral_coeff
+        # return data
 
 def _table_eval(theta, V, T, width):
       dth = (2*math.pi) / float(width-1);
@@ -441,16 +441,16 @@ class table(force._force):
         self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
         hoomd.util.unquiet_status();
 
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = force._force.get_metadata(self)
+    # ## \internal
+    # # \brief Get metadata
+    # def get_metadata(self):
+        # data = force._force.get_metadata(self)
 
-        # make sure coefficients are up-to-date
-        self.update_coeffs()
+        # # make sure coefficients are up-to-date
+        # self.update_coeffs()
 
-        data['dihedral_coeff'] = self.dihedral_coeff
-        return data
+        # data['dihedral_coeff'] = self.dihedral_coeff
+        # return data
 
 class opls(force._force):
     R""" OPLS dihedral force
@@ -518,13 +518,13 @@ class opls(force._force):
 
             self.cpp_force.setParams(i, coeff_dict['k1'], coeff_dict['k2'], coeff_dict['k3'], coeff_dict['k4']);
 
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = force._force.get_metadata(self)
+    # ## \internal
+    # # \brief Get metadata
+    # def get_metadata(self):
+        # data = force._force.get_metadata(self)
 
-        # make sure coefficients are up-to-date
-        self.update_coeffs()
+        # # make sure coefficients are up-to-date
+        # self.update_coeffs()
 
-        data['dihedral_coeff'] = self.dihedral_coeff
-        return data
+        # data['dihedral_coeff'] = self.dihedral_coeff
+        # return data

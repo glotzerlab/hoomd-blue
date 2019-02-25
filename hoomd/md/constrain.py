@@ -146,14 +146,14 @@ class _constraint_force(hoomd.meta._metadata):
         # does nothing: this is for derived classes to implement
 
 
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = hoomd.meta._metadata.get_metadata(self)
-        data['enabled'] = self.enabled
-        if self.name is not "":
-            data['name'] = self.name
-        return data
+    # ## \internal
+    # # \brief Get metadata
+    # def get_metadata(self):
+        # data = hoomd.meta._metadata.get_metadata(self)
+        # data['enabled'] = self.enabled
+        # if self.name is not "":
+            # data['name'] = self.name
+        # return data
 
 # set default counter
 _constraint_force.cur_id = 0;

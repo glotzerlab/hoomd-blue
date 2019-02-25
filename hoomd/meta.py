@@ -48,12 +48,6 @@ class _metadata(object):
 
     def __new__(cls, *args, **kwargs):
         obj = super(_metadata, cls).__new__(cls)
-        # obj.metadata_store = {
-            # 'arguments': {
-                # 'args': args,
-                # 'kwargs': kwargs
-                # }
-            # }
         obj.args = args
         obj.kwargs = kwargs
         return obj
@@ -65,7 +59,6 @@ class _metadata(object):
     ## \internal
     # \brief Return the metadata
     def get_metadata(self):
-        print("Getting for object ", self)
         varnames = self.__init__.__code__.co_varnames[1:]  # Skip `self`
 
         # Fill in positional arguments first, then update all kwargs. No need
@@ -73,20 +66,9 @@ class _metadata(object):
         # been valid to construct the object in the first place.
         metadata = OrderedDict()
         for varname, arg in zip(varnames, self.args):
-            print('returning metadata for varname: ', varname)
             metadata[varname] = arg
         metadata.update(self.kwargs)
         return metadata
-
-    # ## \internal
-    # # \brief Return the metadata
-    # def get_metadata(self):
-        # data = OrderedDict()
-
-        # for m in self.metadata_fields:
-            # data[m] = getattr(self, m)
-
-        # return data
 
 class _metadata_from_dict(object):
     def __init__(self, d):
@@ -148,7 +130,6 @@ def dump_metadata(filename=None,user=None,indent=4):
     global_objs = [hoomd.context.current.integrator];
 
     for o in global_objs:
-        print("Trying for object ", o)
         if o is not None:
             name = o.__module__+'.'+o.__class__.__name__;
             if len(name) > 13 and name[:13] == 'hoomd.':
@@ -162,7 +143,6 @@ def dump_metadata(filename=None,user=None,indent=4):
     global_objs += hoomd.context.current.constraint_forces
 
     for o in global_objs:
-        print("Trying for object ", o)
         if o is not None:
             name = o.__module__+'.'+o.__class__.__name__;
             if len(name) > 13 and name[:13] == 'hoomd.':

@@ -175,12 +175,6 @@ class _analyzer(hoomd.meta._metadata):
         else:
             hoomd.context.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
 
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = hoomd.meta._metadata.get_metadata(self)
-        return data
-
     @classmethod
     def from_metadata(cls, params):
         analyzers = []

@@ -341,17 +341,37 @@ def _verify_init():
         raise RuntimeError("hoomd execution context is not available")
 
 ## \internal
-# \brief Gather context from the environment
-class ExecutionContext(hoomd.meta._metadata):
+# \brief Classes to gather metadata about the context configuration.
+class MetadataContext(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
-        hoomd.meta._metadata.__init__(self)
-        self.metadata_fields.extend([
+        super(MetadataContext, self).__init__()
+
+    ## \internal
+    # \brief Override parent because this class exists solely for gathering
+    # data, and therefore behaves differently in this context.
+    def get_metadata(self):
+        assert hasattr(self, 'metadata_fields'), ("Subclasses of MetadataContext "
+                "must define an instance variable list `metadata_fields` to "
+                "indicate what attributes to gather.")
+        metadata = {}
+        for m in self.metadata_fields:
+            metadata[m] = getattr(self, m)
+        return metadata
+
+## \internal
+# \brief Gather context from the execution environment
+class ExecutionContext(MetadataContext):
+    ## \internal
+    # \brief Constructs the context object
+    def __init__(self):
+        super(ExecutionContext, self).__init__()
+        self.metadata_fields = [
             'hostname', 'gpu', 'mode', 'num_ranks',
             'username', 'wallclocktime', 'cputime',
             'job_id', 'job_name'
-            ])
+            ]
         if _hoomd.is_TBB_available():
             self.metadata_fields.append('num_threads')
 
@@ -434,15 +454,15 @@ class ExecutionContext(hoomd.meta._metadata):
 
 ## \internal
 # \brief Gather context about HOOMD
-class HOOMDContext(hoomd.meta._metadata):
+class HOOMDContext(MetadataContext):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
-        hoomd.meta._metadata.__init__(self)
-        self.metadata_fields.extend([
+        super(HOOMDContext, self).__init__()
+        self.metadata_fields = [
             'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
             'hoomd_compile_flags', 'cuda_version', 'compiler_version',
-            ])
+            ]
 
     # \brief Return the hoomd version.
     @property

@@ -94,11 +94,11 @@ class _param(object):
         ai = numpy.array(li);
         return ai.tolist();
 
-    def get_metadata(self):
-        data = {}
-        for key in self._keys:
-            data[key] = getattr(self, key);
-        return data;
+    # def get_metadata(self):
+        # data = {}
+        # for key in self._keys:
+            # data[key] = getattr(self, key);
+        # return data;
 
     def __setattr__(self, name, value):
         if not hasattr(self, name):
@@ -372,15 +372,15 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
             ct+=1
         return string;
 
-    def get_metadata(self):
-        data = {}
-        for key in self._keys:
-            if key == 'diameters':
-                val = [ m.diameter for m in self.members ];
-            else:
-                val = getattr(self, key);
-            data[key] = val;
-        return data;
+    # def get_metadata(self):
+        # data = {}
+        # for key in self._keys:
+            # if key == 'diameters':
+                # val = [ m.diameter for m in self.members ];
+            # else:
+                # val = getattr(self, key);
+            # data[key] = val;
+        # return data;
 
     def make_param(self, diameters, centers, overlap=None, ignore_statistics=False, colors=None, capacity=4):
         if overlap is None:
@@ -418,17 +418,17 @@ class convex_spheropolyhedron_union_params(_hpmc.convex_polyhedron_union_param_p
             ct+=1
         return string;
 
-    def get_metadata(self):
-        data = {}
-        for key in self._keys:
-            if key == 'vertices':
-                val = [ m.vertices for m in self.members ];
-            elif key == 'sweep_radii':
-                val = [ m.sweep_radius for m in self.members ]
-            else:
-                val = getattr(self, key);
-            data[key] = val;
-        return data;
+    # def get_metadata(self):
+        # data = {}
+        # for key in self._keys:
+            # if key == 'vertices':
+                # val = [ m.vertices for m in self.members ];
+            # elif key == 'sweep_radii':
+                # val = [ m.sweep_radius for m in self.members ]
+            # else:
+                # val = getattr(self, key);
+            # data[key] = val;
+        # return data;
 
     def make_param(self, centers, orientations, vertices, overlap=None, sweep_radii=None, ignore_statistics=False, colors=None, capacity=4):
         if overlap is None:
@@ -480,27 +480,27 @@ class faceted_ellipsoid_union_params(_hpmc.faceted_ellipsoid_union_param_proxy,_
             ct+=1
         return string;
 
-    def get_metadata(self):
-        data = {}
-        for key in self._keys:
-            if key == 'vertices':
-                val = [ m.vertices for m in self.members ];
-            if key == 'normals':
-                val = [ m.normals for m in self.members ];
-            if key == 'offsets':
-                val = [ m.offsets for m in self.members ];
-            if key == 'a':
-                val = [ m.a for m in self.members ];
-            if key == 'b':
-                val = [ m.b for m in self.members ];
-            if key == 'c':
-                val = [ m.c for m in self.members ];
-            if key == 'origins':
-                val = [ m.origin for m in self.members ];
-            else:
-                val = getattr(self, key);
-            data[key] = val;
-        return data;
+    # def get_metadata(self):
+        # data = {}
+        # for key in self._keys:
+            # if key == 'vertices':
+                # val = [ m.vertices for m in self.members ];
+            # if key == 'normals':
+                # val = [ m.normals for m in self.members ];
+            # if key == 'offsets':
+                # val = [ m.offsets for m in self.members ];
+            # if key == 'a':
+                # val = [ m.a for m in self.members ];
+            # if key == 'b':
+                # val = [ m.b for m in self.members ];
+            # if key == 'c':
+                # val = [ m.c for m in self.members ];
+            # if key == 'origins':
+                # val = [ m.origin for m in self.members ];
+            # else:
+                # val = getattr(self, key);
+            # data[key] = val;
+        # return data;
 
     def make_param(self, centers, orientations, vertices, normals, offsets, axes, origins=None, overlap=None,
         ignore_statistics=False, colors=None, capacity=4):

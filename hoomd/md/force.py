@@ -225,16 +225,16 @@ class _force(hoomd.meta._metadata):
 
     forces = property(__forces);
 
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = hoomd.meta._metadata.get_metadata(self)
-        data['enabled'] = self.enabled
-        data['log'] = self.log
-        if self.name is not "":
-            data['name'] = self.name
+    # ## \internal
+    # # \brief Get metadata
+    # def get_metadata(self):
+        # data = hoomd.meta._metadata.get_metadata(self)
+        # data['enabled'] = self.enabled
+        # data['log'] = self.log
+        # if self.name is not "":
+            # data['name'] = self.name
 
-        return data
+        # return data
 
     @classmethod
     def from_metadata(cls, params):

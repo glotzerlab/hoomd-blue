@@ -157,10 +157,10 @@ class coeff(force._coeff):
 
         return self.values[type][coeff_name];
 
-    ## \internal
-    # \brief Return metadata
-    def get_metadata(self):
-        return self.values
+    # ## \internal
+    # # \brief Return metadata
+    # def get_metadata(self):
+        # return self.values
 
 ## \internal
 # \brief Base class for bond potentials
@@ -212,16 +212,16 @@ class _bond(force._force):
             param = self.process_coeff(coeff_dict);
             self.cpp_force.setParams(i, param);
 
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = force._force.get_metadata(self)
+    # ## \internal
+    # # \brief Get metadata
+    # def get_metadata(self):
+        # data = force._force.get_metadata(self)
 
-        # make sure coefficients are up-to-date
-        self.update_coeffs()
+        # # make sure coefficients are up-to-date
+        # self.update_coeffs()
 
-        data['bond_coeff'] = self.bond_coeff
-        return data
+        # data['bond_coeff'] = self.bond_coeff
+        # return data
 
 class harmonic(_bond):
     R""" Harmonic bond potential.

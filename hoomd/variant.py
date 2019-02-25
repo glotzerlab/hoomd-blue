@@ -19,7 +19,7 @@ import sys;
 #
 # _variant should not be used directly in code, it only serves as a base class
 # for the other variant types.
-class _variant:
+class _variant(hoomd.meta._metadata):
     ## Does common initialization for all variants
     #
     def __init__(self):
@@ -52,10 +52,10 @@ class _constant(_variant):
         self.cpp_variant = _hoomd.VariantConst(val);
         self.cpp_variant.setOffset(hoomd.context.current.system.getCurrentTimeStep());
 
-    ## \internal
-    # \brief return metadata
-    def get_metadata(self):
-        return self.val
+    # ## \internal
+    # # \brief return metadata
+    # def get_metadata(self):
+        # return self.val
 
 class linear_interp(_variant):
     R""" Linearly interpolated variant.
@@ -128,10 +128,10 @@ class linear_interp(_variant):
         # store metadata
         self.points = points
 
-    ## \internal
-    # \brief return metadata
-    def get_metadata(self):
-        return self.points
+    # ## \internal
+    # # \brief return metadata
+    # def get_metadata(self):
+        # return self.points
 
 ## \internal
 # \brief Internal helper function to aid in setting up variants
