@@ -145,6 +145,7 @@ class _integrator(hoomd.meta._metadata):
                 raise RuntimeError('Error initializing integrator methods');
 
             for m in hoomd.context.current.integration_methods:
+                print(hoomd.context.current.integration_methods)
                 self.cpp_integrator.addIntegrationMethod(m.cpp_method);
 
         else:
@@ -217,6 +218,7 @@ class _integration_method(hoomd.meta._metadata):
 
         # base class constructor
         hoomd.meta._metadata.__init__(self)
+        self.metadata_fields += ['enabled']
 
     ## \var enabled
     # \internal
@@ -277,13 +279,6 @@ class _integration_method(hoomd.meta._metadata):
 
         self.enabled = True;
         hoomd.context.current.integration_methods.append(self);
-
-    ## \internal
-    # \brief Override get_metadata() to add 'enabled' field
-    def get_metadata(self):
-        data = hoomd.meta._metadata.get_metadata(self)
-        data['enabled'] = self.enabled
-        return data
 
     @classmethod
     def from_metadata(cls, params):

@@ -900,7 +900,9 @@ class system_data(hoomd.meta._metadata):
     ## \internal
     # \brief Get particle metadata
     def get_metadata(self):
-        data = hoomd.meta._metadata.get_metadata(self)
+        raise RuntimeError(
+            "The system data should be read in from a trajectory file. "
+            "Storing in metadata form is not currently supported.")
         data['box'] = self.box
         data['particles'] = self.particles
         data['number_density'] = len(self.particles)/self.box.get_volume()
@@ -1874,7 +1876,7 @@ class angle_data(hoomd.meta._metadata):
     ## \internal
     # \brief create a angle_data
     #
-    # \param bdata AngleData to connect
+    # \param adata AngleData to connect
     def __init__(self, adata):
         self.adata = adata;
 

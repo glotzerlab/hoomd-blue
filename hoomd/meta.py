@@ -29,6 +29,35 @@ from collections import Mapping
 ## \internal
 # \brief A Mixin to facilitate storage of simulation metadata
 class _metadata(object):
+    R"""Track the metadata of all subclasses.
+
+    The goal of metadata tracking is to make it possible to completely
+    reproduce the exact simulation protocol in a script. In order to do so,
+    every class that needs to be tracked (system data, neighbor lists,
+    integrators, pair potentials, etc) should all inherit from _metadata. The
+    class tracks information in three ways:
+
+    #. All constructor arguments are automatically tracked.
+    #. Any method decorated with the @track decorator will be recorded whenever called.
+    #. Every class may define a class level variable `metadata_fields` that indicates class variables (maybe, haven't decided yet).
+
+    The constructor tracking is accomplished by overriding the __new__ method
+    to automatically store all constructor arguments. Similarly, all methods
+    decorated with the @track decorator will automatically log their inputs.
+    """
+
+    def __new__(cls, *args, **kwargs):
+        obj = super(_metadata, cls).__new__(cls)
+        # obj.metadata_store = {
+            # 'arguments': {
+                # 'args': args,
+                # 'kwargs': kwargs
+                # }
+            # }
+        obj.args = args
+        obj.kwargs = kwargs
+        return obj
+
     def __init__(self):
         # No metadata provided per default
         self.metadata_fields = []
@@ -36,14 +65,30 @@ class _metadata(object):
     ## \internal
     # \brief Return the metadata
     def get_metadata(self):
-        data = OrderedDict()
+        print("Getting for object ", self)
+        varnames = self.__init__.__code__.co_varnames[1:]  # Skip `self`
 
-        for m in self.metadata_fields:
-            data[m] = getattr(self, m)
+        # Fill in positional arguments first, then update all kwargs. No need
+        # for extensive error checking since the function signature must have
+        # been valid to construct the object in the first place.
+        metadata = OrderedDict()
+        for varname, arg in zip(varnames, self.args):
+            print('returning metadata for varname: ', varname)
+            metadata[varname] = arg
+        metadata.update(self.kwargs)
+        return metadata
 
-        return data
+    # ## \internal
+    # # \brief Return the metadata
+    # def get_metadata(self):
+        # data = OrderedDict()
 
-class _metadata_from_dict:
+        # for m in self.metadata_fields:
+            # data[m] = getattr(self, m)
+
+        # return data
+
+class _metadata_from_dict(object):
     def __init__(self, d):
         self.d = d;
 
@@ -98,24 +143,26 @@ def dump_metadata(filename=None,user=None,indent=4):
     metadata['context'] = hoomd.context.ExecutionContext()
     metadata['hoomd'] = hoomd.context.HOOMDContext()
 
-    global_objs = [hoomd.data.system_data(hoomd.context.current.system_definition)];
-    global_objs += [hoomd.context.current.integrator];
+    # global_objs = [hoomd.data.system_data(hoomd.context.current.system_definition)];
+    # global_objs += [hoomd.context.current.integrator];
+    global_objs = [hoomd.context.current.integrator];
 
     for o in global_objs:
+        print("Trying for object ", o)
         if o is not None:
             name = o.__module__+'.'+o.__class__.__name__;
             if len(name) > 13 and name[:13] == 'hoomd.':
                 name = name[13:];
             metadata[name] = o
 
-    global_objs = copy.copy(hoomd.context.current.forces);
-    global_objs += hoomd.context.current.constraint_forces;
-    global_objs += hoomd.context.current.integration_methods;
+    global_objs = copy.copy(hoomd.context.current.integration_methods)
     global_objs += hoomd.context.current.forces
-    global_objs += hoomd.context.current.analyzers;
-    global_objs += hoomd.context.current.updaters;
+    global_objs += hoomd.context.current.analyzers
+    global_objs += hoomd.context.current.updaters
+    global_objs += hoomd.context.current.constraint_forces
 
     for o in global_objs:
+        print("Trying for object ", o)
         if o is not None:
             name = o.__module__+'.'+o.__class__.__name__;
             if len(name) > 13 and name[:13] == 'hoomd.':
@@ -126,13 +173,14 @@ def dump_metadata(filename=None,user=None,indent=4):
 
     # handler for unknown objects
     def default_handler(obj):
+        print("Handling object ", obj)
         if isinstance(obj, set) and len(obj) > 0:
             return list(filter(None, (default_handler(o) for o in obj)))
         try:
             return obj.get_metadata()
         except (AttributeError, NotImplementedError):
             hoomd.context.msg.error(
-                "The {} class does not provide metadata dumping".format(obj))
+                "The {} class does not provide metadata dumping\n".format(obj))
             raise
 
     # dump to JSON

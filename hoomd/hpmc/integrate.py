@@ -8,7 +8,7 @@ from hoomd.integrate import _integrator
 import hoomd
 import sys
 
-class interaction_matrix:
+class interaction_matrix(hoomd.meta._metadata):
     R""" Define pairwise interaction matrix
 
     All shapes use :py:class:`interaction_matrix` to define the interaction matrix between different
@@ -37,20 +37,9 @@ class interaction_matrix:
     # The main task to be performed during initialization is just to init some variables
     # \param self Python required class instance variable
     def __init__(self):
+        super(interaction_matrix, self).__init__()
         self.values = {};
-
-    ## \internal
-    # \brief Return a compact representation of the pair coefficients
-    def get_metadata(self):
-        # return list for easy serialization
-        l = []
-        for (a,b) in self.values:
-            item = dict()
-            item['typei'] = a
-            item['typej'] = b
-            item['enable'] = self.values[(a,b)]
-            l.append(item)
-        return l
+        self.metadata_fields.append('values')
 
     ## \var values
     # \internal
