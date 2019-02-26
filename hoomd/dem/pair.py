@@ -103,9 +103,12 @@ class _DEMBase:
         self.cpp_force.setParams(itype, vertices, faces);
 
     def get_type_shapes(self):
-        """Returns a list of shape descriptions with one element for each
-        unique particle type in the system. Currently assumes that all
-        3D shapes are convex.
+        """Get all the types of shapes in the current simulation.
+
+        Assumes all 3D shapes are convex.
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
         """
         result = []
 

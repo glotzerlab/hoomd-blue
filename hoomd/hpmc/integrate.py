@@ -858,8 +858,6 @@ class sphere(mode_hpmc):
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
-        Currently assumes that all 3D shapes are convex.
-
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
@@ -965,8 +963,6 @@ class convex_polygon(mode_hpmc):
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
-
-        Currently assumes that all 3D shapes are convex.
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
@@ -1078,8 +1074,6 @@ class convex_spheropolygon(mode_hpmc):
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
-        Currently assumes that all 3D shapes are convex.
-
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
@@ -1180,8 +1174,6 @@ class simple_polygon(mode_hpmc):
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
-
-        Currently assumes that all 3D shapes are convex.
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
@@ -1445,8 +1437,6 @@ class convex_polyhedron(mode_hpmc):
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
-
-        Currently assumes that all 3D shapes are convex.
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
@@ -1811,8 +1801,6 @@ class convex_spheropolyhedron(mode_hpmc):
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
-
-        Currently assumes that all 3D shapes are convex.
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
