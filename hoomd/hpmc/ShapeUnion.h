@@ -295,8 +295,13 @@ struct ShapeUnion
     //! Return a tight fitting OBB
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
-        // just use the AABB for now
-        return detail::OBB(getAABB(pos));
+        // get the root node OBB from the tree
+        detail::OBB obb = members.tree.getOBB(0);
+
+        // transform it into world-space
+        obb.affineTransform(orientation, pos);
+
+        return obb;
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
