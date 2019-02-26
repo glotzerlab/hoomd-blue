@@ -151,11 +151,6 @@ class coeff(force._coeff):
 
         return self.values[type][coeff_name];
 
-    # ## \internal
-    # # \brief Return metadata
-    # def get_metadata(self):
-        # return self.values
-
 class harmonic(force._force):
     R""" Harmonic improper potential.
 
@@ -226,14 +221,3 @@ class harmonic(force._force):
                 coeff_dict[name] = self.improper_coeff.get(type_list[i], name);
 
             self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['chi']);
-
-    # ## \internal
-    # # \brief Get metadata
-    # def get_metadata(self):
-        # data = force._force.get_metadata(self)
-
-        # # make sure coefficients are up-to-date
-        # self.update_coeffs()
-
-        # data['improper_coeff'] = self.improper_coeff
-        # return data

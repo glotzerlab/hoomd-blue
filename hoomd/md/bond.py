@@ -157,11 +157,6 @@ class coeff(force._coeff):
 
         return self.values[type][coeff_name];
 
-    # ## \internal
-    # # \brief Return metadata
-    # def get_metadata(self):
-        # return self.values
-
 ## \internal
 # \brief Base class for bond potentials
 #

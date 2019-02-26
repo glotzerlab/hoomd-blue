@@ -260,12 +260,6 @@ class group(hoomd.meta._metadata):
                     hoomd.context.msg.error("Specified index for deletion is not valid.\n");
                     raise RuntimeError("del_plane failed")
 
-    # ## \internal
-    # # \brief Return metadata for this wall structure
-    # def get_metadata(self):
-        # data = hoomd.meta._metadata_from_dict(eval(str(self.__dict__)));
-        # return data;
-
     ## \internal
     # \brief Returns output for print
     def __str__(self):
@@ -611,13 +605,6 @@ class wallpotential(external._external_force):
     # \brief passes the wall field
     def process_field_coeff(self, coeff):
         return _md.make_wall_field_params(coeff, hoomd.context.exec_conf);
-
-    # ## \internal
-    # # \brief Return metadata for this wall potential
-    # def get_metadata(self):
-        # data=external._external_force.get_metadata(self);
-        # data['walls_struct'] = self.field_coeff.get_metadata();
-        # return data
 
     ## \internal
     # \brief Fixes negative values to zero before squaring

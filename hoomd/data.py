@@ -709,20 +709,6 @@ class boxdim(hoomd.meta._metadata):
         return 'Box: Lx=' + str(self.Lx) + ' Ly=' + str(self.Ly) + ' Lz=' + str(self.Lz) + ' xy=' + str(self.xy) + \
                     ' xz='+ str(self.xz) + ' yz=' + str(self.yz) + ' dimensions=' + str(self.dimensions);
 
-    # ## \internal
-    # # \brief Get a dictionary representation of the box dimensions
-    # def get_metadata(self):
-        # data = hoomd.meta._metadata.get_metadata(self)
-        # data['d'] = self.dimensions
-        # data['Lx'] = self.Lx
-        # data['Ly'] = self.Ly
-        # data['Lz'] = self.Lz
-        # data['xy'] = self.xy
-        # data['xz'] = self.xz
-        # data['yz'] = self.yz
-        # data['V'] = self.get_volume()
-        # return data
-
 class system_data(hoomd.meta._metadata):
     R""" Access system data
 
@@ -896,26 +882,6 @@ class system_data(hoomd.meta._metadata):
         hoomd.util.print_status_line();
 
         self.sysdef.initializeFromSnapshot(snapshot);
-
-    # ## \internal
-    # # \brief Get particle metadata
-    # def get_metadata(self):
-        # raise RuntimeError(
-            # "The system data should be read in from a trajectory file. "
-            # "Storing in metadata form is not currently supported.")
-        # data['box'] = self.box
-        # data['particles'] = self.particles
-        # data['number_density'] = len(self.particles)/self.box.get_volume()
-
-        # data['bonds'] = self.bonds
-        # data['angles'] = self.angles
-        # data['dihedrals'] = self.dihedrals
-        # data['impropers'] = self.impropers
-        # data['constraints'] = self.constraints
-        # data['pairs'] = self.pairs
-
-        # data['timestep'] = hoomd.context.current.system.getCurrentTimeStep()
-        # return data
 
     @classmethod
     def from_metadata(cls, params, system):
@@ -1153,14 +1119,6 @@ class particle_data(hoomd.meta._metadata):
     # \brief Return an iterator
     def __iter__(self):
         return particle_data.particle_data_iterator(self);
-
-    # ## \internal
-    # # \brief Return metadata for this particle_data instance
-    # def get_metadata(self):
-        # data = hoomd.meta._metadata.get_metadata(self)
-        # data['N'] = len(self)
-        # data['types'] = list(self.types);
-        # return data
 
 class particle_data_proxy(object):
     R""" Access a single particle via a proxy.
@@ -1621,14 +1579,6 @@ class bond_data(hoomd.meta._metadata):
     def __iter__(self):
         return bond_data.bond_data_iterator(self);
 
-    # ## \internal
-    # # \brief Return metadata for this bond_data instance
-    # def get_metadata(self):
-        # data = hoomd.meta._metadata.get_metadata(self)
-        # data['N'] = len(self)
-        # data['types'] = [self.bdata.getNameByType(i) for i in range(self.bdata.getNTypes())];
-        # return data
-
 class bond_data_proxy(object):
     R""" Access a single bond via a proxy.
 
@@ -1792,13 +1742,6 @@ class constraint_data(hoomd.meta._metadata):
     def __iter__(self):
         return constraint_data.constraint_data_iterator(self);
 
-    # ## \internal
-    # # \brief Return metadata for this bond_data instance
-    # def get_metadata(self):
-        # data = hoomd.meta._metadata.get_metadata(self)
-        # data['N'] = len(self)
-        # return data
-
 class constraint_data_proxy(object):
     R""" Access a single constraint via a proxy.
 
@@ -1954,14 +1897,6 @@ class angle_data(hoomd.meta._metadata):
     # \brief Return an iterator
     def __iter__(self):
         return angle_data.angle_data_iterator(self);
-
-    # ## \internal
-    # # \brief Return metadata for this angle_data instance
-    # def get_metadata(self):
-        # data = hoomd.meta._metadata.get_metadata(self)
-        # data['N'] = len(self)
-        # data['types'] = [self.adata.getNameByType(i) for i in range(self.adata.getNTypes())];
-        # return data
 
 class angle_data_proxy(object):
     R""" Access a single angle via a proxy.
@@ -2138,14 +2073,6 @@ class dihedral_data(hoomd.meta._metadata):
     # \brief Return an iterator
     def __iter__(self):
         return dihedral_data.dihedral_data_iterator(self);
-
-    # ## \internal
-    # # \brief Return metadata for this dihedral_data instance
-    # def get_metadata(self):
-        # data = hoomd.meta._metadata.get_metadata(self)
-        # data['N'] = len(self)
-        # data['types'] = [self.ddata.getNameByType(i) for i in range(self.ddata.getNTypes())];
-        # return data
 
 class dihedral_data_proxy(object):
     R""" Access a single dihedral via a proxy.

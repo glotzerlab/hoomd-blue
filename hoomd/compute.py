@@ -22,7 +22,7 @@ import sys;
 # for all high-level management that happens behind the scenes for hoomd
 # writers. 1) The instance of the c++ compute itself is tracked and added to the
 # System 2) methods are provided for disabling the compute
-class _compute:
+class _compute(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the compute
     #

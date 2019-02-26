@@ -71,19 +71,6 @@ class coeff(force._coeff):
         my_force.pair_coeff = force_field.my_coeffs
 
     """
-    # ## \internal
-    # # \brief Return a compact representation of the pair coefficients
-    # def get_metadata(self):
-        # # return list for easy serialization
-        # l = []
-        # for (a,b) in self.values:
-            # item = OrderedDict()
-            # item['typei'] = a
-            # item['typej'] = b
-            # for coeff in self.values[(a,b)]:
-                # item[coeff] = self.values[(a,b)][coeff]
-            # l.append(item)
-        # return l
 
     def set(self, a, b, **coeffs):
         R""" Sets parameters for one type pair.
@@ -464,17 +451,6 @@ class pair(force._force):
 
         return r_cut_dict;
 
-    # ## \internal
-    # # \brief Return metadata for this pair potential
-    # def get_metadata(self):
-        # data = force._force.get_metadata(self)
-
-        # # make sure all coefficients are set
-        # self.update_coeffs()
-
-        # data['pair_coeff'] = self.pair_coeff
-        # return data
-
     # Override parent method because the get_metadata definition above leads to
     # different nesting than what's used for other forces (i.e. a list of dicts
     # instead of a dict of dicts). Additionally, we need to capture the
@@ -582,8 +558,6 @@ class lj(pair):
     """
     def __init__(self, r_cut, nlist, name=None):
         hoomd.util.print_status_line();
-
-        # tell the base class how we operate
 
         # initialize the base class
         pair.__init__(self, r_cut, nlist, name);

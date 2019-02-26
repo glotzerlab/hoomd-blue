@@ -620,39 +620,6 @@ class npt(_integration_method):
         if gamma is not None:
             self.cpp_method.setGamma(gamma)
 
-    # ## \internal
-    # # \brief Return information about this integration method
-    # #
-    # def get_metadata(self):
-        # # Metadata output involves transforming some variables into human-readable
-        # # form, so we override get_metadata()
-        # data = _integration_method.get_metadata(self)
-        # data['group'] = self.group.name
-        # if not self.nph:
-            # data['kT'] = self.kT
-            # data['tau'] = self.tau
-        # data['S'] = self.S
-        # data['tauP'] = self.tauP
-
-        # lengths = ''
-        # if self.x or self.all:
-            # lengths += 'x '
-        # if self.y or self.all:
-            # lengths += 'y '
-        # if self.z or self.all:
-            # lengths += 'z '
-        # if self.xy or self.all:
-            # lengths += 'xy '
-        # if self.xz or self.all:
-            # lengths += 'xz '
-        # if self.yz or self.all:
-            # lengths += 'yz '
-        # data['lengths'] = lengths.rstrip()
-        # if self.rescale_all is not None:
-            # data['rescale_all'] = self.rescale_all
-
-        # return data
-
     def randomize_velocities(self, seed):
         R""" Assign random velocities and angular momenta to particles in the
         group, sampling from the Maxwell-Boltzmann distribution. This method

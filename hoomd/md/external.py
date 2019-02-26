@@ -146,12 +146,6 @@ class coeff(force._coeff):
 
         return self.values[type][coeff_name];
 
-    # ## \internal
-    # # \brief Return metadata
-    # def get_metadata(self):
-        # return self.values
-
-
 ## \internal
 # \brief Base class for external forces
 #
@@ -212,18 +206,6 @@ class _external_force(force._force):
 
                 param = self.process_coeff(coeff_dict);
                 self.cpp_force.setParams(i, param);
-
-    # ## \internal
-    # # \brief Get metadata
-    # def get_metadata(self):
-        # data = force._force.get_metadata(self)
-
-        # # make sure coefficients are up-to-date
-        # self.update_coeffs()
-
-        # data['force_coeff'] = self.force_coeff
-        # #field_coeff not included here, see wall.py for specific implementation
-        # return data
 
 class periodic(_external_force):
     R""" One-dimension periodic potential.

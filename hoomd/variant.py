@@ -52,11 +52,6 @@ class _constant(_variant):
         self.cpp_variant = _hoomd.VariantConst(val);
         self.cpp_variant.setOffset(hoomd.context.current.system.getCurrentTimeStep());
 
-    # ## \internal
-    # # \brief return metadata
-    # def get_metadata(self):
-        # return self.val
-
 class linear_interp(_variant):
     R""" Linearly interpolated variant.
 
@@ -127,11 +122,6 @@ class linear_interp(_variant):
 
         # store metadata
         self.points = points
-
-    # ## \internal
-    # # \brief return metadata
-    # def get_metadata(self):
-        # return self.points
 
 ## \internal
 # \brief Internal helper function to aid in setting up variants

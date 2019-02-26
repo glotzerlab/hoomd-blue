@@ -155,11 +155,6 @@ class coeff(force._coeff):
 
         return self.values[type][coeff_name];
 
-    # ## \internal
-    # # \brief Return metadata
-    # def get_metadata(self):
-        # return self.values
-
 class harmonic(force._force):
     R""" Harmonic angle potential.
 
@@ -232,18 +227,6 @@ class harmonic(force._force):
                 coeff_dict[name] = self.angle_coeff.get(type_list[i], name);
 
             self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['t0']);
-
-    # ## \internal
-    # # \brief Get metadata
-    # def get_metadata(self):
-        # data = force._force.get_metadata(self)
-
-        # # make sure coefficients are up-to-date
-        # self.update_coeffs()
-
-        # data['angle_coeff'] = self.angle_coeff
-        # return data
-
 
 class cosinesq(force._force):
     R""" Cosine squared angle potential.
@@ -325,18 +308,6 @@ class cosinesq(force._force):
                 coeff_dict[name] = self.angle_coeff.get(type_list[i], name);
 
             self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['t0']);
-
-    # ## \internal
-    # # \brief Get metadata
-    # def get_metadata(self):
-        # data = force._force.get_metadata(self)
-
-        # # make sure coefficients are up-to-date
-        # self.update_coeffs()
-
-        # data['angle_coeff'] = self.angle_coeff
-        # return data
-
 
 def _table_eval(theta, V, T, width):
       dth = (math.pi) / float(width-1);
@@ -530,14 +501,3 @@ class table(force._force):
         hoomd.util.quiet_status();
         self.angle_coeff.set(anglename, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
         hoomd.util.unquiet_status();
-
-    # ## \internal
-    # # \brief Get metadata
-    # def get_metadata(self):
-        # data = force._force.get_metadata(self)
-
-        # # make sure coefficients are up-to-date
-        # self.update_coeffs()
-
-        # data['angle_coeff'] = self.angle_coeff
-        # return data

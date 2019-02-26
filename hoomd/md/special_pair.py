@@ -159,11 +159,6 @@ class coeff(force._coeff):
 
         return self.values[type][coeff_name];
 
-    # ## \internal
-    # # \brief Return metadata
-    # def get_metadata(self):
-        # return self.values
-
 
 ## \internal
 # \brief Base class for special pair potentials
@@ -214,17 +209,6 @@ class _special_pair(force._force):
 
             param = self.process_coeff(coeff_dict);
             self.cpp_force.setParams(i, param);
-
-    # ## \internal
-    # # \brief Get metadata
-    # def get_metadata(self):
-        # data = force._force.get_metadata(self)
-
-        # # make sure coefficients are up-to-date
-        # self.update_coeffs()
-
-        # data['pair_coeff'] = self.pair_coeff
-        # return data
 
 class lj(_special_pair):
     R""" LJ special pair potential.
