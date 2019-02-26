@@ -394,7 +394,6 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             #endif
 
             // make a trial move for i
-            // need to update for 2d systems
             hoomd::detail::Saru rng_i(i, this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), this->m_params[typ_i]);
@@ -955,11 +954,10 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
 
                 detail::AABB aabb_intersect(intersect_lower, intersect_upper);
 
-                // intersectionAABB volume; use area for 2D
+                // intersectionAABB volume
                 Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
                 if(ndim == 3)
                     V *= intersect_upper.z-intersect_lower.z;
-                this->m_exec_conf->msg->notice(9) << "AABB intersection volume = "  << V << std::endl;
                 
                 // chooose the number of depletants in the intersection volume
                 std::poisson_distribution<unsigned int> poisson(m_fugacity[type]*V);
@@ -968,10 +966,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #endif
 
                 unsigned int n = poisson(rng_poisson);
-                this->m_exec_conf->msg->notice(9) << "Number of trial depletants = "  << n << std::endl;
 
                 // for every depletant
-                // somewhere in here, I need to change the behavior for 2d systems
                 #ifdef ENABLE_TBB
                 tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n),
                     [=, &intersect_i, &image_i, &aabbs_i,
@@ -1370,7 +1366,6 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 Scalar V = (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
                 if(ndim == 3)
                     V *= intersect_upper.z-intersect_lower.z;
-                this->m_exec_conf->msg->notice(9) << "AABB intersection volume = "  << V << std::endl;
 
                 // chooose the number of depletants in the intersection volume
                 std::poisson_distribution<unsigned int> poisson(-m_fugacity[type]*V);
@@ -1379,7 +1374,6 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #endif
 
                 unsigned int n = poisson(rng_poisson);
-                this->m_exec_conf->msg->notice(9) << "Number of trial depletants = "  << n << std::endl;
 
                 // for every depletant
                 #ifdef ENABLE_TBB
@@ -1410,7 +1404,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
                     if (shape_test.hasOrientation())
                         {
-                        shape_test.orientation = generateRandomOrientation(my_rng);
+                        shape_test.orientation = generateRandomOrientation(my_rng, ndim);
                         }
 
                     // check if depletant falls in other intersection volumes (new)
