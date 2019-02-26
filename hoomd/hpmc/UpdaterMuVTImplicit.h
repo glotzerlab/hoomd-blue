@@ -520,6 +520,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsInUpdatedRegion(unsign
     Scalar delta, unsigned int tag, unsigned int new_type, unsigned int n_trial, Scalar &lnboltzmann, unsigned int type_d)
     {
     lnboltzmann = Scalar(0.0);
+    unsigned int ndim = this->m_sysdef->getNDimensions();
 
     // getPosition() takes into account grid shift, correct for that
     Scalar3 p = this->m_pdata->getPosition(tag)+this->m_pdata->getOrigin();
@@ -581,7 +582,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsInUpdatedRegion(unsign
                 if (shape_test.hasOrientation())
                     {
                     // if the depletant is anisotropic, generate orientation
-                    shape_test.orientation = generateRandomOrientation(rng);
+                    shape_test.orientation = generateRandomOrientation(rng, ndim);
                     }
 
                 bool overlap_old = false;
@@ -722,6 +723,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsIntoNewPosition(unsign
     {
     lnboltzmann = Scalar(0.0);
     unsigned int zero = 0;
+    unsigned int ndim = this->m_sysdef->getNDimensions();
 
     bool is_local = true;
     #ifdef ENABLE_MPI
@@ -788,7 +790,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsIntoNewPosition(unsign
                 if (shape_test.hasOrientation())
                     {
                     // if the depletant is anisotropic, generate orientation
-                    shape_test.orientation = generateRandomOrientation(rng);
+                    shape_test.orientation = generateRandomOrientation(rng, ndim);
                     }
 
                 // check against overlap with old configuration
@@ -895,6 +897,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsIntoOldPosition(unsign
     Scalar delta, unsigned int tag, unsigned int n_trial, Scalar &lnboltzmann, bool need_overlap_shape, unsigned int type_d)
     {
     lnboltzmann = Scalar(0.0);
+    unsigned int ndim = this->m_sysdef->getNDimensions();
 
     // getPosition() corrects for grid shift, add it back
     Scalar3 p = this->m_pdata->getPosition(tag)+this->m_pdata->getOrigin();
@@ -960,7 +963,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsIntoOldPosition(unsign
                 if (shape_test.hasOrientation())
                     {
                     // if the depletant is anisotropic, generate orientation
-                    shape_test.orientation = generateRandomOrientation(rng);
+                    shape_test.orientation = generateRandomOrientation(rng, ndim);
                     }
 
                 bool overlap_old = false;
@@ -1089,6 +1092,7 @@ unsigned int UpdaterMuVTImplicit<Shape,Integrator>::countDepletantOverlapsInNewP
     {
     // number of depletants successfully inserted
     unsigned int n_overlap = 0;
+    unsigned int ndim = this->m_sysdef->getNDimensions();
 
     bool is_local = true;
     #ifdef ENABLE_MPI
@@ -1147,7 +1151,7 @@ unsigned int UpdaterMuVTImplicit<Shape,Integrator>::countDepletantOverlapsInNewP
             if (shape_test.hasOrientation())
                 {
                 // if the depletant is anisotropic, generate orientation
-                shape_test.orientation = generateRandomOrientation(rng);
+                shape_test.orientation = generateRandomOrientation(rng, ndim);
                 }
 
             // check against overlap with old configuration
@@ -1248,6 +1252,7 @@ template<class Shape, class Integrator>
 unsigned int UpdaterMuVTImplicit<Shape,Integrator>::countDepletantOverlaps(unsigned int timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos,
     unsigned int type_d)
     {
+    unsigned int ndim = this->m_sysdef->getNDimensions();
     // number of depletants successfully inserted
     unsigned int n_overlap = 0;
 
@@ -1306,7 +1311,7 @@ unsigned int UpdaterMuVTImplicit<Shape,Integrator>::countDepletantOverlaps(unsig
             if (shape_test.hasOrientation())
                 {
                 // if the depletant is anisotropic, generate orientation
-                shape_test.orientation = generateRandomOrientation(rng);
+                shape_test.orientation = generateRandomOrientation(rng, ndim);
                 }
 
             // check against overlap with present configuration
@@ -1429,6 +1434,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::boxResizeAndScale(unsigned int times
     // call parent class method
     lnboltzmann = Scalar(0.0);
     bool result = UpdaterMuVT<Shape>::boxResizeAndScale(timestep, old_box, new_box, extra_ndof, lnboltzmann);
+    unsigned int ndim = this->m_sysdef->getNDimensions();
 
     if (result)
         {
@@ -1516,7 +1522,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::boxResizeAndScale(unsigned int times
                 if (shape_test.hasOrientation())
                     {
                     // if the depletant is anisotropic, generate orientation
-                    shape_test.orientation = generateRandomOrientation(rng);
+                    shape_test.orientation = generateRandomOrientation(rng, ndim);
                     }
 
                 // check against overlap in old box

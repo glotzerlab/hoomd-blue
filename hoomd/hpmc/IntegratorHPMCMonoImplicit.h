@@ -87,7 +87,6 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
             }
 
         //! Get the sweep radius
-        // TODO: what happens if this is called on a shape where setting a sweep radius isn't supported?
         Scalar getSweepRadius()
              {
              return m_sweep_radius;
@@ -990,9 +989,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     implicit_counters[type].insert_count++;
                     #endif
 
-                    vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect);
-                    if(ndim == 2)
-                        pos_test.z = Scalar(0);
+                    vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect, ndim);
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
                     if (shape_test.hasOrientation())
                         {
@@ -1398,9 +1395,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     implicit_counters[type].insert_count++;
                     #endif
 
-                    vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect);
-                    if (ndim == 2)
-                        pos_test.z = Scalar(0);
+                    vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect, ndim);
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
                     if (shape_test.hasOrientation())
                         {
@@ -1655,6 +1650,7 @@ template<class RNG>
 inline void IntegratorHPMCMonoImplicit<Shape>::generateDepletant(RNG& rng, vec3<Scalar> pos_sphere, Scalar delta,
     Scalar d_min, vec3<Scalar>& pos, quat<Scalar>& orientation, const typename Shape::param_type& params_depletant)
     {
+    unsigned int ndim = this->m_sysdef->getNDimensions();
     // draw a random vector in the excluded volume sphere of the colloid
     Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
     Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
@@ -1672,7 +1668,7 @@ inline void IntegratorHPMCMonoImplicit<Shape>::generateDepletant(RNG& rng, vec3<
     Shape shape_depletant(quat<Scalar>(), params_depletant);
     if (shape_depletant.hasOrientation())
         {
-        orientation = generateRandomOrientation(rng);
+        orientation = generateRandomOrientation(rng, ndim);
         }
     pos = pos_depletant;
     }

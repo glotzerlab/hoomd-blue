@@ -305,7 +305,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
 
         if (shape_i.hasOrientation())
             {
-            shape_i.orientation = generateRandomOrientation(rng);
+            shape_i.orientation = generateRandomOrientation(rng, dim);
             }
 
         // find cell the particle is in

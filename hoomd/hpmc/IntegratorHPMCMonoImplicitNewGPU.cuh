@@ -408,7 +408,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
 
             if (shape_test.hasOrientation())
                 {
-                shape_test.orientation = generateRandomOrientation(rng);
+                shape_test.orientation = generateRandomOrientation(rng, dim);
                 }
 
             overlap_checks++;

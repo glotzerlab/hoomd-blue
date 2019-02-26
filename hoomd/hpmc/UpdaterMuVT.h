@@ -489,6 +489,7 @@ template<class Shape>
 void UpdaterMuVT<Shape>::update(unsigned int timestep)
     {
     m_count_step_start = m_count_total;
+    unsigned int ndim = this->m_sysdef->getNDimensions();
 
     if (m_prof) m_prof->push("update muVT");
 
@@ -649,8 +650,8 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     Shape shape_test(quat<Scalar>(), param);
                     if (shape_test.hasOrientation())
                         {
-                        // set particle orientation
-                        shape_test.orientation = generateRandomOrientation(rng);
+                        // set particle orientation; 2d not supported
+                        shape_test.orientation = generateRandomOrientation(rng, ndim);
                         }
 
                     if (m_gibbs)

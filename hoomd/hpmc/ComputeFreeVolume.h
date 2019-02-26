@@ -135,6 +135,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
     {
     unsigned int overlap_count = 0;
     unsigned int err_count = 0;
+    unsigned int ndim = this->m_mc->getNDimensions();
 
     this->m_exec_conf->msg->notice(5) << "HPMC computing free volume " << timestep << std::endl;
 
@@ -182,7 +183,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
             Shape shape_i(quat<Scalar>(), params[m_type]);
             if (shape_i.hasOrientation())
                 {
-                shape_i.orientation = generateRandomOrientation(rng_i);
+                shape_i.orientation = generateRandomOrientation(rng_i, ndim);
                 }
 
             // check for overlaps with neighboring particle's positions
