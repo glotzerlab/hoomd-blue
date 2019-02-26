@@ -165,7 +165,6 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         GlobalArray<hpmc_implicit_counters_t> m_implicit_count;               //!< Counter of depletant insertions
         std::vector<hpmc_implicit_counters_t> m_implicit_count_run_start;     //!< Counter of depletant insertions at run start
         std::vector<hpmc_implicit_counters_t> m_implicit_count_step_start;    //!< Counter of depletant insertions at step start
->>>>>>> origin/quermass_ellipsoid
 
         bool m_quermass;                                         //!< True if quermass integration mode is enabled
         Scalar m_sweep_radius;                                   //!< Radius of sphere to sweep shapes by
