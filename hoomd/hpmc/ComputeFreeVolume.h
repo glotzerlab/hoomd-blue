@@ -135,7 +135,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
     {
     unsigned int overlap_count = 0;
     unsigned int err_count = 0;
-    unsigned int ndim = this->m_mc->getNDimensions();
+    unsigned int ndim = this->m_sysdef->getNDimensions();
 
     this->m_exec_conf->msg->notice(5) << "HPMC computing free volume " << timestep << std::endl;
 

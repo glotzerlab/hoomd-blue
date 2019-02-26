@@ -168,19 +168,20 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng, unsigned int ndim
     // 2D just needs a random rotation in the plane
     if (ndim==2)
         {
-        Scalar alpha = rng.s(-M_PI, M_PI);
-        return quat<Scalar>(cosf(alpha), (Scalar)sinf(alpha) * vec3<Scalar>(Scalar(0),Scalar(0),Scalar(1)));
+        Scalar angle = rng.s(-M_PI, M_PI);
+        vec3<Scalar> axis(Scalar(0), Scalar(0), Scalar(1));
+        return quat<Scalar>::fromAxisAngle(axis, angle);
         }
     else if (ndim==3)
-    {
-    Scalar u1 = rng.template s<Scalar>();
-    Scalar u2 = rng.template s<Scalar>();
-    Scalar u3 = rng.template s<Scalar>();
-    return quat<Scalar>(fast::sqrt(u1)*fast::cos(Scalar(2.0*M_PI)*u3),
-        vec3<Scalar>(fast::sqrt(Scalar(1.0)-u1)*fast::sin(Scalar(2.0*M_PI)*u2),
-            fast::sqrt(Scalar(1.0-u1))*fast::cos(Scalar(2.0*M_PI)*u2),
-            fast::sqrt(u1)*fast::sin(Scalar(2.0*M_PI)*u3)));
-    }
+        {
+        Scalar u1 = rng.template s<Scalar>();
+        Scalar u2 = rng.template s<Scalar>();
+        Scalar u3 = rng.template s<Scalar>();
+        return quat<Scalar>(fast::sqrt(u1)*fast::cos(Scalar(2.0*M_PI)*u3),
+            vec3<Scalar>(fast::sqrt(Scalar(1.0)-u1)*fast::sin(Scalar(2.0*M_PI)*u2),
+                fast::sqrt(Scalar(1.0-u1))*fast::cos(Scalar(2.0*M_PI)*u2),
+                fast::sqrt(u1)*fast::sin(Scalar(2.0*M_PI)*u3)));
+        }
     }
 
 /* Generate a uniformly distributed random position in a sphere
