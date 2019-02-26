@@ -16,15 +16,13 @@ Example::
 
 """
 
-import hoomd;
-import json, collections;
+import hoomd
+import json
+import collections
 import time
 import datetime
 import copy
 import warnings
-
-from collections import OrderedDict
-from collections import Mapping
 
 ## \internal
 # \brief A Mixin to facilitate storage of simulation metadata
@@ -64,7 +62,7 @@ class _metadata(object):
         # Fill in positional arguments first, then update all kwargs. No need
         # for extensive error checking since the function signature must have
         # been valid to construct the object in the first place.
-        metadata = OrderedDict()
+        metadata = collections.OrderedDict()
         for varname, arg in zip(varnames, self.args):
             metadata[varname] = arg
         metadata.update(self.kwargs)
@@ -72,17 +70,17 @@ class _metadata(object):
 
 class _metadata_from_dict(object):
     def __init__(self, d):
-        self.d = d;
+        self.d = d
 
     def get_metadata(self):
-        data = OrderedDict()
+        data = collections.OrderedDict()
 
         for m in self.d.keys():
-            data[m] = self.d[m];
+            data[m] = self.d[m]
 
         return data
 
-def dump_metadata(filename=None,user=None,indent=4):
+def dump_metadata(filename=None, user=None, indent=4):
     R""" Writes simulation metadata into a file.
 
     Args:
@@ -91,7 +89,7 @@ def dump_metadata(filename=None,user=None,indent=4):
         indent (int): The json indentation size
 
     Returns:
-        metadata as a dictionary
+        dict: The metadata
 
     When called, this function will query all registered forces, updaters etc.
     and ask them to provide metadata. E.g. a pair potential will return
@@ -104,7 +102,7 @@ def dump_metadata(filename=None,user=None,indent=4):
     JSON file, together with a timestamp. The file is overwritten if
     it exists.
     """
-    hoomd.util.print_status_line();
+    hoomd.util.print_status_line()
 
     if not hoomd.init.is_initialized():
         hoomd.context.msg.error("Need to initialize system first.\n")
@@ -116,7 +114,7 @@ def dump_metadata(filename=None,user=None,indent=4):
         if not isinstance(user, collections.Mapping):
             hoomd.context.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
         else:
-            metadata['user'] = _metadata_from_dict(user);
+            metadata['user'] = _metadata_from_dict(user)
 
     # Generate time stamp
     ts = time.time()
@@ -125,53 +123,43 @@ def dump_metadata(filename=None,user=None,indent=4):
     metadata['context'] = hoomd.context.ExecutionContext()
     metadata['hoomd'] = hoomd.context.HOOMDContext()
 
-    # global_objs = [hoomd.data.system_data(hoomd.context.current.system_definition)];
-    # global_objs += [hoomd.context.current.integrator];
-    global_objs = [hoomd.context.current.integrator];
-
-    for o in global_objs:
-        if o is not None:
-            name = o.__module__+'.'+o.__class__.__name__;
-            if len(name) > 13 and name[:13] == 'hoomd.':
-                name = name[13:];
-            metadata[name] = o
-
-    global_objs = copy.copy(hoomd.context.current.integration_methods)
+    global_objs = [hoomd.context.current.integrator]
+    global_objs += hoomd.context.current.integration_methods
     global_objs += hoomd.context.current.forces
     global_objs += hoomd.context.current.analyzers
     global_objs += hoomd.context.current.updaters
     global_objs += hoomd.context.current.constraint_forces
 
+    to_name = lambda obj: obj.__module__ + '.' + obj.__class__.__name__
+
+    def to_metadata(obj, top=False):
+        """Convert object to metadata. At all but the top level, we return a
+        mapping of object name->metadata."""
+        meta = obj.get_metadata()
+        for k, v in meta.items():
+            if hasattr(v, 'get_metadata'):
+                meta[k] = to_metadata(v)
+        return meta if top else {to_name(obj): meta}
+
+    # First put all classes into a set to avoid saving duplicates, then go back
+    # through the set and convert to a list of metadata representations of the
+    # objects.
     for o in global_objs:
         if o is not None:
-            name = o.__module__+'.'+o.__class__.__name__;
-            if len(name) > 13 and name[:13] == 'hoomd.':
-                name = name[13:];
+            name = to_name(o)
             metadata.setdefault(name, set())
             assert isinstance(metadata[name], set)
             metadata[name].add(o)
+    for key, values in metadata.items():
+        metadata[key] = [to_metadata(v, True) for v in values]
 
-    # handler for unknown objects
-    def default_handler(obj):
-        print("Handling object ", obj)
-        if isinstance(obj, set) and len(obj) > 0:
-            return list(filter(None, (default_handler(o) for o in obj)))
-        try:
-            return obj.get_metadata()
-        except (AttributeError, NotImplementedError):
-            hoomd.context.msg.error(
-                "The {} class does not provide metadata dumping\n".format(obj))
-            raise
-
-    # dump to JSON
-    meta_str = json.dumps(
-        metadata, default=default_handler,indent=indent, sort_keys=True)
-
-    # only write files on rank 0
+    # Only write files on rank 0
     if filename is not None and hoomd.comm.get_rank() == 0:
         with open(filename, 'w') as file:
+            meta_str = json.dumps(
+                metadata, indent=indent, sort_keys=True)
             file.write(meta_str)
-    return json.loads(meta_str)
+    return metadata
 
 def load_metadata(system, metadata=None, filename=None):
     R"""Initialize system information from metadata.

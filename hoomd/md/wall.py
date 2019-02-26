@@ -284,7 +284,7 @@ class group(hoomd.meta._metadata):
         output+="}";
         return output;
 
-class sphere(object):
+class sphere(hoomd.meta._metadata):
     R""" Sphere wall.
 
     Args:
@@ -359,7 +359,7 @@ class sphere(object):
     def __repr__(self):
         return "{'r': %s, 'origin': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.inside));
 
-class cylinder(object):
+class cylinder(hoomd.meta._metadata):
     R""" Cylinder wall.
 
     Args:
@@ -403,7 +403,7 @@ class cylinder(object):
     def __repr__(self):
         return "{'r': %s, 'origin': %s, 'axis': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
 
-class plane(object):
+class plane(hoomd.meta._metadata):
     R""" Plane wall.
 
     Args:
