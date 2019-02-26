@@ -858,6 +858,14 @@ class sphere(mode_hpmc):
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
+        Examples:
+            The types will be either Sphere or Disk, depending on system dimensionality.
+
+            >>> mc.get_type_shapes()  # in 3D
+            [{'type': 'Sphere', 'diameter': 1.0, 'orientable': False}]
+            >>> mc.get_type_shapes()  # in 2D
+            [{'type': 'Disk', 'diameter': 1.0, 'orientable': False}]
+
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
@@ -963,6 +971,11 @@ class convex_polygon(mode_hpmc):
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
+
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'Polygon', 'rounding_radius': 0,
+              'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
@@ -1074,6 +1087,11 @@ class convex_spheropolygon(mode_hpmc):
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'Polygon', 'rounding_radius': 0.1,
+              'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
+
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
@@ -1174,6 +1192,11 @@ class simple_polygon(mode_hpmc):
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
+
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'Polygon', 'rounding_radius': 0,
+              'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
@@ -1437,6 +1460,12 @@ class convex_polyhedron(mode_hpmc):
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
+
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'ConvexPolyhedron', 'rounding_radius': 0,
+              'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
+                           [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
@@ -1801,6 +1830,12 @@ class convex_spheropolyhedron(mode_hpmc):
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
+
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'ConvexPolyhedron', 'rounding_radius': 0.1,
+              'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
+                           [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
 
         Returns:
             A list of dictionaries, one for each particle type in the system.

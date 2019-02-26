@@ -105,7 +105,22 @@ class _DEMBase:
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
-        Assumes all 3D shapes are convex.
+        This assumes all 3D shapes are convex.
+
+        Examples:
+            Types depend on the number of shape vertices and system dimensionality. One vertex will yield a Disk (2D) or Sphere (3D), while multiple vertices will give a Polygon (2D) or ConvexPolyhedron (3D).
+
+            >>> mc.get_type_shapes()  # one vertex in 3D
+            [{'type': 'Sphere', 'diameter': 1.0}]
+            >>> mc.get_type_shapes()  # one vertex in 2D
+            [{'type': 'Disk', 'diameter': 1.0}]
+            >>> mc.get_type_shapes()  # multiple vertices in 3D
+            [{'type': 'ConvexPolyhedron', 'rounding_radius': 0.1,
+              'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
+                           [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
+            >>> mc.get_type_shapes()  # multiple vertices in 2D
+            [{'type': 'Polygon', 'rounding_radius': 0.1,
+              'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
