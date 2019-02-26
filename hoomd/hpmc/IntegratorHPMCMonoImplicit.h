@@ -997,7 +997,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
                     if (shape_test.hasOrientation())
                         {
-                        shape_test.orientation = generateRandomOrientation(my_rng);
+                        shape_test.orientation = generateRandomOrientation(my_rng, ndim);
                         }
 
                     // check if depletant falls in other intersection volumes

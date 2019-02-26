@@ -161,7 +161,15 @@ DEVICE inline bool isActive(Scalar3 pos, const BoxDim& box, Scalar3 ghost_fracti
 // see Shoemake, Uniform random rotations, Graphics Gems III, p.142-132
 // and http://math.stackexchange.com/questions/131336/uniform-random-quaternion-in-a-restricted-angle-range
 template<class RNG>
-DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
+DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng, unsigned int ndim)
+    {
+    // 2D just needs a random rotation in the plane
+    if (ndim==2)
+        {
+        Scalar alpha = rng.s(-M_PI, M_PI);
+        return quat<Scalar>(cosf(alpha), (Scalar)sinf(alpha) * vec3<Scalar>(Scalar(0),Scalar(0),Scalar(1)));
+        }
+    else if (ndim==3)
     {
     Scalar u1 = rng.template s<Scalar>();
     Scalar u2 = rng.template s<Scalar>();
@@ -170,7 +178,7 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
         vec3<Scalar>(fast::sqrt(Scalar(1.0)-u1)*fast::sin(Scalar(2.0*M_PI)*u2),
             fast::sqrt(Scalar(1.0-u1))*fast::cos(Scalar(2.0*M_PI)*u2),
             fast::sqrt(u1)*fast::sin(Scalar(2.0*M_PI)*u3)));
-
+    }
     }
 
 /* Generate a uniformly distributed random position in a sphere
