@@ -694,7 +694,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 accept = checkDepletantOverlap(i,
                                                pos_i,
                                                shape_i,
-                                               typ_i
+                                               typ_i,
                                                h_postype.data,
                                                h_orientation.data,
                                                h_overlaps.data,
