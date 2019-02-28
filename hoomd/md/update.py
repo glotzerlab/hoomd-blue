@@ -62,7 +62,6 @@ class rescale_temp(_updater):
         # store metadata
         self.kT = kT
         self.period = period
-        self.metadata_fields.extend(['kT','period'])
 
     def set_params(self, kT=None):
         R""" Change rescale_temp parameters.
@@ -111,7 +110,6 @@ class zero_momentum(_updater):
 
         # store metadata
         self.period = period
-        self.metadata_fields.append('period')
 
 class enforce2d(_updater):
     R""" Enforces 2D simulation.
@@ -206,7 +204,6 @@ class constraint_ellipsoid(_updater):
         self.rx = rx
         self.ry = ry
         self.rz = rz
-        self.metadata_fields.extend(['group','P', 'rx', 'ry', 'rz'])
 
 class mueller_plathe_flow(_updater):
     R""" Updater class for a shear flow according

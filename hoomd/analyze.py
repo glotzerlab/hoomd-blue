@@ -35,6 +35,11 @@ class _analyzer(hoomd.meta._metadata):
             hoomd.context.msg.error("Cannot create analyzer before initialization\n");
             raise RuntimeError('Error creating analyzer');
 
+        # Base class constructor. Setup metadata
+        hoomd.meta._metadata.__init__(self)
+        ##TODO: Consider adding period
+        self.metadata_fields.append('enabled')
+
         self.cpp_analyzer = None;
 
         # increment the id counter
@@ -46,10 +51,6 @@ class _analyzer(hoomd.meta._metadata):
 
         # Store a reference in global simulation variables
         hoomd.context.current.analyzers.append(self)
-
-        # base class constructor
-        hoomd.meta._metadata.__init__(self)
-        self.metadata_fields.append('enabled')
 
     ## \internal
     # \brief Helper function to setup analyzer period
@@ -64,7 +65,7 @@ class _analyzer(hoomd.meta._metadata):
     def setupAnalyzer(self, period, phase=0):
         self.phase = phase;
 
-        if type(period) == type(1.0):
+        if type(period) == type(1.0) and period == int(period):
             hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period), phase);
         elif type(period) == type(1):
             hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period, phase);
@@ -114,15 +115,14 @@ class _analyzer(hoomd.meta._metadata):
         """
         hoomd.util.print_status_line();
         self.check_initialization();
-
-        # check if we are already disabled
         if not self.enabled:
-            hoomd.context.msg.warning("Ignoring command to disable an analyzer that is already disabled");
-            return;
+            hoomd.context.msg.warning("Ignoring command to disable an analyzer that is already disabled")
+            return
 
-        self.prev_period = hoomd.context.current.system.getAnalyzerPeriod(self.analyzer_name);
-        hoomd.context.current.system.removeAnalyzer(self.analyzer_name);
+        self.prev_period = hoomd.context.current.system.getAnalyzerPeriod(self.analyzer_name)
+        hoomd.context.current.system.removeAnalyzer(self.analyzer_name)
         hoomd.context.current.analyzers.remove(self)
+
         self.enabled = False;
 
     def enable(self):
@@ -137,13 +137,13 @@ class _analyzer(hoomd.meta._metadata):
         hoomd.util.print_status_line();
         self.check_initialization();
 
-        # check if we are already disabled
         if self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable an analyzer that is already enabled");
-            return;
+            hoomd.context.msg.warning("Ignoring command to enable an analyzer that is already enabled")
+            return
 
         hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period, self.phase);
         hoomd.context.current.analyzers.append(self)
+
         self.enabled = True;
 
     def set_period(self, period):
@@ -165,7 +165,12 @@ class _analyzer(hoomd.meta._metadata):
         hoomd.util.print_status_line();
         self.period = period;
 
-        if type(period) == type(1):
+        if type(period) == type(1.0) and period == int(period):
+            if self.enabled:
+                hoomd.context.current.system.setAnalyzerPeriod(self.analyzer_name, int(period), self.phase);
+            else:
+                self.prev_period = int(period);
+        elif type(period) == type(1):
             if self.enabled:
                 hoomd.context.current.system.setAnalyzerPeriod(self.analyzer_name, period, self.phase);
             else:

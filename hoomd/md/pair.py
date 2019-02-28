@@ -218,7 +218,7 @@ class coeff(force._coeff):
     # \param a First name in the type pair
     # \param b Second name in the type pair
     # \param coeff_name Coefficient to get
-    def get(self,a,b,coeff_name):
+    def get(self, a, b, coeff_name):
         if (a,b) in self.values:
             cur_pair = (a,b);
         elif (b,a) in self.values:
@@ -327,7 +327,6 @@ class pair(force._force):
         self.pair_coeff = coeff();
         self.pair_coeff.set_default_coeff('r_cut', self.r_cut);
         self.pair_coeff.set_default_coeff('r_on', self.r_cut);
-        self.metadata_fields.extend(['r_cut', 'nlist'])
 
         # setup the neighbor list
         self.nlist = nlist

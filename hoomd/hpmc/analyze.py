@@ -116,4 +116,3 @@ class sdf(_analyzer):
         self.navg = navg
         self.period = period
         self.overwrite = overwrite
-        self.metadata_fields.extend(['filename', 'xmax', 'dx', 'navg', 'period', 'overwrite'])

@@ -466,8 +466,7 @@ class wall(_updater):
         R""" Get the number of accepted wall update moves.
 
         Args:
-            mode (int): specify the type of count to return. If mode!=0, return absolute quantities. If mode=0, return quantities relative to the start of the run.
-                        DEFAULTS to 0.
+            mode (int): Specify the type of count to return. If mode!=0, return absolute quantities. If mode=0, return quantities relative to the start of the run. Defaults to 0.
 
         Returns:
            the number of accepted wall update moves
@@ -490,11 +489,10 @@ class wall(_updater):
         R""" Get the number of attempted wall update moves.
 
         Args:
-            mode (int): specify the type of count to return. If mode!=0, return absolute quantities. If mode=0, return quantities relative to the start of the run.
-                        DEFAULTS to 0.
+            mode (int): Specify the type of count to return. If mode!=0, return absolute quantities. If mode=0, return quantities relative to the start of the run. Defaults to 0.
 
         Returns:
-           the number of attempted wall update moves
+           The number of attempted wall update moves
 
         Example::
 

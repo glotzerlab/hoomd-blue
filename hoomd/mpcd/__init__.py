@@ -169,7 +169,6 @@ class integrator(hoomd.integrate._integrator):
         self.supports_methods = True
         self.dt = dt
         self.aniso = aniso
-        self.metadata_fields.extend(['dt','aniso'])
 
         # configure C++ integrator
         self.cpp_integrator = _mpcd.Integrator(hoomd.context.current.mpcd.data, self.dt)

@@ -191,6 +191,7 @@ class harmonic(force._force):
 
         # initialize the base class
         force._force.__init__(self);
+        self.metadata_fields.append('angle_coeff')
 
         # setup the coefficient vector
         self.angle_coeff = coeff();
@@ -269,6 +270,7 @@ class cosinesq(force._force):
 
         # initialize the base class
         force._force.__init__(self);
+        self.metadata_fields.append('angle_coeff')
 
         # setup the coefficient vector
         self.angle_coeff = coeff();
@@ -376,7 +378,7 @@ class table(force._force):
 
         # initialize the base class
         force._force.__init__(self, name);
-
+        self.metadata_fields.append('angle_coeff')
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():

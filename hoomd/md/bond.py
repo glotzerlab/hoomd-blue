@@ -177,6 +177,7 @@ class _bond(force._force):
     def __init__(self, name=None):
         # initialize the base class
         force._force.__init__(self, name);
+        self.metadata_fields.append('bond_coeff')
 
         self.cpp_force = None;
 
@@ -558,5 +559,3 @@ class table(force._force):
         hoomd.util.quiet_status();
         self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
         hoomd.util.unquiet_status();
-
-

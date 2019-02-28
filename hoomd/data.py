@@ -580,6 +580,9 @@ class boxdim(hoomd.meta._metadata):
         # base class constructor
         hoomd.meta._metadata.__init__(self)
 
+        # Need to explicitly include fields because they might be changed
+        self.metadata_fields.extend(['Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz', 'dimension'])
+
     def scale(self, sx=1.0, sy=1.0, sz=1.0, s=None):
         R""" Scale box dimensions.
 
@@ -709,7 +712,7 @@ class boxdim(hoomd.meta._metadata):
         return 'Box: Lx=' + str(self.Lx) + ' Ly=' + str(self.Ly) + ' Lz=' + str(self.Lz) + ' xy=' + str(self.xy) + \
                     ' xz='+ str(self.xz) + ' yz=' + str(self.yz) + ' dimensions=' + str(self.dimensions);
 
-class system_data(hoomd.meta._metadata):
+class system_data(object):
     R""" Access system data
 
     system_data provides access to the different data structures that define the current state of the simulation.
@@ -736,9 +739,6 @@ class system_data(hoomd.meta._metadata):
         self.impropers = dihedral_data(sysdef.getImproperData());
         self.constraints = constraint_data(sysdef.getConstraintData());
         self.pairs = bond_data(sysdef.getPairData());
-
-        # base class constructor
-        hoomd.meta._metadata.__init__(self)
 
     def take_snapshot(self,
                       particles=True,
@@ -883,24 +883,6 @@ class system_data(hoomd.meta._metadata):
 
         self.sysdef.initializeFromSnapshot(snapshot);
 
-    @classmethod
-    def from_metadata(cls, params, system):
-        for prop, data in params.items():
-            if prop == 'box':
-                for attr, val in data.items():
-                    if attr == 'd':
-                        assert system.box.dimensions == val
-                    else:
-                        setattr(system.box, attr, val)
-            elif prop in ('timestep', 'number_density'):
-                continue
-            else:
-                # The other items should all be set by the initialization, so
-                # we'll just check that everything matches.
-                if prop != 'constraints':  # No types for constraints
-                    assert set(data['types']) == set(p.type for p in getattr(system, prop))
-                assert data['N'] == len(getattr(system, prop))
-
     ## Get the system box
     @property
     def box(self):
@@ -1021,7 +1003,7 @@ class pdata_types_proxy(object):
 # This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # particle_data, documented by example.
 #
-class particle_data(hoomd.meta._metadata):
+class particle_data(object):
     ## \internal
     # \brief particle_data iterator
     class particle_data_iterator:
@@ -1049,9 +1031,6 @@ class particle_data(hoomd.meta._metadata):
         self.pdata = pdata;
 
         self.types = pdata_types_proxy(hoomd.context.current.system_definition.getParticleData())
-
-        # base class constructor
-        hoomd.meta._metadata.__init__(self)
 
     ## \var pdata
     # \internal
@@ -1480,7 +1459,7 @@ class force_data_proxy(object):
 # This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # bond_data, documented by example.
 #
-class bond_data(hoomd.meta._metadata):
+class bond_data(object):
     ## \internal
     # \brief bond_data iterator
     class bond_data_iterator:
@@ -1506,9 +1485,6 @@ class bond_data(hoomd.meta._metadata):
     # \param bdata BondData to connect
     def __init__(self, bdata):
         self.bdata = bdata;
-
-        # base class constructor
-        hoomd.meta._metadata.__init__(self)
 
     ## \internal
     # \brief Add a new bond
@@ -1644,7 +1620,7 @@ class bond_data_proxy(object):
 # This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # bond_data, documented by example.
 #
-class constraint_data(hoomd.meta._metadata):
+class constraint_data(object):
     ## \internal
     # \brief bond_data iterator
     class constraint_data_iterator:
@@ -1670,9 +1646,6 @@ class constraint_data(hoomd.meta._metadata):
     # \param bdata ConstraintData to connect
     def __init__(self, cdata):
         self.cdata = cdata;
-
-        # base class constructor
-        hoomd.meta._metadata.__init__(self)
 
     ## \internal
     # \brief Add a new distance constraint
@@ -1796,7 +1769,7 @@ class constraint_data_proxy(object):
 # This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # angle_data, documented by example.
 #
-class angle_data(hoomd.meta._metadata):
+class angle_data(object):
     ## \internal
     # \brief angle_data iterator
     class angle_data_iterator:
@@ -1822,9 +1795,6 @@ class angle_data(hoomd.meta._metadata):
     # \param adata AngleData to connect
     def __init__(self, adata):
         self.adata = adata;
-
-        # base class constructor
-        hoomd.meta._metadata.__init__(self)
 
     ## \internal
     # \brief Add a new angle
@@ -1971,7 +1941,7 @@ class angle_data_proxy(object):
 # This documentation is intentionally left sparse, see hoomd.data for a full explanation of how to use
 # dihedral_data, documented by example.
 #
-class dihedral_data(hoomd.meta._metadata):
+class dihedral_data(object):
     ## \internal
     # \brief dihedral_data iterator
     class dihedral_data_iterator:
@@ -1997,9 +1967,6 @@ class dihedral_data(hoomd.meta._metadata):
     # \param bdata DihedralData to connect
     def __init__(self, ddata):
         self.ddata = ddata;
-
-        # base class constructor
-        hoomd.meta._metadata.__init__(self)
 
     ## \internal
     # \brief Add a new dihedral

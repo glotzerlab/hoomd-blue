@@ -479,10 +479,9 @@ class balance(_updater):
         else:
             self.cpp_updater = _hoomd.LoadBalancerGPU(hoomd.context.current.system_definition, hoomd.context.current.decomposition.cpp_dd);
 
-        self.setupUpdater(period,phase)
+        self.setupUpdater(period, phase)
 
         # stash arguments to metadata
-        self.metadata_fields.extend(['tolerance','maxiter','period','phase'])
         self.period = period
         self.phase = phase
 

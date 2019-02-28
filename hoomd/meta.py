@@ -24,6 +24,21 @@ import datetime
 import copy
 import warnings
 
+def track(func):
+    """Decorator for any method whose calls must be tracked in order to
+    completely reproduce a simulation. Assumes input is a class method.
+    """
+    ###TODO: MAKE SURE THAT FORCE CLASSES UPDATE COEFFS BEFORE GETTING METADATA
+    if not hasattr(func, call_history):
+        func.call_history = []
+    def tracked_func(self, *args, **kwargs):
+        func.call_history.append({
+            'args': args,
+            'kwargs': kwargs
+            })
+        return func(self, *args, **kwargs)
+    return tracked_func
+
 ## \internal
 # \brief A Mixin to facilitate storage of simulation metadata
 class _metadata(object):
@@ -48,11 +63,8 @@ class _metadata(object):
         obj = super(_metadata, cls).__new__(cls)
         obj.args = args
         obj.kwargs = kwargs
+        obj.metadata_fields = []
         return obj
-
-    def __init__(self):
-        # No metadata provided per default
-        self.metadata_fields = []
 
     ## \internal
     # \brief Return the metadata
@@ -66,7 +78,14 @@ class _metadata(object):
         for varname, arg in zip(varnames, self.args):
             metadata[varname] = arg
         metadata.update(self.kwargs)
+
+        tracked_fields = {}
+        for field in self.metadata_fields:
+            tracked_fields[field] = getattr(self, field)
+        metadata['_tracked_field'] = tracked_fields
         return metadata
+
+# TODO: Maybe include a subclass that calls set_params on a set of special parameters. More generally, that allows any set* functions to be tracked... now I'm going back to what I was doing before.
 
 class _metadata_from_dict(object):
     def __init__(self, d):
@@ -110,19 +129,6 @@ def dump_metadata(filename=None, user=None, indent=4):
 
     metadata = dict()
 
-    if user is not None:
-        if not isinstance(user, collections.Mapping):
-            hoomd.context.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
-        else:
-            metadata['user'] = _metadata_from_dict(user)
-
-    # Generate time stamp
-    ts = time.time()
-    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-    metadata['timestamp'] = st
-    metadata['context'] = hoomd.context.ExecutionContext()
-    metadata['hoomd'] = hoomd.context.HOOMDContext()
-
     global_objs = [hoomd.context.current.integrator]
     global_objs += hoomd.context.current.integration_methods
     global_objs += hoomd.context.current.forces
@@ -152,6 +158,19 @@ def dump_metadata(filename=None, user=None, indent=4):
             metadata[name].add(o)
     for key, values in metadata.items():
         metadata[key] = [to_metadata(v, True) for v in values]
+
+    # Add additional configuration info, including user provided quantities.
+    ts = time.time()
+    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    metadata['timestamp'] = st
+    metadata['context'] = hoomd.context.ExecutionContext().get_metadata()
+    metadata['hoomd'] = hoomd.context.HOOMDContext().get_metadata()
+
+    if user is not None:
+        if not isinstance(user, collections.Mapping):
+            hoomd.context.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
+        else:
+            metadata['user'] = _metadata_from_dict(user)
 
     # Only write files on rank 0
     if filename is not None and hoomd.comm.get_rank() == 0:

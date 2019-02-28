@@ -86,11 +86,14 @@ class _force(hoomd.meta._metadata):
 
         self.force_name = "force%d" % (id);
         self.enabled = True;
-        self.log =True;
+        self.log = True;
         hoomd.context.current.forces.append(self);
 
         # base class constructor
         hoomd.meta._metadata.__init__(self)
+        # TODO: Will need to override the from_metadata function since
+        # enable/disable does extra work here.
+        self.metadata_fields.extend(['enabled', 'log'])
 
     ## \var enabled
     # \internal
@@ -213,17 +216,12 @@ class _force(hoomd.meta._metadata):
     ## \internal
     # \brief updates force coefficients
     def update_coeffs(self):
-        pass
         raise RuntimeError("_force.update_coeffs should not be called");
         # does nothing: this is for derived classes to implement
 
-    ## \internal
-    # \brief Returns the force data
-    #
-    def __forces(self):
+    @property
+    def forces(self):
         return hoomd.data.force_data(self);
-
-    forces = property(__forces);
 
     @classmethod
     def from_metadata(cls, params):
@@ -331,6 +329,10 @@ class constant(_force):
             self.cpp_force.setCallback(callback)
 
         # store metadata
+        # TODO: Currently there's not a great way to support metadata with this
+        # class because set_force can be called to set multiple fields (group,
+        # tag) that require calls to CPP and aren't currently supported. I'll
+        # need to add additional properties to the class to make that work.
         self.metadata_fields.extend(['fvec', 'tvec'])
         if group is not None:
             self.metadata_fields.append('group')
@@ -503,7 +505,6 @@ class active(_force):
 
 
         # store metadata
-        self.metadata_fields.extend(['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint'])
         self.group = group
         self.seed = seed
         self.orientation_link = orientation_link
@@ -548,7 +549,7 @@ class dipole(_force):
         self.field_y = field_y
         self.field_z = field_z
 
-    def set_params(field_x, field_y,field_z,p):
+    def set_params(field_x, field_y, field_z,p):
         R""" Change the constant field and dipole moment.
 
         Args:

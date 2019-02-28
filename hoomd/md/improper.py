@@ -186,6 +186,7 @@ class harmonic(force._force):
 
         # initialize the base class
         force._force.__init__(self);
+        self.metadata_fields.append('improper_coeff')
 
         self.improper_coeff = coeff();
 

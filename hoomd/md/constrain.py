@@ -64,6 +64,7 @@ class _constraint_force(hoomd.meta._metadata):
 
         # base class constructor
         hoomd.meta._metadata.__init__(self)
+        self.metadata_fields += ['enabled']
 
     ## \var enabled
     # \internal
@@ -107,8 +108,8 @@ class _constraint_force(hoomd.meta._metadata):
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd.context.msg.warning("Ignoring command to disable a force that is already disabled");
-            return;
+            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled")
+            return
 
         self.enabled = False;
 
@@ -130,13 +131,12 @@ class _constraint_force(hoomd.meta._metadata):
 
         # check if we are already disabled
         if self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled");
-            return;
+            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled")
+            return
 
         # add the compute back to the system
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
         hoomd.context.current.constraint_forces.append(self)
-
         self.enabled = True;
 
     ## \internal
@@ -219,6 +219,8 @@ class distance(_constraint_force):
 
         # initialize the base class
         _constraint_force.__init__(self);
+        self.metadata_fields += ['rel_tol']
+        self._rel_tol = 1e-3
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -240,7 +242,17 @@ class distance(_constraint_force):
             dist.set_params(rel_tol=0.0001)
         """
         if rel_tol is not None:
-            self.cpp_force.setRelativeTolerance(float(rel_tol))
+            self.rel_tol = rel_tol
+
+    @property
+    def rel_tol(self):
+        return self._rel_tol
+
+    @rel_tol.setter
+    def rel_tol(self, value):
+        self._rel_tol = value
+        self.cpp_force.setRelativeTolerance(float(value))
+
 
 class rigid(_constraint_force):
     R""" Constrain particles in rigid bodies.
@@ -347,8 +359,13 @@ class rigid(_constraint_force):
 
         # initialize the base class
         _constraint_force.__init__(self);
+        self.metadata_fields += ['params']
+        # TODO: The easiest option here is just to make from_metadata do
+        # extra work to call set_params; making all of these properties
+        # doesn't really make sense.
 
         self.composite = True
+        self.params = {}
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -358,7 +375,7 @@ class rigid(_constraint_force):
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-    def set_param(self,type_name, types, positions, orientations=None, charges=None, diameters=None):
+    def set_param(self, type_name, types, positions, orientations=None, charges=None, diameters=None):
         R""" Set constituent particle types and coordinates for a rigid body.
 
         Args:
@@ -381,6 +398,9 @@ class rigid(_constraint_force):
             rigid.set_param('B', types = ['B_const', 'B_const'], positions = [(0,0,.5),(0,0,-.5)])
 
         """
+        # Cache the information for metadata logging
+        self.params['type_name'] = {'types': types, 'positions': positions, 'orientations': orientations, 'charges': charges, 'diameters': diameters}
+
         # get a list of types from the particle data
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -507,7 +527,3 @@ class oneD(_constraint_force):
         # store metadata
         self.group = group
         self.constraint_vector = constraint_vector
-        self.metadata_fields.extend(['group','constraint_vector'])
-
-
-

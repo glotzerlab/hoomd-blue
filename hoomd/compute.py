@@ -34,6 +34,9 @@ class _compute(hoomd.meta._metadata):
             hoomd.context.msg.error("Cannot create compute before initialization\n");
             raise RuntimeError('Error creating compute');
 
+        super(_compute, self).__init__()
+        self.metadata_fields.append('enabled')
+
         self.cpp_compute = None;
 
         # increment the id counter

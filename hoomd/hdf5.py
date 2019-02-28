@@ -94,13 +94,13 @@ class log(hoomd.analyze._analyzer):
         if not isinstance(h5file, hoomd.hdf5.File):
             hoomd.context.msg.error("HDF5 file descriptor is no instance of h5py.File, which is the hoomd thin wrapper for hdf5 file descriptors.")
             raise RuntimeError("Error creating hoomd.hdf5.log")
-        # store metadata
-        self.metadata_fields.extend(['h5file', 'period'])
-        self.h5file = h5file
-        self.period = period
 
         # initialize base class
         super(log, self).__init__()
+
+        # store metadata
+        self.h5file = h5file
+        self.period = period
 
         # create the c++ mirror class
         self.cpp_analyzer = _hoomd.LogHDF5(hoomd.context.current.system_definition, self._write_hdf5)
@@ -128,6 +128,7 @@ class log(hoomd.analyze._analyzer):
             for item in quantities:
                 quantity_list.append(str(item))
             self.cpp_analyzer.setLoggedQuantities(quantity_list)
+            self.quantity_list = list(quantity_list)
 
         if matrix_quantities is not None:
             # set the logged quantities
@@ -135,6 +136,7 @@ class log(hoomd.analyze._analyzer):
             for item in matrix_quantities:
                 matrix_quantity_list.append(str(item))
             self.cpp_analyzer.setLoggedMatrixQuantities(matrix_quantity_list)
+            self.matrix_quantity_list = list(matrix_quantity_list)
 
     def query(self, quantity, force_matrix=False):
         R"""

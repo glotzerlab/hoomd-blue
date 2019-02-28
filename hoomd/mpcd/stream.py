@@ -52,7 +52,6 @@ class _streaming_method(hoomd.meta._metadata):
             raise RuntimeError('Multiple initialization of streaming method')
 
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields.extend(['period','enabled'])
 
         self.period = period
         self.enabled = True

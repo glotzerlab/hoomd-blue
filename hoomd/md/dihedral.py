@@ -205,6 +205,7 @@ class harmonic(force._force):
 
         # initialize the base class
         force._force.__init__(self);
+        self.metadata_fields += ['dihedral_coeff']
 
         self.dihedral_coeff = coeff();
 
@@ -295,7 +296,7 @@ class table(force._force):
 
         # initialize the base class
         force._force.__init__(self, name);
-
+        self.metadata_fields += ['dihedral_coeff']
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -425,17 +426,6 @@ class table(force._force):
         self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
         hoomd.util.unquiet_status();
 
-    # ## \internal
-    # # \brief Get metadata
-    # def get_metadata(self):
-        # data = force._force.get_metadata(self)
-
-        # # make sure coefficients are up-to-date
-        # self.update_coeffs()
-
-        # data['dihedral_coeff'] = self.dihedral_coeff
-        # return data
-
 class opls(force._force):
     R""" OPLS dihedral force
 
@@ -466,6 +456,7 @@ class opls(force._force):
 
         # initialize the base class
         force._force.__init__(self);
+        self.metadata_fields += ['dihedral_coeff']
 
         self.dihedral_coeff = coeff();
 
@@ -501,14 +492,3 @@ class opls(force._force):
                 coeff_dict[name] = self.dihedral_coeff.get(type_list[i], name);
 
             self.cpp_force.setParams(i, coeff_dict['k1'], coeff_dict['k2'], coeff_dict['k3'], coeff_dict['k4']);
-
-    # ## \internal
-    # # \brief Get metadata
-    # def get_metadata(self):
-        # data = force._force.get_metadata(self)
-
-        # # make sure coefficients are up-to-date
-        # self.update_coeffs()
-
-        # data['dihedral_coeff'] = self.dihedral_coeff
-        # return data

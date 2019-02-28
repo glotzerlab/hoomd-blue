@@ -81,6 +81,7 @@ class pppm(force._force):
 
         # initialize the base class
         force._force.__init__(self);
+        self.metadata_fields.append('ewald')
 
         # register the citation
         c = hoomd.cite.article(cite_key='dnlebard2012',
@@ -115,7 +116,7 @@ class pppm(force._force):
 
         # initialize the short range part of electrostatics
         hoomd.util.quiet_status();
-        self.ewald = pair.ewald(r_cut = False, nlist = self.nlist);
+        self.ewald = pair.ewald(r_cut=False, nlist=self.nlist);
         hoomd.util.unquiet_status();
 
     # override disable and enable to work with both of the forces

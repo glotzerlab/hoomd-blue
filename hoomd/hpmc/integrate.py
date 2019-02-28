@@ -39,7 +39,6 @@ class interaction_matrix(hoomd.meta._metadata):
     def __init__(self):
         super(interaction_matrix, self).__init__()
         self.values = {};
-        self.metadata_fields.append('values')
 
     ## \var values
     # \internal
@@ -2122,8 +2121,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
             (added in version 2.2)
-        max_members (int): Set the maximum number of members in the convex polyhedron union
-        capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
     .. versionadded:: 2.2
 
@@ -2192,9 +2189,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
 
-        # meta data
-        self.metadata_fields += ['capacity']
-
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
@@ -2252,8 +2246,6 @@ class convex_polyhedron_union(convex_spheropolyhedron_union):
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
             (added in version 2.2)
-        max_members (int): Set the maximum number of members in the convex polyhedron union
-        capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
     .. versionadded:: 2.2
 
@@ -2304,8 +2296,6 @@ class faceted_ellipsoid_union(mode_hpmc):
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
             (added in version 2.2)
-        max_members (int): Set the maximum number of members in the convex polyhedron union
-        capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
     .. versionadded:: 2.5
 
@@ -2382,9 +2372,6 @@ class faceted_ellipsoid_union(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
-
-        # meta data
-        self.metadata_fields += ['capacity']
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']

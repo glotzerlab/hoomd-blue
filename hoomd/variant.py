@@ -30,6 +30,8 @@ class _variant(hoomd.meta._metadata):
 
         self.cpp_variant = None;
 
+        super(_variant, self).__init__()
+
 ## \internal
 # \brief A constant "variant"
 #

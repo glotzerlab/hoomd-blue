@@ -166,6 +166,7 @@ class _external_force(force._force):
     def __init__(self, name=""):
         # initialize the base class
         force._force.__init__(self, name);
+        self.metadata_fields += ['force_coeff']
 
         self.cpp_force = None;
 

@@ -51,7 +51,6 @@ class _collision_method(hoomd.meta._metadata):
             raise RuntimeError('Multiple initialization of collision method')
 
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields.extend(['period','seed','group','shift','enabled'])
 
         self.period = period
         self.seed = seed
@@ -209,7 +208,6 @@ class at(_collision_method):
         hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
-        self.metadata_fields += ['kT']
         self.kT = hoomd.variant._setup_variant_input(kT)
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -325,7 +323,6 @@ class srd(_collision_method):
         hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
-        self.metadata_fields += ['angle','kT']
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
             collide_class = _mpcd.SRDCollisionMethod
