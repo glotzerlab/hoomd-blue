@@ -203,6 +203,10 @@ class all(group):
         hoomd.context.current.group_all = self
         return hoomd.context.current.group_all
 
+    def __copy__(self):
+        # We do want the class to be explicitly copyable if requested.
+        return group(self.name, self.cpp_group)
+
     def __init__(self):
         # Make this empty (and don't call the parent class initializer) so that
         # when we are just returning the preexisting instance of group_all we
