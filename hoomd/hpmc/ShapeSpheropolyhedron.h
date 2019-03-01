@@ -121,7 +121,9 @@ struct ShapeSpheropolyhedron
     //! Return a tight fitting OBB
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
-        return verts.obb;
+        detail::OBB obb = verts.obb;
+        obb.affineTransform(orientation, pos);
+        return obb;
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
