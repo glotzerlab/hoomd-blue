@@ -172,7 +172,7 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng, unsigned int ndim
         vec3<Scalar> axis(Scalar(0), Scalar(0), Scalar(1));
         return quat<Scalar>::fromAxisAngle(axis, angle);
         }
-    else if (ndim==3)
+    else
         {
         Scalar u1 = rng.template s<Scalar>();
         Scalar u2 = rng.template s<Scalar>();
