@@ -2,9 +2,8 @@
 
 [![Citing HOOMD](https://img.shields.io/badge/cite-hoomd-blue.svg)](https://glotzerlab.engin.umich.edu/hoomd-blue/citing.html)
 [![conda-forge](https://img.shields.io/conda/vn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
-[![docker](https://img.shields.io/badge/docker-glotzerlab/software-blue.svg)](https://hub.docker.com/r/glotzerlab/software)
 [![conda-forge Downloads](https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
-[![CircleCI (all branches)](https://img.shields.io/circleci/project/github/glotzerlab/hoomd-blue.svg?style=flat)](https://circleci.com/gh/glotzerlab/hoomd-blue)
+[![CircleCI](https://img.shields.io/circleci/project/github/glotzerlab/hoomd-blue/master.svg)](https://circleci.com/gh/glotzerlab/hoomd-blue)
 [![Read the Docs](https://img.shields.io/readthedocs/hoomd-blue/stable.svg)](https://hoomd-blue.readthedocs.io/en/stable/?badge=stable)
 [![Contributors](https://img.shields.io/github/contributors/glotzerlab/hoomd-blue.svg?style=flat)](https://hoomd-blue.readthedocs.io/en/stable/credits.html)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
@@ -27,17 +26,16 @@ For more information, see the [**HOOMD-blue** website](https://glotzerlab.engin.
 
 ## Installation
 
-**HOOMD-blue** binaries are available via the
-[Docker image glotzerlab/software](https://hub.docker.com/r/glotzerlab/software)
+**HOOMD-blue** binaries are available as containers
+([Docker Hub](https://hub.docker.com/r/glotzerlab/software), [Singularity Hub](https://singularity-hub.org/collections/1663))
 and for Linux and macOS via the
-[hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd). See links for more information.
+[hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd).
 
 ### Using the Docker image
 
 Singularity:
 ```bash
-$ umask 002
-$ singularity pull docker://glotzerlab/software
+$ singularity pull --name "software.simg" shub://glotzerlab/software
 ```
 
 Docker:
