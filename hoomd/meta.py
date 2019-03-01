@@ -23,6 +23,8 @@ import time
 import datetime
 import copy
 import warnings
+import re
+import traceback
 
 def track(func):
     """Decorator for any method whose calls must be tracked in order to
@@ -38,6 +40,23 @@ def track(func):
             })
         return func(self, *args, **kwargs)
     return tracked_func
+
+# Registry of all metadata tracking classes created.
+INSTANCES = []
+
+def should_track():
+    R"""We only want to track objects created by the user, so we need to
+    check where the constructor call is coming from. To do that, get the
+    third to last element of the call stack (-1 will be the
+    traceback.extract_stack call, -2 will be this call), then check what file
+    that's coming from.
+
+    Returns:
+        bool: Whether or not the last constructed object should be tracked.
+    """
+    stack = traceback.extract_stack().format()
+    last_file = re.findall('File "(.*?)"', stack[-3])[0]
+    return hoomd.__file__.replace('__init__.py', '') not in last_file
 
 ## \internal
 # \brief A Mixin to facilitate storage of simulation metadata
@@ -64,6 +83,9 @@ class _metadata(object):
         obj.args = args
         obj.kwargs = kwargs
         obj.metadata_fields = []
+
+        if should_track():
+            INSTANCES.append(obj)
         return obj
 
     ## \internal
@@ -88,18 +110,6 @@ class _metadata(object):
         return metadata
 
 # TODO: Maybe include a subclass that calls set_params on a set of special parameters. More generally, that allows any set* functions to be tracked... now I'm going back to what I was doing before.
-
-class _metadata_from_dict(object):
-    def __init__(self, d):
-        self.d = d
-
-    def get_metadata(self):
-        data = collections.OrderedDict()
-
-        for m in self.d.keys():
-            data[m] = self.d[m]
-
-        return data
 
 def dump_metadata(filename=None, user=None, indent=4, execution_info=False, hoomd_info=False):
     R""" Writes simulation metadata into a file.
@@ -133,17 +143,10 @@ def dump_metadata(filename=None, user=None, indent=4, execution_info=False, hoom
 
     metadata = dict()
 
-    global_objs = [hoomd.context.current.integrator]
-    global_objs += hoomd.context.current.integration_methods
-    global_objs += hoomd.context.current.forces
-    global_objs += hoomd.context.current.analyzers
-    global_objs += hoomd.context.current.updaters
-    global_objs += hoomd.context.current.constraint_forces
-
     to_name = lambda obj: obj.__module__ + '.' + obj.__class__.__name__
 
     # First put all classes into a set to avoid saving duplicates.
-    for o in global_objs:
+    for o in INSTANCES:
         if o is not None:
             name = to_name(o)
             metadata.setdefault(name, set())
@@ -204,7 +207,8 @@ def dump_metadata(filename=None, user=None, indent=4, execution_info=False, hoom
         if not isinstance(user, collections.Mapping):
             hoomd.context.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
         else:
-            metadata['user'] = _metadata_from_dict(user)
+            # Make sure the object actually is a dict, not some other mapping object.
+            metadata['user'] = dict(user)
 
     # Only write files on rank 0
     if filename is not None and hoomd.comm.get_rank() == 0:

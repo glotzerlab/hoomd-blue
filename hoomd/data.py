@@ -581,7 +581,7 @@ class boxdim(hoomd.meta._metadata):
         hoomd.meta._metadata.__init__(self)
 
         # Need to explicitly include fields because they might be changed
-        self.metadata_fields.extend(['Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz', 'dimension'])
+        self.metadata_fields.extend(['Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz', 'dimensions'])
 
     def scale(self, sx=1.0, sy=1.0, sz=1.0, s=None):
         R""" Scale box dimensions.

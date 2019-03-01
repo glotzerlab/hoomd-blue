@@ -187,9 +187,21 @@ class all(group):
             if len(hoomd.context.current.group_all) != expected_N:
                 hoomd.context.msg.error("hoomd.context.current.group_all does not appear to be the group of all particles!\n")
                 raise RuntimeError('Error creating group')
+
+            # Note that the singleton pattern used will prevent proper metadata
+            # tracking because the class will only be instantiated once, and if the
+            # first time is automatic (i.e. done within HOOMD rather than by the
+            # user), the user's request for group.all will go unrecorded, so we
+            # need to manually add it here.
+            if hoomd.meta.should_track():
+                hoomd.meta.INSTANCES.append(hoomd.context.current.group_all)
             return hoomd.context.current.group_all
 
         self = super(all, cls).__new__(cls)
+
+        # Need to separately address this in both logical branches.
+        if hoomd.meta.should_track():
+            hoomd.meta.INSTANCES.append(hoomd.context.current.group_all)
 
         name = 'all'
 
