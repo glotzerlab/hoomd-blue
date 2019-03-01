@@ -223,30 +223,6 @@ class _force(hoomd.meta._metadata):
     def forces(self):
         return hoomd.data.force_data(self);
 
-    @classmethod
-    def from_metadata(cls, params):
-        forces = []
-        params = copy.deepcopy(params)
-        for p in params:
-            enabled = p.pop('enabled', True)
-            log = p.pop('log', True)
-
-            # Extract the coeff
-            for coeff_type in p.keys():
-                if 'coeff' in coeff_type:
-                    break
-            coeff_values = p.pop(coeff_type)
-
-            force = cls(**p)
-            coeff = getattr(force, coeff_type)
-            for name, settings in coeff_values.items():
-                coeff.set(name, **settings)
-
-            if not enabled:
-                force.disable(log=log)
-            forces.append(force)
-        return forces
-
 # set default counter
 _force.cur_id = 0;
 

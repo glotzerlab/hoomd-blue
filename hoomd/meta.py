@@ -25,6 +25,7 @@ import copy
 import warnings
 import re
 import traceback
+import inspect
 
 def track(func):
     """Decorator for any method whose calls must be tracked in order to
@@ -43,6 +44,8 @@ def track(func):
 
 # Registry of all metadata tracking classes created.
 INSTANCES = []
+
+to_name = lambda obj: obj.__module__ + '.' + obj.__class__.__name__
 
 def should_track():
     R"""We only want to track objects created by the user, so we need to
@@ -91,23 +94,53 @@ class _metadata(object):
     ## \internal
     # \brief Return the metadata
     def get_metadata(self):
-        varnames = self.__init__.__code__.co_varnames[1:]  # Skip `self`
-
-        # Fill in positional arguments first, then update all kwargs. No need
-        # for extensive error checking since the function signature must have
-        # been valid to construct the object in the first place.
-        argdata = {}
-        for varname, arg in zip(varnames, self.args):
-            argdata[varname] = arg
-        argdata.update(self.kwargs)
+        metadata = {}
+        try:
+            # This can be removed when we remove Python2 support.
+            signature = inspect.signature(self.__init__)
+        except AttributeError:
+            warnings.warn("Restartable metadata dumping is only available in Python 3.")
+        else:
+            bound_args = signature.bind(*self.args, **self.kwargs)
+            argdata = {}
+            for varname, arg in bound_args.arguments.items():
+                kind = signature.parameters[varname].kind
+                if kind == inspect.Parameter.VAR_POSITIONAL:
+                    varname = "*" + varname
+                elif kind == inspect.Parameter.VAR_KEYWORD:
+                    varname = "**" + varname
+                argdata[varname] = arg
+            metadata['arguments'] = argdata
 
         # Add additional fields only if requested.
-        tracked_fields = {}
         if self.metadata_fields:
+            tracked_fields = {}
             for field in self.metadata_fields:
+                # Most objects in HOOMD can be disabled, so we treat this
+                # special key explicitly here and only save it if the object
+                # was disabled.
+                if field == 'enabled' and getattr(self, field):
+                    continue
+
                 tracked_fields[field] = getattr(self, field)
-        metadata = {'arguments': argdata, 'tracked_fields': tracked_fields}
+            metadata['tracked_fields'] = tracked_fields
         return metadata
+
+    @classmethod
+    def from_metadata(cls, params):
+        """This function creates an instance of cls according to a set of metadata parameters."""
+        # for key, value in params['arguments']:
+            # if key.startswith('**'):
+                # value
+                # and not
+        obj = cls(**params['arguments'])
+        if 'tracked_fields' in params:
+            if not getattr(params['tracked_fields'], 'enabled', True):
+                obj.disable()
+            for field, value in params['tracked_fields'].items():
+                setattr(obj, field, value)
+        return obj
+
 
 # TODO: Maybe include a subclass that calls set_params on a set of special parameters. More generally, that allows any set* functions to be tracked... now I'm going back to what I was doing before.
 
@@ -141,58 +174,37 @@ def dump_metadata(filename=None, user=None, indent=4, execution_info=False, hoom
         hoomd.context.msg.error("Need to initialize system first.\n")
         raise RuntimeError("Error writing out metadata.")
 
-    metadata = dict()
-
-    to_name = lambda obj: obj.__module__ + '.' + obj.__class__.__name__
-
-    # First put all classes into a set to avoid saving duplicates.
-    for o in INSTANCES:
-        if o is not None:
-            name = to_name(o)
-            metadata.setdefault(name, set())
-            assert isinstance(metadata[name], set)
-            metadata[name].add(o)
-
-    def to_metadata(metadata):
+    def to_metadata(obj):
         """Convert object to metadata. At all but the top level, we return a
         mapping of object name->metadata."""
-        meta = {}
-        for k, v in metadata.items():
-            if hasattr(v, 'get_metadata'):
-                m = v.get_metadata()
-                argdata = to_metadata(m['arguments'])
-                tracked_fields = to_metadata(m['tracked_fields'])
-                obj_data = {}
-                if argdata:
-                    obj_data['arguments'] = argdata
-                if tracked_fields:
-                    obj_data['tracked_fields'] = tracked_fields
-                meta[k] = {to_name(v): obj_data}
+        metadata = obj.get_metadata()
+
+        def convert(element):
+            """Converts object to metadata representation if needed"""
+            if hasattr(element, 'get_metadata'):
+                # Refer to previously appended objects if already added
+                if element in INSTANCES:
+                    return "Object #{}".format(INSTANCES.index(element))
+                else:
+                    return to_metadata(element)
             else:
-                meta[k] = v
-        return meta
+                return element
+
+        for mapping in metadata.values():
+            # The possible top_keys are 'arguments' and 'tracked_fields'. We'll
+            # modify the values in place.
+            for k, v in mapping.items():
+                # Check for *args/**kwargs
+                if k[:2] == '**':
+                    mapping[k] = {k2: convert(v2) for k2, v2 in v.items()}
+                elif k[0] == '*':
+                    mapping[k] = [convert(e) for e in v]
+                else:
+                    mapping[k] = convert(v)
+        return {to_name(obj): metadata}
 
     # Loop over all class names and their instances
-    for cls, instances in metadata.items():
-        instances_metadata = []
-        for obj in instances:
-            # This logic is duplicated here because inside to_metadata we
-            # append a dictionary with the object as the name, but at the top
-            # level that object already exists. We should probably change that
-            # structure by modifying the existing construction, but for now I'd
-            # like to work within the existing framework.
-            obj_metadata = obj.get_metadata()
-            argdata = to_metadata(obj_metadata['arguments'])
-            tracked_fields = to_metadata(obj_metadata['tracked_fields'])
-            obj_data = {}
-            if argdata:
-                obj_data['arguments'] = argdata
-            if tracked_fields:
-                obj_data['tracked_fields'] = tracked_fields
-            instances_metadata.append(obj_data)
-
-        metadata[cls] = instances_metadata
-
+    metadata = {'objects': [to_metadata(o) for o in INSTANCES]}
 
     # Add additional configuration info, including user provided quantities.
     ts = time.time()
@@ -218,7 +230,7 @@ def dump_metadata(filename=None, user=None, indent=4, execution_info=False, hoom
             file.write(meta_str)
     return metadata
 
-def load_metadata(system, metadata=None, filename=None):
+def load_metadata(system, metadata=None, filename=None, output_script=None):
     R"""Initialize system information from metadata.
 
     This function must be called after the system is initialized, but before
@@ -234,6 +246,10 @@ def load_metadata(system, metadata=None, filename=None):
                          must be provided unless a filename is given.
         filename (str): A file containing metadata. Is ignored if a metadata
                         dictionary is provided.
+        generate_script (str): If provided, instead of creating the objects
+                               based on the metadata, the function will
+                               generate a script equivalent to what
+                               load_metadata would accomplish.
 
     Returns:
         dict: A mapping from class to the instance created by this function.
@@ -251,28 +267,35 @@ def load_metadata(system, metadata=None, filename=None):
             "You must provide either a dictionary with metadata or a file to "
             "read from.")
 
-    # Ignored keys are those we don't need to do anything with
-    ignored_keys = ['timestamp', 'context', 'hoomd']
-    objects = {}
-    for key, vals in metadata.items():
-        if key in ignored_keys:
-            continue
+    # Explicitly import all subpackages so getattr works
+    packages = ['hoomd.hpmc', 'hoomd.md', 'hoomd.mpcd', 'hoomd.dem',
+                'hoomd.cgcmm', 'hoomd.jit', 'hoomd.metal']
+    for package in packages:
+        try:
+            exec('import {}'.format(package))
+        except (ImportError, ModuleNotFoundError):
+            # Not all packages need to be installed
+            pass
 
-        # Top level is always hoomd, but may be removed
-        parts = key.split('.')
-        if parts[0] == 'hoomd':
-            parts.pop(0)
+    # All object data is stored in the `objects` key
+    objects = []
+    hoomd.util.quiet_status()
+    for entry in metadata['objects']:
+        # There will always be just one element in the dict
+        key, vals = next(iter(entry.items()))
+        parts = key.split('.')[1:]  # Ignore `hoomd`
         obj = hoomd
         while parts:
             obj = getattr(obj, parts.pop(0))
 
-        if obj.__name__ == "system_data":
-            # System data is the special case that needs the actual system
-            # object to be passed through as well.
-            instance = obj.from_metadata(vals, system)
-        else:
-            instance = obj.from_metadata(vals)
+        # Replace the Object entries with the actual objects
+        for key, value in vals['arguments'].items():
+            if isinstance(value, str) and 'Object #' in value:
+                index = int(re.findall('Object #(\d*)', value)[0])
+                vals['arguments'][key] = objects[index]
 
-        name = obj.__module__ + '.' + obj.__class__.__name__
-        objects[name] = instance
+        instance = obj.from_metadata(vals)
+        objects.append(instance)
+    hoomd.util.unquiet_status()
+
     return objects

@@ -179,18 +179,6 @@ class _updater(hoomd.meta._metadata):
             hoomd.context.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
 
     @classmethod
-    def from_metadata(cls, params):
-        # TODO: Still need to check the enabled parameter.
-        updaters = []
-        for p in params:
-            enabled = p.pop('enabled', True)
-            updater = cls(**p)
-            if not enabled:
-                updater.disable()
-            updaters.append(updater)
-        return updaters
-
-    @classmethod
     def _gsd_state_name(cls):
         raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 
@@ -308,7 +296,7 @@ class box_resize(_updater):
         periodic updates are not performed.
 
     L, Lx, Ly, Lz, xy, xz, yz can either be set to a constant number or a :py:mod:`hoomd.variant`.
-    if any of the box parameters are not specified, they are set to maintain the same value in the
+    If any of the box parameters are not specified, they are set to maintain the same value in the
     current box.
 
     Use L as a shorthand to specify Lx, Ly, and Lz to the same value.
@@ -394,20 +382,6 @@ class box_resize(_updater):
             self.cpp_updater.update(hoomd.context.current.system.getCurrentTimeStep());
         else:
             self.setupUpdater(period, phase);
-
-    # Check for possibility of variants, which are stored in list form.
-    @classmethod
-    def from_metadata(cls, params):
-        # Make a deep copy to avoid modifying the original metadata info in
-        # place.
-        params = copy.deepcopy(params)
-        for p in params:
-            for key, points in p.items():
-                # Variants are stored as lists, which can be passed to the
-                # constructor of the variant.
-                if isinstance(p[key], list):
-                    p[key] = hoomd.variant.linear_interp(points)
-        return super(cls, cls).from_metadata(params)
 
 class balance(_updater):
     R""" Adjusts the boundaries of a domain decomposition on a regular 3D grid.

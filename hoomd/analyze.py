@@ -181,17 +181,6 @@ class _analyzer(hoomd.meta._metadata):
             hoomd.context.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
 
     @classmethod
-    def from_metadata(cls, params):
-        analyzers = []
-        for p in params:
-            enabled = p.pop('enabled', True)
-            analyzer = cls(**p)
-            if not enabled:
-                analyzer.disable()
-            analyzers.append(analyzer)
-        return analyzers
-
-    @classmethod
     def _gsd_state_name(cls):
         raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 

@@ -18,18 +18,7 @@ import types;
 import copy
 
 class _dump(hoomd.analyze._analyzer):
-    # Create actual group instances before moving up the tree.
-    @classmethod
-    def from_metadata(cls, params):
-        params = copy.deepcopy(params)
-        for p in params:
-            p['group'] = getattr(hoomd.group, p['group']['name'])()
-
-        # We have to hard code the class to search up the inheritance tree from
-        # as the current one because subclasses will use this function
-        # directly. However, we need to pass through the actual class of the
-        # subclass so that calls to the class constructor will work correctly.
-        return super(_dump, cls).from_metadata(params)
+    pass
 
 class dcd(_dump):
     R""" Writes simulation snapshots in the DCD format

@@ -450,36 +450,36 @@ class pair(force._force):
 
         return r_cut_dict;
 
-    # Override parent method because the get_metadata definition above leads to
-    # different nesting than what's used for other forces (i.e. a list of dicts
-    # instead of a dict of dicts). Additionally, we need to capture the
-    # neighborlist here.
-    @classmethod
-    def from_metadata(cls, params):
-        pairs = []
-        params = copy.deepcopy(params)
-        for p in params:
-            enabled = p.pop('enabled', True)
-            log = p.pop('log', True)
+    # # Override parent method because the get_metadata definition above leads to
+    # # different nesting than what's used for other forces (i.e. a list of dicts
+    # # instead of a dict of dicts). Additionally, we need to capture the
+    # # neighborlist here.
+    # @classmethod
+    # def from_metadata(cls, params):
+        # pairs = []
+        # params = copy.deepcopy(params)
+        # for p in params:
+            # enabled = p.pop('enabled', True)
+            # log = p.pop('log', True)
 
-            # Extract the coeff
-            coeff_values = p.pop('pair_coeff')
+            # # Extract the coeff
+            # coeff_values = p.pop('pair_coeff')
 
-            nlist_values = p.pop('nlist')
-            nlist_type = nlist_values.pop('nlist_type')
-            nlist = getattr(nl, nlist_type)(**nlist_values)
-            p['nlist'] = nlist
+            # nlist_values = p.pop('nlist')
+            # nlist_type = nlist_values.pop('nlist_type')
+            # nlist = getattr(nl, nlist_type)(**nlist_values)
+            # p['nlist'] = nlist
 
-            pair = cls(**p)
-            for settings in coeff_values:
-                a = settings.pop('typei')
-                b = settings.pop('typej')
-                pair.pair_coeff.set(a, b, **settings)
+            # pair = cls(**p)
+            # for settings in coeff_values:
+                # a = settings.pop('typei')
+                # b = settings.pop('typej')
+                # pair.pair_coeff.set(a, b, **settings)
 
-            if not enabled:
-                pair.disable(log=log)
-            pairs.append(pair)
-        return pairs
+            # if not enabled:
+                # pair.disable(log=log)
+            # pairs.append(pair)
+        # return pairs
 
     def compute_energy(self, tags1, tags2):
         R""" Compute the energy between two sets of particles.

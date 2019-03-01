@@ -130,14 +130,14 @@ class group(hoomd.meta._metadata):
         planes:0{}
 
     """
-    def __init__(self,*walls):
+    def __init__(self, *walls, **testparams):
         self.spheres=[];
         self.cylinders=[];
         self.planes=[];
         for wall in walls:
             self.add(wall);
 
-    def add(self,wall):
+    def add(self, wall):
         R""" Generic wall add for wall objects.
 
         Generic convenience function to add any wall object to the group.
