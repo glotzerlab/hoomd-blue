@@ -74,15 +74,17 @@ class _metadata(object):
         # Fill in positional arguments first, then update all kwargs. No need
         # for extensive error checking since the function signature must have
         # been valid to construct the object in the first place.
-        metadata = collections.OrderedDict()
+        argdata = {}
         for varname, arg in zip(varnames, self.args):
-            metadata[varname] = arg
-        metadata.update(self.kwargs)
+            argdata[varname] = arg
+        argdata.update(self.kwargs)
 
+        # Add additional fields only if requested.
         tracked_fields = {}
-        for field in self.metadata_fields:
-            tracked_fields[field] = getattr(self, field)
-        metadata['_tracked_field'] = tracked_fields
+        if self.metadata_fields:
+            for field in self.metadata_fields:
+                tracked_fields[field] = getattr(self, field)
+        metadata = {'arguments': argdata, 'tracked_fields': tracked_fields}
         return metadata
 
 # TODO: Maybe include a subclass that calls set_params on a set of special parameters. More generally, that allows any set* functions to be tracked... now I'm going back to what I was doing before.
@@ -99,13 +101,15 @@ class _metadata_from_dict(object):
 
         return data
 
-def dump_metadata(filename=None, user=None, indent=4):
+def dump_metadata(filename=None, user=None, indent=4, execution_info=False, hoomd_info=False):
     R""" Writes simulation metadata into a file.
 
     Args:
         filename (str): The name of the file to write JSON metadata to (optional)
         user (dict): Additional metadata.
-        indent (int): The json indentation size
+        indent (int): The json indentation size.
+        execution_info (bool): If True, include information on execution environment.
+        hoomd_info (bool): If True, include information on the HOOMD executable.
 
     Returns:
         dict: The metadata
@@ -138,33 +142,63 @@ def dump_metadata(filename=None, user=None, indent=4):
 
     to_name = lambda obj: obj.__module__ + '.' + obj.__class__.__name__
 
-    def to_metadata(obj, top=False):
-        """Convert object to metadata. At all but the top level, we return a
-        mapping of object name->metadata."""
-        meta = obj.get_metadata()
-        for k, v in meta.items():
-            if hasattr(v, 'get_metadata'):
-                meta[k] = to_metadata(v)
-        return meta if top else {to_name(obj): meta}
-
-    # First put all classes into a set to avoid saving duplicates, then go back
-    # through the set and convert to a list of metadata representations of the
-    # objects.
+    # First put all classes into a set to avoid saving duplicates.
     for o in global_objs:
         if o is not None:
             name = to_name(o)
             metadata.setdefault(name, set())
             assert isinstance(metadata[name], set)
             metadata[name].add(o)
-    for key, values in metadata.items():
-        metadata[key] = [to_metadata(v, True) for v in values]
+
+    def to_metadata(metadata):
+        """Convert object to metadata. At all but the top level, we return a
+        mapping of object name->metadata."""
+        meta = {}
+        for k, v in metadata.items():
+            if hasattr(v, 'get_metadata'):
+                m = v.get_metadata()
+                argdata = to_metadata(m['arguments'])
+                tracked_fields = to_metadata(m['tracked_fields'])
+                obj_data = {}
+                if argdata:
+                    obj_data['arguments'] = argdata
+                if tracked_fields:
+                    obj_data['tracked_fields'] = tracked_fields
+                meta[k] = {to_name(v): obj_data}
+            else:
+                meta[k] = v
+        return meta
+
+    # Loop over all class names and their instances
+    for cls, instances in metadata.items():
+        instances_metadata = []
+        for obj in instances:
+            # This logic is duplicated here because inside to_metadata we
+            # append a dictionary with the object as the name, but at the top
+            # level that object already exists. We should probably change that
+            # structure by modifying the existing construction, but for now I'd
+            # like to work within the existing framework.
+            obj_metadata = obj.get_metadata()
+            argdata = to_metadata(obj_metadata['arguments'])
+            tracked_fields = to_metadata(obj_metadata['tracked_fields'])
+            obj_data = {}
+            if argdata:
+                obj_data['arguments'] = argdata
+            if tracked_fields:
+                obj_data['tracked_fields'] = tracked_fields
+            instances_metadata.append(obj_data)
+
+        metadata[cls] = instances_metadata
+
 
     # Add additional configuration info, including user provided quantities.
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     metadata['timestamp'] = st
-    metadata['context'] = hoomd.context.ExecutionContext().get_metadata()
-    metadata['hoomd'] = hoomd.context.HOOMDContext().get_metadata()
+    if execution_info:
+        metadata['execution_info'] = hoomd.context.ExecutionContext().get_metadata()
+    if hoomd_info:
+        metadata['hoomd_info'] = hoomd.context.HOOMDContext().get_metadata()
 
     if user is not None:
         if not isinstance(user, collections.Mapping):

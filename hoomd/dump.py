@@ -98,7 +98,6 @@ class dcd(_dump):
         self.filename = filename
         self.period = period
         self.group = group
-        self.metadata_fields.extend(['filename','period','group'])
 
     def enable(self):
         """ The DCD dump writer cannot be re-enabled """
@@ -658,7 +657,6 @@ class gsd(_dump):
         self.phase = phase
         self.static = static
         self.dynamic = dynamic_quantities
-        self.metadata_fields.extend(['filename','period','group', 'phase', 'static', 'dynamic'])
 
     def write_restart(self):
         """ Write a restart file at the current time step.
