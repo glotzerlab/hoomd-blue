@@ -129,11 +129,18 @@ class _metadata(object):
     @classmethod
     def from_metadata(cls, params):
         """This function creates an instance of cls according to a set of metadata parameters."""
-        # for key, value in params['arguments']:
-            # if key.startswith('**'):
-                # value
-                # and not
-        obj = cls(**params['arguments'])
+        # Unpack *args/**kwargs before proceeding.
+        args = []
+        for key in params['arguments'].keys():
+            if key.startswith('**'):
+                value = params['arguments'].pop(key)
+                for k, v in value.items():
+                    params['arguments'][k] = v
+            elif key.startswith('*'):
+                args.append(params['arguments'].pop(key))
+
+        obj = cls(*args, **params['arguments'])
+
         if 'tracked_fields' in params:
             if not getattr(params['tracked_fields'], 'enabled', True):
                 obj.disable()
@@ -230,7 +237,7 @@ def dump_metadata(filename=None, user=None, indent=4, execution_info=False, hoom
             file.write(meta_str)
     return metadata
 
-def load_metadata(system, metadata=None, filename=None, output_script=None):
+def load_metadata(system, metadata=None, filename=None):
     R"""Initialize system information from metadata.
 
     This function must be called after the system is initialized, but before
@@ -246,10 +253,6 @@ def load_metadata(system, metadata=None, filename=None, output_script=None):
                          must be provided unless a filename is given.
         filename (str): A file containing metadata. Is ignored if a metadata
                         dictionary is provided.
-        generate_script (str): If provided, instead of creating the objects
-                               based on the metadata, the function will
-                               generate a script equivalent to what
-                               load_metadata would accomplish.
 
     Returns:
         dict: A mapping from class to the instance created by this function.
@@ -280,6 +283,7 @@ def load_metadata(system, metadata=None, filename=None, output_script=None):
     # All object data is stored in the `objects` key
     objects = []
     hoomd.util.quiet_status()
+
     for entry in metadata['objects']:
         # There will always be just one element in the dict
         key, vals = next(iter(entry.items()))
