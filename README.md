@@ -17,6 +17,8 @@ For more information, see the [**HOOMD-blue** website](https://glotzerlab.engin.
 
 - [Reference Documentation](https://hoomd-blue.readthedocs.io/):
   Full package Python API, usage information, and feature reference.
+- [Installation Guide](INSTALLING.rst):
+  Instructions for installing and compiling **HOOMD-blue**.
 - [hoomd-users Google Group](https://groups.google.com/d/forum/hoomd-users):
   Ask questions to the **HOOMD-blue** community.
 - [**HOOMD-blue** Tutorial](https://nbviewer.jupyter.org/github/glotzerlab/hoomd-examples/blob/master/index.ipynb):
@@ -30,53 +32,12 @@ For more information, see the [**HOOMD-blue** website](https://glotzerlab.engin.
 ([Docker Hub](https://hub.docker.com/r/glotzerlab/software), [Singularity Hub](https://singularity-hub.org/collections/1663))
 and for Linux and macOS via the
 [hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd).
-
-### Using the Docker image
-
-Singularity:
-```bash
-$ singularity pull --name "software.simg" shub://glotzerlab/software
-```
-
-Docker:
-```bash
-$ docker pull glotzerlab/software
-```
-
-### Install with conda
-
-```bash
-$ conda install -c conda-forge hoomd
-```
-
-### Compiling from source
-
-See the [compilation guide](https://hoomd-blue.readthedocs.io/en/stable/compiling.html#) for the list of prerequisites and more detailed instructions for building **HOOMD-blue** from source.
-
-Clone using git:
-```bash
-$ git clone --recursive https://github.com/glotzerlab/hoomd-blue
-```
-
-Configure with `cmake` and compile with `make`. Replace `${PREFIX}` with your desired installation location.
-
-```bash
-$ mkdir build
-$ cd build
-$ cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX}/lib/python
-$ make install -j10
-```
-
-Add `${PREFIX}/lib/python` to your `PYTHONPATH` to use **HOOMD-blue**.
-
-```bash
-$ export PYTHONPATH=$PYTHONPATH:${PREFIX}/lib/python
-```
+See the [Installation Guide](INSTALLING.rst) for instructions on installing **HOOMD-blue** or compiling from source.
 
 ## Job scripts
 
-HOOMD-blue job scripts are Python scripts. You can control system initialization, run protocols, analyze simulation data,
-or develop complex workflows all with Python code in your job.
+HOOMD-blue job scripts are Python scripts.
+You can control system initialization, run protocols, analyze simulation data, or develop complex workflows all with Python code in your job.
 
 Here is a simple example:
 
@@ -85,7 +46,7 @@ import hoomd
 from hoomd import md
 hoomd.context.initialize()
 
-# Create a 10x10x10 square lattice of particles with type name A
+# Create a 10x10x10 simple cubic lattice of particles with type name A
 hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=2.0, type_name='A'), n=10)
 
 # Specify Lennard-Jones interactions between particle pairs
@@ -94,9 +55,8 @@ lj = md.pair.lj(r_cut=3.0, nlist=nl)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
 # Integrate at constant temperature
-all = hoomd.group.all();
 md.integrate.mode_standard(dt=0.005)
-hoomd.md.integrate.langevin(group=all, kT=1.2, seed=4)
+hoomd.md.integrate.langevin(group=hoomd.group.all(), kT=1.2, seed=4)
 
 # Run for 10,000 time steps
 hoomd.run(10e3)
@@ -110,4 +70,6 @@ See [ChangeLog.md](ChangeLog.md).
 
 ## Contributing to HOOMD-blue
 
-Contributions are welcomed via [pull requests on GitHub](https://github.com/glotzerlab/hoomd-blue/pulls). Please report bugs and suggest feature enhancements via the [issue tracker](https://github.com/glotzerlab/hoomd-blue/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
+Contributions are welcomed via [pull requests on GitHub](https://github.com/glotzerlab/hoomd-blue/pulls).
+Please report bugs and suggest feature enhancements via the [issue tracker](https://github.com/glotzerlab/hoomd-blue/issues).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
