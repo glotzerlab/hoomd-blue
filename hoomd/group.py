@@ -8,9 +8,9 @@ R""" Commands for grouping particles
 This package contains various commands for making groups of particles
 """
 
-from hoomd import _hoomd
-import hoomd
-import sys
+from hoomd import _hoomd;
+import hoomd;
+import sys;
 
 class group(hoomd.meta._metadata):
     R""" Defines a group of particles
@@ -19,17 +19,17 @@ class group(hoomd.meta._metadata):
     groups.
 
     * :py:func:`hoomd.group.all()`
+    * :py:func:`hoomd.group.body()`
     * :py:func:`hoomd.group.charged()`
     * :py:func:`hoomd.group.cuboid()`
     * :py:func:`hoomd.group.difference()`
+    * :py:func:`hoomd.group.floppy()`
     * :py:func:`hoomd.group.intersection()`
+    * :py:func:`hoomd.group.nonbody()`
+    * :py:func:`hoomd.group.nonfloppy()`
     * :py:func:`hoomd.group.nonrigid()`
     * :py:func:`hoomd.group.rigid()`
     * :py:func:`hoomd.group.rigid_center()`
-    * :py:func:`hoomd.group.body()`
-    * :py:func:`hoomd.group.nonbody()`
-    * :py:func:`hoomd.group.floppy()`
-    * :py:func:`hoomd.group.nonfloppy()`
     * :py:func:`hoomd.group.tag_list()`
     * :py:func:`hoomd.group.tags()`
     * :py:func:`hoomd.group.type()`
@@ -58,12 +58,12 @@ class group(hoomd.meta._metadata):
         # create a group containing all particles in group A and those with
         # tags 100-199
         groupA = group.type('A')
-        group100_199 = group.tags(100, 199)
-        group_combined = group.union(name="combined", a=groupA, b=group100_199)
+        group100_199 = group.tags(100, 199);
+        group_combined = group.union(name="combined", a=groupA, b=group100_199);
 
         # create a group containing all particles in group A that also have
         # tags 100-199
-        group_combined2 = group.intersection(name="combined2", a=groupA, b=group100_199)
+        group_combined2 = group.intersection(name="combined2", a=groupA, b=group100_199);
 
         # create a group containing all particles that are not in group A
         all = group.all()
@@ -89,20 +89,20 @@ class group(hoomd.meta._metadata):
     # \brief group iterator
     class group_iterator:
         def __init__(self, data):
-            self.data = data
-            self.index = 0
+            self.data = data;
+            self.index = 0;
         def __iter__(self):
-            return self
+            return self;
         def __next__(self):
             if self.index == len(self.data):
-                raise StopIteration
+                raise StopIteration;
 
-            result = self.data[self.index]
-            self.index += 1
-            return result
+            result = self.data[self.index];
+            self.index += 1;
+            return result;
 
         # support python2
-        next = __next__
+        next = __next__;
 
     ## \internal
     # \brief Creates a group
@@ -118,8 +118,8 @@ class group(hoomd.meta._metadata):
             raise RuntimeError('Error creating group')
 
         # initialize the group
-        self.name = name
-        self.cpp_group = cpp_group
+        self.name = name;
+        self.cpp_group = cpp_group;
 
         # notify the user of the created group
         hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n')
@@ -137,35 +137,35 @@ class group(hoomd.meta._metadata):
         Groups made by a combination (union, intersection, difference) of other groups will not
         update their membership, they are always static.
         """
-        self.cpp_group.updateMemberTags(True)
+        self.cpp_group.updateMemberTags(True);
 
     ## \internal
     # \brief Get a particle_proxy reference to the i'th particle in the group
     # \param i Index of the particle in the group to get
     def __getitem__(self, i):
         if i >= len(self) or i < 0:
-            raise IndexError
-        tag = self.cpp_group.getMemberTag(i)
-        return hoomd.data.particle_data_proxy(hoomd.context.current.system_definition.getParticleData(), tag)
+            raise IndexError;
+        tag = self.cpp_group.getMemberTag(i);
+        return hoomd.data.particle_data_proxy(hoomd.context.current.system_definition.getParticleData(), tag);
 
     def __setitem__(self, i, p):
-        raise RuntimeError('__setitem__ not implemented')
+        raise RuntimeError('__setitem__ not implemented');
 
     ## \internal
     # \brief Get the number of particles in the group
     def __len__(self):
-        return self.cpp_group.getNumMembersGlobal()
+        return self.cpp_group.getNumMembersGlobal();
 
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
-        result = "Particle Group " + self.name + " containing " + str(len(self)) + " particles"
-        return result
+        result = "Particle Group " + self.name + " containing " + str(len(self)) + " particles";
+        return result;
 
     ## \internal
     # \brief Return an iterator
     def __iter__(self):
-        return group.group_iterator(self)
+        return group.group_iterator(self);
 
 class all(group):
     R""" Groups all particles.

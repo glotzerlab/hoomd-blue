@@ -212,24 +212,6 @@ class mode_hpmc(_integrator):
     def set_PatchEnergyEvaluator(self, patch):
         self.cpp_integrator.setPatchEnergy(patch.cpp_evaluator);
 
-    # def get_metadata(self):
-        # data = super(mode_hpmc, self).get_metadata()
-        # data['d'] = self.get_d()
-        # data['a'] = self.get_a()
-        # data['move_ratio'] = self.get_move_ratio()
-        # data['nselect'] = self.get_nselect()
-        # shape_dict = {};
-        # for key in self.shape_param.keys():
-            # shape_dict[key] = self.shape_param[key].get_metadata();
-        # data['shape_param'] = shape_dict;
-        # data['overlap_checks'] = self.overlap_checks.get_metadata()
-        # if self.implicit:
-            # data['depletant_mode'] = self.depletant_mode
-            # data['nR'] = self.get_nR()
-            # data['depletant_type'] = self.get_depletant_type()
-            # data['ntrial'] = self.get_ntrial()
-        # return data
-
     ## \internal
     # \brief Updates the integrators in the reflected c++ class
     #

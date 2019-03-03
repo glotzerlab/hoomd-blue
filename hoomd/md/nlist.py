@@ -621,7 +621,6 @@ class cell(nlist):
         self.set_params(r_buff, check_period, d_max, dist_check)
         hoomd.util.unquiet_status()
 
-
 cell.cur_id = 0
 
 class stencil(nlist):

@@ -19,7 +19,6 @@ Example::
 import hoomd
 import json
 import collections
-import time
 import datetime
 import copy
 import warnings
@@ -27,23 +26,22 @@ import re
 import traceback
 import inspect
 
-def track(func):
-    """Decorator for any method whose calls must be tracked in order to
-    completely reproduce a simulation. Assumes input is a class method.
-    """
-    ###TODO: MAKE SURE THAT FORCE CLASSES UPDATE COEFFS BEFORE GETTING METADATA
-    if not hasattr(func, call_history):
-        func.call_history = []
-    def tracked_func(self, *args, **kwargs):
-        func.call_history.append({
-            'args': args,
-            'kwargs': kwargs
-            })
-        return func(self, *args, **kwargs)
-    return tracked_func
-
 # Registry of all metadata tracking classes created.
 INSTANCES = []
+
+# Registry of all modules used in the script.
+MODULES = set()
+
+# Top-level keys defining the metadata schema.
+META_KEY_TIMESTAMP = 'timestamp'
+META_KEY_EXECINFO = 'execution_info'
+META_KEY_HOOMDINFO = 'hoomd_info'
+META_KEY_OBJECTS = 'objects'
+META_KEY_MODULES = 'modules'
+
+# Second-level keys for list of objects.
+META_KEY_ARGS = 'arguments'
+META_KEY_TRACKED = 'tracked_fields'
 
 to_name = lambda obj: obj.__module__ + '.' + obj.__class__.__name__
 
@@ -73,12 +71,24 @@ class _metadata(object):
     class tracks information in three ways:
 
     #. All constructor arguments are automatically tracked.
-    #. Any method decorated with the @track decorator will be recorded whenever called.
-    #. Every class may define a class level variable `metadata_fields` that indicates class variables (maybe, haven't decided yet).
+    #. Every class may, in its constructor, append to the attribute
+       `metadata_fields` to indicate class attributes that should be saved to
+       metadata.
 
-    The constructor tracking is accomplished by overriding the __new__ method
-    to automatically store all constructor arguments. Similarly, all methods
-    decorated with the @track decorator will automatically log their inputs.
+    While this supports a wide array of behaviors, the following are currently NOT supported:
+
+    #. The creation of multiple SimulationContext objects will not be detected,
+       and context switching will not occur.
+    #. Calls to `hoomd.run` are not tracked; `run` (or `run_upto`) must be
+       called after metadata is loaded.
+    #. Objects that support modification after construction. Such objects will
+       be reconstructed based on the original constructor, and if any
+       `metadata_fields` are specified, the logged values will be those defined
+       at the time `get_metadata` is called on the object. Note that this
+       logging still supports classes that require the setting of parameters
+       after construction (*e.g.* md.pair.* or like md.rigid.constrain), but it
+       will not support maintaining state information that involves changing
+       these parameters, *e.g.* between multiple `hoomd.run` calls.
     """
 
     def __new__(cls, *args, **kwargs):
@@ -110,7 +120,7 @@ class _metadata(object):
                 elif kind == inspect.Parameter.VAR_KEYWORD:
                     varname = "**" + varname
                 argdata[varname] = arg
-            metadata['arguments'] = argdata
+            metadata[META_KEY_ARGS] = argdata
 
         # Add additional fields only if requested.
         if self.metadata_fields:
@@ -123,7 +133,7 @@ class _metadata(object):
                     continue
 
                 tracked_fields[field] = getattr(self, field)
-            metadata['tracked_fields'] = tracked_fields
+            metadata[META_KEY_TRACKED] = tracked_fields
         return metadata
 
     @classmethod
@@ -131,12 +141,12 @@ class _metadata(object):
         """This function creates an instance of cls according to a set of
         metadata parameters. Accepts optional positional arguments to support
         logging of *args."""
-        obj = cls(*args, **params['arguments'])
+        obj = cls(*args, **params[META_KEY_ARGS])
 
-        if 'tracked_fields' in params:
-            if not getattr(params['tracked_fields'], 'enabled', True):
+        if META_KEY_TRACKED in params:
+            if not params[META_KEY_TRACKED].get('enabled', True):
                 obj.disable()
-            for field, value in params['tracked_fields'].items():
+            for field, value in params[META_KEY_TRACKED].items():
                 # Need to differentiate between attributes that are themselves
                 # HOOMD classes and others.
                 if isinstance(value, dict) and isinstance(next(iter(value.keys())), str) and next(iter(value.keys())).startswith('hoomd.'):
@@ -145,38 +155,54 @@ class _metadata(object):
                     nested_obj = hoomd
                     while parts:
                         nested_obj = getattr(nested_obj, parts.pop(0))
-                    setattr(obj, field, nested_obj(**v['arguments']))
+                    setattr(obj, field, nested_obj(**v[META_KEY_ARGS]))
 
                 else:
                     setattr(obj, field, value)
         return obj
 
-
-# TODO: Maybe include a subclass that calls set_params on a set of special parameters. More generally, that allows any set* functions to be tracked... now I'm going back to what I was doing before.
-
-def dump_metadata(filename=None, user=None, indent=4, execution_info=False, hoomd_info=False):
+def dump_metadata(filename=None, user=None, indent=4, fields=['timestamp', 'modules', 'objects']):
     R""" Writes simulation metadata into a file.
 
     Args:
         filename (str): The name of the file to write JSON metadata to (optional)
         user (dict): Additional metadata.
         indent (int): The json indentation size.
-        execution_info (bool): If True, include information on execution environment.
-        hoomd_info (bool): If True, include information on the HOOMD executable.
+        fields (list):
+            A list of information to include. Valid keys are 'timestamp',
+            'objects', 'modules', 'execution_info', 'hoomd_info'. Defaults to
+            'timestamp', 'objects', and 'modules'.
 
     Returns:
         dict: The metadata
 
     When called, this function will query all registered forces, updaters etc.
-    and ask them to provide metadata. E.g. a pair potential will return
-    information about parameters, the Logger will output the filename it is
-    logging to, etc.
+    and ask them to provide metadata. For example, a pair potential will return
+    information about parameters, a logger will output the filename it is
+    logging to, etc. The output is aggregated into a dictionary and returned.
+    If the filename parameters is provided, the metadata is also written out to
+    the file. The file is overwritten if it exists. Custom metadata can be
+    provided as a dictionary to *user*.
 
-    Custom metadata can be provided as a dictionary to *user*.
+    The metadata dump is designed to also support restartability using the
+    `load_metadata` command, which accepts a metadata dictionary or a filename,
+    and uses the metadata to build up a simulation consisting of the objects
+    specified in the 'objects' key of the dumped metadata. While this
+    methodology supports a wide array of simulations, the following are
+    currently NOT supported:
 
-    The output is aggregated into a dictionary and written to a
-    JSON file, together with a timestamp. The file is overwritten if
-    it exists.
+    #. The creation of multiple SimulationContext objects will not be detected,
+       and context switching will not occur.
+    #. Calls to `hoomd.run` are not tracked; `run` (or `run_upto`) must be
+       called after metadata is loaded.
+    #. Objects that support modification after construction. Such objects will
+       be reconstructed based on the original constructor, and if any
+       `metadata_fields` are specified, the logged values will be those defined
+       at the time `get_metadata` is called on the object. Note that this
+       logging still supports classes that require the setting of parameters
+       after construction (*e.g.* md.pair.* or like md.rigid.constrain), but it
+       will not support maintaining state information that involves changing
+       these parameters, *e.g.* between multiple `hoomd.run` calls.
     """
     hoomd.util.print_status_line()
 
@@ -206,7 +232,7 @@ def dump_metadata(filename=None, user=None, indent=4, execution_info=False, hoom
                 return element
 
         for mapping in metadata.values():
-            # The possible top_keys are 'arguments' and 'tracked_fields'. We'll
+            # The possible top_keys are META_KEY_ARGS and META_KEY_TRACKED. We'll
             # modify the values in place.
             for k, v in mapping.items():
                 # Check for *args/**kwargs
@@ -218,17 +244,22 @@ def dump_metadata(filename=None, user=None, indent=4, execution_info=False, hoom
                     mapping[k] = convert(v)
         return {to_name(obj): metadata}
 
-    # Loop over all class names and their instances
-    metadata = {'objects': [to_metadata(o) for o in INSTANCES]}
+    # Add all instances to the metadata list of objects in series.
+    metadata = {META_KEY_OBJECTS: [to_metadata(o) for o in INSTANCES]}
+
+    # Add all modules that were loaded.
+    metadata = {META_KEY_MODULES: MODULES}
 
     # Add additional configuration info, including user provided quantities.
-    ts = time.time()
-    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-    metadata['timestamp'] = st
-    if execution_info:
-        metadata['execution_info'] = hoomd.context.ExecutionContext().get_metadata()
-    if hoomd_info:
-        metadata['hoomd_info'] = hoomd.context.HOOMDContext().get_metadata()
+    st = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    if META_KEY_TIMESTAMP in fields:
+        metadata[META_KEY_TIMESTAMP] = st
+    if META_KEY_EXECINFO in fields:
+        metadata[META_KEY_EXECINFO] = hoomd.context.ExecutionContext().get_metadata()
+    if META_KEY_HOOMDINFO in fields:
+        metadata[META_KEY_HOOMDINFO] = hoomd.context.HOOMDContext().get_metadata()
+    if META_KEY_HOOMDINFO in fields:
+        metadata[META_KEY_HOOMDINFO] = hoomd.context.HOOMDContext().get_metadata()
 
     if user is not None:
         if not isinstance(user, collections.Mapping):
@@ -253,7 +284,9 @@ def load_metadata(system, metadata=None, filename=None):
     data with any bonds, constraints, etc that are encoded in the metadata.
     Additionally, it will instantiate any pair potentials, forces, etc that
     need to be created. All of the created objects will be returned to the
-    user, who can modify them or create new objects as necessary.
+    user, who can modify them or create new objects as necessary. See the
+    documentation of the `dump_metadata` function for information on the
+    limitations of this approach for running simulations.
 
     Args:
         system (:py:class:`hoomd.data.system_data`): The initial system.
@@ -292,7 +325,7 @@ def load_metadata(system, metadata=None, filename=None):
     objects = []
     hoomd.util.quiet_status()
 
-    for entry in metadata['objects']:
+    for entry in metadata[META_KEY_OBJECTS]:
         # There will always be just one element in the dict
         key, vals = next(iter(entry.items()))
         parts = key.split('.')[1:]  # Ignore `hoomd`
@@ -307,7 +340,7 @@ def load_metadata(system, metadata=None, filename=None):
         args = []
         updated_params = {}
         to_remove = []
-        for key, value in vals['arguments'].items():
+        for key, value in vals[META_KEY_ARGS].items():
             if key.startswith('**'):
                 to_remove.append(key)
                 for k, v in value.items():
@@ -316,26 +349,26 @@ def load_metadata(system, metadata=None, filename=None):
                 to_remove.append(key)
                 args = value
 
-        vals['arguments'].update(updated_params)
+        vals[META_KEY_ARGS].update(updated_params)
         for key in to_remove:
-            vals['arguments'].pop(key)
+            vals[META_KEY_ARGS].pop(key)
 
         # Replace the Object entries with the actual objects
-        for key, value in vals['arguments'].items():
+        for key, value in vals[META_KEY_ARGS].items():
             if isinstance(value, str) and 'Object #' in value:
                 index = int(re.findall('Object #(\d*)', value)[0])
-                vals['arguments'][key] = objects[index]
+                vals[META_KEY_ARGS][key] = objects[index]
 
         for i, arg in enumerate(args):
             if isinstance(arg, str) and 'Object #' in arg:
                 index = int(re.findall('Object #(\d*)', arg)[0])
                 args[i] = objects[index]
 
-        if 'tracked_fields' in vals:
-            for key, value in vals['tracked_fields'].items():
+        if META_KEY_TRACKED in vals:
+            for key, value in vals[META_KEY_TRACKED].items():
                 if isinstance(value, str) and 'Object #' in value:
                     index = int(re.findall('Object #(\d*)', value)[0])
-                    vals['tracked_fields'][key] = objects[index]
+                    vals[META_KEY_TRACKED][key] = objects[index]
 
         instance = obj.from_metadata(vals, args)
         objects.append(instance)

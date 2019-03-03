@@ -72,6 +72,9 @@ from hoomd import lattice
 
 from hoomd._hoomd import WalltimeLimitReached;
 
+# Record that we imported hoomd
+meta.MODULES.add('hoomd')
+
 _default_excepthook = sys.excepthook;
 
 ## \internal

@@ -347,11 +347,11 @@ class sphere(hoomd.meta._metadata):
     def origin(self, origin):
         self._origin = _hoomd.make_scalar3(*origin);
 
-    # def __str__(self):
-        # return "Radius=%s\tOrigin=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.inside));
+    def __str__(self):
+        return "Radius=%s\tOrigin=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.inside));
 
-    # def __repr__(self):
-        # return "{'r': %s, 'origin': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.inside));
+    def __repr__(self):
+        return "{'r': %s, 'origin': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.inside));
 
 class cylinder(hoomd.meta._metadata):
     R""" Cylinder wall.
@@ -391,11 +391,11 @@ class cylinder(hoomd.meta._metadata):
     def axis(self, axis):
         self._axis = _hoomd.make_scalar3(*axis);
 
-    # def __str__(self):
-        # return "Radius=%s\tOrigin=%s\tAxis=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
+    def __str__(self):
+        return "Radius=%s\tOrigin=%s\tAxis=%s\tInside=%s" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
 
-    # def __repr__(self):
-        # return "{'r': %s, 'origin': %s, 'axis': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
+    def __repr__(self):
+        return "{'r': %s, 'origin': %s, 'axis': %s, 'inside': %s}" % (str(self.r), str(self.origin), str(self.axis), str(self.inside));
 
 class plane(hoomd.meta._metadata):
     R""" Plane wall.
@@ -433,11 +433,11 @@ class plane(hoomd.meta._metadata):
     def normal(self, normal):
         self._normal = _hoomd.make_scalar3(*normal);
 
-    # def __str__(self):
-        # return "Origin=%s\tNormal=%s\tInside=%s" % (str(self.origin), str(self.normal), str(self.inside));
+    def __str__(self):
+        return "Origin=%s\tNormal=%s\tInside=%s" % (str(self.origin), str(self.normal), str(self.inside));
 
-    # def __repr__(self):
-        # return "{'origin':%s, 'normal': %s, 'inside': %s}" % (str(self.origin), str(self.normal), str(self.inside));
+    def __repr__(self):
+        return "{'origin':%s, 'normal': %s, 'inside': %s}" % (str(self.origin), str(self.normal), str(self.inside));
 
 #           *** Potentials ***
 

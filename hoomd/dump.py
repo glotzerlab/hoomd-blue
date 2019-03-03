@@ -15,12 +15,8 @@ import json;
 import os;
 import sys;
 import types;
-import copy
 
-class _dump(hoomd.analyze._analyzer):
-    pass
-
-class dcd(_dump):
+class dcd(hoomd.analyze._analyzer):
     R""" Writes simulation snapshots in the DCD format
 
     Args:
@@ -102,7 +98,7 @@ class dcd(_dump):
         hoomd.context.msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
 
-class getar(_dump):
+class getar(hoomd.analyze._analyzer):
     """Analyzer for dumping system properties to a getar file at intervals.
 
     Getar files are a simple interface on top of archive formats (such
@@ -492,7 +488,7 @@ class getar(_dump):
         """Closes the trajectory if it is open. Finalizes any IO beforehand."""
         self.cpp_analyzer.close();
 
-class gsd(_dump):
+class gsd(hoomd.analyze._analyzer):
     R""" Writes simulation snapshots in the GSD format
 
     Args:
@@ -644,8 +640,6 @@ class gsd(_dump):
         self.period = period
         self.group = group
         self.phase = phase
-        self.static = static
-        self.dynamic = dynamic_quantities
 
     def write_restart(self):
         """ Write a restart file at the current time step.

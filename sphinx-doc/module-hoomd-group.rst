@@ -7,18 +7,18 @@ hoomd.group
     :nosignatures:
 
     hoomd.group.all
+    hoomd.group.body
     hoomd.group.charged
     hoomd.group.cuboid
     hoomd.group.difference
+    hoomd.group.floppy
     hoomd.group.group
     hoomd.group.intersection
+    hoomd.group.nonbody
+    hoomd.group.nonfloppy
     hoomd.group.nonrigid
     hoomd.group.rigid
     hoomd.group.rigid_center
-    hoomd.group.body
-    hoomd.group.nonbody
-    hoomd.group.floppy
-    hoomd.group.nonfloppy
     hoomd.group.tag_list
     hoomd.group.tags
     hoomd.group.type

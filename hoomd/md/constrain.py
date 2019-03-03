@@ -108,8 +108,8 @@ class _constraint_force(hoomd.meta._metadata):
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled")
-            return
+            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled");
+            return;
 
         self.enabled = False;
 
@@ -131,8 +131,8 @@ class _constraint_force(hoomd.meta._metadata):
 
         # check if we are already disabled
         if self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled")
-            return
+            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled");
+            return;
 
         # add the compute back to the system
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
@@ -184,7 +184,6 @@ class sphere(_constraint_force):
         self.group = group
         self.P = P
         self.r = r
-        self.metadata_fields.extend(['group','P', 'r'])
 
 class distance(_constraint_force):
     R""" Constrain pairwise particle distances.
@@ -252,7 +251,6 @@ class distance(_constraint_force):
     def rel_tol(self, value):
         self._rel_tol = value
         self.cpp_force.setRelativeTolerance(float(value))
-
 
 class rigid(_constraint_force):
     R""" Constrain particles in rigid bodies.
@@ -372,12 +370,13 @@ class rigid(_constraint_force):
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-    # Override parent to actually call set_params; the values dict will be set
-    # twice, but that's OK.
+    # Override parent to actually call set_params. The values dict will be set
+    # twice, but that's OK since the settings will be equivalent. The actual
+    # calls to set_params in this function are what will set the C++ values.
     @classmethod
     def from_metadata(cls, params):
         obj = super(rigid, cls).from_metadata(params)
-        for type_name, parameters in params['tracked_fields']['params'].items():
+        for type_name, parameters in params[meta.META_KEY_TRACKED]['params'].items():
             obj.set_params(type_name, **parameters)
         return obj
 
@@ -405,7 +404,12 @@ class rigid(_constraint_force):
 
         """
         # Cache the information for metadata logging
-        self.params['type_name'] = {'types': types, 'positions': positions, 'orientations': orientations, 'charges': charges, 'diameters': diameters}
+        self.params['type_name'] = {
+            'types': types,
+            'positions': positions,
+            'orientations': orientations,
+            'charges': charges,
+            'diameters': diameters}
 
         # get a list of types from the particle data
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();

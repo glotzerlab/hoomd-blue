@@ -34,7 +34,6 @@ import hoomd;
 
 import math;
 import sys;
-import copy
 
 from collections import OrderedDict
 
@@ -322,7 +321,8 @@ class pair(force._force):
         # convert r_cut False to a floating point type
         if r_cut is False:
             r_cut = -1.0
-        self.r_cut = r_cut;
+        # Still storing global_r_cut for backwards compatibility.
+        self.global_r_cut = self.r_cut = r_cut;
 
         # setup the coefficient matrix
         self.pair_coeff = coeff();
@@ -443,11 +443,11 @@ class pair(force._force):
 
                 if r_cut is not None: # use the defined value
                     if r_cut is False: # interaction is turned off
-                        r_cut_dict.set_pair(type_list[i],type_list[j], -1.0);
+                        r_cut_dict.set_pair(type_list[i], type_list[j], -1.0);
                     else:
-                        r_cut_dict.set_pair(type_list[i],type_list[j], r_cut);
+                        r_cut_dict.set_pair(type_list[i], type_list[j], r_cut);
                 else: # use the global default
-                    r_cut_dict.set_pair(type_list[i],type_list[j],self.r_cut);
+                    r_cut_dict.set_pair(type_list[i], type_list[j], self.r_cut);
 
         return r_cut_dict;
 
@@ -458,8 +458,8 @@ class pair(force._force):
     # concatenating the type keys with commas.
     def get_metadata(self):
         metadata = super(pair, self).get_metadata()
-        for k in metadata['tracked_fields']['parameters'].keys():
-            metadata['tracked_fields']['parameters'][','.join(k)] = metadata['tracked_fields']['parameters'].pop(k)
+        for k in metadata[meta.META_KEY_TRACKED]['parameters'].keys():
+            metadata[meta.META_KEY_TRACKED]['parameters'][','.join(k)] = metadata[meta.META_KEY_TRACKED]['parameters'].pop(k)
         return metadata
 
     # Override parent method to correctly split the type names for setting.
@@ -467,7 +467,7 @@ class pair(force._force):
     def from_metadata(cls, params, args=[]):
         # Note that we're calling super on force._force to bypass its method.
         obj = super(force._force, cls).from_metadata(params)
-        for type_names, parameters in params['tracked_fields']['parameters'].items():
+        for type_names, parameters in params[meta.META_KEY_TRACKED]['parameters'].items():
             obj.pair_coeff.set(*type_names.split(','), **parameters)
         del obj.parameters
         return obj
@@ -2086,7 +2086,8 @@ class ai_pair(pair):
         # initialize the base class
         force._force.__init__(self, name);
 
-        self.r_cut = r_cut;
+        # Save global_r_cut for backwards compatibility.
+        self.global_r_cut = self.r_cut = r_cut;
 
         # setup the coefficient matrix
         self.pair_coeff = coeff();

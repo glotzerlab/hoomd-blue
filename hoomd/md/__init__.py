@@ -26,3 +26,7 @@ from hoomd.md import pair
 from hoomd.md import update
 from hoomd.md import wall
 from hoomd.md import special_pair
+
+# Log that we imported md
+from hoomd import meta
+meta.MODULES.add('md')

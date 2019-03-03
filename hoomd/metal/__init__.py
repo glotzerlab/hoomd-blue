@@ -10,3 +10,7 @@ existing job scripts may need to be updated. **Maintainer:** Lin Yang, Alex Trav
 """
 
 from hoomd.metal import pair
+
+# Log that we imported metal
+from hoomd import meta
+meta.MODULES.add('metal')

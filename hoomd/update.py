@@ -12,7 +12,6 @@ it in some way. See the documentation of specific updaters to find out what they
 from hoomd import _hoomd;
 import hoomd;
 import sys;
-import copy
 
 ## \internal
 # \brief Base class for updaters
@@ -369,9 +368,6 @@ class box_resize(_updater):
         self.xy = xy
         self.xz = xz
         self.yz = yz
-        self.period = period
-        self.phase = phase
-        self.metadata_fields.extend(['period', 'Lx','Ly','Lz','xy','xz','yz', 'phase'])
 
         # create the c++ mirror class
         self.cpp_updater = _hoomd.BoxResizeUpdater(hoomd.context.current.system_definition, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant,

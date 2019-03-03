@@ -90,7 +90,6 @@ class mode_standard(_integrator):
         _integrator.__init__(self);
 
         # Store metadata
-        # TODO: Make sure to call set_params in from_metadata
         self.dt = dt
         self.aniso = aniso
 

@@ -145,7 +145,6 @@ class _integrator(hoomd.meta._metadata):
                 raise RuntimeError('Error initializing integrator methods');
 
             for m in hoomd.context.current.integration_methods:
-                print(hoomd.context.current.integration_methods)
                 self.cpp_integrator.addIntegrationMethod(m.cpp_method);
 
         else:

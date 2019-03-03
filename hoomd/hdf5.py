@@ -128,7 +128,6 @@ class log(hoomd.analyze._analyzer):
             for item in quantities:
                 quantity_list.append(str(item))
             self.cpp_analyzer.setLoggedQuantities(quantity_list)
-            self.quantity_list = list(quantity_list)
 
         if matrix_quantities is not None:
             # set the logged quantities
@@ -136,7 +135,6 @@ class log(hoomd.analyze._analyzer):
             for item in matrix_quantities:
                 matrix_quantity_list.append(str(item))
             self.cpp_analyzer.setLoggedMatrixQuantities(matrix_quantity_list)
-            self.matrix_quantity_list = list(matrix_quantity_list)
 
     def query(self, quantity, force_matrix=False):
         R"""

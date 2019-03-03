@@ -95,3 +95,7 @@ if hoomd.context.bib is None:
     hoomd.cite._extra_default_entries.append(_citation)
 else:
     hoomd.context.bib.add(_citation)
+
+# Log that we imported dem
+from hoomd import meta
+meta.MODULES.add('dem')

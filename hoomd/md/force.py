@@ -7,6 +7,7 @@ R""" Apply forces to particles.
 """
 
 from hoomd import _hoomd
+from hoomd import meta
 from hoomd.md import _md;
 import sys;
 import copy
@@ -92,38 +93,43 @@ class _force(hoomd.meta._metadata):
 
         # base class constructor
         hoomd.meta._metadata.__init__(self)
-        # TODO: Will need to override the from_metadata function since
-        # enable/disable does extra work here.
         self.metadata_fields.extend(['enabled', 'log'])
 
     ## \internal
     # \brief Return the metadata
     # Force coefficients are more naturally stored as part of the objects,
     # rather than using a separate object (which complicates the appearance of
-    # the dumped metadata. the from_metadata function will need to be
+    # the dumped metadata. The from_metadata function will need to be
     # overridden to accomodate this as well.
     def get_metadata(self):
         metadata = super(_force, self).get_metadata()
 
-        coeff_obj = metadata['tracked_fields'].pop(self.__module__.split('.')[-1] + '_coeff')
+        coeff_obj = metadata[meta.META_KEY_TRACKED].pop(self.__module__.split('.')[-1] + '_coeff')
         parameters = {}
         for k, v in coeff_obj.values.items():
             parameters[k] = v
-        metadata['tracked_fields']['parameters'] = parameters
+        metadata[meta.META_KEY_TRACKED]['parameters'] = parameters
         return metadata
 
+    ## \internal
+    # \brief Generate instance from metadata
+    # This function overrides the parent to call set_params for force parameters.
     @classmethod
     def from_metadata(cls, params, args=[]):
-        """This function creates an instance of cls according to a set of metadata parameters."""
         obj = super(_force, cls).from_metadata(params)
         # We should unify the coeff interface at the _force class level and
         # just have the *_coeff objects be aliases for backwards compatibility,
         # but that will have to wait.
         obj_coeff = getattr(obj, cls.__module__.split('.')[-1] + '_coeff')
-        for type_name, parameters in params['tracked_fields']['parameters'].items():
+        for type_name, parameters in params[meta.META_KEY_TRACKED]['parameters'].items():
             obj_coeff.set(type_name, **parameters)
         # Remove unnecessarily set field
         del obj.parameters
+
+        # Redo the disabling with logging if needed.
+        if not params[meta.META_KEY_TRACKED].get('enabled', True) and params[meta.META_KEY_TRACKED].get('log', False):
+            obj.enable()
+            obj.disable(log=True)
         return obj
 
     ## \var enabled
@@ -283,9 +289,9 @@ class constant(_force):
     Examples::
 
         force.constant(fx=1.0, fy=0.5, fz=0.25)
-        const = force.constant(fvec=(0.4,1.0,0.5))
-        const = force.constant(fvec=(0.4,1.0,0.5),group=fluid)
-        const = force.constant(fvec=(0.4,1.0,0.5), tvec=(0,0,1) ,group=fluid)
+        const = force.constant(fvec=(0.4, 1.0, 0.5))
+        const = force.constant(fvec=(0.4, 1.0, 0.5), group=fluid)
+        const = force.constant(fvec=(0.4, 1.0, 0.5), tvec=(0, 0, 1), group=fluid)
 
         def update_forces(timestep):
             global const
@@ -332,44 +338,41 @@ class constant(_force):
                 self.tvec[1],
                 self.tvec[2]);
 
+        # store metadata
+        self.metadata_fields.extend(['fvec', 'tvec'])
+
         if callback is not None:
             self.cpp_force.setCallback(callback)
 
-        # store metadata
-        # TODO: Currently there's not a great way to support metadata with this
-        # class because set_force can be called to set multiple fields (group,
-        # tag) that require calls to CPP and aren't currently supported. I'll
-        # need to add additional properties to the class to make that work.
-        self.metadata_fields.extend(['fvec', 'tvec'])
         if group is not None:
             self.metadata_fields.append('group')
             self.group = group
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-    R""" Change the value of the constant force.
-
-    Args:
-        fx (float) New x-component of the force (in force units)
-        fy (float) New y-component of the force (in force units)
-        fz (float) New z-component of the force (in force units)
-        fvec (tuple) New force vector
-        tvec (tuple) New torque vector
-        group Group for which the force will be set
-        tag (int) Particle tag for which the force will be set
-            .. versionadded:: 2.3
-
-     Using set_force() requires that you saved the created constant force in a variable. i.e.
-
-     Examples:
-        const = force.constant(fx=0.4, fy=1.0, fz=0.5)
-
-        const.set_force(fx=0.2, fy=0.1, fz=-0.5)
-        const.set_force(fx=0.2, fy=0.1, fz=-0.5, group=fluid)
-        const.set_force(fvec=(0.2,0.1,-0.5), tvec=(0,0,1), group=fluid)
-    """
     def set_force(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None, tag=None):
+        R"""Change the value of the constant force.
 
+        Args:
+            fx (float): New x-component of the force (in force units)
+            fy (float): New y-component of the force (in force units)
+            fz (float): New z-component of the force (in force units)
+            fvec (tuple): New force vector
+            tvec (tuple): New torque vector
+            group (`hoomd.group.group`): Group for which the force will be set
+            tag (int): Particle tag for which the force will be set
+
+         Using set_force() requires that you saved the created constant force in a variable.
+
+         Examples:
+            const = force.constant(fx=0.4, fy=1.0, fz=0.5)
+
+            const.set_force(fx=0.2, fy=0.1, fz=-0.5)
+            const.set_force(fx=0.2, fy=0.1, fz=-0.5, group=fluid)
+            const.set_force(fvec=(0.2,0.1,-0.5), tvec=(0,0,1), group=fluid)
+
+        .. versionadded:: 2.3
+        """
         if (fx is not None) and (fy is not None) and (fx is not None):
             self.fvec = (fx,fy,fz)
         elif fvec is not None:
@@ -383,7 +386,7 @@ class constant(_force):
             self.tvec = (0,0,0)
 
         if (fvec==(0,0,0)) and (tvec==(0,0,0)):
-            hoomd.contex.msg.warning("You are setting the constant force to have no non-zero components\n")
+            hoomd.context.msg.warning("You are setting the constant force to have no non-zero components\n")
 
         self.check_initialization();
         if (group is not None):
@@ -395,30 +398,42 @@ class constant(_force):
         else:
             self.cpp_force.setForce(self.fvec[0], self.fvec[1], self.fvec[2], self.tvec[0], self.tvec[1], self.tvec[2]);
 
-    R""" Set a python callback to be called before the force is evaluated
-
-    Args:
-        callback (`callable`) The callback function
-
-     Examples:
-        const = force.constant(fx=0.4, fy=1.0, fz=0.5)
-
-        def update_forces(timestep):
-            global const
-            const.set_force(tag=1, fvec=(1.0*timestep,2.0*timestep,3.0*timestep))
-
-        const.set_callback(update_forces)
-        run(100)
-
-        # Reset the callback
-        const.set_callback(None)
-    """
     def set_callback(self, callback=None):
+        R""" Set a python callback to be called before the force is evaluated
+
+        Args:
+            callback (`callable`) The callback function
+
+         Examples:
+            const = force.constant(fx=0.4, fy=1.0, fz=0.5)
+
+            def update_forces(timestep):
+                global const
+                const.set_force(tag=1, fvec=(1.0*timestep,2.0*timestep,3.0*timestep))
+
+            const.set_callback(update_forces)
+            run(100)
+
+            # Reset the callback
+            const.set_callback(None)
+        """
         self.cpp_force.setCallback(callback)
 
     # there are no coeffs to update in the constant force compute
     def update_coeffs(self):
         pass
+
+    ## \internal
+    # \brief Generate instance from metadata
+    # This class does not currently support creation from metadata because the
+    # class parameters allow too many options for settings (using groups, tags,
+    # etc).
+    @classmethod
+    def from_metadata(cls, params, args=[]):
+        raise RuntimeError(
+            "The force.constant class does not support creation "
+            "from metadata. Please remove it from the provided metadata and "
+            "try again.")
 
 class active(_force):
     R""" Active force.

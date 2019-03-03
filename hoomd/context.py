@@ -350,11 +350,8 @@ class MetadataContext(hoomd.meta._metadata):
 
     ## \internal
     # \brief Override parent because this class exists solely for gathering
-    # data, and therefore behaves differently in this context.
+    # metadata, and therefore behaves differently.
     def get_metadata(self):
-        assert hasattr(self, 'metadata_fields'), ("Subclasses of MetadataContext "
-                "must define an instance variable list `metadata_fields` to "
-                "indicate what attributes to gather.")
         metadata = {}
         for m in self.metadata_fields:
             metadata[m] = getattr(self, m)

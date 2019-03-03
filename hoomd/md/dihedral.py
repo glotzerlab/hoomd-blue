@@ -170,7 +170,14 @@ class coeff(force._coeff):
 
         return self.values[type][coeff_name];
 
-class harmonic(force._force):
+## \internal
+# \brief Parent class for all dihedral potentials.
+class _dihedral(force._force):
+    def __init__(self):
+        super(_dihedral, self).__init__()
+        self.metadata_fields.append('dihedral_coeff')
+
+class harmonic(_dihedral):
     R""" Harmonic dihedral potential.
 
     :py:class:`harmonic` specifies a harmonic dihedral potential energy between every defined dihedral
@@ -204,8 +211,7 @@ class harmonic(force._force):
             raise RuntimeError("Error creating dihedral forces");
 
         # initialize the base class
-        force._force.__init__(self);
-        self.metadata_fields += ['dihedral_coeff']
+        super(harmonic, self).__init__()
 
         self.dihedral_coeff = coeff();
 
@@ -247,7 +253,7 @@ def _table_eval(theta, V, T, width):
       i = int(round((theta+math.pi)/dth))
       return (V[i], T[i])
 
-class table(force._force):
+class table(_dihedral):
     R""" Tabulated dihedral potential.
 
     Args:
@@ -295,8 +301,7 @@ class table(force._force):
         hoomd.util.print_status_line();
 
         # initialize the base class
-        force._force.__init__(self, name);
-        self.metadata_fields += ['dihedral_coeff']
+        super(table, self).__init__()
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -455,8 +460,7 @@ class opls(force._force):
             raise RuntimeError("Error creating opls dihedrals");
 
         # initialize the base class
-        force._force.__init__(self);
-        self.metadata_fields += ['dihedral_coeff']
+        super(opls, self).__init__()
 
         self.dihedral_coeff = coeff();
 

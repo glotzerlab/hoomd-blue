@@ -115,12 +115,14 @@ class _analyzer(hoomd.meta._metadata):
         """
         hoomd.util.print_status_line();
         self.check_initialization();
-        if not self.enabled:
-            hoomd.context.msg.warning("Ignoring command to disable an analyzer that is already disabled")
-            return
 
-        self.prev_period = hoomd.context.current.system.getAnalyzerPeriod(self.analyzer_name)
-        hoomd.context.current.system.removeAnalyzer(self.analyzer_name)
+        # check if we are already disabled
+        if not self.enabled:
+            hoomd.context.msg.warning("Ignoring command to disable an analyzer that is already disabled");
+            return;
+
+        self.prev_period = hoomd.context.current.system.getAnalyzerPeriod(self.analyzer_name);
+        hoomd.context.current.system.removeAnalyzer(self.analyzer_name);
         hoomd.context.current.analyzers.remove(self)
 
         self.enabled = False;
@@ -137,9 +139,10 @@ class _analyzer(hoomd.meta._metadata):
         hoomd.util.print_status_line();
         self.check_initialization();
 
+        # check if we are already enabled
         if self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable an analyzer that is already enabled")
-            return
+            hoomd.context.msg.warning("Ignoring command to enable an analyzer that is already enabled");
+            return;
 
         hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period, self.phase);
         hoomd.context.current.analyzers.append(self)
@@ -167,9 +170,9 @@ class _analyzer(hoomd.meta._metadata):
 
         if type(period) == type(1.0) and period == int(period):
             if self.enabled:
-                hoomd.context.current.system.setAnalyzerPeriod(self.analyzer_name, int(period), self.phase);
+                hoomd.context.current.system.setAnalyzerPeriod(self.analyzer_name, int(period), self.phase)
             else:
-                self.prev_period = int(period);
+                self.prev_period = int(period)
         elif type(period) == type(1):
             if self.enabled:
                 hoomd.context.current.system.setAnalyzerPeriod(self.analyzer_name, period, self.phase);
@@ -449,13 +452,8 @@ class log(_analyzer):
         hoomd.context.current.loggers.append(self);
 
         # store metadata
-        self.metadata_fields = ['filename', 'period', 'quantities', 'header_prefix', 'phase', 'overwrite']
         self.filename = filename
-        self.quantities = quantities
-        self.header_prefix = header_prefix
         self.period = period
-        self.phase = phase
-        self.overwrite = overwrite
 
     def set_params(self, quantities=None, delimiter=None):
         R""" Change the parameters of the log.

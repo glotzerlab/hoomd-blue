@@ -155,7 +155,14 @@ class coeff(force._coeff):
 
         return self.values[type][coeff_name];
 
-class harmonic(force._force):
+## \internal
+# \brief Parent class for all angle potentials.
+class _angle(force._force):
+    def __init__(self):
+        super(_angle, self).__init__()
+        self.metadata_fields.append('angle_coeff')
+
+class harmonic(_angle):
     R""" Harmonic angle potential.
 
     The command angle.harmonic specifies a harmonic potential energy between every triplet of particles
@@ -190,8 +197,7 @@ class harmonic(force._force):
             raise RuntimeError("Error creating angle forces");
 
         # initialize the base class
-        force._force.__init__(self);
-        self.metadata_fields.append('angle_coeff')
+        super(harmonic, self).__init__()
 
         # setup the coefficient vector
         self.angle_coeff = coeff();
@@ -269,8 +275,7 @@ class cosinesq(force._force):
             raise RuntimeError("Error creating angle forces");
 
         # initialize the base class
-        force._force.__init__(self);
-        self.metadata_fields.append('angle_coeff')
+        super(cosinesq, self).__init__()
 
         # setup the coefficient vector
         self.angle_coeff = coeff();
@@ -377,8 +382,7 @@ class table(force._force):
         hoomd.util.print_status_line();
 
         # initialize the base class
-        force._force.__init__(self, name);
-        self.metadata_fields.append('angle_coeff')
+        super(table, self).__init__()
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
