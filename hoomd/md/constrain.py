@@ -360,9 +360,6 @@ class rigid(_constraint_force):
         # initialize the base class
         _constraint_force.__init__(self);
         self.metadata_fields += ['params']
-        # TODO: The easiest option here is just to make from_metadata do
-        # extra work to call set_params; making all of these properties
-        # doesn't really make sense.
 
         self.composite = True
         self.params = {}
@@ -374,6 +371,15 @@ class rigid(_constraint_force):
             self.cpp_force = _md.ForceCompositeGPU(hoomd.context.current.system_definition);
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+    # Override parent to actually call set_params; the values dict will be set
+    # twice, but that's OK.
+    @classmethod
+    def from_metadata(cls, params):
+        obj = super(rigid, cls).from_metadata(params)
+        for type_name, parameters in params['tracked_fields']['params'].items():
+            obj.set_params(type_name, **parameters)
+        return obj
 
     def set_param(self, type_name, types, positions, orientations=None, charges=None, diameters=None):
         R""" Set constituent particle types and coordinates for a rigid body.

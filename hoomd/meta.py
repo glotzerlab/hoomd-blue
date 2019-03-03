@@ -127,25 +127,28 @@ class _metadata(object):
         return metadata
 
     @classmethod
-    def from_metadata(cls, params):
-        """This function creates an instance of cls according to a set of metadata parameters."""
-        # Unpack *args/**kwargs before proceeding.
-        args = []
-        for key in params['arguments'].keys():
-            if key.startswith('**'):
-                value = params['arguments'].pop(key)
-                for k, v in value.items():
-                    params['arguments'][k] = v
-            elif key.startswith('*'):
-                args.append(params['arguments'].pop(key))
-
+    def from_metadata(cls, params, args=[]):
+        """This function creates an instance of cls according to a set of
+        metadata parameters. Accepts optional positional arguments to support
+        logging of *args."""
         obj = cls(*args, **params['arguments'])
 
         if 'tracked_fields' in params:
             if not getattr(params['tracked_fields'], 'enabled', True):
                 obj.disable()
             for field, value in params['tracked_fields'].items():
-                setattr(obj, field, value)
+                # Need to differentiate between attributes that are themselves
+                # HOOMD classes and others.
+                if isinstance(value, dict) and isinstance(next(iter(value.keys())), str) and next(iter(value.keys())).startswith('hoomd.'):
+                    k, v = next(iter(value.items()))
+                    parts = k.split('.')[1:]  # Ignore `hoomd`
+                    nested_obj = hoomd
+                    while parts:
+                        nested_obj = getattr(nested_obj, parts.pop(0))
+                    setattr(obj, field, nested_obj(**v['arguments']))
+
+                else:
+                    setattr(obj, field, value)
         return obj
 
 
@@ -187,7 +190,12 @@ def dump_metadata(filename=None, user=None, indent=4, execution_info=False, hoom
         metadata = obj.get_metadata()
 
         def convert(element):
-            """Converts object to metadata representation if needed"""
+            """Contains the recursive call to `to_metadata` for when metadata
+            dict values are actually other HOOMD objects. When this is the
+            case, this function checks to make sure that the object hasn't
+            already been created; if it has, it generates a reference to the
+            old object. If the dict values are simply values, they are returned
+            as is."""
             if hasattr(element, 'get_metadata'):
                 # Refer to previously appended objects if already added
                 if element in INSTANCES:
@@ -292,13 +300,44 @@ def load_metadata(system, metadata=None, filename=None):
         while parts:
             obj = getattr(obj, parts.pop(0))
 
+        # Unpack *args/**kwargs before proceeding. We can't modify the
+        # dictionary during iteration, so we have to store values to change.
+        # The args default to a list that can be overridden; similarly, kwargs
+        # default to a dict.
+        args = []
+        updated_params = {}
+        to_remove = []
+        for key, value in vals['arguments'].items():
+            if key.startswith('**'):
+                to_remove.append(key)
+                for k, v in value.items():
+                    updated_params[k] = v
+            elif key.startswith('*'):
+                to_remove.append(key)
+                args = value
+
+        vals['arguments'].update(updated_params)
+        for key in to_remove:
+            vals['arguments'].pop(key)
+
         # Replace the Object entries with the actual objects
         for key, value in vals['arguments'].items():
             if isinstance(value, str) and 'Object #' in value:
                 index = int(re.findall('Object #(\d*)', value)[0])
                 vals['arguments'][key] = objects[index]
 
-        instance = obj.from_metadata(vals)
+        for i, arg in enumerate(args):
+            if isinstance(arg, str) and 'Object #' in arg:
+                index = int(re.findall('Object #(\d*)', arg)[0])
+                args[i] = objects[index]
+
+        if 'tracked_fields' in vals:
+            for key, value in vals['tracked_fields'].items():
+                if isinstance(value, str) and 'Object #' in value:
+                    index = int(re.findall('Object #(\d*)', value)[0])
+                    vals['tracked_fields'][key] = objects[index]
+
+        instance = obj.from_metadata(vals, args)
         objects.append(instance)
     hoomd.util.unquiet_status()
 

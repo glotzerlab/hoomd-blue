@@ -36,6 +36,7 @@ class _coeff(hoomd.meta._metadata):
     def __init__(self):
         self.values = {};
         self.default_coeff = {}
+        self.metadata_fields += ['values']
 
     ## \internal
     # \brief Sets a default value for a given coefficient
@@ -94,6 +95,36 @@ class _force(hoomd.meta._metadata):
         # TODO: Will need to override the from_metadata function since
         # enable/disable does extra work here.
         self.metadata_fields.extend(['enabled', 'log'])
+
+    ## \internal
+    # \brief Return the metadata
+    # Force coefficients are more naturally stored as part of the objects,
+    # rather than using a separate object (which complicates the appearance of
+    # the dumped metadata. the from_metadata function will need to be
+    # overridden to accomodate this as well.
+    def get_metadata(self):
+        metadata = super(_force, self).get_metadata()
+
+        coeff_obj = metadata['tracked_fields'].pop(self.__module__.split('.')[-1] + '_coeff')
+        parameters = {}
+        for k, v in coeff_obj.values.items():
+            parameters[k] = v
+        metadata['tracked_fields']['parameters'] = parameters
+        return metadata
+
+    @classmethod
+    def from_metadata(cls, params, args=[]):
+        """This function creates an instance of cls according to a set of metadata parameters."""
+        obj = super(_force, cls).from_metadata(params)
+        # We should unify the coeff interface at the _force class level and
+        # just have the *_coeff objects be aliases for backwards compatibility,
+        # but that will have to wait.
+        obj_coeff = getattr(obj, cls.__module__.split('.')[-1] + '_coeff')
+        for type_name, parameters in params['tracked_fields']['parameters'].items():
+            obj_coeff.set(type_name, **parameters)
+        # Remove unnecessarily set field
+        del obj.parameters
+        return obj
 
     ## \var enabled
     # \internal

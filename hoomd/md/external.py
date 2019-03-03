@@ -166,7 +166,7 @@ class _external_force(force._force):
     def __init__(self, name=""):
         # initialize the base class
         force._force.__init__(self, name);
-        self.metadata_fields += ['force_coeff']
+        self.metadata_fields += ['force_coeff', 'field_coeff']
 
         self.cpp_force = None;
 
@@ -207,6 +207,35 @@ class _external_force(force._force):
 
                 param = self.process_coeff(coeff_dict);
                 self.cpp_force.setParams(i, param);
+
+    ## \internal
+    # \brief Return the metadata
+    # Override parent to correctly access coefficient attribute.
+    def get_metadata(self):
+        # This is BAD DESIGN but is necessary in this case because of the heavy
+        # inconsistency in the way the *_coeff class attributes are names. A
+        # cleaner fix would be to standardize the name across all subclasses of
+        # force._force (with aliases for backwards compatibility, but for now
+        # calling up to higher in the class hierarchy manually will have to do.
+        metadata = hoomd.meta._metadata.get_metadata(self)
+
+        # The only reason the parent method is overriden is to manually pop the
+        # correct key from the dictionary.
+        coeff_obj = metadata['tracked_fields'].pop('force_coeff')
+        parameters = {}
+        for k, v in coeff_obj.values.items():
+            parameters[k] = v
+        metadata['tracked_fields']['parameters'] = parameters
+        return metadata
+
+    # Override parent method to use the right coeff object name.
+    @classmethod
+    def from_metadata(cls, params, args=[]):
+        # Note that we're calling super on force._force to bypass its method.
+        obj = super(force._force, cls).from_metadata(params)
+        for type_name, parameters in params['tracked_fields']['parameters'].items():
+            obj.force_coeff.set(type_name, **parameters)
+        return obj
 
 class periodic(_external_force):
     R""" One-dimension periodic potential.

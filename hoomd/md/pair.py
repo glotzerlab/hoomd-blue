@@ -317,6 +317,7 @@ class pair(force._force):
     def __init__(self, r_cut, nlist, name=None):
         # initialize the base class
         force._force.__init__(self, name);
+        self.metadata_fields.append('pair_coeff')
 
         # convert r_cut False to a floating point type
         if r_cut is False:
@@ -450,36 +451,26 @@ class pair(force._force):
 
         return r_cut_dict;
 
-    # # Override parent method because the get_metadata definition above leads to
-    # # different nesting than what's used for other forces (i.e. a list of dicts
-    # # instead of a dict of dicts). Additionally, we need to capture the
-    # # neighborlist here.
-    # @classmethod
-    # def from_metadata(cls, params):
-        # pairs = []
-        # params = copy.deepcopy(params)
-        # for p in params:
-            # enabled = p.pop('enabled', True)
-            # log = p.pop('log', True)
+    ## \internal
+    # \brief Return the metadata
+    # The keys of the values dict are tuples, which need to be serialized into
+    # a json-encodable representation. We standardize that here by
+    # concatenating the type keys with commas.
+    def get_metadata(self):
+        metadata = super(pair, self).get_metadata()
+        for k in metadata['tracked_fields']['parameters'].keys():
+            metadata['tracked_fields']['parameters'][','.join(k)] = metadata['tracked_fields']['parameters'].pop(k)
+        return metadata
 
-            # # Extract the coeff
-            # coeff_values = p.pop('pair_coeff')
-
-            # nlist_values = p.pop('nlist')
-            # nlist_type = nlist_values.pop('nlist_type')
-            # nlist = getattr(nl, nlist_type)(**nlist_values)
-            # p['nlist'] = nlist
-
-            # pair = cls(**p)
-            # for settings in coeff_values:
-                # a = settings.pop('typei')
-                # b = settings.pop('typej')
-                # pair.pair_coeff.set(a, b, **settings)
-
-            # if not enabled:
-                # pair.disable(log=log)
-            # pairs.append(pair)
-        # return pairs
+    # Override parent method to correctly split the type names for setting.
+    @classmethod
+    def from_metadata(cls, params, args=[]):
+        # Note that we're calling super on force._force to bypass its method.
+        obj = super(force._force, cls).from_metadata(params)
+        for type_names, parameters in params['tracked_fields']['parameters'].items():
+            obj.pair_coeff.set(*type_names.split(','), **parameters)
+        del obj.parameters
+        return obj
 
     def compute_energy(self, tags1, tags2):
         R""" Compute the energy between two sets of particles.
