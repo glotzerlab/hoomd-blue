@@ -40,40 +40,20 @@ Software Prerequisites
 
 Compiling **HOOMD-blue** requires a number of software packages and libraries.
 
- * Required:
-     * Git >= 1.7.0
-     * Python >= 2.7
-     * NumPy >= 1.7
-     * CMake >= 2.8.0
-     * C++11 capable compiler (tested with ``gcc`` 4.8, 4.9, 5.4, 6.4, 7.0,
-       8.0, ``clang`` 5.0, 6.0)
- * Optional:
-     * NVIDIA CUDA Toolkit >= 8.0
-     * Intel Threading Building Blocks >= 4.3
-     * MPI (tested with OpenMPI, MVAPICH)
-     * LLVM >= 3.6, <= 7.0.0
- * Useful developer tools
-     * Doxygen >= 1.8.5
-
-Clone using Git::
-
-    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
-
-Note that the ``--recursive`` flag will fetch required submodules.
-Alternatively, call ``git submodule update --init`` in the repository
-directory.
-
-Configure with ``cmake`` and compile with ``make``. Replace ``${PREFIX}`` with
-your desired installation location::
-
-    $ mkdir build
-    $ cd build
-    $ cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX}/lib/python
-    $ make install -j10
-
-Add ``${PREFIX}/lib/python`` to your ``PYTHONPATH`` to use **HOOMD-blue**::
-
-    $ export PYTHONPATH=$PYTHONPATH:${PREFIX}/lib/python
+- Required:
+    - Git >= 1.7.0
+    - Python >= 2.7
+    - NumPy >= 1.7
+    - CMake >= 2.8.0
+    - C++11 capable compiler (tested with ``gcc`` 4.8, 4.9, 5.4, 6.4, 7.0,
+      8.0, ``clang`` 5.0, 6.0)
+- Optional:
+    - NVIDIA CUDA Toolkit >= 8.0
+    - Intel Threading Building Blocks >= 4.3
+    - MPI (tested with OpenMPI, MVAPICH)
+    - LLVM >= 3.6, <= 7.0.0
+- Useful developer tools
+    - Doxygen >= 1.8.5
 
 Software prerequisites on clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -103,7 +83,7 @@ Installing prerequisites with conda
     but there are many pitfalls when using it to provide development
     prerequisites.
 
-Despite this warning: many users wish to use conda to provide those development
+Despite this warning, many users wish to use conda to provide those development
 prerequisites. There are a few additional steps required to build
 **HOOMD-blue** against a conda software stack, as you must ensure that all
 libraries (MPI, Python, etc.) are linked from the conda environment. First,
@@ -144,13 +124,14 @@ install **HOOMD-blue**::
 
 Clone the Git repository to get the source::
 
-    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
+    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue.git
 
 By default, the ``maint`` branch will be checked out. This branch includes all
 bug fixes since the last stable release. **HOOMD-blue** uses submodules, using
 the ``--recursive`` option to clone instructs Git to fetch all of the
-submodules. When you update this Git repository with ``git pull``, run
-``git submodule update`` to update all of the submodules.
+submodules. Alternatively, call ``git submodule update --init`` in the
+repository directory. When you update this Git repository with ``git pull``,
+run ``git submodule update`` to update all of the submodules.
 
 Configure::
 
@@ -173,13 +154,12 @@ Compile::
 
     $ make -j4
 
-Run::
+Test your build (requires a GPU to pass if **HOOMD-blue** was built with CUDA support)::
 
     $ make test
 
-to test your build. If you built with CUDA support, you need a GPU for all tests to pass.
-
 .. attention::
+
     On a cluster, run ``make test`` within a job on a GPU compute node.
 
 To install a stable version for general use, run::
@@ -194,7 +174,7 @@ Build options
 -------------
 
 Here is a list of all the build options that can be changed by CMake. To
-change these settings, navigate to the *build* directory and run::
+change these settings, navigate to the ``build`` directory and run::
 
     $ ccmake .
 
