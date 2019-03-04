@@ -1,6 +1,6 @@
-=====================
-Installing HOOMD-blue
-=====================
+==================
+Installation Guide
+==================
 
 **HOOMD-blue** binaries are available as containers (`Docker Hub
 <https://hub.docker.com/r/glotzerlab/software>`_, `Singularity Hub

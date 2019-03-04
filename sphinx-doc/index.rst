@@ -26,16 +26,20 @@ HOOMD-blue
 .. |License| image:: https://img.shields.io/badge/license-BSD--3--Clause-green.svg
     :target: https://github.com/glotzerlab/hoomd-blue/blob/maint/LICENSE
 
-**HOOMD-blue** is a general purpose particle simulation toolkit.It performs hard particle Monte Carlo simulations
-of a variety of shape classes, and molecular dynamics simulations of particles with a range of pair, bond, angle,
-and other potentials. **HOOMD-blue** runs fast on NVIDIA GPUs, and can scale across thousands of nodes.
-For more information, see the `HOOMD-blue website <https://glotzerlab.engin.umich.edu/hoomd-blue/>`_.
+**HOOMD-blue** is a general purpose particle simulation toolkit. It performs
+hard particle Monte Carlo simulations of a variety of shape classes, and
+molecular dynamics simulations of particles with a range of pair, bond, angle,
+and other potentials. **HOOMD-blue** runs fast on NVIDIA GPUs, and can scale
+across thousands of nodes. For more information, see the `HOOMD-blue website
+<https://glotzerlab.engin.umich.edu/hoomd-blue/>`_.
 
 Resources
 =========
 
 - `GitHub Repository <https://github.com/glotzerlab/hoomd-blue>`_:
   Source code and issue tracker.
+- :doc:`/installation`:
+  Instructions for installing and compiling **HOOMD-blue**.
 - `hoomd-users Google Group <https://groups.google.com/d/forum/hoomd-users>`_:
   Ask questions to the **HOOMD-blue** community.
 - `HOOMD-blue Tutorial <https://nbviewer.jupyter.org/github/glotzerlab/hoomd-examples/blob/master/index.ipynb>`_:
@@ -46,8 +50,9 @@ Resources
 Job scripts
 ===========
 
-HOOMD-blue job scripts are Python scripts. You can control system initialization, run protocols, analyze simulation data,
-or develop complex workflows all with Python code in your job.
+HOOMD-blue job scripts are Python scripts. You can control system
+initialization, run protocols, analyze simulation data, or develop complex
+workflows all with Python code in your job.
 
 Here is a simple example:
 
@@ -72,7 +77,9 @@ Here is a simple example:
    # Run for 10,000 time steps
    hoomd.run(10e3)
 
-Save this script as ``lj.py`` and run it with ``python lj.py`` (or ``singularity exec software.simg python3 lj.py`` if using Singularity containers).
+Save this script as ``lj.py`` and run it with ``python lj.py`` (or
+``singularity exec software.simg python3 lj.py`` if using Singularity
+containers).
 
 .. toctree::
     :maxdepth: 2
