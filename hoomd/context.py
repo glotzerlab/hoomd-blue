@@ -121,10 +121,13 @@ class SimulationContext(object):
         ## Global variable that holds the sorter
         self.sorter = None;
 
-        ## Global variable that tracks the all of the force computes specified in the script so far
+        ## Global variable that tracks all metadata-tracking objects instantiated within this context.
+        self.meta_objects = []
+
+        ## Global variable that tracks all of the force computes specified in the script so far
         self.forces = [];
 
-        ## Global variable that tracks the all of the constraint force computes specified in the script so far
+        ## Global variable that tracks all of the constraint force computes specified in the script so far
         self.constraint_forces = [];
 
         ## Global variable that tracks all the integration methods that have been specified in the script so far

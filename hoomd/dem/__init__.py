@@ -98,4 +98,4 @@ else:
 
 # Log that we imported dem
 from hoomd import meta
-meta.MODULES.add('dem')
+meta.MODULES.append('dem')

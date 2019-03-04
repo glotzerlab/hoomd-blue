@@ -14,6 +14,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force;
 import hoomd;
+from hoomd import meta
 
 import sys;
 import math;

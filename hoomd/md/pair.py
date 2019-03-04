@@ -31,6 +31,7 @@ from hoomd.md import _md
 from hoomd.md import force;
 from hoomd.md import nlist as nl # to avoid naming conflicts
 import hoomd;
+from hoomd import meta
 
 import math;
 import sys;

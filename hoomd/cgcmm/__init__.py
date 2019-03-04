@@ -16,4 +16,4 @@ from hoomd.cgcmm import pair
 
 # Log that we imported cgcmm
 from hoomd import meta
-meta.MODULES.add('cgcmm')
+meta.MODULES.append('cgcmm')

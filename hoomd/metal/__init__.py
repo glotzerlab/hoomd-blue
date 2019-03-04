@@ -13,4 +13,4 @@ from hoomd.metal import pair
 
 # Log that we imported metal
 from hoomd import meta
-meta.MODULES.add('metal')
+meta.MODULES.append('metal')

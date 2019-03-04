@@ -122,4 +122,4 @@ else:
 
 # Log that we imported hpmc
 from hoomd import meta
-meta.MODULES.add('hpmc')
+meta.MODULES.append('hpmc')

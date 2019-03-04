@@ -19,4 +19,4 @@ from hoomd.jit import external
 
 # Log that we imported jit
 from hoomd import meta
-meta.MODULES.add('jit')
+meta.MODULES.append('jit')

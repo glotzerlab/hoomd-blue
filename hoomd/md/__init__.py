@@ -29,4 +29,4 @@ from hoomd.md import special_pair
 
 # Log that we imported md
 from hoomd import meta
-meta.MODULES.add('md')
+meta.MODULES.append('md')

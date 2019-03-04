@@ -194,7 +194,7 @@ class all(group):
             # user), the user's request for group.all will go unrecorded, so we
             # need to manually add it here.
             if hoomd.meta.should_track():
-                hoomd.meta.INSTANCES.append(hoomd.context.current.group_all)
+                hoomd.context.current.meta_objects.append(hoomd.context.current.group_all)
             return hoomd.context.current.group_all
 
         self = super(all, cls).__new__(cls)

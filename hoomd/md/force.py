@@ -272,7 +272,7 @@ class constant(_force):
         fx (float): x component of force, retained for backwards compatibility
         fy (float): y component of force, retained for backwards compatibility
         fz (float): z component of force, retained for backwards compatibility
-        group (:py:mod:`hoomd.group`): Group for which the force will be set.
+        group (:py:class:`hoomd.group.group`): Group for which the force will be set.
         callback (`callable`): A python callback invoked every time the forces are computed
 
     :py:class:`constant` specifies that a constant force should be added to every
@@ -359,7 +359,7 @@ class constant(_force):
             fz (float): New z-component of the force (in force units)
             fvec (tuple): New force vector
             tvec (tuple): New torque vector
-            group (`hoomd.group.group`): Group for which the force will be set
+            group (:py:class:`hoomd.group.group`): Group for which the force will be set
             tag (int): Particle tag for which the force will be set
 
          Using set_force() requires that you saved the created constant force in a variable.

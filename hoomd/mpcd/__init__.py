@@ -106,7 +106,7 @@ from hoomd.mpcd import update
 
 # Log that we imported mpcd
 from hoomd import meta
-meta.MODULES.add('mpcd')
+meta.MODULES.append('mpcd')
 
 # add MPCD article citation notice
 _citation = hoomd.cite.article(cite_key='howard2018',
