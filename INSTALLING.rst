@@ -78,10 +78,10 @@ Installing prerequisites with conda
 
 .. caution::
 
-    *Not recommended.* Conda is very useful as a delivery platform for `stable
-    binaries <http://glotzerlab.engin.umich.edu/hoomd-blue/download.html>`_,
-    but there are many pitfalls when using it to provide development
-    prerequisites.
+    *Using conda to provide build prerequisites is not recommended.* Conda is
+    very useful as a delivery platform for `stable binaries
+    <http://glotzerlab.engin.umich.edu/hoomd-blue/download.html>`_, but there
+    are many pitfalls when using it to provide development prerequisites.
 
 Despite this warning, many users wish to use conda to provide those development
 prerequisites. There are a few additional steps required to build
@@ -179,11 +179,11 @@ change these settings, navigate to the ``build`` directory and run::
     $ ccmake .
 
 After changing an option, press ``c`` to configure, then press ``g`` to
-generate. The Makefile/IDE project is now updated with the newly selected
-options. Alternately, you can set these parameters on the command line with
+generate. The ``Makefile`` is now updated with the newly selected
+options. You can also set these parameters on the command line with
 ``cmake``::
 
-    cmake $HOME/devel/hoomd -DENABLE_CUDA=on
+    cmake $HOME/devel/hoomd -DENABLE_CUDA=ON
 
 Options that specify library versions only take effect on a clean invocation of
 CMake. To set these options, first remove ``CMakeCache.txt`` and then run CMake
