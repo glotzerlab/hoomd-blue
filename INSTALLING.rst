@@ -122,38 +122,52 @@ need to set the appropriate setting for ``PYTHON_EXECUTABLE``, etc.
 Compile HOOMD-blue
 ------------------
 
-Set the environment variable ``SOFTWARE_ROOT`` to the location you wish to
-install **HOOMD-blue**::
+Download source releases directly from the web: https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
-    $ export SOFTWARE_ROOT=/path/to/prefix
+.. code-block:: bash
 
-Clone the Git repository to get the source::
+   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.5.0.tar.gz
 
-    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue.git
+Or, clone using git:
 
-By default, the ``maint`` branch will be checked out. This branch includes all
-bug fixes since the last stable release. **HOOMD-blue** uses submodules, using
-the ``--recursive`` option to clone instructs Git to fetch all of the
-submodules. Alternatively, call ``git submodule update --init`` in the
-repository directory. When you update this Git repository with ``git pull``,
-run ``git submodule update`` to update all of the submodules.
+.. code-block:: bash
+
+   $ git clone --recursive  https://github.com/glotzerlab/hoomd-blue
+
+**HOOMD-blue** uses git submodules. Either clone with the ``--recursive`` option, or execute
+``git submodule update --init`` to fetch the submodules.
+
+.. note::
+
+    When using a shared (read-only) Python installation, such as a module on an cluster, create a
+    `virtual environment <https://docs.python.org/3/library/venv.html>`_ where you can install **HOOMD-blue**::
+
+        python3 -m venv /path/to/new/virtual/environment --system-site-packages
+
+    Activate the environment before configuring and before executing **HOOMD-blue** scripts::
+
+        source /path/to/new/virtual/environment/bin/activate
 
 Configure::
 
     $ cd hoomd-blue
     $ mkdir build
     $ cd build
-    $ cmake ../ -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
+    $ cmake ../ -DCMAKE_INSTALL_PREFIX=`python3 -c "import site; print(site.getsitepackages()[0])"`
 
 By default, **HOOMD-blue** configures a *Release* optimized build type for a
-generic CPU architecture and with no optional libraries. Specify
-``-DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native`` (or the
-appropriate option for your compiler) to enable optimizations specific to your
-CPU. Specify ``-DENABLE_CUDA=ON`` to compile code for the GPU (requires CUDA)
-and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI. See the build
-options section below for a full list of options::
+generic CPU architecture and with no optional libraries. Specify::
 
-    $ cmake ../ -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native -DENABLE_CUDA=ON -DENABLE_MPI=ON
+    -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native
+
+(or the appropriate option for your compiler) to enable optimizations specific to your
+CPU. Specify ``-DENABLE_CUDA=ON`` to compile code for the GPU (requires CUDA)
+and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI. Configure a performance optimized
+build::
+
+    $ cmake ../ -DCMAKE_INSTALL_PREFIX=`python3 -c "import site; print(site.getsitepackages()[0])"` -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native -DENABLE_CUDA=ON -DENABLE_MPI=ON
+
+See the build options section below for a full list of options.
 
 Compile::
 
@@ -161,19 +175,15 @@ Compile::
 
 Test your build (requires a GPU to pass if **HOOMD-blue** was built with CUDA support)::
 
-    $ make test
+    $ ctest
 
 .. attention::
 
-    On a cluster, run ``make test`` within a job on a GPU compute node.
+    On a cluster, run ``ctest`` within a job on a GPU compute node.
 
-To install a stable version for general use, run::
+To install **HOOMD-blue** into your python environment, run::
 
     make install
-
-Then set your ``PYTHONPATH`` so that Python can find ``hoomd``::
-
-    export PYTHONPATH=$PYTHONPATH:${SOFTWARE_ROOT}/lib/python
 
 Build options
 ^^^^^^^^^^^^^
