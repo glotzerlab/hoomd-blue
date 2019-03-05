@@ -2,29 +2,31 @@
 HOOMD-blue
 ==========
 
-|Citing-HOOMD|
-|conda-forge|
-|conda-forge-Downloads|
-|CircleCI|
-|Read-the-Docs|
-|Contributors|
-|License|
+.. only:: html
+
+    |Citing-HOOMD|
+    |conda-forge|
+    |conda-forge-Downloads|
+    |CircleCI|
+    |Read-the-Docs|
+    |Contributors|
+    |License|
 
 
-.. |Citing-HOOMD| image:: https://img.shields.io/badge/cite-hoomd-blue.svg
-    :target: https://glotzerlab.engin.umich.edu/hoomd-blue/citing.html
-.. |conda-forge| image:: https://img.shields.io/conda/vn/conda-forge/hoomd.svg?style=flat
-    :target: https://anaconda.org/conda-forge/hoomd
-.. |conda-forge-Downloads| image:: https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat
-    :target: https://anaconda.org/conda-forge/hoomd
-.. |CircleCI| image:: https://img.shields.io/circleci/project/github/glotzerlab/hoomd-blue/master.svg
-    :target: https://circleci.com/gh/glotzerlab/hoomd-blue
-.. |Read-the-Docs| image:: https://img.shields.io/readthedocs/hoomd-blue/stable.svg
-    :target: https://hoomd-blue.readthedocs.io/en/stable/?badge=stable
-.. |Contributors| image:: https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat
-    :target: https://hoomd-blue.readthedocs.io/en/stable/credits.html
-.. |License| image:: https://img.shields.io/badge/license-BSD--3--Clause-green.svg
-    :target: https://github.com/glotzerlab/hoomd-blue/blob/maint/LICENSE
+    .. |Citing-HOOMD| image:: https://img.shields.io/badge/cite-hoomd-blue.svg
+        :target: https://glotzerlab.engin.umich.edu/hoomd-blue/citing.html
+    .. |conda-forge| image:: https://img.shields.io/conda/vn/conda-forge/hoomd.svg?style=flat
+        :target: https://anaconda.org/conda-forge/hoomd
+    .. |conda-forge-Downloads| image:: https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat
+        :target: https://anaconda.org/conda-forge/hoomd
+    .. |CircleCI| image:: https://img.shields.io/circleci/project/github/glotzerlab/hoomd-blue/master.svg
+        :target: https://circleci.com/gh/glotzerlab/hoomd-blue
+    .. |Read-the-Docs| image:: https://img.shields.io/readthedocs/hoomd-blue/stable.svg
+        :target: https://hoomd-blue.readthedocs.io/en/stable/?badge=stable
+    .. |Contributors| image:: https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat
+        :target: https://hoomd-blue.readthedocs.io/en/stable/credits.html
+    .. |License| image:: https://img.shields.io/badge/license-BSD--3--Clause-green.svg
+        :target: https://github.com/glotzerlab/hoomd-blue/blob/maint/LICENSE
 
 **HOOMD-blue** is a general purpose particle simulation toolkit. It performs
 hard particle Monte Carlo simulations of a variety of shape classes, and
