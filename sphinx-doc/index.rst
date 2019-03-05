@@ -85,10 +85,15 @@ containers).
 
 .. toctree::
     :maxdepth: 2
-    :caption: Concepts
+    :caption: Getting started
 
     installation
     command-line-options
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Concepts
+
     units
     box
     aniso

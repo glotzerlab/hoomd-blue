@@ -1,6 +1,5 @@
-==================
-Installation Guide
-==================
+Installing binaries
+===================
 
 **HOOMD-blue** binaries are available as containers (`Docker Hub
 <https://hub.docker.com/r/glotzerlab/software>`_, `Singularity Hub
@@ -8,7 +7,7 @@ Installation Guide
 the `hoomd package on conda-forge <https://anaconda.org/conda-forge/hoomd>`_.
 
 Using Singularity / Docker containers
-=====================================
+-------------------------------------
 
 Singularity::
 
@@ -19,7 +18,7 @@ Docker::
     $ docker pull glotzerlab/software
 
 Installing with conda
-=====================
+---------------------
 
 **HOOMD-blue** is available on `conda-forge <https://conda-forge.org>`_. To
 install, first download and install `miniconda
@@ -35,8 +34,8 @@ If ``hoomd`` has already been installed, you can upgrade to the latest version::
 Compiling from source
 =====================
 
-Software Prerequisites
-----------------------
+Prerequisites
+-------------
 
 Compiling **HOOMD-blue** requires a number of software packages and libraries.
 
@@ -176,7 +175,7 @@ Then set your ``PYTHONPATH`` so that Python can find ``hoomd``::
     export PYTHONPATH=$PYTHONPATH:${SOFTWARE_ROOT}/lib/python
 
 Build options
--------------
+^^^^^^^^^^^^^
 
 Here is a list of all the build options that can be changed by CMake. To
 change these settings, navigate to the ``build`` directory and run::
