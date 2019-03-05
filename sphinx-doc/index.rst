@@ -21,7 +21,7 @@ HOOMD-blue
     :target: https://circleci.com/gh/glotzerlab/hoomd-blue
 .. |Read-the-Docs| image:: https://img.shields.io/readthedocs/hoomd-blue/stable.svg
     :target: https://hoomd-blue.readthedocs.io/en/stable/?badge=stable
-.. |Contributors| image:: https://img.shields.io/github/contributors/glotzerlab/hoomd-blue.svg?style=flat
+.. |Contributors| image:: https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat
     :target: https://hoomd-blue.readthedocs.io/en/stable/credits.html
 .. |License| image:: https://img.shields.io/badge/license-BSD--3--Clause-green.svg
     :target: https://github.com/glotzerlab/hoomd-blue/blob/maint/LICENSE

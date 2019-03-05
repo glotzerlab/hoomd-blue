@@ -5,7 +5,7 @@
 [![conda-forge Downloads](https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
 [![CircleCI](https://img.shields.io/circleci/project/github/glotzerlab/hoomd-blue/master.svg)](https://circleci.com/gh/glotzerlab/hoomd-blue)
 [![Read the Docs](https://img.shields.io/readthedocs/hoomd-blue/stable.svg)](https://hoomd-blue.readthedocs.io/en/stable/?badge=stable)
-[![Contributors](https://img.shields.io/github/contributors/glotzerlab/hoomd-blue.svg?style=flat)](https://hoomd-blue.readthedocs.io/en/stable/credits.html)
+[![Contributors](https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat)](https://hoomd-blue.readthedocs.io/en/stable/credits.html)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
 
 **HOOMD-blue** is a general purpose particle simulation toolkit. It performs
