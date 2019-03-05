@@ -41,7 +41,6 @@ Compiling **HOOMD-blue** requires a number of software packages and libraries.
 
 - Required:
 
-  - Git >= 1.7.0
   - Python >= 2.7
   - NumPy >= 1.7
   - CMake >= 2.8.0
@@ -50,10 +49,11 @@ Compiling **HOOMD-blue** requires a number of software packages and libraries.
 
 - Optional:
 
+  - Git >= 1.7.0
   - NVIDIA CUDA Toolkit >= 8.0
   - Intel Threading Building Blocks >= 4.3
   - MPI (tested with OpenMPI, MVAPICH)
-  - LLVM >= 3.6, <= 7.0.0
+  - LLVM >= 3.6
 
 - Useful developer tools
 
@@ -93,22 +93,23 @@ prerequisites. There are a few additional steps required to build
 libraries (MPI, Python, etc.) are linked from the conda environment. First,
 install `miniconda <https://docs.conda.io/en/latest/miniconda.html>`_.
 Then, uninstall the ``hoomd`` package if it is installed,
-and install the prerequisite libraries and tools::
+and install the prerequisite libraries and tools. On linux, run::
 
-    # if using linux
     conda install sphinx git mpich2 numpy cmake pkg-config
-    # if using mac
+
+On macOS::
+
     conda install sphinx git numpy cmake pkg-config
 
-Check the CMake configuration to ensure that it finds Python, NumPy, and MPI
-from within the conda installation. If any of these library or include files
-reference directories other than your conda environment, you will need to set
-the appropriate setting for ``PYTHON_EXECUTABLE``, etc.
+After configuring, check the CMake configuration to ensure that it finds Python,
+NumPy, and MPI from within the conda installation. If any of these library or
+include files reference directories other than your conda environment, you will
+need to set the appropriate setting for ``PYTHON_EXECUTABLE``, etc.
 
 .. note::
 
     The ``mpich2`` package is not available on macOS. Without it,
-    **HOOMD-blue** will build without MPI support.
+    **HOOMD-blue** will only build without MPI support.
 
 .. warning::
 
