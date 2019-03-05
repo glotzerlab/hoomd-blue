@@ -72,7 +72,7 @@ exec software.simg python3 lj.py` if using Singularity containers).
 
 ## Change log
 
-See [ChangeLog.md](ChangeLog.md).
+See [CHANGELOG.rst](CHANGELOG.rst).
 
 ## Contributing to HOOMD-blue
 

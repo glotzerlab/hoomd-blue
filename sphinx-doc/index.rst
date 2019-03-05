@@ -88,6 +88,7 @@ containers).
     :caption: Getting started
 
     installation
+    changelog
     command-line-options
 
 .. toctree::
