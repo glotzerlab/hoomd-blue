@@ -41,19 +41,24 @@ Software Prerequisites
 Compiling **HOOMD-blue** requires a number of software packages and libraries.
 
 - Required:
-    - Git >= 1.7.0
-    - Python >= 2.7
-    - NumPy >= 1.7
-    - CMake >= 2.8.0
-    - C++11 capable compiler (tested with ``gcc`` 4.8, 4.9, 5.4, 6.4, 7.0,
-      8.0, ``clang`` 5.0, 6.0)
+
+  - Git >= 1.7.0
+  - Python >= 2.7
+  - NumPy >= 1.7
+  - CMake >= 2.8.0
+  - C++11 capable compiler (tested with ``gcc`` 4.8, 4.9, 5.4, 6.4, 7.0,
+    8.0, ``clang`` 5.0, 6.0)
+
 - Optional:
-    - NVIDIA CUDA Toolkit >= 8.0
-    - Intel Threading Building Blocks >= 4.3
-    - MPI (tested with OpenMPI, MVAPICH)
-    - LLVM >= 3.6, <= 7.0.0
+
+  - NVIDIA CUDA Toolkit >= 8.0
+  - Intel Threading Building Blocks >= 4.3
+  - MPI (tested with OpenMPI, MVAPICH)
+  - LLVM >= 3.6, <= 7.0.0
+
 - Useful developer tools
-    - Doxygen >= 1.8.5
+
+  - Doxygen >= 1.8.5
 
 Software prerequisites on clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -215,49 +220,46 @@ Other option changes take effect at any time. These can be set from within
 - ``BUILD_TESTING`` - Enables the compilation of unit tests.
 - ``CMAKE_BUILD_TYPE`` - Sets the build type (case sensitive) Options:
 
-    - ``Debug`` - Compiles debug information into the library and executables.
-      Enables asserts to check for programming mistakes. HOOMD-blue will run
-      slow when compiled in Debug mode, but problems are easier to identify.
-    - ``RelWithDebInfo`` - Compiles with optimizations and debug symbols.
-      Useful for profiling benchmarks.
-    - ``Release`` - (default) All compiler optimizations are enabled and
-      asserts are removed. Recommended for production builds: required for any
-      benchmarking.
+  - ``Debug`` - Compiles debug information into the library and executables.
+    Enables asserts to check for programming mistakes. HOOMD-blue will run
+    slow when compiled in Debug mode, but problems are easier to identify.
+  - ``RelWithDebInfo`` - Compiles with optimizations and debug symbols.
+    Useful for profiling benchmarks.
+  - ``Release`` - (default) All compiler optimizations are enabled and
+    asserts are removed. Recommended for production builds: required for any
+    benchmarking.
 
-- ``ENABLE_CUDA`` - Enable compiling of the GPU accelerated computations using
-  CUDA. Defaults ``ON`` if the CUDA toolkit is found, and ``OFF`` if the CUDA
-  toolkit is not found.
+- ``ENABLE_CUDA`` - Enable compiling of the GPU accelerated computations. Default: ``OFF``.
 - ``ENABLE_DOXYGEN`` - Enables the generation of developer documentation
-  (default is ``OFF``).
-- ``SINGLE_PRECISION`` - Controls precision.
+  Default: ``OFF``.
+- ``SINGLE_PRECISION`` - Controls precision. Default: ``OFF``.
 
-    - When set to ``ON``, all calculations are performed in single precision.
-    - When set to ``OFF``, all calculations are performed in double precision.
+  - When set to ``ON``, all calculations are performed in single precision.
+  - When set to ``OFF``, all calculations are performed in double precision.
 
 - ``ENABLE_HPMC_MIXED_PRECISION`` - Controls mixed precision in the hpmc
   component. When on, single precision is forced in expensive shape overlap
   checks.
 - ``ENABLE_MPI`` - Enable multi-processor/GPU simulations using MPI.
 
-    - When set to ``ON`` (default if any MPI library is found automatically by
-      CMake), multi-processor/multi-GPU simulations are supported.
-    - When set to ``OFF``, always run in single-processor/single-GPU mode.
+  - When set to ``ON``, multi-processor/multi-GPU simulations are supported.
+  - When set to ``OFF`` (the default), always run in single-processor/single-GPU mode.
 
 - ``ENABLE_MPI_CUDA`` - Enable CUDA-aware MPI library support.
 
-    - Requires a MPI library with CUDA support to be installed.
-    - When set to ``ON`` (default if a CUDA-aware MPI library is detected),
-      **HOOMD-blue** will make use of the capability of the MPI library to
-      accelerate CUDA-buffer transfers.
-    - When set to ``OFF``, standard MPI calls will be used.
-    - *Warning:* Manually setting this feature to ``ON`` when the MPI library
-      does not support CUDA may cause **HOOMD-blue** to crash.
+  - Requires a MPI library with CUDA support to be installed.
+  - When set to ``ON`` (default if a CUDA-aware MPI library is detected),
+    **HOOMD-blue** will make use of the capability of the MPI library to
+    accelerate CUDA-buffer transfers.
+  - When set to ``OFF``, standard MPI calls will be used.
+  - *Warning:* Manually setting this feature to ``ON`` when the MPI library
+    does not support CUDA may cause **HOOMD-blue** to crash.
 
 - ``ENABLE_TBB`` - Enable support for Intel's Threading Building Blocks (TBB).
 
-    - Requires TBB to be installed.
-    - When set to ``ON``, HOOMD will use TBB to speed up calculations in some
-      classes on multiple CPU cores.
+  - Requires TBB to be installed.
+  - When set to ``ON``, HOOMD will use TBB to speed up calculations in some
+    classes on multiple CPU cores.
 
 - ``UPDATE_SUBMODULES`` - When ``ON`` (the default), CMake will execute
   ``git submodule update --init`` whenever it runs.
