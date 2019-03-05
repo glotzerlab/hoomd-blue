@@ -40,7 +40,7 @@ Resources
 
 - `GitHub Repository <https://github.com/glotzerlab/hoomd-blue>`_:
   Source code and issue tracker.
-- :doc:`/installation`:
+- :doc:`Installation Guide </installation>`:
   Instructions for installing and compiling **HOOMD-blue**.
 - `hoomd-users Google Group <https://groups.google.com/d/forum/hoomd-users>`_:
   Ask questions to the **HOOMD-blue** community.

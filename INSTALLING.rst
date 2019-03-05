@@ -93,11 +93,11 @@ prerequisites. There are a few additional steps required to build
 libraries (MPI, Python, etc.) are linked from the conda environment. First,
 install `miniconda <https://docs.conda.io/en/latest/miniconda.html>`_.
 Then, uninstall the ``hoomd`` package if it is installed,
-and install the prerequisite libraries and tools. On linux, run::
+and install the prerequisite libraries and tools. On Linux, run::
 
     conda install sphinx git mpich2 numpy cmake pkg-config
 
-On macOS::
+On macOS, run::
 
     conda install sphinx git numpy cmake pkg-config
 
@@ -122,29 +122,33 @@ need to set the appropriate setting for ``PYTHON_EXECUTABLE``, etc.
 Compile HOOMD-blue
 ------------------
 
-Download source releases directly from the web: https://glotzerlab.engin.umich.edu/Downloads/hoomd
+Download source releases directly from the web:
+https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 .. code-block:: bash
 
    $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.5.0.tar.gz
 
-Or, clone using git:
+Or, clone using Git:
 
 .. code-block:: bash
 
-   $ git clone --recursive  https://github.com/glotzerlab/hoomd-blue
+   $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-**HOOMD-blue** uses git submodules. Either clone with the ``--recursive`` option, or execute
-``git submodule update --init`` to fetch the submodules.
+**HOOMD-blue** uses Git submodules. Either clone with the ``--recursive``
+option, or execute ``git submodule update --init`` to fetch the submodules.
 
 .. note::
 
-    When using a shared (read-only) Python installation, such as a module on an cluster, create a
-    `virtual environment <https://docs.python.org/3/library/venv.html>`_ where you can install **HOOMD-blue**::
+    When using a shared (read-only) Python installation, such as a module on a
+    cluster, create a `virtual environment
+    <https://docs.python.org/3/library/venv.html>`_ where you can install
+    **HOOMD-blue**::
 
         python3 -m venv /path/to/new/virtual/environment --system-site-packages
 
-    Activate the environment before configuring and before executing **HOOMD-blue** scripts::
+    Activate the environment before configuring and before executing
+    **HOOMD-blue** scripts::
 
         source /path/to/new/virtual/environment/bin/activate
 
@@ -160,10 +164,10 @@ generic CPU architecture and with no optional libraries. Specify::
 
     -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native
 
-(or the appropriate option for your compiler) to enable optimizations specific to your
-CPU. Specify ``-DENABLE_CUDA=ON`` to compile code for the GPU (requires CUDA)
-and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI. Configure a performance optimized
-build::
+(or the appropriate option for your compiler) to enable optimizations specific
+to your CPU. Specify ``-DENABLE_CUDA=ON`` to compile code for the GPU (requires
+CUDA) and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI.
+Configure a performance optimized build::
 
     $ cmake ../ -DCMAKE_INSTALL_PREFIX=`python3 -c "import site; print(site.getsitepackages()[0])"` -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native -DENABLE_CUDA=ON -DENABLE_MPI=ON
 
@@ -181,7 +185,7 @@ Test your build (requires a GPU to pass if **HOOMD-blue** was built with CUDA su
 
     On a cluster, run ``ctest`` within a job on a GPU compute node.
 
-To install **HOOMD-blue** into your python environment, run::
+To install **HOOMD-blue** into your Python environment, run::
 
     make install
 
