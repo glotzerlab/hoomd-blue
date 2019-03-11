@@ -855,7 +855,7 @@ class clusters(_updater):
 
     The type swap move works between two types of spherical particles and exchanges their identities.
 
-    The :py:class:`clusters` updater support TBB execution on multiple CPU cores. See :doc:`compiling` for more information on how
+    The :py:class:`clusters` updater support TBB execution on multiple CPU cores. See :doc:`installation` for more information on how
     to compile HOOMD with TBB support.
 
     Args:

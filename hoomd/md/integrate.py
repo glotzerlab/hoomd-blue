@@ -695,7 +695,7 @@ class nph(npt):
          A time scale *tauP* for the relaxation of the barostat is required. This is defined as the
          relaxation time the barostat would have at an average temperature *T_0 = 1*, and it
          is related to the internally used (Andersen) Barostat mass :math:`W` via
-         :math:`W=d N T_0 \tauP^2`, where :math:`d` is the dimensionality and :math:`N` the number
+         :math:`W=d N T_0 \tau_P^2`, where :math:`d` is the dimensionality and :math:`N` the number
          of particles.
 
     :py:class:`nph` is an integration method and must be used with :py:class:`mode_standard`.

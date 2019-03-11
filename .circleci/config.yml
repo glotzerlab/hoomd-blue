@@ -85,6 +85,7 @@ commands:
   sphinx:
     steps:
       - run: cd code/sphinx-doc && sphinx-build -b html -d _build/doctrees -W -n . _build/html
+      - run: cd code/sphinx-doc && sphinx-build -b latex -d _build/doctrees -W -n . _build/latex
 
 jobs:
   build_and_test:
