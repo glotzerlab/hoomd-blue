@@ -488,4 +488,6 @@ DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(co
 
 }; // end namespace hpmc
 
+#undef DEVICE
+#undef HOSTDEVICE
 #endif //__SHAPE_FACETED_SPHERE_H__
