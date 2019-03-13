@@ -9,7 +9,7 @@ assignees: ''
 
 ## Description
 
-<!-- What new capability would you like in HOOMD-blue. -->
+<!-- What new capability would you like in HOOMD-blue? -->
 
 ## Proposed solution
 

@@ -45,11 +45,11 @@ Installation method:
 - Compiled from source
 - glotzerlab-software container
 
-<!-- What software versions do you have-->
+<!-- What software versions do you have? -->
 
 Versions:
 - Python version: ?.?.?
-- HOOMD-blue version: ?.?.?
+- **HOOMD-blue** version: ?.?.?
 
 ## Developer
 

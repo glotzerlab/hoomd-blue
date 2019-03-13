@@ -28,7 +28,7 @@ Bug fixes should be based on `maint`. New features should be based on `master`.
 All changes in a pull request should be closely related. Multiple change sets that
 are loosely coupled should be proposed in separate pull requests.
 
-## Agree to the contributor agreement
+## Agree to the Contributor Agreement
 
 All contributors must agree to the Contributor Agreement ([ContributorAgreement.md](ContributorAgreement.md)) before
 their pull request can be merged.
@@ -41,7 +41,7 @@ their pull request can be merged.
 
 ## Document code with comments
 
-Use doxygen header comments for classes, functions, etc... Also comment complex sections of code so that other
+Use doxygen header comments for classes, functions, etc. Also comment complex sections of code so that other
 developers can understand them.
 
 ## Compile without warnings
@@ -62,7 +62,7 @@ The developer should run research-scale simulations using the new functionality 
 
 ## Write user documentation
 
-Document public facing API with python docstrings in the napoleon format.
+Document public-facing API with Python docstrings in Google style.
 
 ## Example notebooks
 
@@ -70,9 +70,9 @@ Add demonstrations of new functionality to [hoomd-examples](https://github.com/g
 
 ## Document version status
 
-Each user-facing python class, method, etc... with a docstring should have [versionadded, versionchanged, and
-deprecated sphinx paragraphs](www.sphinx-doc.org/en/stable/markup/para.html) so that users will be aware of
-how functionality changes from version to version.
+Each user-facing Python class, method, etc. with a docstring should have [versionadded, versionchanged, and
+deprecated Sphinx directives](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-versionadded)
+so that users will be aware of how functionality changes from version to version.
 
 ## Add developer to the credits
 
