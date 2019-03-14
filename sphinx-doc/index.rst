@@ -84,7 +84,7 @@ Save this script as ``lj.py`` and run it with ``python lj.py`` (or
 containers).
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :caption: Getting started
 
     installation
