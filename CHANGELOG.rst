@@ -1,6 +1,24 @@
 Change Log
 ==========
 
+v2.6.0 (not yet released)
+-------------------------
+
+*New features*
+
+- General:
+
+    - Enable HPMC plugins
+    - Fix plug-in builds when ENABLE_TBB or ALWAYS_USE_MANAGED_MEMORY CMake parameters are set
+
+- MD:
+
+    - Exclude neighbors that belong to the same floppy molecule
+
+- HPMC:
+
+    - New shape class: ``hpmc.integrate.faceted_ellipsoid_union()``
+
 v2.5.1 (2019/03/14)
 -------------------
 
@@ -8,8 +26,6 @@ v2.5.1 (2019/03/14)
 
 - fix out-of-range memory access in ``hpmc.integrate.convex_polyheron``
 - Remove support for clang3.8 and 4.0
-- Enable HPMC plugins
-- Fix plug-in builds when ENABLE_TBB or ALWAYS_USE_MANAGED_MEMORY CMake parameters are set
 - Documentation improvements
 - Fix a segfault when using ``SLURM_LOCALID``
 
