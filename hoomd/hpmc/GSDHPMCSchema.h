@@ -114,13 +114,14 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
                 param_array<hpmc::sph_params>& shape
             )
         {
-        bool success = true;
+        bool success;
         std::string path = name + "radius";
         std::vector<float> data;
-        if(m_exec_conf->isRoot()){
+        if(m_exec_conf->isRoot())
+	    {
             data.resize(Ntypes, 0.0);
-            success = reader->readChunk((void *) &data[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
-        }
+            success = reader->readChunk((void *) &data[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes);
+            }
 
     #ifdef ENABLE_MPI
         if(m_mpi)
@@ -128,16 +129,21 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
             bcast(data, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
             }
     #endif
-        if(!data.size()) // adding this sanity check but can remove.
+        if(!success) // adding this sanity check but can remove.
+	    {
             throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
-        for(unsigned int i = 0; i < Ntypes; i++)
-            {
-            shape[i].radius = data[i];
-            shape[i].isOriented = false;
-            shape[i].ignore = 0;
-            }
-        return success;
-        }
+	    }
+	else
+     	    {
+	    for(unsigned int i = 0; i < Ntypes; i++)
+                {
+                shape[i].radius = data[i];
+                shape[i].isOriented = false;
+                shape[i].ignore = 0;
+                }
+             }
+	return success;
+	}
     };
 
 template<>
