@@ -323,30 +323,49 @@ class hpmc_gsd_check_restore_state(unittest.TestCase):
         self.lattice = hoomd.lattice.sc(a=1.5, type_name='A');
         self.system = hoomd.init.create_lattice(self.lattice, n=3);
 
-        self.mc = hpmc.integrate.sphere(seed=1, d=0.3);
-        self.mc.shape_param.set('A', diameter=1.0);
-
         self.gsd = hoomd.dump.gsd('init.gsd', period=100, group=hoomd.group.all(), overwrite=True);
-        self.gsd.dump_state(self.mc);
         self.gsd.write_restart();
         
     def tearDown(self):
         del self.lattice
         del self.gsd
-        del self.mc
         del self.system
         filename = "init.gsd"
         if hoomd.comm.get_rank() == 0 and os.path.exists(filename):
             os.remove(filename);    
         context.initialize()
 
-    def test_spheres(self):
+    def test_sphere(self):
 
         context.initialize()
         self.system = hoomd.init.read_gsd(filename='init.gsd')
 
         with self.assertRaises(RuntimeError):
-            self.mc = hpmc.integrate.sphere(seed=1, d=0.3, restore_state=True);
+            self.mc = hpmc.integrate.sphere(seed=2234, d=0.3, restore_state=True);
+
+    def test_ellipsoid(self):
+
+        context.initialize()
+        self.system = hoomd.init.read_gsd(filename='init.gsd')
+
+        with self.assertRaises(RuntimeError):
+            self.mc = hpmc.integrate.ellipsoid(seed=2234, d=0.3, a=0.4, restore_state=True);
+
+    def test_convex_polygon(self):
+
+        context.initialize()
+        self.system = hoomd.init.read_gsd(filename='init.gsd')
+
+        with self.assertRaises(RuntimeError):
+            self.mc = hpmc.integrate.convex_polygon(seed=2234, d=0.3, a=0.4, restore_state=True);
+
+    def test_convex_polyhedron(self):
+
+        context.initialize()
+        self.system = hoomd.init.read_gsd(filename='init.gsd')
+
+        with self.assertRaises(RuntimeError):
+            self.mc = hpmc.integrate.convex_polyhedron(seed=2234, d=0.3, a=0.4, restore_state=True);
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
