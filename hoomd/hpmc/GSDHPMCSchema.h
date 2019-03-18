@@ -118,7 +118,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         std::string path = name + "radius";
         std::vector<float> data;
         if(m_exec_conf->isRoot())
-	        {
+            {
             data.resize(Ntypes, 0.0);
             if(!reader->readChunk((void *) &data[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes))
                 throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
@@ -130,14 +130,14 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
             bcast(data, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
             }
         #endif
-  
-	    for(unsigned int i = 0; i < Ntypes; i++)
+
+        for(unsigned int i = 0; i < Ntypes; i++)
             {
             shape[i].radius = data[i];
             shape[i].isOriented = false;
             shape[i].ignore = 0;
             }
-	    }
+        }
     };
 
 template<>
