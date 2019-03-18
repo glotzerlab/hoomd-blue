@@ -325,14 +325,14 @@ class hpmc_gsd_check_restore_state(unittest.TestCase):
 
         self.gsd = hoomd.dump.gsd('init.gsd', period=100, group=hoomd.group.all(), overwrite=True);
         self.gsd.write_restart();
-        
+
     def tearDown(self):
         del self.lattice
         del self.gsd
         del self.system
         filename = "init.gsd"
         if hoomd.comm.get_rank() == 0 and os.path.exists(filename):
-            os.remove(filename);    
+            os.remove(filename);
         context.initialize()
 
     def test_sphere(self):
