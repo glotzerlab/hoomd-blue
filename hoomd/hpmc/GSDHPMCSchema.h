@@ -107,36 +107,41 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         return retval;
         }
 
-    bool read(  std::shared_ptr<GSDReader> reader,
+    void read(  std::shared_ptr<GSDReader> reader,
                 uint64_t frame,
                 const std::string& name,
                 unsigned int Ntypes,
                 param_array<hpmc::sph_params>& shape
             )
         {
-        bool success = true;
+
         std::string path = name + "radius";
         std::vector<float> data;
-        if(m_exec_conf->isRoot()){
-            data.resize(Ntypes, 0.0);
-            success = reader->readChunk((void *) &data[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
-        }
-
-    #ifdef ENABLE_MPI
-        if(m_mpi)
+        bool state_read = true;
+        if(m_exec_conf->isRoot())
             {
+            data.resize(Ntypes, 0.0);
+            if(!reader->readChunk((void *) &data[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes))
+                state_read = false;
+            }
+
+        #ifdef ENABLE_MPI
+            if(m_mpi)
+            {
+            bcast(state_read, 0, m_exec_conf->getMPICommunicator());
             bcast(data, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
             }
-    #endif
-        if(!data.size()) // adding this sanity check but can remove.
+        #endif
+
+        if (!state_read)
             throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
+
         for(unsigned int i = 0; i < Ntypes; i++)
             {
             shape[i].radius = data[i];
             shape[i].isOriented = false;
             shape[i].ignore = 0;
             }
-        return success;
         }
     };
 
@@ -164,35 +169,41 @@ struct gsd_shape_schema<hpmc::ell_params>: public gsd_schema_hpmc_base
         return retval;
         }
 
-    bool read(  std::shared_ptr<GSDReader> reader,
+    void read(  std::shared_ptr<GSDReader> reader,
                 uint64_t frame,
                 const std::string& name,
                 unsigned int Ntypes,
                 param_array<hpmc::ell_params>& shape
             )
         {
-        bool success = true;
+
+        bool state_read = true;
         std::vector<float> a,b,c;
         if(m_exec_conf->isRoot())
             {
             a.resize(Ntypes),b.resize(Ntypes),c.resize(Ntypes);
             std::string path = name + "a";
-            success = reader->readChunk((void *)&a[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
+            if (!reader->readChunk((void *)&a[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes))
+                state_read = false;
             path = name + "b";
-            success = reader->readChunk((void *)&b[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
+            if (!reader->readChunk((void *)&b[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes))
+                state_read = false;
             path = name + "c";
-            success = reader->readChunk((void *)&c[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
+            if (!reader->readChunk((void *)&c[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes))
+                state_read = false;
             }
+
         #ifdef ENABLE_MPI
             if(m_mpi)
                 {
+                bcast(state_read, 0, m_exec_conf->getMPICommunicator());
                 bcast(a, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
                 bcast(b, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
                 bcast(c, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
                 }
         #endif
 
-        if(!a.size() || !b.size() || !c.size()) // adding this sanity check but can remove.
+        if (!state_read)
             throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
 
         for(unsigned int i = 0; i < Ntypes; i++)
@@ -202,7 +213,6 @@ struct gsd_shape_schema<hpmc::ell_params>: public gsd_schema_hpmc_base
             shape[i].z = c[i];
             shape[i].ignore = 0;
             }
-        return success;
         }
     };
 
@@ -243,14 +253,15 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
         return retval;
         }
 
-    bool read(  std::shared_ptr<GSDReader> reader,
+    void read(  std::shared_ptr<GSDReader> reader,
                 uint64_t frame,
                 const std::string& name,
                 unsigned int Ntypes,
                 param_array<hpmc::detail::poly3d_verts>& shape
             )
         {
-        bool success = true;
+
+        bool state_read = true;
         std::vector<float> vertices,sweep_radius;
         std::vector<uint32_t> N;
         uint32_t count = 0;
@@ -261,23 +272,28 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
             N.resize(Ntypes);
             sweep_radius.resize(Ntypes);
             path = name + "N";
-            success = reader->readChunk((void *)&N[0], frame, path.c_str(),  Ntypes*gsd_sizeof_type(GSD_TYPE_UINT32), Ntypes) && success;
+            if(!reader->readChunk((void *)&N[0], frame, path.c_str(),  Ntypes*gsd_sizeof_type(GSD_TYPE_UINT32), Ntypes))
+                state_read = false;
             count = std::accumulate(N.begin(), N.end(), 0);
             vertices.resize(count*Ntypes*3);
             path = name + "vertices";
-            success = reader->readChunk((void *)&vertices[0], frame, path.c_str(), 3*count*gsd_sizeof_type(GSD_TYPE_FLOAT), count) && success;
+            if(!reader->readChunk((void *)&vertices[0], frame, path.c_str(), 3*count*gsd_sizeof_type(GSD_TYPE_FLOAT), count))
+                state_read = false;
             path = name + "sweep_radius";
-            success = reader->readChunk((void *)&sweep_radius[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
+            if(!reader->readChunk((void *)&sweep_radius[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes))
+                state_read = false;
             }
     #ifdef ENABLE_MPI
         if(m_mpi)
             {
+            bcast(state_read, 0, m_exec_conf->getMPICommunicator());
             bcast(N, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
             bcast(vertices, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
             bcast(sweep_radius, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
             }
     #endif
-        if(!N.size() || !vertices.size() || !sweep_radius.size()) // adding this sanity check but can remove.
+
+        if (!state_read)
             throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
 
         count = 0;
@@ -299,7 +315,6 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
             shape[i] = result; // Can we avoid a full copy of the data (move semantics?)
             shape[i].ignore = 0;
             }
-        return success;
         }
     };
 
@@ -338,14 +353,15 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
         return retval;
         }
 
-    bool read(  std::shared_ptr<GSDReader> reader,
+    void read(  std::shared_ptr<GSDReader> reader,
                 uint64_t frame,
                 const std::string& name,
                 unsigned int Ntypes,
                 param_array<hpmc::detail::poly2d_verts>& shape
             )
         {
-        bool success = true;
+
+        bool state_read = true;
         std::vector<float> vertices,sweep_radius;
         std::vector<uint32_t> N;
         uint32_t count = 0;
@@ -356,23 +372,28 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
             vertices.resize(hpmc::detail::MAX_POLY2D_VERTS*Ntypes*2);
             sweep_radius.resize(Ntypes);
             path = name + "N";
-            success = reader->readChunk((void *)&N[0], frame, path.c_str(),  Ntypes*gsd_sizeof_type(GSD_TYPE_UINT32), Ntypes) && success;
+            if(!reader->readChunk((void *)&N[0], frame, path.c_str(),  Ntypes*gsd_sizeof_type(GSD_TYPE_UINT32), Ntypes))
+                state_read = false;
             count = std::accumulate(N.begin(), N.end(), 0);
             path = name + "vertices";
-            success = reader->readChunk((void *)&vertices[0], frame, path.c_str(), 2*count*gsd_sizeof_type(GSD_TYPE_FLOAT), count) && success;
+            if(!reader->readChunk((void *)&vertices[0], frame, path.c_str(), 2*count*gsd_sizeof_type(GSD_TYPE_FLOAT), count))
+                state_read = false;
             path = name + "sweep_radius";
-            success = reader->readChunk((void *)&sweep_radius[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
+            if(!reader->readChunk((void *)&sweep_radius[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes))
+                state_read = false;
             }
         #ifdef ENABLE_MPI
             if(m_mpi)
                 {
+                bcast(state_read, 0, m_exec_conf->getMPICommunicator());
                 bcast(N, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
                 bcast(vertices, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
                 bcast(sweep_radius, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
                 }
         #endif
-            if(!N.size() || !vertices.size() || !sweep_radius.size()) // adding this sanity check but can remove.
-                throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
+
+        if (!state_read)
+            throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
 
         count = 0;
         for (unsigned int i = 0; i < Ntypes; i++)
@@ -390,7 +411,6 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
             shape[i].sweep_radius = sweep_radius[i];
             shape[i].ignore = 0;
             }
-        return success;
         }
     };
 
