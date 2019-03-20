@@ -127,7 +127,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         if(m_exec_conf->isRoot())
             {
             data.resize(Ntypes, 0.0);
-            orientableflag.resize(Ntypes;
+            orientableflag.resize(Ntypes);
             if(!reader->readChunk((void *) &data[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes))
                 state_read = false;
             if(!reader->readChunk((void *) &orientableflag[0], frame, path_o.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_UINT32), Ntypes))
