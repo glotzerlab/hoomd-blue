@@ -23,7 +23,7 @@ namespace mpcd
 {
 
 //! Adds virtual particles to the MPCD particle data for SlitGeometry using the GPU
-class SlitGeometryFillerGPU : public mpcd::SlitGeometryFiller
+class PYBIND11_EXPORT SlitGeometryFillerGPU : public mpcd::SlitGeometryFiller
     {
     public:
         //! Constructor

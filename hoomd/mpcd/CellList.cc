@@ -857,7 +857,7 @@ void mpcd::detail::export_CellList(pybind11::module& m)
 
     py::class_<mpcd::CellList, std::shared_ptr<mpcd::CellList> >(m, "CellList", py::base<Compute>())
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData> >())
-        .def_property("cell_size", &mpcd::CellList::setCellSize, &mpcd::CellList::getCellSize)
+        .def_property("cell_size", &mpcd::CellList::getCellSize, &mpcd::CellList::setCellSize)
         .def("setEmbeddedGroup", &mpcd::CellList::setEmbeddedGroup)
         .def("removeEmbeddedGroup", &mpcd::CellList::removeEmbeddedGroup)
         ;

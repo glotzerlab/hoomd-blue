@@ -26,7 +26,7 @@ namespace mpcd
 namespace detail
 {
 
-class BulkGeometry
+class __attribute__((visibility("default"))) BulkGeometry
     {
     public:
         //! Detect collision between the particle and the boundary

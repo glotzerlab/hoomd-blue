@@ -27,7 +27,7 @@ namespace mpcd
  * particles in confined geometries.
  */
 template<class Geometry>
-class ConfinedStreamingMethod : public mpcd::StreamingMethod
+class PYBIND11_EXPORT ConfinedStreamingMethod : public mpcd::StreamingMethod
     {
     public:
         //! Constructor

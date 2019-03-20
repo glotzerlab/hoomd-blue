@@ -53,7 +53,7 @@ namespace detail
  * The wall boundary conditions can optionally be changed to slip conditions. For these BCs, the previous
  * discussion of the various flow profiles no longer applies.
  */
-class SlitGeometry
+class __attribute__((visibility("default"))) SlitGeometry
     {
     public:
         //! Constructor

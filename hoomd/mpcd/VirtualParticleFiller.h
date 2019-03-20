@@ -23,7 +23,7 @@ namespace mpcd
 {
 
 //! Adds virtual particles to the MPCD particle data
-class VirtualParticleFiller
+class PYBIND11_EXPORT VirtualParticleFiller
     {
     public:
         VirtualParticleFiller(std::shared_ptr<mpcd::SystemData> sysdata,

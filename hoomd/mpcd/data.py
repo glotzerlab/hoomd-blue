@@ -258,7 +258,7 @@ class system(hoomd.meta._metadata):
 
         """
         if cell is not None:
-            self.cell.setCellSize(cell)
+            self.cell.cell_size = cell
 
     def take_snapshot(self, particles=True):
         R""" Takes a snapshot of the current state of the MPCD system

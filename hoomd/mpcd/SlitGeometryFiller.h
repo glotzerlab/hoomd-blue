@@ -24,7 +24,7 @@ namespace mpcd
 {
 
 //! Adds virtual particles to the MPCD particle data for SlitGeometry
-class SlitGeometryFiller : public mpcd::VirtualParticleFiller
+class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
     {
     public:
         SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
