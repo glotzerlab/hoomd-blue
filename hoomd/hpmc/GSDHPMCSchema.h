@@ -106,8 +106,8 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         std::vector<uint32_t> orientableflag(Ntypes);
         std::transform(shape.begin(), shape.end(), data.begin(), [](const hpmc::sph_params& s)->float{return s.radius;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
-        std::transform(shape.begin(), shape.end(), data.begin(), [](const hpmc::sph_params& s)->float{return s.isOriented;});
-        retval |= gsd_write_chunk(&handle, path_o.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
+        std::transform(shape.begin(), shape.end(), data.begin(), [](const hpmc::sph_params& s)->uint32_t{return s.isOriented;});
+        retval |= gsd_write_chunk(&handle, path_o.c_str(), GSD_TYPE_UINT32, Ntypes, 1, 0, (void *)&orientableflag[0]);
         return retval;
         }
 
@@ -119,13 +119,18 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
             )
         {
 
-        std::string path = name + "radius";
+        std::string path_o = name + "orientable";
         std::vector<float> data;
+        std::string path = name + "radius";
+        std::vector<uint32_t> orientableflag;
         bool state_read = true;
         if(m_exec_conf->isRoot())
             {
             data.resize(Ntypes, 0.0);
+            orientableflag.resize(Ntypes;
             if(!reader->readChunk((void *) &data[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes))
+                state_read = false;
+            if(!reader->readChunk((void *) &orientableflag[0], frame, path_o.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_UINT32), Ntypes))
                 state_read = false;
             }
 
@@ -134,6 +139,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
             {
             bcast(state_read, 0, m_exec_conf->getMPICommunicator());
             bcast(data, 0, m_exec_conf->getMPICommunicator()); // broadcast the data
+            bcast(orientableflag, 0, m_exec_conf->getMPICommunicator());
             }
         #endif
 
@@ -143,7 +149,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         for(unsigned int i = 0; i < Ntypes; i++)
             {
             shape[i].radius = data[i];
-            shape[i].isOriented = false;
+            shape[i].isOriented = orientableflag[i];
             shape[i].ignore = 0;
             }
         }
