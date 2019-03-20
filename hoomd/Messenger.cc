@@ -279,9 +279,9 @@ void Messenger::collectiveNoticeStr(unsigned int level, const std::string& msg)
                     int rank = notice_it - rank_notices.begin();
                     // output message for accumulated ranks
                     if (last_output_rank+1 == rank-1)
-                        notice(level) << "Rank " << last_output_rank + 1 << ": " << last_msg;
+                        notice(level) << "Rank " << last_output_rank + 1 << ": " << last_msg << std::flush;
                     else
-                        notice(level) << "Ranks " << last_output_rank + 1 << "-" << rank-1 << ": " << last_msg;
+                        notice(level) << "Ranks " << last_output_rank + 1 << "-" << rank-1 << ": " << last_msg << std::flush;
 
                     if (notice_it != rank_notices.end())
                         {
@@ -295,7 +295,7 @@ void Messenger::collectiveNoticeStr(unsigned int level, const std::string& msg)
     #endif
             {
             // output without prefix
-            notice(level) << rank_notices[0];
+            notice(level) << rank_notices[0] << std::flush;
             }
     #ifdef ENABLE_MPI
         }
