@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -73,8 +73,8 @@ void morse_force_particle_test(morseforce_creator morse_creator, std::shared_ptr
     fc_3->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_1.data[0].x, 1.1520395075261485, tol);
@@ -115,8 +115,8 @@ void morse_force_particle_test(morseforce_creator morse_creator, std::shared_ptr
     fc_3->compute(1);
 
     {
-    GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_2.data[0].x, -1.1520395075261485, tol);
@@ -159,13 +159,13 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
 
     {
     // verify that the forces are identical (within roundoff errors)
-    GPUArray<Scalar4>& force_array_3 =  fc1->getForceArray();
-    GPUArray<Scalar>& virial_array_3 =  fc1->getVirialArray();
+    GlobalArray<Scalar4>& force_array_3 =  fc1->getForceArray();
+    GlobalArray<Scalar>& virial_array_3 =  fc1->getVirialArray();
     unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
-    GPUArray<Scalar4>& force_array_4 =  fc2->getForceArray();
-    GPUArray<Scalar>& virial_array_4 =  fc2->getVirialArray();
+    GlobalArray<Scalar4>& force_array_4 =  fc2->getForceArray();
+    GlobalArray<Scalar>& virial_array_4 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
 

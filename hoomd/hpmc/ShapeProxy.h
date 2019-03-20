@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __SHAPE_PROXY_H__
@@ -14,7 +14,7 @@
 #include "ShapeSpheropolygon.h"
 #include "ShapeSimplePolygon.h"
 #include "ShapeEllipsoid.h"
-#include "ShapeFacetedSphere.h"
+#include "ShapeFacetedEllipsoid.h"
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 
@@ -304,15 +304,15 @@ poly3d_verts make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, b
     return result;
     }
 
-//! Helper function to build faceted_sphere_params from python
-faceted_sphere_params make_faceted_sphere(pybind11::list normals, pybind11::list offsets,
-    pybind11::list vertices, Scalar diameter, pybind11::tuple origin, bool ignore_stats,
+//! Helper function to build faceted_ellipsoid_params from python
+faceted_ellipsoid_params make_faceted_ellipsoid(pybind11::list normals, pybind11::list offsets,
+    pybind11::list vertices, Scalar a, Scalar b, Scalar c, pybind11::tuple origin, bool ignore_stats,
     std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     if (len(offsets) != len(normals))
         throw std::runtime_error("Number of normals unequal number of offsets");
 
-    faceted_sphere_params result(len(normals), exec_conf->isCUDAEnabled());
+    faceted_ellipsoid_params result(len(normals), exec_conf->isCUDAEnabled());
     result.ignore = ignore_stats;
 
     // extract the normals from the python list
@@ -326,34 +326,22 @@ faceted_sphere_params make_faceted_sphere(pybind11::list normals, pybind11::list
     // extract the vertices from the python list
     result.verts=make_poly3d_verts(vertices, 0.0, false, exec_conf);
 
-    // set the diameter
-    result.diameter = diameter;
+    // scale vertices onto unit sphere
+    for (unsigned int i = 0; i < result.verts.N; ++i)
+        {
+        result.verts.x[i] /= a;
+        result.verts.y[i] /= b;
+        result.verts.z[i] /= c;
+        }
 
-    result.insphere_radius = diameter/Scalar(2.0);
+    // set the half-axes
+    result.a = a; result.b = b; result.c = c;
 
     // set the origin
     result.origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin[0]), pybind11::cast<OverlapReal>(origin[1]), pybind11::cast<OverlapReal>(origin[2]));
 
-    // compute insphere radius
-    for (unsigned int i = 0; i < result.N; ++i)
-        {
-        Scalar rsq = result.offset[i]*result.offset[i]/dot(result.n[i],result.n[i]);
-        // is the origin inside the shape?
-        if (result.offset[i] < 0)
-            {
-            if (rsq < result.insphere_radius*result.insphere_radius)
-                {
-                result.insphere_radius = fast::sqrt(rsq);
-                }
-            }
-        else
-            {
-            result.insphere_radius = OverlapReal(0.0);
-            }
-        }
-
     // add the edge-sphere vertices
-    ShapeFacetedSphere::initializeVertices(result, exec_conf->isCUDAEnabled());
+    ShapeFacetedEllipsoid::initializeVertices(result, exec_conf->isCUDAEnabled());
 
     return result;
     }
@@ -705,7 +693,7 @@ public:
 };
 
 template< typename Shape, class AccessType = access<Shape> >
-class faceted_sphere_param_proxy : public shape_param_proxy<Shape, AccessType>
+class faceted_ellipsoid_param_proxy : public shape_param_proxy<Shape, AccessType>
 {
     using shape_param_proxy<Shape, AccessType>::m_mc;
     using shape_param_proxy<Shape, AccessType>::m_typeid;
@@ -713,8 +701,8 @@ class faceted_sphere_param_proxy : public shape_param_proxy<Shape, AccessType>
 protected:
     typedef typename shape_param_proxy<Shape, AccessType>::param_type param_type;
 public:
-    typedef ShapeFacetedSphere::param_type access_type;
-    faceted_sphere_param_proxy(std::shared_ptr< IntegratorHPMCMono<ShapeFacetedSphere> > mc, unsigned int typendx, const AccessType& acc = AccessType())
+    typedef ShapeFacetedEllipsoid::param_type access_type;
+    faceted_ellipsoid_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType())
         : shape_param_proxy<Shape, AccessType>(mc,typendx,acc)
         {}
 
@@ -744,7 +732,28 @@ public:
         {
         std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
         access_type& param = m_access(params[m_typeid]);
-        return param.diameter;
+        return OverlapReal(2)*detail::max(param.a, detail::max(param.b, param.c));
+        }
+
+    OverlapReal getHalfAxisA()
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        return param.a; // first half-axis
+        }
+
+    OverlapReal getHalfAxisB()
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        return param.b; // second half-axis
+        }
+
+    OverlapReal getHalfAxisC()
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        return param.c; // third half-axis
         }
 
     pybind11::list getOffsets()
@@ -816,6 +825,8 @@ struct get_member_proxy<Shape, ShapeUnion<ShapeSphere>, AccessType >{ typedef sp
 template<typename Shape, typename AccessType >
 struct get_member_proxy<Shape, ShapeUnion<ShapeSpheropolyhedron>, AccessType >{ typedef poly3d_param_proxy<Shape, AccessType> proxy_type; };
 
+template<typename Shape, typename AccessType >
+struct get_member_proxy<Shape, ShapeUnion<ShapeFacetedEllipsoid>, AccessType >{ typedef faceted_ellipsoid_param_proxy<Shape, AccessType> proxy_type; };
 
 template< class ShapeUnionType >
 struct access_shape_union_members
@@ -1019,22 +1030,26 @@ void export_polyhedron_proxy(pybind11::module& m, std::string class_name)
     ;
     }
 
-void export_faceted_sphere_proxy(pybind11::module& m, std::string class_name)
+template<class ShapeType, class AccessType>
+void export_faceted_ellipsoid_proxy(pybind11::module& m, std::string class_name)
     {
     using detail::shape_param_proxy;
-    using detail::faceted_sphere_param_proxy;
-    typedef ShapeFacetedSphere                  ShapeType;
-    typedef shape_param_proxy<ShapeType>        proxy_base;
-    typedef faceted_sphere_param_proxy<ShapeType>   proxy_class;
+    using detail::faceted_ellipsoid_param_proxy;
+    typedef shape_param_proxy<ShapeType, AccessType>    proxy_base;
+    typedef faceted_ellipsoid_param_proxy<ShapeType, AccessType>   proxy_class;
+
     std::string base_name=class_name+"_base";
 
-    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
+    export_shape_param_proxy<ShapeType, AccessType >(m, base_name);
     pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
     .def_property_readonly("vertices", &proxy_class::getVerts)
     .def_property_readonly("normals", &proxy_class::getNormals)
     .def_property_readonly("origin", &proxy_class::getOrigin)
     .def_property_readonly("diameter", &proxy_class::getDiameter)
+    .def_property_readonly("a", &proxy_class::getHalfAxisA)
+    .def_property_readonly("b", &proxy_class::getHalfAxisB)
+    .def_property_readonly("c", &proxy_class::getHalfAxisC)
     .def_property_readonly("offsets", &proxy_class::getOffsets)
     ;
 
@@ -1098,11 +1113,14 @@ void export_shape_params(pybind11::module& m)
     export_poly3d_proxy< ShapeSpheropolyhedron, detail::access<ShapeSpheropolyhedron> >(m, "convex_spheropolyhedron_param_proxy", true);
 
     export_polyhedron_proxy(m, "polyhedron_param_proxy");
-    export_faceted_sphere_proxy(m, "faceted_sphere_param_proxy");
+    export_faceted_ellipsoid_proxy<ShapeFacetedEllipsoid, detail::access<ShapeFacetedEllipsoid> >(m, "faceted_ellipsoid_param_proxy");
     export_sphinx_proxy(m, "sphinx3d_param_proxy");
 
-    auto export_fnct = std::bind(export_poly3d_proxy<ShapeUnion<ShapeSpheropolyhedron>, detail::access_shape_union_members< ShapeUnion<ShapeSpheropolyhedron> > >, std::placeholders::_1, std::placeholders::_2, true);
-    export_shape_union_proxy<ShapeSpheropolyhedron>(m, "convex_polyhedron_union_param_proxy", export_fnct);
+    auto export_fnct_sphero = std::bind(export_poly3d_proxy<ShapeUnion<ShapeSpheropolyhedron>, detail::access_shape_union_members< ShapeUnion<ShapeSpheropolyhedron> > >, std::placeholders::_1, std::placeholders::_2, true);
+    export_shape_union_proxy<ShapeSpheropolyhedron>(m, "convex_polyhedron_union_param_proxy", export_fnct_sphero);
+
+    auto export_fnct_faceted = std::bind(export_faceted_ellipsoid_proxy<ShapeUnion<ShapeFacetedEllipsoid>, detail::access_shape_union_members< ShapeUnion<ShapeFacetedEllipsoid> > >, std::placeholders::_1, std::placeholders::_2);
+    export_shape_union_proxy<ShapeFacetedEllipsoid>(m, "faceted_ellipsoid_union_param_proxy", export_fnct_faceted);
 
     export_shape_union_proxy<ShapeSphere>(m, "sphere_union_param_proxy", export_sphere_proxy<ShapeUnion<ShapeSphere>, detail::access_shape_union_members< ShapeUnion<ShapeSphere> > > );
     }

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -870,7 +870,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
             ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::readwrite);
 
             // allocate scratch buffers
-            const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
+            CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
             unsigned int tmp_size = m_groups.size()*group_size;
             unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
             ScopedAllocation<unsigned int> d_scratch_g(alloc, tmp_size);

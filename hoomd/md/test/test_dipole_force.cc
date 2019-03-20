@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -75,9 +75,9 @@ void dipole_force_particle_test(dipoleforce_creator dipole_creator, std::shared_
     fc_2->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_1 =  fc_2->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_2->getVirialArray();
-    GPUArray<Scalar4>& torque_array_1 =  fc_2->getTorqueArray();
+    GlobalArray<Scalar4>& force_array_1 =  fc_2->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  fc_2->getVirialArray();
+    GlobalArray<Scalar4>& torque_array_1 =  fc_2->getTorqueArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar4> h_torque_1(torque_array_1,access_location::host,access_mode::read);

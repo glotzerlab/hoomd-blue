@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -34,11 +34,13 @@ SFCPackUpdaterGPU::SFCPackUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
     // perform lots of sanity checks
     assert(m_pdata);
 
-    GPUArray<unsigned int> gpu_sort_order(m_pdata->getMaxN(), m_exec_conf);
+    GlobalArray<unsigned int> gpu_sort_order(m_pdata->getMaxN(), m_exec_conf);
     m_gpu_sort_order.swap(gpu_sort_order);
+    TAG_ALLOCATION(m_gpu_sort_order);
 
-    GPUArray<unsigned int> gpu_particle_bins(m_pdata->getMaxN(), m_exec_conf);
+    GlobalArray<unsigned int> gpu_particle_bins(m_pdata->getMaxN(), m_exec_conf);
     m_gpu_particle_bins.swap(gpu_particle_bins);
+    TAG_ALLOCATION(m_gpu_particle_bins);
 
     // create at ModernGPU context
     m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);

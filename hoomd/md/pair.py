@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2018 The Regents of the University of Michigan
+# Copyright (c) 2009-2019 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 R""" Pair potentials.
@@ -1009,7 +1009,8 @@ class table(force._force):
             F = 4 * epsilon / r * ( 12 * (sigma / r)**12 - 6 * (sigma / r)**6);
             return (V, F)
 
-        table = pair.table(width=1000)
+        nl = nlist.cell()
+        table = pair.table(width=1000, nlist=nl)
         table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
         table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
         table.pair_coeff.set('B', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=0.5, sigma=1.0))
@@ -2545,35 +2546,19 @@ class square_density(pair):
 
     The self energy per particle takes the form
 
-    .. math::
-        :nowrap:
-
-        \begin{equation}
-        \Psi^{ex} = B (\rho - A)^2
-        \end{equation}
+    .. math:: \Psi^{ex} = B (\rho - A)^2
 
     which gives a pair-wise additive, three-body force
 
-    .. math::
-        \begin{equation}
-        \vec f_{ij} = \left\{B (n_i - A) + B (n_j - A)\right\} w'_{ij} \vec e_{ij}
-        \end{equation}
+    .. math:: \vec{f}_{ij} = \left( B (n_i - A) + B (n_j - A) \right) w'_{ij} \vec{e}_{ij}
 
     Here, :math:`w_{ij}` is a quadratic, normalized weighting function,
 
-    .. math::
-        :nowrap:
+    .. math:: w(x) = \frac{15}{2 \pi r_{c,\mathrm{weight}}^3} (1-r/r_{c,\mathrm{weight}})^2
 
-        \begin{equation}
-        w(x) = \frac{15}{2 \pi r_{c,\mathrm{weight}}^3} (1-r/r_{c,\mathrm{weight}})^2
-        \end{equation}
+    The local density at the location of particle *i* is defined as
 
-    The local density at the location of particle $i$ is defined as
-
-    .. math::
-        \begin{equation}
-        n_i = \sum\limits_{j\neq i} w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
-        \end{equation}
+    .. math:: n_i = \sum\limits_{j\neq i} w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -2653,7 +2638,7 @@ class buckingham(pair):
 
     - :math:`A` - *A* (in energy units)
     - :math:`\rho` - *rho* (in distance units)
-    - :math:`\C` - *C* (in energy/distance units )
+    - :math:`C` - *C* (in energy/distance units )
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)

@@ -71,7 +71,7 @@ set(TEST_LIST_CPU
     )
 
 if (BUILD_JIT)
-    list(APPEND TEST_LIST_CPU enthalpic_interaction.py)
+    list(APPEND TEST_LIST_CPU enthalpic_interaction.py test_jit_external_field.py)
 endif()
 
 set(TEST_LIST_GPU

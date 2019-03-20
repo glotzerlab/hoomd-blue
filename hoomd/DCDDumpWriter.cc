@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -328,7 +328,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
             {
             tmp_pos[i] = box.shift(tmp_pos[i], snapshot.image[i]);
             }
-        else if (m_unwrap_rigid && snapshot.body[i] != NO_BODY)
+        else if (m_unwrap_rigid && snapshot.body[i] < MIN_FLOPPY)
             {
             unsigned int central_ptl_tag = snapshot.body[i];
             int body_ix = snapshot.image[central_ptl_tag].x;

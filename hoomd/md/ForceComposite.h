@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -65,9 +65,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
         #endif
 
-        //! Update the constituent particles of a composite particle
-        /*  Using the position, velocity and orientation of the central particle
-         */
+        //! Update the constituent particles of a composite particle using the position, velocity and orientation of the central particle
         virtual void updateCompositeParticles(unsigned int timestep);
 
         //! Validate or create copies of rigid body constituent particles

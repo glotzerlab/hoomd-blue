@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2018 The Regents of the University of Michigan
+# Copyright (c) 2009-2019 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander
@@ -27,7 +27,12 @@ system and hardware, you should carefully test which option is fastest for your 
 
 Particles can be excluded from the neighbor list based on certain criteria. Setting :math:`r_\mathrm{cut}(i,j) \le 0`
 will exclude this cross interaction from the neighbor list on build time. Particles can also be excluded by topology
-or for belonging to the same rigid body (see :py:meth:`nlist.reset_exclusions()`).
+or for belonging to the same rigid body (see :py:meth:`nlist.reset_exclusions()`). To support molecular structures,
+the body flag can also be used to exclude particles that are not part of a rigid structure. All particles with
+positive values of the body flag are considered part of a rigid body (see :py:class:`hoomd.md.constrain.rigid`),
+while the default value of -1 indicates that a particle is free. Any other negative value of the body flag indicates
+that the particles are part of a floppy body; such particles are integrated
+separately, but are automatically excluded from the neighbor list as well.
 
 Examples::
 
@@ -56,7 +61,8 @@ class nlist:
 
         # default exclusions
         self.is_exclusion_overridden = False;
-        self.exclusions = None
+        self.exclusions = None  # Excluded groups
+        self.exclusion_list = []  # Specific pairs to exclude
 
         # save the parameters we set
         self.r_cut = rcut();
@@ -112,6 +118,12 @@ class nlist:
         elif not self.is_exclusion_overridden:
             hoomd.util.quiet_status();
             self.reset_exclusions(exclusions=['body', 'bond','constraint']);
+            hoomd.util.unquiet_status();
+
+        # Add any specific interparticle exclusions
+        for i, j in self.exclusion_list:
+            hoomd.util.quiet_status();
+            self.cpp_nlist.addExclusion(i, j)
             hoomd.util.unquiet_status();
 
     def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True):
@@ -193,7 +205,7 @@ class nlist:
 
         - Directly bonded particles.
         - Directly constrained particles.
-        - Particles that are in the same rigid body.
+        - Particles that are in the same body (i.e. have the same body flag). Note that these bodies need not be rigid.
 
         reset_exclusions allows the defaults to be overridden to add other exclusions or to remove
         the exclusion for bonded or constrained particles.
@@ -291,6 +303,27 @@ class nlist:
 
         # collect and print statistics about the number of exclusions.
         self.cpp_nlist.countExclusions();
+
+    def add_exclusion(self, i, j):
+        R"""Add a specific pair of particles to the exclusion list.
+
+        Args:
+            i (int): The tag of the first particle in the pair.
+            j (int): The tag of the second particle in the pair.
+
+        Examples::
+
+            nl.add_exclusions(system.particles[0].tag, system.particles[1].tag)
+        """
+        hoomd.util.print_status_line();
+
+        if self.cpp_nlist is None:
+            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            raise RuntimeError('Error resetting exclusions');
+
+        # store exclusions for later use
+        self.exclusion_list.append((i, j))
+        self.cpp_nlist.addExclusion(i, j);
 
     def query_update_period(self):
         R""" Query the maximum possible check_period.

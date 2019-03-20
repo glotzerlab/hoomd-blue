@@ -360,5 +360,58 @@ class hpmc_gsd_state(unittest.TestCase):
         self.assertAlmostEqual(self.updater.get_step_size(0), 0.2);
 
 
+class hpmc_gsd_check_restore_state(unittest.TestCase):
+
+
+    def setUp(self):
+
+        context.initialize()
+        self.lattice = hoomd.lattice.sc(a=1.5, type_name='A');
+        self.system = hoomd.init.create_lattice(self.lattice, n=3);
+
+        self.gsd = hoomd.dump.gsd('init.gsd', period=100, group=hoomd.group.all(), overwrite=True);
+        self.gsd.write_restart();
+
+    def tearDown(self):
+        del self.lattice
+        del self.gsd
+        del self.system
+        filename = "init.gsd"
+        if hoomd.comm.get_rank() == 0 and os.path.exists(filename):
+            os.remove(filename);
+        context.initialize()
+
+    def test_sphere(self):
+
+        context.initialize()
+        self.system = hoomd.init.read_gsd(filename='init.gsd')
+
+        with self.assertRaises(RuntimeError):
+            self.mc = hpmc.integrate.sphere(seed=2234, d=0.3, restore_state=True);
+
+    def test_ellipsoid(self):
+
+        context.initialize()
+        self.system = hoomd.init.read_gsd(filename='init.gsd')
+
+        with self.assertRaises(RuntimeError):
+            self.mc = hpmc.integrate.ellipsoid(seed=2234, d=0.3, a=0.4, restore_state=True);
+
+    def test_convex_polygon(self):
+
+        context.initialize()
+        self.system = hoomd.init.read_gsd(filename='init.gsd')
+
+        with self.assertRaises(RuntimeError):
+            self.mc = hpmc.integrate.convex_polygon(seed=2234, d=0.3, a=0.4, restore_state=True);
+
+    def test_convex_polyhedron(self):
+
+        context.initialize()
+        self.system = hoomd.init.read_gsd(filename='init.gsd')
+
+        with self.assertRaises(RuntimeError):
+            self.mc = hpmc.integrate.convex_polyhedron(seed=2234, d=0.3, a=0.4, restore_state=True);
+
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

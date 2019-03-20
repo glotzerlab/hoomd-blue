@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
@@ -1425,7 +1425,7 @@ void PPPMForceCompute::computeBodyCorrection()
 
         if (m_group->getNumMembers() != nptl)
             {
-            m_exec_conf->msg->warning() << "charge.pppm: Operating on a group which is not group.all(). Rigid body self-energies may be wrong." << std::endl;
+            m_exec_conf->msg->warning() << "charge.pppm: Operating on a group which is not group.all(). Body self-energies may be wrong." << std::endl;
             }
 
         // save references to each body's constituent particles

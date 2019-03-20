@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -123,7 +123,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
 
     __syncthreads();
 
-    if (mol_idx[m] != NO_BODY)
+    if (mol_idx[m] < MIN_FLOPPY)
         {
         // compute the number of windows that we need to loop over
         unsigned int mol_len = d_molecule_len[mol_idx[m]];
@@ -226,7 +226,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         }
 
     // thread 0 within this body writes out the total force and torque for the body
-    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] != NO_BODY && central_idx[m] < N)
+    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_FLOPPY && central_idx[m] < N)
         {
         d_force[central_idx[m]] = body_force[threadIdx.x];
         d_torque[central_idx[m]] = make_scalar4(body_torque[threadIdx.x].x, body_torque[threadIdx.x].y, body_torque[threadIdx.x].z, 0.0f);
@@ -298,7 +298,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
             if (d_tag[central_idx[m]] != d_body[central_idx[m]])
                 {
                 // this is not the central ptl, molecule is incomplete - mark as such
-                body_type[m] = 0xffffffff;
+                body_type[m] = NO_BODY;
                 body_orientation[m] = make_scalar4(1,0,0,0);
                 }
             else
@@ -315,7 +315,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
 
     __syncthreads();
 
-    if (mol_idx[m] != NO_BODY)
+    if (mol_idx[m] < MIN_FLOPPY)
         {
         // compute the number of windows that we need to loop over
         unsigned int mol_len = d_molecule_len[mol_idx[m]];
@@ -333,7 +333,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                 // determine the particle idx of the particle
                 unsigned int pidx = d_molecule_list[molecule_indexer(k,mol_idx[m])];
 
-                if (body_type[m] != 0xffffffff && pidx != central_idx[m])
+                if (body_type[m] < MIN_FLOPPY && pidx != central_idx[m])
                     {
                     // calculate body force and torques
                     Scalar4 fi = d_net_force[pidx];
@@ -408,7 +408,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
         }
 
     // thread 0 within this body writes out the total virial for the body
-    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] != NO_BODY && central_idx[m] < N)
+    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_FLOPPY && central_idx[m] < N)
         {
         d_virial[0*virial_pitch+central_idx[m]] = body_virial_xx[threadIdx.x];
         d_virial[1*virial_pitch+central_idx[m]] = body_virial_xy[threadIdx.x];
@@ -448,10 +448,6 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  bool zero_force,
                  const GPUPartition &gpu_partition)
     {
-    // reset force and torque
-    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
-    cudaMemset(d_torque, 0, sizeof(Scalar4)*N);
-
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
@@ -732,8 +728,8 @@ void gpu_update_composite(unsigned int N,
         run_block_size = max_block_size;
         }
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function 
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev) 
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
 
@@ -782,7 +778,7 @@ struct lookup_op : thrust::unary_function<unsigned int, unsigned int>
 
     __device__ unsigned int operator()(const unsigned int& body)
         {
-        return (body != NO_BODY) ? d_rtag[body] : NO_BODY;
+        return (body < MIN_FLOPPY) ? d_rtag[body] : NO_BODY;
         }
 
     const unsigned int *d_rtag;

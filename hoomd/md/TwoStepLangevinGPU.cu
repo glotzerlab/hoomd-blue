@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -19,7 +19,7 @@ using namespace hoomd;
 extern __shared__ Scalar s_gammas[];
 
 //! Shared memory array for gpu_langevin_angular_step_two_kernel()
-extern __shared__ Scalar s_gammas_r[];
+extern __shared__ Scalar3 s_gammas_r[];
 
 //! Shared memory used in reducing sums for bd energy tally
 extern __shared__ Scalar bdtally_sdata[];
@@ -256,7 +256,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                              const Scalar3 *d_inertia,
                              Scalar4 *d_net_torque,
                              const unsigned int *d_group_members,
-                             const Scalar *d_gamma_r,
+                             const Scalar3 *d_gamma_r,
                              const unsigned int *d_tag,
                              unsigned int n_types,
                              unsigned int group_size,
@@ -287,9 +287,9 @@ __global__ void gpu_langevin_angular_step_two_kernel(
 
         // torque update with rotational drag and noise
         unsigned int type_r = __scalar_as_int(d_pos[idx].w);
-        Scalar gamma_r = s_gammas_r[type_r];
+        Scalar3 gamma_r = s_gammas_r[type_r];
 
-        if (gamma_r > 0)
+        if (gamma_r.x > 0 || gamma_r.y > 0 || gamma_r.z > 0)
             {
             quat<Scalar> q(d_orientation[idx]);
             quat<Scalar> p(d_angmom[idx]);
@@ -304,21 +304,23 @@ __global__ void gpu_langevin_angular_step_two_kernel(
 
             // original Gaussian random torque
             // for future reference: if gamma_r is different for xyz, then we need to generate 3 sigma_r
-            Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*T/deltaT);
-            if (noiseless_r) sigma_r = Scalar(0.0);
+            Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0)*gamma_r.x*T/deltaT),
+                                           fast::sqrt(Scalar(2.0)*gamma_r.y*T/deltaT),
+                                           fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
+            if (noiseless_r) sigma_r = make_scalar3(0,0,0);
 
             detail::Saru saru(ptag, timestep, seed); // 3 dimensional seeding
-            Scalar rand_x = gaussian_rng(saru, sigma_r);
-            Scalar rand_y = gaussian_rng(saru, sigma_r);
-            Scalar rand_z = gaussian_rng(saru, sigma_r);
+            Scalar rand_x = gaussian_rng(saru, sigma_r.x);
+            Scalar rand_y = gaussian_rng(saru, sigma_r.y);
+            Scalar rand_z = gaussian_rng(saru, sigma_r.z);
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
             x_zero = (I.x < Scalar(EPSILON)); y_zero = (I.y < Scalar(EPSILON)); z_zero = (I.z < Scalar(EPSILON));
 
-            bf_torque.x = rand_x - gamma_r * (s.x / I.x);
-            bf_torque.y = rand_y - gamma_r * (s.y / I.y);
-            bf_torque.z = rand_z - gamma_r * (s.z / I.z);
+            bf_torque.x = rand_x - gamma_r.x * (s.x / I.x);
+            bf_torque.y = rand_y - gamma_r.y * (s.y / I.y);
+            bf_torque.z = rand_z - gamma_r.z * (s.z / I.z);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero) bf_torque.x = 0;
@@ -387,7 +389,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                              const Scalar3 *d_inertia,
                              Scalar4 *d_net_torque,
                              const unsigned int *d_group_members,
-                             const Scalar *d_gamma_r,
+                             const Scalar3 *d_gamma_r,
                              const unsigned int *d_tag,
                              unsigned int group_size,
                              const langevin_step_two_args& langevin_args,
@@ -402,7 +404,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
 
     // run the kernel
     gpu_langevin_angular_step_two_kernel<<< grid, threads, max( (unsigned int)(sizeof(Scalar)*langevin_args.n_types),
-                                                                (unsigned int)(langevin_args.block_size*sizeof(Scalar))
+                                                                (unsigned int)(langevin_args.block_size*sizeof(Scalar3))
                                                               ) >>>
                                        (d_pos,
                                         d_orientation,

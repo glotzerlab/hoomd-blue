@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -53,7 +53,7 @@ void ConstraintEllipsoidGPU::update(unsigned int timestep)
     assert(m_pdata);
 
     // access the particle data arrays
-    const GPUArray< unsigned int >& group_members = m_group->getIndexArray();
+    const GlobalArray< unsigned int >& group_members = m_group->getIndexArray();
     ArrayHandle<unsigned int> d_group_members(group_members, access_location::device, access_mode::read);
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);

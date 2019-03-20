@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __HPMC_MONO_IMPLICIT__H__
@@ -697,18 +697,18 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                             }
                         }  // end loop over AABB nodes
                     } // end loop over images
-
-                // Add external energetic contribution
-                if (this->m_external)
-                    {
-                    patch_field_energy_diff -= this->m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
-                    }
-
-                // Update acceptance based on patch, will only be reached if overlap check succeeded
-                accept = rng_i.d() < slow::exp(patch_field_energy_diff);
                 } // end if (m_patch)
 
-            // The trial move is valid, so check if it is invalidated by depletants
+            // Add external energetic contribution
+            if (this->m_external)
+                {
+                patch_field_energy_diff -= this->m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+                }
+
+            accept = accept && (rng_i.d() < slow::exp(patch_field_energy_diff));
+
+            // If no overlaps and Metropolis criterion is met, check if it is
+            // invalidated by depletants.
             if (accept && h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
                 {
                 if (m_method == 0)

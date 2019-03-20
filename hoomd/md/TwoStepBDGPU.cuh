@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -26,7 +26,7 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   const unsigned int *d_group_members,
                                   const unsigned int group_size,
                                   const Scalar4 *d_net_force,
-                                  const Scalar *d_gamma_r,
+                                  const Scalar3 *d_gamma_r,
                                   Scalar4 *d_orientation,
                                   Scalar4 *d_torque,
                                   const Scalar3 *d_inertia,

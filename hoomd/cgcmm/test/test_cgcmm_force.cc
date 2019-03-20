@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -75,8 +75,8 @@ void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, std::shared_
     fc_3->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     unsigned int pitch = fc_3->getVirialArray().getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
@@ -116,8 +116,8 @@ void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, std::shared_
     fc_3->compute(1);
 
     {
-    GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     unsigned int pitch = virial_array_2.getPitch();
@@ -170,8 +170,8 @@ void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, std::shared_
     fc_3->compute(1);
 
     {
-    GPUArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_3.data[0].x, 48.0146523, tol);
@@ -217,8 +217,8 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, std::shared_p
     fc_3->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_4 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_4 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_4 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_4 =  fc_3->getVirialArray();
     unsigned int pitch = virial_array_4.getPitch();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
@@ -259,8 +259,8 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, std::shared_p
     fc_3->compute(1);
 
     {
-    GPUArray<Scalar4>& force_array_5 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_5 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_5 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_5 =  fc_3->getVirialArray();
     unsigned int pitch = virial_array_5.getPitch();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
@@ -313,8 +313,8 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, std::shared_p
     fc_3->compute(1);
 
     {
-    GPUArray<Scalar4>& force_array_6 =  fc_3->getForceArray();
-    GPUArray<Scalar>& virial_array_6 =  fc_3->getVirialArray();
+    GlobalArray<Scalar4>& force_array_6 =  fc_3->getForceArray();
+    GlobalArray<Scalar>& virial_array_6 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_6.data[0].x, 69.00675, tol);
@@ -372,8 +372,8 @@ void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, std::shared_ptr
     fc_6->compute(0);
 
     {
-    GPUArray<Scalar4>& force_array_7 =  fc_6->getForceArray();
-    GPUArray<Scalar>& virial_array_7 =  fc_6->getVirialArray();
+    GlobalArray<Scalar4>& force_array_7 =  fc_6->getForceArray();
+    GlobalArray<Scalar>& virial_array_7 =  fc_6->getVirialArray();
     unsigned int pitch = virial_array_7.getPitch();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
@@ -461,13 +461,13 @@ void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_c
 
     {
     // verify that the forces are identical (within roundoff errors)
-    GPUArray<Scalar4>& force_array_8 =  fc1->getForceArray();
-    GPUArray<Scalar>& virial_array_8 =  fc1->getVirialArray();
+    GlobalArray<Scalar4>& force_array_8 =  fc1->getForceArray();
+    GlobalArray<Scalar>& virial_array_8 =  fc1->getVirialArray();
     unsigned int pitch = virial_array_8.getPitch();
     ArrayHandle<Scalar4> h_force_8(force_array_8,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_8(virial_array_8,access_location::host,access_mode::read);
-    GPUArray<Scalar4>& force_array_9 =  fc2->getForceArray();
-    GPUArray<Scalar>& virial_array_9 =  fc2->getVirialArray();
+    GlobalArray<Scalar4>& force_array_9 =  fc2->getForceArray();
+    GlobalArray<Scalar>& virial_array_9 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_9(force_array_9,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_9(virial_array_9,access_location::host,access_mode::read);
 

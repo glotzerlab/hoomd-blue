@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -67,6 +67,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     m_rank = 0;
 
+#ifdef ENABLE_MPI
+    m_n_rank = n_ranks;
+    m_hoomd_world = hoomd_world;
+    splitPartitions(hoomd_world);
+#endif
+
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
@@ -83,18 +89,19 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         }
 
     m_concurrent = exec_mode==GPU;
+    m_in_multigpu_block = false;
 
     // now, exec_mode should be either CPU or GPU - proceed with initialization
 
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
         {
-        if (!gpu_id.size() && !m_system_compute_exclusive)
+        bool found_local_rank = false;
+        int local_rank = guessLocalRank(found_local_rank);
+        if (!gpu_id.size() && found_local_rank)
             {
-            // if we are not running in compute exclusive mode, use
-            // local MPI rank as preferred GPU id
-            msg->notice(2) << "This system is not compute exclusive, using local rank to select GPUs" << std::endl;
-            gpu_id.push_back((guessLocalRank() % dev_count));
+            // if we found a local rank, use that to select the GPU
+            gpu_id.push_back((local_rank % dev_count));
             }
 
         cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
@@ -121,12 +128,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     exec_mode = CPU;
     m_concurrent = false;
 #endif
-
-    #ifdef ENABLE_MPI
-    m_n_rank = n_ranks;
-    m_hoomd_world = hoomd_world;
-    splitPartitions(hoomd_world);
-    #endif
 
     setupStats();
 
@@ -169,7 +170,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         handleCUDAError(err_sync, __FILE__, __LINE__);
 
         // initialize cached allocator, max allocation 0.5*global mem
-        m_cached_alloc = new CachedAllocator((unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
+        m_cached_alloc.reset(new CachedAllocator(false, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem)));
+        m_cached_alloc_managed.reset(new CachedAllocator(true, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem)));
         }
     #endif
 
@@ -256,11 +258,15 @@ ExecutionConfiguration::~ExecutionConfiguration()
         }
     #endif
 
+    #ifdef ENABLE_CUDA
+    // the destructors of these objects can issue cuda calls, so free them before the device reset
+    m_cached_alloc.reset();
+    m_cached_alloc_managed.reset();
+    #endif
+
     #if defined(ENABLE_CUDA)
     if (exec_mode == GPU)
         {
-        delete m_cached_alloc;
-
         #ifndef ENABLE_MPI_CUDA
         cudaDeviceReset();
         #endif
@@ -697,9 +703,21 @@ int ExecutionConfiguration::getNumCapableGPUs()
     }
 #endif
 
-int ExecutionConfiguration::guessLocalRank()
+int ExecutionConfiguration::guessLocalRank(bool &found)
     {
+    found = false;
+
     #ifdef ENABLE_MPI
+    // single rank simulations emulate the ENABLE_MPI=off behavior
+
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    if (size == 1)
+        {
+        found = false;
+        return 0;
+        }
+
     std::vector<std::string> env_vars;
     char *env;
 
@@ -714,7 +732,8 @@ int ExecutionConfiguration::guessLocalRank()
         {
         if ((env = getenv(it->c_str())) != NULL)
             {
-            msg->notice(3) << "Found local rank in " << *it << std::endl;
+            msg->notice(3) << "Found local rank in: " << *it << std::endl;
+            found = true;
             return atoi(env);
             }
         }
@@ -734,19 +753,21 @@ int ExecutionConfiguration::guessLocalRank()
         MPI_Comm_size(m_hoomd_world, &num_total_ranks);
         if (errors == num_total_ranks)
             {
-            msg->notice(3) << "SLURM_LOCALID is 0 on all ranks" << std::endl;
+            msg->notice(3) << "SLURM_LOCALID is 0 on all ranks, it cannot be used" << std::endl;
             }
         else
             {
+            msg->notice(3) << "Found local rank in: SLURM_LOCALID" << std::endl;
+            found = true;
             return slurm_localid;
             }
         }
 
     // fall back on global rank id
-    msg->notice(2) << "Unable to identify node local rank information" << std::endl;
-    msg->notice(2) << "Using global rank to select GPUs" << std::endl;
+    msg->notice(3) << "Using global rank to select GPUs" << std::endl;
     int global_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
+    found = true;
     return global_rank;
     #else
     return 0;
@@ -823,6 +844,8 @@ void ExecutionConfiguration::multiGPUBarrier() const
 
 void ExecutionConfiguration::beginMultiGPU() const
     {
+    m_in_multigpu_block = true;
+
     #ifdef ENABLE_CUDA
     // implement a one-to-n barrier
     if (getNumActiveGPUs() > 1)
@@ -851,11 +874,13 @@ void ExecutionConfiguration::beginMultiGPU() const
 
 void ExecutionConfiguration::endMultiGPU() const
     {
+    m_in_multigpu_block = false;
+
     #ifdef ENABLE_CUDA
     // implement an n-to-one barrier
     if (getNumActiveGPUs() > 1)
         {
-        // record the synchronization point on every GPU, except GPU 0 
+        // record the synchronization point on every GPU, except GPU 0
         for (int idev = m_gpu_id.size() - 1; idev >= 1; --idev)
             {
             cudaSetDevice(m_gpu_id[idev]);
@@ -899,7 +924,6 @@ void export_ExecutionConfiguration(py::module& m)
         .def("getPartition", &ExecutionConfiguration::getPartition)
         .def("getNRanks", &ExecutionConfiguration::getNRanks)
         .def("getRank", &ExecutionConfiguration::getRank)
-        .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
         .def("barrier", &ExecutionConfiguration::barrier)
         .def_static("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
         .def_static("getRankGlobal", &ExecutionConfiguration::getRankGlobal)

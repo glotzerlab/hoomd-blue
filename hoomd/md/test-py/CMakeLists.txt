@@ -114,6 +114,7 @@ SET(EXCLUDE_FROM_MPI
     test_update_ellipsoid
     test_meta_md
     test_minimize_fire
+    test_constrain_floppy
     )
 
 if (ENABLE_MPI)

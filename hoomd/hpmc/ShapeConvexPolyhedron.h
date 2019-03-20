@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -136,7 +136,7 @@ class SupportFuncConvexPolyhedron
                 __m256 ny_v = _mm256_broadcast_ss(&n.y);
                 __m256 nz_v = _mm256_broadcast_ss(&n.z);
                 __m256 max_dot_v = _mm256_broadcast_ss(&max_dot);
-                float d_s[verts.N] __attribute__((aligned(32)));
+                float d_s[verts.x.size()] __attribute__((aligned(32)));
 
                 for (unsigned int i = 0; i < verts.N; i+=8)
                     {
@@ -182,7 +182,7 @@ class SupportFuncConvexPolyhedron
                 __m128 ny_v = _mm_load_ps1(&n.y);
                 __m128 nz_v = _mm_load_ps1(&n.z);
                 __m128 max_dot_v = _mm_load_ps1(&max_dot);
-                float d_s[verts.N] __attribute__((aligned(16)));
+                float d_s[verts.x.size()] __attribute__((aligned(16)));
 
                 for (unsigned int i = 0; i < verts.N; i+=4)
                     {
@@ -429,4 +429,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
 }; // end namespace hpmc
 
+#undef DEVICE
+#undef HOSTDEVICE
 #endif //__SHAPE_CONVEX_POLYHEDRON_H__

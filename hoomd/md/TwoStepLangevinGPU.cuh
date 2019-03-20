@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -53,7 +53,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                              const Scalar3 *d_inertia,
                              Scalar4 *d_net_torque,
                              const unsigned int *d_group_members,
-                             const Scalar *d_gamma_r,
+                             const Scalar3 *d_gamma_r,
                              const unsigned int *d_tag,
                              unsigned int group_size,
                              const langevin_step_two_args& langevin_args,

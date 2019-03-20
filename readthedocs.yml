@@ -2,5 +2,3 @@ python:
    version: 3
    setup_py_install: false
 
-conda:
-    file: environment.yml
