@@ -106,7 +106,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         std::vector<uint32_t> orientableflag(Ntypes);
         std::transform(shape.begin(), shape.end(), data.begin(), [](const hpmc::sph_params& s)->float{return s.radius;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
-        std::transform(shape.begin(), shape.end(), data.begin(), [](const hpmc::sph_params& s)->uint32_t{return s.isOriented;});
+        std::transform(shape.begin(), shape.end(), orientableflag.begin(), [](const hpmc::sph_params& s)->uint32_t{return s.isOriented;});
         retval |= gsd_write_chunk(&handle, path_o.c_str(), GSD_TYPE_UINT32, Ntypes, 1, 0, (void *)&orientableflag[0]);
         return retval;
         }
