@@ -23,6 +23,7 @@
 namespace mpcd
 {
 
+//! Implements the Anderson thermostat collision rule for MPCD.
 class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
     {
     public:

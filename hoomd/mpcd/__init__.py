@@ -90,7 +90,7 @@ Example script for a pure bulk SRD fluid::
 When upgrading versions, existing job scripts may need to be need to be updated.
 Such modifications will be noted in the change log.
 
-**Maintainer:** Michael P. Howard, Princeton University.
+**Maintainer:** Michael P. Howard, University of Texas at Austin.
 """
 
 # these imports are necessary in order to link derived types between modules

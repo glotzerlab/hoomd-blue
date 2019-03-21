@@ -20,6 +20,7 @@ class sort(hoomd.meta._metadata):
     Args:
         system (:py:class:`hoomd.mpcd.data.system`): MPCD system to create sorter for
         period (int): Sort whenever the timestep is a multiple of *period*.
+            .. versionadded:: 2.6
 
     Warning:
         Do not create :py:class:`hoomd.mpcd.update.sort` explicitly in your script.

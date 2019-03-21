@@ -23,6 +23,14 @@ namespace mpcd
 {
 
 //! Adds virtual particles to the MPCD particle data
+/*!
+ * Virtual particles are used to pad cells sliced by solid boundaries so that their viscosity does not get too low.
+ * The VirtualParticleFiller base class defines an interface for adding these particles. The base VirtualParticleFiller
+ * implements a fill() method, which handles the basic tasks of appending a certain number of virtual particles to the
+ * particle data. Each deriving class must then implement two methods:
+ *  1. computeNumFill(), which is the number of virtual particles to add.
+ *  2. drawParticles(), which is the rule to determine where to put the particles.
+ */
 class PYBIND11_EXPORT VirtualParticleFiller
     {
     public:

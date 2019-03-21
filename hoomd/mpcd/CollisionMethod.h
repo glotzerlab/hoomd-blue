@@ -22,6 +22,10 @@ namespace mpcd
 {
 
 //! MPCD collision method
+/*!
+ * This class forms the generic base for an MPCD collision method. It handles the boiler plate of setting up the method
+ * and implementing the collision. Each deriving class should implement a rule() that gives the physics of the collision.
+ */
 class PYBIND11_EXPORT CollisionMethod
     {
     public:

@@ -22,7 +22,7 @@ namespace mpcd
 namespace gpu
 {
 
-//! Common arguments passed to all kernels
+//! Common arguments passed to all streaming kernels
 struct stream_args_t
     {
     //! Constructor

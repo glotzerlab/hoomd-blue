@@ -36,6 +36,9 @@ mpcd::ATCollisionMethod::~ATCollisionMethod()
     m_thermo->getCallbackSignal().disconnect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::drawVelocities>(this);
     }
 
+/*!
+ * \param timestep Current timestep.
+ */
 void mpcd::ATCollisionMethod::rule(unsigned int timestep)
     {
     m_thermo->compute(timestep);
@@ -54,6 +57,9 @@ void mpcd::ATCollisionMethod::rule(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
+/*!
+ * \param timestep Current timestep.
+ */
 void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
     {
     // mpcd particle data

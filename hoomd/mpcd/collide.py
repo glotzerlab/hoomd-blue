@@ -163,7 +163,7 @@ class _collision_method(hoomd.meta._metadata):
 
 
 class at(_collision_method):
-    """ Andersen thermostat method
+    r""" Andersen thermostat method
 
     Args:
         seed (int): Seed to the collision method random number generator (must be positive)
@@ -264,7 +264,7 @@ class at(_collision_method):
             self._cpp.setTemperature(self.kT.cpp_variant)
 
 class srd(_collision_method):
-    """ Stochastic rotation dynamics method
+    r""" Stochastic rotation dynamics method
 
     Args:
         seed (int): Seed to the collision method random number generator (must be positive)

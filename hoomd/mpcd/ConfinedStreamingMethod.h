@@ -25,6 +25,19 @@ namespace mpcd
 /*!
  * This method implements the base version of ballistic propagation of MPCD
  * particles in confined geometries.
+ *
+ * \tparam Geometry The confining geometry (e.g., BulkGeometry, SlitGeometry).
+ *
+ * The integration scheme is essentially Verlet with specular reflections. The particle is streamed forward over
+ * the time interval. If it moves outside the Geometry, it is placed back on the boundary and its velocity is
+ * updated according to the boundary conditions. Streaming then continues until the timestep is completed.
+ *
+ * To facilitate this, every Geometry must supply three methods:
+ *  1. detectCollision(): Determines when and where a collision occurs. If one does, this method moves the
+ *                        particle back, reflects its velocity, and gives the time still remaining to integrate.
+ *  2. isOutside(): Determines whether a particles lies outside the Geometry.
+ *  3. validateBox(): Checks whether the global simulation box is consistent with the streaming geometry.
+ *
  */
 template<class Geometry>
 class PYBIND11_EXPORT ConfinedStreamingMethod : public mpcd::StreamingMethod

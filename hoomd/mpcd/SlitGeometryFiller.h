@@ -24,6 +24,10 @@ namespace mpcd
 {
 
 //! Adds virtual particles to the MPCD particle data for SlitGeometry
+/*!
+ * Particles are added to the volume that is overlapped by any of the cells that are also "inside" the channel,
+ * subject to the grid shift.
+ */
 class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
     {
     public:

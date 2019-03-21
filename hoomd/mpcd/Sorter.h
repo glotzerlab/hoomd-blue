@@ -30,6 +30,11 @@ namespace mpcd
  * deriving from Sorter and implementing computeOrder(). Any computeOrder()
  * must set the map from old particle index to new particle index, and the
  * reverse mapping.
+ *
+ * When there are virtual particles in the mpcd::ParticleData, the Sorter will ignore
+ * the virtual particles and leave them in place at the end of the arrays. This is
+ * because they cannot be removed easily if they are sorted with the rest of the particles,
+ * and the performance gains from doing a separate (segmented) sort on them is probably small.
  */
 class PYBIND11_EXPORT Sorter
     {
