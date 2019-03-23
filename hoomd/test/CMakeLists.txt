@@ -7,6 +7,7 @@ set(TEST_LIST
     test_cell_list_stencil
     test_gpu_array
     test_global_array
+    test_gpu_polymorph
     test_gridshift_correct
     test_index1d
     test_messenger
@@ -23,7 +24,9 @@ set(TEST_LIST
     )
 
 if (ENABLE_CUDA)
-list(APPEND TEST_LIST test_warp_tools)
+list(APPEND TEST_LIST
+     test_warp_tools
+     )
 set(SYNC_TEST_LIST
     test_warp_tools)
 endif (ENABLE_CUDA)
