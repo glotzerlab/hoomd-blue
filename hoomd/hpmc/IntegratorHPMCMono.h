@@ -682,15 +682,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     }
 
                                 // put particles in coordinate system of particle i
-                                vec3<Scalar> pos_j(postype_j);
-                                vec3<Scalar> r_ij = pos_j - pos_i_image;
+                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
                                 Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
-
-                                // check AABB overlap
-                                detail::AABB aabb_j = shape_j.getAABB(pos_j);
-                                bool overlap_excluded = detail::overlap(aabb, aabb_j);
 
                                 Scalar rcut = 0.0;
                                 if (m_patch)
@@ -698,7 +693,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
                                 counters.overlap_checks++;
                                 if (h_overlaps.data[m_overlap_idx(typ_i, typ_j)]
-                                    && overlap_excluded
+                                    && check_circumsphere_overlap(r_ij, shape_i, shape_j)
                                     && test_overlap(r_ij, shape_i, shape_j, counters.overlap_err_count))
                                     {
                                     overlap = true;
