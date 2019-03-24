@@ -118,24 +118,13 @@ struct ShapeSpheropolyhedron
         return detail::AABB(pos, verts.diameter/Scalar(2));
         }
 
-    #ifndef NVCC
     //! Return a tight fitting OBB
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
-        if (verts.N >= 1)
-            {
-            std::vector<OverlapReal> vertex_radii(verts.N, verts.sweep_radius);
-            std::vector<vec3<OverlapReal> > pts(verts.N);
-            for (unsigned int i = 0; i < verts.N; ++i)
-                pts[i] = vec3<OverlapReal>(pos)+vec3<OverlapReal>(verts.x[i], verts.y[i], verts.z[i]);
-
-            // just use the AABB for now
-            return detail::compute_obb(pts, vertex_radii, false);
-            }
-        else
-            return detail::OBB(vec3<OverlapReal>(pos), verts.sweep_radius);
+        detail::OBB obb = verts.obb;
+        obb.affineTransform(orientation, pos);
+        return obb;
         }
-    #endif
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }

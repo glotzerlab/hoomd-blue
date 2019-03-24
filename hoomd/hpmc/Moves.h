@@ -5,6 +5,8 @@
 #include "hoomd/VectorMath.h"
 
 #include "hoomd/AABB.h"
+#include "hoomd/hpmc/HPMCPrecisionSetup.h"
+#include "hoomd/hpmc/OBB.h"
 
 /*! \file Moves.h
     \brief Trial move generators
@@ -179,7 +181,7 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
  * \param R radius of insertion sphere
  */
 template<class RNG>
-inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_sphere, Scalar R)
+DEVICE inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_sphere, Scalar R)
     {
     // draw a random vector in the excluded volume sphere of the colloid
     Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
@@ -266,6 +268,29 @@ DEVICE inline vec3<Scalar> generatePositionInAABB(RNG& rng, const detail::AABB& 
     p.z = rng.template s<Scalar>(lower.z, upper.z);
 
     return p;
+    }
+
+/* Generate a uniformly distributed random position in an OBB
+ *
+ * \param rng The random number generator
+ * \param aabb The OBB to sample in
+ * \param dim Dimensionality of system
+ */
+template<class RNG>
+DEVICE inline vec3<OverlapReal> generatePositionInOBB(RNG& rng, const detail::OBB& obb, unsigned int dim)
+    {
+    vec3<OverlapReal> p;
+    vec3<OverlapReal> lower = -obb.lengths;
+    vec3<OverlapReal> upper = obb.lengths;
+
+    p.x = rng.template s<OverlapReal>(lower.x, upper.x);
+    p.y = rng.template s<OverlapReal>(lower.y, upper.y);
+    if (dim == 3)
+        p.z = rng.template s<OverlapReal>(lower.z, upper.z);
+    else
+        p.z = OverlapReal(0.0);
+
+    return rotate(obb.rotation,p)+obb.center;
     }
 
 /*! Reflect a point in R3 around a line (pi rotation), given by a point p through which it passes

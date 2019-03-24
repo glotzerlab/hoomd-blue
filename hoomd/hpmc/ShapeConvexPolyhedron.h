@@ -8,6 +8,7 @@
 #include "XenoCollide3D.h"
 #include "MAP3D.h"
 #include "hoomd/ManagedArray.h"
+#include "hoomd/hpmc/OBB.h"
 
 #include <cfloat>
 
@@ -30,10 +31,6 @@
 #if defined (__SSE__)
 #include <immintrin.h>
 #endif
-#endif
-
-#ifndef NVCC
-#include <vector>
 #endif
 
 namespace hpmc
@@ -112,6 +109,8 @@ struct poly3d_verts : param_base
     OverlapReal sweep_radius;               //!< Radius of the sphere sweep (used for spheropolyhedra)
     unsigned int ignore;                    //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                             //   First bit is ignore overlaps, Second bit is ignore statistics
+
+    detail::OBB obb;                        //!< Tight fitting bounding box
     } __attribute__((aligned(32)));
 
 //! Support function for ShapePolyhedron
@@ -602,24 +601,13 @@ struct ShapeConvexPolyhedron
         return detail::AABB(pos, getCircumsphereDiameter()/Scalar(2));
         }
 
-    #ifndef NVCC
     //! Return a tight fitting OBB
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
-        if (verts.N >= 1)
-            {
-            std::vector<OverlapReal> vertex_radii(verts.N, 0.0);
-            std::vector<vec3<OverlapReal> > pts(verts.N);
-            for (unsigned int i = 0; i < verts.N; ++i)
-                pts[i] = vec3<OverlapReal>(pos)+vec3<OverlapReal>(verts.x[i], verts.y[i], verts.z[i]);
-
-            // just use the AABB for now
-            return detail::compute_obb(pts, vertex_radii, false);
-            }
-        else
-            return detail::OBB(vec3<OverlapReal>(pos), 0);
+        detail::OBB obb = verts.obb;
+        obb.affineTransform(orientation, pos);
+        return obb;
         }
-    #endif
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }

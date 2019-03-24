@@ -35,7 +35,7 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
             bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
     #endif
 
-    GPUArray<hpmc_counters_t> counters(1, this->m_exec_conf);
+    GlobalArray<hpmc_counters_t> counters(1, this->m_exec_conf);
     m_count_total.swap(counters);
 
     GPUVector<Scalar> d(this->m_pdata->getNTypes(), this->m_exec_conf);

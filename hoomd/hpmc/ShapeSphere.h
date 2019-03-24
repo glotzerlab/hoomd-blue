@@ -300,6 +300,37 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     return true;
     }
 
+//! Check if bounding volumes (OBBs) overlap (generic template)
+/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    \param a first shape
+    \param b second shape
+    \returns true if the circumspheres of both shapes overlap
+
+    \ingroup shape
+*/
+template<class ShapeA, class ShapeB>
+DEVICE inline bool check_obb_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB &b)
+    {
+    // check overlap between OBBs
+    return detail::overlap(a.getOBB(vec3<Scalar>(0,0,0)), b.getOBB(r_ab));
+    }
+
+//! Check if bounding volumes (OBBs) of two spheres overlap
+/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    \param a first shape
+    \param b second shape
+    \returns true if the circumspheres of both shapes overlap
+
+    \ingroup shape
+*/
+DEVICE inline bool check_obb_overlap(const vec3<Scalar>& r_ab, const ShapeSphere& a,
+    const ShapeSphere &b)
+    {
+    // for now, always return true
+    return true;
+    }
+
+
 //! Check if three circumspheres overlap in a common point
 /*! \param a first shape
     \param b second shape

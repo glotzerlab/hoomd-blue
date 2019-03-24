@@ -332,6 +332,16 @@ poly3d_verts make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, b
              result.hull_verts[i] = indexBuffer[i];
         }
 
+    if (result.N >= 1)
+        {
+        std::vector<OverlapReal> vertex_radii(result.N, result.sweep_radius);
+        std::vector<vec3<OverlapReal> > pts(result.N);
+        for (unsigned int i = 0; i < result.N; ++i)
+            pts[i] = vec3<OverlapReal>(result.x[i], result.y[i], result.z[i]);
+
+        result.obb = detail::compute_obb(pts, vertex_radii, false);
+        }
+
     return result;
     }
 
