@@ -8,21 +8,28 @@ R""" MPCD streaming methods
 An MPCD streaming method is required to update the particle positions over time.
 It is meant to be used in conjunction with an :py:class:`~hoomd.mpcd.integrator`
 and collision method (see :py:mod:`~hoomd.mpcd.collide`). Particle positions are
-propagated ballistically according to Newton's equations (without any acceleration)
-for a time :math:`\Delta t`:
+propagated ballistically according to Newton's equations using a velocity-Verlet
+scheme for a time :math:`\Delta t`:
 
 .. math::
 
-    \mathbf{r}(t+\Delta t) = \mathbf{r}(t) + \mathbf{v}(t) \Delta t
+    \mathbf{v}(t + \Delta t/2) &= \mathbf{v}(t) + (\mathbf{f}/m)(\Delta t / 2)
 
-where **r** and **v** are the particle position and velocity, respectively.
+    \mathbf{r}(t+\Delta t) &= \mathbf{r}(t) + \mathbf{v}(t+\Delta t/2) \Delta t
+
+    \mathbf{v}(t + \Delta t) &= \mathbf{v}(t + \Delta t/2) + (\mathbf{f}/m)(\Delta t / 2)
+
+where **r** and **v** are the particle position and velocity, respectively, and **f**
+is the external force acting on the particles of mass *m*. For a list of forces
+that can be applied, see :py:mod:`.mpcd.force`.
 
 Since one of the main strengths of the MPCD algorithm is that it can be coupled to
 complex boundaries, the streaming geometry can be configured. MPCD solvent particles
 will be reflected from boundary surfaces using specular reflections (bounce-back)
 rules consistent with either "slip" or "no-slip" hydrodynamic boundary conditions.
-To help fully enforce these boundary conditions, "virtual" MPCD particles can be
-inserted near the boundary walls.
+(The external force is only applied to the particles at the beginning and the end
+of this process.) To help fully enforce the boundary conditions, "virtual" MPCD
+particles can be inserted near the boundary walls.
 
 Although a streaming geometry is enforced on the MPCD solvent particles, there are
 a few important caveats:
@@ -73,11 +80,11 @@ class _streaming_method(hoomd.meta._metadata):
             raise RuntimeError('Multiple initialization of streaming method')
 
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','enabled','field']
+        self.metadata_fields = ['period','enabled']
 
         self.period = period
         self.enabled = True
-        self.field = (0,0,0)
+        self.force = None
         self._cpp = None
         self._filler = None
 
@@ -154,34 +161,47 @@ class _streaming_method(hoomd.meta._metadata):
         self._cpp.setPeriod(cur_tstep, period)
         self.period = period
 
-    def set_field(self, field):
-        #""" Set the external field for streaming.
-        #
-        #Args:
-        #    field (tuple): External force to apply to MPCD particles.
-        #
-        #Setting an external *field* on a streaming method applies a constant
-        #force on all MPCD particles. This can be used, for example, in conjunction
-        #with no-slip boundary conditions to generate flows in confined geometries.
-        #
-        #Warning:
-        #    The *field* applies only to the MPCD particles. If you have embedded
-        #    particles, you should usually additionally specify a :py:class:`.md.force.constant`
-        #    for that particle group with the appropriate forces.
-        #
-        #"""
+    def set_force(self, force):
+        """ Set the external force field for streaming.
+
+        Args:
+            force (:py:mod:`.mpcd.force`): External force field to apply to MPCD particles.
+
+        Setting an external *force* will generate a flow of the MPCD particles subject to the
+        boundary conditions of the streaming geometry. Note that the force field should be
+        chosen in a way that makes sense for the geometry (e.g., so that the box is not
+        continually accelerating).
+
+        Warning:
+            The *force* applies only to the MPCD particles. If you have embedded
+            particles, you should usually additionally specify a force from :py:mod:`.md.force`
+            for that particle group.
+
+        Examples::
+
+            f = mpcd.force.constant(field=(1.0,0.0,0.0))
+            streamer.set_force(f)
+
+        """
         hoomd.util.print_status_line()
+        self.force = force
+        self._cpp.setField(self.force._cpp)
 
-        try:
-            if len(field) != 3:
-                hoomd.context.msg.error('mpcd.stream: external field for streaming method must be a 3-component vector.\n')
-                raise ValueError('External field must be a 3-component vector')
-        except TypeError:
-            hoomd.context.msg.error('mpcd.stream: external field for streaming method must be a 3-component vector.\n')
-            raise ValueError('External field must be a 3-component vector')
+    def remove_force(self):
+        """ Remove the external force field for streaming.
 
-        self.field = field
-        self._cpp.setField(_hoomd.make_scalar3(self.field[0], self.field[1], self.field[2]))
+        Warning:
+            This only removes the force on the MPCD particles. If you have embedded
+            particles, you must separately disable any corresponding external force.
+
+        Example::
+
+            streamer.remove_force()
+
+        """
+        hoomd.util.print_status_line()
+        self.force = None
+        self._cpp.removeField()
 
     def _process_boundary(self, bc):
         """ Process boundary condition string into enum

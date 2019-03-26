@@ -5,6 +5,7 @@ set(TEST_LIST
     collide_srd
     data_snapshot
     data_system
+    force_constant
     init_make_random
     integrate_integrator
     stream_bulk

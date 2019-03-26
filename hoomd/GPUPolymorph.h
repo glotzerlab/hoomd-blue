@@ -46,21 +46,60 @@ namespace hoomd
  * 1. Constructor arguments must be forwarded to a device kernel from the host. Don't make them anything too bulky.
  * 2. Device-memory objects are allocated and initialized by hoomd::gpu::device_new. You will need to explicitly
  *    instantiate this template in a *.cu file, or you will get undefined symbol errors.
- * 3. Because device-memory objects are destroyed by a simple free (destructor not called), the polymorphic objects
- *    are not allowed to have their own destructors; they must be trivially destructible. A compile-time assertion
- *    will fail if either \a Base or \a Derived is not trivially destructible.
+ * 3. When the allocations are reset or the object goes out of scope, the device-memory object will be destructed and
+ *    freed. The base destructor is first called from inside a kernel; it should be virtual to ensure proper
+ *    destructor chaining. Afterwards, the memory is simply freed. You will need to explicitly instantiate
+ *    hoomd::gpu::device_delete for the base class in a *.cu file, or you will get undefined symbol errors.
+ *
+ * This wrapper essentially acts like a factory class that also manages the necessary objects.
  *
  * \tparam Base Base class for the polymorphic object.
  */
 template<class Base>
 class GPUPolymorph
     {
-    static_assert(std::is_trivially_destructible<Base>::value, "Base of Polymorph must be trivially destructible.");
     static_assert(std::is_polymorphic<Base>::value, "Base should be a polymorphic class.");
 
     private:
         typedef std::unique_ptr<Base> host_ptr;
-        typedef std::unique_ptr<Base, std::function<void(Base*)>> device_ptr;
+
+        #ifdef ENABLE_CUDA
+        //! Simple custom deleter for the base class.
+        /*!
+         * This custom deleter is used by std::unique_ptr to free the memory allocation.
+         */
+        class CUDADeleter
+            {
+            public:
+                //! Default constructor (gives null exec. conf)
+                CUDADeleter() {}
+
+                //! Constructor with an execution configuration
+                CUDADeleter(std::shared_ptr<const ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf) {}
+
+                //! Delete operator
+                /*!
+                 * \param p Pointer to a possibly polymorphic \a Base object
+                 *
+                 * If the allocation for a device pointer is still valid, the deleter will first
+                 * call the destructor for the \a Base class from inside a kernel. Then, the memory
+                 * will be freed by cudaFree().
+                 */
+                void operator()(Base* p) const
+                    {
+                    if (m_exec_conf && m_exec_conf->isCUDAEnabled() && p)
+                        {
+                        m_exec_conf->msg->notice(5) << "Freeing device memory from GPUPolymorph [Base = " << typeid(Base).name() << "]" << std::endl;
+                        gpu::device_delete(p);
+                        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+                        }
+                    }
+            private:
+                std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< HOOMD execution configuration
+            };
+
+        typedef std::unique_ptr<Base,CUDADeleter> device_ptr;
+        #endif // ENABLE_CUDA
 
     public:
         //! Constructor
@@ -74,12 +113,12 @@ class GPUPolymorph
             {
             m_exec_conf->msg->notice(4) << "Constructing GPUPolymorph [Base = " << typeid(Base).name() << "]" << std::endl;
             #ifdef ENABLE_CUDA
-            m_device_data = device_ptr(nullptr, [](Base* p){ if (p) cudaFree((void*)p); });
+            m_device_data = device_ptr(nullptr, CUDADeleter(m_exec_conf));
             #endif // ENABLE_CUDA
             }
 
         //! Destructor
-        virtual ~GPUPolymorph()
+        ~GPUPolymorph()
             {
             m_exec_conf->msg->notice(4) << "Destroying GPUPolymorph [Base = " << typeid(Base).name() << "]" << std::endl;
             }
@@ -134,27 +173,25 @@ class GPUPolymorph
          * \tparam Args Argument types for constructor of \a Derived object to call.
          * \param args Argument values to construct \a Derived object.
          *
-         * The host-memory copy is allocated and initialized using the new keyword with perfect-forwarding of \a args.
-         * If CUDA is available for the execution configuration, the device-memory object is created by
-         * hoomd::gpu::device_new with perfect-forwarding of \a args.
+         * The host-memory copy is allocated and initialized using the new keyword. If CUDA is available
+         * for the execution configuration, the device-memory object is created by hoomd::gpu::device_new.
          *
-         * \a Derived must be derived from \a Base, and \a Derived must be trivially destructible.
-         * A compile-time assertion will fail otherwise.
+         * \a Derived must be derived from \a Base for this wrapper to make sense. A compile-time assertion will fail otherwise.
          */
         template<class Derived, typename ...Args>
-        void reset(Args&&... args)
+        void reset(Args... args)
             {
             static_assert(std::is_base_of<Base,Derived>::value, "Polymorph must be derived from Base.");
-            static_assert(std::is_trivially_destructible<Derived>::value, "Derived polymorph must be trivially destructible.");
 
             m_exec_conf->msg->notice(4) << "Resetting GPUPolymorph [Derived = " << typeid(Derived).name()
                                        << ", Base = " << typeid(Base).name() << "] (" << sizeof(Derived) << " bytes)" << std::endl;
 
-            m_host_data.reset(new Derived(std::forward<Args>(args)...));
+            m_host_data.reset(new Derived(args...));
             #ifdef ENABLE_CUDA
             if (m_exec_conf->isCUDAEnabled())
                 {
-                m_device_data.reset(gpu::device_new<Derived>(std::forward<Args>(args)...));
+                m_device_data.reset(gpu::device_new<Derived>(args...));
+                if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
                 }
             #endif // ENABLE_CUDA
             }

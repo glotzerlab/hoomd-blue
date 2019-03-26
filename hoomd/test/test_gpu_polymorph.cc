@@ -22,27 +22,28 @@ void test_gpu_polymorph(const ExecutionConfiguration::executionMode mode)
     auto exec_conf = std::make_shared<ExecutionConfiguration>(mode);
 
     // default initialization is empty
-    hoomd::GPUPolymorph<ArithmeticOperator> add_op(exec_conf), times_op(exec_conf);
+    hoomd::GPUPolymorph<ArithmeticOperator> add_op(exec_conf);
+    auto times_op = std::make_shared<hoomd::GPUPolymorph<ArithmeticOperator>>(exec_conf);
     UP_ASSERT(add_op.get(access_location::host) == nullptr);
-    UP_ASSERT(times_op.get(access_location::host) == nullptr);
+    UP_ASSERT(times_op->get(access_location::host) == nullptr);
 
     // resetting should allocate these members
     add_op.reset<AdditionOperator>(7);
     const int a = 7;
-    times_op.reset<MultiplicationOperator>(a);
+    times_op->reset<MultiplicationOperator>(a);
 
     // check host polymorphism
     UP_ASSERT(add_op.get(access_location::host) != nullptr);
-    UP_ASSERT(times_op.get(access_location::host) != nullptr);
+    UP_ASSERT(times_op->get(access_location::host) != nullptr);
     UP_ASSERT_EQUAL(add_op.get(access_location::host)->call(3), 10);
-    UP_ASSERT_EQUAL(times_op.get(access_location::host)->call(3), 21);
+    UP_ASSERT_EQUAL(times_op->get(access_location::host)->call(3), 21);
 
     // check device polymorphism
     #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         {
         UP_ASSERT(add_op.get(access_location::device) != nullptr);
-        UP_ASSERT(times_op.get(access_location::device) != nullptr);
+        UP_ASSERT(times_op->get(access_location::device) != nullptr);
 
         GPUArray<int> result(2, exec_conf);
         // addition operator
@@ -58,7 +59,7 @@ void test_gpu_polymorph(const ExecutionConfiguration::executionMode mode)
         // multiplication operator
             {
             ArrayHandle<int> d_result(result, access_location::device, access_mode::overwrite);
-            test_operator(d_result.data, times_op.get(access_location::device), 2);
+            test_operator(d_result.data, times_op->get(access_location::device), 2);
             }
             {
             ArrayHandle<int> h_result(result, access_location::host, access_mode::read);
@@ -69,7 +70,7 @@ void test_gpu_polymorph(const ExecutionConfiguration::executionMode mode)
     else
         {
         UP_ASSERT(add_op.get(access_location::device) == nullptr);
-        UP_ASSERT(times_op.get(access_location::device) == nullptr);
+        UP_ASSERT(times_op->get(access_location::device) == nullptr);
         }
     #endif // ENABLE_CUDA
     }

@@ -11,8 +11,7 @@
  * \brief Declaration of CUDA kernels for mpcd::ConfinedStreamingMethodGPU
  */
 
-#include <cuda_runtime.h>
-
+#include "ExternalField.h"
 #include "ParticleDataUtilities.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
@@ -29,7 +28,7 @@ struct stream_args_t
     stream_args_t(Scalar4 *_d_pos,
                   Scalar4 *_d_vel,
                   const Scalar _mass,
-                  const Scalar3 _field,
+                  const mpcd::ExternalField* _field,
                   const BoxDim& _box,
                   const Scalar _dt,
                   const unsigned int _N,
@@ -37,14 +36,14 @@ struct stream_args_t
         : d_pos(_d_pos), d_vel(_d_vel), mass(_mass), field(_field), box(_box), dt(_dt), N(_N), block_size(_block_size)
         { }
 
-    Scalar4 *d_pos;                 //!< Particle positions
-    Scalar4 *d_vel;                 //!< Particle velocities
-    const Scalar mass;              //!< Particle mass
-    const Scalar3 field;            //!< Applied external field on particles
-    const BoxDim& box;              //!< Simulation box
-    const Scalar dt;                //!< Timestep
-    const unsigned int N;           //!< Number of particles
-    const unsigned int block_size;  //!< Number of threads per block
+    Scalar4 *d_pos;                     //!< Particle positions
+    Scalar4 *d_vel;                     //!< Particle velocities
+    const Scalar mass;                  //!< Particle mass
+    const mpcd::ExternalField* field;   //!< Applied external field on particles
+    const BoxDim& box;                  //!< Simulation box
+    const Scalar dt;                    //!< Timestep
+    const unsigned int N;               //!< Number of particles
+    const unsigned int block_size;      //!< Number of threads per block
     };
 
 //! Kernel driver to stream particles ballistically
@@ -84,7 +83,7 @@ template<class Geometry>
 __global__ void confined_stream(Scalar4 *d_pos,
                                 Scalar4 *d_vel,
                                 const Scalar mass,
-                                const Scalar3 field,
+                                const mpcd::ExternalField* field,
                                 const BoxDim box,
                                 const Scalar dt,
                                 const unsigned int N,
@@ -102,7 +101,10 @@ __global__ void confined_stream(Scalar4 *d_pos,
     const Scalar4 vel_cell = d_vel[idx];
     Scalar3 vel = make_scalar3(vel_cell.x, vel_cell.y, vel_cell.z);
     // estimate next velocity based on current acceleration
-    vel += Scalar(0.5) * dt * field / mass;
+    if (field)
+        {
+        vel += Scalar(0.5) * dt * field->evaluate(pos) / mass;
+        }
 
     // propagate the particle to its new position ballistically
     Scalar dt_remain = dt;
@@ -114,7 +116,10 @@ __global__ void confined_stream(Scalar4 *d_pos,
         }
     while (dt_remain > 0 && collide);
     // finalize velocity update
-    vel += Scalar(0.5) * dt * field / mass;
+    if (field)
+        {
+        vel += Scalar(0.5) * dt * field->evaluate(pos) / mass;
+        }
 
     // wrap and update the position
     int3 image = make_int3(0,0,0);

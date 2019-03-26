@@ -15,33 +15,36 @@
 class ArithmeticOperator
     {
     public:
-        HOSTDEVICE ArithmeticOperator(int a) : a_(a) {}
+        HOSTDEVICE virtual ~ArithmeticOperator() {}
         HOSTDEVICE virtual int call(int b) const = 0;
-
-    protected:
-        int a_;
     };
 
 class AdditionOperator : public ArithmeticOperator
     {
     public:
-        HOSTDEVICE AdditionOperator(int a) : ArithmeticOperator(a) {}
+        HOSTDEVICE AdditionOperator(int a) : a_(a) {}
 
         HOSTDEVICE virtual int call(int b) const
             {
             return a_+b;
             }
+
+    private:
+        int a_;
     };
 
 class MultiplicationOperator : public ArithmeticOperator
     {
     public:
-        HOSTDEVICE MultiplicationOperator(int a) : ArithmeticOperator(a) {}
+        HOSTDEVICE MultiplicationOperator(int a) : a_(a) {}
 
         HOSTDEVICE virtual int call(int b) const
             {
             return a_*b;
             }
+
+    private:
+        int a_;
     };
 
 void test_operator(int* result, const ArithmeticOperator* op, unsigned int N);

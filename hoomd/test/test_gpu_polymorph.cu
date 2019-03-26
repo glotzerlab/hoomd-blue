@@ -23,3 +23,4 @@ void test_operator(int* result, const ArithmeticOperator* op, unsigned int N)
 
 template AdditionOperator* hoomd::gpu::device_new(int);
 template MultiplicationOperator* hoomd::gpu::device_new(int);
+template void hoomd::gpu::device_delete(ArithmeticOperator*);

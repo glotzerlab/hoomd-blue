@@ -11,6 +11,7 @@ set(_mpcd_sources
     CellList.cc
     CollisionMethod.cc
     Communicator.cc
+    ExternalField.cc
     Integrator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
@@ -35,6 +36,7 @@ set(_mpcd_headers
     ConfinedStreamingMethod.h
     Communicator.h
     CommunicatorUtilities.h
+    ExternalField.h
     Integrator.h
     ParticleData.h
     ParticleDataSnapshot.h
@@ -88,6 +90,7 @@ set(_mpcd_cu_sources
     CellListGPU.cu
     ConfinedStreamingMethodGPU.cu
     CommunicatorGPU.cu
+    ExternalField.cu
     ParticleData.cu
     SlitGeometryFillerGPU.cu
     SorterGPU.cu
@@ -143,6 +146,7 @@ set(files
     __init__.py
     collide.py
     data.py
+    force.py
     init.py
     stream.py
     update.py
