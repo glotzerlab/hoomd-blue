@@ -10,7 +10,8 @@
 
 #include "CellListGPU.cuh"
 
-#include "hoomd/extern/cub/cub/device/device_select.cuh"
+#include <thrust/copy.h>
+#include <thrust/execution_policy.h>
 
 namespace mpcd
 {
@@ -212,7 +213,7 @@ struct LessThan
     /*!
      * \param compare_ Value to compare less than
      */
-    __host__ __device__ __forceinline__
+    __host__ __device__
     LessThan(unsigned int compare_)
         : compare(compare_) {}
 
@@ -221,7 +222,7 @@ struct LessThan
      * \param val
      * \returns True if \a val is less than \a compare
      */
-    __host__ __device__ __forceinline__
+    __host__ __device__
     bool operator()(const unsigned int& val) const
         {
         return (val < compare);
@@ -233,45 +234,32 @@ struct LessThan
 
 /*!
  * \param d_order Compacted MPCD particle indexes in cell-list order (output)
- * \param d_num_select Number of particles in the compaction (output)
- * \param d_tmp_storage Temporary storage for CUB (output)
- * \param tmp_storage_bytes Number of bytes in \a d_tmp_storage (input/output)
  * \param d_cell_list Cell list array to compact
  * \param num_items Number of items in the cell list
  * \param N_mpcd Number of MPCD particles
  *
- * \returns cudaSuccess on completion
+ * \returns Number of items selected (should be equal to N_mpcd).
  *
  * \b Implementation
- * cub::DeviceSelect::If is used to efficiently compact the MPCD cell list to
+ * thrust::copy_if is used to efficiently compact the MPCD cell list to
  * a stream containing only MPCD particle indexes. First, a sentinel is set to
  * fill in empty entries (mpcd::gpu::sort_set_sentinel). Then, the LessThan functor
  * is used to compare all entries in the cell list, and return only those with
  * indexes less than \a N_mpcd.
  *
- * \b Usage
- * Because this function relies on CUB, it must be called \b twice in order to
- * take effect. On the first call, \a d_tmp_storage should be a NULL pointer.
- * The necessary temporary storage will be sized and stored in \a tmp_storage_bytes.
- * The caller must then allocate the required storage into \a d_tmp_storage,
- * and call this method again. After the second call, the compacted cell list
- * will be stored in \a d_order. \a d_num_select should store a value equal to
- * \a N_mpcd. In debug mode, this value can optionally be copied to the host
- * and checked. However, this involves an unnecessary copy operation, and so is
- * not typically recommended.
+ * \b Note
+ * A previous version of this function used CUB to perform the select, but this seemed to
+ * fail when HOOMD bumped to CUB 1.8.0. Segfaults were encountered when executing DeviceSelect::If.
+ * I decided to replace it with thrust since this is not so performance critical, and I was unable
+ * to find the proper root cause of it.
  */
-cudaError_t sort_cell_compact(unsigned int *d_order,
-                              unsigned int *d_num_select,
-                              void *d_tmp_storage,
-                              size_t& tmp_storage_bytes,
-                              const unsigned int *d_cell_list,
-                              const unsigned int num_items,
-                              const unsigned int N_mpcd)
+unsigned int sort_cell_compact(unsigned int *d_order,
+                               const unsigned int *d_cell_list,
+                               const unsigned int num_items,
+                               const unsigned int N_mpcd)
     {
-    LessThan selector(N_mpcd);
-    cub::DeviceSelect::If(d_tmp_storage, tmp_storage_bytes, d_cell_list, d_order, d_num_select, num_items, selector);
-
-    return cudaSuccess;
+    unsigned int* last = thrust::copy_if(thrust::device, d_cell_list, d_cell_list+num_items, d_order, LessThan(N_mpcd));
+    return (last-d_order);
     }
 
 /*!
