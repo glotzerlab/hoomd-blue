@@ -41,7 +41,7 @@ class constant(_force):
     """ Constant force.
 
     Args:
-        field (tuple): 3d vector specifying the force per particle.
+        F (tuple): 3d vector specifying the force per particle.
 
     The same constant-force is applied to all particles, independently of time
     and their positions. This force is useful for simulating pressure-driven
@@ -61,11 +61,11 @@ class constant(_force):
         force.constant(g)
 
     """
-    def __init__(self, field):
+    def __init__(self, F):
         hoomd.util.print_status_line()
 
         try:
-            if len(field) != 3:
+            if len(F) != 3:
                 hoomd.context.msg.error('mpcd.force.constant: field must be a 3-component vector.\n')
                 raise ValueError('External field must be a 3-component vector')
         except TypeError:
@@ -74,12 +74,63 @@ class constant(_force):
 
         # initialize python level
         _force.__init__(self)
-        self.metadata_fields += ['field']
-        self._field = field
+        self.metadata_fields += ['F']
+        self._F = F
 
         # initialize c++
-        self._cpp.ConstantForce(_hoomd.make_scalar3(self.field[0], self.field[1], self.field[2]))
+        self._cpp.ConstantForce(_hoomd.make_scalar3(self.F[0], self.F[1], self.F[2]))
 
     @property
-    def field(self):
-        return self._field
+    def F(self):
+        return self._F
+
+class sine(_force):
+    """ Sine force.
+
+    Args:
+        F (float): 3d vector specifying the force per particle.
+        k (float): Wavenumber for the force.
+
+    Applies a force in *x* that is sinusoidally varying in *z*.
+
+    .. math::
+
+        \mathbf{F}(\mathbf{r}) = F \sin (k r_z) \mathbf{e}_x
+
+    Typically, the wavenumber should be something that is commensurate
+    with the simulation box. For example, :math:`k = 2\pi/L_z` will generate
+    one period of the sine in :py:class:`~.stream.bulk` geometry.
+
+    Examples::
+
+        # one period
+        k0 = 2.*np.pi/box.Lz
+        force.sine(F=1.0, k=k0)
+
+        # two periods
+        force.sine(F=0.5, k=2*k0)
+
+    The user will need to determine what value of *k* makes sense for their
+    problem, as it is too difficult to validate all values of *k* for all
+    streaming geometries.
+
+    """
+    def __init__(self, F, k):
+        hoomd.util.print_status_line()
+
+        # initialize python level
+        _force.__init__(self)
+        self.metadata_fields += ['F','k']
+        self._F = F
+        self._k = k
+
+        # initialize c++
+        self._cpp.SineForce(self.F, self.k)
+
+    @property
+    def F(self):
+        return self._F
+
+    @property
+    def k(self):
+        return self._k

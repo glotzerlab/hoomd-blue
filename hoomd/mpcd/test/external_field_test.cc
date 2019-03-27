@@ -45,9 +45,9 @@ void test_external_field(std::shared_ptr<const ExecutionConfiguration> exec_conf
             {
             const Scalar3 r = h_pos.data[i];
             const Scalar3 f = field->get(access_location::host)->evaluate(r);
-            CHECK_CLOSE(f.x, ref_force[i].x, tol_small);
-            CHECK_CLOSE(f.y, ref_force[i].y, tol_small);
-            CHECK_CLOSE(f.z, ref_force[i].z, tol_small);
+            UP_ASSERT_CLOSE(f.x, ref_force[i].x, tol_small);
+            UP_ASSERT_CLOSE(f.y, ref_force[i].y, tol_small);
+            UP_ASSERT_CLOSE(f.z, ref_force[i].z, tol_small);
             }
         }
 
@@ -67,9 +67,9 @@ void test_external_field(std::shared_ptr<const ExecutionConfiguration> exec_conf
             for (unsigned int i=0; i < N; ++i)
                 {
                 const Scalar3 f = h_out.data[i];
-                CHECK_CLOSE(f.x, ref_force[i].x, tol_small);
-                CHECK_CLOSE(f.y, ref_force[i].y, tol_small);
-                CHECK_CLOSE(f.z, ref_force[i].z, tol_small);
+                UP_ASSERT_CLOSE(f.x, ref_force[i].x, tol_small);
+                UP_ASSERT_CLOSE(f.y, ref_force[i].y, tol_small);
+                UP_ASSERT_CLOSE(f.z, ref_force[i].z, tol_small);
                 }
             }
         }
@@ -80,7 +80,7 @@ void test_external_field(std::shared_ptr<const ExecutionConfiguration> exec_conf
     #endif // ENABLE_CUDA
     }
 
-//! Test external field on CPU
+//! Test constant force on CPU
 UP_TEST( constant_force_cpu )
     {
     auto exec_conf = std::make_shared<const ExecutionConfiguration>(ExecutionConfiguration::CPU);
@@ -90,6 +90,20 @@ UP_TEST( constant_force_cpu )
 
     std::vector<Scalar3> ref_pos = {make_scalar3(1,2,3), make_scalar3(-1,0,-2)};
     std::vector<Scalar3> ref_force = {make_scalar3(6,7,8), make_scalar3(6,7,8)};
+
+    test_external_field(exec_conf, field, ref_pos, ref_force);
+    }
+
+//! Test sine force on CPU
+UP_TEST( sine_force_cpu )
+    {
+    auto exec_conf = std::make_shared<const ExecutionConfiguration>(ExecutionConfiguration::CPU);
+
+    auto field = std::make_shared<hoomd::GPUPolymorph<mpcd::ExternalField>>(exec_conf);
+    field->reset<mpcd::SineForce>(2.0, M_PI);
+
+    std::vector<Scalar3> ref_pos = {make_scalar3(1,2,0.5), make_scalar3(-1,0,-1./6.)};
+    std::vector<Scalar3> ref_force = {make_scalar3(2.0,0,0), make_scalar3(-1.,0,0)};
 
     test_external_field(exec_conf, field, ref_pos, ref_force);
     }
@@ -105,6 +119,20 @@ UP_TEST( constant_force_gpu )
 
     std::vector<Scalar3> ref_pos = {make_scalar3(1,2,3), make_scalar3(-1,0,-2)};
     std::vector<Scalar3> ref_force = {make_scalar3(6,7,8), make_scalar3(6,7,8)};
+
+    test_external_field(exec_conf, field, ref_pos, ref_force);
+    }
+
+//! Test sine force on GPU
+UP_TEST( sine_force_gpu )
+    {
+    auto exec_conf = std::make_shared<const ExecutionConfiguration>(ExecutionConfiguration::GPU);
+
+    auto field = std::make_shared<hoomd::GPUPolymorph<mpcd::ExternalField>>(exec_conf);
+    field->reset<mpcd::SineForce>(2.0, M_PI);
+
+    std::vector<Scalar3> ref_pos = {make_scalar3(1,2,0.5), make_scalar3(-1,0,-1./6.)};
+    std::vector<Scalar3> ref_force = {make_scalar3(2.0,0,0), make_scalar3(-1.,0,0)};
 
     test_external_field(exec_conf, field, ref_pos, ref_force);
     }

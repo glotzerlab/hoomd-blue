@@ -9,7 +9,7 @@ import hoomd
 from hoomd import md
 from hoomd import mpcd
 
-# unit tests for mpcd integrator
+# unit tests for mpcd constant force
 class mpcd_force_constant_test(unittest.TestCase):
     def setUp(self):
         # establish the simulation context
@@ -27,16 +27,16 @@ class mpcd_force_constant_test(unittest.TestCase):
     # test for initializing constant force field
     def test_init(self):
         # tuple
-        f = mpcd.force.constant(field=(1.,2.1,-0.3))
-        np.testing.assert_array_almost_equal(f.field, (1,2.1,-0.3))
+        f = mpcd.force.constant(F=(1.,2.1,-0.3))
+        np.testing.assert_array_almost_equal(f.F, (1,2.1,-0.3))
 
         # list
-        f = mpcd.force.constant(field=[-0.7,0,1])
-        np.testing.assert_array_almost_equal(f.field, (-0.7,0,1))
+        f = mpcd.force.constant(F=[-0.7,0,1])
+        np.testing.assert_array_almost_equal(f.F, (-0.7,0,1))
 
         # numpy array
-        f = mpcd.force.constant(field=np.array([1,2,3]))
-        np.testing.assert_array_almost_equal(f.field, (1,2,3))
+        f = mpcd.force.constant(F=np.array([1,2,3]))
+        np.testing.assert_array_almost_equal(f.F, (1,2,3))
 
         # scalar is an error
         with self.assertRaises(ValueError):

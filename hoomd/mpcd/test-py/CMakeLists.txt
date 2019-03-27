@@ -6,6 +6,7 @@ set(TEST_LIST
     data_snapshot
     data_system
     force_constant
+    force_sine
     init_make_random
     integrate_integrator
     stream_bulk

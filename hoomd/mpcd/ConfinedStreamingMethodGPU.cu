@@ -17,8 +17,7 @@
 // explicitly instantiating this here seems to fix the illegal instruction error
 // this error also doesn't show up when compiled in debug mode
 // is this a compiler bug, or are we doing something illegal?
-template mpcd::ConstantForce* hoomd::gpu::device_new(Scalar3);
-template void hoomd::gpu::device_delete(mpcd::ExternalField*);
+TEMPLATE_DEVICE_NEW_FIELDS;
 
 namespace mpcd
 {
