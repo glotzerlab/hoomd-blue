@@ -37,6 +37,21 @@
 
 #include <memory>
 
+// use legacy interfaces in LLVM 9
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 9
+
+#define RTDYLDOBJECTLINKINGLAYER LegacyRTDyldObjectLinkingLayer
+#define IRCOMPILELAYER LegacyIRCompileLayer
+#define LOCALCXXRUNTIMEOVERRIDES LegacyLocalCXXRuntimeOverrides
+
+#else
+
+#define RTDYLDOBJECTLINKINGLAYER RTDyldObjectLinkingLayer
+#define IRCOMPILELAYER IRCompileLayer
+#define LOCALCXXRUNTIMEOVERRIDES LocalCXXRuntimeOverrides
+
+#endif
+
 namespace llvm {
 namespace orc {
 
@@ -46,8 +61,8 @@ public:
 #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 7
   ExecutionSession ES;
   std::shared_ptr<SymbolResolver> Resolver;
-  typedef RTDyldObjectLinkingLayer ObjLayerT;
-  typedef IRCompileLayer<ObjLayerT, SimpleCompiler> CompileLayerT;
+  typedef RTDYLDOBJECTLINKINGLAYER ObjLayerT;
+  typedef IRCOMPILELAYER<ObjLayerT, SimpleCompiler> CompileLayerT;
   typedef VModuleKey ModuleHandleT;
   KaleidoscopeJIT()
       : Resolver(createLegacyLookupResolver(
@@ -66,7 +81,7 @@ public:
         TM(EngineBuilder().selectTarget()), DL(TM->createDataLayout()),
         ObjectLayer(ES,
                     [this](VModuleKey) {
-                      return RTDyldObjectLinkingLayer::Resources{
+                      return RTDYLDOBJECTLINKINGLAYER::Resources{
                           std::make_shared<SectionMemoryManager>(), Resolver};
                     }),
         CompileLayer(ObjectLayer, SimpleCompiler(*TM)),
@@ -262,7 +277,7 @@ private:
   CompileLayerT CompileLayer;
   std::vector<ModuleHandleT> ModuleHandles;
 
-  orc::LocalCXXRuntimeOverrides CXXRuntimeOverrides;
+  orc::LOCALCXXRUNTIMEOVERRIDES CXXRuntimeOverrides;
 };
 
 } // End namespace orc.
