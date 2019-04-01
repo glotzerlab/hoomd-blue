@@ -85,12 +85,19 @@ class NormalGenerator
                 return m_val;
                 }
 
-            // draw two uniform random numbers
-            const Real u1 = rng.template s<Real>();
+            // draw first uniform until its log is non-positive
+            Real logu1;
+            do
+                {
+                // switch range to (0,1] to ensure no inf from log
+                const Real u1 = 1.0f - rng.template s<Real>();
+                logu1 = fast::log(u1);
+                }
+            while(logu1 > Real(0.0));
             const Real u2 = rng.template s<Real>();
 
             // apply the Box-Muller transformation
-            const Real r = fast::sqrt(Real(-2.0) * fast::log(u1));
+            const Real r = fast::sqrt(-2.0f * logu1);
             const Real phi = Real(MPCD_2PI) * u2;
 
             // if enabled, cache the second value in case it is to be reused
