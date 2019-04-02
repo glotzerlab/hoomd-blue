@@ -786,42 +786,7 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     Scalar mtk_term = Scalar(2.0)*m_thermo_group_t->getTranslationalKineticEnergy();
     mtk_term *= Scalar(1.0/2.0)*m_deltaT/(Scalar)m_ndof/W;
 
-    couplingMode couple = m_couple;
-
-    // disable irrelevant couplings
-    if (! (m_flags & baro_x))
-        {
-        if (couple == couple_xyz)
-            {
-            couple = couple_yz;
-            }
-        if (couple == couple_xy || couple == couple_xz)
-            {
-            couple = couple_none;
-            }
-        }
-    if (! (m_flags & baro_y))
-        {
-        if (couple == couple_xyz)
-            {
-            couple = couple_xz;
-            }
-        if (couple == couple_yz || couple == couple_xy)
-            {
-            couple = couple_none;
-            }
-        }
-    if (! (m_flags & baro_z))
-        {
-        if (couple == couple_xyz)
-            {
-            couple = couple_xy;
-            }
-        if (couple == couple_yz || couple == couple_xz)
-            {
-            couple = couple_none;
-            }
-        }
+    couplingMode couple = getRelevantCouplings();
 
     // couple diagonal elements of pressure tensor together
     Scalar3 P_diag = make_scalar3(0.0,0.0,0.0);
@@ -945,6 +910,47 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
     setIntegratorVariables(v);
     }
 
+TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
+    {
+    couplingMode couple = m_couple;
+
+    // disable irrelevant couplings
+    if (! (m_flags & baro_x))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_yz;
+            }
+        if (couple == couple_xy || couple == couple_xz)
+            {
+            couple = couple_none;
+            }
+        }
+    if (! (m_flags & baro_y))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_xz;
+            }
+        if (couple == couple_yz || couple == couple_xy)
+            {
+            couple = couple_none;
+            }
+        }
+    if (! (m_flags & baro_z))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_xy;
+            }
+        if (couple == couple_yz || couple == couple_xz)
+            {
+            couple = couple_none;
+            }
+        }
+    return couple;
+    }
+
 void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
     {
     if (m_shouldRandomize == false)
@@ -1028,6 +1034,31 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
         if (m_flags & baro_z)
             {
             nuzz = gaussian_rng(saru,sqrt(sigmasq_baro));
+            }
+
+        // couple box degrees of freedom
+        couplingMode couple = getRelevantCouplings();
+
+        if (couple == couple_xy)
+            {
+            nuyy = nuxx;
+            }
+        else if (couple == couple_xz)
+            {
+            nuzz = nuxx;
+            }
+        else if (couple == couple_yz)
+            {
+            nuyy = nuzz;
+            }
+        else if (couple == couple_xyz)
+            {
+            nuxx = nuyy = nuzz;
+            }
+        else
+            {
+            m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl << std::endl;
+            throw std::runtime_error("Error in NPT integration");
             }
         }
 
