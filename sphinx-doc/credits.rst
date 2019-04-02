@@ -312,6 +312,7 @@ Vyas Ramasubramani, University of Michigan
 
 William Zygmunt, Luis Rivera-Rivera, University of Michigan
  * Patchy interaction support in HPMC CPU integrators
+ * GSD state bug fixes
 
 DEM developers
 --------------
