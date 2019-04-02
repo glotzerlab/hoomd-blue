@@ -158,6 +158,9 @@ void CellListGPU::computeCellList()
             }
         }
 
+    if (ngpu > 1 && !m_per_device)
+        combineCellLists();
+
     if (m_prof)
         m_prof->pop(m_exec_conf);
     }
