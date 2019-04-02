@@ -23,6 +23,7 @@
 #endif
 
 #include <cmath>
+#include <math.h>
 #endif
 
 // for vector types
@@ -433,6 +434,50 @@ inline HOSTDEVICE float cos(float x)
 inline HOSTDEVICE double cos(double x)
     {
     return ::cos(x);
+    }
+
+//! Compute both of sin of x and cos of x with float precision
+inline HOSTDEVICE void sincos(float x, float& s, float& c)
+    {
+    #if  defined(__CUDA_ARCH__) || defined(__APPLE__)
+    __sincosf(x, &s, &c);
+    #else
+    ::sincosf(x, &s, &c);
+    #endif
+    }
+
+//! Compute both of sin of x and cos of x with double precision
+inline HOSTDEVICE void sincos(double x, double& s, double& c)
+    {
+    #if defined(__CUDA_ARCH__)
+    ::sincos(x, &s, &c);
+    #elif defined(__APPLE__)
+    ::__sincos(x, &s, &c);
+    #else
+    ::sincos(x, &s, &c);
+    #endif
+    }
+
+//! Compute both of sin of x and cos of PI * x with float precision
+inline HOSTDEVICE void sincospi(float x, float& s, float& c)
+    {
+    #if  defined(__CUDA_ARCH__) || defined(__APPLE__)
+    __sincospif(x, &s, &c);
+    #else
+    fast::sincos(float(M_PI)*x, s, c);
+    #endif
+    }
+
+//! Compute both of sin of x and cos of x with dobule precision
+inline HOSTDEVICE void sincospi(double x, double& s, double& c)
+    {
+    #if defined(__CUDA_ARCH__)
+    ::sincospi(x, &s, &c);
+    #elif defined(__APPLE__)
+    ::__sincospi(x, &s, &c);
+    #else
+    fast::sincos(M_PI*x, &s, &c);
+    #endif
     }
 
 //! Compute the pow of x,y
