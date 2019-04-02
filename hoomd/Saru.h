@@ -1,14 +1,12 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-// Maintainer: mphoward
-
 /*!
  * \file hoomd/Saru.h
- * \brief Implementation of the Saru random number generator.
+ * \brief random123 with the Saru API.
  *
- * This file contains minor modifications and improvements to the original Saru
- * source code made available under the following license:
+ * This file contains a complete reimplementation of the Saru API based on random123
+ * The original Saru source code made available under the following license:
  *
  * \verbatim
  * Copyright (c) 2008 Steve Worley < m a t h g e e k@(my last name).com >
@@ -32,6 +30,44 @@
 
 // pull in uint2 type
 #include "HOOMDMath.h"
+#include <math.h>
+#include <hoomd/extern/random123/include/Random123/philox.h>
+#include <hoomd/extern/random123/examples/uniform.hpp>
+
+namespace r123 {
+// from random123/examples/boxmuller.hpp
+
+/*
+ * take two 32bit unsigned random values and return a float2 with
+ * two random floats in a normal distribution via a Box-Muller transform
+ */
+R123_CUDA_DEVICE R123_STATIC_INLINE float2 boxmuller(uint32_t u0, uint32_t u1)
+    {
+    float r;
+    float2 f;
+    fast::sincospi(uneg11<float>(u0), f.x, f.y);
+    r = sqrtf(-2.f * logf(u01<float>(u1))); // u01 is guaranteed to avoid 0.
+    f.x *= r;
+    f.y *= r;
+    return f;
+    }
+
+/*
+ * take two 64bit unsigned random values and return a double2 with
+ * two random doubles in a normal distribution via a Box-Muller transform
+ */
+R123_CUDA_DEVICE R123_STATIC_INLINE double2 boxmuller(uint64_t u0, uint64_t u1)
+    {
+    double r;
+    double2 f;
+
+    fast::sincospi(uneg11<double>(u0), f.x, f.y);
+    r = sqrt(-2. * log(u01<double>(u1))); // u01 is guaranteed to avoid 0.
+    f.x *= r;
+    f.y *= r;
+    return f;
+    }
+}
 
 #ifdef NVCC
 #define HOSTDEVICE __host__ __device__
@@ -46,19 +82,21 @@ namespace detail
 
 //! Saru random number generator
 /*!
- * Saru is a pseudo-random number generator that requires only a 64-bit state vector.
- * The generator is first seeded using one, two, or three 32-bit unsigned integers.
- * The seeds are hashed together to generate an initially random state consisting
- * of two 32-bit words. The hash routines pass TestU01's Crush. The seeded generator
- * is then able to generate streams of random numbers using a combination of
- * a linear congruential generator (LCG) and an Offset Weyl Sequence (OWS) to advance
- * the state. The streaming generator has a period of 3666320093*2^32, and passes
- * DIEHARD, Rabbit, Gorilla, and TestU01's SmallCrush, Crush, and BigCrush. On
- * the GPU, typical use is then to seed the generator per-kernel and per-thread
- * to generate random microstreams (e.g., each thread gets a generator hashed from
- * the particle tag, the timestep, and a user-defined seed).
+ * random123 is a counter based random number generator. Given an input seed vector,
+ * it produces a random output. Outputs from one seed to the next are not correlated.
+ * This class implements a convenience API around random123 that allows short streams
+ * (less than 2**32-1) of random numbers starting from a seed of up to 5 uint32_t values.
+ * The convenience API is based on a random number generator called Saru that was
+ * previously used in HOOMD.
  *
- * See
+ * Internally, we use the philox 4x32 RNG from random123, The first two seeds map to the
+ * key and the remaining seeds map to the counter. One element from the counter is used
+ * to generate the stream of values. Constructors provide ways to conveniently initialize
+ * the RNG with any number of seeds or counters. Warning! All constructors with fewer
+ * than 5 input values are equivalent to the 5-input constructor with 0's for the
+ * values not specified.
+ *
+ * Counter based RNGs are useful for MD simulations: See
  *
  * C.L. Phillips, J.A. Anderson, and S.C. Glotzer. "Pseudo-random number generation
  * for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices",
@@ -75,76 +113,13 @@ namespace detail
 class Saru
     {
     public:
-        //! Default constructor
-        HOSTDEVICE inline Saru();
-        //! One-seed constructor
-        HOSTDEVICE inline Saru(unsigned int seed);
-        //! Two-seed constructor
-        HOSTDEVICE inline Saru(unsigned int seed1, unsigned int seed2);
-        //! Three-seed constructor
-        HOSTDEVICE inline Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3);
-
-        //! Run-time computed advancement of the state of the generator
-        HOSTDEVICE inline void advance(unsigned int steps);
-
-        //! Efficient compile-time advancement of the generator
-        /*!
-         * \tparam steps Number of steps to advance.
-         *
-         * The state of the generator is advanced \a steps. This operation is
-         * very efficient because it is done through template tricks at compile-time.
-         */
-        template <unsigned int steps>
-        HOSTDEVICE inline void advance()
-            {
-            advanceWeyl<steps>(); advanceLCG<steps>();
-            }
-
-        //! Efficient compile-time rewind of the state of the generator.
-        /*!
-         * \tparam steps Number of steps to advance.
-         *
-         * The state of the generator is rewound \a steps. This operation is
-         * very efficient because it is done through template tricks at compile-time.
-         */
-        template <unsigned int steps>
-        HOSTDEVICE inline void rewind()
-            {
-            /*
-             * OK to advance negative steps in LCG, it's done mod 2^32 so it's
-             * the same as advancing 2^32-1 steps, which is correct!
-             */
-            rewindWeyl<steps>(); advanceLCG<-steps>();
-            }
-
-        //! Fork the state of the generator
-        template <unsigned int seed>
-        HOSTDEVICE Saru fork() const;
-
-        //! \name Base generators
-        //@{
-        //! Draw a random 32-bit unsigned integer advanced ahead \a steps
-        template <unsigned int steps>
-        HOSTDEVICE inline unsigned int u32();
-
-        //! Draw a random float on [0,1) advanced ahead \a steps
-        template <unsigned int steps>
-        HOSTDEVICE inline float f();
-
-        //! Draw a random double on [0,1) advanced ahead \a steps
-        template <unsigned int steps>
-        HOSTDEVICE inline double d();
-
-        //! Draw a random float on [a,b) advanced ahead \a steps
-        template <unsigned int steps>
-        HOSTDEVICE inline float f(float low, float b);
-
-        //! Draw a random double on [a,b) advanced ahead \a steps
-        template <unsigned int steps>
-        HOSTDEVICE inline double d(double low, double b);
-        //@}
-
-        //! \name Single-step advancers
+        //! Five-value constructor
+        HOSTDEVICE inline Saru(unsigned int seed1=0,
+                               unsigned int seed2=0,
+                               unsigned int counter1=0,
+                               unsigned int counter2=0,
+                               unsigned int counter3=0);
+        //! \name Uniform random numbers
         //@{
         //! Draw a random 32-bit unsigned integer
         HOSTDEVICE inline unsigned int u32();
@@ -173,321 +148,37 @@ class Saru
         HOSTDEVICE inline Real s(Real a, Real b);
         //@}
 
+        //! \name Other distributions
+        //@{
+        //! Draw a normal random number
+        template<class Real>
+        HOSTDEVICE inline Real normal();
+        //@}
+
     private:
-        uint2 state;    //!< Internal state of the generator
+        r123::Philox4x32::key_type m_key;   //!< RNG key
+        r123::Philox4x32::ctr_type m_ctr;   //!< RNG counter
 
-        //! \name Internal advancement methods
-        //@{
-        static const unsigned int LCGA=0x4beb5d59; //!< Full period 32 bit LCG
-        static const unsigned int LCGC=0x2600e1f7;
-        static const unsigned int oWeylPeriod=0xda879add; //!< Prime period 3666320093
-        static const unsigned int oWeylOffset=0x8009d14b;
-        static const unsigned int oWeylDelta=(oWeylPeriod-0x80000000)+(oWeylOffset-0x80000000); //!< wraps mod 2^32
-
-        //! Advance the Linear Congruential Generator
-        template <unsigned int steps>
-        HOSTDEVICE inline  void advanceLCG();
-
-        //! Advance any Offset Weyl Sequence
-        template <unsigned int offset, unsigned int delta, unsigned int modulus, unsigned int steps>
-        HOSTDEVICE inline unsigned int advanceAnyWeyl(unsigned int x);
-
-        //! Advance the Saru Offset Weyl Sequence
-        template <unsigned int steps>
-        HOSTDEVICE inline void advanceWeyl();
-
-        //! Rewind the Saru Offset Weyl Sequence
-        template <unsigned int steps>
-        HOSTDEVICE inline void rewindWeyl();
-        //@}
-
-        //! \name Advancement helper metaprograms
-        //@{
-        //! Helper to compute A^N mod 2^32
-        template<unsigned int A, unsigned int N>
-        struct CTpow
-            {
-            static const unsigned int value=(N&1?A:1)*CTpow<A*A, N/2>::value;
-            };
-        //! Template specialization to terminate recursion, A^0 = 1
-        template<unsigned int A>
-        struct CTpow<A, 0>
-            {
-            static const unsigned int value=1;
-            };
-
-        //! Helper to compute the power series 1+A+A^2+A^3+A^4+A^5..+A^(N-1) mod 2^32
-        /*!
-         * Based on recursion:
-         * \verbatim
-         * g(A,n)= (1+A)*g(A*A, n/2);      if n is even
-         * g(A,n)= 1+A*(1+A)*g(A*A, n/2);  if n is ODD (since n/2 truncates)
-         * \endverbatim
-         */
-        template<unsigned int A, unsigned int N>
-        struct CTpowseries
-            {
-            static const unsigned int recurse=(1+A)*CTpowseries<A*A, N/2>::value;
-            static const unsigned int value=  (N&1) ? 1+A*recurse : recurse;
-            };
-        //! Template specialization for N=0, gives 0
-        template<unsigned int A>
-        struct CTpowseries<A, 0>
-            {
-            static const unsigned int value=0;
-            };
-        //! Template specialization for N=0, gives 1
-        template<unsigned int A>
-        struct CTpowseries<A, 1>
-            {
-            static const unsigned int value=1;
-            };
-
-        //! Helper to compute A*B mod m.  Tricky only because of implicit 2^32 modulus.
-        /*!
-         * Based on recursion:
-         *
-         * \verbatim
-         * if A is even, then A*B mod m =  (A/2)*(B+B mod m) mod m.
-         * if A is odd,  then A*B mod m =  (B+((A/2)*(B+B mod m) mod m)) mod m.
-         * \endverbatim
-         */
-        template <unsigned int A, unsigned int B, unsigned int m>
-        struct CTmultmod
-            {
-            // (A/2)*(B*2) mod m
-            static const unsigned int temp=  CTmultmod< A/2, (B>=m-B ? B+B-m : B+B), m>::value;
-            static const unsigned int value= A&1 ? ((B>=m-temp) ? B+temp-m: B+temp) : temp;
-            };
-        //! Template specialization to terminate recursion
-        template <unsigned int B, unsigned int m>
-        struct CTmultmod<0, B, m>
-            {
-            static const unsigned int value=0;
-            };
-        //@}
     };
 
 /*!
- * The default constructor initializes a simple dummy state.
- */
-HOSTDEVICE inline Saru::Saru()
-    {
-    state.x=0x12345678; state.y=12345678;
-    }
-
-/*!
- * \param seed Seed to the generator.
- *
- * This seeding was carefully tested for good churning with 1, 2, and 3 bit flips.
- * All 32 incrementing counters (each of the circular shifts) pass the TestU01 Crush tests.
- */
-HOSTDEVICE inline Saru::Saru(unsigned int seed)
-    {
-    state.x = 0x79dedea3*(seed^(((signed int)seed)>>14));
-    state.y = seed ^ (((signed int)state.x)>>8);
-    state.x = state.x + (state.y*(state.y^0xdddf97f5));
-    state.y = 0xABCB96F7 + (state.y>>1);
-    }
-
-/*!
  * \param seed1 First seed.
  * \param seed2 Second seed.
+ * \param counter1 First counter.
+ * \param counter2 Second counter
+ * \param counter3 Third counter
  *
- * One bit of entropy is lost by mixing because the input seeds have 64 bits,
- * but after mixing there are only 63 left.
+ * Initialize the random number stream with two seeds and one counter. Seeds and counters are somewhat interchangeable.
+ * Seeds should be more static (i.e. user seed, RNG id) while counters should be more dynamic (i.e. particle tag).
  */
-HOSTDEVICE inline Saru::Saru(unsigned int seed1, unsigned int seed2)
+HOSTDEVICE inline Saru::Saru(unsigned int seed1,
+                             unsigned int seed2,
+                             unsigned int counter1,
+                             unsigned int counter2,
+                             unsigned int counter3)
     {
-    seed2 += seed1<<16;
-    seed1 += seed2<<11;
-    seed2 += ((signed int)seed1)>>7;
-    seed1 ^= ((signed int)seed2)>>3;
-    seed2 *= 0xA5366B4D;
-    seed2 ^= seed2>>10;
-    seed2 ^= ((signed int)seed2)>>19;
-    seed1 += seed2^0x6d2d4e11;
-
-    state.x = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
-    state.y = (state.x+seed2) ^ (((signed int)state.x)>>8);
-    state.x = state.x + (state.y*(state.y^0xdddf97f5));
-    state.y = 0xABCB96F7 + (state.y>>1);
-    }
-
-/*!
- * \param seed1 First seed.
- * \param seed2 Second seed.
- * \param seed3 Third seed.
- *
- * The seeds are premixed before dropping to 64 bits.
- */
-HOSTDEVICE inline Saru::Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
-    {
-    seed3 ^= (seed1<<7)^(seed2>>6);
-    seed2 += (seed1>>4)^(seed3>>15);
-    seed1 ^= (seed2<<9)+(seed3<<8);
-    seed3 ^= 0xA5366B4D*((seed2>>11) ^ (seed1<<1));
-    seed2 += 0x72BE1579*((seed1<<4)  ^ (seed3>>16));
-    seed1 ^= 0X3F38A6ED*((seed3>>5)  ^ (((signed int)seed2)>>22));
-    seed2 += seed1*seed3;
-    seed1 += seed3 ^ (seed2>>2);
-    seed2 ^= ((signed int)seed2)>>17;
-
-    state.x = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
-    state.y = (state.x+seed2) ^ (((signed int)state.x)>>8);
-    state.x = state.x + (state.y*(state.y^0xdddf97f5));
-    state.y = 0xABCB96F7 + (state.y>>1);
-    }
-
-/*!
- * \param Number of steps to advance the generator.
- *
- * This run-time method is less efficient than compile-time advancement, but is
- * still pretty fast.
- */
-HOSTDEVICE inline void Saru::advance(unsigned int steps)
-    {
-    // Computes the LCG advancement AND the Weyl D*E mod m simultaneously
-    unsigned int currentA=LCGA;
-    unsigned int currentC=LCGC;
-
-    unsigned int currentDelta=oWeylDelta;
-    unsigned int netDelta=0;
-
-    while (steps)
-        {
-        if (steps&1)
-            {
-            state.x=currentA*state.x+currentC; // LCG step
-            if (netDelta<oWeylPeriod-currentDelta) netDelta+=currentDelta;
-            else netDelta+=currentDelta-oWeylPeriod;
-            }
-
-        // Change the LCG to step at twice the rate as before
-        currentC+=currentA*currentC;
-        currentA*=currentA;
-
-        // Change the Weyl delta to step at 2X rate
-        if (currentDelta<oWeylPeriod-currentDelta) currentDelta+=currentDelta;
-        else currentDelta+=currentDelta-oWeylPeriod;
-
-        steps/=2;
-        }
-
-    // Apply the net delta to the Weyl state.
-    if (state.y-oWeylOffset<oWeylPeriod-netDelta) state.y+=netDelta;
-    else state.y+=netDelta-oWeylPeriod;
-    }
-
-/*!
- * \tparam seed Seed for creating the new generator.
- * \returns A new instance of the generator.
- *
- * The user-supplied seed is bitchurned at compile time, which is very efficient.
- * Churning takes small user values like 1 2 3 and hashes them to become roughly
- * uncorrelated.
- */
-template <unsigned int seed>
-HOSTDEVICE Saru Saru::fork() const
-    {
-    const unsigned int churned1=0xDEADBEEF ^ (0x1fc4ce47*(seed^(seed>>13)));
-    const unsigned int churned2=0x1234567+(0x82948463*(churned1^(churned1>>20)));
-    const unsigned int churned3=0x87654321^(0x87655677*(churned2^(churned2>>16)));
-
-    Saru z;
-    z.state.x=churned2+state.x+(churned3^state.y);
-    unsigned int add=(z.state.x+churned1)>>1;
-    if (z.state.y-oWeylOffset<oWeylPeriod-add) z.state.y+=add;
-    else z.state.y+=add-oWeylPeriod;
-    return z;
-    }
-
-/*!
- * \tparam Number of steps to advance.
- * \returns A random 32-bit unsigned integer.
- *
- * \post The state of the generator is advanced \a steps.
- *
- * This method implements the heart of the Saru number generator. The state is
- * advance by \a steps, and is then bitswizzled to return a random integer. This
- * simple generation method has been shown to unconditionally pass a battery of
- * tests of randomness.
- */
-template <unsigned int steps>
-HOSTDEVICE inline unsigned int Saru::u32()
-    {
-    advanceLCG<steps>();
-    advanceWeyl<steps>();
-    const unsigned int v=(state.x ^ (state.x>>26))+state.y;
-    return (v^(v>>20))*0x6957f5a7;
-    }
-
-/*!
- * \tparam Number of steps to advance.
- * \returns A random uniform float in [0,1).
- *
- * \post The state of the generator is advanced \a steps.
- *
- * Floats have 23-bits of mantissa. The values here are generated using a
- * conversion to signed int, followed by a shift, which is usually more optimized
- * by the compiler.
- */
-template <unsigned int steps>
-HOSTDEVICE inline float Saru::f()
-    {
-    const float TWO_N32 = 2.32830643653869628906250e-10f; // 2^-32
-    return ((signed int)u32<steps>())*TWO_N32+0.5f;
-    }
-
-/*!
- * \tparam Number of steps to advance.
- * \returns A random uniform double in [0,1).
- *
- * \post The state of the generator is advanced \a steps.
- *
- * Doubles have 52-bits of mantissa. 32-bits are drawn from a random integer from
- * the generator, while the remaining 20-bits are taken from the current state.
- * These low 20-bits are less random, but are quick to draw. The double is generated
- * using the method described in:
- *
- * J. A. Doornik, "Conversion of High-Period Random Numbers to Floating Point",
- * ACM Transactions on Modeling and Computer Simulation (TOMACS) 17, 3 (2007).
- * https://doi.org/10.1145/1189756.1189759.
- *
- * However, the variates are \b not shifted so that the interval is [0,1) rather
- * than (0,1). This is done for sake of consistency with the C++11 <random> and
- * GSL implementations of their random number generators.
- */
-template <unsigned int steps>
-HOSTDEVICE inline double Saru::d()
-    {
-    const double TWO_N32 = 2.32830643653869628906250e-10; // 2^-32
-    const double TWO_N52 = 2.22044604925031308084726e-16; // 2^-52
-    return ((signed int)u32<steps>())*TWO_N32+((signed int)(state.x & 0x000fffff))*TWO_N52+0.5;
-    }
-
-/*!
- * \tparam Number of steps to advance.
- * \returns A random uniform float in [a,b).
- *
- * \post The state of the generator is advanced \a steps.
- */
-template <unsigned int steps>
-HOSTDEVICE inline float Saru::f(float a, float b)
-    {
-    return a + (b-a)*f<steps>();
-    }
-
-/*!
- * \tparam Number of steps to advance.
- * \returns A random uniform double in [a,b).
- *
- * \post The state of the generator is advanced \a steps.
- */
-template <unsigned int steps>
-HOSTDEVICE inline double Saru::d(double a, double b)
-    {
-    return a + (b-a)*d<steps>();
+    m_key = {{seed1, seed2}};
+    m_ctr = {{0, counter3, counter2, counter1}};
     }
 
 /*!
@@ -497,7 +188,10 @@ HOSTDEVICE inline double Saru::d(double a, double b)
  */
 HOSTDEVICE inline unsigned int Saru::u32()
     {
-    return u32<1>();
+    r123::Philox4x32 rng;
+    r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
+    m_ctr[0] += 1;
+    return u[0];
     }
 
 /*!
@@ -507,7 +201,10 @@ HOSTDEVICE inline unsigned int Saru::u32()
  */
 HOSTDEVICE inline float Saru::f()
     {
-    return f<1>();
+    r123::Philox4x32 rng;
+    r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
+    m_ctr[0] += 1;
+    return r123::u01<float>(u[0]);
     }
 
 /*!
@@ -517,7 +214,11 @@ HOSTDEVICE inline float Saru::f()
  */
 HOSTDEVICE inline double Saru::d()
     {
-    return d<1>();
+    r123::Philox4x32 rng;
+    r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
+    m_ctr[0] += 1;
+    uint64_t u64 = uint64_t(u[0]) << 32 | u[1];
+    return r123::u01<double>(u64);
     }
 
 //! Template specialization for float
@@ -553,7 +254,7 @@ HOSTDEVICE inline double Saru::s()
  */
 HOSTDEVICE inline float Saru::f(float a, float b)
     {
-    return f<1>(a, b);
+    return a + (b-a)*f();
     }
 
 /*!
@@ -565,7 +266,7 @@ HOSTDEVICE inline float Saru::f(float a, float b)
  */
 HOSTDEVICE inline double Saru::d(double a, double b)
     {
-    return d<1>(a, b);
+    return a + (b-a)*d();
     }
 
 //! Template specialization for float
@@ -596,54 +297,40 @@ HOSTDEVICE inline double Saru::s(double a, double b)
     return d(a, b);
     }
 
+//! Normal distribution
 /*!
- * \tparam steps Number of steps to advance.
- */
-template <unsigned int steps>
-HOSTDEVICE inline void Saru::advanceLCG()
-    {
-    state.x = CTpow<LCGA,steps>::value*state.x+LCGC*CTpowseries<LCGA,steps>::value;
-    }
-
-/*!
- * \param x
+ * \returns Normally distributed random variable with mean zero and unit variance
  *
- * \tparam offset
- * \tparam delta
- * \tparam modulus
- * \tparam steps Number of steps to advance.
+ * \post The state of the generator is advanced one step.
  */
-template <unsigned int offset, unsigned int delta, unsigned int modulus, unsigned int steps>
-HOSTDEVICE inline unsigned int Saru::advanceAnyWeyl(unsigned int x)
+template<>
+HOSTDEVICE inline float Saru::normal()
     {
-    const unsigned int fullDelta=CTmultmod<delta, steps%modulus, modulus>::value;
-    /* the runtime code boils down to this single constant-filled line. */
-    return x+((x-offset>modulus-fullDelta) ? fullDelta-modulus : fullDelta);
+    r123::Philox4x32 rng;
+    r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
+    m_ctr[0] += 1;
+    float2 n = r123::boxmuller(u[0], u[1]);
+    return n.x;
+    // note: If there is a need, we could add an API that returns two normally distributed numbers for no extra cost
     }
 
+//! Normal distribution
 /*!
- * \tparam steps Number of steps to advance.
+ * \returns Normally distributed random variable with mean zero and unit variance
+ *
+ * \post The state of the generator is advanced one step.
  */
-template <unsigned int steps>
-HOSTDEVICE inline void Saru::advanceWeyl()
+template<>
+HOSTDEVICE inline double Saru::normal()
     {
-    state.y = advanceAnyWeyl<oWeylOffset,oWeylDelta,oWeylPeriod,steps>(state.y);
-    }
-
-//! Partial template specialization when only advancing one step
-template <>
-HOSTDEVICE inline void Saru::advanceWeyl<1>()
-    {
-    state.y = state.y+oWeylOffset+((((signed int)state.y)>>31)&oWeylPeriod);
-    }
-
-/*
- * \tparam steps Number of steps to rewind.
- */
-template <unsigned int steps>
-HOSTDEVICE inline void Saru::rewindWeyl()
-    {
-    state.y = advanceAnyWeyl<oWeylOffset,oWeylPeriod-oWeylDelta,oWeylPeriod,steps>(state.y);
+    r123::Philox4x32 rng;
+    r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
+    m_ctr[0] += 1;
+    uint64_t u64_0 = uint64_t(u[0]) << 32 | u[1];
+    uint64_t u64_1 = uint64_t(u[2]) << 32 | u[3];
+    double2 n = r123::boxmuller(u64_0, u64_1);
+    return n.x;
+    // note: If there is a need, we could add an API that returns two normally distributed numbers for no extra cost
     }
 
 } // end namespace detail
