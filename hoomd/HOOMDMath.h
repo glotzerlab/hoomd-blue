@@ -476,7 +476,7 @@ inline HOSTDEVICE void sincospi(double x, double& s, double& c)
     #elif defined(__APPLE__)
     ::__sincospi(x, &s, &c);
     #else
-    fast::sincos(M_PI*x, &s, &c);
+    fast::sincos(M_PI*x, s, c);
     #endif
     }
 
