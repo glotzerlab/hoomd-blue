@@ -461,7 +461,9 @@ inline HOSTDEVICE void sincos(double x, double& s, double& c)
 //! Compute both of sin of x and cos of PI * x with float precision
 inline HOSTDEVICE void sincospi(float x, float& s, float& c)
     {
-    #if  defined(__CUDA_ARCH__) || defined(__APPLE__)
+    #if  defined(__CUDA_ARCH__)
+    ::sincospif(x, &s, &c);
+    #elif defined(__APPLE__)
     __sincospif(x, &s, &c);
     #else
     fast::sincos(float(M_PI)*x, s, c);
