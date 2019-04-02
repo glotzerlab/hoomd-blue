@@ -9,6 +9,7 @@
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/Updater.h"
 #include "hoomd/Saru.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #include <set>
 #include <list>
@@ -1065,7 +1066,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf,"Transform");
 
     // generate the move, select a pivot
-    hoomd::detail::Saru rng(timestep, this->m_seed, 0x09365bf5);
+    hoomd::detail::Saru rng(hoomd::RNGIdentifier::UpdaterClusters, timestep, this->m_seed);
     BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> pivot(0,0,0);
 
@@ -1635,7 +1636,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     unsigned int j = it->first.second;
 
                     // create a RNG specific to this particle pair
-                    hoomd::detail::Saru rng_ij(timestep+this->m_seed, std::min(i,j), std::max(i,j));
+                    hoomd::detail::Saru rng_ij(hoomd::RNGIdentifier::UpdaterClustersPairwise, this->m_seed, timestep, std::min(i,j), std::max(i,j));
 
                     float pij = 1.0f-exp(-delU);
                     if (rng_ij.f() <= pij) // GCA

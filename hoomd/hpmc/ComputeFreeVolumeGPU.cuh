@@ -50,6 +50,7 @@ struct hpmc_free_volume_args_t
                 const unsigned int _N,
                 const unsigned int _num_types,
                 const unsigned int _seed,
+                const unsigned int _rank,
                 unsigned int _select,
                 const unsigned int _timestep,
                 const unsigned int _dim,
@@ -80,6 +81,7 @@ struct hpmc_free_volume_args_t
                   N(_N),
                   num_types(_num_types),
                   seed(_seed),
+                  rank(_rank),
                   select(_select),
                   timestep(_timestep),
                   dim(_dim),
@@ -112,6 +114,7 @@ struct hpmc_free_volume_args_t
     const unsigned int N;             //!< Number of particles
     const unsigned int num_types;     //!< Number of particle types
     const unsigned int seed;          //!< RNG seed
+    const unsigned int rank;          //!< MPI rank
     unsigned int select;              //!< RNG select value
     const unsigned int timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions
@@ -202,6 +205,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                                      const unsigned int N,
                                      const unsigned int num_types,
                                      const unsigned int seed,
+                                     const unsgigned int rank,
                                      const unsigned int select,
                                      const unsigned int timestep,
                                      const unsigned int dim,
@@ -284,7 +288,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         }
 
     // one RNG per particle
-    hoomd::detail::Saru rng(i, seed+select, timestep);
+    hoomd::detail::Saru rng(hoomd::RNGIdentifier::ComputeFreeVolume, seed, rank, i, timestep);
 
     unsigned int my_cell;
 
@@ -476,6 +480,7 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
                                                      args.N,
                                                      args.num_types,
                                                      args.seed,
+                                                     args.rank,
                                                      args.select,
                                                      args.timestep,
                                                      args.dim,

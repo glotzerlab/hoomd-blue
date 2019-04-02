@@ -232,15 +232,15 @@ class Saru
     {
     public:
         //! Five-value constructor
-        HOSTDEVICE inline Saru(unsigned int seed1=0,
-                               unsigned int seed2=0,
-                               unsigned int counter1=0,
-                               unsigned int counter2=0,
-                               unsigned int counter3=0);
+        HOSTDEVICE inline Saru(uint32_t seed1=0,
+                               uint32_t seed2=0,
+                               uint32_t counter1=0,
+                               uint32_t counter2=0,
+                               uint32_t counter3=0);
         //! \name Uniform random numbers
         //@{
         //! Draw a random 32-bit unsigned integer
-        HOSTDEVICE inline unsigned int u32();
+        HOSTDEVICE inline uint32_t u32();
 
         //! Draw a random float on [0,1)
         HOSTDEVICE inline float f();
@@ -289,11 +289,11 @@ class Saru
  * Initialize the random number stream with two seeds and one counter. Seeds and counters are somewhat interchangeable.
  * Seeds should be more static (i.e. user seed, RNG id) while counters should be more dynamic (i.e. particle tag).
  */
-HOSTDEVICE inline Saru::Saru(unsigned int seed1,
-                             unsigned int seed2,
-                             unsigned int counter1,
-                             unsigned int counter2,
-                             unsigned int counter3)
+HOSTDEVICE inline Saru::Saru(uint32_t seed1,
+                             uint32_t seed2,
+                             uint32_t counter1,
+                             uint32_t counter2,
+                             uint32_t counter3)
     {
     m_key = {{seed1, seed2}};
     m_ctr = {{0, counter3, counter2, counter1}};

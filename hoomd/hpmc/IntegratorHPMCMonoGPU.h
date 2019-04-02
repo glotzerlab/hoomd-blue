@@ -209,7 +209,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC");
 
     // rng for shuffle and grid shift
-    hoomd::detail::Saru rng(this->m_seed, timestep, 0xf4a3210e);
+    hoomd::detail::Saru rng(hoomd::RNGIdentifier::HPMCMonoShift, this->m_seed, timestep);
 
     // if the cell list is a different size than last time, reinitialize the cell sets list
     uint3 cur_dim = this->m_cl->getDim();
@@ -325,7 +325,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                                                 m_cell_set_indexer.getW(),
                                                                 this->m_pdata->getN(),
                                                                 this->m_pdata->getNTypes(),
-                                                                this->m_seed + this->m_exec_conf->getRank()*this->m_nselect*particles_per_cell + i,
+                                                                this->m_seed,
                                                                 d_d.data,
                                                                 d_a.data,
                                                                 d_overlaps.data,
@@ -334,7 +334,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                                                 timestep,
                                                                 this->m_sysdef->getNDimensions(),
                                                                 box,
-                                                                i,
+                                                                this->m_exec_conf->getRank()*this->m_nselect*particles_per_cell + i,
                                                                 ghost_fraction,
                                                                 domain_decomposition,
                                                                 block_size,

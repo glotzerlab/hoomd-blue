@@ -2,6 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "UpdaterBoxMC.h"
+#include "hoomd/RNGIdentifiers.h"
 
 namespace py = pybind11;
 
@@ -409,7 +410,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     m_exec_conf->msg->notice(10) << "UpdaterBoxMC: " << timestep << std::endl;
 
     // Create a prng instance for this timestep
-    hoomd::detail::Saru rng(m_seed, timestep, 0xf6a510ab);
+    hoomd::detail::Saru rng(hoomd::RNGIdentifier::UpdaterBoxMC, m_seed, timestep);
 
     // Choose a move type
     // This seems messy and can hopefully be simplified and generalized.
