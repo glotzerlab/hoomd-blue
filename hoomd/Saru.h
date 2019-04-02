@@ -28,8 +28,13 @@
 #ifndef HOOMD_SARU_H_
 #define HOOMD_SARU_H_
 
-// pull in uint2 type
 #include "HOOMDMath.h"
+
+// ensure that curand is included before random123. This avoids multiple defiintion issues
+// unfortunately, at the cost of random123 using the coefficients provided by curand
+// for now, they are the same
+#include <curand_kernel.h>
+
 #include <math.h>
 #include <hoomd/extern/random123/include/Random123/philox.h>
 #include <type_traits>
