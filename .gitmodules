@@ -24,4 +24,4 @@
 	url = https://github.com/glotzerlab/eigen-git-mirror.git
 [submodule "hoomd/extern/random123"]
 	path = hoomd/extern/random123
-	url = https://bitbucket.org/joaander/random123.git
+	url = https://github.com/glotzerlab/random123.git
