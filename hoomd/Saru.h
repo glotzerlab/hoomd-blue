@@ -32,9 +32,120 @@
 #include "HOOMDMath.h"
 #include <math.h>
 #include <hoomd/extern/random123/include/Random123/philox.h>
-#include <hoomd/extern/random123/examples/uniform.hpp>
+#include <type_traits>
 
 namespace r123 {
+// from random123/examples/uniform.hpp
+using std::make_signed;
+using std::make_unsigned;
+
+#if defined(__CUDACC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
+// Amazing! cuda thinks numeric_limits::max() is a __host__ function, so
+// we can't use it in a device function.
+//
+// The LIBCPP_HAS_NO_CONSTEXP test catches situations where the libc++
+// library thinks that the compiler doesn't support constexpr, but we
+// think it does.  As a consequence, the library declares
+// numeric_limits::max without constexpr.  This workaround should only
+// affect a narrow range of compiler/library pairings.
+//
+// In both cases, we find max() by computing ~(unsigned)0 right-shifted
+// by is_signed.
+template <typename T>
+R123_CONSTEXPR R123_STATIC_INLINE R123_CUDA_DEVICE T maxTvalue()
+    {
+    typedef typename make_unsigned<T>::type uT;
+    return (~uT(0)) >> std::numeric_limits<T>::is_signed;
+    }
+#else
+template <typename T>
+R123_CONSTEXPR R123_STATIC_INLINE T maxTvalue()
+    {
+    return std::numeric_limits<T>::max();
+    }
+#endif
+
+// u01: Input is a W-bit integer (signed or unsigned).  It is cast to
+//   a W-bit unsigned integer, multiplied by Ftype(2^-W) and added to
+//   Ftype(2^(-W-1)).  A good compiler should optimize it down to an
+//   int-to-float conversion followed by a multiply and an add, which
+//   might be fused, depending on the architecture.
+//
+//  If the input is a uniformly distributed integer, then the
+//  result is a uniformly distributed floating point number in [0, 1].
+//  The result is never exactly 0.0.
+//  The smallest value returned is 2^-W.
+//  Let M be the number of mantissa bits in Ftype.
+//  If W>M  then the largest value retured is 1.0.
+//  If W<=M then the largest value returned is the largest Ftype less than 1.0.
+template <typename Ftype, typename Itype>
+R123_CUDA_DEVICE R123_STATIC_INLINE Ftype u01(Itype in)
+    {
+    typedef typename make_unsigned<Itype>::type Utype;
+    R123_CONSTEXPR Ftype factor = Ftype(1.)/(maxTvalue<Utype>() + Ftype(1.));
+    R123_CONSTEXPR Ftype halffactor = Ftype(0.5)*factor;
+#if R123_UNIFORM_FLOAT_STORE
+    volatile Ftype x = Utype(in)*factor; return x+halffactor;
+#else
+    return Utype(in)*factor + halffactor;
+#endif
+    }
+
+// uneg11: Input is a W-bit integer (signed or unsigned).  It is cast
+//    to a W-bit signed integer, multiplied by Ftype(2^-(W-1)) and
+//    then added to Ftype(2^(-W-2)).  A good compiler should optimize
+//    it down to an int-to-float conversion followed by a multiply and
+//    an add, which might be fused, depending on the architecture.
+//
+//  If the input is a uniformly distributed integer, then the
+//  output is a uniformly distributed floating point number in [-1, 1].
+//  The result is never exactly 0.0.
+//  The smallest absolute value returned is 2^-(W-1)
+//  Let M be the number of mantissa bits in Ftype.
+//  If W>M  then the largest value retured is 1.0 and the smallest is -1.0.
+//  If W<=M then the largest value returned is the largest Ftype less than 1.0
+//    and the smallest value returned is the smallest Ftype greater than -1.0.
+template <typename Ftype, typename Itype>
+R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
+    {
+    typedef typename make_signed<Itype>::type Stype;
+    R123_CONSTEXPR Ftype factor = Ftype(1.)/(maxTvalue<Stype>() + Ftype(1.));
+    R123_CONSTEXPR Ftype halffactor = Ftype(0.5)*factor;
+#if R123_UNIFORM_FLOAT_STORE
+    volatile Ftype x = Stype(in)*factor; return x+halffactor;
+#else
+    return Stype(in)*factor + halffactor;
+#endif
+    }
+
+// u01fixedpt:  Return a "fixed point" number in (0,1).  Let:
+//   W = width of Itype, e.g., 32 or 64, regardless of signedness.
+//   M = mantissa bits of Ftype, e.g., 24, 53 or 64
+//   B = min(M, W)
+// Then the 2^(B-1) possible output values are:
+//    2^-B*{1, 3, 5, ..., 2^B - 1}
+// The smallest output is: 2^-B
+// The largest output is:  1 - 2^-B
+// The output is never exactly 0.0, nor 0.5, nor 1.0.
+// The 2^(B-1) possible outputs:
+//   - are equally likely,
+//   - are uniformly spaced by 2^-(B-1),
+//   - are balanced around 0.5
+template <typename Ftype, typename Itype>
+R123_CUDA_DEVICE R123_STATIC_INLINE Ftype u01fixedpt(Itype in)
+    {
+    typedef typename make_unsigned<Itype>::type Utype;
+    R123_CONSTEXPR int excess = std::numeric_limits<Utype>::digits - std::numeric_limits<Ftype>::digits;
+    if(excess>=0)
+        {
+        R123_CONSTEXPR int ex_nowarn = (excess>=0) ? excess : 0;
+        R123_CONSTEXPR Ftype factor = Ftype(1.)/(Ftype(1.) + ((maxTvalue<Utype>()>>ex_nowarn)));
+        return (1 | (Utype(in)>>ex_nowarn)) * factor;
+        }
+    else
+        return u01<Ftype>(in);
+    }
+
 // from random123/examples/boxmuller.hpp
 
 /*
