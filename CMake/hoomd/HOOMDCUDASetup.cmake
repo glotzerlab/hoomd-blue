@@ -41,6 +41,9 @@ endif (ENABLE_CUDA)
 
 # setup CUDA compile options
 if (ENABLE_CUDA)
+    # supress warnings in random123
+    list(APPEND CUDA_NVCC_FLAGS "-Xcudafe;--diag_suppress=code_is_unreachable")
+
     # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
     if (CUDA_VERSION VERSION_GREATER 8.99)
         set(CUDA_ARCH_LIST 30 35 50 60 70 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
