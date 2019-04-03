@@ -108,7 +108,7 @@ class SupportFuncFacetedEllipsoid
         /*! \param _params Parameters of the faceted sphere
         */
         DEVICE SupportFuncFacetedEllipsoid(const faceted_ellipsoid_params& _params,
-            const OverlapReal& _sweep_radius)
+            const OverlapReal& _sweep_radius=OverlapReal(0.0))
             : params(_params), sweep_radius(_sweep_radius)
             {
             }
@@ -286,7 +286,7 @@ struct ShapeFacetedEllipsoid
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // use support function of the ellipsoid to determine the furthest extent in each direction
-        detail::SupportFuncFacetedEllipsoid sfunc(params, 0.0);
+        detail::SupportFuncFacetedEllipsoid sfunc(params);
 
         vec3<OverlapReal> e_x(1,0,0);
         vec3<OverlapReal> e_y(0,1,0);
