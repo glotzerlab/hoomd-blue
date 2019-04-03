@@ -278,6 +278,8 @@ class Saru
     private:
         r123::Philox4x32::key_type m_key;   //!< RNG key
         r123::Philox4x32::ctr_type m_ctr;   //!< RNG counter
+        uint32_t cache[2];                  //!< Cache generated values
+        bool use_cache;                     //!< True when f() or d() should use the cache
 
     };
 
@@ -299,6 +301,7 @@ HOSTDEVICE inline Saru::Saru(uint32_t seed1,
     {
     m_key = {{seed1, seed2}};
     m_ctr = {{0, counter3, counter2, counter1}};
+    use_cache = false;
     }
 
 /*!
@@ -308,10 +311,23 @@ HOSTDEVICE inline Saru::Saru(uint32_t seed1,
  */
 HOSTDEVICE inline unsigned int Saru::u32()
     {
+    if (use_cache)
+        {
+        // consume cached values
+        use_cache = false;
+        return cache[0];
+        }
+
     r123::Philox4x32 rng;
     r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
     m_ctr[0] += 1;
-    return u[0];
+
+    // fill cache
+    use_cache = true;
+    cache[0] = u[0];
+    cache[1] = u[1];
+
+    return u[2];
     }
 
 /*!
@@ -321,10 +337,24 @@ HOSTDEVICE inline unsigned int Saru::u32()
  */
 HOSTDEVICE inline float Saru::f()
     {
+    if (use_cache)
+        {
+        // consume cached values
+        use_cache = false;
+        uint64_t u64 = uint64_t(cache[0]) << 32 | cache[1];
+        return r123::u01<float>(u64);
+        }
+
     r123::Philox4x32 rng;
     r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
     m_ctr[0] += 1;
-    uint64_t u64 = uint64_t(u[0]) << 32 | u[1];
+
+    // fill cache
+    use_cache = true;
+    cache[0] = u[0];
+    cache[1] = u[1];
+
+    uint64_t u64 = uint64_t(u[2]) << 32 | u[3];
     return r123::u01<float>(u64);
     }
 
@@ -335,10 +365,24 @@ HOSTDEVICE inline float Saru::f()
  */
 HOSTDEVICE inline double Saru::d()
     {
+    if (use_cache)
+        {
+        // consume cached values
+        use_cache = false;
+        uint64_t u64 = uint64_t(cache[0]) << 32 | cache[1];
+        return r123::u01<double>(u64);
+        }
+
     r123::Philox4x32 rng;
     r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
     m_ctr[0] += 1;
-    uint64_t u64 = uint64_t(u[0]) << 32 | u[1];
+
+    // fill cache
+    use_cache = true;
+    cache[0] = u[0];
+    cache[1] = u[1];
+
+    uint64_t u64 = uint64_t(u[2]) << 32 | u[3];
     return r123::u01<double>(u64);
     }
 
