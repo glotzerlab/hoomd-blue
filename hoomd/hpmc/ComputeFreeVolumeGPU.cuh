@@ -11,6 +11,7 @@
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 #include "hoomd/Saru.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #include <curand_kernel.h>
 
@@ -205,7 +206,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                                      const unsigned int N,
                                      const unsigned int num_types,
                                      const unsigned int seed,
-                                     const unsgigned int rank,
+                                     const unsigned int rank,
                                      const unsigned int select,
                                      const unsigned int timestep,
                                      const unsigned int dim,

@@ -310,10 +310,10 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                                            fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
             if (noiseless_r) sigma_r = make_scalar3(0,0,0);
 
-            detail::Saru s(RNGIdentifier::TwoStepLangevinAngular, seed, ptag, timestep);
-            Scalar rand_x = gaussian_rng(saru, sigma_r.x);
-            Scalar rand_y = gaussian_rng(saru, sigma_r.y);
-            Scalar rand_z = gaussian_rng(saru, sigma_r.z);
+            detail::Saru saru(RNGIdentifier::TwoStepLangevinAngular, seed, ptag, timestep);
+            Scalar rand_x = saru.normal(sigma_r.x);
+            Scalar rand_y = saru.normal(sigma_r.y);
+            Scalar rand_z = saru.normal(sigma_r.z);
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;

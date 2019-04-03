@@ -212,7 +212,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
     unsigned int tag = d_groupTags[group_idx];
     unsigned int idx = d_rtag[tag];
-    hoomd::detail::Saru saru(hoomd::RNGIdentifier::ActiveForceCompute, m_seed, tag, timestep);
+    hoomd::detail::Saru saru(hoomd::RNGIdentifier::ActiveForceCompute, seed, tag, timestep);
 
     if (is2D) // 2D
         {

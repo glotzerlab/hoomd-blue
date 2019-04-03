@@ -12,6 +12,7 @@
 #include "ParticleDataUtilities.h"
 #include "RandomNumbers.h"
 #include "hoomd/Saru.h"
+#include "hoomd/RNGIdentifiers.h"
 
 namespace mpcd
 {
