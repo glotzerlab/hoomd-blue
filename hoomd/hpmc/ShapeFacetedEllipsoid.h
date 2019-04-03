@@ -257,7 +257,8 @@ struct ShapeFacetedEllipsoid
         { }
 
     //! Does this shape have an orientation
-    DEVICE bool hasOrientation() { return params.N > 0; }
+    DEVICE bool hasOrientation() { return (params.N > 0) ||
+        (params.a != params.b) || (params.a != params.c) || (params.b != params.c); }
 
     //!Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return params.ignore; }
