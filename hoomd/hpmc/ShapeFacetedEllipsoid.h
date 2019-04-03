@@ -301,7 +301,7 @@ struct ShapeFacetedEllipsoid
     //! Return a tight fitting OBB
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
-        detail::SupportFuncFacetedEllipsoid sfunc(params, 0.0);
+        detail::SupportFuncFacetedEllipsoid sfunc(params);
         vec3<OverlapReal> e_x(1,0,0);
         vec3<OverlapReal> e_y(0,1,0);
         vec3<OverlapReal> e_z(0,0,1);
