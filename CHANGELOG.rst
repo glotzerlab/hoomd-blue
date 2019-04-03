@@ -8,16 +8,16 @@ v2.6.0 (not yet released)
 
 - General:
 
-    - Enable HPMC plugins
-    - Fix plug-in builds when ENABLE_TBB or ALWAYS_USE_MANAGED_MEMORY CMake parameters are set
+  - Enable HPMC plugins
+  - Fix plug-in builds when ENABLE_TBB or ALWAYS_USE_MANAGED_MEMORY CMake parameters are set
 
 - MD:
 
-    - Exclude neighbors that belong to the same floppy molecule
+  - Exclude neighbors that belong to the same floppy molecule
 
 - HPMC:
 
-    - New shape class: ``hpmc.integrate.faceted_ellipsoid_union()``
+  - New shape class: ``hpmc.integrate.faceted_ellipsoid_union()``
 
 v2.5.1 (2019/03/14)
 -------------------
