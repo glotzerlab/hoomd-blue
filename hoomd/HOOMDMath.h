@@ -717,7 +717,7 @@ inline HOSTDEVICE double acos(double x)
 template<class Real, class RNG>
 inline Real DEVICE gaussian_rng(RNG &rng, const Real sigma)
     {
-    return rng.template normal<Real>() * sigma;
+    return rng.normal(sigma);
     }
 
 // undefine HOSTDEVICE so we don't interfere with other headers

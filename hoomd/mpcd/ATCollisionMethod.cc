@@ -11,6 +11,7 @@
 #include "ATCollisionMethod.h"
 #include "RandomNumbers.h"
 #include "hoomd/Saru.h"
+#include "hoomd/RNGIdentifiers.h"
 
 mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                            unsigned int cur_timestep,
@@ -103,7 +104,7 @@ void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
             }
 
         // draw random velocities from normal distribution
-        hoomd::detail::Saru rng(tag, timestep, m_seed);
+        hoomd::detail::Saru rng(hoomd::RNGIdentifier::ATCollisionMethod, m_seed, tag, timestep);
         mpcd::detail::NormalGenerator<Scalar,true> gen;
         const Scalar3 vel = fast::sqrt(T/mass) * make_scalar3(gen(rng), gen(rng), gen(rng));
 

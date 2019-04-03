@@ -9,6 +9,7 @@
 #include "hoomd/HOOMDMath.h"
 
 #include "hoomd/Saru.h"
+#include "hoomd/RNGIdentifiers.h"
 using namespace hoomd;
 
 #include <assert.h>
@@ -126,7 +127,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         unsigned int ptag = d_tag[idx];
 
         // compute the random force
-        detail::Saru saru(ptag, timestep, seed);
+        detail::Saru saru(RNGIdentifier::TwoStepBD, seed, ptag, timestep);
         Scalar rx = saru.s<Scalar>(-1,1);
         Scalar ry = saru.s<Scalar>(-1,1);
         Scalar rz =  saru.s<Scalar>(-1,1);
@@ -168,10 +169,10 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         // draw a new random velocity for particle j
         Scalar mass = vel.w;
         Scalar sigma = fast::sqrt(T/mass);
-        vel.x = gaussian_rng(saru, sigma);
-        vel.y = gaussian_rng(saru, sigma);
+        vel.x = saru.normal(sigma);
+        vel.y = saru.normal(sigma);
         if (D > 2)
-            vel.z = gaussian_rng(saru, sigma);
+            vel.z = saru.normal(sigma);
         else
             vel.z = 0;
 
@@ -207,9 +208,9 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 // original Gaussian random torque
                 // Gaussian random distribution is preferred in terms of preserving the exact math
                 vec3<Scalar> bf_torque;
-                bf_torque.x = gaussian_rng(saru, sigma_r.x);
-                bf_torque.y = gaussian_rng(saru, sigma_r.y);
-                bf_torque.z = gaussian_rng(saru, sigma_r.z);
+                bf_torque.x = saru.normal(sigma_r.x);
+                bf_torque.y = saru.normal(sigma_r.y);
+                bf_torque.z = saru.normal(sigma_r.z);
 
                 if (x_zero) bf_torque.x = 0;
                 if (y_zero) bf_torque.y = 0;
@@ -232,9 +233,9 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 d_orientation[idx] = quat_to_scalar4(q);
 
                 // draw a new random ang_mom for particle j in body frame
-                p_vec.x = gaussian_rng(saru, fast::sqrt(T * I.x));
-                p_vec.y = gaussian_rng(saru, fast::sqrt(T * I.y));
-                p_vec.z = gaussian_rng(saru, fast::sqrt(T * I.z));
+                p_vec.x = saru.normal(fast::sqrt(T * I.x));
+                p_vec.y = saru.normal(fast::sqrt(T * I.y));
+                p_vec.z = saru.normal(fast::sqrt(T * I.z));
                 if (x_zero) p_vec.x = 0;
                 if (y_zero) p_vec.y = 0;
                 if (z_zero) p_vec.z = 0;

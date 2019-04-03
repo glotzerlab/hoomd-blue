@@ -13,6 +13,7 @@
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Saru.h"
+#include "hoomd/RNGIdentifiers.h"
 
 
 /*! \file EvaluatorPairDPDLJThermo.h
@@ -201,7 +202,7 @@ class EvaluatorPairDPDLJThermo
                    m_oj = m_j;
                    }
 
-                hoomd::detail::Saru rng(m_oi, m_oj, m_seed + m_timestep);
+                hoomd::detail::Saru rng(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_seed, m_oi, m_oj, m_timestep);
 
 
                 // Generate a single random number

@@ -268,9 +268,11 @@ class Saru
 
         //! \name Other distributions
         //@{
-        //! Draw a normal random number
-        template<class Real>
-        HOSTDEVICE inline Real normal();
+        //! Draw a normal random number (float)
+        HOSTDEVICE inline float normal(float sigma, float mu=0.0f);
+
+        //! Draw a normal random number (double)
+        HOSTDEVICE inline double normal(double sigma, double mu=0.0);
         //@}
 
     private:
@@ -415,31 +417,33 @@ HOSTDEVICE inline double Saru::s(double a, double b)
     return d(a, b);
     }
 
-//! Normal distribution
 /*!
- * \returns Normally distributed random variable with mean zero and unit variance
+ * \param sigma Standard deviation
+ * \param mu Mean
+ *
+ * \returns Normally distributed random variable with mean *mu* and standard deviation *sigma*.
  *
  * \post The state of the generator is advanced one step.
  */
-template<>
-HOSTDEVICE inline float Saru::normal()
+HOSTDEVICE inline float Saru::normal(float sigma, float mu)
     {
     r123::Philox4x32 rng;
     r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
     m_ctr[0] += 1;
     float2 n = r123::boxmuller(u[0], u[1]);
-    return n.x;
+    return n.x * sigma + mu;
     // note: If there is a need, we could add an API that returns two normally distributed numbers for no extra cost
     }
 
-//! Normal distribution
 /*!
- * \returns Normally distributed random variable with mean zero and unit variance
+ * \param sigma Standard deviation
+ * \param mu Mean
+ *
+ * \returns Normally distributed random variable with mean *mu* and standard deviation *sigma*.
  *
  * \post The state of the generator is advanced one step.
  */
-template<>
-HOSTDEVICE inline double Saru::normal()
+HOSTDEVICE inline double Saru::normal(double sigma, double mu)
     {
     r123::Philox4x32 rng;
     r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
@@ -447,7 +451,7 @@ HOSTDEVICE inline double Saru::normal()
     uint64_t u64_0 = uint64_t(u[0]) << 32 | u[1];
     uint64_t u64_1 = uint64_t(u[2]) << 32 | u[3];
     double2 n = r123::boxmuller(u64_0, u64_1);
-    return n.x;
+    return n.x * sigma + mu;
     // note: If there is a need, we could add an API that returns two normally distributed numbers for no extra cost
     }
 

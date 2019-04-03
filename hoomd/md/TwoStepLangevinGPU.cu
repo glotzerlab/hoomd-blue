@@ -7,6 +7,7 @@
 #include "TwoStepLangevinGPU.cuh"
 
 #include "hoomd/Saru.h"
+#include "hoomd/RNGIdentifiers.h"
 using namespace hoomd;
 
 #include <assert.h>
@@ -125,7 +126,7 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
             coeff = Scalar(0.0);
 
         //Initialize the Random Number Generator and generate the 3 random numbers
-        detail::Saru s(ptag, timestep, seed); // 3 dimensional seeding
+        detail::Saru s(RNGIdentifier::TwoStepLangevin, seed, ptag, timestep);
 
         Scalar randomx=s.s<Scalar>(-1.0, 1.0);
         Scalar randomy=s.s<Scalar>(-1.0, 1.0);
@@ -309,7 +310,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                                            fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
             if (noiseless_r) sigma_r = make_scalar3(0,0,0);
 
-            detail::Saru saru(ptag, timestep, seed); // 3 dimensional seeding
+            detail::Saru s(RNGIdentifier::TwoStepLangevinAngular, seed, ptag, timestep);
             Scalar rand_x = gaussian_rng(saru, sigma_r.x);
             Scalar rand_y = gaussian_rng(saru, sigma_r.y);
             Scalar rand_z = gaussian_rng(saru, sigma_r.z);

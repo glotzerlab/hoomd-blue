@@ -7,6 +7,7 @@
 #include "ActiveForceComputeGPU.cuh"
 #include "EvaluatorConstraintEllipsoid.h"
 #include "hoomd/Saru.h"
+#include "hoomd/RNGIdentifiers.h"
 using namespace hoomd;
 
 #include <assert.h>
@@ -211,12 +212,12 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
     unsigned int tag = d_groupTags[group_idx];
     unsigned int idx = d_rtag[tag];
+    hoomd::detail::Saru saru(hoomd::RNGIdentifier::ActiveForceCompute, m_seed, tag, timestep);
 
     if (is2D) // 2D
         {
-        detail::Saru saru(tag, timestep, seed);
         Scalar delta_theta; // rotational diffusion angle
-        delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
+        delta_theta = saru.normal(rotationDiff);
         Scalar theta; // angle on plane defining orientation of active force vector
         theta = atan2(d_f_actVec[tag].y, d_f_actVec[tag].x);
         theta += delta_theta;
@@ -228,7 +229,6 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         {
         if (rx == 0) // if no constraint
             {
-            detail::Saru saru(tag, timestep, seed);
             Scalar u = saru.d(0, 1.0); // generates an even distribution of random unit vectors in 3D
             Scalar v = saru.d(0, 1.0);
             Scalar theta = 2.0 * M_PI * u;
@@ -253,7 +253,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             current_vec.y = d_f_actVec[tag].y;
             current_vec.z = d_f_actVec[tag].z;
 
-            Scalar delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
+            Scalar delta_theta = saru.normal(rotationDiff);
             d_f_actVec[tag].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
             d_f_actVec[tag].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
             d_f_actVec[tag].z = cos(delta_theta)*current_vec.z + sin(delta_theta)*aux_vec.z;
@@ -267,7 +267,6 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         else // if constraint
             {
             EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
-            detail::Saru saru(tag, timestep, seed);
             Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
 
             Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
@@ -281,7 +280,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vec for defining direction that active force vector rotates towards.
 
             Scalar delta_theta; // rotational diffusion angle
-            delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
+            delta_theta = saru.normal(rotationDiff);
 
             d_f_actVec[tag].x = cos(delta_theta) * current_vec.x + sin(delta_theta) * aux_vec.x;
             d_f_actVec[tag].y = cos(delta_theta) * current_vec.y + sin(delta_theta) * aux_vec.y;

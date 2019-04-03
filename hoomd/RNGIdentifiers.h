@@ -33,6 +33,18 @@ struct RNGIdentifier
     static const uint32_t UpdaterMuVT = 0x186df7ba;
     static const uint32_t UpdaterMuVTBox1 = 0x05d4a502;
     static const uint32_t UpdaterMuVTBox2 = 0xa74201bd;
+    static const uint32_t ActiveForceCompute = 0x7edf0a42;
+    static const uint32_t EvaluatorPairDPDThermo = 0x4a84f5d0;
+    static const uint32_t IntegrationMethodTwoStep = 0x11df5642;
+    static const uint32_t TwoStepBD = 0x431287ff;
+    static const uint32_t TwoStepLangevin = 0x89abcdef;
+    static const uint32_t TwoStepLangevinAngular = 0x19fe31ab;
+    static const uint32_t TwoStepNPTMTK = 0x9db2f0ab;
+    static const uint32_t TwoStepNVTMTK = 0x451234b9;
+    static const uint32_t ATCollisionMethod = 0xf4009e6a;
+    static const uint32_t CollisionMethod = 0x5af53be6;
+    static const uint32_t SRDCollisionMethod = 0x7b61fda0;
+
     };
 
 }

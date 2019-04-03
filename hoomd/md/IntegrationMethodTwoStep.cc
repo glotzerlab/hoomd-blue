@@ -12,7 +12,7 @@
 #include "hoomd/HOOMDMath.h"
 
 #include "hoomd/Saru.h"
-
+#include "hoomd/RNGIdentifiers.h"
 
 namespace py = pybind11;
 
@@ -240,15 +240,15 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
         unsigned int ptag = h_tag.data[j];
 
         /* Initialize the random number generator */
-        hoomd::detail::Saru saru(ptag, timestep, m_seed_randomize);
+        hoomd::detail::Saru saru(hoomd::RNGIdentifier::IntegrationMethodTwoStep, m_seed_randomize, ptag, timestep);
 
         /* Generate a new random linear velocity for particle j */
         Scalar mass =  h_vel.data[j].w;
         Scalar sigma = fast::sqrt(m_T_randomize / mass);
-        h_vel.data[j].x = gaussian_rng(saru, sigma);
-        h_vel.data[j].y = gaussian_rng(saru, sigma);
+        h_vel.data[j].x = saru.normal(sigma);
+        h_vel.data[j].y = saru.normal(sigma);
         if (D > 2)
-            h_vel.data[j].z = gaussian_rng(saru, sigma);
+            h_vel.data[j].z = saru.normal(sigma);
         else
             h_vel.data[j].z = 0; // For 2D systems
 
@@ -266,11 +266,11 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
             /* Generate a new random angular momentum for particle j in
              * body frame */
             if (I.x >= EPSILON)
-                p_vec.x = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.x));
+                p_vec.x = saru.normal(fast::sqrt(m_T_randomize * I.x));
             if (I.y >= EPSILON)
-                p_vec.y = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.y));
+                p_vec.y = saru.normal(fast::sqrt(m_T_randomize * I.y));
             if (I.z >= EPSILON)
-                p_vec.z = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.z));
+                p_vec.z = saru.normal(fast::sqrt(m_T_randomize * I.z));
 
             /* Store the angular momentum quaternion */
             quat<Scalar> p = Scalar(2.0) * q * p_vec;

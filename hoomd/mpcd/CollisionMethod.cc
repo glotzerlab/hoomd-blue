@@ -10,6 +10,7 @@
 
 #include "CollisionMethod.h"
 #include "hoomd/Saru.h"
+#include "hoomd/RNGIdentifiers.h"
 
 /*!
  * \param sysdata MPCD system data
@@ -132,7 +133,7 @@ void mpcd::CollisionMethod::drawGridShift(unsigned int timestep)
     else
         {
         // Saru PRNG using seed and timestep as seeds
-        hoomd::detail::Saru saru(0xffffffff, timestep / m_period, m_seed);
+        hoomd::detail::Saru saru(hoomd::RNGIdentifier::CollisionMethod, m_seed, timestep / m_period);
         const Scalar max_shift = m_cl->getMaxGridShift();
 
         // draw shift variables from uniform distribution

@@ -155,3 +155,31 @@ UP_TEST( gamma_float_test )
     mpcd::detail::GammaGenerator<float> gen(2.5, 2.);
     check_moments(gen, 5000000, 2.5*2, 2.5*2*2, 0.01);
     }
+
+//! Test case for Saru::normal, float
+UP_TEST( saru_normal_float_test )
+    {
+    struct generator
+        {
+        float operator() (hoomd::detail::Saru& rng)
+            {
+            return rng.normal(2.0f, 0.5f);
+            }
+        };
+    generator gen;
+    check_moments(gen, 5000000, 0.5, 4.0, 0.01);
+    }
+
+//! Test case for Saru::normal, double
+UP_TEST( saru_normal_double_test )
+    {
+    struct generator
+        {
+        float operator() (hoomd::detail::Saru& rng)
+            {
+            return rng.normal(2.0, 0.5);
+            }
+        };
+    generator gen;
+    check_moments(gen, 5000000, 0.5, 4.0, 0.01);
+    }

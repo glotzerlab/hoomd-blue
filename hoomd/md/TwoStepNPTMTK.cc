@@ -9,6 +9,7 @@
 #include "TwoStepNPTMTK.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/Saru.h"
+#include "hoomd/RNGIdentifiers.h"
 
 using namespace std;
 namespace py = pybind11;
@@ -956,7 +957,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
 
     IntegratorVariables v = getIntegratorVariables();
 
-    hoomd::detail::Saru saru(0x9db2f0ab, timestep, m_seed_randomize);
+    hoomd::detail::Saru saru(hoomd::RNGIdentifier::TwoStepNPTMTK, m_seed_randomize, timestep);
 
     bool master = m_exec_conf->getRank() == 0;
 
@@ -971,7 +972,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
         if (master)
             {
             // draw a random Gaussian thermostat variable on rank 0
-            xi = gaussian_rng(saru, sqrt(sigmasq_t));
+            xi = saru.normal(sqrt(sigmasq_t));
             }
 
         if (m_aniso)
@@ -982,7 +983,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
 
             if (master)
                 {
-                xi_rot = gaussian_rng(saru, sqrt(sigmasq_r));
+                xi_rot = saru.normal(sqrt(sigmasq_r));
                 }
             }
         }
@@ -1002,32 +1003,32 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
         {
         if (m_flags & baro_x)
             {
-            nuxx = gaussian_rng(saru,sqrt(sigmasq_baro));
+            nuxx = saru.normal(sqrt(sigmasq_baro));
             }
 
         if (m_flags & baro_xy)
             {
-            nuxy = gaussian_rng(saru,sqrt(sigmasq_baro));
+            nuxy = saru.normal(sqrt(sigmasq_baro));
             }
 
         if (m_flags & baro_xz)
             {
-            nuxz = gaussian_rng(saru,sqrt(sigmasq_baro));
+            nuxz = saru.normal(sqrt(sigmasq_baro));
             }
 
         if (m_flags & baro_y)
             {
-            nuyy = gaussian_rng(saru,sqrt(sigmasq_baro));
+            nuyy = saru.normal(sqrt(sigmasq_baro));
             }
 
         if (m_flags & baro_yz)
             {
-            nuyz = gaussian_rng(saru,sqrt(sigmasq_baro));
+            nuyz = saru.normal(sqrt(sigmasq_baro));
             }
 
         if (m_flags & baro_z)
             {
-            nuzz = gaussian_rng(saru,sqrt(sigmasq_baro));
+            nuzz = saru.normal(sqrt(sigmasq_baro));
             }
         }
 
