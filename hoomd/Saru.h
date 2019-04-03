@@ -156,10 +156,10 @@ R123_CUDA_DEVICE R123_STATIC_INLINE Ftype u01fixedpt(Itype in)
 // from random123/examples/boxmuller.hpp
 
 /*
- * take two 32bit unsigned random values and return a float2 with
+ * take two 64bit unsigned random values and return a float2 with
  * two random floats in a normal distribution via a Box-Muller transform
  */
-R123_CUDA_DEVICE R123_STATIC_INLINE float2 boxmuller(uint32_t u0, uint32_t u1)
+R123_CUDA_DEVICE R123_STATIC_INLINE float2 boxmuller_f(uint64_t u0, uint64_t u1)
     {
     float r;
     float2 f;
@@ -174,7 +174,7 @@ R123_CUDA_DEVICE R123_STATIC_INLINE float2 boxmuller(uint32_t u0, uint32_t u1)
  * take two 64bit unsigned random values and return a double2 with
  * two random doubles in a normal distribution via a Box-Muller transform
  */
-R123_CUDA_DEVICE R123_STATIC_INLINE double2 boxmuller(uint64_t u0, uint64_t u1)
+R123_CUDA_DEVICE R123_STATIC_INLINE double2 boxmuller_d(uint64_t u0, uint64_t u1)
     {
     double r;
     double2 f;
@@ -237,41 +237,41 @@ class Saru
                                uint32_t counter1=0,
                                uint32_t counter2=0,
                                uint32_t counter3=0);
-        //! \name Uniform random numbers
+        //! \name Uniform random numbers in [2**(-65), 1]
         //@{
         //! Draw a random 32-bit unsigned integer
         HOSTDEVICE inline uint32_t u32();
 
-        //! Draw a random float on [0,1)
+        //! Draw a random float in [2**(-65), 1]
         HOSTDEVICE inline float f();
 
-        //! Draw a random double on [0,1)
+        //! Draw a random double in [2**(-65), 1]
         HOSTDEVICE inline double d();
 
-        //! Draw a floating-point value on [0,1)
+        //! Draw a floating-point value in [2**(-65), 1]
         template<class Real>
         HOSTDEVICE inline Real s();
         //@}
 
-        //! \name Uniform generators on [a,b)
+        //! \name Uniform generators in [a,b]
         //@{
-        //! Draw a random float in [a,b)
+        //! Draw a random float in [a,b]
         HOSTDEVICE inline float f(float a, float b);
 
-        //! Draw a random double in [a,b)
+        //! Draw a random double in [a,b]
         HOSTDEVICE inline double d(double a, double b);
 
-        //! Draw a random floating-point value in [a,b)
+        //! Draw a random floating-point value in [a,b]
         template<class Real>
         HOSTDEVICE inline Real s(Real a, Real b);
         //@}
 
         //! \name Other distributions
         //@{
-        //! Draw a normal random number (float)
+        //! Draw a normally distributed random number (float)
         HOSTDEVICE inline float normal(float sigma, float mu=0.0f);
 
-        //! Draw a normal random number (double)
+        //! Draw a normally distributed random number (double)
         HOSTDEVICE inline double normal(double sigma, double mu=0.0);
         //@}
 
@@ -315,7 +315,7 @@ HOSTDEVICE inline unsigned int Saru::u32()
     }
 
 /*!
- * \returns A random uniform float in [0,1).
+ * \returns A random uniform float in [2**(-65), 1].
  *
  * \post The state of the generator is advanced one step.
  */
@@ -324,11 +324,12 @@ HOSTDEVICE inline float Saru::f()
     r123::Philox4x32 rng;
     r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
     m_ctr[0] += 1;
-    return r123::u01<float>(u[0]);
+    uint64_t u64 = uint64_t(u[0]) << 32 | u[1];
+    return r123::u01<float>(u64);
     }
 
 /*!
- * \returns A random uniform double in [0,1).
+ * \returns A random uniform double in [2**(-65), 1].
  *
  * \post The state of the generator is advanced one step.
  */
@@ -343,7 +344,7 @@ HOSTDEVICE inline double Saru::d()
 
 //! Template specialization for float
 /*!
- * \returns A random uniform float in [0,1).
+ * \returns A random uniform float in in [2**(-65), 1].
  *
  * \post The state of the generator is advanced one step.
  */
@@ -355,7 +356,7 @@ HOSTDEVICE inline float Saru::s()
 
 //! Template specialization for double
 /*!
- * \returns A random uniform double in [0,1).
+ * \returns A random uniform double in in [2**(-65), 1].
  *
  * \post The state of the generator is advanced one step.
  */
@@ -368,7 +369,10 @@ HOSTDEVICE inline double Saru::s()
 /*!
  * \param a Lower bound of range.
  * \param b Upper bound of range.
- * \returns A random uniform float in [a,b).
+ * \returns A random uniform float in [a,b].
+ *
+ * For most practical purposes, the range returned by this function is [a,b]. This is due to round off error:
+ * e.g. for a=1.0, 1.0+2**(-65) == 1.0.
  *
  * \post The state of the generator is advanced one step.
  */
@@ -380,7 +384,10 @@ HOSTDEVICE inline float Saru::f(float a, float b)
 /*!
  * \param a Lower bound of range.
  * \param b Upper bound of range.
- * \returns A random uniform double in [a,b).
+ * \returns A random uniform float in [a,b].
+ *
+ * For most practical purposes, the range returned by this function is [a,b]. This is due to round off error:
+ * e.g. for a=1.0, 1.0+2**(-65) == 1.0.
  *
  * \post The state of the generator is advanced one step.
  */
@@ -393,7 +400,10 @@ HOSTDEVICE inline double Saru::d(double a, double b)
 /*!
  * \param a Lower bound of range.
  * \param b Upper bound of range.
- * \returns A random uniform float in [a,b).
+ * \returns A random uniform float in [a,b].
+ *
+ * For most practical purposes, the range returned by this function is [a,b]. This is due to round off error:
+ * e.g. for a=1.0, 1.0+2**(-65) == 1.0.
  *
  * \post The state of the generator is advanced one step.
  */
@@ -407,7 +417,10 @@ HOSTDEVICE inline float Saru::s(float a, float b)
 /*!
  * \param a Lower bound of range.
  * \param b Upper bound of range.
- * \returns A random uniform double in [a,b).
+ * \returns A random uniform float in [a,b].
+ *
+ * For most practical purposes, the range returned by this function is [a,b]. This is due to round off error:
+ * e.g. for a=1.0, 1.0+2**(-65) == 1.0.
  *
  * \post The state of the generator is advanced one step.
  */
@@ -430,7 +443,9 @@ HOSTDEVICE inline float Saru::normal(float sigma, float mu)
     r123::Philox4x32 rng;
     r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
     m_ctr[0] += 1;
-    float2 n = r123::boxmuller(u[0], u[1]);
+    uint64_t u64_0 = uint64_t(u[0]) << 32 | u[1];
+    uint64_t u64_1 = uint64_t(u[2]) << 32 | u[3];
+    float2 n = r123::boxmuller_f(u64_0, u64_1);
     return n.x * sigma + mu;
     // note: If there is a need, we could add an API that returns two normally distributed numbers for no extra cost
     }
@@ -450,7 +465,7 @@ HOSTDEVICE inline double Saru::normal(double sigma, double mu)
     m_ctr[0] += 1;
     uint64_t u64_0 = uint64_t(u[0]) << 32 | u[1];
     uint64_t u64_1 = uint64_t(u[2]) << 32 | u[3];
-    double2 n = r123::boxmuller(u64_0, u64_1);
+    double2 n = r123::boxmuller_d(u64_0, u64_1);
     return n.x * sigma + mu;
     // note: If there is a need, we could add an API that returns two normally distributed numbers for no extra cost
     }
