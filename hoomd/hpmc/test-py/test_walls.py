@@ -195,6 +195,7 @@ class sphere_wall_convex_spheropolyhedron_test(unittest.TestCase):
             self.assertEqual(self.ext_wall.count_overlaps(), 1)
             hoomd.util.unquiet_status()
 
+    def test_individual(self):
         # 3. test a particle not quite overlapping the wall
         self.system.particles[0].position = (3.64,0,0)
         # a. inside=True
