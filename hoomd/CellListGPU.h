@@ -47,7 +47,7 @@ class PYBIND11_EXPORT CellListGPU : public CellList
         //! Request a multi-GPU cell list
         virtual void setPerDevice(bool per_device)
             {
-            if (! this->m_exec_conf->allConcurrentManagedAccess())
+            if (per_device && ! this->m_exec_conf->allConcurrentManagedAccess())
                 throw std::runtime_error("Per-device cell list only supported with unified memory.");
 
             m_per_device = per_device;
