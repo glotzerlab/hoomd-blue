@@ -67,6 +67,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     m_rank = 0;
 
+#ifdef ENABLE_MPI
+    m_n_rank = n_ranks;
+    m_hoomd_world = hoomd_world;
+    splitPartitions(hoomd_world);
+#endif
+
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
@@ -122,12 +128,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     exec_mode = CPU;
     m_concurrent = false;
 #endif
-
-    #ifdef ENABLE_MPI
-    m_n_rank = n_ranks;
-    m_hoomd_world = hoomd_world;
-    splitPartitions(hoomd_world);
-    #endif
 
     setupStats();
 
