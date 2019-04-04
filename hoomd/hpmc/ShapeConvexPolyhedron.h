@@ -325,6 +325,7 @@ class SupportFuncConvexPolyhedron
  */
 
 // From Real Time Collision Detection (Christer Ericson)
+// https://doi.org/10.1201/b14581
 DEVICE inline vec3<OverlapReal> closestPointOnTriangle(const vec3<OverlapReal>& p,
      const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c)
     {
@@ -334,7 +335,7 @@ DEVICE inline vec3<OverlapReal> closestPointOnTriangle(const vec3<OverlapReal>& 
 
     OverlapReal d1 = dot(ab, ap);
     OverlapReal d2 = dot(ac, ap);
-    if (d1 <= OverlapReal(0.0) && d2 <= OverlapReal(0.0)) return a; // barycentric coordiantes (1,0,0)
+    if (d1 <= OverlapReal(0.0) && d2 <= OverlapReal(0.0)) return a; // barycentric coordinates (1,0,0)
 
     // Check if P in vertex region outside B
     vec3<OverlapReal> bp = p - b;
