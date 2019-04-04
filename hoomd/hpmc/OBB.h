@@ -143,6 +143,7 @@ struct OBB
     };
 
 // from Christer Ericsen, Real-time collision detection
+// https://doi.org/10.1201/b14581
 DEVICE inline bool SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const OBB& b,
    const OverlapReal max_sq)
     {
@@ -330,6 +331,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b,
 // Intersect ray R(t) = p + t*d against OBB a. When intersecting,
 // return intersection distance tmin and point q of intersection
 // Ericson, Christer, Real-Time Collision Detection (Page 180)
+// https://doi.org/10.1201/b14581
 DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<OverlapReal>& d, OBB a, OverlapReal &tmin, vec3<OverlapReal> &q, OverlapReal abs_tol)
     {
     tmin = 0.0f; // set to -FLT_MAX to get first hit on line
@@ -418,6 +420,7 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<Overla
 
 #ifndef NVCC
 // Ericson, Christer (2013-05-02). Real-Time Collision Detection (Page 111). Taylor and Francis CRC
+// https://doi.org/10.1201/b14581
 
 // Compute the center point, ’c’, and axis orientation, u[0] and u[1], of
 // the minimum area rectangle in the xy plane containing the points pt[].

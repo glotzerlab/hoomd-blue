@@ -55,7 +55,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
             m_fugacity[type] = fugacity;
             }
 
-        //! Returns the depletant density
+        //! Returns the depletant fugacity
         Scalar getDepletantFugacity(unsigned int type)
             {
             return m_fugacity[type];
@@ -258,11 +258,11 @@ void IntegratorHPMCMonoImplicit< Shape >::updateCellWidth()
             }
         }
 
-    this->m_nominal_width += m_quermass ? 2.0*m_sweep_radius : max_d;
-
     // extend the image list by the depletant diameter, since we're querying
     // AABBs that are larger than the shape diameters themselves
     this->m_extra_image_width = m_quermass ? 2.0*m_sweep_radius : max_d;
+
+    this->m_nominal_width += this->m_extra_image_width;
 
     // Account for patch width
     if (this->m_patch)
@@ -889,7 +889,8 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                                     intersect_i.push_back(j);
                                     image_i.push_back(cur_image);
 
-                                    // cache the translated AABB of particle j
+                                    // cache the translated AABB of particle j. If i's image is cur_image, then j's
+                                    // image is the negative of that (and we use i's untranslated position below)
                                     aabb_j.translate(-this->m_image_list[cur_image]);
                                     aabbs_i.push_back(aabb_j);
                                     }
