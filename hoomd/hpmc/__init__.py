@@ -86,7 +86,8 @@ See `J. A. Anderson et. al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.024>`_
 HPMC supports integration with implicit depletants. *Depletants* are shapes that do not interact between themselves, but have
 a finite excluded volume with respect to other particles (the *colloids*). Their ideal gas nature makes it possible to randomly insert
 depletants into the overlap regions between the colloids, according to a Poisson point process to sample from the grand-canonical
-ensemble. This insertion is efficiently performed in parallel on the CPU, using TBB when it is enabled (see :doc:`compiling`), or on the GPU.
+ensemble. This insertion is efficiently performed in parallel on the CPU, using TBB when it is enabled (see
+:doc:`Installation Guide </installation>`), or on the GPU.
 
 Details on the depletant capability are documented in `J. Glaser et al. 2015 <https://doi.org/10.1063/1.4935175>`_, and
 Glaser, to be published (2019).
