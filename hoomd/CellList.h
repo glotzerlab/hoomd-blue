@@ -211,8 +211,6 @@ class PYBIND11_EXPORT CellList : public Compute
         virtual void setPerDevice(bool per_device)
             {
             // base class does nothing
-            if (per_device)
-                throw std::runtime_error("Per-device cell list only supported with CellListGPU.");
             }
 
         //! Return true if we maintain a cell list per device
