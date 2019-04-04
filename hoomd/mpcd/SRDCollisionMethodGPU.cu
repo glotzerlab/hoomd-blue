@@ -9,7 +9,7 @@
  */
 
 #include "SRDCollisionMethodGPU.cuh"
-#include "RandomNumbers.h"
+#include "hoomd/RandomNumbers.h"
 #include "hoomd/Saru.h"
 #include "hoomd/RNGIdentifiers.h"
 
@@ -61,7 +61,7 @@ __global__ void srd_draw_vectors(double3 *d_rotvec,
 
     // draw rotation vector off the surface of the sphere
     double3 rotvec;
-    mpcd::detail::SpherePointGenerator<double> sphgen;
+    hoomd::detail::SpherePointGenerator<double> sphgen;
     sphgen(saru, rotvec);
     d_rotvec[idx] = rotvec;
 
@@ -76,7 +76,7 @@ __global__ void srd_draw_vectors(double3 *d_rotvec,
             const double alpha = n_dimensions*(np-1)/(double)2.;
 
             // draw a random kinetic energy for the cell at the set temperature
-            mpcd::detail::GammaGenerator<double> gamma_gen(alpha,T_set);
+            hoomd::detail::GammaDistribution<double> gamma_gen(alpha,T_set);
             const double rand_ke = gamma_gen(saru);
 
             // generate the scale factor from the current temperature

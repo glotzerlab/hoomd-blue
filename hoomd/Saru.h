@@ -29,163 +29,7 @@
 #define HOOMD_SARU_H_
 
 #include "HOOMDMath.h"
-
-#ifdef ENABLE_CUDA
-// ensure that curand is included before random123. This avoids multiple defiintion issues
-// unfortunately, at the cost of random123 using the coefficients provided by curand
-// for now, they are the same
-#include <curand_kernel.h>
-#endif
-
-#include <math.h>
-#include <hoomd/extern/random123/include/Random123/philox.h>
-#include <type_traits>
-
-namespace r123 {
-// from random123/examples/uniform.hpp
-using std::make_signed;
-using std::make_unsigned;
-
-#if defined(__CUDACC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
-// Amazing! cuda thinks numeric_limits::max() is a __host__ function, so
-// we can't use it in a device function.
-//
-// The LIBCPP_HAS_NO_CONSTEXP test catches situations where the libc++
-// library thinks that the compiler doesn't support constexpr, but we
-// think it does.  As a consequence, the library declares
-// numeric_limits::max without constexpr.  This workaround should only
-// affect a narrow range of compiler/library pairings.
-//
-// In both cases, we find max() by computing ~(unsigned)0 right-shifted
-// by is_signed.
-template <typename T>
-R123_CONSTEXPR R123_STATIC_INLINE R123_CUDA_DEVICE T maxTvalue()
-    {
-    typedef typename make_unsigned<T>::type uT;
-    return (~uT(0)) >> std::numeric_limits<T>::is_signed;
-    }
-#else
-template <typename T>
-R123_CONSTEXPR R123_STATIC_INLINE T maxTvalue()
-    {
-    return std::numeric_limits<T>::max();
-    }
-#endif
-
-// u01: Input is a W-bit integer (signed or unsigned).  It is cast to
-//   a W-bit unsigned integer, multiplied by Ftype(2^-W) and added to
-//   Ftype(2^(-W-1)).  A good compiler should optimize it down to an
-//   int-to-float conversion followed by a multiply and an add, which
-//   might be fused, depending on the architecture.
-//
-//  If the input is a uniformly distributed integer, then the
-//  result is a uniformly distributed floating point number in [0, 1].
-//  The result is never exactly 0.0.
-//  The smallest value returned is 2^-W.
-//  Let M be the number of mantissa bits in Ftype.
-//  If W>M  then the largest value retured is 1.0.
-//  If W<=M then the largest value returned is the largest Ftype less than 1.0.
-template <typename Ftype, typename Itype>
-R123_CUDA_DEVICE R123_STATIC_INLINE Ftype u01(Itype in)
-    {
-    typedef typename make_unsigned<Itype>::type Utype;
-    R123_CONSTEXPR Ftype factor = Ftype(1.)/(maxTvalue<Utype>() + Ftype(1.));
-    R123_CONSTEXPR Ftype halffactor = Ftype(0.5)*factor;
-#if R123_UNIFORM_FLOAT_STORE
-    volatile Ftype x = Utype(in)*factor; return x+halffactor;
-#else
-    return Utype(in)*factor + halffactor;
-#endif
-    }
-
-// uneg11: Input is a W-bit integer (signed or unsigned).  It is cast
-//    to a W-bit signed integer, multiplied by Ftype(2^-(W-1)) and
-//    then added to Ftype(2^(-W-2)).  A good compiler should optimize
-//    it down to an int-to-float conversion followed by a multiply and
-//    an add, which might be fused, depending on the architecture.
-//
-//  If the input is a uniformly distributed integer, then the
-//  output is a uniformly distributed floating point number in [-1, 1].
-//  The result is never exactly 0.0.
-//  The smallest absolute value returned is 2^-(W-1)
-//  Let M be the number of mantissa bits in Ftype.
-//  If W>M  then the largest value retured is 1.0 and the smallest is -1.0.
-//  If W<=M then the largest value returned is the largest Ftype less than 1.0
-//    and the smallest value returned is the smallest Ftype greater than -1.0.
-template <typename Ftype, typename Itype>
-R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
-    {
-    typedef typename make_signed<Itype>::type Stype;
-    R123_CONSTEXPR Ftype factor = Ftype(1.)/(maxTvalue<Stype>() + Ftype(1.));
-    R123_CONSTEXPR Ftype halffactor = Ftype(0.5)*factor;
-#if R123_UNIFORM_FLOAT_STORE
-    volatile Ftype x = Stype(in)*factor; return x+halffactor;
-#else
-    return Stype(in)*factor + halffactor;
-#endif
-    }
-
-// u01fixedpt:  Return a "fixed point" number in (0,1).  Let:
-//   W = width of Itype, e.g., 32 or 64, regardless of signedness.
-//   M = mantissa bits of Ftype, e.g., 24, 53 or 64
-//   B = min(M, W)
-// Then the 2^(B-1) possible output values are:
-//    2^-B*{1, 3, 5, ..., 2^B - 1}
-// The smallest output is: 2^-B
-// The largest output is:  1 - 2^-B
-// The output is never exactly 0.0, nor 0.5, nor 1.0.
-// The 2^(B-1) possible outputs:
-//   - are equally likely,
-//   - are uniformly spaced by 2^-(B-1),
-//   - are balanced around 0.5
-template <typename Ftype, typename Itype>
-R123_CUDA_DEVICE R123_STATIC_INLINE Ftype u01fixedpt(Itype in)
-    {
-    typedef typename make_unsigned<Itype>::type Utype;
-    R123_CONSTEXPR int excess = std::numeric_limits<Utype>::digits - std::numeric_limits<Ftype>::digits;
-    if(excess>=0)
-        {
-        R123_CONSTEXPR int ex_nowarn = (excess>=0) ? excess : 0;
-        R123_CONSTEXPR Ftype factor = Ftype(1.)/(Ftype(1.) + ((maxTvalue<Utype>()>>ex_nowarn)));
-        return (1 | (Utype(in)>>ex_nowarn)) * factor;
-        }
-    else
-        return u01<Ftype>(in);
-    }
-
-// from random123/examples/boxmuller.hpp
-
-/*
- * take two 64bit unsigned random values and return a float2 with
- * two random floats in a normal distribution via a Box-Muller transform
- */
-R123_CUDA_DEVICE R123_STATIC_INLINE float2 boxmuller_f(uint64_t u0, uint64_t u1)
-    {
-    float r;
-    float2 f;
-    fast::sincospi(uneg11<float>(u0), f.x, f.y);
-    r = sqrtf(-2.f * logf(u01<float>(u1))); // u01 is guaranteed to avoid 0.
-    f.x *= r;
-    f.y *= r;
-    return f;
-    }
-
-/*
- * take two 64bit unsigned random values and return a double2 with
- * two random doubles in a normal distribution via a Box-Muller transform
- */
-R123_CUDA_DEVICE R123_STATIC_INLINE double2 boxmuller_d(uint64_t u0, uint64_t u1)
-    {
-    double r;
-    double2 f;
-
-    fast::sincospi(uneg11<double>(u0), f.x, f.y);
-    r = sqrt(-2. * log(u01<double>(u1))); // u01 is guaranteed to avoid 0.
-    f.x *= r;
-    f.y *= r;
-    return f;
-    }
-}
+#include "RandomNumbers.h"
 
 #ifdef NVCC
 #define HOSTDEVICE __host__ __device__
@@ -276,9 +120,7 @@ class Saru
         //@}
 
     private:
-        r123::Philox4x32::key_type m_key;   //!< RNG key
-        r123::Philox4x32::ctr_type m_ctr;   //!< RNG counter
-
+        RandomGenerator m_rng;
     };
 
 /*!
@@ -296,9 +138,8 @@ HOSTDEVICE inline Saru::Saru(uint32_t seed1,
                              uint32_t counter1,
                              uint32_t counter2,
                              uint32_t counter3)
+    : m_rng(seed1, seed2, counter1, counter2, counter3)
     {
-    m_key = {{seed1, seed2}};
-    m_ctr = {{0, counter3, counter2, counter1}};
     }
 
 /*!
@@ -308,10 +149,7 @@ HOSTDEVICE inline Saru::Saru(uint32_t seed1,
  */
 HOSTDEVICE inline unsigned int Saru::u32()
     {
-    r123::Philox4x32 rng;
-    r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
-    m_ctr[0] += 1;
-    return u[0];
+    return generate_u32(m_rng);
     }
 
 /*!
@@ -321,11 +159,7 @@ HOSTDEVICE inline unsigned int Saru::u32()
  */
 HOSTDEVICE inline float Saru::f()
     {
-    r123::Philox4x32 rng;
-    r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
-    m_ctr[0] += 1;
-    uint64_t u64 = uint64_t(u[0]) << 32 | u[1];
-    return r123::u01<float>(u64);
+    return generate_canonical<float>(m_rng);
     }
 
 /*!
@@ -335,11 +169,7 @@ HOSTDEVICE inline float Saru::f()
  */
 HOSTDEVICE inline double Saru::d()
     {
-    r123::Philox4x32 rng;
-    r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
-    m_ctr[0] += 1;
-    uint64_t u64 = uint64_t(u[0]) << 32 | u[1];
-    return r123::u01<double>(u64);
+    return generate_canonical<double>(m_rng);
     }
 
 //! Template specialization for float
@@ -351,7 +181,7 @@ HOSTDEVICE inline double Saru::d()
 template<>
 HOSTDEVICE inline float Saru::s()
     {
-    return f();
+    return generate_canonical<float>(m_rng);
     }
 
 //! Template specialization for double
@@ -363,7 +193,7 @@ HOSTDEVICE inline float Saru::s()
 template<>
 HOSTDEVICE inline double Saru::s()
     {
-    return d();
+    return generate_canonical<double>(m_rng);
     }
 
 /*!
@@ -378,7 +208,8 @@ HOSTDEVICE inline double Saru::s()
  */
 HOSTDEVICE inline float Saru::f(float a, float b)
     {
-    return a + (b-a)*f();
+    UniformDistribution<float> dist(a, b);
+    return dist(m_rng);
     }
 
 /*!
@@ -393,7 +224,8 @@ HOSTDEVICE inline float Saru::f(float a, float b)
  */
 HOSTDEVICE inline double Saru::d(double a, double b)
     {
-    return a + (b-a)*d();
+    UniformDistribution<double> dist(a, b);
+    return dist(m_rng);
     }
 
 //! Template specialization for float
@@ -410,7 +242,8 @@ HOSTDEVICE inline double Saru::d(double a, double b)
 template<>
 HOSTDEVICE inline float Saru::s(float a, float b)
     {
-    return f(a, b);
+    UniformDistribution<float> dist(a, b);
+    return dist(m_rng);
     }
 
 //! Template specialization for double
@@ -427,7 +260,8 @@ HOSTDEVICE inline float Saru::s(float a, float b)
 template<>
 HOSTDEVICE inline double Saru::s(double a, double b)
     {
-    return d(a, b);
+    UniformDistribution<double> dist(a, b);
+    return dist(m_rng);
     }
 
 /*!
@@ -440,14 +274,8 @@ HOSTDEVICE inline double Saru::s(double a, double b)
  */
 HOSTDEVICE inline float Saru::normal(float sigma, float mu)
     {
-    r123::Philox4x32 rng;
-    r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
-    m_ctr[0] += 1;
-    uint64_t u64_0 = uint64_t(u[0]) << 32 | u[1];
-    uint64_t u64_1 = uint64_t(u[2]) << 32 | u[3];
-    float2 n = r123::boxmuller_f(u64_0, u64_1);
-    return n.x * sigma + mu;
-    // note: If there is a need, we could add an API that returns two normally distributed numbers for no extra cost
+    NormalDistribution<float> dist(sigma, mu);
+    return dist(m_rng);
     }
 
 /*!
@@ -460,14 +288,8 @@ HOSTDEVICE inline float Saru::normal(float sigma, float mu)
  */
 HOSTDEVICE inline double Saru::normal(double sigma, double mu)
     {
-    r123::Philox4x32 rng;
-    r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
-    m_ctr[0] += 1;
-    uint64_t u64_0 = uint64_t(u[0]) << 32 | u[1];
-    uint64_t u64_1 = uint64_t(u[2]) << 32 | u[3];
-    double2 n = r123::boxmuller_d(u64_0, u64_1);
-    return n.x * sigma + mu;
-    // note: If there is a need, we could add an API that returns two normally distributed numbers for no extra cost
+    NormalDistribution<double> dist(sigma, mu);
+    return dist(m_rng);
     }
 
 } // end namespace detail
