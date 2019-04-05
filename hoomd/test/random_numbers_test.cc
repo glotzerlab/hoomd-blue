@@ -43,7 +43,7 @@ UP_TEST( sphere_point_test )
     const double dtheta = 2.0*mpcd_pi/static_cast<double>(nbins); // [0, 2pi)
     std::vector<unsigned int> fphi(nbins, 0), ftheta(nbins, 0);
 
-    hoomd::detail::Saru rng(7, 7, 91);
+    hoomd::detail::RandomGenerator rng(7, 7, 91);
     hoomd::detail::SpherePointGenerator<double> gen;
 
     const unsigned int N = 500000;

@@ -348,14 +348,14 @@ class SpherePointGenerator
         DEVICE inline void operator()(GeneratorType& rng, Real3& point)
             {
             // draw a random angle
-            const Real theta = rng.s(Real(0), Real(MPCD_2PI));
+            const Real theta = UniformDistribution<Real>(Real(0), Real(MPCD_2PI))(rng);
 
             // draw u (should typically only happen once) ensuring that
             // 1-u^2 > 0 so that the square-root is defined
             Real u, one_minus_u2;
             do
                 {
-                u = rng.s(Real(-1.0), Real(1.0));
+                u = UniformDistribution<Real>(Real(-1.0), Real(1.0))(rng);
                 one_minus_u2 = 1.0f-u*u;
                 }
             while (one_minus_u2 < Real(0.0));
