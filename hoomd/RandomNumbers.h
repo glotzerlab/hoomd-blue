@@ -303,8 +303,8 @@ class NormalDistribution
 
             // from random123/examples/boxmuller.hpp
             Real x, y;
-            fast::sincospi(r123::uneg11<float>(u0), x, y);
-            Real r = sqrtf(-2.f * logf(r123::u01<float>(u1))); // u01 is guaranteed to avoid 0.
+            fast::sincospi(r123::uneg11<Real>(u0), x, y);
+            Real r = fast::sqrt(Real(-2.0) * fast::log(r123::u01<Real>(u1))); // u01 is guaranteed to avoid 0.
             x *= r;
             y *= r;
             return x * sigma + mu;
@@ -324,8 +324,8 @@ class NormalDistribution
 
             // from random123/examples/boxmuller.hpp
             Real x, y;
-            fast::sincospi(r123::uneg11<float>(u0), x, y);
-            Real r = sqrtf(-2.f * logf(r123::u01<float>(u1))); // u01 is guaranteed to avoid 0.
+            fast::sincospi(r123::uneg11<Real>(u0), x, y);
+            Real r = fast::sqrt(Real(-2.0) * fast::log(r123::u01<Real>(u1))); // u01 is guaranteed to avoid 0.
             x *= r;
             y *= r;
             out1 = x * sigma + mu;
