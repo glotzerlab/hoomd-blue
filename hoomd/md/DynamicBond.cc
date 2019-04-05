@@ -109,20 +109,14 @@ void DynamicBond::update(unsigned int timestep)
             param_type param = h_params.data[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
             Scalar ronsq = Scalar(0.0);
-
-            //
+            if (m_shift_mode == xplor)
+                ronsq = h_ronsq.data[typpair_idx];
             }
         }
 
 
     if (m_prof)
         m_prof->pop();
-    }
-
-// get the number of bonds between two particles
-void DynamicBond::getNBonds()
-    {
-
     }
 
 void export_DynamicBond(py::module& m)
