@@ -6,6 +6,12 @@
 /*!
  * \file mpcd/ExternalField.cu
  * \brief Template device_new methods for external fields.
+ *
+ * \warning
+ * Because NVCC seems to establish the virtual table with these device functions,
+ * other device functions using the ExternalField object need to be compiled with
+ * this bit using separable compilation. The consequence of all this is that
+ * new ExternalFields cannot be added through the plugin interface.
  */
 
 #include "ExternalField.h"

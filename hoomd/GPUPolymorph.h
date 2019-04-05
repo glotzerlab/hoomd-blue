@@ -53,6 +53,10 @@ namespace hoomd
  *
  * This wrapper essentially acts like a factory class that also manages the necessary objects.
  *
+ * When instantiating the CUDA functions, you will need to use separable CUDA compilation because of the way
+ * HOOMD handles the device object virtual tables. This may place some restrictions on what can be implemented
+ * through a plugin interface since the device functions are all resolved at compile-time.
+ *
  * \tparam Base Base class for the polymorphic object.
  */
 template<class Base>

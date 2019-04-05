@@ -100,7 +100,7 @@ UP_TEST( sine_force_cpu )
     auto exec_conf = std::make_shared<const ExecutionConfiguration>(ExecutionConfiguration::CPU);
 
     auto field = std::make_shared<hoomd::GPUPolymorph<mpcd::ExternalField>>(exec_conf);
-    field->reset<mpcd::SineForce>(2.0, M_PI);
+    field->reset<mpcd::SineForce>(Scalar(2.0), Scalar(M_PI));
 
     std::vector<Scalar3> ref_pos = {make_scalar3(1,2,0.5), make_scalar3(-1,0,-1./6.)};
     std::vector<Scalar3> ref_force = {make_scalar3(2.0,0,0), make_scalar3(-1.,0,0)};
@@ -129,7 +129,7 @@ UP_TEST( sine_force_gpu )
     auto exec_conf = std::make_shared<const ExecutionConfiguration>(ExecutionConfiguration::GPU);
 
     auto field = std::make_shared<hoomd::GPUPolymorph<mpcd::ExternalField>>(exec_conf);
-    field->reset<mpcd::SineForce>(2.0, M_PI);
+    field->reset<mpcd::SineForce>(Scalar(2.0), Scalar(M_PI));
 
     std::vector<Scalar3> ref_pos = {make_scalar3(1,2,0.5), make_scalar3(-1,0,-1./6.)};
     std::vector<Scalar3> ref_force = {make_scalar3(2.0,0,0), make_scalar3(-1.,0,0)};

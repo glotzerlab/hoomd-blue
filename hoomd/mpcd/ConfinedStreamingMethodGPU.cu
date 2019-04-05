@@ -6,6 +6,11 @@
 /*!
  * \file mpcd/ConfinedStreamingMethodGPU.cu
  * \brief Defines GPU functions and kernels used by mpcd::ConfinedStreamingMethodGPU
+ *
+ * \warning
+ * This file needs separable compilation with ExternalFields.cu. Any plugins extending
+ * the ConfinedStreamingGeometryGPU will also need to do separable compilation with
+ * ExternalFields.cu.
  */
 
 #include "ConfinedStreamingMethodGPU.cuh"
@@ -13,11 +18,6 @@
 
 #include "ExternalField.h"
 #include "hoomd/GPUPolymorph.cuh"
-
-// explicitly instantiating this here seems to fix the illegal instruction error
-// this error also doesn't show up when compiled in debug mode
-// is this a compiler bug, or are we doing something illegal?
-TEMPLATE_DEVICE_NEW_FIELDS;
 
 namespace mpcd
 {

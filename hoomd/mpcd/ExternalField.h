@@ -37,9 +37,8 @@ namespace mpcd
  * as an example.
  *
  * \warning
- * There is currently a strange behavior with the external fields in CUDA code. In addition
- * to templating device_new here, you should also template it in any classes making use of
- * the ExternalField by adding it to the TEMPLATE_DEVICE_NEW_FIELDS macro. This may be revised in future.
+ * Because of the way NVCC handles compilation (see ExternalField.cu), new ExternalFields
+ * can only be implemented within HOOMD and \b NOT through the plugin interface.
  */
 class ExternalField
     {
@@ -123,12 +122,6 @@ class SineForce : public ExternalField
         Scalar m_F; //!< Force constant
         Scalar m_k; //!< Wavenumber for force in z
     };
-
-#ifdef NVCC
-#define TEMPLATE_DEVICE_NEW_FIELDS \
-template mpcd::ConstantForce* hoomd::gpu::device_new(Scalar3); \
-template mpcd::SineForce* hoomd::gpu::device_new(Scalar,Scalar);
-#endif // NVCC
 
 #ifndef NVCC
 namespace detail
