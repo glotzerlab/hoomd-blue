@@ -8,6 +8,7 @@ set(_md_sources module-md.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
                    CosineSqAngleForceCompute.cc
+                   DynamicBond.cc
                    OneDConstraint.cc
                    Enforce2DUpdater.cc
                    FIREEnergyMinimizer.cc
@@ -62,6 +63,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ConstraintSphere.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
+                DynamicBond.h
                 Enforce2DUpdaterGPU.h
                 Enforce2DUpdater.h
                 EvaluatorBondFENE.h

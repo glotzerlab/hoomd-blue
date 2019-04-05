@@ -6,8 +6,10 @@
 
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
+#include "NeighborList.h"
 #include <memory>
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 /*! \file DynamicBond.h
     \brief Declares a class for computing bond breakage/formation
 */
@@ -16,10 +18,9 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-
-// #ifndef __CONSTRAINT_Ellipsoid_H__
-// #define __CONSTRAINT_Ellipsoid_H__
+//
+#ifndef __DYNAMICBOND_H__
+#define __DYNAMICBOND_H__
 
 //! Creates or breaks bonds with a given probability
 /*!
@@ -58,3 +59,5 @@ class PYBIND11_EXPORT DynamicBond : public Updater
 
 //! Exports the DynamicBond class to python
 void export_DynamicBond(pybind11::module& m);
+
+#endif
