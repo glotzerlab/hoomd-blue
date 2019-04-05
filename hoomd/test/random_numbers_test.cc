@@ -164,19 +164,16 @@ void check_moments(GeneratorType& gen,
                       3.0 * (n-1)*(n-1) / ((n-2)*(n-3));
 
     // check mean using close or small, depending on how close it is to zero
-    std::cout << "mean: " << ref_mean << " " << mean << std::endl;
     if (std::abs(ref_mean) > tol_small)
         CHECK_CLOSE(mean, ref_mean, ref_tol);
     else
         CHECK_SMALL(mean, ref_tol);
 
-    std::cout << "variance: " << ref_var << " " << var << std::endl;
     if (std::abs(ref_var) > tol_small)
         CHECK_CLOSE(var, ref_var, ref_tol);
     else
         CHECK_SMALL(var, ref_tol);
 
-    std::cout << "skew: " << ref_skew << " " << skew << std::endl;
     if (std::abs(ref_skew) > tol_small)
         CHECK_CLOSE(skew, ref_skew, ref_tol);
     else
@@ -185,7 +182,6 @@ void check_moments(GeneratorType& gen,
     // skip kurtosis checks for distributions where it is finicky
     if (test_kurtosis)
         {
-        std::cout << "exkurtosis: " << ref_exkurtosis << " " << exkurtosis << " " << "x2=" << sample_x2 << ", x4=" << sample_x4 << std::endl;
         if (std::abs(ref_exkurtosis) > tol_small)
             CHECK_CLOSE(exkurtosis, ref_exkurtosis, ref_tol);
         else
@@ -245,7 +241,7 @@ UP_TEST( normal_float_test )
     {
     float mu = 2.0, sigma=1.5;
     float mean = mu, var=sigma*sigma, skew=0, exkurtosis=0.0;
-    hoomd::detail::NormalDistribution<double> gen(sigma, mu);
+    hoomd::detail::NormalDistribution<float> gen(sigma, mu);
     check_moments(gen, 500000, mean, var, exkurtosis, skew, 0.01);
     }
 
