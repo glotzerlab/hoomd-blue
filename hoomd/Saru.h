@@ -32,9 +32,9 @@
 #include "RandomNumbers.h"
 
 #ifdef NVCC
-#define HOSTDEVICE __host__ __device__
+#define DEVICE __device__
 #else
-#define HOSTDEVICE
+#define DEVICE
 #endif // NVCC
 
 namespace hoomd
@@ -76,7 +76,7 @@ class Saru
     {
     public:
         //! Five-value constructor
-        HOSTDEVICE inline Saru(uint32_t seed1=0,
+        DEVICE inline Saru(uint32_t seed1=0,
                                uint32_t seed2=0,
                                uint32_t counter1=0,
                                uint32_t counter2=0,
@@ -84,39 +84,39 @@ class Saru
         //! \name Uniform random numbers in [2**(-65), 1]
         //@{
         //! Draw a random 32-bit unsigned integer
-        HOSTDEVICE inline uint32_t u32();
+        DEVICE inline uint32_t u32();
 
         //! Draw a random float in [2**(-65), 1]
-        HOSTDEVICE inline float f();
+        DEVICE inline float f();
 
         //! Draw a random double in [2**(-65), 1]
-        HOSTDEVICE inline double d();
+        DEVICE inline double d();
 
         //! Draw a floating-point value in [2**(-65), 1]
         template<class Real>
-        HOSTDEVICE inline Real s();
+        DEVICE inline Real s();
         //@}
 
         //! \name Uniform generators in [a,b]
         //@{
         //! Draw a random float in [a,b]
-        HOSTDEVICE inline float f(float a, float b);
+        DEVICE inline float f(float a, float b);
 
         //! Draw a random double in [a,b]
-        HOSTDEVICE inline double d(double a, double b);
+        DEVICE inline double d(double a, double b);
 
         //! Draw a random floating-point value in [a,b]
         template<class Real>
-        HOSTDEVICE inline Real s(Real a, Real b);
+        DEVICE inline Real s(Real a, Real b);
         //@}
 
         //! \name Other distributions
         //@{
         //! Draw a normally distributed random number (float)
-        HOSTDEVICE inline float normal(float sigma, float mu=0.0f);
+        DEVICE inline float normal(float sigma, float mu=0.0f);
 
         //! Draw a normally distributed random number (double)
-        HOSTDEVICE inline double normal(double sigma, double mu=0.0);
+        DEVICE inline double normal(double sigma, double mu=0.0);
         //@}
 
     private:
@@ -133,7 +133,7 @@ class Saru
  * Initialize the random number stream with two seeds and one counter. Seeds and counters are somewhat interchangeable.
  * Seeds should be more static (i.e. user seed, RNG id) while counters should be more dynamic (i.e. particle tag).
  */
-HOSTDEVICE inline Saru::Saru(uint32_t seed1,
+DEVICE inline Saru::Saru(uint32_t seed1,
                              uint32_t seed2,
                              uint32_t counter1,
                              uint32_t counter2,
@@ -147,7 +147,7 @@ HOSTDEVICE inline Saru::Saru(uint32_t seed1,
  *
  * \post The state of the generator is advanced one step.
  */
-HOSTDEVICE inline unsigned int Saru::u32()
+DEVICE inline unsigned int Saru::u32()
     {
     return generate_u32(m_rng);
     }
@@ -157,7 +157,7 @@ HOSTDEVICE inline unsigned int Saru::u32()
  *
  * \post The state of the generator is advanced one step.
  */
-HOSTDEVICE inline float Saru::f()
+DEVICE inline float Saru::f()
     {
     return generate_canonical<float>(m_rng);
     }
@@ -167,7 +167,7 @@ HOSTDEVICE inline float Saru::f()
  *
  * \post The state of the generator is advanced one step.
  */
-HOSTDEVICE inline double Saru::d()
+DEVICE inline double Saru::d()
     {
     return generate_canonical<double>(m_rng);
     }
@@ -179,7 +179,7 @@ HOSTDEVICE inline double Saru::d()
  * \post The state of the generator is advanced one step.
  */
 template<>
-HOSTDEVICE inline float Saru::s()
+DEVICE inline float Saru::s()
     {
     return generate_canonical<float>(m_rng);
     }
@@ -191,7 +191,7 @@ HOSTDEVICE inline float Saru::s()
  * \post The state of the generator is advanced one step.
  */
 template<>
-HOSTDEVICE inline double Saru::s()
+DEVICE inline double Saru::s()
     {
     return generate_canonical<double>(m_rng);
     }
@@ -206,7 +206,7 @@ HOSTDEVICE inline double Saru::s()
  *
  * \post The state of the generator is advanced one step.
  */
-HOSTDEVICE inline float Saru::f(float a, float b)
+DEVICE inline float Saru::f(float a, float b)
     {
     UniformDistribution<float> dist(a, b);
     return dist(m_rng);
@@ -222,7 +222,7 @@ HOSTDEVICE inline float Saru::f(float a, float b)
  *
  * \post The state of the generator is advanced one step.
  */
-HOSTDEVICE inline double Saru::d(double a, double b)
+DEVICE inline double Saru::d(double a, double b)
     {
     UniformDistribution<double> dist(a, b);
     return dist(m_rng);
@@ -240,7 +240,7 @@ HOSTDEVICE inline double Saru::d(double a, double b)
  * \post The state of the generator is advanced one step.
  */
 template<>
-HOSTDEVICE inline float Saru::s(float a, float b)
+DEVICE inline float Saru::s(float a, float b)
     {
     UniformDistribution<float> dist(a, b);
     return dist(m_rng);
@@ -258,7 +258,7 @@ HOSTDEVICE inline float Saru::s(float a, float b)
  * \post The state of the generator is advanced one step.
  */
 template<>
-HOSTDEVICE inline double Saru::s(double a, double b)
+DEVICE inline double Saru::s(double a, double b)
     {
     UniformDistribution<double> dist(a, b);
     return dist(m_rng);
@@ -272,7 +272,7 @@ HOSTDEVICE inline double Saru::s(double a, double b)
  *
  * \post The state of the generator is advanced one step.
  */
-HOSTDEVICE inline float Saru::normal(float sigma, float mu)
+DEVICE inline float Saru::normal(float sigma, float mu)
     {
     NormalDistribution<float> dist(sigma, mu);
     return dist(m_rng);
@@ -286,7 +286,7 @@ HOSTDEVICE inline float Saru::normal(float sigma, float mu)
  *
  * \post The state of the generator is advanced one step.
  */
-HOSTDEVICE inline double Saru::normal(double sigma, double mu)
+DEVICE inline double Saru::normal(double sigma, double mu)
     {
     NormalDistribution<double> dist(sigma, mu);
     return dist(m_rng);
@@ -295,6 +295,6 @@ HOSTDEVICE inline double Saru::normal(double sigma, double mu)
 } // end namespace detail
 } // end namespace hoomd
 
-#undef HOSTDEVICE
+#undef DEVICE
 
 #endif // HOOMD_SARU_H_

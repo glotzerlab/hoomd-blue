@@ -236,7 +236,8 @@ DEVICE inline void generate_2u64(uint64_t& out1, uint64_t& out2, RNG& rng)
 
     \post The state of the generator is advanced one step.
  */
-template <class Real, class RNG> Real generate_canonical(RNG& rng)
+template <class Real, class RNG>
+DEVICE inline Real generate_canonical(RNG& rng)
     {
     return r123::u01<Real>(generate_u64(rng));
     }
