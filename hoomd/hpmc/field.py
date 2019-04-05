@@ -41,8 +41,10 @@ class lattice_field(_external):
         q (float): rotational spring constant.
         symmetry (list): list of equivalent quaternions for the shape.
         composite (bool): Set this to True when this field is part of a :py:class:`external_field_composite`.
+        group (:py:mod:`hoomd.group`): Group of particles on which to apply the restraints
 
-    :py:class:`lattice_field` specifies that a harmonic spring is added to every particle:
+    :py:class:`lattice_field` specifies that a harmonic spring is added to every particle in the
+    group. If no group is specified, the restraints are applied to every particle in the system.
 
     .. math::
 
@@ -73,7 +75,8 @@ class lattice_field(_external):
         log = analyze.log(quantities=['lattice_energy'], period=100, filename='log.dat', overwrite=True);
 
     """
-    def __init__(self, mc, position = [], orientation = [], k = 0.0, q = 0.0, symmetry = [], composite=False):
+    def __init__(self, mc, position=[], orientation=[], k=0.0, q=0.0,
+            symmetry=[], composite=False, group=None):
         import numpy
         hoomd.util.print_status_line();
         _external.__init__(self);
@@ -112,14 +115,21 @@ class lattice_field(_external):
             hoomd.context.msg.error("GPU not supported yet")
             raise RuntimeError("Error initializing compute.position_lattice_field");
 
+        if group is None:
+            self.group = hoomd.context.current.group_all
+        else:
+            self.group = group
+
         self.compute_name = "lattice_field"
-        enlist = hoomd.hpmc.data._param.ensure_list;
-        self.cpp_compute = cls(hoomd.context.current.system_definition, enlist(position), float(k), enlist(orientation), float(q), enlist(symmetry));
+        enlist = hoomd.hpmc.data._param.ensure_list
+        self.cpp_compute = cls(hoomd.context.current.system_definition,
+                self.group.cpp_group, enlist(position), float(k), enlist(orientation),
+                float(q), enlist(symmetry))
         hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
         if not composite:
-            mc.set_external(self);
+            mc.set_external(self)
 
-    def set_references(self, position = [], orientation = []):
+    def set_references(self, position=[], orientation=[]):
         R""" Reset the reference positions or reference orientations.
 
         Args:
