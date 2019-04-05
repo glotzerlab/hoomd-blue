@@ -274,7 +274,7 @@ class UniformDistribution
         const Real b;     //!< Right end point of the interval
     };
 
-//! Generate a normally distributed random value
+//! Generate normally distributed random values
 /*! Use the Box-Muller method to generate normally distributed random values.
 */
 template<typename Real>
@@ -336,7 +336,7 @@ class NormalDistribution
         const Real mu;        //!< Mean
     };
 
-//! Generate a random point on the surface of a sphere
+//! Generate random points on the surface of a sphere
 template<typename Real>
 class SpherePointGenerator
     {
@@ -453,7 +453,7 @@ class GammaDistribution
         NormalDistribution<Real> m_normal; //!< Normal variate generator
     };
 
-//! Generate a uniform random unsigned integer in the range [0,m]
+//! Generate uniform random unsigned integers in the range [0,m]
 /*! This distribution is useful when selecting from a number of finite choices.
 */
 class UniformIntDistribution
@@ -505,6 +505,101 @@ class UniformIntDistribution
     private:
         const uint32_t m;     //!< Maximum value
     };
+
+//! Generate Poisson distributed random values
+/*! Use the method from: https://scicomp.stackexchange.com/questions/27330/how-to-generate-poisson-distributed-random-numbers-quickly-and-accurately/27334
+    (code posted there is in the public domain)
+*/
+template <class Real>
+class PoissonDistribution
+    {
+    public:
+        //! Constructor
+        /*! \param _mean Distribution mean
+        */
+        DEVICE explicit PoissonDistribution(Real _mean)
+            : mean(_mean)
+            {
+            }
+
+        //! Draw a value from the distribution
+        /*! \param rng Random number generator
+            \returns normally distributed random value in with standard deviation *sigma* and mean *mu*.
+        */
+        template<typename RNG>
+        DEVICE inline int operator()(RNG& rng)
+            {
+            // the value 13 is determined by empirical performance testing
+            if (mean < 13)
+                {
+                return poissrnd_small(rng);
+                }
+            else
+                {
+                return poissrnd_large(rng);
+                }
+            }
+
+    private:
+        const Real mean;    //!< Sample mean
+
+        Real _lgamma(Real xx)
+            {
+            // code from /*! Use the method from: https://scicomp.stackexchange.com/questions/27330/how-to-generate-poisson-distributed-random-numbers-quickly-and-accurately/27334
+            // compute lgamma from series expansion
+            Real pi = M_PI;
+            Real xx2 = xx*xx;
+            Real xx3 = xx2*xx;
+            Real xx5 = xx3*xx2;
+            Real xx7 = xx5*xx2;
+            Real xx9 = xx7*xx2;
+            Real xx11 = xx9*xx2;
+            return xx*fast::log(xx) - xx - Real(0.5)*fast::log(xx/(Real(2)*pi)) +
+                   Real(1)/(Real(12)*xx) - Real(1)/(Real(360)*xx3) + Real(1)/(Real(1260)*xx5) -
+                   Real(1)/(Real(1680)*xx7) + Real(1)/(Real(1188)*xx9) - Real(691)/(Real(360360)*xx11);
+            }
+
+        template<typename RNG>
+        int poissrnd_small(RNG& rng)
+            {
+            Real L = fast::exp(-mean);
+            Real p = 1;
+            int result = 0;
+            do
+                {
+                result++;
+                p *= generate_canonical<Real>(rng);
+                } while (p > L);
+            result--;
+            return result;
+            }
+
+        template<typename RNG>
+        int poissrnd_large(RNG& rng)
+            {
+            Real r;
+            Real x, m;
+            Real pi = M_PI;
+            Real sqrt_mean = fast::sqrt(mean);
+            Real log_mean = fast::log(mean);
+            Real g_x;
+            Real f_m;
+
+            do
+                {
+                do
+                    {
+                    x = mean + sqrt_mean*slow::tan(pi*(generate_canonical<Real>(rng)-Real(0.5)));
+                    } while (x < 0);
+                g_x = sqrt_mean/(pi*((x-mean)*(x-mean) + mean));
+                m = slow::floor(x);
+                f_m = fast::exp(m*log_mean - mean - lgamma(m + 1));
+                r = f_m / g_x / 2.4;
+            } while (generate_canonical<Real>(rng) > r);
+          return (int)m;
+          }
+    };
+
 
 } // end namespace detail
 } // end namespace mpcd

@@ -629,6 +629,18 @@ inline HOSTDEVICE double cos(double x)
     return ::cos(x);
     }
 
+//! Compute the tan of x
+inline HOSTDEVICE float tan(float x)
+    {
+    return ::tanf(x);
+    }
+
+//! Compute the tan of x
+inline HOSTDEVICE double tan(double x)
+    {
+    return ::tan(x);
+    }
+
 //! Compute the pow of x,y
 inline HOSTDEVICE float pow(float x, float y)
     {
@@ -711,6 +723,18 @@ inline HOSTDEVICE float acos(float x)
 inline HOSTDEVICE double acos(double x)
     {
     return ::acos(x);
+    }
+
+//! Compute the floor of x
+inline HOSTDEVICE float floor(float x)
+    {
+    return ::floorf(x);
+    }
+
+//! Compute the floor of x
+inline HOSTDEVICE double floor(double x)
+    {
+    return ::floor(x);
     }
 }
 

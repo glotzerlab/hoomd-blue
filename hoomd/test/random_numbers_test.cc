@@ -3,6 +3,8 @@
 
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/Saru.h"
+#include "hoomd/ClockSource.h"
+
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -78,6 +80,34 @@ UP_TEST( sphere_point_test )
 
     }
 
+//! Kahan summation
+class KahanSum
+    {
+    public:
+        KahanSum(double _s)
+            {
+            sum = _s;
+            }
+
+        void operator+= (double x)
+            {
+            // from https://en.wikipedia.org/wiki/Kahan_summation_algorithm
+            double y = x - c;
+            double t = sum + y;
+            c = (t - sum) - y;
+            sum = t;
+            }
+
+        operator double()
+            {
+            return sum;
+            }
+
+    private:
+        double sum;
+        double c = 0.0;
+    };
+
 //! Check the moments of a distribution
 /*!
  * \param gen Distribution generator
@@ -93,12 +123,14 @@ void check_moments(GeneratorType& gen,
                    const double ref_var,
                    const double ref_skew,
                    const double ref_exkurtosis,
-                   const double ref_tol)
+                   const double ref_tol,
+                   bool test_kurtosis=true)
     {
     hoomd::detail::RandomGenerator rng(7, 7, 91);
 
     // compute moments of the distribution
-    double sample_x(0), sample_x2(0), sample_x3(0), sample_x4(0);
+    // use Kahan summation to prevent errors when summing over many samples
+    KahanSum sample_x(0), sample_x2(0), sample_x3(0), sample_x4(0);
     std::vector<double> v(N);
 
     double n = double(N);
@@ -112,12 +144,14 @@ void check_moments(GeneratorType& gen,
 
     double mean = sample_x / n;
 
+    // TODO: block sums to avoid round off error
     for (unsigned int i=0; i < N; ++i)
         {
         // use two pass method to compute moments
         // this is more numerically stable: See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
         // and unbiased
         double x = v[i] - mean;
+
         sample_x2 += x * x;
         sample_x3 += x * x * x;
         sample_x4 += x * x * x * x;
@@ -136,23 +170,27 @@ void check_moments(GeneratorType& gen,
     else
         CHECK_SMALL(mean, ref_tol);
 
+    std::cout << "variance: " << ref_var << " " << var << std::endl;
+    if (std::abs(ref_var) > tol_small)
+        CHECK_CLOSE(var, ref_var, ref_tol);
+    else
+        CHECK_SMALL(var, ref_tol);
+
     std::cout << "skew: " << ref_skew << " " << skew << std::endl;
     if (std::abs(ref_skew) > tol_small)
         CHECK_CLOSE(skew, ref_skew, ref_tol);
     else
         CHECK_SMALL(skew, ref_tol);
 
-    std::cout << "exkurtosis: " << ref_exkurtosis << " " << exkurtosis << " " << "x2=" << sample_x2 << ", x4=" << sample_x4 << std::endl;
-    if (std::abs(ref_exkurtosis) > tol_small)
-        CHECK_CLOSE(exkurtosis, ref_exkurtosis, ref_tol);
-    else
-        CHECK_SMALL(exkurtosis, ref_tol);
-
-    std::cout << "variance: " << ref_var << " " << var << std::endl;
-    if (std::abs(ref_var) > tol_small)
-        CHECK_CLOSE(var, ref_var, ref_tol);
-    else
-        CHECK_SMALL(var, ref_tol);
+    // skip kurtosis checks for distributions where it is finicky
+    if (test_kurtosis)
+        {
+        std::cout << "exkurtosis: " << ref_exkurtosis << " " << exkurtosis << " " << "x2=" << sample_x2 << ", x4=" << sample_x4 << std::endl;
+        if (std::abs(ref_exkurtosis) > tol_small)
+            CHECK_CLOSE(exkurtosis, ref_exkurtosis, ref_tol);
+        else
+            CHECK_SMALL(exkurtosis, ref_tol);
+        }
     }
 
 //! Check the range of a distribution
@@ -186,7 +224,7 @@ void check_range(GeneratorType& gen,
         }
     }
 
-//! Test case for NormalGenerator
+//! Test case for NormalDistribution
 UP_TEST( normal_double_test )
     {
     double mu = 1.5, sigma=2.0;
@@ -194,7 +232,7 @@ UP_TEST( normal_double_test )
     hoomd::detail::NormalDistribution<double> gen(sigma, mu);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
-//! Test case for NormalGenerator
+//! Test case for NormalDistribution
 UP_TEST( normal_default_double_test )
     {
     double mu = 0.0, sigma=1.0;
@@ -202,13 +240,13 @@ UP_TEST( normal_default_double_test )
     hoomd::detail::NormalDistribution<double> gen;
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
-//! Test case for NormalGenerator -- float, no cache
+//! Test case for NormalDistribution -- float
 UP_TEST( normal_float_test )
     {
     float mu = 2.0, sigma=1.5;
     float mean = mu, var=sigma*sigma, skew=0, exkurtosis=0.0;
     hoomd::detail::NormalDistribution<double> gen(sigma, mu);
-    check_moments(gen, 10000000, mean, var, exkurtosis, skew, 0.01);
+    check_moments(gen, 500000, mean, var, exkurtosis, skew, 0.01);
     }
 
 //! Test case for GammaDistribution -- double
@@ -324,3 +362,104 @@ UP_TEST( uniform_int_test_256 )
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     check_range(gen, 5000000, a, b);
     }
+
+// use a wider tolerance and skip kurtosis checks for the Poisson distribution. These measures are finicky for this
+// non-continuous distribution.
+
+//! Test case for PoissonDistribution -- double
+UP_TEST( poisson_small_double_test )
+    {
+    double m = 10;
+    double mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
+
+    hoomd::detail::PoissonDistribution<double> gen(m);
+    check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
+    }
+
+//! Test case for PoissonDistribution -- double
+UP_TEST( poisson_medium_double_test )
+    {
+    double m = 20;
+    double mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
+
+    hoomd::detail::PoissonDistribution<double> gen(m);
+    check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
+    }
+
+//! Test case for PoissonDistribution -- double
+UP_TEST( poisson_large_double_test )
+    {
+    double m = 120;
+    double mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
+
+    hoomd::detail::PoissonDistribution<double> gen(m);
+    check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
+    }
+
+//! Test case for PoissonDistribution -- float
+UP_TEST( poisson_small_float_test )
+    {
+    float m = 10;
+    float mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
+
+    hoomd::detail::PoissonDistribution<float> gen(m);
+    check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
+    }
+
+//! Test case for PoissonDistribution -- float
+UP_TEST( poisson_medium_float_test )
+    {
+    float m = 20;
+    float mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
+
+    hoomd::detail::PoissonDistribution<float> gen(m);
+    check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
+    }
+
+//! Test case for PoissonDistribution -- float
+UP_TEST( poisson_large_float_test )
+    {
+    float m = 120;
+    float mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
+
+    hoomd::detail::PoissonDistribution<float> gen(m);
+    check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
+    }
+
+// //! Find performance crossover
+// /*! Note: this code was written for a one time use to find the empirical crossover. It requires that the private:
+//     be commented out in PoissonDistribution.
+// */
+// UP_TEST( poisson_perf_test )
+//     {
+//     unsigned int N = 1000000;
+//     double sum=0;
+
+//     hoomd::detail::RandomGenerator rng(7, 7, 91);
+
+//     std::vector<double> small, large;
+//     for (int mean = 1; mean < 20; mean++)
+//         {
+//         hoomd::detail::PoissonDistribution<double> gen(mean);
+
+//             {
+//             ClockSource t;
+//             for (int i = 0; i < N; i++)
+//                 sum += gen.poissrnd_small(rng);
+//             small.push_back(double(t.getTime()) / double(N));
+//             }
+
+//             {
+//             ClockSource t;
+//             for (int i = 0; i < N; i++)
+//                 sum += gen.poissrnd_large(rng);
+//             large.push_back(double(t.getTime()) / double(N));
+//             }
+//         }
+
+//     for (int i = 0; i < small.size(); i++)
+//         {
+//         std::cout << i+1 << " "  << small[i] << " " << large[i] << std::endl;
+//         }
+//     }
+
