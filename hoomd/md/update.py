@@ -15,6 +15,36 @@ import hoomd;
 from hoomd.update import _updater
 import sys;
 
+class dynamic_bond(_updater):
+    r"""
+    Args:
+        r_cut: cutoff radius (scalar)
+        nlist: neighbor list object
+        period: period at which to evaluate the updater
+        bond_type: type of bond to be created or destroyed
+        prob_form: probability that a bond will be formed
+        prob_break: probability that a bond will be broken
+        seed: rng seed
+    """
+    def __init__(self, r_cut, nlist, bond_type, seed, prob_form=0.5, prob_break=0.5, period=1):
+        hoomd.util.print_status_line();
+
+        # initialize base class
+        _updater.__init__(self);
+
+        # create the c++ mirror class
+        self.cpp_updater = _md.DynamicBond(hoomd.context.current.system_definition, group.cpp_group,);
+        self.setupUpdater(period, phase);
+
+        # store metadata
+        self.prob_form = prob_form;
+        self.prob_break = prob_break;
+        self.r_cut = rcut;
+        self.nlist = nlist;
+        self.period = period;
+        metadata_fields = ['period', 'prob_form', 'prob_break']
+
+
 class rescale_temp(_updater):
     r""" Rescales particle velocities.
 
