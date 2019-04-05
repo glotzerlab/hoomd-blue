@@ -21,13 +21,14 @@ using namespace std;
 DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
                     std::shared_ptr<ParticleGroup> group,
                     Scalar r_cut,
-                    nlist,
+                    std::shared_ptr<NeighborList> nlist,
                     Scalar period,
-                    bond_type,
+                    // bond_type,
                     int seed,
                     Scalar prob_create,
                     Scalar prob_destroy)
-        : Updater(sysdef), m_group(group), m_r_cut(r_cut), m_nlist(nlist), m_period(period), m_bond_type(bond_type), m_seed(seed), m_prob_create(prob_create), m_prob_destroy(prob_destroy)
+        : Updater(sysdef), m_group(group), m_r_cut(r_cut), m_nlist(nlist), m_period(period), m_seed(seed), m_prob_create(prob_create), m_prob_destroy(prob_destroy)
+        // m_bond_type(bond_type)
     {
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
 

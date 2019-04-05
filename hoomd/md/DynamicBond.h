@@ -31,9 +31,9 @@ class PYBIND11_EXPORT DynamicBond : public Updater
         DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
                  std::shared_ptr<ParticleGroup> group,
                  Scalar r_cut,
-                 nlist,
+                 std::shared_ptr<NeighborList> nlist,
                  Scalar period,
-                 bond_type,
+                 // bond_type,
                  int seed,
                  Scalar prob_create,
                  Scalar prob_destroy);
@@ -47,9 +47,9 @@ class PYBIND11_EXPORT DynamicBond : public Updater
     protected:
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles to which the dynamic bonding is applied
         Scalar r_cut;          //!< cutoff radius
-        nlist;                 //!< neighborlist
+        std::shared_ptr<NeighborList> m_nlist;                 //!< neighborlist
         Scalar period;         //!< period to create/destroy bonds
-        bond_type;             //!< type of bond to be created or destroyed
+        // bond_type;             //!< type of bond to be created or destroyed
         int seed;              //!< a seed for the random number generator
         Scalar prob_create;    //!< probability that a bond will be formed
         Scalar prob_destroy;   //!< probability that a bond will be destroyed
@@ -58,5 +58,3 @@ class PYBIND11_EXPORT DynamicBond : public Updater
 
 //! Exports the DynamicBond class to python
 void export_DynamicBond(pybind11::module& m);
-
-#endif
