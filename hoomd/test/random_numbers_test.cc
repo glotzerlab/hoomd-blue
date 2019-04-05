@@ -91,29 +91,64 @@ void check_moments(GeneratorType& gen,
                    const unsigned int N,
                    const double ref_mean,
                    const double ref_var,
+                   const double ref_skew,
+                   const double ref_exkurtosis,
                    const double ref_tol)
     {
     hoomd::detail::RandomGenerator rng(7, 7, 91);
 
     // compute moments of the distribution
-    double mean(0), var(0);
+    double sample_x(0), sample_x2(0), sample_x3(0), sample_x4(0);
+    std::vector<double> v(N);
+
+    double n = double(N);
+
     for (unsigned int i=0; i < N; ++i)
         {
         const auto rn = gen(rng);
-        mean += rn;
-        var += rn*rn;
+        sample_x += rn;
+        v[i] = rn;
         }
-    mean /= N;
-    var = var/N - mean*mean;
+
+    double mean = sample_x / n;
+
+    for (unsigned int i=0; i < N; ++i)
+        {
+        // use two pass method to compute moments
+        // this is more numerically stable: See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+        // and unbiased
+        double x = v[i] - mean;
+        sample_x2 += x * x;
+        sample_x3 += x * x * x;
+        sample_x4 += x * x * x * x;
+        }
+    double var = sample_x2/(n-1);
+    // sample skewness: https://en.wikipedia.org/wiki/Skewness
+    double skew = (1.0/n)*sample_x3 / (sqrt(var)*sqrt(var)*sqrt(var));
+    // sample excess kurtosis: https://en.wikipedia.org/wiki/Kurtosis
+    double exkurtosis = (n+1)*n*(n-1) * sample_x4 / ((n-2)*(n-3)*sample_x2*sample_x2) -
+                      3.0 * (n-1)*(n-1) / ((n-2)*(n-3));
 
     // check mean using close or small, depending on how close it is to zero
-    // std::cout << "mean: " << ref_mean << " " << mean << std::endl;
+    std::cout << "mean: " << ref_mean << " " << mean << std::endl;
     if (std::abs(ref_mean) > tol_small)
         CHECK_CLOSE(mean, ref_mean, ref_tol);
     else
         CHECK_SMALL(mean, ref_tol);
 
-    // std::cout << "variance: " << ref_var << " " << var << std::endl;
+    std::cout << "skew: " << ref_skew << " " << skew << std::endl;
+    if (std::abs(ref_skew) > tol_small)
+        CHECK_CLOSE(skew, ref_skew, ref_tol);
+    else
+        CHECK_SMALL(skew, ref_tol);
+
+    std::cout << "exkurtosis: " << ref_exkurtosis << " " << exkurtosis << " " << "x2=" << sample_x2 << ", x4=" << sample_x4 << std::endl;
+    if (std::abs(ref_exkurtosis) > tol_small)
+        CHECK_CLOSE(exkurtosis, ref_exkurtosis, ref_tol);
+    else
+        CHECK_SMALL(exkurtosis, ref_tol);
+
+    std::cout << "variance: " << ref_var << " " << var << std::endl;
     if (std::abs(ref_var) > tol_small)
         CHECK_CLOSE(var, ref_var, ref_tol);
     else
@@ -154,33 +189,43 @@ void check_range(GeneratorType& gen,
 //! Test case for NormalGenerator
 UP_TEST( normal_double_test )
     {
-    hoomd::detail::NormalDistribution<double> gen(2.0, 1.5);
-    check_moments(gen, 5000000, 1.5, 4.0, 0.01);
+    double mu = 1.5, sigma=2.0;
+    double mean = mu, var=sigma*sigma, skew=0, exkurtosis=0.0;
+    hoomd::detail::NormalDistribution<double> gen(sigma, mu);
+    check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
 //! Test case for NormalGenerator
 UP_TEST( normal_default_double_test )
     {
+    double mu = 0.0, sigma=1.0;
+    double mean = mu, var=sigma*sigma, skew=0, exkurtosis=0.0;
     hoomd::detail::NormalDistribution<double> gen;
-    check_moments(gen, 5000000, 0.0, 1.0, 0.01);
+    check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
 //! Test case for NormalGenerator -- float, no cache
 UP_TEST( normal_float_test )
     {
-    hoomd::detail::NormalDistribution<double> gen(2.0f, 1.5f);
-    check_moments(gen, 5000000, 1.5, 4.0, 0.01);
+    float mu = 2.0, sigma=1.5;
+    float mean = mu, var=sigma*sigma, skew=0, exkurtosis=0.0;
+    hoomd::detail::NormalDistribution<double> gen(sigma, mu);
+    check_moments(gen, 10000000, mean, var, exkurtosis, skew, 0.01);
     }
 
 //! Test case for GammaDistribution -- double
 UP_TEST( gamma_double_test )
     {
-    hoomd::detail::GammaDistribution<double> gen(2.5, 2.);
-    check_moments(gen, 5000000, 2.5*2, 2.5*2*2, 0.01);
+    float alpha=2.5, b=2.0;
+    float mean = alpha*b, var=alpha*b*b, skew=2.0/sqrt(alpha), exkurtosis=6.0/alpha;
+    hoomd::detail::GammaDistribution<double> gen(alpha, b);
+    check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
 //! Test case for GammaDistribution -- float
 UP_TEST( gamma_float_test )
     {
-    hoomd::detail::GammaDistribution<float> gen(2.5, 2.);
-    check_moments(gen, 5000000, 2.5*2, 2.5*2*2, 0.01);
+    float alpha=2.5, b=2.0;
+    float mean = alpha*b, var=alpha*b*b, skew=2.0/sqrt(alpha), exkurtosis=6.0/alpha;
+    hoomd::detail::GammaDistribution<float> gen(alpha, b);
+    check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
 
 UP_TEST( r123_u01_range_test_float )
@@ -201,9 +246,13 @@ UP_TEST( canonical_float_moment )
             return hoomd::detail::generate_canonical<float>(rng);
             }
         };
+
+    float a = 2.710505431213761e-20f, b = 1.0f;
+    float mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
+
     gen canonical;
-    check_moments(canonical, 5000000, 0.5, 1.0/12.0, 0.01);
-    check_range(canonical, 5000000, 2.710505431213761e-20f, 1.0f);
+    check_moments(canonical, 5000000, mean, var, skew, exkurtosis, 0.01);
+    check_range(canonical, 5000000, a, b);
     }
 
 UP_TEST( r123_u01_range_test_double )
@@ -224,38 +273,54 @@ UP_TEST( canonical_double_moment )
             return hoomd::detail::generate_canonical<double>(rng);
             }
         };
+
+    double a = 2.710505431213761e-20, b = 1.0;
+    double mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
+
     gen canonical;
-    check_moments(canonical, 5000000, 0.5, 1.0/12.0, 0.01);
-    check_range(canonical, 5000000, 2.710505431213761e-20, 1.0);
+    check_moments(canonical, 5000000, mean, var, skew, exkurtosis, 0.01);
+    check_range(canonical, 5000000, a, b);
     }
 
 //! Test case for UniformDistribution -- double
 UP_TEST( uniform_double_test )
     {
-    hoomd::detail::UniformDistribution<double> gen(1, 3);
-    check_moments(gen, 5000000, 2.0, 1.0/3.0, 0.01);
-    check_range(gen, 5000000, 1.0f, 3.0f);
+    double a = 1, b = 3;
+    double mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
+
+    hoomd::detail::UniformDistribution<double> gen(a, b);
+    check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
+    check_range(gen, 5000000, a, b);
     }
 //! Test case for UniformDistribution -- float
 UP_TEST( uniform_float_test )
     {
-    hoomd::detail::UniformDistribution<float> gen(-4, 0);
-    check_moments(gen, 5000000, -2.0, 1.0/12.0*4.0*4.0, 0.01);
-    check_range(gen, 5000000, -4.0f, 0.0f);
+    float a = -4, b = 0;
+    float mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
+
+    hoomd::detail::UniformDistribution<float> gen(a, b);
+    check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
+    check_range(gen, 5000000, a, b);
     }
 
 //! Test case for UniformIntDistribution
 UP_TEST( uniform_int_test_1000 )
     {
-    hoomd::detail::UniformIntDistribution gen(1000);
-    check_range(gen, 5000000, uint32_t(0), uint32_t(1000));
-    check_moments(gen, 5000000, 500, 1.0/12.0*1000*1000, 0.01);
+    uint32_t a = 0, b = 1000;
+    double mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
+
+    hoomd::detail::UniformIntDistribution gen(b);
+    check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
+    check_range(gen, 5000000, a, b);
     }
 
 //! Test case for UniformIntDistribution
 UP_TEST( uniform_int_test_256 )
     {
-    hoomd::detail::UniformIntDistribution gen(256);
-    check_range(gen, 5000000, uint32_t(0), uint32_t(256));
-    check_moments(gen, 5000000, 128.0, 1.0/12.0*256*256, 0.01);
+    uint32_t a = 0, b = 256;
+    double mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
+
+    hoomd::detail::UniformIntDistribution gen(b);
+    check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
+    check_range(gen, 5000000, a, b);
     }
