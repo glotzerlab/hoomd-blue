@@ -215,10 +215,10 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                              Scalar q,
                              pybind11::list symRotations)
                              : ExternalFieldMono<Shape>(sysdef),
-                               m_group(group),
                                m_k(k),
                                m_q(q),
-                               m_Energy(0)
+                               m_Energy(0),
+                               m_group(group)
             {
             // add to provided quantities
             m_ProvidedQuantities.push_back(LATTICE_ENERGY_LOG_NAME);
@@ -539,7 +539,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             Scalar newVol = newBox.getVolume();
             Scalar lastVol = m_box.getVolume();
             Scalar scale;
-            scalar ndim = Scalar(this->m_sysdef->getNDimensions());
+            Scalar ndim = Scalar(this->m_sysdef->getNDimensions());
             scale = pow((newVol/lastVol), Scalar(1.0/ndim));
             m_latticePositions.scale(scale);
             m_box = newBox;
