@@ -11,11 +11,8 @@
 
 #include <hoomd/Updater.h>
 #include <hoomd/Variant.h>
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
 #include <cmath>
-
-// Need Moves.h for rand_select
-#include "Moves.h"
 
 #include "IntegratorHPMC.h"
 
@@ -216,32 +213,32 @@ class UpdaterBoxMC : public Updater
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_L(unsigned int timestep, hoomd::detail::Saru& rng);
+        void update_L(unsigned int timestep, hoomd::detail::RandomGenerator& rng);
 
         //! Perform box update in NpT volume distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_V(unsigned int timestep, hoomd::detail::Saru& rng);
+        void update_V(unsigned int timestep, hoomd::detail::RandomGenerator& rng);
 
         //! Perform box update in NpT ln(V) distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_lnV(unsigned int timestep, hoomd::detail::Saru& rng);
+        void update_lnV(unsigned int timestep, hoomd::detail::RandomGenerator& rng);
 
 
         //! Perform box update in NpT shear distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_shear(unsigned int timestep, hoomd::detail::Saru& rng);
+        void update_shear(unsigned int timestep, hoomd::detail::RandomGenerator& rng);
 
         //! Perform non-thermodynamic MC move in aspect ratio.
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_aspect(unsigned int timestep, hoomd::detail::Saru& rng);
+        void update_aspect(unsigned int timestep, hoomd::detail::RandomGenerator& rng);
 
         //! Get volume change parameter
         const Scalar get_volume_delta() const
@@ -323,7 +320,7 @@ class UpdaterBoxMC : public Updater
                                      Scalar yz,
                                      unsigned int timestep,
                                      Scalar boltzmann,
-                                     hoomd::detail::Saru& rng
+                                     hoomd::detail::RandomGenerator& rng
                                      );
                                      //!< attempt specified box change and undo if overlaps generated
         inline bool safe_box(const Scalar newL[3], const unsigned int& Ndim);

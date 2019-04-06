@@ -1,15 +1,10 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
-
-
 #include "TwoStepNVTMTK.h"
 
 #include "hoomd/VectorMath.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
 
 #ifdef ENABLE_MPI
@@ -461,12 +456,12 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
     Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_T_randomize*m_tau*m_tau);
 
     bool master = m_exec_conf->getRank() == 0;
-    hoomd::detail::Saru saru(hoomd::RNGIdentifier::TwoStepNVTMTK, m_seed_randomize, timestep);
+    hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNVTMTK, m_seed_randomize, timestep);
 
     if (master)
         {
         // draw a random Gaussian thermostat variable on rank 0
-        xi = saru.normal(sqrt(sigmasq_t));
+        xi = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
         }
 
     #ifdef ENABLE_MPI
@@ -485,7 +480,7 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
 
         if (master)
             {
-            xi_rot = saru.normal(sqrt(sigmasq_r));
+            xi_rot = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
             }
 
         #ifdef ENABLE_MPI

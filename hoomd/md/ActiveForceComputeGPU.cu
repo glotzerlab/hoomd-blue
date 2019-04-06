@@ -6,7 +6,7 @@
 
 #include "ActiveForceComputeGPU.cuh"
 #include "EvaluatorConstraintEllipsoid.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
 using namespace hoomd;
 
@@ -212,12 +212,12 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
     unsigned int tag = d_groupTags[group_idx];
     unsigned int idx = d_rtag[tag];
-    hoomd::detail::Saru saru(hoomd::RNGIdentifier::ActiveForceCompute, seed, tag, timestep);
+    hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, seed, tag, timestep);
 
     if (is2D) // 2D
         {
         Scalar delta_theta; // rotational diffusion angle
-        delta_theta = saru.normal(rotationDiff);
+        delta_theta = hoomd::detail::NormalDistribution<Scalar>(rotationDiff)(rng);
         Scalar theta; // angle on plane defining orientation of active force vector
         theta = atan2(d_f_actVec[tag].y, d_f_actVec[tag].x);
         theta += delta_theta;
@@ -229,15 +229,9 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         {
         if (rx == 0) // if no constraint
             {
-            Scalar u = saru.d(0, 1.0); // generates an even distribution of random unit vectors in 3D
-            Scalar v = saru.d(0, 1.0);
-            Scalar theta = 2.0 * M_PI * u;
-            Scalar phi = acos(2.0 * v - 1.0);
-
+            hoomd::detail::SpherePointGenerator<Scalar> unit_vec;
             vec3<Scalar> rand_vec;
-            rand_vec.x = sin(phi) * cos(theta);
-            rand_vec.y = sin(phi) * sin(theta);
-            rand_vec.z = cos(phi);
+            unit_vec(rng, rand_vec);
 
             vec3<Scalar> aux_vec;
             aux_vec.x = d_f_actVec[tag].y * rand_vec.z - d_f_actVec[tag].z * rand_vec.y;
@@ -253,7 +247,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             current_vec.y = d_f_actVec[tag].y;
             current_vec.z = d_f_actVec[tag].z;
 
-            Scalar delta_theta = saru.normal(rotationDiff);
+            Scalar delta_theta = hoomd::detail::NormalDistribution<Scalar>(rotationDiff)(rng);
             d_f_actVec[tag].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
             d_f_actVec[tag].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
             d_f_actVec[tag].z = cos(delta_theta)*current_vec.z + sin(delta_theta)*aux_vec.z;
@@ -280,7 +274,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vec for defining direction that active force vector rotates towards.
 
             Scalar delta_theta; // rotational diffusion angle
-            delta_theta = saru.normal(rotationDiff);
+            delta_theta = hoomd::detail::NormalDistribution<Scalar>(rotationDiff)(rng);
 
             d_f_actVec[tag].x = cos(delta_theta) * current_vec.x + sin(delta_theta) * aux_vec.x;
             d_f_actVec[tag].y = cos(delta_theta) * current_vec.y + sin(delta_theta) * aux_vec.y;

@@ -171,11 +171,11 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
         for (unsigned int i = 0; i < n_sample; i++)
             {
             // select a random particle coordinate in the box
-            hoomd::detail::Saru rng_i(hoomd::RNGIdentifier::ComputeFreeVolume, m_seed, m_exec_conf->getRank(), i, timestep);
+            hoomd::detail::RandomGenerator rng_i(hoomd::RNGIdentifier::ComputeFreeVolume, m_seed, m_exec_conf->getRank(), i, timestep);
 
-            Scalar xrand = rng_i.s<Scalar>();
-            Scalar yrand = rng_i.s<Scalar>();
-            Scalar zrand = rng_i.s<Scalar>();
+            Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
+            Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
+            Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
 
             Scalar3 f = make_scalar3(xrand, yrand, zrand);
             vec3<Scalar> pos_i = vec3<Scalar>(box.makeCoordinates(f));

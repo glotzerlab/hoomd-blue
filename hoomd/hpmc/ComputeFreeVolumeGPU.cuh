@@ -10,7 +10,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
 
 #include <curand_kernel.h>
@@ -289,7 +289,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         }
 
     // one RNG per particle
-    hoomd::detail::Saru rng(hoomd::RNGIdentifier::ComputeFreeVolume, seed, rank, i, timestep);
+    hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::ComputeFreeVolume, seed, rank, i, timestep);
 
     unsigned int my_cell;
 
@@ -301,9 +301,9 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     if (active)
         {
         // select a random particle coordinate in the box
-        Scalar xrand = rng.template s<Scalar>();
-        Scalar yrand = rng.template s<Scalar>();
-        Scalar zrand = rng.template s<Scalar>();
+        Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng);
+        Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng);
+        Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng);
 
         Scalar3 f = make_scalar3(xrand, yrand, zrand);
         pos_i = vec3<Scalar>(box.makeCoordinates(f));

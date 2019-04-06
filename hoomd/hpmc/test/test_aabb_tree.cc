@@ -13,7 +13,7 @@ HOOMD_UP_MAIN();
 
 
 #include "hoomd/VectorMath.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
 
 using namespace hpmc;
 using namespace hpmc::detail;
@@ -61,14 +61,17 @@ UP_TEST( basic )
 UP_TEST( bigger )
     {
     const unsigned int N = 1000;
-    hoomd::detail::Saru rng(1);
+    hoomd::detail::RandomGenerator rng(1);
 
     // build a test AABB tree big enough to exercise the node splitting
     std::vector< vec3<Scalar> > points(N);
     AABB aabbs[N];
     for (unsigned int i = 0; i < N; i++)
         {
-        points[i] = vec3<Scalar>(rng.f(), rng.f(), rng.f()) * Scalar(1000);
+        points[i] = vec3<Scalar>(hoomd::detail::generate_canonical<float>(rng),
+                                  hoomd::detail::generate_canonical<float>(rng),
+                                  hoomd::detail::generate_canonical<float>(rng))
+                                  * Scalar(1000);
         aabbs[i] = AABB(points[i], Scalar(1.0));
         }
 
@@ -89,7 +92,9 @@ UP_TEST( bigger )
     // now move all the points with the update method and ensure that they are still found
     for (unsigned int i = 0; i < N; i++)
         {
-        points[i] += vec3<Scalar>(rng.f(), rng.f(), rng.f());
+        points[i] += vec3<Scalar>(hoomd::detail::generate_canonical<float>(rng),
+                                  hoomd::detail::generate_canonical<float>(rng),
+                                  hoomd::detail::generate_canonical<float>(rng));
         aabbs[i] = AABB(points[i], Scalar(1.0));
         tree.update(i, aabbs[i]);
         }

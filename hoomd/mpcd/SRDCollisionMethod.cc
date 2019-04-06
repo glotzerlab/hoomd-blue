@@ -10,7 +10,6 @@
 
 #include "SRDCollisionMethod.h"
 #include "hoomd/RandomNumbers.h"
-#include "hoomd/Saru.h"
 #include "hoomd/RNGIdentifiers.h"
 
 mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
@@ -94,12 +93,12 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                 const unsigned int idx = ci(i,j,k);
 
                 // Initialize the PRNG using the current cell index, timestep, and seed for the hash
-                hoomd::detail::Saru saru(hoomd::RNGIdentifier::SRDCollisionMethod, m_seed, global_idx, timestep);
+                hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::SRDCollisionMethod, m_seed, global_idx, timestep);
 
                 // draw rotation vector off the surface of the sphere
                 double3 rotvec;
                 hoomd::detail::SpherePointGenerator<double> sphgen;
-                sphgen(saru, rotvec);
+                sphgen(rng, rotvec);
                 h_rotvec.data[idx] = rotvec;
 
                 if (use_thermostat)
@@ -114,7 +113,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
 
                         // draw a random kinetic energy for the cell at the set temperature
                         hoomd::detail::GammaDistribution<double> gamma_gen(alpha,T_set);
-                        const double rand_ke = gamma_gen(saru);
+                        const double rand_ke = gamma_gen(rng);
 
                         // generate the scale factor from the current temperature
                         // (don't use the kinetic energy of this cell, since this

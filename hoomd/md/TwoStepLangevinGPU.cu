@@ -6,7 +6,7 @@
 
 #include "TwoStepLangevinGPU.cuh"
 
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
 using namespace hoomd;
 
@@ -49,9 +49,6 @@ extern __shared__ Scalar bdtally_sdata[];
     This kernel is implemented in a very similar manner to gpu_nve_step_two_kernel(), see it for design details.
 
     This kernel will tally the energy transfer from the bd thermal reservoir and the particle system
-
-    Random number generation is done per thread with Saru's 3-seed constructor. The seeds are, the time step,
-    the particle tag, and the user-defined seed.
 
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
@@ -126,11 +123,12 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
             coeff = Scalar(0.0);
 
         //Initialize the Random Number Generator and generate the 3 random numbers
-        detail::Saru s(RNGIdentifier::TwoStepLangevin, seed, ptag, timestep);
+        detail::RandomGenerator rng(RNGIdentifier::TwoStepLangevin, seed, ptag, timestep);
+        detail::UniformDistribution<Scalar> uniform(-1, 1);
 
-        Scalar randomx=s.s<Scalar>(-1.0, 1.0);
-        Scalar randomy=s.s<Scalar>(-1.0, 1.0);
-        Scalar randomz=s.s<Scalar>(-1.0, 1.0);
+        Scalar randomx = uniform(rng);
+        Scalar randomy = uniform(rng);
+        Scalar randomz = uniform(rng);
 
         bd_force.x = randomx*coeff - gamma*vel.x;
         bd_force.y = randomy*coeff - gamma*vel.y;
@@ -310,10 +308,10 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                                            fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
             if (noiseless_r) sigma_r = make_scalar3(0,0,0);
 
-            detail::Saru saru(RNGIdentifier::TwoStepLangevinAngular, seed, ptag, timestep);
-            Scalar rand_x = saru.normal(sigma_r.x);
-            Scalar rand_y = saru.normal(sigma_r.y);
-            Scalar rand_z = saru.normal(sigma_r.z);
+            detail::RandomGenerator rng(RNGIdentifier::TwoStepLangevinAngular, seed, ptag, timestep);
+            Scalar rand_x = detail::NormalDistribution<Scalar>(sigma_r.x)(rng);
+            Scalar rand_y = detail::NormalDistribution<Scalar>(sigma_r.y)(rng);
+            Scalar rand_z = detail::NormalDistribution<Scalar>(sigma_r.z)(rng);
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;

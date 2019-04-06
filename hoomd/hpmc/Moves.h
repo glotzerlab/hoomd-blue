@@ -3,6 +3,7 @@
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
+#include "hoomd/RandomNumbers.h"
 
 /*! \file Moves.h
     \brief Trial move generators
@@ -34,14 +35,16 @@ namespace hpmc
 template <class RNG>
 DEVICE inline void move_translate(vec3<Scalar>& v, RNG& rng, Scalar d, unsigned int dim)
     {
+    hoomd::detail::UniformDistribution<Scalar> uniform(-d, d);
+
     // Generate a random vector inside a sphere of radius d
     vec3<Scalar> dr(Scalar(0.0), Scalar(0.0), Scalar(0.0));
     do
         {
-        dr.x = rng.s(-d, d);
-        dr.y = rng.s(-d, d);
+        dr.x = uniform(rng);
+        dr.y = uniform(rng);
         if (dim != 2)
-            dr.z = rng.s(-d, d);
+            dr.z = uniform(rng);
         } while(dot(dr,dr) > d*d);
 
     // apply the move vector
@@ -62,13 +65,15 @@ DEVICE void move_rotate(quat<Scalar>& orientation, RNG& rng, Scalar a, unsigned 
     if (dim==2)
         {
         a /= Scalar(2.0);
-        Scalar alpha = rng.s(-a, a);
-        quat<Scalar> q(cosf(alpha), (Scalar)sinf(alpha) * vec3<Scalar>(Scalar(0),Scalar(0),Scalar(1))); // rotation quaternion
+        Scalar alpha = hoomd::detail::UniformDistribution<Scalar>(-a, a)(rng);;
+        quat<Scalar> q(fast::cos(alpha), fast::sin(alpha) * vec3<Scalar>(Scalar(0),Scalar(0),Scalar(1))); // rotation quaternion
         orientation = orientation * q;
         orientation = orientation * (fast::rsqrt(norm2(orientation)));
         }
     else
         {
+        hoomd::detail::UniformDistribution<Scalar> uniform(Scalar(-1.0), Scalar(1.0));
+
         // Frenkel and Smit reference Allen and Tildesley, referencing Vesley(1982), referencing Marsaglia(1972).
         // Generate a random unit quaternion. Scale it to a small rotation and apply.
         quat<Scalar> q;
@@ -76,15 +81,15 @@ DEVICE void move_rotate(quat<Scalar>& orientation, RNG& rng, Scalar a, unsigned 
 
         do
             {
-            q.s = rng.s(Scalar(-1.0),Scalar(1.0));
-            q.v.x = rng.s(Scalar(-1.0),Scalar(1.0));
+            q.s = uniform(rng);
+            q.v.x = uniform(rng);
             }
         while ((s1 = q.s * q.s + q.v.x * q.v.x) >= Scalar(1.0));
 
         do
             {
-            q.v.y = rng.s(Scalar(-1.0),Scalar(1.0));
-            q.v.z = rng.s(Scalar(-1.0),Scalar(1.0));
+            q.v.y = uniform(rng);
+            q.v.z = uniform(rng);
             }
         while ((s2 = q.v.y * q.v.y + q.v.z * q.v.z) >= Scalar(1.0) || s2 == Scalar(0.0));
 
@@ -98,42 +103,6 @@ DEVICE void move_rotate(quat<Scalar>& orientation, RNG& rng, Scalar a, unsigned 
         // renormalize
         orientation = orientation * (fast::rsqrt(norm2(orientation)));
         }
-    }
-
-//! Select a random index
-/*! \param rng Saru RNG to utilize in the move
-    \param max Maximum index to select
-    \returns a random number 0 <= i <= max with uniform probability.
-
-    **Method**
-
-    First, round max+1 up to the next nearest power of two -> max2. Then draw random numbers in the range [0 ... max2)
-    using 32-but random values and a bitwise and with max2-1. Return the first random number found in the range.
-*/
-template <class RNG>
-DEVICE inline unsigned int rand_select(RNG& rng, unsigned int max)
-    {
-    // handle degenerate case where max==0
-    if (max == 0)
-        return 0;
-
-    // algorithm to round up to the nearest power of two from https://en.wikipedia.org/wiki/Power_of_two
-    unsigned int n = max+1;
-    n = n - 1;
-    n = n | (n >> 1);
-    n = n | (n >> 2);
-    n = n | (n >> 4);
-    n = n | (n >> 8);
-    n = n | (n >> 16);
-    // Note: leaving off the n = n + 1 because we are going to & with next highest power of 2 -1
-
-    unsigned int result;
-    do
-        {
-        result = rng.u32() & n;
-        } while(result > max);
-
-    return result;
     }
 
 //! Helper function to test if a particle is in an active region
@@ -161,9 +130,9 @@ DEVICE inline bool isActive(Scalar3 pos, const BoxDim& box, Scalar3 ghost_fracti
 template<class RNG>
 DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
     {
-    Scalar u1 = rng.template s<Scalar>();
-    Scalar u2 = rng.template s<Scalar>();
-    Scalar u3 = rng.template s<Scalar>();
+    Scalar u1 = hoomd::detail::generate_canonical<Scalar>(rng);
+    Scalar u2 = hoomd::detail::generate_canonical<Scalar>(rng);
+    Scalar u3 = hoomd::detail::generate_canonical<Scalar>(rng);
     return quat<Scalar>(fast::sqrt(u1)*fast::cos(Scalar(2.0*M_PI)*u3),
         vec3<Scalar>(fast::sqrt(Scalar(1.0)-u1)*fast::sin(Scalar(2.0*M_PI)*u2),
             fast::sqrt(Scalar(1.0-u1))*fast::cos(Scalar(2.0*M_PI)*u2),
@@ -180,14 +149,14 @@ template<class RNG>
 inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_sphere, Scalar R)
     {
     // draw a random vector in the excluded volume sphere of the colloid
-    Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
-    Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
+    Scalar theta = hoomd::detail::UniformDistribution<Scalar>(Scalar(0.0),Scalar(2.0*M_PI))(rng);
+    Scalar z = hoomd::detail::UniformDistribution<Scalar>(Scalar(-1.0),Scalar(1.0))(rng);
 
     // random normalized vector
     vec3<Scalar> n(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
 
     // draw random radial coordinate in test sphere
-    Scalar r3 = rng.template s<Scalar>(0,Scalar(1.0));
+    Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
     Scalar r = R*fast::pow(r3,Scalar(1.0/3.0));
 
     // test depletant position
@@ -209,10 +178,10 @@ inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>&
      Scalar R, Scalar h, const vec3<Scalar>& d)
     {
     // pick a z coordinate in the spherical cap s.t. V(z) ~ uniform
-    Scalar theta = Scalar(2.0*M_PI)*rng.template s<Scalar>();
+    Scalar theta = Scalar(2.0*M_PI)*hoomd::detail::generate_canonical<Scalar>(rng);
     Scalar R3=R*R*R;
     Scalar V_cap = Scalar(M_PI/3.0)*h*h*(Scalar(3.0)*R-h);
-    Scalar V = V_cap*rng.template s<Scalar>();
+    Scalar V = V_cap*hoomd::detail::generate_canonical<Scalar>(rng);
     const Scalar sqrt3(1.7320508075688772935);
 
     // convert the cap volume into a z coordinate in the sphere, using the correct root of the cubic polynomial

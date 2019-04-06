@@ -119,6 +119,12 @@ class Saru
         DEVICE inline double normal(double sigma, double mu=0.0);
         //@}
 
+        // pass through RandomGenerator
+        DEVICE inline r123::Philox4x32::ctr_type operator()()
+            {
+            return m_rng();
+            }
+
     private:
         RandomGenerator m_rng;
     };
@@ -294,6 +300,46 @@ DEVICE inline double Saru::normal(double sigma, double mu)
 
 } // end namespace detail
 } // end namespace hoomd
+
+//! Select a random index
+/*! \param rng Saru RNG to utilize in the move
+    \param max Maximum index to select
+    \returns a random number 0 <= i <= max with uniform probability.
+
+    **Method**
+
+    First, round max+1 up to the next nearest power of two -> max2. Then draw random numbers in the range [0 ... max2)
+    using 32-but random values and a bitwise and with max2-1. Return the first random number found in the range.
+
+
+    This method is being kept for support within HPMC kernels that will be updated later on next. Once all code has
+    been updated to the new API, this method (and probably all of Saru.h) can be removed.
+*/
+template <class RNG>
+DEVICE inline unsigned int rand_select(RNG& rng, unsigned int max)
+    {
+    // handle degenerate case where max==0
+    if (max == 0)
+        return 0;
+
+    // algorithm to round up to the nearest power of two from https://en.wikipedia.org/wiki/Power_of_two
+    unsigned int n = max+1;
+    n = n - 1;
+    n = n | (n >> 1);
+    n = n | (n >> 2);
+    n = n | (n >> 4);
+    n = n | (n >> 8);
+    n = n | (n >> 16);
+    // Note: leaving off the n = n + 1 because we are going to & with next highest power of 2 -1
+
+    unsigned int result;
+    do
+        {
+        result = rng.u32() & n;
+        } while(result > max);
+
+    return result;
+    }
 
 #undef DEVICE
 
