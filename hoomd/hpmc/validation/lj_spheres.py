@@ -53,9 +53,9 @@ class nvt_lj_sphere_energy(unittest.TestCase):
         N = len(system.particles);
 
         if use_depletants:
-            mc = hpmc.integrate.sphere(d=0.3,seed=321,implicit=True,depletant_mode=depletant_mode);
+            mc = hpmc.integrate.sphere(d=0.3,seed=42,implicit=True,depletant_mode=depletant_mode);
         else:
-            mc = hpmc.integrate.sphere(d=0.3,seed=321);
+            mc = hpmc.integrate.sphere(d=0.3,seed=42);
 
         mc.shape_param.set('A',diameter=diameter)
 
@@ -97,7 +97,7 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
         if use_clusters:
             mc.set_params(d=0, a=0)
-            clusters = hpmc.update.clusters(mc, seed=312)
+            clusters = hpmc.update.clusters(mc, seed=54)
         else:
             mc_tune = hpmc.util.tune(mc, tunables=['d','a'],max_val=[4,0.5],gamma=0.5,target=0.4);
 
