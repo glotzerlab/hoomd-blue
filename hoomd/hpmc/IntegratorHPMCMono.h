@@ -173,7 +173,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             }
 
         //! Get the interaction matrix
-        virtual const GPUArray<unsigned int>& getInteractionMatrix()
+        virtual const GlobalArray<unsigned int>& getInteractionMatrix()
             {
             return m_overlaps;
             }
@@ -326,7 +326,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
     protected:
         std::vector<param_type, managed_allocator<param_type> > m_params;   //!< Parameters for each particle type on GPU
-        GPUArray<unsigned int> m_overlaps;          //!< Interaction matrix (0/1) for overlap checks
+        GlobalArray<unsigned int> m_overlaps;          //!< Interaction matrix (0/1) for overlap checks
         detail::UpdateOrder m_update_order;         //!< Update order
         bool m_image_list_is_initialized;                    //!< true if image list has been used
         bool m_image_list_valid;                             //!< image list is invalid if the box dimensions or particle parameters have changed.
@@ -387,8 +387,9 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(), param_type(), managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
     m_overlap_idx = Index2D(m_pdata->getNTypes());
-    GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
+    GlobalArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
+    TAG_ALLOCATION(m_overlaps);
 
     // Connect to the BoxChange signal
     m_pdata->getBoxChangeSignal().template connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
@@ -497,7 +498,7 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
     // re-allocate overlap interaction matrix
     m_overlap_idx = Index2D(m_pdata->getNTypes());
 
-    GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
+    GlobalArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
 
     updateCellWidth();
@@ -1251,6 +1252,8 @@ void IntegratorHPMCMono<Shape>::setOverlapChecks(unsigned int typi, unsigned int
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
     h_overlaps.data[m_overlap_idx(typi,typj)] = check_overlaps;
     h_overlaps.data[m_overlap_idx(typj,typi)] = check_overlaps;
+
+    m_image_list_valid = false;
     }
 
 //! Calculate a list of box images within interaction range of the simulation box, innermost first
@@ -1304,19 +1307,33 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
         // access the type parameters
         ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
 
-       // for each type, create a temporary shape and return the maximum sum of diameter and move size
-        for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
+        // access interaction matrix
+        ArrayHandle<unsigned int> h_overlaps(this->m_overlaps, access_location::host, access_mode::read);
+
+        // for each type, create a temporary shape and return the maximum sum of diameter and move size
+        for (unsigned int typ_i = 0; typ_i < this->m_pdata->getNTypes(); typ_i++)
             {
-            Shape temp(quat<Scalar>(), m_params[typ]);
+            Shape temp_i(quat<Scalar>(), m_params[typ_i]);
 
-            Scalar r_cut_patch(0.0);
+            Scalar r_cut_patch_i(0.0);
             if (m_patch)
-                {
-                r_cut_patch = (Scalar)m_patch->getRCut() + m_patch->getAdditiveCutoff(typ);
-                }
+                r_cut_patch_i = (Scalar)m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i);
 
-            Scalar range_i = detail::max((Scalar)temp.getCircumsphereDiameter(),r_cut_patch);
-            max_trans_d_and_diam = detail::max(max_trans_d_and_diam, range_i+Scalar(m_nselect)*h_d.data[typ]);
+            Scalar range_i(0.0);
+            for (unsigned int typ_j = 0; typ_j < this->m_pdata->getNTypes(); typ_j++)
+                {
+                Scalar r_cut_patch_ij(0.0);
+                if (m_patch)
+                    r_cut_patch_ij = r_cut_patch_i + 0.5*m_patch->getAdditiveCutoff(typ_j);
+
+                Shape temp_j(quat<Scalar>(), m_params[typ_j]);
+                Scalar r_cut_shape(0.0);
+                if (h_overlaps.data[m_overlap_idx(typ_i,typ_j)])
+                    r_cut_shape = 0.5*(temp_i.getCircumsphereDiameter()+temp_j.getCircumsphereDiameter());
+                Scalar range_ij = detail::max(r_cut_shape,r_cut_patch_ij);
+                range_i = detail::max(range_i,range_ij);
+                }
+            max_trans_d_and_diam = detail::max(max_trans_d_and_diam, range_i+Scalar(m_nselect)*h_d.data[typ_i]);
             }
         }
 

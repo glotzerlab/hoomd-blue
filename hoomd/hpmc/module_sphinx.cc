@@ -26,7 +26,6 @@
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
-#include "IntegratorHPMCMonoImplicitGPU.h"
 #include "IntegratorHPMCMonoImplicitNewGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
@@ -63,7 +62,6 @@ void export_sphinx(py::module& m)
     #ifdef ENABLE_SPHINX_GPU
 
     export_IntegratorHPMCMonoGPU< ShapeSphinx >(m, "IntegratorHPMCMonoGPUSphinx");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeSphinx >(m, "IntegratorHPMCMonoImplicitGPUSphinx");
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeSphinx >(m, "IntegratorHPMCMonoImplicitNewGPUSphinx");
     export_ComputeFreeVolumeGPU< ShapeSphinx >(m, "ComputeFreeVolumeGPUSphinx");
 

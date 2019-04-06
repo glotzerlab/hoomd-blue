@@ -6,7 +6,8 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/AABB.h"
-#include "ShapeSphere.h"
+
+#include "HPMCMiscFunctions.h"
 
 #include <algorithm>
 #include <cfloat>
@@ -76,6 +77,8 @@ struct OBB
     //! Construct an OBB from a sphere
     /*! \param _position Position of the sphere
         \param radius Radius of the sphere
+
+        This constructor internally sets the 'is_sphere' flag to accelerate overlap checks
     */
     DEVICE OBB(const vec3<OverlapReal>& _position, OverlapReal radius)
         {
@@ -139,9 +142,60 @@ struct OBB
 
     };
 
+// from Christer Ericsen, Real-time collision detection
+// https://doi.org/10.1201/b14581
+DEVICE inline bool SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const OBB& b,
+   const OverlapReal max_sq)
+    {
+    vec3<OverlapReal> v = p - b.center;
+
+    OverlapReal sqDist(0.0);
+
+    rotmat3<OverlapReal> u(conj(b.rotation));
+
+    // Project vector from box center to p on each axis, getting the distance
+    // of p along that axis, and count any excess distance outside box extents
+
+    OverlapReal d = dot(v, u.row0);
+    OverlapReal excess(0.0);
+
+    if (d < -b.lengths.x)
+        excess = d + b.lengths.x;
+    else if (d > b.lengths.x)
+        excess = d - b.lengths.x;
+    sqDist += excess*excess;
+
+    if (sqDist > max_sq)
+        return false;
+
+    d = dot(v,u.row1);
+    excess = OverlapReal(0.0);
+    if (d < -b.lengths.y)
+        excess = d + b.lengths.y;
+    else if (d > b.lengths.y)
+        excess = d - b.lengths.y;
+    sqDist += excess*excess;
+
+    if (sqDist > max_sq)
+        return false;
+
+    d = dot(v,u.row2);
+    excess = OverlapReal(0.0);
+    if (d < -b.lengths.z)
+        excess = d + b.lengths.z;
+    else if (d > b.lengths.z)
+        excess = d - b.lengths.z;
+    sqDist += excess*excess;
+
+    return sqDist <= max_sq;
+    }
+
+
 //! Check if two OBBs overlap
 /*! \param a First OBB
     \param b Second OBB
+
+    \param ignore_mask if true, ignore OBB masks
 
     \param exact If true, report exact overlaps
     Otherwise, false positives may be reported (which do not hurt
@@ -149,21 +203,29 @@ struct OBB
 
     \returns true when the two OBBs overlap, false otherwise
 */
-DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
+DEVICE inline bool overlap(const OBB& a, const OBB& b,
+    bool ignore_mask=false,
+    bool exact=true)
     {
     // exit early if the masks don't match
-    if (! (a.mask & b.mask)) return false;
+    if (!ignore_mask && !(a.mask & b.mask)) return false;
 
     // translation vector
     vec3<OverlapReal> t = b.center - a.center;
 
-    // if both OBBs are spheres, simplify overlap check
+    // if one or both of the OBB are spheres, simplify overlap check
     if (a.isSphere() && b.isSphere())
         {
         OverlapReal rsq = dot(t,t);
         OverlapReal RaRb = a.lengths.x + b.lengths.x;
         return rsq <= RaRb*RaRb;
         }
+    else if (a.isSphere() && !b.isSphere())
+        return SqDistPointOBBSmallerThan(a.center, b, a.lengths.x*a.lengths.x);
+    else if (!a.isSphere() && b.isSphere())
+        return SqDistPointOBBSmallerThan(b.center, a, b.lengths.x*b.lengths.x);
+
+    // check two OBBs
 
     // rotate B in A's coordinate frame
     rotmat3<OverlapReal> r(conj(a.rotation) * b.rotation);
@@ -269,6 +331,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
 // Intersect ray R(t) = p + t*d against OBB a. When intersecting,
 // return intersection distance tmin and point q of intersection
 // Ericson, Christer, Real-Time Collision Detection (Page 180)
+// https://doi.org/10.1201/b14581
 DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<OverlapReal>& d, OBB a, OverlapReal &tmin, vec3<OverlapReal> &q, OverlapReal abs_tol)
     {
     tmin = 0.0f; // set to -FLT_MAX to get first hit on line
@@ -357,6 +420,7 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<Overla
 
 #ifndef NVCC
 // Ericson, Christer (2013-05-02). Real-Time Collision Detection (Page 111). Taylor and Francis CRC
+// https://doi.org/10.1201/b14581
 
 // Compute the center point, ’c’, and axis orientation, u[0] and u[1], of
 // the minimum area rectangle in the xy plane containing the points pt[].

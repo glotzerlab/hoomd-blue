@@ -106,6 +106,8 @@ class IntegratorHPMCMonoImplicitNewGPU : public IntegratorHPMCMonoImplicit<Shape
 
         cudaStream_t m_stream;                                  //! GPU kernel stream
 
+        bool m_warning_printed;                                 //!< True if fall back warning has been printed once
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
@@ -131,7 +133,7 @@ template< class Shape >
 IntegratorHPMCMonoImplicitNewGPU< Shape >::IntegratorHPMCMonoImplicitNewGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                                    std::shared_ptr<CellList> cl,
                                                                    unsigned int seed)
-    : IntegratorHPMCMonoImplicit<Shape>(sysdef, seed, 1), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
+    : IntegratorHPMCMonoImplicit<Shape>(sysdef, seed), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCImplicitGPU" << std::endl;
 
@@ -209,7 +211,7 @@ IntegratorHPMCMonoImplicitNewGPU< Shape >::IntegratorHPMCMonoImplicitNewGPU(std:
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_excell_block_size", this->m_exec_conf));
     m_tuner_implicit.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_insert_depletants", this->m_exec_conf));
 
-    GPUArray<hpmc_implicit_counters_t> implicit_count(1,this->m_exec_conf);
+    GlobalArray<hpmc_implicit_counters_t> implicit_count(1,this->m_exec_conf);
     this->m_implicit_count.swap(implicit_count);
 
     GPUArray<curandDiscreteDistribution_t> poisson_dist(1,this->m_exec_conf);
@@ -220,12 +222,15 @@ IntegratorHPMCMonoImplicitNewGPU< Shape >::IntegratorHPMCMonoImplicitNewGPU(std:
     // create a CUDA stream for kernel execution
     cudaStreamCreate(&m_stream);
     CHECK_CUDA_ERROR();
+
+    m_warning_printed = false;
     }
 
 //! Destructor
 template< class Shape >
 IntegratorHPMCMonoImplicitNewGPU< Shape >::~IntegratorHPMCMonoImplicitNewGPU()
     {
+    #if 0
     // destroy the registered poisson RNG's
     ArrayHandle<curandDiscreteDistribution_t> h_poisson_dist(m_poisson_dist, access_location::host, access_mode::read);
     for (unsigned int type = 0; type < this->m_pdata->getNTypes(); ++type)
@@ -238,11 +243,22 @@ IntegratorHPMCMonoImplicitNewGPU< Shape >::~IntegratorHPMCMonoImplicitNewGPU()
 
     cudaStreamDestroy(m_stream);
     CHECK_CUDA_ERROR();
+    #endif
     }
 
 template< class Shape >
 void IntegratorHPMCMonoImplicitNewGPU< Shape >::update(unsigned int timestep)
     {
+    if (!m_warning_printed)
+        {
+        this->m_exec_conf->msg->warning() << "GPU depletants currently not supported. Falling back on CPU." << std::endl;
+        m_warning_printed = true;
+        }
+
+    // fall back
+    IntegratorHPMCMonoImplicit<Shape>::update(timestep);
+
+    #if 0
     if (this->m_patch && !this->m_patch_log)
         {
         this->m_exec_conf->msg->error() << "GPU simulations with patches are unsupported." << std::endl;
@@ -668,11 +684,13 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::update(unsigned int timestep)
 
     // all particle have been moved, the aabb tree is now invalid
     this->m_aabb_tree_invalid = true;
+    #endif
     }
 
 template<class Shape>
 void IntegratorHPMCMonoImplicitNewGPU< Shape >::initializePoissonDistribution()
     {
+    #if 0
     // resize GPUArray
     m_poisson_dist.resize(this->m_pdata->getNTypes());
     m_poisson_dist_created.resize(this->m_pdata->getNTypes(), false);
@@ -709,11 +727,13 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::initializePoissonDistribution()
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+    #endif
     }
 
 template< class Shape >
 void IntegratorHPMCMonoImplicitNewGPU< Shape >::initializeCellSets()
     {
+    #if 0
     this->m_exec_conf->msg->notice(4) << "hpmc recomputing active cells" << std::endl;
     // "ghost cells" might contain active particles. So they must be included in the active cell sets
     // we should not run into a multiple issue since the base multiple is 2 and the ghost cells added are 2 in each
@@ -757,11 +777,13 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::initializeCellSets()
                     active_idx++;
                     }
         }
+    #endif
     }
 
 template< class Shape >
 void IntegratorHPMCMonoImplicitNewGPU< Shape >::initializeExcellMem()
     {
+    #if 0
     this->m_exec_conf->msg->notice(4) << "hpmc resizing expanded cells" << std::endl;
 
     // get the current cell dimensions
@@ -775,6 +797,7 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::initializeExcellMem()
     // reallocate memory
     m_excell_idx.resize(m_excell_list_indexer.getNumElements());
     m_excell_size.resize(num_cells);
+    #endif
     }
 
 template< class Shape >

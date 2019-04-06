@@ -25,7 +25,6 @@
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
-#include "IntegratorHPMCMonoImplicitGPU.h"
 #include "IntegratorHPMCMonoImplicitNewGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
@@ -63,7 +62,6 @@ void export_faceted_ellipsoid(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeFacetedEllipsoid >(m, "IntegratorHPMCMonoGPUFacetedEllipsoid");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeFacetedEllipsoid >(m, "IntegratorHPMCMonoImplicitGPUFacetedEllipsoid");
     export_IntegratorHPMCMonoImplicitNewGPU< ShapeFacetedEllipsoid >(m, "IntegratorHPMCMonoImplicitNewGPUFacetedEllipsoid");
     export_ComputeFreeVolumeGPU< ShapeFacetedEllipsoid >(m, "ComputeFreeVolumeGPUFacetedEllipsoid");
     #endif

@@ -88,6 +88,18 @@ DEVICE inline hpmc_counters_t operator-(const hpmc_counters_t& a, const hpmc_cou
     return result;
     }
 
+//! Sum of two sets of counters
+DEVICE inline hpmc_counters_t operator+(const hpmc_counters_t& a, const hpmc_counters_t& b)
+    {
+    hpmc_counters_t result;
+    result.translate_accept_count = a.translate_accept_count + b.translate_accept_count;
+    result.rotate_accept_count = a.rotate_accept_count + b.rotate_accept_count;
+    result.translate_reject_count = a.translate_reject_count + b.translate_reject_count;
+    result.rotate_reject_count = a.rotate_reject_count + b.rotate_reject_count;
+    result.overlap_checks = a.overlap_checks + b.overlap_checks;
+    result.overlap_err_count = a.overlap_err_count + b.overlap_err_count;
+    return result;
+    }
 
 //! Storage for NPT acceptance counters
 /*! \ingroup hpmc_data_structs */
@@ -188,50 +200,11 @@ DEVICE inline hpmc_boxmc_counters_t operator-(const hpmc_boxmc_counters_t& a, co
 struct hpmc_implicit_counters_t
     {
     unsigned long long int insert_count;                //!< Count of depletants inserted
-    unsigned long long int free_volume_count;           //!< Count of depletants in free volume
-    unsigned long long int overlap_count;               //!< Count of depletants in free volume which overlap
-    unsigned long long int reinsert_count;              //!< Count of reinserted depletants
 
     //! Construct a zero set of counters
     hpmc_implicit_counters_t()
         {
         insert_count = 0;
-        free_volume_count = 0;
-        overlap_count = 0;
-        reinsert_count = 0;
-        }
-
-    //! Get the fraction of the free volume to the insertion sphere
-    /*! \returns The ratio of depletants inserted into the free volume
-    */
-    DEVICE double getFreeVolumeFraction()
-        {
-        if (insert_count == 0)
-            return 0.0;
-        else
-            return double(free_volume_count) / double(insert_count);
-        }
-
-    //! Get the fraction of non-overlapping depletants
-    /*! \returns The ratio of non-overlapping depletants to depletants inserted
-    */
-    DEVICE double getOverlapFraction()
-        {
-        if (insert_count == 0)
-            return 0.0;
-        else
-            return (double)overlap_count/(double)insert_count;
-        }
-
-    //! Get the ratio of configurational bias attempts to depletant insertions
-    /*! \returns The ratio of configuration bias attempts to depletant insertions
-    */
-    DEVICE double getConfigurationalBiasRatio()
-        {
-        if (insert_count == 0)
-            return 0.0;
-        else
-            return double(reinsert_count) / double(insert_count);
         }
     };
 
@@ -411,9 +384,14 @@ DEVICE inline hpmc_implicit_counters_t operator-(const hpmc_implicit_counters_t&
     {
     hpmc_implicit_counters_t result;
     result.insert_count = a.insert_count - b.insert_count;
-    result.free_volume_count = a.free_volume_count - b.free_volume_count;
-    result.overlap_count = a.overlap_count - b.overlap_count;
-    result.reinsert_count = a.reinsert_count - b.reinsert_count;
+    return result;
+    }
+
+//! Sum of two sets of counters
+DEVICE inline hpmc_implicit_counters_t operator+(const hpmc_implicit_counters_t& a, const hpmc_implicit_counters_t& b)
+    {
+    hpmc_implicit_counters_t result;
+    result.insert_count = a.insert_count + b.insert_count;
     return result;
     }
 

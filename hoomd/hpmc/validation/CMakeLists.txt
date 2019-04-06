@@ -50,6 +50,7 @@ endmacro()
 # format: test_script user_min user_max
 set(TEST_LIST_CPU
 spheres_implicit.py 0 1
+spheres_implicit_repulsive.py 0 0
 sphere_eos.py 0 0
 disk_eos.py 0 0
 )

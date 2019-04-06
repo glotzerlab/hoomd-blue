@@ -137,11 +137,24 @@ struct ShapeSphinx
         return detail::AABB(pos, getCircumsphereDiameter()/Scalar(2.0));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
+        }
+
     //!Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return spheres.ignore; }
 
     //!Ignore flag for overlaps
     HOSTDEVICE static bool isParallel() {return false; }
+
+    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
 
     quat<Scalar> orientation;                   //!< Orientation of the sphinx
 
@@ -182,7 +195,9 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
 template <>
 DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_ab,
                                                           const ShapeSphinx& p,
-                                                          const ShapeSphinx& q, unsigned int& err)
+                                                          const ShapeSphinx& q, unsigned int& err,
+                                                          Scalar sweep_radius_a,
+                                                          Scalar sweep_radius_b)
     {
     vec3<OverlapReal> pv[detail::MAX_SPHERE_CENTERS];           //!< rotated centers of p
     vec3<OverlapReal> qv[detail::MAX_SPHERE_CENTERS];           //!< rotated centers of q

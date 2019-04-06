@@ -41,15 +41,16 @@ set(_hpmc_headers
     GSDHPMCSchema.h
     GPUTree.h
     HPMCCounters.h
+    HPMCMiscFunctions.h
     HPMCPrecisionSetup.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.cuh
     IntegratorHPMCMonoGPU.h
     IntegratorHPMCMono.h
-    IntegratorHPMCMonoImplicitGPU.h
     IntegratorHPMCMonoImplicit.h
     IntegratorHPMCMonoImplicitNewGPU.cuh
     IntegratorHPMCMonoImplicitNewGPU.h
+    MAP3D.h
     MinkowskiMath.h
     modules.h
     Moves.h
@@ -83,7 +84,6 @@ set(_hpmc_headers
 # endif()
 
 set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
-                     IntegratorHPMCMonoImplicitGPU.cu
                      all_kernels_sphere.cu
                      all_kernels_convex_polygon.cu
                      all_kernels_simple_polygon.cu
@@ -98,11 +98,6 @@ set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      all_kernels_convex_polyhedron.cu
                      all_kernels_convex_spheropolyhedron.cu
                      )
-
-# quiet some warnings locally on files we can't modify
-if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-    set_source_files_properties(IntegratorHPMCMonoImplicitGPU.cu PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
-endif()
 
 if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hpmc_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)

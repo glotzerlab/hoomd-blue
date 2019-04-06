@@ -106,6 +106,13 @@ struct ShapeEllipsoid
         return numerator / fast::sqrt(dot(dvec, dvec));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
+        }
+
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
@@ -134,6 +141,12 @@ struct ShapeEllipsoid
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
+
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
 
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
@@ -415,6 +428,7 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \param a Shape a
     \param b Shape b
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Additional sphere radius to sweep the shapes with
     \returns true if the two particles overlap
 
     \ingroup shape
@@ -423,7 +437,9 @@ template <>
 DEVICE inline bool test_overlap<ShapeEllipsoid,ShapeEllipsoid>(const vec3<Scalar>& r_ab,
                                                                const ShapeEllipsoid& a,
                                                                const ShapeEllipsoid& b,
-                                                               unsigned int& err)
+                                                               unsigned int& err,
+                                                               Scalar sweep_radius_a,
+                                                               Scalar sweep_radius_b)
     {
 
     // matrix representations of the two ellipsoids

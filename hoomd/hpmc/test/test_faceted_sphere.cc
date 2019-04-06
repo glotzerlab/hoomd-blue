@@ -213,7 +213,7 @@ UP_TEST( overlap_faceted )
         }
 
     // get a vertex on the intersection circle of sphere a
-    hpmc::detail::SupportFuncFacetedEllipsoid S_a(p);
+    hpmc::detail::SupportFuncFacetedEllipsoid S_a(p,0.0);
     vec3<OverlapReal> v_or = S_a(vec3<OverlapReal>(1,-.3,0));
     vec3<Scalar> v(v_or.x, v_or.y, v_or.z);
 
@@ -438,7 +438,7 @@ UP_TEST( random_support_test )
 
     hoomd::detail::Saru rng;
 
-    detail::SupportFuncFacetedEllipsoid support(p);
+    detail::SupportFuncFacetedEllipsoid support(p,0.0);
     for (unsigned int i = 0; i < 10000; ++i)
         {
         // draw a random vector in the excluded volume sphere of the colloid
@@ -479,7 +479,7 @@ UP_TEST( random_support_test_2 )
 
     hoomd::detail::Saru rng;
 
-    detail::SupportFuncFacetedEllipsoid support(p);
+    detail::SupportFuncFacetedEllipsoid support(p,0.0);
     for (unsigned int i = 0; i < 10000; ++i)
         {
         // draw a random vector in the excluded volume sphere of the colloid

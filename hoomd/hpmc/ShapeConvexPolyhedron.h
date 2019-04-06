@@ -6,7 +6,11 @@
 #include "hoomd/VectorMath.h"
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "XenoCollide3D.h"
+#include "MAP3D.h"
 #include "hoomd/ManagedArray.h"
+#include "hoomd/hpmc/OBB.h"
+
+#include <cfloat>
 
 #ifndef __SHAPE_CONVEX_POLYHEDRON_H__
 #define __SHAPE_CONVEX_POLYHEDRON_H__
@@ -46,7 +50,8 @@ struct poly3d_verts : param_base
     {
     //! Default constructor initializes zero values.
     DEVICE poly3d_verts()
-        : N(0),
+        : n_hull_verts(0),
+          N(0),
           diameter(OverlapReal(0)),
           sweep_radius(OverlapReal(0)),
           ignore(0)
@@ -55,7 +60,7 @@ struct poly3d_verts : param_base
     #ifndef NVCC
     //! Shape constructor
     poly3d_verts(unsigned int _N, bool _managed)
-        : N(_N), diameter(0.0), sweep_radius(0.0), ignore(0)
+        : n_hull_verts(0), N(_N), diameter(0.0), sweep_radius(0.0), ignore(0)
         {
         unsigned int align_size = 8; //for AVX
         unsigned int N_align =((N + align_size - 1)/align_size)*align_size;
@@ -78,6 +83,7 @@ struct poly3d_verts : param_base
         x.load_shared(ptr,available_bytes);
         y.load_shared(ptr,available_bytes);
         z.load_shared(ptr,available_bytes);
+        hull_verts.load_shared(ptr,available_bytes);
         }
 
     #ifdef ENABLE_CUDA
@@ -87,17 +93,24 @@ struct poly3d_verts : param_base
         x.attach_to_stream(stream);
         y.attach_to_stream(stream);
         z.attach_to_stream(stream);
+        hull_verts.attach_to_stream(stream);
         }
     #endif
 
     ManagedArray<OverlapReal> x;        //!< X coordinate of vertices
     ManagedArray<OverlapReal> y;        //!< Y coordinate of vertices
     ManagedArray<OverlapReal> z;        //!< Z coordinate of vertices
+
+    ManagedArray<unsigned int> hull_verts;  //!< List of triangles hull_verts[3*i], hull_verts[3*i+1], hull_verts[3*i+2] making up the convex hull
+    unsigned int n_hull_verts;              //!< Number of vertices in the convex hull
+
     unsigned int N;                         //!< Number of vertices
     OverlapReal diameter;                   //!< Circumsphere diameter
     OverlapReal sweep_radius;               //!< Radius of the sphere sweep (used for spheropolyhedra)
     unsigned int ignore;                    //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                             //   First bit is ignore overlaps, Second bit is ignore statistics
+
+    detail::OBB obb;                        //!< Tight fitting bounding box
     } __attribute__((aligned(32)));
 
 //! Support function for ShapePolyhedron
@@ -114,8 +127,9 @@ class SupportFuncConvexPolyhedron
         /*! \param _verts Polyhedron vertices
             Note that for performance it is assumed that unused vertices (beyond N) have already been set to zero.
         */
-        DEVICE SupportFuncConvexPolyhedron(const poly3d_verts& _verts)
-            : verts(_verts)
+        DEVICE SupportFuncConvexPolyhedron(const poly3d_verts& _verts,
+            OverlapReal extra_sweep_radius=OverlapReal(0.0))
+            : verts(_verts), sweep_radius(extra_sweep_radius)
             {
             }
 
@@ -285,16 +299,237 @@ class SupportFuncConvexPolyhedron
                     max_idx = max_idx3;
                     }
                 #endif
-                return vec3<OverlapReal>(verts.x[max_idx], verts.y[max_idx], verts.z[max_idx]);
+
+                vec3<OverlapReal> v(verts.x[max_idx], verts.y[max_idx], verts.z[max_idx]);
+                if (sweep_radius != OverlapReal(0.0))
+                    return v + (sweep_radius * fast::rsqrt(dot(n,n))) * n;
+                else
+                    return v;
                 } // end if(verts.N > 0)
             else
                 {
-                return vec3<OverlapReal>(0.0, 0.0, 0.0); // No verts!
+                if (sweep_radius != OverlapReal(0.0))
+                    return (sweep_radius * fast::rsqrt(dot(n,n))) * n;
+                else
+                    return vec3<OverlapReal>(0.0, 0.0, 0.0); // No verts!
                 }
             }
 
     private:
         const poly3d_verts& verts;      //!< Vertices of the polyhedron
+        const OverlapReal sweep_radius; //!< Extra sweep radius
+    };
+
+/*!
+ *  Geometric primitives for closest point calculation
+ */
+
+// From Real Time Collision Detection (Christer Ericson)
+// https://doi.org/10.1201/b14581
+DEVICE inline vec3<OverlapReal> closestPointOnTriangle(const vec3<OverlapReal>& p,
+     const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c)
+    {
+    vec3<OverlapReal> ab = b - a;
+    vec3<OverlapReal> ac = c - a;
+    vec3<OverlapReal> ap = p - a;
+
+    OverlapReal d1 = dot(ab, ap);
+    OverlapReal d2 = dot(ac, ap);
+    if (d1 <= OverlapReal(0.0) && d2 <= OverlapReal(0.0)) return a; // barycentric coordinates (1,0,0)
+
+    // Check if P in vertex region outside B
+    vec3<OverlapReal> bp = p - b;
+    OverlapReal d3 = dot(ab, bp);
+    OverlapReal d4 = dot(ac, bp);
+    if (d3 >= OverlapReal(0.0) && d4 <= d3) return b; // barycentric coordinates (0,1,0)
+
+    // Check if P in edge region of AB, if so return projection of P onto AB
+    OverlapReal vc = d1*d4 - d3*d2;
+    if (vc <= OverlapReal(0.0) && d1 >= OverlapReal(0.0) && d3 <= OverlapReal(0.0))
+        {
+        OverlapReal v = d1 / (d1 - d3);
+        return a + v * ab; // barycentric coordinates (1-v,v,0)
+        }
+
+    // Check if P in vertex region outside C
+    vec3<OverlapReal> cp = p - c;
+    OverlapReal d5 = dot(ab, cp);
+    OverlapReal d6 = dot(ac, cp);
+    if (d6 >= OverlapReal(0.0) && d5 <= d6) return c; // barycentric coordinates (0,0,1)
+
+    // Check if P in edge region of AC, if so return projection of P onto AC
+    OverlapReal vb = d5*d2 - d1*d6;
+    if (vb <= OverlapReal(0.0) && d2 >= OverlapReal(0.0) && d6 <= OverlapReal(0.0))
+        {
+        OverlapReal w = d2 / (d2 - d6);
+        return a + w * ac; // barycentric coordinates (1-w,0,w)
+        }
+    // Check if P in edge region of BC, if so return projection of P onto BC
+    OverlapReal va = d3*d6 - d5*d4;
+    if (va <= OverlapReal(0.0) && (d4 - d3) >= OverlapReal(0.0) && (d5 - d6) >= OverlapReal(0.0))
+        {
+        OverlapReal w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        return b + w * (c - b); // barycentric coordinates (0,1-w,w)
+        }
+
+    // P inside face region. Compute Q through its barycentric coordinates (u,v,w)
+    OverlapReal denom = OverlapReal(1.0) / (va + vb + vc);
+    OverlapReal v = vb * denom;
+    OverlapReal w = vc * denom;
+    return a + ab*v+ac * w; // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
+    }
+
+// Test if point p lies outside plane through abc
+DEVICE inline bool PointOutsideOfPlane(const vec3<OverlapReal>& p,
+     const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c)
+    {
+    return dot(p-a,cross(b-a,c-a)) >= OverlapReal(0.0);
+    }
+
+//! Find the point on a segment closest to point p
+DEVICE inline vec3<OverlapReal> ClosestPtPointSegment(const vec3<OverlapReal>& c, const vec3<OverlapReal>& a,
+    const vec3<OverlapReal>& b, OverlapReal& t)
+    {
+    vec3<OverlapReal> ab = b - a;
+
+    vec3<OverlapReal> d;
+
+    // Project c onto ab, but deferring divide by dot(ab,ab)
+    t = dot(c -a, ab);
+
+    if (t <= OverlapReal(0.0))
+        {
+        // c projects outside the [a,b] interval, on the a side; clamp to a
+        t = OverlapReal(0.0);
+        d = a;
+        }
+    else
+        {
+        OverlapReal denom = dot(ab,ab);
+        if (t >= denom)
+            {
+            // c project outside the [a,b] interval, on the b side; clamp to b
+            t = OverlapReal(1.0);
+            d = b;
+            }
+        else
+            {
+            // c projects inside the [a,b] interval' must do deferred divide now
+            t = t / denom;
+            d = a + t * ab;
+            }
+        }
+
+    return d;
+    }
+
+//! Projection function for ShapeConvexPolyhedron
+/*! ProjectionFuncConvexPolyhedron is a functor that computes the projection function for ShapePolyhedron. For a given
+    input point in local coordinates, it finds the vertex closest to that point.
+
+    \ingroup minkowski
+*/
+
+class ProjectionFuncConvexPolyhedron
+    {
+    public:
+        //! Construct a projection function for a convex polyhedron
+        /*! \param _verts Polyhedron vertices
+        */
+        DEVICE ProjectionFuncConvexPolyhedron(const poly3d_verts& _verts,
+            OverlapReal extra_sweep_radius=OverlapReal(0.0))
+            : verts(_verts), sweep_radius(extra_sweep_radius)
+            {
+            }
+
+        //! Compute the projection
+        /*! \param p Point to compute the projection for
+            \returns Local coords of the point in the shape closest to p
+        */
+        DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& p) const
+            {
+            //! Find the point on the convex hull closest to p
+            vec3<OverlapReal> closest_p = p;
+            OverlapReal closest_dsq(FLT_MAX);
+
+            // iterate over triangles of convex hull to find closest point on every face
+            unsigned int n_hull_verts = verts.n_hull_verts;
+
+            if (n_hull_verts > 0)
+                {
+                for (unsigned int i = 0; i < n_hull_verts; i+=3)
+                    {
+                    unsigned int k = verts.hull_verts[i];
+                    unsigned int l = verts.hull_verts[i+1];
+                    unsigned int m = verts.hull_verts[i+2];
+
+                    vec3<OverlapReal> a(verts.x[k], verts.y[k], verts.z[k]);
+                    vec3<OverlapReal> b(verts.x[l], verts.y[l], verts.z[l]);
+                    vec3<OverlapReal> c(verts.x[m], verts.y[m], verts.z[m]);
+
+                    // is the point on the outside of the plane?
+                    /* For this to work correctly in the degenerate case, i.e. planar facet and 1d line, we
+                       require that the convex hull always is a complete mesh
+                     */
+                    if (PointOutsideOfPlane(p, a, b, c))
+                        {
+                        vec3<OverlapReal> q = closestPointOnTriangle(p, a, b, c);
+                        OverlapReal dsq = dot(p-q,p-q);
+
+                        if (dsq < closest_dsq)
+                            {
+                            closest_p = q;
+                            closest_dsq = dsq;
+                            }
+                        }
+                    }
+                }
+            else
+                {
+                // handle special cases
+                if (verts.N == 0)
+                    {
+                    // return the origin;
+                    closest_p = vec3<OverlapReal>(0,0,0);
+                    }
+                else if (verts.N == 1)
+                    {
+                    // return the only point there is
+                    closest_p = vec3<OverlapReal>(verts.x[0], verts.y[0], verts.z[0]);
+                    }
+                else if (verts.N == 2)
+                    {
+                    // line segment
+                    OverlapReal t;
+                    closest_p = ClosestPtPointSegment(p,
+                        vec3<OverlapReal>(verts.x[0], verts.y[0], verts.z[0]),
+                        vec3<OverlapReal>(verts.x[1], verts.y[1], verts.z[1]), t);
+                    }
+                }
+
+            if (sweep_radius != 0.0 &&
+                (p.x != closest_p.x || p.y != closest_p.y || p.z != closest_p.z))
+                {
+                // point is on the surface, see if we have to project further out
+                vec3<OverlapReal> del = p - closest_p;
+                OverlapReal dsq = dot(del,del);
+                if (dsq > sweep_radius*sweep_radius)
+                    {
+                    // add the sphere radius in direction of closest approach, or the closest point inside the sphere
+                    OverlapReal d = fast::sqrt(dsq);
+                    return closest_p + sweep_radius/d*del;
+                    }
+                else
+                    return p;
+                }
+
+            // pt is inside base shape
+            return closest_p;
+            }
+
+    private:
+        const poly3d_verts& verts;      //!< Vertices of the polyhedron
+        const OverlapReal sweep_radius; //!< extra sphere sweep radius
     };
 
 
@@ -367,8 +602,22 @@ struct ShapeConvexPolyhedron
         return detail::AABB(pos, getCircumsphereDiameter()/Scalar(2));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        detail::OBB obb = verts.obb;
+        obb.affineTransform(orientation, pos);
+        return obb;
+        }
+
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
+
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return true;
+        }
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
@@ -398,24 +647,31 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius_a Radius of a sphere to sweep shape a by
+    \param sweep_radius_b Radius of a sphere to sweep shape b by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
 */
+template<>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapeConvexPolyhedron& a,
                                  const ShapeConvexPolyhedron& b,
-                                 unsigned int& err)
+                                 unsigned int& err,
+                                 Scalar sweep_radius_a,
+                                 Scalar sweep_radius_b)
     {
     vec3<OverlapReal> dr(r_ab);
+
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts),
-                                  detail::SupportFuncConvexPolyhedron(b.verts),
+    return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,sweep_radius_a),
+                                  detail::SupportFuncConvexPolyhedron(b.verts,sweep_radius_b),
                                   rotate(conj(quat<OverlapReal>(a.orientation)), dr),
                                   conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
                                   DaDb/2.0,
                                   err);
+
     /*
     return detail::gjke_3d(detail::SupportFuncConvexPolyhedron(a.verts),
                            detail::SupportFuncConvexPolyhedron(b.verts),
@@ -425,6 +681,33 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                            DaDb/2.0,
                            err);
     */
+    }
+
+//! Test for the overlap of a third convex polyhedron with the intersection of two convex polyhedra
+/*! \param a First shape to test
+    \param b Second shape to test
+    \param c Third shape to test
+    \param ab_t Position of second shape relative to first
+    \param ac_t Position of third shape relative to first
+    \param err Output variable that is incremented upon non-convergence
+    \param sweep_radius Radius of a sphere to sweep all shapes by
+*/
+template<>
+DEVICE inline bool test_overlap_intersection(const ShapeConvexPolyhedron& a,
+    const ShapeConvexPolyhedron& b, const ShapeConvexPolyhedron& c,
+    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
+    Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
+    {
+    return detail::map_three(a,b,c,
+        detail::SupportFuncConvexPolyhedron(a.verts,sweep_radius_a),
+        detail::SupportFuncConvexPolyhedron(b.verts,sweep_radius_b),
+        detail::SupportFuncConvexPolyhedron(c.verts,sweep_radius_c),
+        detail::ProjectionFuncConvexPolyhedron(a.verts,sweep_radius_a),
+        detail::ProjectionFuncConvexPolyhedron(b.verts,sweep_radius_b),
+        detail::ProjectionFuncConvexPolyhedron(c.verts,sweep_radius_c),
+        vec3<OverlapReal>(ab_t),
+        vec3<OverlapReal>(ac_t),
+        err);
     }
 
 }; // end namespace hpmc

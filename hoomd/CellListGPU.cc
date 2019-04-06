@@ -44,6 +44,7 @@ void CellListGPU::computeCellList()
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
+    unsigned int ngpu = m_exec_conf->getNumActiveGPUs();
 
         {
         // access the cell list data arrays
@@ -68,7 +69,7 @@ void CellListGPU::computeCellList()
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
-        if (m_per_device)
+        if (ngpu > 1 || m_per_device)
             {
             // reset temporary arrays
             cudaMemsetAsync(d_cell_size_scratch.data, 0, sizeof(unsigned int)*m_cell_size_scratch.getNumElements(),0);
@@ -82,11 +83,11 @@ void CellListGPU::computeCellList()
         m_tuner->begin();
 
         // compute cell list, and write to temporary arrays with multi-GPU
-        gpu_compute_cell_list(!m_per_device ? d_cell_size.data : d_cell_size_scratch.data,
-                              !m_per_device ? d_xyzf.data : d_xyzf_scratch.data,
-                              !m_per_device ? d_tdb.data : d_tdb_scratch.data,
-                              !m_per_device ? d_cell_orientation.data : d_cell_orientation_scratch.data,
-                              !m_per_device ? d_cell_idx.data : d_cell_idx_scratch.data,
+        gpu_compute_cell_list((ngpu == 1 && !m_per_device) ? d_cell_size.data : d_cell_size_scratch.data,
+                              (ngpu == 1 && !m_per_device) ? d_xyzf.data : d_xyzf_scratch.data,
+                              (ngpu == 1 && !m_per_device) ? d_tdb.data : d_tdb_scratch.data,
+                              (ngpu == 1 && !m_per_device) ? d_cell_orientation.data : d_cell_orientation_scratch.data,
+                              (ngpu == 1 && !m_per_device) ? d_cell_idx.data : d_cell_idx_scratch.data,
                               d_conditions.data,
                               d_pos.data,
                               d_orientation.data,
@@ -137,14 +138,14 @@ void CellListGPU::computeCellList()
             ScopedAllocation<Scalar4> d_cell_orientation_new(m_exec_conf->getCachedAllocator(), m_orientation.getNumElements());
             ScopedAllocation<Scalar4> d_tdb_new(m_exec_conf->getCachedAllocator(), m_tdb.getNumElements());
 
-            gpu_sort_cell_list(!m_per_device ? d_cell_size.data : d_cell_size_scratch.data + i*m_cell_indexer.getNumElements(),
-                               !m_per_device ? d_xyzf.data : d_xyzf_scratch.data + i*m_cell_list_indexer.getNumElements(),
+            gpu_sort_cell_list((ngpu == 1 && !m_per_device) ? d_cell_size.data : d_cell_size_scratch.data + i*m_cell_indexer.getNumElements(),
+                               (ngpu == 1 && !m_per_device) ? d_xyzf.data : d_xyzf_scratch.data + i*m_cell_list_indexer.getNumElements(),
                                d_xyzf_new.data,
-                               !m_per_device ? d_tdb.data : d_tdb_scratch.data + i*m_cell_list_indexer.getNumElements(),
+                               (ngpu == 1 && !m_per_device) ? d_tdb.data : d_tdb_scratch.data + i*m_cell_list_indexer.getNumElements(),
                                d_tdb_new.data,
-                               !m_per_device ? d_cell_orientation.data : d_cell_orientation_scratch.data + i*m_cell_list_indexer.getNumElements(),
+                               (ngpu == 1 && !m_per_device) ? d_cell_orientation.data : d_cell_orientation_scratch.data + i*m_cell_list_indexer.getNumElements(),
                                d_cell_orientation_new.data,
-                               !m_per_device ? d_cell_idx.data : d_cell_idx_scratch.data + i*m_cell_list_indexer.getNumElements(),
+                               (ngpu == 1 && !m_per_device) ? d_cell_idx.data : d_cell_idx_scratch.data + i*m_cell_list_indexer.getNumElements(),
                                d_cell_idx_new.data,
                                d_sort_idx.data,
                                d_sort_permutation.data,
@@ -155,6 +156,9 @@ void CellListGPU::computeCellList()
                 CHECK_CUDA_ERROR();
             }
         }
+
+    if (ngpu > 1 && !m_per_device)
+        combineCellLists();
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
@@ -213,7 +217,8 @@ void CellListGPU::initializeMemory()
 
     // only need to keep separate cell lists with more than one GPU
     unsigned int ngpu = m_exec_conf->getNumActiveGPUs();
-    if (! m_per_device)
+
+    if (ngpu == 1 && !m_per_device)
         return;
 
     m_exec_conf->msg->notice(10) << "CellListGPU initialize multiGPU memory" << endl;
