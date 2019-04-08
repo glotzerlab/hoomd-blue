@@ -13,13 +13,6 @@ pipeline
                     {
                     agent { label '{{ test.agent }}' }
 
-                    environment
-                        {
-                        CC = '{{ test.CC }}'
-                        CXX = '{{ test.CXX }}'
-                        OMP_NUM_THREADS = '{{ test.OMP_NUM_THREADS }}'
-                        }
-
                     steps
                         {
                         sh 'echo ${NODE_NAME}'
@@ -37,7 +30,7 @@ pipeline
                                 sh 'singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} /bin/bash -c set'
                                 sh 'singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} /bin/bash -c "ls /usr/bin/g++*"'
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python{{ test.PYVER }} -DENABLE_CUDA={{ test.ENABLE_CUDA }} -DENABLE_MPI={{ test.ENABLE_MPI }} -DENABLE_TBB={{ test.ENABLE_TBB }} -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT={{ test.BUILD_JIT }} -DLLVM_DIR=/usr/lib/llvm-{{ test.LLVM_VERSION }}/cmake -DALWAYS_USE_MANAGED_MEMORY={{ test.ALWAYS_USE_MANAGED_MEMORY }} -GNinja
+                                    singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python{{ test.PYVER }} -DENABLE_CUDA={{ test.ENABLE_CUDA }} -DENABLE_MPI={{ test.ENABLE_MPI }} -DENABLE_TBB={{ test.ENABLE_TBB }} -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT={{ test.BUILD_JIT }} -DLLVM_DIR=/usr/lib/llvm-{{ test.LLVM_VERSION }}/cmake -DALWAYS_USE_MANAGED_MEMORY={{ test.ALWAYS_USE_MANAGED_MEMORY }} -DCMAKE_C_COMPILER={{ test.CC }} -DCMAKE_CXX_COMPULER={{ test.CXX }} -GNinja
                                    '''
 
                                 sh 'singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} ninja -j 3'
@@ -46,6 +39,7 @@ pipeline
                             timeout(time: {{ 1 }}, unit: 'HOURS')
                                 {
                                 sh '''
+                                    export OMP_NUM_THREADS={{ test.OMP_NUM_THREADS }}
                                     export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-{{ test.LLVM_VERSION }}/bin
                                     singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/ctest --no-compress-output -T test --output-on-failure
                                    '''
@@ -77,13 +71,6 @@ pipeline
                     {
                     agent { label '{{ test.agent }}' }
 
-                    environment
-                        {
-                        CC = '{{ test.CC }}'
-                        CXX = '{{ test.CXX }}'
-                        OMP_NUM_THREADS = '{{ test.OMP_NUM_THREADS }}'
-                        }
-
                     steps
                         {
                         sh 'echo ${NODE_NAME}'
@@ -99,7 +86,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python{{ test.PYVER }} -DENABLE_CUDA={{ test.ENABLE_CUDA }} -DENABLE_MPI={{ test.ENABLE_MPI }} -DENABLE_TBB={{ test.ENABLE_TBB }} -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT={{ test.BUILD_JIT }} -DLLVM_DIR=/usr/lib/llvm-{{ test.LLVM_VERSION }}/cmake -DALWAYS_USE_MANAGED_MEMORY={{ test.ALWAYS_USE_MANAGED_MEMORY }} -GNinja
+                                    singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python{{ test.PYVER }} -DENABLE_CUDA={{ test.ENABLE_CUDA }} -DENABLE_MPI={{ test.ENABLE_MPI }} -DENABLE_TBB={{ test.ENABLE_TBB }} -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT={{ test.BUILD_JIT }} -DLLVM_DIR=/usr/lib/llvm-{{ test.LLVM_VERSION }}/cmake -DALWAYS_USE_MANAGED_MEMORY={{ test.ALWAYS_USE_MANAGED_MEMORY }} -DCMAKE_C_COMPILER={{ test.CC }} -DCMAKE_CXX_COMPULER={{ test.CXX }} -GNinja
                                    '''
 
                                 sh 'singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} ninja -j 3'
@@ -108,6 +95,7 @@ pipeline
                             timeout(time: {{ 12 }}, unit: 'HOURS')
                                 {
                                 sh '''
+                                    export OMP_NUM_THREADS={{ test.OMP_NUM_THREADS }}
                                     export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-{{ test.LLVM_VERSION }}/bin
                                     singularity exec --nv /nfs/glotzer/containers/{{ test.CONTAINER }} {{ test.CMAKE_BIN }}/ctest --no-compress-output -T test --output-on-failure
                                    '''
