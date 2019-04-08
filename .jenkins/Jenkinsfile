@@ -34,6 +34,8 @@ pipeline
                             {
                             timeout(time: 1, unit: 'HOURS')
                                 {
+                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda8.simg set'
+                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda8.simg ls /usr/bin/g++*'
                                 sh '''
                                     singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda8.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python2.7 -DENABLE_CUDA=ON -DENABLE_MPI=OFF -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -GNinja
                                    '''
@@ -88,6 +90,8 @@ pipeline
                             {
                             timeout(time: 1, unit: 'HOURS')
                                 {
+                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda9.simg set'
+                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda9.simg ls /usr/bin/g++*'
                                 sh '''
                                     singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda9.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -GNinja
                                    '''
@@ -142,6 +146,8 @@ pipeline
                             {
                             timeout(time: 1, unit: 'HOURS')
                                 {
+                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg set'
+                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg ls /usr/bin/g++*'
                                 sh '''
                                     singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=ON -GNinja
                                    '''
