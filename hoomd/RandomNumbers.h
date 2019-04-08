@@ -525,7 +525,7 @@ class PoissonDistribution
 
         //! Draw a value from the distribution
         /*! \param rng Random number generator
-            \returns normally distributed random value in with standard deviation *sigma* and mean *mu*.
+            \returns normally Poisson distributed random number with mean *mean*.
         */
         template<typename RNG>
         DEVICE inline int operator()(RNG& rng)
