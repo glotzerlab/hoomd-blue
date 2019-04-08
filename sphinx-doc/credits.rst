@@ -314,6 +314,9 @@ William Zygmunt, Luis Rivera-Rivera, University of Michigan
  * Patchy interaction support in HPMC CPU integrators
  * GSD state bug fixes
 
+Tim Moore, University of Michigan
+ * Apply external lattice field to particle groups
+
 DEM developers
 --------------
 
