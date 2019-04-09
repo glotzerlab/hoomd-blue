@@ -4,6 +4,7 @@
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
+#include "IntegratorHPMCMonoNEC.h"
 #include "IntegratorHPMCMonoImplicit.h"
 #include "ComputeFreeVolume.h"
 
@@ -46,6 +47,7 @@ namespace hpmc
 void export_convex_polyhedron(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeConvexPolyhedron >(m, "IntegratorHPMCMonoConvexPolyhedron");
+    export_IntegratorHPMCMonoNEC< ShapeConvexPolyhedron >(m, "IntegratorHPMCMonoNECConvexPolyhedron");
     export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron >(m, "IntegratorHPMCMonoImplicitConvexPolyhedron");
     export_ComputeFreeVolume< ShapeConvexPolyhedron >(m, "ComputeFreeVolumeConvexPolyhedron");
     export_AnalyzerSDF< ShapeConvexPolyhedron >(m, "AnalyzerSDFConvexPolyhedron");

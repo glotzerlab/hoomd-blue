@@ -4,6 +4,7 @@
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
+#include "IntegratorHPMCMonoNEC.h"
 #include "IntegratorHPMCMonoImplicit.h"
 #include "ComputeFreeVolume.h"
 
@@ -43,6 +44,7 @@ namespace hpmc
 void export_sphere(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSphere >(m, "IntegratorHPMCMonoSphere");
+    export_IntegratorHPMCMonoNEC< ShapeSphere >(m, "IntegratorHPMCMonoNECSphere");
     export_IntegratorHPMCMonoImplicit< ShapeSphere >(m, "IntegratorHPMCMonoImplicitSphere");
     export_ComputeFreeVolume< ShapeSphere >(m, "ComputeFreeVolumeSphere");
     export_AnalyzerSDF< ShapeSphere >(m, "AnalyzerSDFSphere");
