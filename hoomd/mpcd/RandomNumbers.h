@@ -85,12 +85,27 @@ class NormalGenerator
                 return m_val;
                 }
 
-            // draw two uniform random numbers
-            const Real u1 = rng.template s<Real>();
+            // draw first uniform, and ensure that it is positive for the sqrt call
+            Real m2logu1;
+            do
+                {
+                // Saru has rare cases where it draws exactly 1.0, reject those points.
+                Real u1;
+                do
+                    {
+                    // switch range to (0,1] to ensure no inf from log
+                    u1 = 1.0f - rng.template s<Real>();
+                    }
+                while(u1 <= Real(0.0));
+
+                m2logu1 = -2.0f*fast::log(u1);
+                }
+            while(m2logu1 < Real(0.0));
+            // second uniform is simple
             const Real u2 = rng.template s<Real>();
 
             // apply the Box-Muller transformation
-            const Real r = fast::sqrt(Real(-2.0) * fast::log(u1));
+            const Real r = fast::sqrt(m2logu1);
             const Real phi = Real(MPCD_2PI) * u2;
 
             // if enabled, cache the second value in case it is to be reused
@@ -175,7 +190,13 @@ class GammaGenerator
 
                 // draw uniform and perform cheap squeeze test first
                 const Real x2 = x*x;
-                Real u = rng.template s<Real>();
+                // ensure u != 0 to avoid issues in log below
+                Real u;
+                do
+                    {
+                    u = rng.template s<Real>();
+                    }
+                while(u <= Real(0.));
                 if (u < 1.0f-0.0331f*x2*x2) break;
 
                 // otherwise, do expensive log comparison

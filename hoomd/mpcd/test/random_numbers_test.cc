@@ -136,11 +136,26 @@ UP_TEST( normal_float_nocache_test )
     mpcd::detail::NormalGenerator<float, false> gen;
     check_moments(gen, 5000000, 0.0, 1.0, 0.01);
     }
-//! Test case for NormalGenerator -- float, no cache
+//! Test case for NormalGenerator -- float, cache
 UP_TEST( normal_float_cache_test )
     {
-    mpcd::detail::NormalGenerator<float, true> gen;
-    check_moments(gen, 5000000, 0.0, 1.0, 0.01);
+        {
+        mpcd::detail::NormalGenerator<float, true> gen;
+        check_moments(gen, 5000000, 0.0, 1.0, 0.01);
+        }
+
+    // corner cases: ensure only finite values from this rng hash,
+    // which previously resulted in an inf due to a log(0).
+        {
+        mpcd::detail::NormalGenerator<float, true> gen;
+        hoomd::detail::Saru rng(1363, 316, 42);
+        UP_ASSERT(std::isfinite(gen(rng)));
+        }
+        {
+        mpcd::detail::NormalGenerator<float, true> gen;
+        hoomd::detail::Saru rng(309, 1313, 42);
+        UP_ASSERT(std::isfinite(gen(rng)));
+        }
     }
 
 //! Test case for GammaGenerator -- double
