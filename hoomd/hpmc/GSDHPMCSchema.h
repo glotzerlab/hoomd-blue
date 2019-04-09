@@ -122,7 +122,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         std::string path_o = name + "orientable";
         std::vector<float> data;
         std::string path = name + "radius";
-        std::vector<uint32_t> orientableflag;
+        std::vector<uint32_t> orientableflag(Ntypes);
         bool state_read = true;
         if(m_exec_conf->isRoot())
             {
@@ -130,8 +130,14 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
             orientableflag.resize(Ntypes);
             if(!reader->readChunk((void *) &data[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes))
                 state_read = false;
-            if(!reader->readChunk((void *) &orientableflag[0], frame, path_o.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_UINT32), Ntypes))
+            if (reader->header.gsd_version <= gsd_make_version(1,2))
+                {
+                std::fill(orientableflag.begin(), orientableflag.end(), 0);
+                }
+            else if (!reader->readChunk((void *) &orientableflag[0], frame, path_o.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_UINT8), Ntypes))
+                {
                 state_read = false;
+                }
             }
 
         #ifdef ENABLE_MPI
