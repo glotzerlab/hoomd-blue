@@ -18,7 +18,7 @@
 #include "hoomd/hpmc/ShapeSpheropolygon.h"
 #include "hoomd/hpmc/ShapeSimplePolygon.h"
 #include "hoomd/hpmc/ShapeEllipsoid.h"
-#include "hoomd/hpmc/ShapeFacetedSphere.h"
+#include "hoomd/hpmc/ShapeFacetedEllipsoid.h"
 #include "hoomd/hpmc/ShapeSphinx.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -44,6 +44,6 @@ PYBIND11_MODULE(_jit, m)
     export_ExternalFieldJIT<ShapeSpheropolygon>(m, "ExternalFieldJITSpheropolygon");
     export_ExternalFieldJIT<ShapeSimplePolygon>(m, "ExternalFieldJITSimplePolygon");
     export_ExternalFieldJIT<ShapeEllipsoid>(m, "ExternalFieldJITEllipsoid");
-    export_ExternalFieldJIT<ShapeFacetedSphere>(m, "ExternalFieldJITFacetedSphere");
+    export_ExternalFieldJIT<ShapeFacetedEllipsoid>(m, "ExternalFieldJITFacetedEllipsoid");
     export_ExternalFieldJIT<ShapeSphinx>(m, "ExternalFieldJITSphinx");
     }

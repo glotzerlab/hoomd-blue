@@ -65,14 +65,16 @@ class free_volume(_compute):
                 cls = _hpmc.ComputeFreeVolumeEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
                 cls =_hpmc.ComputeFreeVolumeSpheropolygon;
-            elif isinstance(mc, integrate.faceted_sphere):
-                cls =_hpmc.ComputeFreeVolumeFacetedSphere;
+            elif isinstance(mc, integrate.faceted_ellipsoid):
+                cls =_hpmc.ComputeFreeVolumeFacetedEllipsoid;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.ComputeFreeVolumePolyhedron;
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.ComputeFreeVolumeSphinx;
             elif isinstance(mc, integrate.convex_polyhedron_union):
                 cls = _hpmc.ComputeFreeVolumeConvexPolyhedronUnion
+            elif isinstance(mc, integrate.faceted_ellipsoid_union):
+                cls = _hpmc.ComputeFreeVolumeFacetedEllipsoidUnion
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ComputeFreeVolumeSphereUnion;
             else:
@@ -93,14 +95,16 @@ class free_volume(_compute):
                 cls = _hpmc.ComputeFreeVolumeGPUEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
                 cls =_hpmc.ComputeFreeVolumeGPUSpheropolygon;
-            elif isinstance(mc, integrate.faceted_sphere):
-                cls =_hpmc.ComputeFreeVolumeGPUFacetedSphere;
+            elif isinstance(mc, integrate.faceted_ellipsoid):
+                cls =_hpmc.ComputeFreeVolumeGPUFacetedEllipsoid;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.ComputeFreeVolumeGPUPolyhedron;
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.ComputeFreeVolumeGPUSphinx;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ComputeFreeVolumeGPUSphereUnion;
+            elif isinstance(mc, integrate.faceted_ellipsoid_union):
+                cls = _hpmc.ComputeFreeVolumeGPUFacetedEllipsoidUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
                 cls = _hpmc.ComputeFreeVolumeGPUConvexPolyhedronUnion;
             else:

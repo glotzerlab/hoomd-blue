@@ -22,7 +22,7 @@ class simple_polygon_param_proxy(object):
 class polyhedron_param_proxy(object):
     pass
 
-class faceted_sphere_param_proxy(object):
+class faceted_ellipsoid_param_proxy(object):
     pass
 
 class sphinx3d_param_proxy(object):
@@ -35,4 +35,7 @@ class sphere_union_param_proxy(object):
     pass
 
 class convex_polyhedron_union_param_proxy(object):
+    pass
+
+class faceted_ellipsoid_union_param_proxy(object):
     pass
