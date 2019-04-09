@@ -122,7 +122,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         std::string path_o = name + "orientable";
         std::vector<float> data;
         std::string path = name + "radius";
-        std::vector<uint32_t> orientableflag(Ntypes);
+        std::vector<uint8_t> orientableflag(Ntypes);
         bool state_read = true;
         if(m_exec_conf->isRoot())
             {
