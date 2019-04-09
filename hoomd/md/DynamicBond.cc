@@ -21,26 +21,23 @@ using namespace std;
 
 DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
         std::shared_ptr<ParticleGroup> group,
-        Scalar r_cut,
         std::shared_ptr<NeighborList> nlist,
-        Scalar period,
-        // bond_type,
         int seed,
-        Scalar prob_create,
-        Scalar prob_destroy)
+        int period)
         : Updater(sysdef),
         m_group(group),
-        m_r_cut(r_cut),
-        m_nlist(nlist),
-        m_period(period),
-        m_seed(seed),
-        m_prob_create(prob_create),
-        m_prob_destroy(prob_destroy)
-        // m_bond_type(bond_type)
+        m_nlist(nlist)
     {
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
-
     }
+
+// void DynamicBond::set_params(Scalar r_cut,
+//                         std::string bond_type,
+//                         Scalar prob_create,
+//                         Scalar prob_destroy)
+//     {
+//     unsigned int b_type = m_bond_data->getTypeByName(bond_type);
+//     }
 
 DynamicBond::~DynamicBond()
     {
@@ -51,7 +48,7 @@ void DynamicBond::update(unsigned int timestep)
     {
     // assert(m_pdata);
     // assert(m_nlist);
-    m_nlist = nlist;
+    // m_nlist = nlist;
 
     // start by updating the neighborlist
     // m_nlist->compute(timestep);
@@ -122,15 +119,15 @@ void DynamicBond::update(unsigned int timestep)
             // if (m_shift_mode == xplor)
             //     ronsq = h_ronsq.data[typpair_idx];
             // }
-        }
+        // }
 
 
     if (m_prof)
         m_prof->pop();
     }
 
+
 void export_DynamicBond(py::module& m)
     {
-    py::class_< DynamicBond, std::shared_ptr<DynamicBond> >(m, "DynamicBond", py::base<Updater>()).def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, std::shared_ptr<NeighborList>, Scalar, int, Scalar, Scalar >())
-    ;
+    py::class_< DynamicBond, std::shared_ptr<DynamicBond> >(m, "DynamicBond", py::base<Updater>()).def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, std::shared_ptr<NeighborList>, int, int>());
     }

@@ -26,23 +26,28 @@ class dynamic_bond(_updater):
         prob_break: probability that a bond will be broken
         seed: rng seed
     """
-    def __init__(self, r_cut, nlist, bond_type, seed, prob_form=0.5, prob_break=0.5, period=1):
+    def __init__(self, group, nlist, seed, period=1): #r_cut, bond_type, seed, prob_form=0.5, prob_break=0.5, period=1):
         hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
 
         # create the c++ mirror class
-        self.cpp_updater = _md.DynamicBond(hoomd.context.current.system_definition, group.cpp_group,);
+        self.cpp_updater = _md.DynamicBond(hoomd.context.current.system_definition,
+                        group.cpp_group,
+                        nlist,
+                        seed,
+                        period);
         self.setupUpdater(period, phase);
 
-        # store metadata
-        self.prob_form = prob_form;
-        self.prob_break = prob_break;
-        self.r_cut = rcut;
-        self.nlist = nlist;
-        self.period = period;
-        metadata_fields = ['period', 'prob_form', 'prob_break']
+    # def set_params():
+    #     # store metadata
+    #     self.prob_form = prob_form;
+    #     self.prob_break = prob_break;
+    #     self.r_cut = rcut;
+    #     self.nlist = nlist;
+    #     self.period = period;
+    #     metadata_fields = ['period', 'prob_form', 'prob_break']
 
 
 class rescale_temp(_updater):
