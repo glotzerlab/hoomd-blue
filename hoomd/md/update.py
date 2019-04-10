@@ -34,10 +34,11 @@ class dynamic_bond(_updater):
 
         # create the c++ mirror class
         self.cpp_updater = _md.DynamicBond(hoomd.context.current.system_definition,
-                        group.cpp_group,
-                        nlist,
+                        # group.cpp_group,
+                        # nlist,
                         seed,
                         period);
+        phase = 0
         self.setupUpdater(period, phase);
 
     # def set_params():

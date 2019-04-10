@@ -14,7 +14,10 @@ class update_dynamic_bond_tests (unittest.TestCase):
 
     # tests basic creation of the updater
     def test(self):
-        updater = md.update.dynamic_bond(group=group.all(), nlist=self.nl, seed=1994, period=1)
+        updater = md.update.dynamic_bond(
+        group=group.all(), nlist=self.nl, 
+        seed=1994,
+        period=1)
         # updater.set_params(r_cut=2, bond_type='A', seed=1994)
         run(100);
 
