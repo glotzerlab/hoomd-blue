@@ -130,7 +130,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
             orientableflag.resize(Ntypes);
             if(!reader->readChunk((void *) &data[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes))
                 state_read = false;
-            if (reader->header.gsd_version <= gsd_make_version(1,2))
+            if (reader->getHandle().header.gsd_version <= gsd_make_version(1,2))
                 {
                 std::fill(orientableflag.begin(), orientableflag.end(), 0);
                 }
