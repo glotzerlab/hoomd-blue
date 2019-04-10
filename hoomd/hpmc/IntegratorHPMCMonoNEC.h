@@ -428,7 +428,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     
                     // measure the distance to the next particle
                     // updates:
-                    //   sweep                 - return value
+                    //   sweep                 - return value (units of length)
                     //   next                  - given as reference
                     //   collisionPlaneVector  - given as reference
                     sweep = sweepDistance(timestep,
@@ -501,8 +501,6 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
 
                         vec3<Scalar> vel_n = vec3<Scalar>(h_velocities.data[next]);
                         vec3<Scalar> vel_k = vec3<Scalar>(h_velocities.data[k]);
-                    
-                        vec3<Scalar> new_direction = vec3<Scalar>(0,0,0);
                         
                         int3 null_image;
                         vec3<Scalar> delta_pos = pos_n-pos_k;
@@ -525,12 +523,9 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                         h_velocities.data[next] = make_scalar4( vel_n.x, vel_n.y, vel_n.z, h_velocities.data[next].w);
                         h_velocities.data[k]    = make_scalar4( vel_k.x, vel_k.y, vel_k.z, h_velocities.data[k].w);
 
-                        new_direction = vel_n;
                         velocity = sqrt( dot(vel_n,vel_n));
                         
-                        new_direction /= sqrt( dot(new_direction,new_direction));
-                           
-                        direction = new_direction;
+                        direction = vel_n / velocity;
                         }
                     } // end loop over totalDist.
 
@@ -808,15 +803,13 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                         
                         if ( h_overlaps.data[this->m_overlap_idx(typ_i, typ_j)])
                             {
-                            double sumR =   shape_i.params.radius
-                                          + shape_j.params.radius;
-                            double maxR = sumR + sweepableDistance;
+                            double sumR   =   shape_i.params.radius
+                                            + shape_j.params.radius;
+                            double maxR   = sumR + sweepableDistance;
                             double distSQ = dot(r_ij,r_ij);
                         
                             if( distSQ < maxR*maxR )
                                 {
-//                                 double newDist = sweep_distance(r_ij, shape_i, shape_j, direction, counters.overlap_err_count);
-                                    
                                 double d_parallel =  dot(r_ij, direction);
                                 if( d_parallel   <= 0 ) continue; // Moving apart
                                 
@@ -835,8 +828,8 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                         {
                                         sweepableDistance = newDist;
                                         next = j;
-                                    
-                                        collisionPlaneVector = r_ij;
+                                        // calculate delta_pos on touch
+                                        collisionPlaneVector = r_ij - direction * newDist ;
                                         }
                                     else
                                         {
@@ -853,7 +846,6 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                 
                                     sweepableDistance = 0.0;
                                     next = j;
-                                
                                     collisionPlaneVector = r_ij;
                                     
                                     return sweepableDistance;
@@ -984,8 +976,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
 										
 										if( dot(r_ij,direction) > 0 )
 											{
-										
-											collisionPlaneVector = newCollisionPlaneVector; // r_ij
+											collisionPlaneVector = newCollisionPlaneVector;
 											next = j;
 											sweepableDistance = 0.0;
 											}

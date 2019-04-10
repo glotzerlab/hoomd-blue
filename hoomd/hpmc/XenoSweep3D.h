@@ -54,29 +54,10 @@ namespace detail
     \param newCollisionPlaneVector Gives a normal on the final portal
     \returns positive for two particles that collide in a given distance, negative for error values. -1: resultNoCollision, -2: resultNoForwardCollisionOrOverlapping, -3: resultOverlapping
 
-    XenoCollide is a generic algorithm for detecting overlaps between two shapes. It operates with the support function
-    of each of the two shapes. To enable generic use of this algorithm on a variety of shapes, those support functions
-    are passed in as templated functors. Each functor might store a reference to data (i.e. polyhedron verts), but the only
-    public interface that XenoCollide will use is to call the operator() on the functor and give it the normal vector
-    n *in the **local** coordinates* of that shape. Local coordinates are used to avoid massive memory usage needed to
-    store a translated copy of each shape.
-
-    The initial implementation is designed primarily for polygons. Shapes with curved surfaces could be used,
-    but they require an additional termination condition that comes with a tolerance. When and if such shapes are
-    needed, we can update this function to optionally implement that tolerance (via another template parameter).
-
-    The parameters of this class closely follow those of test_overlap_separating_planes, since they were found to be a
-    good breakdown of the problem into coordinate systems. Specifically, overlaps are checked in a coordinate system
-    where particle *A* is at the origin, and particle *B* is at position *ab_t*. Particle A has orientation (1,0,0,0)
-    and particle B has orientation *q*.
-
-    The recommended way of using this code is to specify the support functor in the same file as the shape data
-    (e.g. ShapeConvexPolyhedron.h). Then include XenoCollide3D.h and call xenocollide_3d where needed.
-
-    **Normalization**
-    In _Games Programming Gems_, the book normalizes all vectors passed into S. This is unnecessary in some circumstances
-    and we avoid it for performance reasons. Support functions that require the use of normal n vectors should normalize
-    it when needed.
+    XenoSweep is an extension of the XenoCollide algorithm. Described in arXiv:xxxx.xxxxx | [insert-paper-here]
+    
+    We try to find the surface element of the minkowski difference, that will be hit by the origin.
+    It works well for polyhedra. As spherical/round shapes do not have a defined surface element that we can find, convergence is slow and way less efficient.
 
     \ingroup minkowski
 */
@@ -88,7 +69,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
                                        const vec3<OverlapReal>& direction,
                                        const OverlapReal R,
                                        unsigned int& err_count,
-									   vec3<OverlapReal>& collisionPlaneVector
+                                       vec3<OverlapReal>& collisionPlaneVector
 )
     {
 
@@ -104,19 +85,17 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         const OverlapReal root_tol = 3e-4;
     #else
         // precision tolerance for double-precision floats near 1.0
-//         const OverlapReal precision_tol = 4e-14;
-        const OverlapReal precision_tol = 1e-14;
+        const OverlapReal precision_tol = 1e-14; // 4e-14 for overlap check
 
         // square root of precision tolerance
-//         const OverlapReal root_tol = 1e-7;
-        const OverlapReal root_tol = 2e-7;
+        const OverlapReal root_tol = 2e-7; // 1e-7 for overlap check
     #endif
     
 
     const OverlapReal resultNoCollision = -1.0;
     const OverlapReal resultNoForwardCollisionOrOverlapping = -2.0;
     // If there is a known overlap we will return a value <= -3 (which is related to how early the overlap was detected).
-	// const OverlapReal resultOverlapping = -3.0;
+    // const OverlapReal resultOverlapping = -3.0;
     
     if (fabs(ab_t.x) < root_tol && fabs(ab_t.y) < root_tol && fabs(ab_t.z) < root_tol)
         {
@@ -157,15 +136,19 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         if (count >= XENOCOLLIDE_3D_MAX_ITERATIONS)
             {
             err_count++;
+            
+            #ifdef XENOERRORPUTS
             printf("[EE] XenoSweep3D above max iterations in 2D-Iteration\n"
-				   "     ab_t      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-				   "     direction = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-				   "     q         = quat<OverlapReal>( %10f , vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
-				   ab_t.x, ab_t.y, ab_t.z,
-				   direction.x, direction.y, direction.z,
-				   q.s, q.v.x, q.v.y, q.v.z
-			);
-			return resultNoForwardCollisionOrOverlapping;
+                   "     ab_t      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                   "     direction = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                   "     q         = quat<OverlapReal>( %10f , vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
+                   ab_t.x, ab_t.y, ab_t.z,
+                   direction.x, direction.y, direction.z,
+                   q.s, q.v.x, q.v.y, q.v.z
+                   );
+            #endif
+            
+            return resultNoForwardCollisionOrOverlapping;
             }
 
         // Get the next support point
@@ -230,63 +213,65 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         const OverlapReal tol_multiplier = 10000;
         d = dot((v1 - v4) * tol_multiplier , n);
         OverlapReal tol = precision_tol * tol_multiplier * R * fast::sqrt(dot(n,n));
-		//OverlapReal tol = precision_tol * tol_multiplier * R * sqrt(dot(n,n));
+        //OverlapReal tol = precision_tol * tol_multiplier * R * sqrt(dot(n,n));
 
         // First, check if v4 is on plane (v2,v1,v3) or "behind"
         if (d < tol)
-			{
-			collisionPlaneVector = n;
+            {
+            collisionPlaneVector = n;
             return dot(n,v1) / dot(n,v0);
-			}
+            }
 
-		#ifdef XENOERRORPUTS
-		printf("[II] New v4 with %e > %e\n"
-				"     v1      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-				"     v2      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-				"     v3      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-				"     v4      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-				"     n       = vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
-				d, tol,
-				v1.x, v1.y, v1.z,
-				v2.x, v2.y, v2.z,
-				v3.x, v3.y, v3.z,
-				v4.x, v4.y, v4.z,
- 				n.x,  n.y,  n.z
+        #ifdef XENOERRORPUTS
+        printf("[II] New v4 with %e > %e\n"
+                "     v1      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                "     v2      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                "     v3      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                "     v4      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                "     n       = vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
+                d, tol,
+                v1.x, v1.y, v1.z,
+                v2.x, v2.y, v2.z,
+                v3.x, v3.y, v3.z,
+                v4.x, v4.y, v4.z,
+                 n.x,  n.y,  n.z
+                );
+        #endif
 
-		);
-		#endif
-
-		
+        
         if (count >= XENOCOLLIDE_3D_MAX_ITERATIONS)
             {
             err_count++;
-            printf("[EE] XenoSweep3D above max iterations!\n"
-				   "     ab_t      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-				   "     direction = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-				   "     q         = quat<OverlapReal>( %10f , vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
-				   ab_t.x, ab_t.y, ab_t.z,
-				   direction.x, direction.y, direction.z,
-				   q.s, q.v.x, q.v.y, q.v.z
-			);
-			printf("     Ended with %e > %e  Final Vectors:\n"
-					"     v1      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-					"     v2      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-					"     v3      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-					"     v4      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-					"     n       = vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
-					d, tol,
-					v1.x, v1.y, v1.z,
-					v2.x, v2.y, v2.z,
-					v3.x, v3.y, v3.z,
-					v4.x, v4.y, v4.z,
-					n.x,  n.y,  n.z
 
-			);
-			
-			collisionPlaneVector = n;
+            #ifdef XENOERRORPUTS
+            printf("[EE] XenoSweep3D above max iterations!\n"
+                   "     ab_t      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                   "     direction = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                   "     q         = quat<OverlapReal>( %10f , vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
+                   ab_t.x, ab_t.y, ab_t.z,
+                   direction.x, direction.y, direction.z,
+                   q.s, q.v.x, q.v.y, q.v.z
+            );
+            printf("     Ended with %e > %e  Final Vectors:\n"
+                    "     v1      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                    "     v2      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                    "     v3      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                    "     v4      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
+                    "     n       = vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
+                    d, tol,
+                    v1.x, v1.y, v1.z,
+                    v2.x, v2.y, v2.z,
+                    v3.x, v3.y, v3.z,
+                    v4.x, v4.y, v4.z,
+                    n.x,  n.y,  n.z
+
+            );
+            #endif
+
+            collisionPlaneVector = n;
             return dot(n,v1) / dot(n,v0);
-// Return current distance, as it should be a better estimate than ignoring each other.
-//             return noForwardCollisionOrOverlapping;
+            // Return current distance, as it should be a better estimate than ignoring each other.
+            //             return noForwardCollisionOrOverlapping;
             }
 
         x = cross(v4, v0);
