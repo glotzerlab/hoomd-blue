@@ -20,8 +20,8 @@ using namespace std;
 */
 
 DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
-        // std::shared_ptr<ParticleGroup> group,
-        // std::shared_ptr<NeighborList> nlist,
+        std::shared_ptr<ParticleGroup> group,
+        std::shared_ptr<NeighborList> nlist,
         int seed,
         int period)
         : Updater(sysdef) //,
@@ -129,6 +129,6 @@ void DynamicBond::update(unsigned int timestep)
 
 void export_DynamicBond(py::module& m)
     {
-    py::class_< DynamicBond, std::shared_ptr<DynamicBond> >(m, "DynamicBond", py::base<Updater>()).def(py::init< std::shared_ptr<SystemDefinition>,  int, int>());
+    py::class_< DynamicBond, std::shared_ptr<DynamicBond> >(m, "DynamicBond", py::base<Updater>()).def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, std::shared_ptr<NeighborList>, int, int>());
     }
-    // std::shared_ptr<ParticleGroup>, std::shared_ptr<NeighborList>,
+    // ,

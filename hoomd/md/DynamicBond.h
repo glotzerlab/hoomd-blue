@@ -30,8 +30,8 @@ class PYBIND11_EXPORT DynamicBond : public Updater
     public:
         //! Constructs the compute
         DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
-                 // std::shared_ptr<ParticleGroup> group,
-                 // std::shared_ptr<NeighborList> nlist,
+                 std::shared_ptr<ParticleGroup> group,
+                 std::shared_ptr<NeighborList> nlist,
                  int seed,
                  int period);
 
