@@ -335,7 +335,7 @@ void ForceCompositeGPU::findRigidCenters()
     unsigned int old_size = m_lookup_center.getNumElements();
     m_lookup_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
-    if (m_lookup_center.getNumElements() != old_size)
+    if (m_exec_conf->allConcurrentManagedAccess() && m_lookup_center.getNumElements() != old_size)
         {
         // set memory hints
         cudaMemAdvise(m_lookup_center.get(), sizeof(unsigned int)*m_lookup_center.getNumElements(), cudaMemAdviseSetReadMostly, 0);
