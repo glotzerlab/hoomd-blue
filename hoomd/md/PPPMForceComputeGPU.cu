@@ -331,6 +331,12 @@ void gpu_assign_particles(const uint3 mesh_dim,
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
 
+        if (ngpu > 1)
+            {
+            // zero the temporary mesh array 
+            cudaMemsetAsync(d_mesh_scratch + idev*mesh_elements, 0, sizeof(cufftComplex)*mesh_elements);
+            }
+
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork/run_block_size+1;
 
