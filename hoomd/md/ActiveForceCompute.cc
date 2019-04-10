@@ -237,12 +237,12 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
         {
         unsigned int tag = m_group->getMemberTag(i);
         unsigned int idx = h_rtag.data[tag];
-        hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, m_seed, tag, timestep);
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, m_seed, tag, timestep);
 
         if (m_sysdef->getNDimensions() == 2) // 2D
             {
             Scalar delta_theta; // rotational diffusion angle
-            delta_theta = hoomd::detail::NormalDistribution<Scalar>(m_rotationConst)(rng);
+            delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
             Scalar theta; // angle on plane defining orientation of active force vector
             theta = atan2(h_f_actVec.data[i].y, h_f_actVec.data[i].x);
             theta += delta_theta;
@@ -254,7 +254,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
             {
             if (m_rx == 0) // if no constraint
                 {
-                hoomd::detail::SpherePointGenerator<Scalar> unit_vec;
+                hoomd::SpherePointGenerator<Scalar> unit_vec;
                 vec3<Scalar> rand_vec;
                 unit_vec(rng, rand_vec);
 
@@ -277,7 +277,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
                 current_t_vec.y = h_t_actVec.data[i].y;
                 current_t_vec.z = h_t_actVec.data[i].z;
 
-                Scalar delta_theta = hoomd::detail::NormalDistribution<Scalar>(m_rotationConst)(rng);
+                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
                 h_f_actVec.data[i].x = slow::cos(delta_theta)*current_f_vec.x + slow::sin(delta_theta)*aux_vec.x;
                 h_f_actVec.data[i].y = slow::cos(delta_theta)*current_f_vec.y + slow::sin(delta_theta)*aux_vec.y;
                 h_f_actVec.data[i].z = slow::cos(delta_theta)*current_f_vec.z + slow::sin(delta_theta)*aux_vec.z;
@@ -310,7 +310,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
                 vec3<Scalar> aux_vec = cross(current_f_vec, norm); // aux vec for defining direction that active force vector rotates towards. Torque ignored
 
                 Scalar delta_theta; // rotational diffusion angle
-                delta_theta = hoomd::detail::NormalDistribution<Scalar>(m_rotationConst)(rng);
+                delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
 
                 h_f_actVec.data[i].x = slow::cos(delta_theta)*current_f_vec.x + slow::sin(delta_theta)*aux_vec.x;
                 h_f_actVec.data[i].y = slow::cos(delta_theta)*current_f_vec.y + slow::sin(delta_theta)*aux_vec.y;

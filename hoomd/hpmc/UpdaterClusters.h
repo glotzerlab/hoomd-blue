@@ -1066,7 +1066,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf,"Transform");
 
     // generate the move, select a pivot
-    hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterClusters, timestep, this->m_seed);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterClusters, timestep, this->m_seed);
     BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> pivot(0,0,0);
 
@@ -1096,8 +1096,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         if (m_sysdef->getNDimensions() == 3)
             {
-            Scalar theta = hoomd::detail::UniformDistribution<Scalar>(Scalar(0.0),Scalar(2.0*M_PI))(rng);
-            Scalar z = hoomd::detail::UniformDistribution<Scalar>(Scalar(-1.0),Scalar(1.0))(rng);
+            Scalar theta = hoomd::UniformDistribution<Scalar>(Scalar(0.0),Scalar(2.0*M_PI))(rng);
+            Scalar z = hoomd::UniformDistribution<Scalar>(Scalar(-1.0),Scalar(1.0))(rng);
             n = vec3<Scalar>(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
             }
         else
@@ -1636,7 +1636,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     unsigned int j = it->first.second;
 
                     // create a RNG specific to this particle pair
-                    hoomd::detail::RandomGenerator rng_ij(hoomd::RNGIdentifier::UpdaterClustersPairwise, this->m_seed, timestep, std::min(i,j), std::max(i,j));
+                    hoomd::RandomGenerator rng_ij(hoomd::RNGIdentifier::UpdaterClustersPairwise, this->m_seed, timestep, std::min(i,j), std::max(i,j));
 
                     float pij = 1.0f-exp(-delU);
                     if (hoomd::detail::generate_canonical<float>(rng_ij) <= pij) // GCA
@@ -1801,7 +1801,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         Scalar3 shift = make_scalar3(0,0,0);
 
-        hoomd::detail::UniformDistribution<Scalar> shift_gen(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
+        hoomd::UniformDistribution<Scalar> shift_gen(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
         shift.x = shift_gen(rng);
         shift.y = shift_gen(rng);
         if (this->m_sysdef->getNDimensions() == 3)

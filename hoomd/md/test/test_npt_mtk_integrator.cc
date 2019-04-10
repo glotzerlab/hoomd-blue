@@ -330,7 +330,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // give the particles velocities according to a Maxwell-Boltzmann distribution
-    detail::RandomGenerator rng(54321);
+    RandomGenerator rng(54321);
 
     // total up the system momentum
     Scalar3 total_momentum = make_scalar3(0.0, 0.0, 0.0);
@@ -342,7 +342,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
         // generate gaussian velocities
         Scalar mass = pdata->getMass(idx);
         Scalar sigma = T0 / mass;
-        detail::NormalDistribution<Scalar> normal(sigma);
+        NormalDistribution<Scalar> normal(sigma);
         Scalar vx = normal(rng);
         Scalar vy = normal(rng);
         Scalar vz = normal(rng);

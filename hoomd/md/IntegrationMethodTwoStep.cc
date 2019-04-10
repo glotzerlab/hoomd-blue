@@ -240,12 +240,12 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
         unsigned int ptag = h_tag.data[j];
 
         /* Initialize the random number generator */
-        hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::IntegrationMethodTwoStep, m_seed_randomize, ptag, timestep);
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::IntegrationMethodTwoStep, m_seed_randomize, ptag, timestep);
 
         /* Generate a new random linear velocity for particle j */
         Scalar mass =  h_vel.data[j].w;
         Scalar sigma = fast::sqrt(m_T_randomize / mass);
-        hoomd::detail::NormalDistribution<Scalar> normal(sigma);
+        hoomd::NormalDistribution<Scalar> normal(sigma);
         h_vel.data[j].x = normal(rng);
         h_vel.data[j].y = normal(rng);
         if (D > 2)
@@ -267,11 +267,11 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
             /* Generate a new random angular momentum for particle j in
              * body frame */
             if (I.x >= EPSILON)
-                p_vec.x = hoomd::detail::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.x))(rng);
+                p_vec.x = hoomd::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.x))(rng);
             if (I.y >= EPSILON)
-                p_vec.y = hoomd::detail::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.y))(rng);
+                p_vec.y = hoomd::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.y))(rng);
             if (I.z >= EPSILON)
-                p_vec.z = hoomd::detail::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.z))(rng);
+                p_vec.z = hoomd::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.z))(rng);
 
             /* Store the angular momentum quaternion */
             quat<Scalar> p = Scalar(2.0) * q * p_vec;

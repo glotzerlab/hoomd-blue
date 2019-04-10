@@ -61,7 +61,7 @@ UP_TEST( basic )
 UP_TEST( bigger )
     {
     const unsigned int N = 1000;
-    hoomd::detail::RandomGenerator rng(1);
+    hoomd::RandomGenerator rng(1);
 
     // build a test AABB tree big enough to exercise the node splitting
     std::vector< vec3<Scalar> > points(N);

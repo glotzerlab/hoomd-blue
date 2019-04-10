@@ -35,7 +35,7 @@ namespace hpmc
 template <class RNG>
 DEVICE inline void move_translate(vec3<Scalar>& v, RNG& rng, Scalar d, unsigned int dim)
     {
-    hoomd::detail::UniformDistribution<Scalar> uniform(-d, d);
+    hoomd::UniformDistribution<Scalar> uniform(-d, d);
 
     // Generate a random vector inside a sphere of radius d
     vec3<Scalar> dr(Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -65,14 +65,14 @@ DEVICE void move_rotate(quat<Scalar>& orientation, RNG& rng, Scalar a, unsigned 
     if (dim==2)
         {
         a /= Scalar(2.0);
-        Scalar alpha = hoomd::detail::UniformDistribution<Scalar>(-a, a)(rng);;
+        Scalar alpha = hoomd::UniformDistribution<Scalar>(-a, a)(rng);;
         quat<Scalar> q(fast::cos(alpha), fast::sin(alpha) * vec3<Scalar>(Scalar(0),Scalar(0),Scalar(1))); // rotation quaternion
         orientation = orientation * q;
         orientation = orientation * (fast::rsqrt(norm2(orientation)));
         }
     else
         {
-        hoomd::detail::UniformDistribution<Scalar> uniform(Scalar(-1.0), Scalar(1.0));
+        hoomd::UniformDistribution<Scalar> uniform(Scalar(-1.0), Scalar(1.0));
 
         // Frenkel and Smit reference Allen and Tildesley, referencing Vesley(1982), referencing Marsaglia(1972).
         // Generate a random unit quaternion. Scale it to a small rotation and apply.
@@ -150,7 +150,7 @@ inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_sphere, 
     {
     // random normalized vector
     vec3<Scalar> n;
-    hoomd::detail::SpherePointGenerator<Scalar>(rng, n);
+    hoomd::SpherePointGenerator<Scalar>(rng, n);
 
     // draw random radial coordinate in test sphere
     Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);

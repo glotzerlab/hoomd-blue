@@ -30,7 +30,7 @@ struct ShapeDummy
 
 UP_TEST( rand_rotate_3d )
     {
-    hoomd::detail::RandomGenerator rng(123, 456, 789);
+    hoomd::RandomGenerator rng(123, 456, 789);
 
     quat<Scalar> a(1, vec3<Scalar>(0,0,0));
     for (int i=0; i<10000; i++)
@@ -55,7 +55,7 @@ UP_TEST( rand_rotate_3d )
 
 UP_TEST( rand_rotate_2d )
     {
-    hoomd::detail::RandomGenerator rng(123, 456, 789);
+    hoomd::RandomGenerator rng(123, 456, 789);
 
     Scalar a = .1;
 
@@ -85,7 +85,7 @@ UP_TEST( rand_rotate_2d )
 
 UP_TEST( rand_translate_3d )
     {
-    hoomd::detail::RandomGenerator rng(123, 456, 789);
+    hoomd::RandomGenerator rng(123, 456, 789);
     Scalar d = 0.1;
     // test randomly generated quaternions for unit norm
 
@@ -111,7 +111,7 @@ UP_TEST( rand_translate_3d )
 
 UP_TEST( rand_translate_2d )
     {
-    hoomd::detail::RandomGenerator rng(123, 456, 789);
+    hoomd::RandomGenerator rng(123, 456, 789);
     Scalar d = 0.1;
     // test randomly generated quaternions for unit norm
 

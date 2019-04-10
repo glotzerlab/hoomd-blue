@@ -124,8 +124,8 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         unsigned int ptag = d_tag[idx];
 
         // compute the random force
-        detail::RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, ptag, timestep);
-        detail::UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
+        RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, ptag, timestep);
+        UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
         Scalar rx = uniform(rng);
         Scalar ry = uniform(rng);
         Scalar rz =  uniform(rng);
@@ -167,7 +167,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         // draw a new random velocity for particle j
         Scalar mass = vel.w;
         Scalar sigma = fast::sqrt(T/mass);
-        detail::NormalDistribution<Scalar> normal(sigma);
+        NormalDistribution<Scalar> normal(sigma);
         vel.x = normal(rng);
         vel.y = normal(rng);
         if (D > 2)
@@ -207,9 +207,9 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 // original Gaussian random torque
                 // Gaussian random distribution is preferred in terms of preserving the exact math
                 vec3<Scalar> bf_torque;
-                bf_torque.x = detail::NormalDistribution<Scalar>(sigma_r.x)(rng);
-                bf_torque.y = detail::NormalDistribution<Scalar>(sigma_r.y)(rng);
-                bf_torque.z = detail::NormalDistribution<Scalar>(sigma_r.z)(rng);
+                bf_torque.x = NormalDistribution<Scalar>(sigma_r.x)(rng);
+                bf_torque.y = NormalDistribution<Scalar>(sigma_r.y)(rng);
+                bf_torque.z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
                 if (x_zero) bf_torque.x = 0;
                 if (y_zero) bf_torque.y = 0;
@@ -232,9 +232,9 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 d_orientation[idx] = quat_to_scalar4(q);
 
                 // draw a new random ang_mom for particle j in body frame
-                p_vec.x = detail::NormalDistribution<Scalar>(fast::sqrt(T * I.x))(rng);
-                p_vec.y = detail::NormalDistribution<Scalar>(fast::sqrt(T * I.y))(rng);
-                p_vec.z = detail::NormalDistribution<Scalar>(fast::sqrt(T * I.z))(rng);
+                p_vec.x = NormalDistribution<Scalar>(fast::sqrt(T * I.x))(rng);
+                p_vec.y = NormalDistribution<Scalar>(fast::sqrt(T * I.y))(rng);
+                p_vec.z = NormalDistribution<Scalar>(fast::sqrt(T * I.z))(rng);
                 if (x_zero) p_vec.x = 0;
                 if (y_zero) p_vec.y = 0;
                 if (z_zero) p_vec.z = 0;

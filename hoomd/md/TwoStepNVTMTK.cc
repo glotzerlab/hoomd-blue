@@ -456,12 +456,12 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
     Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_T_randomize*m_tau*m_tau);
 
     bool master = m_exec_conf->getRank() == 0;
-    hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNVTMTK, m_seed_randomize, timestep);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNVTMTK, m_seed_randomize, timestep);
 
     if (master)
         {
         // draw a random Gaussian thermostat variable on rank 0
-        xi = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
+        xi = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
         }
 
     #ifdef ENABLE_MPI
@@ -480,7 +480,7 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
 
         if (master)
             {
-            xi_rot = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
+            xi_rot = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
             }
 
         #ifdef ENABLE_MPI

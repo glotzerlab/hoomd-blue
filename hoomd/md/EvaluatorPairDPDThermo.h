@@ -196,10 +196,10 @@ class EvaluatorPairDPDThermo
                    m_oj = m_j;
                    }
 
-                hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_seed, m_oi, m_oj, m_timestep);
+                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_seed, m_oi, m_oj, m_timestep);
 
                 // Generate a single random number
-                Scalar alpha = hoomd::detail::UniformDistribution<Scalar>(-1,1)(rng);
+                Scalar alpha = hoomd::UniformDistribution<Scalar>(-1,1)(rng);
 
                 // conservative dpd
                 //force_divr = FDIV(a,r)*(Scalar(1.0) - r*rcutinv);

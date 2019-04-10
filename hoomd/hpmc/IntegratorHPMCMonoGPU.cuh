@@ -467,10 +467,10 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
     if (active)
         {
         // one RNG per cell
-        hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoTrialMove, seed, my_cell, select, timestep);
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoTrialMove, seed, my_cell, select, timestep);
 
         // select one of the particles randomly from the cell
-        unsigned int my_cell_offset = hoomd::detail::UniformIntDistribution(my_cell_size-1)(rng);
+        unsigned int my_cell_offset = hoomd::UniformIntDistribution(my_cell_size-1)(rng);
         i = tex1Dfetch(cell_idx_tex, cli(my_cell_offset, my_cell));
 
         // read in the position and orientation of our particle.
@@ -499,7 +499,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
             move_active = false;
 
         // make the move
-        unsigned int move_type_select = hoomd::detail::UniformIntDistribution(0xffff)(rng);
+        unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
         move_type_translate = !shape_i.hasOrientation() || (move_type_select < move_ratio);
 
         if (move_type_translate)

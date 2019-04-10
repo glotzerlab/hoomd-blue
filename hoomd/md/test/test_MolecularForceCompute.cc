@@ -145,7 +145,7 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std:
     unsigned int niter = 100;
 
     std::vector<unsigned int> molecule_tags(nptl, NO_MOLECULE);
-    hoomd::detail::RandomGenerator rng(123456);
+    hoomd::RandomGenerator rng(123456);
 
     MyMolecularForceCompute mfc_cpu(sysdef_cpu, molecule_tags, 0);
     MyMolecularForceCompute mfc_gpu(sysdef_gpu, molecule_tags, 0);
@@ -157,7 +157,7 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std:
         for (unsigned int j = 0; j < nptl; ++j)
             {
             // choose a molecule tag 0 <= mol_tag <= nptl
-            unsigned int t = hoomd::detail::UniformIntDistribution(nptl)(rng);
+            unsigned int t = hoomd::UniformIntDistribution(nptl)(rng);
             if (t == nptl) t = NO_MOLECULE;
 
             molecule_tags[j] = t;

@@ -209,7 +209,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC");
 
     // rng for shuffle and grid shift
-    hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShift, this->m_seed, timestep);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShift, this->m_seed, timestep);
 
     // if the cell list is a different size than last time, reinitialize the cell sets list
     uint3 cur_dim = this->m_cl->getDim();
@@ -358,7 +358,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
     // shift particles
     Scalar3 shift = make_scalar3(0,0,0);
-    hoomd::detail::UniformDistribution<Scalar> uniform(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
+    hoomd::UniformDistribution<Scalar> uniform(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
     shift.x = uniform(rng);
     shift.y = uniform(rng);
     if (this->m_sysdef->getNDimensions() == 3)

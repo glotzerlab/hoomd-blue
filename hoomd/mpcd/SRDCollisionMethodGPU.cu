@@ -56,11 +56,11 @@ __global__ void srd_draw_vectors(double3 *d_rotvec,
     const unsigned int global_idx = global_ci(global_cell.x, global_cell.y, global_cell.z);
 
     // Initialize the PRNG using the cell index, timestep, and seed for the hash
-    hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::SRDCollisionMethod, seed, global_idx, timestep);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SRDCollisionMethod, seed, global_idx, timestep);
 
     // draw rotation vector off the surface of the sphere
     double3 rotvec;
-    hoomd::detail::SpherePointGenerator<double> sphgen;
+    hoomd::SpherePointGenerator<double> sphgen;
     sphgen(rng, rotvec);
     d_rotvec[idx] = rotvec;
 
@@ -75,7 +75,7 @@ __global__ void srd_draw_vectors(double3 *d_rotvec,
             const double alpha = n_dimensions*(np-1)/(double)2.;
 
             // draw a random kinetic energy for the cell at the set temperature
-            hoomd::detail::GammaDistribution<double> gamma_gen(alpha,T_set);
+            hoomd::GammaDistribution<double> gamma_gen(alpha,T_set);
             const double rand_ke = gamma_gen(rng);
 
             // generate the scale factor from the current temperature

@@ -52,7 +52,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
     std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    detail::RandomGenerator rng(11, 21, 33);
+    RandomGenerator rng(11, 21, 33);
 
     // setup a simple initial state
     Scalar tiny = 1e-3;
@@ -66,8 +66,8 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
             pos.z = 0.0;
             pdata->setPosition(k, pos);
             Scalar3 vel;
-            vel.x = detail::UniformDistribution<Scalar>(-1.0, 1.0)(rng);
-            vel.y= detail::UniformDistribution<Scalar>(-1.0, 1.0)(rng);
+            vel.x = UniformDistribution<Scalar>(-1.0, 1.0)(rng);
+            vel.y= UniformDistribution<Scalar>(-1.0, 1.0)(rng);
             vel.z = 0.0;
             pdata->setVelocity(k, vel);
             }
@@ -112,8 +112,8 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
             ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(), access_location::host, access_mode::readwrite);
             for (unsigned int i=0; i<np; i++)
                 {
-                h_accel.data[i].z += detail::UniformDistribution<Scalar>(-0.001, 0.002)(rng);
-                h_vel.data[i].z += detail::UniformDistribution<Scalar>(-0.002, 0.001)(rng);
+                h_accel.data[i].z += UniformDistribution<Scalar>(-0.001, 0.002)(rng);
+                h_vel.data[i].z += UniformDistribution<Scalar>(-0.002, 0.001)(rng);
                 }
             }
         nve_up->update(t);
@@ -137,8 +137,8 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
             pos.z = 0.0;
             pdata->setPosition(k,pos);
             Scalar3 vel;
-            vel.x = detail::UniformDistribution<Scalar>(-1.0, 1.0)(rng);
-            vel.y = detail::UniformDistribution<Scalar>(-1.0, 1.0)(rng);
+            vel.x = UniformDistribution<Scalar>(-1.0, 1.0)(rng);
+            vel.y = UniformDistribution<Scalar>(-1.0, 1.0)(rng);
             vel.z = 0.0;
             pdata->setVelocity(k,vel);
             }
@@ -155,8 +155,8 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
             ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(), access_location::host, access_mode::readwrite);
             for (unsigned int i=0; i<np; i++)
                 {
-                h_accel.data[i].z += detail::UniformDistribution<Scalar>(-0.01, 0.02)(rng);
-                h_vel.data[i].z += detail::UniformDistribution<Scalar>(-0.1, 0.2)(rng);
+                h_accel.data[i].z += UniformDistribution<Scalar>(-0.01, 0.02)(rng);
+                h_vel.data[i].z += UniformDistribution<Scalar>(-0.1, 0.2)(rng);
                 }
             }
         enforce2d->update(t);

@@ -289,7 +289,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         }
 
     // one RNG per particle
-    hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::ComputeFreeVolume, seed, rank, i, timestep);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ComputeFreeVolume, seed, rank, i, timestep);
 
     unsigned int my_cell;
 

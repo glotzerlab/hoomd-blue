@@ -436,14 +436,14 @@ UP_TEST( random_support_test )
 
     ShapeFacetedEllipsoid::initializeVertices(p,false);
 
-    hoomd::detail::RandomGenerator rng;
+    hoomd::RandomGenerator rng;
 
     detail::SupportFuncFacetedEllipsoid support(p);
     for (unsigned int i = 0; i < 10000; ++i)
         {
         // draw a random vector in the excluded volume sphere of the colloid
-        OverlapReal theta = hoomd::detail::UniformDistribution<Scalar>(OverlapReal(0.0),OverlapReal(2.0*M_PI))(rng);
-        OverlapReal z = hoomd::detail::UniformDistribution<Scalar>(OverlapReal(-1.0),OverlapReal(1.0))(rng);
+        OverlapReal theta = hoomd::UniformDistribution<Scalar>(OverlapReal(0.0),OverlapReal(2.0*M_PI))(rng);
+        OverlapReal z = hoomd::UniformDistribution<Scalar>(OverlapReal(-1.0),OverlapReal(1.0))(rng);
 
         // random normalized vector
         vec3<OverlapReal> n(fast::sqrt(OverlapReal(1.0)-z*z)*fast::cos(theta),fast::sqrt(OverlapReal(1.0)-z*z)*fast::sin(theta),z);
@@ -477,14 +477,14 @@ UP_TEST( random_support_test_2 )
 
     ShapeFacetedEllipsoid::initializeVertices(p,false);
 
-    hoomd::detail::RandomGenerator rng;
+    hoomd::RandomGenerator rng;
 
     detail::SupportFuncFacetedEllipsoid support(p);
     for (unsigned int i = 0; i < 10000; ++i)
         {
         // draw a random vector in the excluded volume sphere of the colloid
-        OverlapReal theta = hoomd::detail::UniformDistribution<Scalar>(OverlapReal(0.0),OverlapReal(2.0*M_PI))(rng);
-        OverlapReal z = hoomd::detail::UniformDistribution<Scalar>(OverlapReal(-1.0),OverlapReal(1.0))(rng);
+        OverlapReal theta = hoomd::UniformDistribution<Scalar>(OverlapReal(0.0),OverlapReal(2.0*M_PI))(rng);
+        OverlapReal z = hoomd::UniformDistribution<Scalar>(OverlapReal(-1.0),OverlapReal(1.0))(rng);
 
         // random normalized vector
         vec3<OverlapReal> n(fast::sqrt(OverlapReal(1.0)-z*z)*fast::cos(theta),fast::sqrt(OverlapReal(1.0)-z*z)*fast::sin(theta),z);

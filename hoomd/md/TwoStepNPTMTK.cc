@@ -952,7 +952,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
 
     IntegratorVariables v = getIntegratorVariables();
 
-    hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNPTMTK, m_seed_randomize, timestep);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNPTMTK, m_seed_randomize, timestep);
 
     bool master = m_exec_conf->getRank() == 0;
 
@@ -967,7 +967,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
         if (master)
             {
             // draw a random Gaussian thermostat variable on rank 0
-            xi = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
+            xi = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
             }
 
         if (m_aniso)
@@ -978,7 +978,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
 
             if (master)
                 {
-                xi_rot = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
+                xi_rot = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
                 }
             }
         }
@@ -998,32 +998,32 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
         {
         if (m_flags & baro_x)
             {
-            nuxx = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            nuxx = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
             }
 
         if (m_flags & baro_xy)
             {
-            nuxy = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            nuxy = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
             }
 
         if (m_flags & baro_xz)
             {
-            nuxz = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            nuxz = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
             }
 
         if (m_flags & baro_y)
             {
-            nuyy = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            nuyy = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
             }
 
         if (m_flags & baro_yz)
             {
-            nuyz = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            nuyz = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
             }
 
         if (m_flags & baro_z)
             {
-            nuzz = hoomd::detail::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            nuzz = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
             }
         }
 

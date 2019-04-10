@@ -42,8 +42,8 @@ UP_TEST( sphere_point_test )
     const double dtheta = 2.0*mpcd_pi/static_cast<double>(nbins); // [0, 2pi)
     std::vector<unsigned int> fphi(nbins, 0), ftheta(nbins, 0);
 
-    hoomd::detail::RandomGenerator rng(7, 7, 91);
-    hoomd::detail::SpherePointGenerator<double> gen;
+    hoomd::RandomGenerator rng(7, 7, 91);
+    hoomd::SpherePointGenerator<double> gen;
 
     const unsigned int N = 500000;
     for (unsigned int i = 0; i < N; ++i)
@@ -125,7 +125,7 @@ void check_moments(GeneratorType& gen,
                    const double ref_tol,
                    bool test_kurtosis=true)
     {
-    hoomd::detail::RandomGenerator rng(7, 7, 91);
+    hoomd::RandomGenerator rng(7, 7, 91);
 
     // compute moments of the distribution
     // use Kahan summation to prevent errors when summing over many samples
@@ -200,7 +200,7 @@ void check_range(GeneratorType& gen,
                  const ValueType a,
                  const ValueType b)
     {
-    hoomd::detail::RandomGenerator rng(1, 2, 3);
+    hoomd::RandomGenerator rng(1, 2, 3);
 
     // check that every value generated is in the proper range
     for (unsigned int i=0; i < N; ++i)
@@ -224,7 +224,7 @@ UP_TEST( normal_double_test )
     {
     double mu = 1.5, sigma=2.0;
     double mean = mu, var=sigma*sigma, skew=0, exkurtosis=0.0;
-    hoomd::detail::NormalDistribution<double> gen(sigma, mu);
+    hoomd::NormalDistribution<double> gen(sigma, mu);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
 //! Test case for NormalDistribution
@@ -232,7 +232,7 @@ UP_TEST( normal_default_double_test )
     {
     double mu = 0.0, sigma=1.0;
     double mean = mu, var=sigma*sigma, skew=0, exkurtosis=0.0;
-    hoomd::detail::NormalDistribution<double> gen;
+    hoomd::NormalDistribution<double> gen;
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
 //! Test case for NormalDistribution -- float
@@ -240,7 +240,7 @@ UP_TEST( normal_float_test )
     {
     float mu = 2.0, sigma=1.5;
     float mean = mu, var=sigma*sigma, skew=0, exkurtosis=0.0;
-    hoomd::detail::NormalDistribution<float> gen(sigma, mu);
+    hoomd::NormalDistribution<float> gen(sigma, mu);
     check_moments(gen, 500000, mean, var, exkurtosis, skew, 0.01);
     }
 
@@ -249,7 +249,7 @@ UP_TEST( gamma_double_test )
     {
     float alpha=2.5, b=2.0;
     float mean = alpha*b, var=alpha*b*b, skew=2.0/sqrt(alpha), exkurtosis=6.0/alpha;
-    hoomd::detail::GammaDistribution<double> gen(alpha, b);
+    hoomd::GammaDistribution<double> gen(alpha, b);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
 //! Test case for GammaDistribution -- float
@@ -257,7 +257,7 @@ UP_TEST( gamma_float_test )
     {
     float alpha=2.5, b=2.0;
     float mean = alpha*b, var=alpha*b*b, skew=2.0/sqrt(alpha), exkurtosis=6.0/alpha;
-    hoomd::detail::GammaDistribution<float> gen(alpha, b);
+    hoomd::GammaDistribution<float> gen(alpha, b);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
 
@@ -274,7 +274,7 @@ UP_TEST( canonical_float_moment )
     {
     struct gen
         {
-        float operator()(hoomd::detail::RandomGenerator& rng)
+        float operator()(hoomd::RandomGenerator& rng)
             {
             return hoomd::detail::generate_canonical<float>(rng);
             }
@@ -301,7 +301,7 @@ UP_TEST( canonical_double_moment )
     {
     struct gen
         {
-        double operator()(hoomd::detail::RandomGenerator& rng)
+        double operator()(hoomd::RandomGenerator& rng)
             {
             return hoomd::detail::generate_canonical<double>(rng);
             }
@@ -321,7 +321,7 @@ UP_TEST( uniform_double_test )
     double a = 1, b = 3;
     double mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
 
-    hoomd::detail::UniformDistribution<double> gen(a, b);
+    hoomd::UniformDistribution<double> gen(a, b);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     check_range(gen, 5000000, a, b);
     }
@@ -331,7 +331,7 @@ UP_TEST( uniform_float_test )
     float a = -4, b = 0;
     float mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
 
-    hoomd::detail::UniformDistribution<float> gen(a, b);
+    hoomd::UniformDistribution<float> gen(a, b);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     check_range(gen, 5000000, a, b);
     }
@@ -342,7 +342,7 @@ UP_TEST( uniform_int_test_1000 )
     uint32_t a = 0, b = 1000;
     double mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
 
-    hoomd::detail::UniformIntDistribution gen(b);
+    hoomd::UniformIntDistribution gen(b);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     check_range(gen, 5000000, a, b);
     }
@@ -353,7 +353,7 @@ UP_TEST( uniform_int_test_256 )
     uint32_t a = 0, b = 256;
     double mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
 
-    hoomd::detail::UniformIntDistribution gen(b);
+    hoomd::UniformIntDistribution gen(b);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     check_range(gen, 5000000, a, b);
     }
@@ -367,7 +367,7 @@ UP_TEST( poisson_small_double_test )
     double m = 10;
     double mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
 
-    hoomd::detail::PoissonDistribution<double> gen(m);
+    hoomd::PoissonDistribution<double> gen(m);
     check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
     }
 
@@ -377,7 +377,7 @@ UP_TEST( poisson_medium_double_test )
     double m = 20;
     double mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
 
-    hoomd::detail::PoissonDistribution<double> gen(m);
+    hoomd::PoissonDistribution<double> gen(m);
     check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
     }
 
@@ -387,7 +387,7 @@ UP_TEST( poisson_large_double_test )
     double m = 120;
     double mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
 
-    hoomd::detail::PoissonDistribution<double> gen(m);
+    hoomd::PoissonDistribution<double> gen(m);
     check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
     }
 
@@ -397,7 +397,7 @@ UP_TEST( poisson_small_float_test )
     float m = 10;
     float mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
 
-    hoomd::detail::PoissonDistribution<float> gen(m);
+    hoomd::PoissonDistribution<float> gen(m);
     check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
     }
 
@@ -407,7 +407,7 @@ UP_TEST( poisson_medium_float_test )
     float m = 20;
     float mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
 
-    hoomd::detail::PoissonDistribution<float> gen(m);
+    hoomd::PoissonDistribution<float> gen(m);
     check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
     }
 
@@ -417,7 +417,7 @@ UP_TEST( poisson_large_float_test )
     float m = 120;
     float mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
 
-    hoomd::detail::PoissonDistribution<float> gen(m);
+    hoomd::PoissonDistribution<float> gen(m);
     check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
     }
 
@@ -430,12 +430,12 @@ UP_TEST( poisson_large_float_test )
 //     unsigned int N = 1000000;
 //     double sum=0;
 
-//     hoomd::detail::RandomGenerator rng(7, 7, 91);
+//     hoomd::RandomGenerator rng(7, 7, 91);
 
 //     std::vector<double> small, large;
 //     for (int mean = 1; mean < 20; mean++)
 //         {
-//         hoomd::detail::PoissonDistribution<double> gen(mean);
+//         hoomd::PoissonDistribution<double> gen(mean);
 
 //             {
 //             ClockSource t;

@@ -6,7 +6,7 @@
    \brief Declaration of mpcd::RandomNumbers
 
    This header includes templated generators for various types of random numbers required used throughout hoomd. These
-   work with the Philox generator that wraps random123's Philox4x32 RNG with an API that handles streams of
+   work with the RandomGenerator generator that wraps random123's Philox4x32 RNG with an API that handles streams of
    random numbers originated from a seed.
  */
 
@@ -121,8 +121,6 @@ R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
 
 namespace hoomd
 {
-namespace detail
-{
 //! Philox random number generator
 /*! random123 is a counter based random number generator. Given an input seed vector,
      it produces a random output. Outputs from one seed to the next are not correlated.
@@ -200,6 +198,9 @@ DEVICE inline r123::Philox4x32::ctr_type RandomGenerator::operator()()
     return u;
     }
 
+namespace detail
+{
+
 //! Generate a uniform random uint32_t
 template <class RNG>
 DEVICE inline uint32_t generate_u32(RNG& rng)
@@ -239,6 +240,7 @@ DEVICE inline Real generate_canonical(RNG& rng)
     {
     return r123::u01<Real>(generate_u64(rng));
     }
+} // namespace detail
 
 //! Generate a uniform random value in [a,b]
 /*! For all practical purposes, the range returned by this function is [a,b]. This is due to round off error:
@@ -265,7 +267,7 @@ class UniformDistribution
         template<typename RNG>
         DEVICE inline Real operator()(RNG& rng)
             {
-            return a + width*generate_canonical<Real>(rng);
+            return a + width * detail::generate_canonical<Real>(rng);
             }
 
     private:
@@ -297,7 +299,7 @@ class NormalDistribution
         DEVICE inline Real operator()(RNG& rng)
             {
             uint64_t u0, u1;
-            generate_2u64(u0, u1, rng);
+            detail::generate_2u64(u0, u1, rng);
 
             // from random123/examples/boxmuller.hpp
             Real x, y;
@@ -317,7 +319,7 @@ class NormalDistribution
         DEVICE inline void operator()(Real& out1, Real& out2, RNG& rng)
             {
             uint64_t u0, u1;
-            generate_2u64(u0, u1, rng);
+            detail::generate_2u64(u0, u1, rng);
 
             // from random123/examples/boxmuller.hpp
             Real x, y;
@@ -434,7 +436,7 @@ class GammaDistribution
 
                 // draw uniform and perform cheap squeeze test first
                 const Real x2 = x*x;
-                Real u = generate_canonical<Real>(rng);
+                Real u = detail::generate_canonical<Real>(rng);
                 if (u < 1.0f-0.0331f*x2*x2) break;
 
                 // otherwise, do expensive log comparison
@@ -496,7 +498,7 @@ class UniformIntDistribution
             unsigned int result;
             do
                 {
-                result = generate_u32(rng) & n;
+                result = detail::generate_u32(rng) & n;
                 } while(result > m);
 
             return result;
@@ -568,7 +570,7 @@ class PoissonDistribution
             do
                 {
                 result++;
-                p *= generate_canonical<Real>(rng);
+                p *= detail::generate_canonical<Real>(rng);
                 } while (p > L);
             result--;
             return result;
@@ -589,19 +591,17 @@ class PoissonDistribution
                 {
                 do
                     {
-                    x = mean + sqrt_mean*slow::tan(pi*(generate_canonical<Real>(rng)-Real(0.5)));
+                    x = mean + sqrt_mean*slow::tan(pi*(detail::generate_canonical<Real>(rng)-Real(0.5)));
                     } while (x < 0);
                 g_x = sqrt_mean/(pi*((x-mean)*(x-mean) + mean));
                 m = slow::floor(x);
                 f_m = fast::exp(m*log_mean - mean - lgamma(m + 1));
                 r = f_m / g_x / 2.4;
-            } while (generate_canonical<Real>(rng) > r);
+            } while (detail::generate_canonical<Real>(rng) > r);
           return (int)m;
           }
     };
 
-
-} // end namespace detail
 } // end namespace mpcd
 
-#endif // #define MPCD_RANDOM_NUMBERS_H_
+#endif // #define HOOMD_RANDOM_NUMBERS_H_

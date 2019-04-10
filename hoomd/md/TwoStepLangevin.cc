@@ -276,11 +276,11 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         unsigned int ptag = h_tag.data[j];
 
         // Initialize the RNG
-        detail::RandomGenerator rng(RNGIdentifier::TwoStepLangevin, m_seed, ptag, timestep);
+        RandomGenerator rng(RNGIdentifier::TwoStepLangevin, m_seed, ptag, timestep);
 
         // first, calculate the BD forces
         // Generate three random numbers
-        hoomd::detail::UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
+        hoomd::UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
         Scalar rx = uniform(rng);
         Scalar ry = uniform(rng);
         Scalar rz = uniform(rng);
@@ -345,9 +345,9 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
                                                fast::sqrt(Scalar(2.0)*gamma_r.z*currentTemp/m_deltaT));
                 if (m_noiseless_r) sigma_r = make_scalar3(0.0,0.0,0.0);
 
-                Scalar rand_x = hoomd::detail::NormalDistribution<Scalar>(sigma_r.x)(rng);
-                Scalar rand_y = hoomd::detail::NormalDistribution<Scalar>(sigma_r.y)(rng);
-                Scalar rand_z = hoomd::detail::NormalDistribution<Scalar>(sigma_r.z)(rng);
+                Scalar rand_x = hoomd::NormalDistribution<Scalar>(sigma_r.x)(rng);
+                Scalar rand_y = hoomd::NormalDistribution<Scalar>(sigma_r.y)(rng);
+                Scalar rand_z = hoomd::NormalDistribution<Scalar>(sigma_r.z)(rng);
 
                 // check for degenerate moment of inertia
                 bool x_zero, y_zero, z_zero;

@@ -202,11 +202,11 @@ class EvaluatorPairDPDLJThermo
                    m_oj = m_j;
                    }
 
-                hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_seed, m_oi, m_oj, m_timestep);
+                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_seed, m_oi, m_oj, m_timestep);
 
 
                 // Generate a single random number
-                Scalar alpha = hoomd::detail::UniformDistribution<Scalar>(-1,1)(rng);
+                Scalar alpha = hoomd::UniformDistribution<Scalar>(-1,1)(rng);
 
                 // conservative lj
                 force_divr = r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);

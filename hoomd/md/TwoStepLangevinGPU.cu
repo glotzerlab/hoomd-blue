@@ -123,8 +123,8 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
             coeff = Scalar(0.0);
 
         //Initialize the Random Number Generator and generate the 3 random numbers
-        detail::RandomGenerator rng(RNGIdentifier::TwoStepLangevin, seed, ptag, timestep);
-        detail::UniformDistribution<Scalar> uniform(-1, 1);
+        RandomGenerator rng(RNGIdentifier::TwoStepLangevin, seed, ptag, timestep);
+        UniformDistribution<Scalar> uniform(-1, 1);
 
         Scalar randomx = uniform(rng);
         Scalar randomy = uniform(rng);
@@ -308,10 +308,10 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                                            fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
             if (noiseless_r) sigma_r = make_scalar3(0,0,0);
 
-            detail::RandomGenerator rng(RNGIdentifier::TwoStepLangevinAngular, seed, ptag, timestep);
-            Scalar rand_x = detail::NormalDistribution<Scalar>(sigma_r.x)(rng);
-            Scalar rand_y = detail::NormalDistribution<Scalar>(sigma_r.y)(rng);
-            Scalar rand_z = detail::NormalDistribution<Scalar>(sigma_r.z)(rng);
+            RandomGenerator rng(RNGIdentifier::TwoStepLangevinAngular, seed, ptag, timestep);
+            Scalar rand_x = NormalDistribution<Scalar>(sigma_r.x)(rng);
+            Scalar rand_y = NormalDistribution<Scalar>(sigma_r.y)(rng);
+            Scalar rand_z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;

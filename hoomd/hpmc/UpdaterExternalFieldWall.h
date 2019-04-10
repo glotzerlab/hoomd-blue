@@ -137,8 +137,8 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         virtual void update(unsigned int timestep)
             {
             // Choose whether or not to update the external field
-            hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterExternalFieldWall, m_seed, timestep);
-            unsigned int move_type_select = hoomd::detail::UniformIntDistribution(0xffff)(rng);
+            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterExternalFieldWall, m_seed, timestep);
+            unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
             unsigned int move_ratio = m_move_ratio * 65536;
             // Attempt and evaluate a move
             if (move_type_select < move_ratio)

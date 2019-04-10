@@ -133,12 +133,12 @@ void mpcd::CollisionMethod::drawGridShift(unsigned int timestep)
     else
         {
         // PRNG using seed and timestep as seeds
-        hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::CollisionMethod, m_seed, timestep / m_period);
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::CollisionMethod, m_seed, timestep / m_period);
         const Scalar max_shift = m_cl->getMaxGridShift();
 
         // draw shift variables from uniform distribution
         Scalar3 shift;
-        hoomd::detail::UniformDistribution<Scalar> uniform(-max_shift, max_shift);
+        hoomd::UniformDistribution<Scalar> uniform(-max_shift, max_shift);
         shift.x = uniform(rng);
         shift.y = uniform(rng);
         shift.z = (m_sysdef->getNDimensions() == 3) ? uniform(rng) : Scalar(0.0);
