@@ -77,10 +77,9 @@ class UpdateOrder
         void shuffle(unsigned int timestep, unsigned int select = 0)
             {
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShuffle, m_seed, timestep, select);
-            uint32_t u = hoomd::detail::generate_u32(rng);
 
             // reverse the order with 1/2 probability
-            if (UniformIntDistribution(1)(rng))
+            if (hoomd::UniformIntDistribution(1)(rng))
                 {
                 unsigned int N = m_update_order.size();
                 for (unsigned int i = 0; i < N; i++)

@@ -150,7 +150,7 @@ inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_sphere, 
     {
     // random normalized vector
     vec3<Scalar> n;
-    hoomd::SpherePointGenerator<Scalar>(rng, n);
+    hoomd::SpherePointGenerator<Scalar>()(rng, n);
 
     // draw random radial coordinate in test sphere
     Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
