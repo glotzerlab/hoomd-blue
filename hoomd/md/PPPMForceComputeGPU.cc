@@ -119,10 +119,12 @@ void PPPMForceComputeGPU::initializeFFT()
             cudaMemAdvise(m_mesh_scratch.get()+idev*mesh_elements,
                 mesh_elements*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_mesh_scratch.get()+idev*mesh_elements, mesh_elements*sizeof(cufftComplex), gpu_map[idev]);
+            CHECK_CUDA_ERROR();
             }
 
         // accessed by GPU 0
         cudaMemAdvise(m_mesh_scratch.get(), mesh_elements*ngpu, cudaMemAdviseSetAccessedBy, gpu_map[0]);
+        CHECK_CUDA_ERROR();
         }
 
     // pad with offset
