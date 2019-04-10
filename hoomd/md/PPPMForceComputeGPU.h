@@ -113,6 +113,7 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         #endif
 
         GlobalArray<cufftComplex> m_mesh;                 //!< The particle density mesh
+        GlobalArray<cufftComplex> m_mesh_scratch;         //!< The particle density mesh per GPU, staging array
         GlobalArray<cufftComplex> m_fourier_mesh;         //!< The fourier transformed mesh
         GlobalArray<cufftComplex> m_fourier_mesh_G_x;       //!< Fourier transformed mesh times the influence function, x component
         GlobalArray<cufftComplex> m_fourier_mesh_G_y;       //!< Fourier transformed mesh times the influence function, y component

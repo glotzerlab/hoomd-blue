@@ -105,6 +105,26 @@ void PPPMForceComputeGPU::initializeFFT()
 
     // allocate mesh and transformed mesh
 
+    unsigned int ngpu = m_exec_conf->getNumActiveGPUs();
+
+    if (ngpu > 1)
+        {
+        unsigned int mesh_elements = (m_n_cells+m_ghost_offset);
+        GlobalArray<cufftComplex> mesh_scratch(mesh_elements*ngpu,m_exec_conf);
+        m_mesh_scratch.swap(mesh_scratch);
+
+        auto gpu_map = m_exec_conf->getGPUIds();
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaMemAdvise(m_mesh_scratch.get()+idev*mesh_elements,
+                mesh_elements*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_mesh_scratch.get()+idev*mesh_elements, mesh_elements*sizeof(cufftComplex), gpu_map[idev]);
+            }
+
+        // accessed by GPU 0
+        cudaMemAdvise(m_mesh_scratch.get(), mesh_elements*ngpu, cudaMemAdviseSetAccessedBy, gpu_map[0]);
+        }
+
     // pad with offset
     GlobalArray<cufftComplex> mesh(m_n_cells+m_ghost_offset,m_exec_conf);
     m_mesh.swap(mesh);
@@ -161,6 +181,7 @@ void PPPMForceComputeGPU::assignParticles()
 
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::overwrite);
+    ArrayHandle<cufftComplex> d_mesh_scratch(m_mesh_scratch, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
     // access the group
@@ -180,6 +201,8 @@ void PPPMForceComputeGPU::assignParticles()
                         d_postype.data,
                         d_charge.data,
                         d_mesh.data,
+                        d_mesh_scratch.data,
+                        m_mesh.getNumElements(),
                         m_order,
                         m_pdata->getBox(),
                         block_size,

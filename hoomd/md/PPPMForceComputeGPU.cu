@@ -29,11 +29,7 @@ __device__ inline void atomicFloatAdd(float* address, float value)
         }
     while ((old = atomicExch(address, new_old))!=0.0f);
 #else
-    #if (__CUDA_ARCH__ >= 600)
-    atomicAdd_system(address, value);
-    #else
     atomicAdd(address, value);
-    #endif
 #endif
     }
 
@@ -272,6 +268,28 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
         } // end of loop over neighboring bins
     }
 
+__global__ void gpu_reduce_meshes(const unsigned int mesh_elements,
+    const cufftComplex *d_mesh_scratch,
+    cufftComplex *d_mesh,
+    unsigned int ngpu)
+    {
+    unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= mesh_elements)
+        return;
+
+    cufftComplex res;
+    res.x = 0; res.y = 0;
+
+    // reduce over all temporary meshes
+    for (unsigned int igpu = 0; igpu < ngpu; ++igpu)
+        {
+        cufftComplex m = d_mesh_scratch[idx + igpu*mesh_elements];
+        res.x += m.x; res.y += m.y;
+        }
+    d_mesh[idx] = res;
+    }
+
 void gpu_assign_particles(const uint3 mesh_dim,
                          const uint3 n_ghost_bins,
                          const uint3 grid_dim,
@@ -280,6 +298,8 @@ void gpu_assign_particles(const uint3 mesh_dim,
                          const Scalar4 *d_postype,
                          const Scalar *d_charge,
                          cufftComplex *d_mesh,
+                         cufftComplex *d_mesh_scratch,
+                         const unsigned int mesh_elements,
                          int order,
                          const BoxDim& box,
                          unsigned int block_size,
@@ -306,7 +326,8 @@ void gpu_assign_particles(const uint3 mesh_dim,
         }
 
     // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+    unsigned int ngpu = gpu_partition.getNumActiveGPUs();
+    for (int idev = ngpu - 1; idev >= 0; --idev)
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
 
@@ -320,11 +341,21 @@ void gpu_assign_particles(const uint3 mesh_dim,
               d_index_array,
               d_postype,
               d_charge,
-              d_mesh,
+              ngpu > 1 ? d_mesh_scratch + idev*mesh_elements : d_mesh,
               V_cell,
               order,
               range.first,
               box);
+        }
+
+    run_block_size = 512;
+    if (ngpu > 1)
+        {
+        // reduce meshes on GPU 0
+        gpu_reduce_meshes<<<mesh_elements/run_block_size + 1, run_block_size>>>(mesh_elements,
+            d_mesh_scratch,
+            d_mesh,
+            ngpu);
         }
     }
 
