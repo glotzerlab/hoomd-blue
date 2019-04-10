@@ -80,7 +80,7 @@ class UpdateOrder
             uint32_t u = hoomd::detail::generate_u32(rng);
 
             // reverse the order with 1/2 probability
-            if (u & 1)
+            if (UniformIntDistribution(1)(rng))
                 {
                 unsigned int N = m_update_order.size();
                 for (unsigned int i = 0; i < N; i++)
