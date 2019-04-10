@@ -5,6 +5,8 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/BoxDim.h"
 
+#include "hoomd/GPUPartition.cuh"
+
 #include <cufft.h>
 
 void gpu_assign_particles(const uint3 mesh_dim,
@@ -18,7 +20,8 @@ void gpu_assign_particles(const uint3 mesh_dim,
                          int order,
                          const BoxDim& box,
                          unsigned int block_size,
-                         const cudaDeviceProp& dev_prop);
+                         const cudaDeviceProp& dev_prop,
+                         const GPUPartition& gpu_partition);
 
 void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
                              cufftComplex *d_fourier_mesh,
@@ -50,7 +53,7 @@ void gpu_compute_forces(const unsigned int N,
                         const BoxDim& box,
                         int order,
                         const unsigned int *d_index_array,
-                        unsigned int group_size,
+                        const GPUPartition& gpu_partition,
                         unsigned int block_size);
 
 void gpu_compute_pe(unsigned int n_wave_vectors,

@@ -112,23 +112,20 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         dfft_plan m_dfft_plan_inverse;     //!< Forward distributed FFT
         #endif
 
-        GPUArray<cufftComplex> m_mesh;                 //!< The particle density mesh
-        GPUArray<cufftComplex> m_fourier_mesh;         //!< The fourier transformed mesh
-        GPUArray<cufftComplex> m_fourier_mesh_G_x;       //!< Fourier transformed mesh times the influence function, x component
-        GPUArray<cufftComplex> m_fourier_mesh_G_y;       //!< Fourier transformed mesh times the influence function, y component
-        GPUArray<cufftComplex> m_fourier_mesh_G_z;       //!< Fourier transformed mesh times the influence function, z component
-        GPUArray<cufftComplex> m_inv_fourier_mesh_x;     //!< The inverse-fourier transformed force mesh
-        GPUArray<cufftComplex> m_inv_fourier_mesh_y;     //!< The inverse-fourier transformed force mesh
-        GPUArray<cufftComplex> m_inv_fourier_mesh_z;     //!< The inverse-fourier transformed force mesh
+        GlobalArray<cufftComplex> m_mesh;                 //!< The particle density mesh
+        GlobalArray<cufftComplex> m_fourier_mesh;         //!< The fourier transformed mesh
+        GlobalArray<cufftComplex> m_fourier_mesh_G_x;       //!< Fourier transformed mesh times the influence function, x component
+        GlobalArray<cufftComplex> m_fourier_mesh_G_y;       //!< Fourier transformed mesh times the influence function, y component
+        GlobalArray<cufftComplex> m_fourier_mesh_G_z;       //!< Fourier transformed mesh times the influence function, z component
+        GlobalArray<cufftComplex> m_inv_fourier_mesh_x;     //!< The inverse-fourier transformed force mesh
+        GlobalArray<cufftComplex> m_inv_fourier_mesh_y;     //!< The inverse-fourier transformed force mesh
+        GlobalArray<cufftComplex> m_inv_fourier_mesh_z;     //!< The inverse-fourier transformed force mesh
 
         GPUFlags<Scalar> m_sum;                    //!< Sum over fourier mesh values
-        GPUArray<Scalar> m_sum_partial;            //!< Partial sums over fourier mesh values
-        GPUArray<Scalar> m_sum_virial_partial;     //!< Partial sums over virial mesh values
-        GPUArray<Scalar> m_sum_virial;             //!< Final sum over virial mesh values
+        GlobalArray<Scalar> m_sum_partial;            //!< Partial sums over fourier mesh values
+        GlobalArray<Scalar> m_sum_virial_partial;     //!< Partial sums over virial mesh values
+        GlobalArray<Scalar> m_sum_virial;             //!< Final sum over virial mesh values
         unsigned int m_block_size;                 //!< Block size for fourier mesh reduction
-
-        GPUFlags<Scalar4> m_gpu_q_max;             //!< Return value for maximum Fourier mode reduction
-        GPUArray<Scalar4> m_max_partial;           //!< Scratch space for reduction of maximum Fourier amplitude
     };
 
 void export_PPPMForceComputeGPU(pybind11::module& m);

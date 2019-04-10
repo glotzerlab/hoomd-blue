@@ -18,8 +18,7 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
     : PPPMForceCompute(sysdef,nlist,group),
       m_local_fft(true),
       m_sum(m_exec_conf),
-      m_block_size(256),
-      m_gpu_q_max(m_exec_conf)
+      m_block_size(256)
     {
     m_tuner_assign.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_assign", this->m_exec_conf));
     m_tuner_update.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_update_mesh", this->m_exec_conf));
@@ -107,43 +106,40 @@ void PPPMForceComputeGPU::initializeFFT()
     // allocate mesh and transformed mesh
 
     // pad with offset
-    GPUArray<cufftComplex> mesh(m_n_cells+m_ghost_offset,m_exec_conf);
+    GlobalArray<cufftComplex> mesh(m_n_cells+m_ghost_offset,m_exec_conf);
     m_mesh.swap(mesh);
 
-    GPUArray<cufftComplex> fourier_mesh(m_n_inner_cells, m_exec_conf);
+    GlobalArray<cufftComplex> fourier_mesh(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh.swap(fourier_mesh);
 
-    GPUArray<cufftComplex> fourier_mesh_G_x(m_n_inner_cells, m_exec_conf);
+    GlobalArray<cufftComplex> fourier_mesh_G_x(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_x.swap(fourier_mesh_G_x);
 
-    GPUArray<cufftComplex> fourier_mesh_G_y(m_n_inner_cells, m_exec_conf);
+    GlobalArray<cufftComplex> fourier_mesh_G_y(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_y.swap(fourier_mesh_G_y);
 
-    GPUArray<cufftComplex> fourier_mesh_G_z(m_n_inner_cells, m_exec_conf);
+    GlobalArray<cufftComplex> fourier_mesh_G_z(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_z.swap(fourier_mesh_G_z);
 
     // pad with offset
-    GPUArray<cufftComplex> inv_fourier_mesh_x(m_n_cells+m_ghost_offset, m_exec_conf);
+    GlobalArray<cufftComplex> inv_fourier_mesh_x(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_x.swap(inv_fourier_mesh_x);
 
-    GPUArray<cufftComplex> inv_fourier_mesh_y(m_n_cells+m_ghost_offset, m_exec_conf);
+    GlobalArray<cufftComplex> inv_fourier_mesh_y(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_y.swap(inv_fourier_mesh_y);
 
-    GPUArray<cufftComplex> inv_fourier_mesh_z(m_n_cells+m_ghost_offset, m_exec_conf);
+    GlobalArray<cufftComplex> inv_fourier_mesh_z(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_z.swap(inv_fourier_mesh_z);
 
     unsigned int n_blocks = (m_mesh_points.x*m_mesh_points.y*m_mesh_points.z)/m_block_size+1;
-    GPUArray<Scalar> sum_partial(n_blocks,m_exec_conf);
+    GlobalArray<Scalar> sum_partial(n_blocks,m_exec_conf);
     m_sum_partial.swap(sum_partial);
 
-    GPUArray<Scalar> sum_virial_partial(6*n_blocks,m_exec_conf);
+    GlobalArray<Scalar> sum_virial_partial(6*n_blocks,m_exec_conf);
     m_sum_virial_partial.swap(sum_virial_partial);
 
-    GPUArray<Scalar> sum_virial(6,m_exec_conf);
+    GlobalArray<Scalar> sum_virial(6,m_exec_conf);
     m_sum_virial.swap(sum_virial);
-
-    GPUArray<Scalar4> max_partial(n_blocks, m_exec_conf);
-    m_max_partial.swap(max_partial);
     }
 
 void PPPMForceComputeGPU::setupCoeffs()
@@ -171,6 +167,8 @@ void PPPMForceComputeGPU::assignParticles()
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getNumMembers();
 
+    this->m_exec_conf->beginMultiGPU();
+
     m_tuner_assign->begin();
     unsigned int block_size = m_tuner_assign->getParam();
 
@@ -185,11 +183,14 @@ void PPPMForceComputeGPU::assignParticles()
                         m_order,
                         m_pdata->getBox(),
                         block_size,
-                        m_exec_conf->dev_prop);
+                        m_exec_conf->dev_prop,
+                        m_group->getGPUPartition());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_assign->end();
+
+    this->m_exec_conf->endMultiGPU();
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
@@ -361,7 +362,8 @@ void PPPMForceComputeGPU::interpolateForces()
 
     // access the group
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getNumMembers();
+
+    m_exec_conf->beginMultiGPU();
 
     unsigned int block_size = m_tuner_force->getParam();
     m_tuner_force->begin();
@@ -377,12 +379,15 @@ void PPPMForceComputeGPU::interpolateForces()
                        m_pdata->getBox(),
                        m_order,
                        d_index_array.data,
-                       group_size,
+                       m_group->getGPUPartition(),
                        block_size);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_force->end();
+
+    m_exec_conf->endMultiGPU();
+
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
