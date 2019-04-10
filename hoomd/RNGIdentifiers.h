@@ -6,9 +6,10 @@
 
     There should be no correlations between the random numbers used, for example, in the Langevin thermostat
     and the velocity randomization routine. To ensure this a maintainable way, this file lists all of the
-    constants in one location and the individual uses of Saru use the constant by name.
+    constants in one location and the individual uses of RandomGenerator use the constant by name.
 
-    By convention, the RNG identifier should be the first argument to Saru and the user provided seed the second.
+    By convention, the RNG identifier should be the first argument to RandomGenerator and the user provided seed the
+    second.
 
     The actual values of these identifiers does not matter, so long as they are unique.
 

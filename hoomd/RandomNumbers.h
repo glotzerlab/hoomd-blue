@@ -119,8 +119,6 @@ R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
 #define DEVICE
 #endif // NVCC
 
-#define MPCD_2PI 6.283185307179586
-
 namespace hoomd
 {
 namespace detail
@@ -255,8 +253,8 @@ class UniformDistribution
         /*! \param _a Left end point of the interval
             \param _b Right end point of the interval
         */
-        DEVICE explicit UniformDistribution(Real _a, Real _b)
-            : a(_a), b(_b)
+        DEVICE explicit UniformDistribution(Real _a=Real(0,0), Real _b=Real(1.0))
+            : a(_a), width(_b - _a)
             {
             }
 
@@ -267,12 +265,12 @@ class UniformDistribution
         template<typename RNG>
         DEVICE inline Real operator()(RNG& rng)
             {
-            return a + (b-a)*generate_canonical<Real>(rng);
+            return a + width*generate_canonical<Real>(rng);
             }
 
     private:
         const Real a;     //!< Left end point of the interval
-        const Real b;     //!< Right end point of the interval
+        const Real width; //!< Width of the interval
     };
 
 //! Generate normally distributed random values
@@ -306,7 +304,6 @@ class NormalDistribution
             fast::sincospi(r123::uneg11<Real>(u0), x, y);
             Real r = fast::sqrt(Real(-2.0) * fast::log(r123::u01<Real>(u1))); // u01 is guaranteed to avoid 0.
             x *= r;
-            y *= r;
             return x * sigma + mu;
             }
 
@@ -326,10 +323,11 @@ class NormalDistribution
             Real x, y;
             fast::sincospi(r123::uneg11<Real>(u0), x, y);
             Real r = fast::sqrt(Real(-2.0) * fast::log(r123::u01<Real>(u1))); // u01 is guaranteed to avoid 0.
+            r = r * sigma;
             x *= r;
             y *= r;
-            out1 = x * sigma + mu;
-            out2 = y * sigma + mu;
+            out1 = x + mu;
+            out2 = y + mu;
             }
 
     private:
@@ -344,11 +342,11 @@ class SpherePointGenerator
     public:
         DEVICE explicit SpherePointGenerator() {}
 
-        template<typename GeneratorType, typename Real3>
-        DEVICE inline void operator()(GeneratorType& rng, Real3& point)
+        template<typename RNG, typename Real3>
+        DEVICE inline void operator()(RNG& rng, Real3& point)
             {
             // draw a random angle
-            const Real theta = UniformDistribution<Real>(Real(0), Real(MPCD_2PI))(rng);
+            const Real theta = UniformDistribution<Real>(Real(0), Real(2.0*M_PI))(rng);
 
             // draw u (should typically only happen once) ensuring that
             // 1-u^2 > 0 so that the square-root is defined
@@ -362,8 +360,9 @@ class SpherePointGenerator
 
             // project onto the sphere surface
             const Real sqrtu = fast::sqrt(one_minus_u2);
-            point.x = sqrtu * fast::cos(theta);
-            point.y = sqrtu * fast::sin(theta);
+            fast::sincos(theta, point.y, point.x);
+            point.x *= sqrtu;
+            point.y *= sqrtu;
             point.z = u;
             }
     };
@@ -417,8 +416,8 @@ class GammaDistribution
          *
          * The squeeze test is performed to bypass some transcendental calls.
          */
-        template<typename GeneratorType>
-        DEVICE inline Real operator()(GeneratorType& rng)
+        template<typename RNG>
+        DEVICE inline Real operator()(RNG& rng)
             {
             Real v;
             while(1)
@@ -605,5 +604,4 @@ class PoissonDistribution
 } // end namespace detail
 } // end namespace mpcd
 
-#undef MPCD_2PI
 #endif // #define MPCD_RANDOM_NUMBERS_H_

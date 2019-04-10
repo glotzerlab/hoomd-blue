@@ -156,8 +156,8 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std:
 
         for (unsigned int j = 0; j < nptl; ++j)
             {
-            // choose a molecule tag 0<=mol_tag< nptl
-            unsigned int t = hoomd::detail::UniformIntDistribution(nptl+1)(rng);
+            // choose a molecule tag 0 <= mol_tag <= nptl
+            unsigned int t = hoomd::detail::UniformIntDistribution(nptl)(rng);
             if (t == nptl) t = NO_MOLECULE;
 
             molecule_tags[j] = t;

@@ -104,8 +104,10 @@ void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
 
         // draw random velocities from normal distribution
         hoomd::detail::RandomGenerator rng(hoomd::RNGIdentifier::ATCollisionMethod, m_seed, tag, timestep);
-        hoomd::detail::NormalDistribution<Scalar> gen;
-        const Scalar3 vel = fast::sqrt(T/mass) * make_scalar3(gen(rng), gen(rng), gen(rng));
+        hoomd::detail::NormalDistribution<Scalar> gen(fast::sqrt(T/mass), 0.0);
+        Scalar3 vel;
+        gen(vel.x, vel.y, rng);
+        vel.z = gen(rng);
 
         // save out velocities
         if (idx < N_mpcd)

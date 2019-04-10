@@ -148,12 +148,9 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
 template<class RNG>
 inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_sphere, Scalar R)
     {
-    // draw a random vector in the excluded volume sphere of the colloid
-    Scalar theta = hoomd::detail::UniformDistribution<Scalar>(Scalar(0.0),Scalar(2.0*M_PI))(rng);
-    Scalar z = hoomd::detail::UniformDistribution<Scalar>(Scalar(-1.0),Scalar(1.0))(rng);
-
     // random normalized vector
-    vec3<Scalar> n(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
+    vec3<Scalar> n;
+    hoomd::detail::SpherePointGenerator<Scalar>(rng, n);
 
     // draw random radial coordinate in test sphere
     Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
