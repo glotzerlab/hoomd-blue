@@ -353,18 +353,23 @@ void gpu_assign_particles(const uint3 mesh_dim,
               range.first,
               box);
         }
-
-    run_block_size = 512;
-    if (ngpu > 1)
-        {
-        // reduce meshes on GPU 0
-        gpu_reduce_meshes<<<mesh_elements/run_block_size + 1, run_block_size>>>(mesh_elements,
-            d_mesh_scratch,
-            d_mesh,
-            ngpu);
-        }
     }
 
+//! Reduce temporary arrays for every GPU
+void gpu_reduce_meshes(const unsigned int mesh_elements,
+    const cufftComplex *d_mesh_scratch,
+    cufftComplex *d_mesh,
+    const unsigned int ngpu,
+    const unsigned int block_size)
+    {
+    // reduce meshes on GPU 0
+    gpu_reduce_meshes<<<mesh_elements/block_size + 1, block_size>>>(
+        mesh_elements,
+        d_mesh_scratch,
+        d_mesh,
+        ngpu);
+    }
+   
 __global__ void gpu_compute_mesh_virial_kernel(const unsigned int n_wave_vectors,
                                          cufftComplex *d_fourier_mesh,
                                          Scalar *d_inf_f,

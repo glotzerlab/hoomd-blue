@@ -21,6 +21,7 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
       m_block_size(256)
     {
     m_tuner_assign.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_assign", this->m_exec_conf));
+    m_tuner_reduce_mesh.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_reduce_mesh", this->m_exec_conf));
     m_tuner_update.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_update_mesh", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_force", this->m_exec_conf));
     m_tuner_influence.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_influence", this->m_exec_conf));
@@ -216,6 +217,20 @@ void PPPMForceComputeGPU::assignParticles()
     m_tuner_assign->end();
 
     this->m_exec_conf->endMultiGPU();
+
+    if (m_exec_conf->getNumActiveGPUs() > 1)
+        {
+        m_tuner_reduce_mesh->begin();
+        gpu_reduce_meshes(m_mesh.getNumElements(),
+            d_mesh_scratch.data,
+            d_mesh.data,
+            m_exec_conf->getNumActiveGPUs(),
+            m_tuner_reduce_mesh->getParam());
+        m_tuner_reduce_mesh->end();
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }

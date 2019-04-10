@@ -45,11 +45,13 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
             m_tuner_assign->setPeriod(period);
+            m_tuner_reduce_mesh->setPeriod(period);
             m_tuner_update->setPeriod(period);
             m_tuner_force->setPeriod(period);
             m_tuner_influence->setPeriod(period);
 
             m_tuner_assign->setEnabled(enable);
+            m_tuner_reduce_mesh->setEnabled(enable);
             m_tuner_update->setEnabled(enable);
             m_tuner_force->setEnabled(enable);
             m_tuner_influence->setEnabled(enable);
@@ -96,6 +98,7 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
 
     private:
         std::unique_ptr<Autotuner> m_tuner_assign;//!< Autotuner for assigning binned charges to mesh
+        std::unique_ptr<Autotuner> m_tuner_reduce_mesh;//!< Autotuner to reduce meshes for multi GPU
         std::unique_ptr<Autotuner> m_tuner_update;  //!< Autotuner for updating mesh values
         std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
         std::unique_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function

@@ -25,6 +25,12 @@ void gpu_assign_particles(const uint3 mesh_dim,
                          const cudaDeviceProp& dev_prop,
                          const GPUPartition& gpu_partition);
 
+void gpu_reduce_meshes(const unsigned int mesh_elements,
+    const cufftComplex *d_mesh_scratch,
+    cufftComplex *d_mesh,
+    const unsigned int ngpu,
+    const unsigned int block_size);
+ 
 void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
                              cufftComplex *d_fourier_mesh,
                              Scalar *d_inf_f,
