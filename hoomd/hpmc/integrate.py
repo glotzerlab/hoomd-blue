@@ -904,11 +904,12 @@ class sphere_nec(mode_hpmc):
 
     Example:
 
-        system = hoomd.init.read_gsd( initialFile )
+        system = hoomd.init.read_gsd( "initialFile.gsd" )
         snapshot = system.take_snapshot(all=True)
-        
         for i in range(snapshot.particles.N):
             snapshot.particles.velocity[i] = [ random.uniform(-1,1) for d in range(3) ]
+        system.restore_snapshot(snapshot)
+
         mc = hoomd.hpmc.integrate.sphere_nec(
                     d=0.5,
                     chain_time=10.0,
@@ -1608,12 +1609,23 @@ class convex_polyhedron_nec(mode_hpmc):
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
         violated.
 
-    Example::
+    Example:
 
-        mc = hpmc.integrate.convex_polyhedron(seed=415236)
-        mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4)
+        system = hoomd.init.read_gsd( "initialFile.gsd" )
+        snapshot = system.take_snapshot(all=True)
+        for i in range(snapshot.particles.N):
+            snapshot.particles.velocity[i] = [ random.uniform(-1,1) for d in range(3) ]
+        system.restore_snapshot(snapshot)
+            
+        mc = hoomd.hpmc.integrate.convex_polyhedron_nec(
+                    d=0.5,
+                    a=0.2,
+                    move_ratio=0.05,
+                    chain_time=10.0,
+                    update_fraction=0.5,
+                    seed=1354765,
+                    );
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
-        print('vertices = ', mc.shape_param['A'].vertices)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.1, chain_time=10, update_fraction=0.5, nselect=4, implicit=False, depletant_mode='circumsphere', max_verts=None, restore_state=False):
         hoomd.util.print_status_line();
