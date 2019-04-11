@@ -172,7 +172,7 @@ void PPPMForceComputeGPU::setupCoeffs()
 
     // initialize interpolation coefficients on GPU
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
-    gpu_initialize_coeff(h_rho_coeff.data, m_order);
+    gpu_initialize_coeff(h_rho_coeff.data, m_order, m_pdata->getGPUPartition());
     }
 
 //! Assignment of particles to mesh using three-point scheme (triangular shaped cloud)

@@ -1394,7 +1394,15 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
 
 void gpu_initialize_coeff(
     Scalar *CPU_rho_coeff,
-    int order)
+    int order,
+    const GPUPartition& gpu_partition)
     {
-    cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(Scalar));
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    unsigned int ngpu = gpu_partition.getNumActiveGPUs();
+    for (int idev = ngpu - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(Scalar));
+        }
     }

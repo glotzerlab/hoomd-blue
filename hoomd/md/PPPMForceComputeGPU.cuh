@@ -113,4 +113,5 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
 
 void gpu_initialize_coeff(
     Scalar *CPU_rho_coeff,
-    int order);
+    int order,
+    const GPUPartition& gpu_partition);
