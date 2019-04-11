@@ -507,11 +507,6 @@ void gpu_update_meshes(const unsigned int n_wave_vectors,
                                                       NNN);
     }
 
-//! Texture for reading particle positions
-texture<cufftComplex, 1, cudaReadModeElementType> inv_fourier_mesh_tex_x;
-texture<cufftComplex, 1, cudaReadModeElementType> inv_fourier_mesh_tex_y;
-texture<cufftComplex, 1, cudaReadModeElementType> inv_fourier_mesh_tex_z;
-
 __global__ void gpu_compute_forces_kernel(const unsigned int work_size,
                                           const Scalar4 *d_postype,
                                           Scalar4 *d_force,
@@ -624,10 +619,9 @@ __global__ void gpu_compute_forces_kernel(const unsigned int work_size,
                 // use column-major layout
                 unsigned int cell_idx = neighl + grid_dim.x * (neighm + grid_dim.y * neighn);
 
-
-                cufftComplex inv_mesh_x = tex1Dfetch(inv_fourier_mesh_tex_x,cell_idx);
-                cufftComplex inv_mesh_y = tex1Dfetch(inv_fourier_mesh_tex_y,cell_idx);
-                cufftComplex inv_mesh_z = tex1Dfetch(inv_fourier_mesh_tex_z,cell_idx);
+                cufftComplex inv_mesh_x = inv_fourier_mesh_x[cell_idx];
+                cufftComplex inv_mesh_y = inv_fourier_mesh_y[cell_idx];
+                cufftComplex inv_mesh_z = inv_fourier_mesh_z[cell_idx];
 
                 force.x += qi*z0*inv_mesh_x.x;
                 force.y += qi*z0*inv_mesh_y.x;
@@ -674,19 +668,6 @@ void gpu_compute_forces(const unsigned int N,
 
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork/run_block_size+1;
-
-        // force mesh includes ghost cells
-        unsigned int num_cells = grid_dim.x*grid_dim.y*grid_dim.z;
-        inv_fourier_mesh_tex_x.normalized = false;
-        inv_fourier_mesh_tex_x.filterMode = cudaFilterModePoint;
-        inv_fourier_mesh_tex_y.normalized = false;
-        inv_fourier_mesh_tex_y.filterMode = cudaFilterModePoint;
-        inv_fourier_mesh_tex_z.normalized = false;
-        inv_fourier_mesh_tex_z.filterMode = cudaFilterModePoint;
-
-        cudaBindTexture(0, inv_fourier_mesh_tex_x, d_inv_fourier_mesh_x, sizeof(cufftComplex)*num_cells);
-        cudaBindTexture(0, inv_fourier_mesh_tex_y, d_inv_fourier_mesh_y, sizeof(cufftComplex)*num_cells);
-        cudaBindTexture(0, inv_fourier_mesh_tex_z, d_inv_fourier_mesh_z, sizeof(cufftComplex)*num_cells);
 
         gpu_compute_forces_kernel<<<n_blocks,run_block_size>>>(nwork,
                  d_postype,
@@ -1401,7 +1382,7 @@ void gpu_initialize_coeff(
     unsigned int ngpu = gpu_partition.getNumActiveGPUs();
     for (int idev = ngpu - 1; idev >= 0; --idev)
         {
-        auto range = gpu_partition.getRangeAndSetGPU(idev);
+        gpu_partition.getRangeAndSetGPU(idev);
 
         cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(Scalar));
         }
