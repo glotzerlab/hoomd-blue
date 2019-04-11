@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2017 The Regents of the University of Michigan
-// Copyright (c)      2017 Marco Klement & Michael Engel
+// Copyright (c) 2017-2019 Marco Klement, Michael Engel
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
