@@ -145,14 +145,48 @@ void PPPMForceComputeGPU::initializeFFT()
     m_fourier_mesh_G_z.swap(fourier_mesh_G_z);
 
     // pad with offset
-    GlobalArray<cufftComplex> inv_fourier_mesh_x(m_n_cells+m_ghost_offset, m_exec_conf);
+    unsigned int inv_mesh_elements = m_n_cells+m_ghost_offset;
+    GlobalArray<cufftComplex> inv_fourier_mesh_x(ngpu*inv_mesh_elements, m_exec_conf);
     m_inv_fourier_mesh_x.swap(inv_fourier_mesh_x);
 
-    GlobalArray<cufftComplex> inv_fourier_mesh_y(m_n_cells+m_ghost_offset, m_exec_conf);
+    GlobalArray<cufftComplex> inv_fourier_mesh_y(ngpu*inv_mesh_elements, m_exec_conf);
     m_inv_fourier_mesh_y.swap(inv_fourier_mesh_y);
 
-    GlobalArray<cufftComplex> inv_fourier_mesh_z(m_n_cells+m_ghost_offset, m_exec_conf);
+    GlobalArray<cufftComplex> inv_fourier_mesh_z(ngpu*inv_mesh_elements, m_exec_conf);
     m_inv_fourier_mesh_z.swap(inv_fourier_mesh_z);
+
+    if (m_exec_conf->allConcurrentManagedAccess())
+        {
+        auto gpu_map = m_exec_conf->getGPUIds();
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaMemAdvise(m_inv_fourier_mesh_x.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_inv_fourier_mesh_y.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_inv_fourier_mesh_z.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            CHECK_CUDA_ERROR();
+
+            cudaMemPrefetchAsync(m_inv_fourier_mesh_x.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), gpu_map[idev]);
+            cudaMemPrefetchAsync(m_inv_fourier_mesh_y.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), gpu_map[idev]);
+            cudaMemPrefetchAsync(m_inv_fourier_mesh_z.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), gpu_map[idev]);
+            CHECK_CUDA_ERROR();
+            }
+
+         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaMemAdvise(m_fourier_mesh_G_x.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_fourier_mesh_G_y.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_fourier_mesh_G_z.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            CHECK_CUDA_ERROR();
+            }
+
+        // pin to GPU 0
+        cudaMemAdvise(m_fourier_mesh_G_x.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+        cudaMemPrefetchAsync(m_fourier_mesh_G_x.get(), m_n_inner_cells*sizeof(cufftComplex), gpu_map[0]);
+        cudaMemAdvise(m_fourier_mesh_G_y.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+        cudaMemPrefetchAsync(m_fourier_mesh_G_z.get(), m_n_inner_cells*sizeof(cufftComplex), gpu_map[0]);
+        cudaMemAdvise(m_fourier_mesh_G_z.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+        cudaMemPrefetchAsync(m_fourier_mesh_G_y.get(), m_n_inner_cells*sizeof(cufftComplex), gpu_map[0]);
+        } 
 
     unsigned int n_blocks = (m_mesh_points.x*m_mesh_points.y*m_mesh_points.z)/m_block_size+1;
     GlobalArray<Scalar> sum_partial(n_blocks,m_exec_conf);
@@ -321,18 +355,28 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::overwrite);
         ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::overwrite);
 
-        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
-                     d_fourier_mesh_G_x.data,
-                     d_inv_fourier_mesh_x.data,
-                     CUFFT_INVERSE));
-        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
-                     d_fourier_mesh_G_y.data,
-                     d_inv_fourier_mesh_y.data,
-                     CUFFT_INVERSE));
-        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
-                     d_fourier_mesh_G_z.data,
-                     d_inv_fourier_mesh_z.data,
-                     CUFFT_INVERSE));
+        // do inverse FFT on every GPU
+
+        m_exec_conf->beginMultiGPU();
+        unsigned int inv_mesh_elements = m_n_cells + m_ghost_offset;
+
+        for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev>=0; idev--)
+            {
+            cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
+            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+                         d_fourier_mesh_G_x.data,
+                         d_inv_fourier_mesh_x.data+idev*inv_mesh_elements,
+                         CUFFT_INVERSE));
+            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+                         d_fourier_mesh_G_y.data,
+                         d_inv_fourier_mesh_y.data+idev*inv_mesh_elements,
+                         CUFFT_INVERSE));
+            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+                         d_fourier_mesh_G_z.data,
+                         d_inv_fourier_mesh_z.data+idev*inv_mesh_elements,
+                         CUFFT_INVERSE));
+            }
+        m_exec_conf->endMultiGPU();
 
         if (m_prof) m_prof->pop(m_exec_conf);
         }
@@ -420,7 +464,11 @@ void PPPMForceComputeGPU::interpolateForces()
                        m_order,
                        d_index_array.data,
                        m_group->getGPUPartition(),
-                       block_size);
+                       m_pdata->getGPUPartition(),
+                       block_size,
+                       m_local_fft,
+                       m_n_cells+m_ghost_offset
+                       );
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

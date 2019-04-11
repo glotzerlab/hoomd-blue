@@ -646,7 +646,10 @@ void gpu_compute_forces(const unsigned int N,
                         int order,
                         const unsigned int *d_index_array,
                         const GPUPartition& gpu_partition,
-                        unsigned int block_size)
+                        const GPUPartition& all_gpu_partition,
+                        unsigned int block_size,
+                        bool local_fft,
+                        unsigned int inv_mesh_elements)
     {
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -658,8 +661,14 @@ void gpu_compute_forces(const unsigned int N,
 
     unsigned int run_block_size = min(max_block_size, block_size);
 
-    // reset force array for ALL particles
-    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = all_gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = all_gpu_partition.getRangeAndSetGPU(idev);
+
+        // reset force array for ALL particles
+        cudaMemsetAsync(d_force+range.first, 0, sizeof(Scalar4)*(range.second-range.first));
+        }
 
     // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
@@ -678,9 +687,9 @@ void gpu_compute_forces(const unsigned int N,
                  box,
                  order,
                  d_index_array,
-                 d_inv_fourier_mesh_x,
-                 d_inv_fourier_mesh_y,
-                 d_inv_fourier_mesh_z,
+                 local_fft ? d_inv_fourier_mesh_x + idev*inv_mesh_elements : d_inv_fourier_mesh_x,
+                 local_fft ? d_inv_fourier_mesh_y + idev*inv_mesh_elements : d_inv_fourier_mesh_y,
+                 local_fft ? d_inv_fourier_mesh_z + idev*inv_mesh_elements : d_inv_fourier_mesh_z,
                  range.first);
         }
     }

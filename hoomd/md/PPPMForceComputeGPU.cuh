@@ -62,7 +62,10 @@ void gpu_compute_forces(const unsigned int N,
                         int order,
                         const unsigned int *d_index_array,
                         const GPUPartition& gpu_partition,
-                        unsigned int block_size);
+                        const GPUPartition& all_gpu_partition,
+                        unsigned int block_size,
+                        bool local_fft,
+                        unsigned int inv_mesh_elements);
 
 void gpu_compute_pe(unsigned int n_wave_vectors,
                    Scalar *d_sum_partial,
