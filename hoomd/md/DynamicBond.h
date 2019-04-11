@@ -41,16 +41,13 @@ class PYBIND11_EXPORT DynamicBond : public Updater
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
-        // void set_params(Scalar r_cut, std::string bond_type);
     protected:
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles to which the dynamic bonding is applied
-        std::shared_ptr<NeighborList> m_nlist;                 //!< neighborlist
-        int period;         //!< period to create/destroy bonds
-        int seed;              //!< a seed for the random number generator
-        // bond_type;             //!< type of bond to be created or destroyed
-        // Scalar m_r_cut;            //!< cutoff radius
-        // Scalar prob_create;    //!< probability that a bond will be formed
-        // Scalar prob_destroy;   //!< probability that a bond will be destroyed
+        std::shared_ptr<NeighborList> m_nlist;    //!< neighborlist
+        int period;                               //!< period to create/destroy bonds
+        int seed;                                 //!< a seed for the random number generator
+        std::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
+
     // private:
     };
 

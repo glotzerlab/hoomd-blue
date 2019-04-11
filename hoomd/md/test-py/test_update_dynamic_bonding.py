@@ -15,16 +15,17 @@ class update_dynamic_bond_tests (unittest.TestCase):
     # tests basic creation of the updater
     def test(self):
         updater = md.update.dynamic_bond(group=group.all(), nlist=self.nl, seed=1994, period=1)
-        run(100);
+        run(10);
 
     # def test_set_params(self):
         # updater.set_params(r_cut=2, bond_type='A', seed=1994)
 
     def test_integrate(self):
+        md.integrate.mode_standard(dt=0.01)
         brownian = md.integrate.brownian(group=group.all(), kT=1, seed=342)
         updater = md.update.dynamic_bond(group=group.all(), nlist=self.nl, seed=1994, period=1)
         run(100);
-        
+
     def tearDown(self):
         del self.s
         context.initialize();
