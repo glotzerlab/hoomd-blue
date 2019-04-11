@@ -664,19 +664,6 @@ void gpu_compute_forces(const unsigned int N,
 
     unsigned int run_block_size = min(max_block_size, block_size);
 
-    // force mesh includes ghost cells
-    unsigned int num_cells = grid_dim.x*grid_dim.y*grid_dim.z;
-    inv_fourier_mesh_tex_x.normalized = false;
-    inv_fourier_mesh_tex_x.filterMode = cudaFilterModePoint;
-    inv_fourier_mesh_tex_y.normalized = false;
-    inv_fourier_mesh_tex_y.filterMode = cudaFilterModePoint;
-    inv_fourier_mesh_tex_z.normalized = false;
-    inv_fourier_mesh_tex_z.filterMode = cudaFilterModePoint;
-
-    cudaBindTexture(0, inv_fourier_mesh_tex_x, d_inv_fourier_mesh_x, sizeof(cufftComplex)*num_cells);
-    cudaBindTexture(0, inv_fourier_mesh_tex_y, d_inv_fourier_mesh_y, sizeof(cufftComplex)*num_cells);
-    cudaBindTexture(0, inv_fourier_mesh_tex_z, d_inv_fourier_mesh_z, sizeof(cufftComplex)*num_cells);
-
     // reset force array for ALL particles
     cudaMemset(d_force, 0, sizeof(Scalar4)*N);
 
@@ -687,6 +674,19 @@ void gpu_compute_forces(const unsigned int N,
 
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork/run_block_size+1;
+
+        // force mesh includes ghost cells
+        unsigned int num_cells = grid_dim.x*grid_dim.y*grid_dim.z;
+        inv_fourier_mesh_tex_x.normalized = false;
+        inv_fourier_mesh_tex_x.filterMode = cudaFilterModePoint;
+        inv_fourier_mesh_tex_y.normalized = false;
+        inv_fourier_mesh_tex_y.filterMode = cudaFilterModePoint;
+        inv_fourier_mesh_tex_z.normalized = false;
+        inv_fourier_mesh_tex_z.filterMode = cudaFilterModePoint;
+
+        cudaBindTexture(0, inv_fourier_mesh_tex_x, d_inv_fourier_mesh_x, sizeof(cufftComplex)*num_cells);
+        cudaBindTexture(0, inv_fourier_mesh_tex_y, d_inv_fourier_mesh_y, sizeof(cufftComplex)*num_cells);
+        cudaBindTexture(0, inv_fourier_mesh_tex_z, d_inv_fourier_mesh_z, sizeof(cufftComplex)*num_cells);
 
         gpu_compute_forces_kernel<<<n_blocks,run_block_size>>>(nwork,
                  d_postype,
