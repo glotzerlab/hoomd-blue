@@ -14,7 +14,6 @@
 #include "ShapeSpheropolyhedron.h"
 #include "ShapeSimplePolygon.h"
 #include "ShapeEllipsoid.h"
-#include "ShapeFacetedSphere.h"
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 
@@ -171,13 +170,6 @@ template void export_AlchemyLogBoltzmannFunction< ShapeSpheropolyhedron >(pybind
 template void export_UpdaterShape< ShapeSpheropolyhedron >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapeSpheropolyhedron >(pybind11::module& m, const std::string& name);
 template void export_ConstantShapeMove< ShapeSpheropolyhedron >(pybind11::module& m, const std::string& name);
-
-template void export_ShapeMoveInterface< ShapeFacetedSphere >(pybind11::module& m, const std::string& name);
-template void export_ShapeLogBoltzmann< ShapeFacetedSphere >(pybind11::module& m, const std::string& name);
-template void export_AlchemyLogBoltzmannFunction< ShapeFacetedSphere >(pybind11::module& m, const std::string& name);
-template void export_UpdaterShape< ShapeFacetedSphere >(pybind11::module& m, const std::string& name);
-template void export_PythonShapeMove< ShapeFacetedSphere >(pybind11::module& m, const std::string& name);
-template void export_ConstantShapeMove< ShapeFacetedSphere >(pybind11::module& m, const std::string& name);
 
 template void export_ShapeMoveInterface< ShapeSphinx >(pybind11::module& m, const std::string& name);
 template void export_ShapeLogBoltzmann< ShapeSphinx >(pybind11::module& m, const std::string& name);
