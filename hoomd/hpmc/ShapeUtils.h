@@ -14,7 +14,6 @@
 #include "ShapeSpheropolyhedron.h"
 #include "ShapeSimplePolygon.h"
 #include "ShapeEllipsoid.h"
-#include "ShapeFacetedSphere.h"
 #include "ShapeSphinx.h"
 
 namespace hpmc{
