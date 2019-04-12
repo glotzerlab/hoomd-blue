@@ -6,7 +6,7 @@
 
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
-#include "NeighborList.h"
+#include "hoomd/md/NeighborList.h"
 #include <memory>
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>

@@ -12,7 +12,7 @@ export CXX=$(which g++)
 echo "Using compilers $($CC --version | head -n 1), $($CXX --version | head -n 1)."
 
 # Some cmake setup
-CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python"
+CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python -DCMAKE_BUILD_TYPE=Debug"
 
 # Compile against correct python
 CMAKE_FLAGS="${CMAKE_FLAGS} -DPYTHON_EXECUTABLE=$(which python)"
@@ -25,4 +25,3 @@ CMAKE_FLAGS="${CMAKE_FLAGS} -DPYTHON_LIBRARY=${PYTHON_LIBRARY_PATH}"
 cmake ../ ${CMAKE_FLAGS}
 make -j4
 make install
-

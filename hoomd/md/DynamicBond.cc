@@ -48,7 +48,6 @@ DynamicBond::~DynamicBond()
 
 void DynamicBond::update(unsigned int timestep)
     {
-
     assert(m_pdata);
     assert(m_nlist);
     // start by updating the neighborlist
@@ -94,11 +93,14 @@ void DynamicBond::update(unsigned int timestep)
         // loop over all of the neighbors of this particle
         const unsigned int myHead = h_head_list.data[i];
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
+
         for (unsigned int k = 0; k < size; k++)
             {
+
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[myHead + k];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
+
 
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
@@ -118,16 +120,10 @@ void DynamicBond::update(unsigned int timestep)
             // calculate r_ij squared (FLOPS: 5)
             Scalar rsq = dot(dx, dx);
 
+            auto curr_b_type = m_bond_data->getTypeByIndex(i);
+
             // create a bond between particles i and j
-            if (rsq < r_cut_sq) {
-                auto curr_b_type = m_bond_data->getTypeByIndex(i);
-
-                m_exec_conf->msg->notice(1) << "i = " << i << endl;
-                m_exec_conf->msg->notice(1) << "j = " << j << endl;
-
-                m_bond_data->addBondedGroup(Bond(curr_b_type, i, j));
-            }
-
+            m_bond_data->addBondedGroup(Bond(curr_b_type, i, j));
             }
         }
 
