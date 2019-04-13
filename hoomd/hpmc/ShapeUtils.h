@@ -46,12 +46,14 @@ template<class Shape>
 class mass_properties_base
 {
 public:
-    mass_properties_base() : m_volume(0.0), m_center_of_mass(0.0, 0.0, 0.0)
+    mass_properties_base() : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0)
         {
         for(unsigned int i = 0; i < 6; i++) m_inertia[i] = 0.0;
         }
 
     Scalar getVolume() { return m_volume; }
+
+    Scalar getSurfaceArea() { return m_surface_area; }
 
     const vec3<Scalar>& getCenterOfMass() { return m_center_of_mass; }
 
@@ -85,9 +87,10 @@ public:
 protected:
     virtual void compute() {throw std::runtime_error("mass_properties::compute() is not implemented for this shape.");}
     Scalar m_volume;
+    Scalar m_surface_area;
     vec3<Scalar> m_center_of_mass;
     Scalar m_inertia[6]; // xx, yy, zz, xy, yz, xz
-};
+};   // end class mass_properties_base
 
 template<class Shape>
 class mass_properties : public mass_properties_base<Shape>
@@ -697,7 +700,7 @@ class mass_properties< ShapeConvexPolyhedron > : public mass_properties_base< Sh
 public:
     mass_properties() {}
 
-    mass_properties(const typename ShapeConvexPolyhedron::param_type& param, bool do_compute = true)
+    mass_properties(const typename ShapeConvexPolyhedron::param_type& param, bool do_compute=true)
         {
         ConvexHull hull(param);
         hull.compute();
@@ -708,7 +711,11 @@ public:
             }
         }
 
-    mass_properties(const std::vector< vec3<Scalar> >& p, const std::vector<std::vector<unsigned int> >& f, bool do_compute = true) :  points(p), faces(f)
+    mass_properties(
+            const std::vector< vec3<Scalar> >& p,
+            const std::vector<std::vector<unsigned int> >& f,
+            bool do_compute = true)
+        :  points(p), faces(f)
         {
         if (do_compute)
             {
@@ -720,7 +727,7 @@ public:
 
     unsigned int getNumFaces() { return faces.size(); }
 
-    void updateParam(const typename ShapeConvexPolyhedron::param_type& param, bool force = true)
+    void updateParam(const typename ShapeConvexPolyhedron::param_type& param, bool force=true)
         {
         if(force || param.N != points.size())
             {
@@ -741,6 +748,7 @@ public:
 
 protected:
     using mass_properties_base< ShapeConvexPolyhedron >::m_volume;
+    using mass_properties_base< ShapeConvexPolyhedron >::m_surface_area;
     using mass_properties_base< ShapeConvexPolyhedron >::m_center_of_mass;
     using mass_properties_base< ShapeConvexPolyhedron >::m_inertia;
     std::vector< vec3<Scalar> > points;
@@ -751,14 +759,14 @@ protected:
 */
     virtual void compute()
         {
-        // const std::vector<std::vector<unsigned int> >& faces = convex_hull.getFaces();
-        // const std::vector< vec3<Scalar> >& points = convex_hull.getPoints();
-        const Scalar mult[10] = {1.0/6.0 ,1.0/24.0 ,1.0/24.0 ,1.0/24.0 ,1.0/60.0 ,1.0/60.0 ,1.0/60.0 ,1.0/120.0 ,1.0/120.0 ,1.0/120.0};
-        Scalar intg[10] = {0,0,0,0,0,0,0,0,0,0}; // order: 1, x, y, z, xˆ2, yˆ2, zˆ2, xy, yz, zx
+        const Scalar mult[10] = {1.0/6.0, 1.0/24.0, 1.0/24.0, 1.0/24.0, 1.0/60.0,
+            1.0/60.0, 1.0/60.0, 1.0/120.0, 1.0/120.0, 1.0/120.0};
+        Scalar intg[10] = {0,0,0,0,0,0,0,0,0,0};  // order: 1, x, y, z, xˆ2, yˆ2, zˆ2, xy, yz, zx
+        Scalar surface_area = 0.0;
         for (unsigned int t=0; t<faces.size(); t++)
             {
             //get vertices of triangle
-            vec3<Scalar> v0, v1, v2;
+            vec3<Scalar> v0, v1, v2;  // vertices
             vec3<Scalar> a1, a2, d;
             v0 = points[faces[t][0]];
             v1 = points[faces[t][1]];
@@ -766,7 +774,7 @@ protected:
             // get edges and cross product of edges
             a1 = v1 - v0;
             a2 = v2 - v0;
-            d = cross(a1, a2);
+            d = cross(a1, a2);  // = |a1||a2|sin(theta)
 
             vec3<Scalar> temp0, temp1, temp2, f1, f2, f3, g0, g1, g2;
             temp0 = v0 + v1;
@@ -785,13 +793,18 @@ protected:
             intg[7] += d.x*(v0.y*g0.x + v1.y*g1.x + v2.y*g2.x);
             intg[8] += d.y*(v0.z*g0.y + v1.z*g1.y + v2.z*g2.y);
             intg[9] += d.z*(v0.x*g0.z + v1.x*g1.z + v2.x*g2.z);
-            }
-        for(unsigned int i = 0; i < 10; i++ )
+
+            // add to surface area
+            surface_area += 0.5 * sqrt(dot(d,d));
+
+            }  // end loop over faces
+        for(unsigned int i = 0; i < 10; i++)
             {
             intg[i] *= mult[i];
             }
 
         m_volume = intg[0];
+        m_surface_area = surface_area;
 
         m_center_of_mass.x = intg[1];
         m_center_of_mass.y = intg[2];
@@ -806,8 +819,8 @@ protected:
         m_inertia[3] = -(intg[7] - m_volume*cxy);
         m_inertia[4] = -(intg[8] - m_volume*cyz);
         m_inertia[5] = -(intg[9] - m_volume*cxz);
-        }
-};
+        }  // end mass_properties<ShapeConvexPolyhedron>::compute()
+};  // end class mass_properties < ShapeConvexPolyhedron >
 
 //TODO: Enable true spheropolyhedron calculation
 template < >

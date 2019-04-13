@@ -125,11 +125,12 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  bool pretend,
                                  bool multiphase,
                                  unsigned int numphase)
-    : Updater(sysdef), m_seed(seed), m_global_partition(0), m_nselect(nselect),m_nsweeps(nsweeps),
+    : Updater(sysdef), m_seed(seed), m_global_partition(0), m_nselect(nselect), m_nsweeps(nsweeps),
       m_move_ratio(move_ratio*65535), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
-      m_pretend(pretend), m_initialized(false), m_multi_phase(multiphase), m_num_phase(numphase), m_update_order(seed)
+      m_pretend(pretend),m_initialized(false), m_multi_phase(multiphase),
+      m_num_phase(numphase), m_update_order(seed)
     {
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
@@ -139,6 +140,11 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_ProvidedQuantities.push_back("shape_move_acceptance_ratio");
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
     m_ProvidedQuantities.push_back("shape_move_multi_phase_box");
+    if (std::is_same<Shape, ShapeConvexPolyhedron>::value)
+        {
+        m_ProvidedQuantities.push_back("shape_isoperimetric_quotient");
+        }
+
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
@@ -152,7 +158,8 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
             h_ntypes.data[i] = 0;
             }
         }
-    countTypes(); // TODO: connect to ntypes change/particle changes to resize arrays and count them up again.
+    // TODO: connect to ntypes change/particle changes to resize arrays and count them up again.
+    countTypes();
     //TODO: add a sanity check to makesure that MPI is setup correctly
     if(m_multi_phase)
     {
@@ -165,7 +172,10 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     }
 
 template< class Shape >
-UpdaterShape<Shape>::~UpdaterShape() { m_exec_conf->msg->notice(5) << "Destroying UpdaterShape "<< std::endl; }
+UpdaterShape<Shape>::~UpdaterShape()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying UpdaterShape " << std::endl;
+    }
 
 /*! hpmc::UpdaterShape provides:
 \returns a list of provided quantities
@@ -175,6 +185,7 @@ std::vector< std::string > UpdaterShape<Shape>::getProvidedLogQuantities()
     {
     return m_ProvidedQuantities;
     }
+
 //! Calculates the requested log value and returns it
 template < class Shape >
 Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
@@ -217,13 +228,32 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
         for(unsigned int i = 0; i < m_pdata->getNTypes(); i++)
             {
-            energy += m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[i], i, m_mc->getParams()[i], h_det.data[i]);
+            energy += m_log_boltz_function->computeEnergy(
+                    timestep, h_ntypes.data[i], i, m_mc->getParams()[i], h_det.data[i]);
             }
         return energy;
         }
+    else if(quantity == "shape_isoperimetric_quotient")
+        {
+        ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
+        auto params = m_mc->getParams();
+        Scalar volume = 0.0;
+        Scalar sa = 0.0;
+        for(size_t i = 0; i < 1; i++)  // only handles 1 shape for now
+            {
+            detail::mass_properties<Shape> mp(params[i]);
+            volume = mp.getVolume();//*Scalar(h_ntypes.data[i]);  // what is the data[i] term?
+            sa = mp.getSurfaceArea();
+            }
+        return 36 * M_PI * volume*volume / (sa*sa*sa);
+        }
     else
 	    {
-		m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
+        m_exec_conf->msg->error()
+            << "update.shape: "
+            << quantity
+            << " is not a valid log quantity"
+            << std::endl;
 		throw std::runtime_error("Error getting log value");
 		}
     }
