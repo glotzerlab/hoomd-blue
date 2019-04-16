@@ -6,8 +6,11 @@
 
 #include "DynamicBond.h"
 #include "hoomd/GPUArray.h"
-#include "hoomd/Saru.h"
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 
+#include "hoomd/Saru.h"
+using namespace hoomd;
 namespace py = pybind11;
 
 /*! \file DynamicBond.cc
@@ -27,10 +30,9 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<NeighborList> nlist,
                         int seed,
                         int period)
-        : Updater(sysdef), m_group(group), m_nlist(nlist)
+        : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed)
     {
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
-
     }
 
 // void DynamicBond::set_params(Scalar r_cut,
@@ -79,6 +81,9 @@ void DynamicBond::update(unsigned int timestep)
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
+        // initialize the RNG
+        detail::Saru saru(i, timestep, m_seed);
+
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
@@ -93,7 +98,7 @@ void DynamicBond::update(unsigned int timestep)
         // loop over all of the neighbors of this particle
         const unsigned int myHead = h_head_list.data[i];
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
-
+        Scalar rcut_sq = 1.7;
         for (unsigned int k = 0; k < size; k++)
             {
 
@@ -120,10 +125,16 @@ void DynamicBond::update(unsigned int timestep)
             // calculate r_ij squared (FLOPS: 5)
             Scalar rsq = dot(dx, dx);
 
-            auto curr_b_type = m_bond_data->getTypeByIndex(i);
+            // auto curr_b_type = m_bond_data->getTypeByIndex(i);
 
             // create a bond between particles i and j
-            m_bond_data->addBondedGroup(Bond(curr_b_type, i, j));
+            if (rsq < rcut_sq) {
+                Scalar rnd1 = saru.s<Scalar>(0,1);
+                if (rnd1 < 0.1) {
+                    m_bond_data->addBondedGroup(Bond(0, i, j));
+                }
+
+            }
             }
         }
 

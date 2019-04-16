@@ -44,6 +44,7 @@ class PYBIND11_EXPORT DynamicBond : public Updater
     protected:
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles to which the dynamic bonding is applied
         std::shared_ptr<NeighborList> m_nlist;    //!< neighborlist
+        int m_seed;
         int period;                               //!< period to create/destroy bonds
         int seed;                                 //!< a seed for the random number generator
         std::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
