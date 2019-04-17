@@ -1613,6 +1613,10 @@ void NeighborList::updateMemoryMapping()
             // set preferred location
             auto range = gpu_partition.getRange(idev);
             unsigned int nelem =  range.second - range.first;
+
+            if (nelem == 0)
+                continue;
+
             cudaMemAdvise(m_head_list.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_n_neigh.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_last_pos.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
