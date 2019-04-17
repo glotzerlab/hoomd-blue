@@ -122,8 +122,14 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
             std::pair<unsigned int, unsigned int> range = m_pdata->getGPUPartition().getRangeAndSetGPU(idev);
             unsigned int nelem = range.second - range.first;
 
+            if (nelem == 0)
+                continue;
+
             cudaMemsetAsync(d_force.data+range.first, 0, sizeof(Scalar4)*nelem);
             cudaMemsetAsync(d_torque.data+range.first, 0, sizeof(Scalar4)*nelem);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             }
         m_exec_conf->endMultiGPU();
 
@@ -184,6 +190,28 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
 
     if (compute_virial)
         {
+        // reset virial
+        m_exec_conf->beginMultiGPU();
+
+        for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; idev--)
+            {
+            std::pair<unsigned int, unsigned int> range = m_pdata->getGPUPartition().getRangeAndSetGPU(idev);
+            unsigned int nelem = range.second - range.first;
+
+            if (nelem == 0)
+                continue;
+
+            for (unsigned int i = 0; i < 6; i++)
+                {
+                cudaMemsetAsync(d_virial.data+i*m_virial_pitch+range.first, 0, sizeof(Scalar)*nelem);
+                }
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        m_exec_conf->endMultiGPU();
+
+        m_exec_conf->beginMultiGPU();
         m_tuner_virial->begin();
         unsigned int param = m_tuner_virial->getParam();
         unsigned int block_size = param % 10000;
@@ -193,6 +221,8 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
         gpu_rigid_virial(d_virial.data,
                         d_molecule_length.data,
                         d_molecule_list.data,
+                        d_molecule_idx.data,
+                        d_rigid_center.data,
                         molecule_indexer,
                         d_postype.data,
                         d_orientation.data,
@@ -209,14 +239,15 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
                         m_pdata->getNetVirial().getPitch(),
                         m_virial_pitch,
                         block_size,
-                        m_exec_conf->dev_prop);
+                        m_exec_conf->dev_prop,
+                        m_gpu_partition);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
         m_tuner_virial->end();
+        m_exec_conf->endMultiGPU();
         }
-
 
     if (m_prof) m_prof->pop(m_exec_conf);
     if (m_prof) m_prof->pop(m_exec_conf);
