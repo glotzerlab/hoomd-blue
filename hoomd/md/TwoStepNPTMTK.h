@@ -220,6 +220,8 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         //! Helper function to update the propagator elements
         void updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz);
 
+        //! Get the relevant couplings for the active box degrees of freedom
+        couplingMode getRelevantCouplings();
         };
 
 //! Exports the TwoStepNPTMTK class to python

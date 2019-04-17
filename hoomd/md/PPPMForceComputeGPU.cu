@@ -114,17 +114,21 @@ __device__ int3 find_cell(const Scalar3& pos,
 
 __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
                                             const uint3 n_ghost_bins,
-                                            unsigned int group_size,
+                                            unsigned int work_size,
                                             const unsigned int *d_index_array,
                                             const Scalar4 *d_postype,
                                             const Scalar *d_charge,
                                             cufftComplex *d_mesh,
                                             Scalar V_cell,
                                             int order,
+                                            unsigned int offset,
                                             BoxDim box)
     {
-    unsigned int group_idx = blockIdx.x*blockDim.x+threadIdx.x;
-    if (group_idx >= group_size) return;
+    unsigned int work_idx = blockIdx.x*blockDim.x+threadIdx.x;
+
+    if (work_idx >= work_size) return;
+
+    unsigned int group_idx = work_idx + offset;
 
     int3 bin_dim = make_int3(mesh_dim.x+2*n_ghost_bins.x,
                              mesh_dim.y+2*n_ghost_bins.y,
@@ -264,6 +268,28 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
         } // end of loop over neighboring bins
     }
 
+__global__ void gpu_reduce_meshes(const unsigned int mesh_elements,
+    const cufftComplex *d_mesh_scratch,
+    cufftComplex *d_mesh,
+    unsigned int ngpu)
+    {
+    unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= mesh_elements)
+        return;
+
+    cufftComplex res;
+    res.x = 0; res.y = 0;
+
+    // reduce over all temporary meshes
+    for (unsigned int igpu = 0; igpu < ngpu; ++igpu)
+        {
+        cufftComplex m = d_mesh_scratch[idx + igpu*mesh_elements];
+        res.x += m.x; res.y += m.y;
+        }
+    d_mesh[idx] = res;
+    }
+
 void gpu_assign_particles(const uint3 mesh_dim,
                          const uint3 n_ghost_bins,
                          const uint3 grid_dim,
@@ -272,10 +298,13 @@ void gpu_assign_particles(const uint3 mesh_dim,
                          const Scalar4 *d_postype,
                          const Scalar *d_charge,
                          cufftComplex *d_mesh,
+                         cufftComplex *d_mesh_scratch,
+                         const unsigned int mesh_elements,
                          int order,
                          const BoxDim& box,
                          unsigned int block_size,
-                         const cudaDeviceProp& dev_prop
+                         const cudaDeviceProp& dev_prop,
+                         const GPUPartition &gpu_partition
                          )
     {
     cudaMemset(d_mesh, 0, sizeof(cufftComplex)*grid_dim.x*grid_dim.y*grid_dim.z);
@@ -296,21 +325,51 @@ void gpu_assign_particles(const uint3 mesh_dim,
         run_block_size -= dev_prop.warpSize;
         }
 
-    unsigned int n_blocks = group_size/run_block_size+1;
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    unsigned int ngpu = gpu_partition.getNumActiveGPUs();
+    for (int idev = ngpu - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-    gpu_assign_particles_kernel<<<n_blocks,run_block_size>>>(
-          mesh_dim,
-          n_ghost_bins,
-          group_size,
-          d_index_array,
-          d_postype,
-          d_charge,
-          d_mesh,
-          V_cell,
-          order,
-          box);
+        if (ngpu > 1)
+            {
+            // zero the temporary mesh array 
+            cudaMemsetAsync(d_mesh_scratch + idev*mesh_elements, 0, sizeof(cufftComplex)*mesh_elements);
+            }
+
+        unsigned int nwork = range.second - range.first;
+        unsigned int n_blocks = nwork/run_block_size+1;
+
+        gpu_assign_particles_kernel<<<n_blocks,run_block_size>>>(
+              mesh_dim,
+              n_ghost_bins,
+              nwork,
+              d_index_array,
+              d_postype,
+              d_charge,
+              ngpu > 1 ? d_mesh_scratch + idev*mesh_elements : d_mesh,
+              V_cell,
+              order,
+              range.first,
+              box);
+        }
     }
 
+//! Reduce temporary arrays for every GPU
+void gpu_reduce_meshes(const unsigned int mesh_elements,
+    const cufftComplex *d_mesh_scratch,
+    cufftComplex *d_mesh,
+    const unsigned int ngpu,
+    const unsigned int block_size)
+    {
+    // reduce meshes on GPU 0
+    gpu_reduce_meshes<<<mesh_elements/block_size + 1, block_size>>>(
+        mesh_elements,
+        d_mesh_scratch,
+        d_mesh,
+        ngpu);
+    }
+   
 __global__ void gpu_compute_mesh_virial_kernel(const unsigned int n_wave_vectors,
                                          cufftComplex *d_fourier_mesh,
                                          Scalar *d_inf_f,
@@ -448,12 +507,7 @@ void gpu_update_meshes(const unsigned int n_wave_vectors,
                                                       NNN);
     }
 
-//! Texture for reading particle positions
-texture<cufftComplex, 1, cudaReadModeElementType> inv_fourier_mesh_tex_x;
-texture<cufftComplex, 1, cudaReadModeElementType> inv_fourier_mesh_tex_y;
-texture<cufftComplex, 1, cudaReadModeElementType> inv_fourier_mesh_tex_z;
-
-__global__ void gpu_compute_forces_kernel(const unsigned int N,
+__global__ void gpu_compute_forces_kernel(const unsigned int work_size,
                                           const Scalar4 *d_postype,
                                           Scalar4 *d_force,
                                           const uint3 grid_dim,
@@ -462,14 +516,16 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
                                           const BoxDim box,
                                           int order,
                                           const unsigned int *d_index_array,
-                                          unsigned int group_size,
                                           const cufftComplex *inv_fourier_mesh_x,
                                           const cufftComplex *inv_fourier_mesh_y,
-                                          const cufftComplex *inv_fourier_mesh_z)
+                                          const cufftComplex *inv_fourier_mesh_z,
+                                          const unsigned int offset)
     {
-    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (group_idx >= group_size) return;
+    if (work_idx >= work_size) return;
+
+    unsigned int group_idx = work_idx + offset;
 
     unsigned int idx = d_index_array[group_idx];
 
@@ -563,10 +619,9 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
                 // use column-major layout
                 unsigned int cell_idx = neighl + grid_dim.x * (neighm + grid_dim.y * neighn);
 
-
-                cufftComplex inv_mesh_x = tex1Dfetch(inv_fourier_mesh_tex_x,cell_idx);
-                cufftComplex inv_mesh_y = tex1Dfetch(inv_fourier_mesh_tex_y,cell_idx);
-                cufftComplex inv_mesh_z = tex1Dfetch(inv_fourier_mesh_tex_z,cell_idx);
+                cufftComplex inv_mesh_x = inv_fourier_mesh_x[cell_idx];
+                cufftComplex inv_mesh_y = inv_fourier_mesh_y[cell_idx];
+                cufftComplex inv_mesh_z = inv_fourier_mesh_z[cell_idx];
 
                 force.x += qi*z0*inv_mesh_x.x;
                 force.y += qi*z0*inv_mesh_y.x;
@@ -590,8 +645,11 @@ void gpu_compute_forces(const unsigned int N,
                         const BoxDim& box,
                         int order,
                         const unsigned int *d_index_array,
-                        unsigned int group_size,
-                        unsigned int block_size)
+                        const GPUPartition& gpu_partition,
+                        const GPUPartition& all_gpu_partition,
+                        unsigned int block_size,
+                        bool local_fft,
+                        unsigned int inv_mesh_elements)
     {
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -603,35 +661,37 @@ void gpu_compute_forces(const unsigned int N,
 
     unsigned int run_block_size = min(max_block_size, block_size);
 
-    // force mesh includes ghost cells
-    unsigned int num_cells = grid_dim.x*grid_dim.y*grid_dim.z;
-    inv_fourier_mesh_tex_x.normalized = false;
-    inv_fourier_mesh_tex_x.filterMode = cudaFilterModePoint;
-    inv_fourier_mesh_tex_y.normalized = false;
-    inv_fourier_mesh_tex_y.filterMode = cudaFilterModePoint;
-    inv_fourier_mesh_tex_z.normalized = false;
-    inv_fourier_mesh_tex_z.filterMode = cudaFilterModePoint;
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = all_gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = all_gpu_partition.getRangeAndSetGPU(idev);
 
-    cudaBindTexture(0, inv_fourier_mesh_tex_x, d_inv_fourier_mesh_x, sizeof(cufftComplex)*num_cells);
-    cudaBindTexture(0, inv_fourier_mesh_tex_y, d_inv_fourier_mesh_y, sizeof(cufftComplex)*num_cells);
-    cudaBindTexture(0, inv_fourier_mesh_tex_z, d_inv_fourier_mesh_z, sizeof(cufftComplex)*num_cells);
+        // reset force array for ALL particles
+        cudaMemsetAsync(d_force+range.first, 0, sizeof(Scalar4)*(range.second-range.first));
+        }
 
-    // reset force array for ALL particles
-    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-    gpu_compute_forces_kernel<<<group_size/run_block_size+1,run_block_size>>>(N,
-             d_postype,
-             d_force,
-             grid_dim,
-             n_ghost_cells,
-             d_charge,
-             box,
-             order,
-             d_index_array,
-             group_size,
-             d_inv_fourier_mesh_x,
-             d_inv_fourier_mesh_y,
-             d_inv_fourier_mesh_z);
+        unsigned int nwork = range.second - range.first;
+        unsigned int n_blocks = nwork/run_block_size+1;
+
+        gpu_compute_forces_kernel<<<n_blocks,run_block_size>>>(nwork,
+                 d_postype,
+                 d_force,
+                 grid_dim,
+                 n_ghost_cells,
+                 d_charge,
+                 box,
+                 order,
+                 d_index_array,
+                 local_fft ? d_inv_fourier_mesh_x + idev*inv_mesh_elements : d_inv_fourier_mesh_x,
+                 local_fft ? d_inv_fourier_mesh_y + idev*inv_mesh_elements : d_inv_fourier_mesh_y,
+                 local_fft ? d_inv_fourier_mesh_z + idev*inv_mesh_elements : d_inv_fourier_mesh_z,
+                 range.first);
+        }
     }
 
 __global__ void kernel_calculate_pe_partial(
@@ -1324,7 +1384,15 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
 
 void gpu_initialize_coeff(
     Scalar *CPU_rho_coeff,
-    int order)
+    int order,
+    const GPUPartition& gpu_partition)
     {
-    cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(Scalar));
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    unsigned int ngpu = gpu_partition.getNumActiveGPUs();
+    for (int idev = ngpu - 1; idev >= 0; --idev)
+        {
+        gpu_partition.getRangeAndSetGPU(idev);
+
+        cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(Scalar));
+        }
     }
