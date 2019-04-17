@@ -38,6 +38,11 @@ class PYBIND11_EXPORT DynamicBond : public Updater
         //! Destructor
         virtual ~DynamicBond();
 
+        virtual void setParams(Scalar r_cut,
+                            std::string bond_type,
+                            Scalar prob_form,
+                            Scalar prob_break);
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
@@ -47,6 +52,8 @@ class PYBIND11_EXPORT DynamicBond : public Updater
         int m_seed;
         int period;                               //!< period to create/destroy bonds
         int seed;                                 //!< a seed for the random number generator
+        Scalar m_r_cut;                           //!<cut off distance for computing bonds
+        int bond_type;
         std::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
 
     // private:

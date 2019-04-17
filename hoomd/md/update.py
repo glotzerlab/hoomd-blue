@@ -41,14 +41,12 @@ class dynamic_bond(_updater):
         phase = 0
         self.setupUpdater(period, phase);
 
-    # def set_params():
-    #     # store metadata
-    #     self.prob_form = prob_form;
-    #     self.prob_break = prob_break;
-    #     self.r_cut = rcut;
-    #     self.nlist = nlist;
-    #     self.period = period;
-    #     metadata_fields = ['period', 'prob_form', 'prob_break']
+
+    def set_params(self, r_cut, bond_type, prob_form, prob_break):
+        self.check_initialization()
+        self.cpp_updater.setParams(r_cut, bond_type, prob_form, prob_break);
+        # store metadata
+        # metadata_fields = ['r_cut', 'bond_type', 'prob_form', 'prob_break']
 
 
 class rescale_temp(_updater):
@@ -111,6 +109,7 @@ class rescale_temp(_updater):
             rescaler.set_params(kT=2.0)
 
         """
+
         hoomd.util.print_status_line();
         self.check_initialization();
 

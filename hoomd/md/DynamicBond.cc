@@ -30,32 +30,45 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<NeighborList> nlist,
                         int seed,
                         int period)
-        : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed)
+        : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed), m_r_cut(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
     }
 
-// void DynamicBond::set_params(Scalar r_cut,
-//                         std::string bond_type,
-//                         Scalar prob_create,
-//                         Scalar prob_destroy)
-//     {
-//     unsigned int b_type = m_bond_data->getTypeByName(bond_type);
-//     }
+void DynamicBond::setParams(Scalar r_cut,
+                        std::string bond_type,
+                        Scalar prob_form,
+                        Scalar prob_break)
+    {
+    // TODO: write test
+    m_r_cut = r_cut;
+    if (m_r_cut < 0)
+        {
+        m_exec_conf->msg->error() << "r_cut cannot be less than 0.\n" << std::endl;
+        }
+
+    m_exec_conf->msg->notice(2) << "r_cut = " << m_r_cut << endl;
+    // unsigned int b_type = m_bond_data->getTypeByName(bond_type);
+
+    // m_exec_conf->msg->notice(2) << "bond type = " << b_type << endl;
+    }
 
 DynamicBond::~DynamicBond()
     {
     m_exec_conf->msg->notice(5) << "Destroying DynamicBond" << endl;
     }
 
+
 void DynamicBond::update(unsigned int timestep)
     {
     assert(m_pdata);
     assert(m_nlist);
+
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
     const BoxDim& box = m_pdata->getGlobalBox();
+
     // start the profile for this compute
     if (m_prof) m_prof->push("DynamicBond");
 
@@ -73,10 +86,9 @@ void DynamicBond::update(unsigned int timestep)
 
     assert(h_pos.data);
 
-    // temporary hard-coded r_cut
-    Scalar r_cut = 5.0;
-    Scalar r_cut_sq = r_cut*r_cut;
-
+    // TODO: make r_cut a variable
+    m_exec_conf->msg->notice(2) << "updater m_r_cut = " << m_r_cut << endl;
+    Scalar r_cut_sq = m_r_cut*m_r_cut;
 
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)
@@ -98,14 +110,11 @@ void DynamicBond::update(unsigned int timestep)
         // loop over all of the neighbors of this particle
         const unsigned int myHead = h_head_list.data[i];
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
-        Scalar rcut_sq = 1.7;
         for (unsigned int k = 0; k < size; k++)
             {
-
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[myHead + k];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
-
 
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
@@ -128,13 +137,12 @@ void DynamicBond::update(unsigned int timestep)
             // auto curr_b_type = m_bond_data->getTypeByIndex(i);
 
             // create a bond between particles i and j
-            if (rsq < rcut_sq) {
+            if (rsq < r_cut_sq) {
                 Scalar rnd1 = saru.s<Scalar>(0,1);
                 if (rnd1 < 0.1) {
                     m_bond_data->addBondedGroup(Bond(0, i, j));
+                    }
                 }
-
-            }
             }
         }
 
@@ -145,5 +153,7 @@ void DynamicBond::update(unsigned int timestep)
 
 void export_DynamicBond(py::module& m)
     {
-    py::class_< DynamicBond, std::shared_ptr<DynamicBond> >(m, "DynamicBond", py::base<Updater>()).def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, std::shared_ptr<NeighborList>, int, int>());
+    py::class_< DynamicBond, std::shared_ptr<DynamicBond> >(m, "DynamicBond", py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, std::shared_ptr<NeighborList>, int, int>())
+    .def("setParams", &DynamicBond::setParams);
     }
