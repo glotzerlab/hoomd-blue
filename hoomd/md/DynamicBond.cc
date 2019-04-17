@@ -35,22 +35,27 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
     }
 
+    /*! \param r_cut cut off distance for computing bonds
+        \param bond_type type of bond to be formed or broken
+        \param prob_form probability that a bond will form
+        \param prob_break probability that a bond will break
+
+        Sets parameters for the dynamic bond updater
+    */
 void DynamicBond::setParams(Scalar r_cut,
                         std::string bond_type,
                         Scalar prob_form,
                         Scalar prob_break)
     {
     // TODO: write test
-    m_r_cut = r_cut;
     if (m_r_cut < 0)
         {
         m_exec_conf->msg->error() << "r_cut cannot be less than 0.\n" << std::endl;
         }
-
-    m_exec_conf->msg->notice(2) << "r_cut = " << m_r_cut << endl;
+    m_r_cut = r_cut;
+    m_prob_form = prob_form;
+    m_prob_break = prob_break;
     // unsigned int b_type = m_bond_data->getTypeByName(bond_type);
-
-    // m_exec_conf->msg->notice(2) << "bond type = " << b_type << endl;
     }
 
 DynamicBond::~DynamicBond()
@@ -139,7 +144,7 @@ void DynamicBond::update(unsigned int timestep)
             // create a bond between particles i and j
             if (rsq < r_cut_sq) {
                 Scalar rnd1 = saru.s<Scalar>(0,1);
-                if (rnd1 < 0.1) {
+                if (rnd1 < m_prob_form) {
                     m_bond_data->addBondedGroup(Bond(0, i, j));
                     }
                 }
