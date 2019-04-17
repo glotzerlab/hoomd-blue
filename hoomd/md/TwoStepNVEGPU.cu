@@ -42,7 +42,8 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
                              const Scalar3 *d_accel,
                              int3 *d_image,
                              unsigned int *d_group_members,
-                             unsigned int group_size,
+                             const unsigned int nwork,
+                             const unsigned int offset,
                              BoxDim box,
                              Scalar deltaT,
                              bool limit,
@@ -50,10 +51,11 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
                              bool zero_force)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
-    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (group_idx < group_size)
+    if (work_idx < nwork)
         {
+        const unsigned int group_idx = work_idx + offset;
         unsigned int idx = d_group_members[group_idx];
 
         // do velocity verlet update
@@ -122,7 +124,7 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
                              const Scalar3 *d_accel,
                              int3 *d_image,
                              unsigned int *d_group_members,
-                             unsigned int group_size,
+                             const GPUPartition& gpu_partition,
                              const BoxDim& box,
                              Scalar deltaT,
                              bool limit,
@@ -140,12 +142,20 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 grid( (group_size/run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-    // run the kernel
-    gpu_nve_step_one_kernel<<< grid, threads >>>(d_pos, d_vel, d_accel, d_image, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
+        unsigned int nwork = range.second - range.first;
+
+        // setup the grid to run the kernel
+        dim3 grid( (nwork/run_block_size) + 1, 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        // run the kernel
+        gpu_nve_step_one_kernel<<< grid, threads >>>(d_pos, d_vel, d_accel, d_image, d_group_members, nwork, range.first, box, deltaT, limit, limit_val, zero_force);
+        }
 
     return cudaSuccess;
     }
@@ -340,7 +350,8 @@ void gpu_nve_step_two_kernel(
                             Scalar4 *d_vel,
                             Scalar3 *d_accel,
                             unsigned int *d_group_members,
-                            unsigned int group_size,
+                            const unsigned int nwork,
+                            const unsigned int offset,
                             Scalar4 *d_net_force,
                             Scalar deltaT,
                             bool limit,
@@ -348,10 +359,11 @@ void gpu_nve_step_two_kernel(
                             bool zero_force)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
-    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (group_idx < group_size)
+    if (work_idx < nwork)
         {
+        const unsigned int group_idx = work_idx + offset;
         unsigned int idx = d_group_members[group_idx];
 
         // read in the net forc and calculate the acceleration MEM TRANSFER: 16 bytes
@@ -412,7 +424,7 @@ void gpu_nve_step_two_kernel(
 cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
-                             unsigned int group_size,
+                             const GPUPartition& gpu_partition,
                              Scalar4 *d_net_force,
                              Scalar deltaT,
                              bool limit,
@@ -430,21 +442,29 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 grid( (group_size/run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-    // run the kernel
-    gpu_nve_step_two_kernel<<< grid, threads >>>(d_vel,
-                                                 d_accel,
-                                                 d_group_members,
-                                                 group_size,
-                                                 d_net_force,
-                                                 deltaT,
-                                                 limit,
-                                                 limit_val,
-                                                 zero_force);
+        unsigned int nwork = range.second - range.first;
 
+        // setup the grid to run the kernel
+        dim3 grid( (nwork/run_block_size) + 1, 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        // run the kernel
+        gpu_nve_step_two_kernel<<< grid, threads >>>(d_vel,
+                                                     d_accel,
+                                                     d_group_members,
+                                                     nwork,
+                                                     range.first,
+                                                     d_net_force,
+                                                     deltaT,
+                                                     limit,
+                                                     limit_val,
+                                                     zero_force);
+        }
     return cudaSuccess;
     }
 

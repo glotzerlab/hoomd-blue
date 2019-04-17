@@ -47,8 +47,6 @@ TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumMembers();
-
     // profile this step
     if (m_prof)
         m_prof->push(m_exec_conf, "NVE step 1");
@@ -63,23 +61,26 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
+    m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     gpu_nve_step_one(d_pos.data,
                      d_vel.data,
                      d_accel.data,
                      d_image.data,
                      d_index_array.data,
-                     group_size,
+                     m_group->getGPUPartition(),
                      box,
                      m_deltaT,
                      m_limit,
                      m_limit_val,
                      m_zero_force,
                      m_tuner_one->getParam());
-    m_tuner_one->end();
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_tuner_one->end();
+    m_exec_conf->endMultiGPU();
 
     if (m_aniso)
         {
@@ -119,8 +120,6 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumMembers();
-
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // profile this step
@@ -133,22 +132,26 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
-    m_tuner_two->begin();
     // perform the update on the GPU
+    m_exec_conf->beginMultiGPU();
+    m_tuner_two->begin();
+
     gpu_nve_step_two(d_vel.data,
                      d_accel.data,
                      d_index_array.data,
-                     group_size,
+                     m_group->getGPUPartition(),
                      d_net_force.data,
                      m_deltaT,
                      m_limit,
                      m_limit_val,
                      m_zero_force,
                      m_tuner_two->getParam());
-    m_tuner_two->end();
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_tuner_two->end();
+    m_exec_conf->endMultiGPU();
 
     if (m_aniso)
         {
@@ -173,6 +176,7 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+
         m_tuner_angular_two->end();
         m_exec_conf->endMultiGPU();
         }

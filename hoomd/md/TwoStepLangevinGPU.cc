@@ -56,6 +56,7 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_partial_sum1.swap(partial_sum1);
 
     cudaDeviceProp dev_prop = m_exec_conf->dev_prop;
+    m_tuner_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "langevin_nve", this->m_exec_conf));
     m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "langevin_angular", this->m_exec_conf));
     }
 
@@ -74,29 +75,32 @@ void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
     // access all the needed data
     BoxDim box = m_pdata->getBox();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getNumMembers();
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
+    m_exec_conf->beginMultiGPU();
+    m_tuner_one->begin();
     // perform the update on the GPU
     gpu_nve_step_one(d_pos.data,
                      d_vel.data,
                      d_accel.data,
                      d_image.data,
                      d_index_array.data,
-                     group_size,
+                     m_group->getGPUPartition(),
                      box,
                      m_deltaT,
                      false,
                      0,
                      false,
-                     256);
+                     m_tuner_one->getParam());
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    m_tuner_one->end();
+    m_exec_conf->endMultiGPU();
 
     if (m_aniso)
         {

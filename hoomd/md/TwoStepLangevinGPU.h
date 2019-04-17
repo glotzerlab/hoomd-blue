@@ -53,6 +53,8 @@ class PYBIND11_EXPORT TwoStepLangevinGPU : public TwoStepLangevin
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
             TwoStepLangevin::setAutotunerParams(enable, period);
+            m_tuner_one->setPeriod(period);
+            m_tuner_one->setEnabled(enable);
             m_tuner_angular_one->setPeriod(period);
             m_tuner_angular_one->setEnabled(enable);
             }
@@ -63,6 +65,7 @@ class PYBIND11_EXPORT TwoStepLangevinGPU : public TwoStepLangevin
         GPUArray<Scalar> m_partial_sum1;         //!< memory space for partial sum over bd energy transfers
         GPUArray<Scalar> m_sum;                  //!< memory space for sum over bd energy transfers
 
+        std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
         std::unique_ptr<Autotuner> m_tuner_angular_one; //!< Autotuner for block size (angular step one kernel)
     };
 

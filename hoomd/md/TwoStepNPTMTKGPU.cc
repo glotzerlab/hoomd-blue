@@ -80,8 +80,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
         throw std::runtime_error("Error during NPT integration.");
         }
 
-    unsigned int group_size = m_group->getNumMembers();
-
     // profile this step
     if (m_prof)
         m_prof->push("NPT step 1");
@@ -286,8 +284,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumMembers();
-
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // profile this step
