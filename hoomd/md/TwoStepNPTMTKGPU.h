@@ -46,17 +46,6 @@ class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK
                    unsigned int flags,
                    const bool nph=false);
 
-       TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
-                  std::shared_ptr<ParticleGroup> group,
-                  std::shared_ptr<ComputeThermo> thermo_group,
-                  std::shared_ptr<ComputeThermo> thermo_group_t,
-                  Scalar tau,
-                  Scalar tauP,
-                  std::shared_ptr<Variant> T,
-                 std::shared_ptr<Variant> S,
-                  couplingMode couple,
-                  unsigned int flags,
-                  const bool nph=false);
         virtual ~TwoStepNPTMTKGPU();
 
         //! Performs the first step of the integration

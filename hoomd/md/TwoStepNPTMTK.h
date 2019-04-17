@@ -76,18 +76,6 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
                    unsigned int flags,
                    const bool nph=false);
 
-       TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
-                  std::shared_ptr<ParticleGroup> group,
-                  std::shared_ptr<ComputeThermo> thermo_group,
-                  std::shared_ptr<ComputeThermo> thermo_group_t,
-                  Scalar tau,
-                  Scalar tauP,
-                  std::shared_ptr<Variant> T,
-                  std::shared_ptr<Variant> P,
-                  couplingMode couple,
-                  unsigned int flags,
-                  const bool nph=false);
-
         virtual ~TwoStepNPTMTK();
 
         //! Update the temperature

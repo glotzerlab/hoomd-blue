@@ -61,36 +61,6 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_tuner_rescale.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_rescale", this->m_exec_conf));
     }
 
-// TODO: rewrite the unit test in /hoomd-blue/hoomd/md/test/test_npt_mtk_integrator.cc so we don't need to do this
-TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<ParticleGroup> group,
-                       std::shared_ptr<ComputeThermo> thermo_group,
-                       std::shared_ptr<ComputeThermo> thermo_group_t,
-                       Scalar tau,
-                       Scalar tauP,
-                       std::shared_ptr<Variant> T,
-                       std::shared_ptr<Variant> S,
-                       couplingMode couple,
-                       unsigned int flags,
-                       const bool nph)
-
-    : TwoStepNPTMTK(sysdef, group, thermo_group, thermo_group_t, tau, tauP, T, S, couple, flags,nph)
-    {
-    if (!m_exec_conf->isCUDAEnabled())
-        {
-        m_exec_conf->msg->error() << "Creating a TwoStepNPTMTKGPU with CUDA disabled" << endl;
-        throw std::runtime_error("Error initializing TwoStepNPTMTKGPU");
-        }
-
-    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTKGPU" << endl;
-
-    cudaDeviceProp dev_prop = m_exec_conf->dev_prop;
-    m_tuner_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_step_one", this->m_exec_conf));
-    m_tuner_two.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_step_two", this->m_exec_conf));
-    m_tuner_wrap.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_wrap", this->m_exec_conf));
-    m_tuner_rescale.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_rescale", this->m_exec_conf));
-    }
-
 TwoStepNPTMTKGPU::~TwoStepNPTMTKGPU()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepNPTMTKGPU" << endl;
