@@ -305,7 +305,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
             unsigned int run_block_size = min(block_size, max_block_size);
 
             // setup the grid to run the kernel
-            dim3 grid( N / run_block_size + 1, 1, 1);
+            dim3 grid( (range.second-range.first) / run_block_size + 1, 1, 1);
             dim3 threads(run_block_size, 1, 1);
 
             gpu_compute_table_forces_kernel<1><<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>(d_force,
@@ -340,7 +340,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
             Index2DUpperTriangular table_index(ntypes);
 
             // setup the grid to run the kernel
-            dim3 grid( N / run_block_size + 1, 1, 1);
+            dim3 grid( (range.second-range.first) / run_block_size + 1, 1, 1);
             dim3 threads(run_block_size, 1, 1);
 
             gpu_compute_table_forces_kernel<0><<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>(d_force,
