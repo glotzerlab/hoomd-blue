@@ -59,11 +59,17 @@ class PYBIND11_EXPORT TwoStepNVTMTKGPU : public TwoStepNVTMTK
             m_tuner_one->setEnabled(enable);
             m_tuner_two->setPeriod(period);
             m_tuner_two->setEnabled(enable);
+            m_tuner_angular_one->setPeriod(period);
+            m_tuner_angular_one->setEnabled(enable);
+            m_tuner_angular_two->setPeriod(period);
+            m_tuner_angular_two->setEnabled(enable);
             }
 
     protected:
         std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
         std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
+        std::unique_ptr<Autotuner> m_tuner_angular_one; //!< Autotuner_angular for block size (angular step one kernel)
+        std::unique_ptr<Autotuner> m_tuner_angular_two; //!< Autotuner_angular for block size (angular step two kernel)
     };
 
 //! Exports the TwoStepNVTMTKGPU class to python

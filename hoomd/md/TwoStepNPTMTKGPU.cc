@@ -59,6 +59,8 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_tuner_two.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_step_two", this->m_exec_conf));
     m_tuner_wrap.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_wrap", this->m_exec_conf));
     m_tuner_rescale.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_rescale", this->m_exec_conf));
+    m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_angular_one", this->m_exec_conf));
+    m_tuner_angular_two.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_angular_two", this->m_exec_conf));
     }
 
 TwoStepNPTMTKGPU::~TwoStepNPTMTKGPU()
@@ -238,17 +240,23 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
         Scalar xi_rot = v.variable[8];
         Scalar exp_thermo_fac_rot = exp(-(xi_rot+mtk)*m_deltaT/Scalar(2.0));
 
+        m_exec_conf->beginMultiGPU();
+        m_tuner_angular_one->begin();
+
         gpu_nve_angular_step_one(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
                                  d_index_array.data,
-                                 group_size,
+                                 m_group->getGPUPartition(),
                                  m_deltaT,
-                                 exp_thermo_fac_rot);
+                                 exp_thermo_fac_rot,
+                                 m_tuner_angular_one->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+        m_tuner_angular_one->end();
+        m_exec_conf->endMultiGPU();
         }
 
     if (! m_nph)
@@ -340,17 +348,24 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
         Scalar xi_rot = v.variable[8];
         Scalar exp_thermo_fac_rot = exp(-(xi_rot+mtk)*m_deltaT/Scalar(2.0));
 
+        m_exec_conf->beginMultiGPU();
+        m_tuner_angular_two->begin();
+
         gpu_nve_angular_step_two(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
                                  d_index_array.data,
-                                 group_size,
+                                 m_group->getGPUPartition(),
                                  m_deltaT,
-                                 exp_thermo_fac_rot);
+                                 exp_thermo_fac_rot,
+                                 m_tuner_angular_two->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+
+        m_tuner_angular_two->end();
+        m_exec_conf->endMultiGPU();
         }
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step

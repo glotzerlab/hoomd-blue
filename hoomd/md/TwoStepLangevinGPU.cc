@@ -54,6 +54,9 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_num_blocks = group_size / m_block_size + 1;
     GPUArray<Scalar> partial_sum1(m_num_blocks, m_exec_conf);
     m_partial_sum1.swap(partial_sum1);
+
+    cudaDeviceProp dev_prop = m_exec_conf->dev_prop;
+    m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "langevin_angular", this->m_exec_conf));
     }
 
 /*! \param timestep Current time step
@@ -103,14 +106,21 @@ void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
         ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
+        m_exec_conf->beginMultiGPU();
+        m_tuner_angular_one->begin();
+
         gpu_nve_angular_step_one(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
                                  d_index_array.data,
-                                 group_size,
+                                 m_group->getGPUPartition(),
                                  m_deltaT,
-                                 1.0);
+                                 1.0,
+                                 m_tuner_angular_one->getParam());
+
+        m_tuner_angular_one->end();
+        m_exec_conf->endMultiGPU();
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

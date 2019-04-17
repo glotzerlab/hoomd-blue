@@ -69,6 +69,10 @@ class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK
             m_tuner_wrap->setEnabled(enable);
             m_tuner_rescale->setPeriod(period);
             m_tuner_rescale->setEnabled(enable);
+            m_tuner_angular_one->setPeriod(period);
+            m_tuner_angular_one->setEnabled(enable);
+            m_tuner_angular_two->setPeriod(period);
+            m_tuner_angular_two->setEnabled(enable);
             }
 
     protected:
@@ -76,6 +80,8 @@ class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK
         std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
         std::unique_ptr<Autotuner> m_tuner_wrap; //!< Autotuner for wrapping particle positions
         std::unique_ptr<Autotuner> m_tuner_rescale; //!< Autotuner for thermostat rescaling
+        std::unique_ptr<Autotuner> m_tuner_angular_one; //!< Autotuner for angular step one
+        std::unique_ptr<Autotuner> m_tuner_angular_two; //!< Autotuner for angular step two
     };
 
 //! Exports the TwoStepNPTMTKGPU class to python

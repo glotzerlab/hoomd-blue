@@ -163,16 +163,18 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
+                             const unsigned int *d_group_members,
+                             const unsigned int nwork,
+                             const unsigned int offset,
                              Scalar deltaT,
                              Scalar scale)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
-    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (group_idx < group_size)
+    if (work_idx < nwork)
         {
+        const unsigned int group_idx = work_idx + offset;
         unsigned int idx = d_group_members[group_idx];
 
         // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
@@ -285,17 +287,35 @@ cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,
                              unsigned int *d_group_members,
-                             unsigned int group_size,
+                             const GPUPartition& gpu_partition,
                              Scalar deltaT,
-                             Scalar scale)
+                             Scalar scale,
+                             const unsigned int block_size)
     {
-    // setup the grid to run the kernel
-    int block_size = 256;
-    dim3 grid( (group_size/block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nve_angular_step_one_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
 
-    // run the kernel
-    gpu_nve_angular_step_one_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, group_size, deltaT, scale);
+    unsigned int run_block_size = min(block_size, max_block_size);
+
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+
+        // setup the grid to run the kernel
+        dim3 grid( (nwork/run_block_size) + 1, 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        // run the kernel
+        gpu_nve_angular_step_one_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, nwork, range.first, deltaT, scale);
+        }
 
     return cudaSuccess;
     }
@@ -442,15 +462,17 @@ __global__ void gpu_nve_angular_step_two_kernel(const Scalar4 *d_orientation,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,
                              unsigned int *d_group_members,
-                             unsigned int group_size,
+                             const unsigned int nwork,
+                             const unsigned int offset,
                              Scalar deltaT,
                              Scalar scale)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
-    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (group_idx < group_size)
+    if (work_idx < nwork)
         {
+        const unsigned int group_idx = work_idx + offset;
         unsigned int idx = d_group_members[group_idx];
 
         // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
@@ -494,17 +516,35 @@ cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,
                              unsigned int *d_group_members,
-                             unsigned int group_size,
+                             const GPUPartition& gpu_partition,
                              Scalar deltaT,
-                             Scalar scale)
+                             Scalar scale,
+                             const unsigned int block_size)
     {
-    // setup the grid to run the kernel
-    int block_size = 256;
-    dim3 grid( (group_size/block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nve_angular_step_two_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
 
-    // run the kernel
-    gpu_nve_angular_step_two_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, group_size, deltaT, scale);
+    unsigned int run_block_size = min(block_size, max_block_size);
+
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+
+        // setup the grid to run the kernel
+        dim3 grid( (nwork/run_block_size) + 1, 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        // run the kernel
+        gpu_nve_angular_step_two_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, nwork, range.first, deltaT, scale);
+        }
 
     return cudaSuccess;
     }

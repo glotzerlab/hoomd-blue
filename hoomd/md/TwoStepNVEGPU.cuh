@@ -10,6 +10,7 @@
 
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/GPUPartition.cuh"
 
 #ifndef __TWO_STEP_NVE_GPU_CUH__
 #define __TWO_STEP_NVE_GPU_CUH__
@@ -46,9 +47,10 @@ cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,
                              unsigned int *d_group_members,
-                             unsigned int group_size,
+                             const GPUPartition& gpu_partition,
                              Scalar deltaT,
-                             Scalar scale);
+                             Scalar scale,
+                             const unsigned int block_size);
 
 //! Kernel driver for the second part of the angular NVE update (NO_SQUISH) by TwoStepNVEPU
 cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
@@ -56,8 +58,9 @@ cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,
                              unsigned int *d_group_members,
-                             unsigned int group_size,
+                             const GPUPartition &gpu_partition,
                              Scalar deltaT,
-                             Scalar scale);
+                             Scalar scale,
+                             const unsigned int block_size);
 
 #endif //__TWO_STEP_NVE_GPU_CUH__
