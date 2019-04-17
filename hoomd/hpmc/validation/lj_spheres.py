@@ -1,8 +1,6 @@
 from hoomd import *
 from hoomd import hpmc
 
-context.initialize()
-
 import numpy as np
 import math
 
@@ -11,8 +9,8 @@ import BlockAverage
 
 # Reference potential energy (U/N/eps) from MC simulations
 # https://mmlapps.nist.gov/srs/LJ_PURE/mc.htm
-mean_Uref = -5.5121E+00;
-sigma_Uref = 4.55E-04;
+# mean_Uref = -5.5121E+00;
+# sigma_Uref = 4.55E-04;
 
 # Interaction cut-off
 rcut = 3.0;
@@ -20,12 +18,9 @@ rcut = 3.0;
 # LJ length scale
 sigma = 1.0;
 
-# Temperature (kT/eps)
-Tstar = 8.50E-01;
-eps   = 1.0 / Tstar;
+# Tstar = 8.50E-01;
 
-# Reduced density: rhostar = (N / V) * sigma**3
-rho_star = 7.76E-01;
+# rho_star = 7.76E-01;
 
 # Diameter of particles
 diameter = sigma;
@@ -33,21 +28,28 @@ diameter = sigma;
 # linear lattice dimension
 n = 8;
 
-# Particle volume
-V_p = math.pi/6.*diameter**3.;
-
-# lattice constant (sc)
-d_eff = (V_p*6/math.pi)**(1./3.);
-a = (d_eff**3.0/rho_star)**(1./3.);
-
 class nvt_lj_sphere_energy(unittest.TestCase):
 
-    def test_statepoint(self):
+    def run_statepoint(self, Tstar, rho_star, mean_Uref, sigma_Uref, use_clusters, use_depletants):
+        """
+        Tstar: Temperature (kT/eps)
+        rho_star: Reduced density: rhostar = (N / V) * sigma**3
+        mean_Uref: reference energy
+        sigma_Uref: standard deviation of the mean of reference energy
+        """
+
+        context.initialize()
+        eps   = 1.0 / Tstar;
+
+        # Particle volume
+        V_p = math.pi/6.*diameter**3.;
+
+        # lattice constant (sc)
+        d_eff = (V_p*6/math.pi)**(1./3.);
+        a = (d_eff**3.0/rho_star)**(1./3.);
 
         system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
 
-        use_clusters = int(option.get_user()[0])%2
-        use_depletants = int(option.get_user()[0])//2
         depletant_mode = 'overlap_regions'
 
         N = len(system.particles);
@@ -121,15 +123,39 @@ class nvt_lj_sphere_energy(unittest.TestCase):
         mean_U = np.mean(energy_val)
         i, sigma_U = block.get_error_estimate()
 
-        context.msg.notice(1,'rho_star = {:.3f}, U = {:.5f}+-{:.5f}\n'.format(rho_star,mean_U,sigma_U))
+        context.msg.notice(1,'rho_star = {:.3f}\nU    = {:.5f} +- {:.5f}\n'.format(rho_star,mean_U,sigma_U))
+        context.msg.notice(1,'Uref = {:.5f} +- {:.5f}\n'.format(mean_Uref,sigma_Uref))
 
         # 0.99 confidence interval
         ci = 2.576
 
         # compare if 0 is within the confidence interval around the difference of the means
         sigma_diff = (sigma_U**2 + sigma_Uref**2)**(1/2.);
-        print(mean_U, mean_Uref, sigma_U, sigma_Uref);
         self.assertLessEqual(math.fabs(mean_U - mean_Uref), ci*sigma_diff)
+
+    def test_low_density_normal(self):
+        self.run_statepoint(Tstar=8.50E-01, rho_star=5.00E-03, mean_Uref=-5.1901E-02, sigma_Uref=7.53E-05,
+                            use_clusters=False, use_depletants=False);
+        self.run_statepoint(Tstar=8.50E-01, rho_star=7.00E-03, mean_Uref=-7.2834E-02, sigma_Uref=1.34E-04,
+                            use_clusters=False, use_depletants=False);
+        self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
+                            use_clusters=False, use_depletants=False);
+
+    def test_low_density_clusters(self):
+        self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
+                            use_clusters=True, use_depletants=False);
+
+    def test_low_density_clusters_depletants(self):
+        self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
+                            use_clusters=True, use_depletants=True);
+
+    def test_moderate_density_normal(self):
+        self.run_statepoint(Tstar=9.00E-01, rho_star=7.76E-01, mean_Uref=-5.4689E+00, sigma_Uref=4.20E-04,
+                            use_clusters=False, use_depletants=False);
+
+    def test_moderate_density_depletants(self):
+        self.run_statepoint(Tstar=9.00E-01, rho_star=7.76E-01, mean_Uref=-5.4689E+00, sigma_Uref=4.20E-04,
+                            use_clusters=False, use_depletants=True);
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
