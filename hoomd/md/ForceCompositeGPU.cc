@@ -361,7 +361,7 @@ void ForceCompositeGPU::findRigidCenters()
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
-    m_rigid_center.resize(m_pdata->getN());
+    m_rigid_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
     unsigned int old_size = m_lookup_center.getNumElements();
     m_lookup_center.resize(m_pdata->getN()+m_pdata->getNGhosts());

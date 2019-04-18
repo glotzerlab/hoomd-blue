@@ -814,7 +814,7 @@ cudaError_t gpu_find_rigid_centers(const unsigned int *d_body,
 
     // create a contiguos list of rigid center indicies
     auto it = thrust::copy_if(count,
-                    count + N,
+                    count + N + nghost,
                     thrust::make_zip_iterator(thrust::make_tuple(body, tag)),
                     rigid_center,
                     is_center());
