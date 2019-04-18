@@ -462,6 +462,11 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
     resetStats();
 
+    // Force (re-)evaluation of all Computes
+    map< string, std::shared_ptr<Compute> >::iterator compute;
+    for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
+        compute->second->forceCompute(m_cur_tstep);
+
     // Prepare the run
     if (!m_integrator)
         {
