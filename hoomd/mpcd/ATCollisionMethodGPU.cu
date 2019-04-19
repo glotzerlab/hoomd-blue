@@ -10,8 +10,8 @@
 
 #include "ATCollisionMethodGPU.cuh"
 #include "ParticleDataUtilities.h"
-#include "RandomNumbers.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 namespace mpcd
 {
@@ -53,9 +53,11 @@ __global__ void at_draw_velocity(Scalar4 *d_vel,
         }
 
     // draw random velocities from normal distribution
-    hoomd::detail::Saru rng(tag, timestep, seed);
-    mpcd::detail::NormalGenerator<Scalar,true> gen;
-    const Scalar3 vel = fast::sqrt(T/mass) * make_scalar3(gen(rng), gen(rng), gen(rng));
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ATCollisionMethod, seed, tag, timestep);
+    hoomd::NormalDistribution<Scalar> gen(fast::sqrt(T/mass), 0.0);
+    Scalar3 vel;
+    gen(vel.x, vel.y, rng);
+    vel.z = gen(rng);
 
     // save out velocities
     if (idx < N_mpcd)
