@@ -465,7 +465,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     #ifdef ENABLE_MPI
     if (m_comm)
         {
-        // make sure we start off with a migration substep nevertheless
+        // make sure we start off with a migration substep
         m_comm->forceMigrate();
 
         // communicate here, to run before the Logger

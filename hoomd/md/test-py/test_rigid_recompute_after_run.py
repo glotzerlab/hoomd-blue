@@ -20,7 +20,7 @@ class test_log_energy_upon_run_command(unittest.TestCase):
                                                        1/12*1.0*8**2,
                                                        1/12*1.0*8**2]],
                                     orientation = [[1, 0, 0, 0]]);
-        system = hoomd.init.create_lattice(unitcell=uc, n=[2,18,18]);
+        system = hoomd.init.create_lattice(unitcell=uc, n=[8,18,18]);
         system.particles.types.add('A')
         rigid = hoomd.md.constrain.rigid()
         rigid.set_param('R',
@@ -56,7 +56,7 @@ class test_log_energy_upon_run_command(unittest.TestCase):
             self.assertTrue(rel_dl < 1.5)
             self.last_l = l
         for i in range(10):
-            hoomd.run(1000,callback=cb, callback_period=1)
+            hoomd.run(100,callback=cb, callback_period=1)
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
