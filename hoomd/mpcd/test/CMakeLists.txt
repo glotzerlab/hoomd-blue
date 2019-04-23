@@ -7,7 +7,6 @@ set(TEST_LIST
     at_collision_method
     cell_list
     cell_thermo_compute
-    random_numbers
     slit_geometry_filler
     sorter
     srd_collision_method

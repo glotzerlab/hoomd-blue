@@ -8,7 +8,6 @@
     \brief Declaration of ExternalField base class
 */
 #include "hoomd/Compute.h"
-#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 
 #include "IntegratorHPMCMono.h"
