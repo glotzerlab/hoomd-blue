@@ -86,6 +86,8 @@ class block(_force):
         # default blocks to full box
         force.block(F=0.5)
 
+    .. versionadded:: 2.6
+
     """
     def __init__(self, F, H=None, w=None):
         hoomd.util.print_status_line()
@@ -154,6 +156,8 @@ class constant(_force):
         g = np.array([0.,0.,-1.])
         force.constant(g)
 
+    .. versionadded:: 2.6
+
     """
     def __init__(self, F):
         hoomd.util.print_status_line()
@@ -207,6 +211,8 @@ class sine(_force):
     The user will need to determine what value of *k* makes sense for their
     problem, as it is too difficult to validate all values of *k* for all
     streaming geometries.
+
+    .. versionadded:: 2.6
 
     """
     def __init__(self, F, k):
