@@ -257,7 +257,8 @@ struct ShapeFacetedEllipsoid
         { }
 
     //! Does this shape have an orientation
-    DEVICE bool hasOrientation() { return params.N > 0; }
+    DEVICE bool hasOrientation() { return (params.N > 0) ||
+        (params.a != params.b) || (params.a != params.c) || (params.b != params.c); }
 
     //!Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return params.ignore; }
@@ -284,14 +285,16 @@ struct ShapeFacetedEllipsoid
         vec3<OverlapReal> e_y(0,1,0);
         vec3<OverlapReal> e_z(0,0,1);
         quat<OverlapReal> q(orientation);
-        vec3<OverlapReal> s_x = rotate(q, sfunc(rotate(conj(q),e_x))+vec3<OverlapReal>(params.origin));
-        vec3<OverlapReal> s_y = rotate(q, sfunc(rotate(conj(q),e_y))+vec3<OverlapReal>(params.origin));
-        vec3<OverlapReal> s_z = rotate(q, sfunc(rotate(conj(q),e_z))+vec3<OverlapReal>(params.origin));
+        vec3<OverlapReal> s_x_plus = rotate(q, sfunc(rotate(conj(q),e_x))+vec3<OverlapReal>(params.origin));
+        vec3<OverlapReal> s_y_plus = rotate(q, sfunc(rotate(conj(q),e_y))+vec3<OverlapReal>(params.origin));
+        vec3<OverlapReal> s_z_plus = rotate(q, sfunc(rotate(conj(q),e_z))+vec3<OverlapReal>(params.origin));
+        vec3<OverlapReal> s_x_minus = rotate(q, sfunc(rotate(conj(q),-e_x))+vec3<OverlapReal>(params.origin));
+        vec3<OverlapReal> s_y_minus = rotate(q, sfunc(rotate(conj(q),-e_y))+vec3<OverlapReal>(params.origin));
+        vec3<OverlapReal> s_z_minus = rotate(q, sfunc(rotate(conj(q),-e_z))+vec3<OverlapReal>(params.origin));
 
         // translate out from the position by the furthest extent
-        vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, pos.z + s_z.z);
-        // the furthest extent is symmetrical
-        vec3<Scalar> lower(pos.x - s_x.x, pos.y - s_y.y, pos.z - s_z.z);
+        vec3<Scalar> upper(pos.x + s_x_plus.x, pos.y + s_y_plus.y, pos.z + s_z_plus.z);
+        vec3<Scalar> lower(pos.x + s_x_minus.x, pos.y + s_y_minus.y, pos.z + s_z_minus.z);
 
         return detail::AABB(lower, upper);
         }
@@ -303,16 +306,19 @@ struct ShapeFacetedEllipsoid
         vec3<OverlapReal> e_x(1,0,0);
         vec3<OverlapReal> e_y(0,1,0);
         vec3<OverlapReal> e_z(0,0,1);
-        vec3<OverlapReal> s_x = sfunc(e_x)+vec3<OverlapReal>(params.origin);
-        vec3<OverlapReal> s_y = sfunc(e_y)+vec3<OverlapReal>(params.origin);
-        vec3<OverlapReal> s_z = sfunc(e_z)+vec3<OverlapReal>(params.origin);
+        vec3<OverlapReal> s_x_minus = sfunc(-e_x)+vec3<OverlapReal>(params.origin);
+        vec3<OverlapReal> s_y_minus = sfunc(-e_y)+vec3<OverlapReal>(params.origin);
+        vec3<OverlapReal> s_z_minus = sfunc(-e_z)+vec3<OverlapReal>(params.origin);
+        vec3<OverlapReal> s_x_plus = sfunc(e_x)+vec3<OverlapReal>(params.origin);
+        vec3<OverlapReal> s_y_plus = sfunc(e_y)+vec3<OverlapReal>(params.origin);
+        vec3<OverlapReal> s_z_plus = sfunc(e_z)+vec3<OverlapReal>(params.origin);
 
         detail::OBB obb;
         obb.center = pos;
         obb.rotation = orientation;
-        obb.lengths.x = s_x.x;
-        obb.lengths.y = s_y.y;
-        obb.lengths.z = s_z.z;
+        obb.lengths.x = detail::max(s_x_plus.x,-s_x_minus.x);
+        obb.lengths.y = detail::max(s_y_plus.y,-s_y_minus.y);
+        obb.lengths.z = detail::max(s_z_plus.z,-s_z_minus.z);
         return obb;
         }
 

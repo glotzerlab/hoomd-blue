@@ -23,6 +23,7 @@
 #endif
 
 #include <cmath>
+#include <math.h>
 #endif
 
 // for vector types
@@ -435,6 +436,52 @@ inline HOSTDEVICE double cos(double x)
     return ::cos(x);
     }
 
+//! Compute both of sin of x and cos of x with float precision
+inline HOSTDEVICE void sincos(float x, float& s, float& c)
+    {
+    #if  defined(__CUDA_ARCH__) || defined(__APPLE__)
+    __sincosf(x, &s, &c);
+    #else
+    ::sincosf(x, &s, &c);
+    #endif
+    }
+
+//! Compute both of sin of x and cos of x with double precision
+inline HOSTDEVICE void sincos(double x, double& s, double& c)
+    {
+    #if defined(__CUDA_ARCH__)
+    ::sincos(x, &s, &c);
+    #elif defined(__APPLE__)
+    ::__sincos(x, &s, &c);
+    #else
+    ::sincos(x, &s, &c);
+    #endif
+    }
+
+//! Compute both of sin of x and cos of PI * x with float precision
+inline HOSTDEVICE void sincospi(float x, float& s, float& c)
+    {
+    #if  defined(__CUDA_ARCH__)
+    ::sincospif(x, &s, &c);
+    #elif defined(__APPLE__)
+    __sincospif(x, &s, &c);
+    #else
+    fast::sincos(float(M_PI)*x, s, c);
+    #endif
+    }
+
+//! Compute both of sin of x and cos of x with dobule precision
+inline HOSTDEVICE void sincospi(double x, double& s, double& c)
+    {
+    #if defined(__CUDA_ARCH__)
+    ::sincospi(x, &s, &c);
+    #elif defined(__APPLE__)
+    ::__sincospi(x, &s, &c);
+    #else
+    fast::sincos(M_PI*x, s, c);
+    #endif
+    }
+
 //! Compute the pow of x,y
 inline HOSTDEVICE float pow(float x, float y)
     {
@@ -582,6 +629,18 @@ inline HOSTDEVICE double cos(double x)
     return ::cos(x);
     }
 
+//! Compute the tan of x
+inline HOSTDEVICE float tan(float x)
+    {
+    return ::tanf(x);
+    }
+
+//! Compute the tan of x
+inline HOSTDEVICE double tan(double x)
+    {
+    return ::tan(x);
+    }
+
 //! Compute the pow of x,y
 inline HOSTDEVICE float pow(float x, float y)
     {
@@ -665,25 +724,19 @@ inline HOSTDEVICE double acos(double x)
     {
     return ::acos(x);
     }
-}
 
-template<class Real, class RNG>
-inline Real DEVICE gaussian_rng(RNG &rng, const Real sigma)
+//! Compute the floor of x
+inline HOSTDEVICE float floor(float x)
     {
-    // use Box-Muller transformation to get a gaussian random number
-    float x1, x2, w, y1;
-
-    do  {
-        x1 = rng.s(-1.0, 1.0);
-        x2 = rng.s(-1.0, 1.0);
-        w = x1 * x1 + x2 * x2;
-        } while ( w >= Real(1.0) );
-
-    w = fast::sqrt((Scalar(-2.0) * log(w)) / w);
-    y1 = x1 * w;
-
-    return y1 * sigma;
+    return ::floorf(x);
     }
+
+//! Compute the floor of x
+inline HOSTDEVICE double floor(double x)
+    {
+    return ::floor(x);
+    }
+}
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE

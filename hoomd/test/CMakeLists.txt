@@ -21,6 +21,7 @@ set(TEST_LIST
     test_utils
     test_vec2
     test_vec3
+    random_numbers_test
     )
 
 if (ENABLE_CUDA)

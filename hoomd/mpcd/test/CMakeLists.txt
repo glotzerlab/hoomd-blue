@@ -10,7 +10,6 @@ set(TEST_LIST
     cell_list
     cell_thermo_compute
     #external_field
-    random_numbers
     slit_geometry_filler
     sorter
     srd_collision_method
