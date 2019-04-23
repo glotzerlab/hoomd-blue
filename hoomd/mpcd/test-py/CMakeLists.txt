@@ -5,6 +5,7 @@ set(TEST_LIST
     collide_srd
     data_snapshot
     data_system
+    force_block
     force_constant
     force_sine
     init_make_random

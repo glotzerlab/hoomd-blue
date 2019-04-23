@@ -17,6 +17,7 @@
 #include "ExternalField.h"
 #include "hoomd/GPUPolymorph.cuh"
 
+template mpcd::BlockForce* hoomd::gpu::device_new(Scalar,Scalar,Scalar);
 template mpcd::ConstantForce* hoomd::gpu::device_new(Scalar3);
 template mpcd::SineForce* hoomd::gpu::device_new(Scalar,Scalar);
 template void hoomd::gpu::device_delete(mpcd::ExternalField*);

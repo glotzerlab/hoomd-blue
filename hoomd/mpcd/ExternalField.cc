@@ -24,6 +24,7 @@ void export_ExternalFieldPolymorph(pybind11::module& m)
     py::class_<ExternalFieldPolymorph, std::shared_ptr<ExternalFieldPolymorph>>(m, "ExternalField")
         .def(py::init<std::shared_ptr<const ::ExecutionConfiguration>>())
         // each field needs to get at least one (factory) method
+        .def("BlockForce", (void (ExternalFieldPolymorph::*)(Scalar,Scalar,Scalar)) &ExternalFieldPolymorph::reset<mpcd::BlockForce>)
         .def("ConstantForce", (void (ExternalFieldPolymorph::*)(Scalar3)) &ExternalFieldPolymorph::reset<mpcd::ConstantForce>)
         .def("SineForce", (void (ExternalFieldPolymorph::*)(Scalar,Scalar)) &ExternalFieldPolymorph::reset<mpcd::SineForce>);
     }

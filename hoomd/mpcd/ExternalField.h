@@ -56,6 +56,57 @@ class ExternalField
         HOSTDEVICE virtual Scalar3 evaluate(const Scalar3& r) const = 0;
     };
 
+//! Constant, opposite force applied to particles in a block
+/*!
+ * Imposes a constant force in x as a function of position in z:
+ *
+ * \f{eqnarray*}
+ *      \mathbf{F} &= +F \mathbf{e}_x & H-w \le z < H+w \\
+ *                 &= -F \mathbf{e}_x & -H-w \le z < -H+w \\
+ *                 &=    \mathbf{0}  & \mathrm{otherwise}
+ * \f}
+ *
+ * where \a F is the force magnitude, \a H is the half-width between the
+ * block centers, and \a w is the block half-width.
+ *
+ * This force field can be used to implement the double-parabola method for measuring
+ * viscosity by setting \f$H = L_z/4\f$ and \f$w=L_z/4\f$, or to mimick the reverse
+ * nonequilibrium shear flow profile by setting \f$H = L_z/4\f$ and \a w to a small value.
+ */
+class BlockForce : public ExternalField
+    {
+    public:
+        //! Constructor
+        /*!
+         * \param F Force on all particles.
+         * \param H Half-width between block regions.
+         * \param w Half-width of blocks.
+         */
+        HOSTDEVICE BlockForce(Scalar F, Scalar H, Scalar w)
+            : m_F(F)
+            {
+            m_H_plus_w = H+w;
+            m_H_minus_w = H-w;
+            }
+
+        //! Force evaluation method
+        /*!
+         * \param r Particle position.
+         * \returns Force on the particle.
+         */
+        HOSTDEVICE virtual Scalar3 evaluate(const Scalar3& r) const override
+            {
+            // sign = +1 if in top slab, -1 if in bottom slab, 0 if neither
+            const signed char sign = (r.z >= m_H_minus_w && r.z < m_H_plus_w) - (r.z >= -m_H_plus_w && r.z < -m_H_minus_w);
+            return make_scalar3(sign*m_F,0,0);
+            }
+
+    private:
+        Scalar m_F;         //!< Constant force
+        Scalar m_H_plus_w;  //!< Upper bound on upper block, H + w
+        Scalar m_H_minus_w; //!< Lower bound on upper block, H - w
+    };
+
 //! Constant force on all particles
 class ConstantForce : public ExternalField
     {
@@ -88,9 +139,9 @@ class ConstantForce : public ExternalField
  * Imposes a sinusoidally varying force in x as a function of position in z.
  * The shape of the force is controlled by the amplitude and the wavenumber.
  *
- * \begin{equation}
+ * \f[
  * \mathbf{F}(\mathbf{r}) = F \sin (k r_z) \mathbf{e}_x
- * \end{equation}
+ * \f]
  */
 class SineForce : public ExternalField
     {

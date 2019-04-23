@@ -8,7 +8,9 @@ mpcd.force
 .. autosummary::
     :nosignatures:
 
+    block
     constant
+    sine
 
 .. rubric:: Details
 
