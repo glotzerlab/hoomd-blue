@@ -35,6 +35,7 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
     }
 
+
     /*! \param r_cut cut off distance for computing bonds
         \param bond_type type of bond to be formed or broken
         \param prob_form probability that a bond will form
@@ -89,10 +90,15 @@ void DynamicBond::update(unsigned int timestep)
     // Access bond data
     m_bond_data = m_sysdef->getBondData();
 
-    assert(h_pos.data);
+    // Access the bond table for reading
+    const GPUArray<typename BondData::members_t>& gpu_bond_list = this->m_bond_data->getGPUTable();
+    const Index2D& gpu_table_indexer = this->m_bond_data->getGPUTableIndexer();
 
-    // TODO: make r_cut a variable
-    m_exec_conf->msg->notice(2) << "updater m_r_cut = " << m_r_cut << endl;
+
+    // m_bond_data->getGPUTableIndexer().getW();
+
+    // assert(h_pos.data);
+
     Scalar r_cut_sq = m_r_cut*m_r_cut;
 
     // for each particle
@@ -108,7 +114,7 @@ void DynamicBond::update(unsigned int timestep)
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
-        // access diameter of i
+        // access diameter of particle i
         Scalar di = Scalar(0.0);
         di = h_diameter.data[i];
 
@@ -142,9 +148,11 @@ void DynamicBond::update(unsigned int timestep)
             // auto curr_b_type = m_bond_data->getTypeByIndex(i);
 
             // create a bond between particles i and j
-            if (rsq < r_cut_sq) {
+            if (rsq < r_cut_sq)
+                {
                 Scalar rnd1 = saru.s<Scalar>(0,1);
-                if (rnd1 < m_prob_form) {
+                if (rnd1 < m_prob_form)
+                    {
                     m_bond_data->addBondedGroup(Bond(0, i, j));
                     }
                 }
