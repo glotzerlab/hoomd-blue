@@ -2764,3 +2764,81 @@ class lj1208(pair):
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 8.0);
         return _hoomd.make_scalar2(lj1, lj2);
+
+class Fourier(pair):
+    R""" Fourier pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+
+    :py:class:`Fourier` specifies that a Oscillating pair potential with fast decay near cutoff should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+
+        # TODO add formula
+
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\a` - *a* (array of 9 value, unitless)
+    - :math:`\b` - *b* (array of 9 value, unitless)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        nl = nlist.cell()
+        Fourier = pair.Fourier(r_cut=3.0, nlist=nl)
+        Fourier.pair_coeff.set('A', 'A', a=[], b=[])
+    """
+
+    def __init__(self, r_cut, nlist, name=None):
+
+        hoomd.util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialPairFourier(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairFourier;
+        else:
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.cpp_force = _md.PotentialPairFourierGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairFourierGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['a','b'];
+        # self.pair_coeff.set_default_coeff('alpha', 1.0);
+
+    def process_coeff(self, coeff):
+        a = coeff['a'];
+        b = coeff['b'];
+
+        return _md.make_pair_fourier_params(a,b);
+
+    def alchemostat(self):
+        #TODO: alchemy, should probalby make this reversible eventually
+        hoomd.context.current.system.removeCompute(self.force_name);
+
+        self.cpp_force = _md.AlchemPotentialPairFourier(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+        self.cpp_class = _md.AlchemPotentialPairFourier;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
