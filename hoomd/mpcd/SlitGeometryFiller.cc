@@ -9,8 +9,8 @@
  */
 
 #include "SlitGeometryFiller.h"
-#include "hoomd/Saru.h"
-#include "RandomNumbers.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 mpcd::SlitGeometryFiller::SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                                              Scalar density,
@@ -92,7 +92,7 @@ void mpcd::SlitGeometryFiller::drawParticles(unsigned int timestep)
     for (unsigned int i=0; i < m_N_fill; ++i)
         {
         const unsigned int tag = m_first_tag + i;
-        hoomd::detail::Saru rng(~tag, timestep, m_seed);
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SlitGeometryFiller, m_seed, tag, timestep);
         signed char sign = (i >= m_N_lo) - (i < m_N_lo);
         if (sign == -1) // bottom
             {
@@ -104,16 +104,19 @@ void mpcd::SlitGeometryFiller::drawParticles(unsigned int timestep)
             }
 
         const unsigned int pidx = first_idx + i;
-        h_pos.data[pidx] = make_scalar4(rng.s(lo.x, hi.x),
-                                        rng.s(lo.y, hi.y),
-                                        rng.s(lo.z, hi.z),
+        h_pos.data[pidx] = make_scalar4(hoomd::UniformDistribution<Scalar>(lo.x, hi.x)(rng),
+                                        hoomd::UniformDistribution<Scalar>(lo.y, hi.y)(rng),
+                                        hoomd::UniformDistribution<Scalar>(lo.z, hi.z)(rng),
                                         __int_as_scalar(m_type));
 
-        mpcd::detail::NormalGenerator<Scalar, true> gen;
+        hoomd::NormalDistribution<Scalar> gen(vel_factor, 0.0);
+        Scalar3 vel;
+        gen(vel.x, vel.y, rng);
+        vel.z = gen(rng);
         // TODO: should these be given zero net-momentum contribution (relative to the frame of reference?)
-        h_vel.data[pidx] = make_scalar4(vel_factor * gen(rng) + sign * m_geom->getVelocity(),
-                                        vel_factor * gen(rng),
-                                        vel_factor * gen(rng),
+        h_vel.data[pidx] = make_scalar4(vel.x + sign * m_geom->getVelocity(),
+                                        vel.y,
+                                        vel.z,
                                         __int_as_scalar(mpcd::detail::NO_CELL));
         h_tag.data[pidx] = tag;
         }

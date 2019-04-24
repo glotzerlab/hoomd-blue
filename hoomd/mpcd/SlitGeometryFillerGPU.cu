@@ -10,8 +10,8 @@
 
 #include "SlitGeometryFillerGPU.cuh"
 #include "ParticleDataUtilities.h"
-#include "RandomNumbers.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 namespace mpcd
 {
@@ -83,17 +83,20 @@ __global__ void slit_draw_particles(Scalar4 *d_pos,
     d_tag[pidx] = tag;
 
     // initialize random number generator for positions and velocity
-    hoomd::detail::Saru rng(~tag, timestep, seed);
-    d_pos[pidx] = make_scalar4(rng.s(lo.x, hi.x),
-                               rng.s(lo.y, hi.y),
-                               rng.s(lo.z, hi.z),
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SlitGeometryFiller, seed, tag, timestep);
+    d_pos[pidx] = make_scalar4(hoomd::UniformDistribution<Scalar>(lo.x, hi.x)(rng),
+                               hoomd::UniformDistribution<Scalar>(lo.y, hi.y)(rng),
+                               hoomd::UniformDistribution<Scalar>(lo.z, hi.z)(rng),
                                __int_as_scalar(type));
 
-    mpcd::detail::NormalGenerator<Scalar, true> gen;
+    hoomd::NormalDistribution<Scalar> gen(vel_factor, 0.0);
+    Scalar3 vel;
+    gen(vel.x, vel.y, rng);
+    vel.z = gen(rng);
     // TODO: should these be given zero net-momentum contribution (relative to the frame of reference?)
-    d_vel[pidx] = make_scalar4(vel_factor * gen(rng) + sign * geom.getVelocity(),
-                               vel_factor * gen(rng),
-                               vel_factor * gen(rng),
+    d_vel[pidx] = make_scalar4(vel.x + sign * geom.getVelocity(),
+                               vel.y,
+                               vel.z,
                                __int_as_scalar(mpcd::detail::NO_CELL));
     }
 } // end namespace kernel
