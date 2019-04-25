@@ -64,17 +64,18 @@ class EvaluatorPairFourier
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef pair_fourier_params param_type; //first try a 10th order fourier expression of potential
+        typedef pair_fourier_params param_type; //first try a 4th order fourier expression of potential
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance beteen the particles
             \param _rcutsq Sqauared distance at which the potential goes to 0
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairFourier(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+        DEVICE EvaluatorPairFourier(Scalar _rsq, Scalar _rcutsq,
+                                    const param_type& _params)
             {
                 rsq = _rsq;
                 rcutsq= _rcutsq;
-                for (int i = 0; i < 3; ++i) {
+                for (int i = 0 ;i < 3; ++i) {
                     a[i] = _params.a[i];}
                 for (int i = 0; i < 3; ++i) {
                     b[i] = _params.b[i];}
@@ -106,7 +107,9 @@ class EvaluatorPairFourier
 
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
-        DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
+        DEVICE bool evalForceAndEnergy(Scalar& force_divr,
+                                       Scalar& pair_eng,
+                                       bool energy_shift)
             {
             // compute the force divided by r in force_divr
             if (rsq < rcutsq)
@@ -122,7 +125,7 @@ class EvaluatorPairFourier
                 Scalar r12inv = r3inv * r3inv * r3inv * r3inv;
                 Scalar a1 = 0;
                 Scalar b1 = 0;
-                for ( int i=2; i<5; i++ )
+                for (int i=2; i<5; i++)
                     {
                     a1 = a1 + std::pow(-1,i) * a[i-2];
                     b1 = b1 + i * std::pow(-1,i) * b[i-2];
@@ -134,7 +137,7 @@ class EvaluatorPairFourier
                 Scalar fourier_part = a1 * c + b1 * s;
                 force_divr = a1 * s - b1 * c;
 
-                for ( int i=2; i<5; i++ )
+                for (int i=2; i<5; i++)
                     {
                     theta = Scalar(i) * x;
                     fast::sincos(theta, s, c);
@@ -142,7 +145,9 @@ class EvaluatorPairFourier
                     force_divr += a[i-2] * Scalar(i) * s - b[i-2] * Scalar(i) * c;
                     }
 
-                force_divr = r1inv * (r1inv * r12inv * Scalar(12) + r2inv * period_scale * force_divr + Scalar(2) * r3inv * fourier_part);
+                force_divr = r1inv * (r1inv * r12inv * Scalar(12)
+                           + r2inv * period_scale * force_divr
+                           + Scalar(2) * r3inv * fourier_part);
                 pair_eng = r12inv + r2inv * fourier_part;
 
                 return true;
