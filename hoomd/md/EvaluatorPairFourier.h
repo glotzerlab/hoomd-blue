@@ -127,12 +127,12 @@ class EvaluatorPairFourier
                     a1 = a1 + std::pow(-1,i) * a[i-2];
                     b1 = b1 + i * std::pow(-1,i) * b[i-2];
                     }
-                Scalar theta = Scalar(1) * x;
+                Scalar theta = x;
                 Scalar s;
                 Scalar c;
                 fast::sincos(theta, s, c);
                 Scalar fourier_part = a1 * c + b1 * s;
-                force_divr = a1 * Scalar(1) * s - b1 * Scalar(1) * c;
+                force_divr = a1 * s - b1 * c;
 
                 for ( int i=2; i<5; i++ )
                     {
@@ -142,7 +142,7 @@ class EvaluatorPairFourier
                     force_divr += a[i-2] * Scalar(i) * s - b[i-2] * Scalar(i) * c;
                     }
 
-                force_divr = r1inv * (r1inv * r12inv * Scalar(12) + r2inv * period_scale * force_divr + Scalar(2) / r3inv * fourier_part);
+                force_divr = r1inv * (r1inv * r12inv * Scalar(12) + r2inv * period_scale * force_divr + Scalar(2) * r3inv * fourier_part);
                 pair_eng = r12inv + r2inv * fourier_part;
 
                 return true;
