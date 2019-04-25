@@ -2825,20 +2825,12 @@ class Fourier(pair):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
-        self.required_coeffs = ['a','b'];
+
+        self.required_coeffs = ['fourier_a','fourier_b'];
         # self.pair_coeff.set_default_coeff('alpha', 1.0);
 
     def process_coeff(self, coeff):
-        a = coeff['a'];
-        b = coeff['b'];
+        fourier_a = coeff['fourier_a'];
+        fourier_b = coeff['fourier_b'];
 
-        return _md.make_pair_fourier_params(a,b);
-
-    def alchemostat(self):
-        #TODO: alchemy, should probalby make this reversible eventually
-        hoomd.context.current.system.removeCompute(self.force_name);
-
-        self.cpp_force = _md.AlchemPotentialPairFourier(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-        self.cpp_class = _md.AlchemPotentialPairFourier;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        return _md.make_pair_fourier_params(fourier_a,fourier_b);

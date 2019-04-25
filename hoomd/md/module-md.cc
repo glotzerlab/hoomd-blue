@@ -122,6 +122,16 @@ void export_tersoff_params(py::module& m)
     m.def("make_tersoff_params", &make_tersoff_params);
 }
 
+// ! Function to export the fourier parameter type to python
+void export_pair_fourier_params(py::module& m)
+{
+    py::class_<pair_fourier_params>(m, "pair_fourier_params")
+        .def(py::init<>())
+        ;
+
+    m.def("make_pair_fourier_params", &make_pair_fourier_params);
+}
+
 //! Helper function for converting python wall group structure to wall_type
 wall_type make_wall_field_params(py::object walls, std::shared_ptr<const ExecutionConfiguration> m_exec_conf)
     {
@@ -224,6 +234,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_tersoff_params(m);
+    export_pair_fourier_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
