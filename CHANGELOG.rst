@@ -19,6 +19,28 @@ v2.6.0 (not yet released)
 
     - New shape class: ``hpmc.integrate.faceted_ellipsoid_union()``
 
+v2.5.2 (2019/04/30)
+-------------------
+
+*Bug fixes*
+
+- Support LLVM 9 in `jit`
+- Fix error when importing `jit` before `hpmc`
+- HPMC integrators raise errors when `restore_state=True` and state information is missing
+- Send messages to replaced `sys.stdout` and `sys.stderr` streams
+- Add `hpmc.update.clusters` to documentation index
+- Fix a bug in the MPCD Gaussian random number generator that could lead to NaN values
+- Fix issue where an initially cubic box can become non-cubic with `integrate.npt()` and `randomize_velocities()`
+- Fix illegal memory access in NeighborListGPU with `-DALWAYS_USE_MANAGED_MEMORY=ON` on single GPUs
+- Improve `pair.table` performance with multi-GPU execution
+- Improve `charge.pppm` performance with multi-GPU execution
+- Improve rigid body performance with multi-GPU execution
+- Display correct cell list statistics with the `-DALWAYS_USE_MANAGED_MEMORY=ON` compile option
+- Fix a sporadic data corruption / bus error issue when data structures are dynamically resized in simulations that use unified memory (multi-GPU, or with -DALWAYS_USE_MANAGED_MEMORY=ON compile time option)
+- Improve `integrate.nve` and `integrate.npt` performance with multi-GPU execution
+- Improve some angular degrees of freedom integrators with multi-GPU execution
+- Improve rigid body pressure calculation performance with multi-GPU execution
+
 v2.5.1 (2019/03/14)
 -------------------
 
