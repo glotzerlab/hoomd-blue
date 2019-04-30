@@ -7,7 +7,7 @@
 #include "hoomd/ForceCompute.h"
 #include "NeighborList.h"
 #include "hoomd/Index1D.h"
-#include "hoomd/GPUArray.h"
+#include "hoomd/GlobalArray.h"
 
 #include <memory>
 
@@ -88,8 +88,8 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         unsigned int m_table_width;                 //!< Width of the tables in memory
         unsigned int m_ntypes;                      //!< Store the number of particle types
-        GPUArray<Scalar2> m_tables;                  //!< Stored V and F tables
-        GPUArray<Scalar4> m_params;                 //!< Parameters stored for each table
+        GlobalArray<Scalar2> m_tables;                  //!< Stored V and F tables
+        GlobalArray<Scalar4> m_params;                 //!< Parameters stored for each table
         std::string m_log_name;                     //!< Cached log name
 
         //! Actually compute the forces

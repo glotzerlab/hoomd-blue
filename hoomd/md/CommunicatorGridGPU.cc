@@ -49,13 +49,13 @@ void CommunicatorGridGPU<T>::initGridCommGPU()
     m_n_unique_recv_cells = unique_cells.size();
 
     // allocate arrays
-    GPUArray<unsigned int> cell_recv(this->m_recv_idx.getNumElements(), this->m_exec_conf);
+    GlobalArray<unsigned int> cell_recv(this->m_recv_idx.getNumElements(), this->m_exec_conf);
     m_cell_recv.swap(cell_recv);
 
-    GPUArray<unsigned int> cell_recv_begin(m_n_unique_recv_cells, this->m_exec_conf);
+    GlobalArray<unsigned int> cell_recv_begin(m_n_unique_recv_cells, this->m_exec_conf);
     m_cell_recv_begin.swap(cell_recv_begin);
 
-    GPUArray<unsigned int> cell_recv_end(m_n_unique_recv_cells, this->m_exec_conf);
+    GlobalArray<unsigned int> cell_recv_end(m_n_unique_recv_cells, this->m_exec_conf);
     m_cell_recv_end.swap(cell_recv_end);
 
     // write out sorted values according to cell idx
@@ -93,7 +93,7 @@ void CommunicatorGridGPU<T>::initGridCommGPU()
     }
 
 template<typename T>
-void CommunicatorGridGPU<T>::communicate(const GPUArray<T>& grid)
+void CommunicatorGridGPU<T>::communicate(const GlobalArray<T>& grid)
     {
     assert(grid.getNumElements() >= this->m_embed.x*this->m_embed.y*this->m_embed.z);
 
