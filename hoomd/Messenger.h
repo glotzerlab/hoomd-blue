@@ -117,25 +117,25 @@ class PYBIND11_EXPORT Messenger
         ~Messenger();
 
         //! Get the error stream
-        std::ostream& error() const;
+        std::ostream& error();
 
         //! Alternate method to print error strings
-        void errorStr(const std::string& msg) const;
+        void errorStr(const std::string& msg);
 
         //! Get the warning stream
-        std::ostream& warning() const;
+        std::ostream& warning();
 
         //! Alternate method to print warning strings
-        void warningStr(const std::string& msg) const;
+        void warningStr(const std::string& msg);
 
         //! Get a notice stream
-        std::ostream& notice(unsigned int level) const;
+        std::ostream& notice(unsigned int level);
 
         //! Print a notice message in rank-order
-        void collectiveNoticeStr(unsigned int level, const std::string& msg) const;
+        void collectiveNoticeStr(unsigned int level, const std::string& msg);
 
         //! Alternate method to print notice strings
-        void noticeStr(unsigned int level, const std::string& msg) const;
+        void noticeStr(unsigned int level, const std::string& msg);
 
         //! Set processor rank
         /*! Error and warning messages are prefixed with rank information.
@@ -304,6 +304,9 @@ class PYBIND11_EXPORT Messenger
         //! "Open" python sys.stdout and sys.stderr
         void openPython();
 
+        //! Reopen the python streams if sys.stdout/err changes
+        void reopenPythonIfNeeded();
+
 #ifdef ENABLE_MPI
         //! Request logging of notices, warning and errors into shared log file
         /*! \param fname The filenam
@@ -354,6 +357,11 @@ class PYBIND11_EXPORT Messenger
         unsigned int m_rank;            //!< The MPI rank (default 0)
         unsigned int m_partition;       //!< The MPI partition
         unsigned int m_nranks;          //!< Number of ranks in communicator
+
+        bool m_python_open=false;       //!< True when the python output stream is open
+        pybind11::module m_sys;         //!< sys module
+        pybind11::object m_pystdout;    //!< Currently bound python sys.stdout
+        pybind11::object m_pystderr;    //!< Currently bound python sys.stderr
 
 #ifdef ENABLE_MPI
         std::string m_shared_filename;  //!< Filename of shared log file

@@ -76,18 +76,6 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
                    unsigned int flags,
                    const bool nph=false);
 
-       TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
-                  std::shared_ptr<ParticleGroup> group,
-                  std::shared_ptr<ComputeThermo> thermo_group,
-                  std::shared_ptr<ComputeThermo> thermo_group_t,
-                  Scalar tau,
-                  Scalar tauP,
-                  std::shared_ptr<Variant> T,
-                  std::shared_ptr<Variant> P,
-                  couplingMode couple,
-                  unsigned int flags,
-                  const bool nph=false);
-
         virtual ~TwoStepNPTMTK();
 
         //! Update the temperature
@@ -220,6 +208,8 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         //! Helper function to update the propagator elements
         void updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz);
 
+        //! Get the relevant couplings for the active box degrees of freedom
+        couplingMode getRelevantCouplings();
         };
 
 //! Exports the TwoStepNPTMTK class to python
