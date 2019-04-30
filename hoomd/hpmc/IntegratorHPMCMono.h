@@ -20,7 +20,7 @@
 #include "hoomd/AABBTree.h"
 #include "GSDHPMCSchema.h"
 #include "hoomd/Index1D.h"
-
+#include "hoomd/RNGIdentifiers.h"
 #include "hoomd/managed_allocator.h"
 
 #ifdef ENABLE_MPI
@@ -76,11 +76,10 @@ class UpdateOrder
         */
         void shuffle(unsigned int timestep, unsigned int select = 0)
             {
-            hoomd::detail::Saru rng(timestep, m_seed+select, 0xfa870af6);
-            float r = rng.f();
+            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShuffle, m_seed, timestep, select);
 
             // reverse the order with 1/2 probability
-            if (r > 0.5f)
+            if (hoomd::UniformIntDistribution(1)(rng))
                 {
                 unsigned int N = m_update_order.size();
                 for (unsigned int i = 0; i < N; i++)
@@ -576,10 +575,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             #endif
 
             // make a trial move for i
-            hoomd::detail::Saru rng_i(i, m_seed + m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
+            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoTrialMove, m_seed, i, m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
-            unsigned int move_type_select = rng_i.u32() & 0xffff;
+            unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_i);
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_move_ratio);
 
             Shape shape_old(quat<Scalar>(orientation_i), m_params[typ_i]);
@@ -813,7 +812,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
             // If no overlaps and Metropolis criterion is met, accept
             // trial move and update positions  and/or orientations.
-            if (!overlap && rng_i.d() < slow::exp(patch_field_energy_diff))
+            if (!overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff))
                 {
                 // increment accept counter and assign new position
                 if (!shape_i.ignoreStatistics())
@@ -869,13 +868,14 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
         // precalculate the grid shift
-        hoomd::detail::Saru rng(timestep, this->m_seed, 0xf4a3210e);
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShift, this->m_seed, timestep);
         Scalar3 shift = make_scalar3(0,0,0);
-        shift.x = rng.s(-m_nominal_width/Scalar(2.0),m_nominal_width/Scalar(2.0));
-        shift.y = rng.s(-m_nominal_width/Scalar(2.0),m_nominal_width/Scalar(2.0));
+        hoomd::UniformDistribution<Scalar> uniform(-m_nominal_width/Scalar(2.0),m_nominal_width/Scalar(2.0));
+        shift.x = uniform(rng);
+        shift.y = uniform(rng);
         if (this->m_sysdef->getNDimensions() == 3)
             {
-            shift.z = rng.s(-m_nominal_width/Scalar(2.0),m_nominal_width/Scalar(2.0));
+            shift.z = uniform(rng);
             }
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {

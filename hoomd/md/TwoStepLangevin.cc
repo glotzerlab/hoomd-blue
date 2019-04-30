@@ -5,7 +5,8 @@
 // Maintainer: joaander
 
 #include "TwoStepLangevin.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 #include "hoomd/VectorMath.h"
 
 #ifdef ENABLE_MPI
@@ -275,13 +276,14 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         unsigned int ptag = h_tag.data[j];
 
         // Initialize the RNG
-        detail::Saru saru(ptag, timestep, m_seed);
+        RandomGenerator rng(RNGIdentifier::TwoStepLangevin, m_seed, ptag, timestep);
 
         // first, calculate the BD forces
         // Generate three random numbers
-        Scalar rx = saru.s<Scalar>(-1,1);
-        Scalar ry = saru.s<Scalar>(-1,1);
-        Scalar rz = saru.s<Scalar>(-1,1);
+        hoomd::UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
+        Scalar rx = uniform(rng);
+        Scalar ry = uniform(rng);
+        Scalar rz = uniform(rng);
 
         Scalar gamma;
         if (m_use_lambda)
@@ -343,9 +345,9 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
                                                fast::sqrt(Scalar(2.0)*gamma_r.z*currentTemp/m_deltaT));
                 if (m_noiseless_r) sigma_r = make_scalar3(0.0,0.0,0.0);
 
-                Scalar rand_x = gaussian_rng(saru, sigma_r.x);
-                Scalar rand_y = gaussian_rng(saru, sigma_r.y);
-                Scalar rand_z = gaussian_rng(saru, sigma_r.z);
+                Scalar rand_x = hoomd::NormalDistribution<Scalar>(sigma_r.x)(rng);
+                Scalar rand_y = hoomd::NormalDistribution<Scalar>(sigma_r.y)(rng);
+                Scalar rand_z = hoomd::NormalDistribution<Scalar>(sigma_r.z)(rng);
 
                 // check for degenerate moment of inertia
                 bool x_zero, y_zero, z_zero;

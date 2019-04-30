@@ -5,6 +5,7 @@
 
 #include "IntegratorHPMCMono.h"
 #include "hoomd/Autotuner.h"
+#include "hoomd/Saru.h"
 
 #include <random>
 #include <cfloat>

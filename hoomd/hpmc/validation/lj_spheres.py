@@ -1,18 +1,16 @@
 from hoomd import *
 from hoomd import hpmc
 
-context.initialize()
-
 import numpy as np
 import math
 
 import unittest
 import BlockAverage
 
-# Reference potential energy (U/N/eps) from MD simulations
-# and J. K. Johnson et al. (DOI:10.1080/00268979300100411)
-U_ref = -4.223;
-U_ref_star_rel_err = 0.003;
+# Reference potential energy (U/N/eps) from MC simulations
+# https://mmlapps.nist.gov/srs/LJ_PURE/mc.htm
+# mean_Uref = -5.5121E+00;
+# sigma_Uref = 4.55E-04;
 
 # Interaction cut-off
 rcut = 3.0;
@@ -20,43 +18,46 @@ rcut = 3.0;
 # LJ length scale
 sigma = 1.0;
 
-# Temperature (kT/eps)
-Tstar = 1.0;
-eps   = 1.0 / Tstar;
+# Tstar = 8.50E-01;
 
-# Reduced density: rhostar = (N / V) * sigma**3
-rho_star = 0.6;
+# rho_star = 7.76E-01;
 
 # Diameter of particles
 diameter = sigma;
 
 # linear lattice dimension
-n = 10;
-
-# Particle volume
-V_p = math.pi/6.*diameter**3.;
-
-# lattice constant (sc)
-d_eff = (V_p*6/math.pi)**(1./3.);
-a = (d_eff**3.0/rho_star)**(1./3.);
+n = 8;
 
 class nvt_lj_sphere_energy(unittest.TestCase):
 
-    def test_statepoint(self):
+    def run_statepoint(self, Tstar, rho_star, mean_Uref, sigma_Uref, use_clusters, use_depletants):
+        """
+        Tstar: Temperature (kT/eps)
+        rho_star: Reduced density: rhostar = (N / V) * sigma**3
+        mean_Uref: reference energy
+        sigma_Uref: standard deviation of the mean of reference energy
+        """
+
+        context.initialize()
+        eps   = 1.0 / Tstar;
+
+        # Particle volume
+        V_p = math.pi/6.*diameter**3.;
+
+        # lattice constant (sc)
+        d_eff = (V_p*6/math.pi)**(1./3.);
+        a = (d_eff**3.0/rho_star)**(1./3.);
 
         system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
-
-        use_clusters = int(option.get_user()[0])%2
-        use_depletants = int(option.get_user()[0])//2
 
         N = len(system.particles);
 
         if use_depletants:
             mc = hpmc.integrate.sphere(d=0.3,seed=321,implicit=True);
         else:
-            mc = hpmc.integrate.sphere(d=0.3,seed=321);
+            mc = hpmc.integrate.sphere(d=0.3,seed=65412);
 
-        mc.shape_param.set('A',diameter=diameter)
+        mc.shape_param.set('A',diameter=0)
 
         if use_depletants:
             # set up a dummy depletant
@@ -91,43 +92,68 @@ class nvt_lj_sphere_energy(unittest.TestCase):
         energy_val = [];
         def accumulate_energy(timestep):
             energy = log.query('hpmc_patch_energy') / float(N) / eps;
+            # apply long range correction (used in reference data)
+            energy += 8/9.0 * math.pi * rho_star * ((1/rcut)**9-3*(1/rcut)**3)
             energy_val.append(energy);
-            if (timestep % 1000 == 0): context.msg.notice(1,'energy = {:.5f}\n'.format(energy));
+            if (timestep % 100 == 0): context.msg.notice(1,'energy = {:.5f}\n'.format(energy));
 
-        if use_clusters:
-            mc.set_params(d=0, a=0)
-            clusters = hpmc.update.clusters(mc, seed=312)
-        else:
-            mc_tune = hpmc.util.tune(mc, tunables=['d','a'],max_val=[4,0.5],gamma=0.5,target=0.4);
+        mc_tune = hpmc.util.tune(mc, tunables=['d','a'],max_val=[4,0.5],gamma=0.5,target=0.4);
 
-            for i in range(5):
-                run(100,quiet=True);
-                d = mc.get_d();
-                translate_acceptance = mc.get_translate_acceptance();
-                util.quiet_status();
-                print('d: {:3.2f} accept: {:3.2f}'.format(d,translate_acceptance));
-                mc_tune.update();
+        for i in range(5):
+            run(100,quiet=True);
+            d = mc.get_d();
+            translate_acceptance = mc.get_translate_acceptance();
+            util.quiet_status();
+            print('d: {:3.2f} accept: {:3.2f}'.format(d,translate_acceptance));
+            mc_tune.update();
 
         # Equilibrate
-        run(1e4);
+        run(500);
+
+        if use_clusters:
+            clusters = hpmc.update.clusters(mc, seed=99685)
+            mc.set_params(d=0, a=0); # test cluster moves alone
 
         # Sample
-        run(1e4,callback=accumulate_energy, callback_period=100)
+        run(1000,callback=accumulate_energy, callback_period=10)
 
         block = BlockAverage.BlockAverage(energy_val)
-        energy_avg = np.mean(energy_val)
-        i, energy_err = block.get_error_estimate()
+        mean_U = np.mean(energy_val)
+        i, sigma_U = block.get_error_estimate()
 
-        context.msg.notice(1,'rho_star = {:.3f}, U = {:.5f}+-{:.5f}\n'.format(rho_star,energy_avg,energy_err))
+        context.msg.notice(1,'rho_star = {:.3f}\nU    = {:.5f} +- {:.5f}\n'.format(rho_star,mean_U,sigma_U))
+        context.msg.notice(1,'Uref = {:.5f} +- {:.5f}\n'.format(mean_Uref,sigma_Uref))
 
-        # max error 0.5 %
-        self.assertLessEqual(energy_err/energy_avg,0.005)
+        # 0.99 confidence interval
+        ci = 2.576
 
-        # confidence interval, 0.95 quantile of the normal distribution
-        ci = 1.96
+        # compare if 0 is within the confidence interval around the difference of the means
+        sigma_diff = (sigma_U**2 + sigma_Uref**2)**(1/2.);
+        self.assertLessEqual(math.fabs(mean_U - mean_Uref), ci*sigma_diff)
 
-        # compare if error is within confidence interval
-        self.assertLessEqual(math.fabs(energy_avg-U_ref),ci*(math.fabs(U_ref)*U_ref_star_rel_err+energy_err))
+    def test_low_density_normal(self):
+        self.run_statepoint(Tstar=8.50E-01, rho_star=5.00E-03, mean_Uref=-5.1901E-02, sigma_Uref=7.53E-05,
+                            use_clusters=False, use_depletants=False);
+        self.run_statepoint(Tstar=8.50E-01, rho_star=7.00E-03, mean_Uref=-7.2834E-02, sigma_Uref=1.34E-04,
+                            use_clusters=False, use_depletants=False);
+        self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
+                            use_clusters=False, use_depletants=False);
+
+    def test_low_density_clusters(self):
+        self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
+                            use_clusters=True, use_depletants=False);
+
+    def test_low_density_clusters_depletants(self):
+        self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
+                            use_clusters=True, use_depletants=True);
+
+    def test_moderate_density_normal(self):
+        self.run_statepoint(Tstar=9.00E-01, rho_star=7.76E-01, mean_Uref=-5.4689E+00, sigma_Uref=4.20E-04,
+                            use_clusters=False, use_depletants=False);
+
+    def test_moderate_density_depletants(self):
+        self.run_statepoint(Tstar=9.00E-01, rho_star=7.76E-01, mean_Uref=-5.4689E+00, sigma_Uref=4.20E-04,
+                            use_clusters=False, use_depletants=True);
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
