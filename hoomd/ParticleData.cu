@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -222,6 +222,10 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     mgpu::Scan<mgpu::MgpuScanTypeExc>(d_tmp,
         N, (unsigned int) 0, mgpu::plus<unsigned int>(),
         (unsigned int *)NULL, &n_out, d_tmp, *mgpu_context);
+
+    // NOTE: the call in the line above assumes that a cudaDeviceSynchronize() with the host is performed
+    // in mgpu.  If this call is ever replaced by a device-level primitive which does not synchronize, e.g. CUB,
+    // we will need to perform an explicit sync between devices in multi-GPU simulations here
 
     // Don't write past end of buffer
     if (n_out <= max_n_out)

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
@@ -131,10 +131,10 @@ void PPPMForceCompute::setParams(unsigned int nx, unsigned int ny, unsigned int 
     m_ghost_offset = 0;
     #endif // ENABLE_MPI
 
-    GPUArray<Scalar> n_gf_b(order, m_exec_conf);
+    GlobalArray<Scalar> n_gf_b(order, m_exec_conf);
     m_gf_b.swap(n_gf_b);
 
-    GPUArray<Scalar> n_rho_coeff(order*(2*order+1), m_exec_conf);
+    GlobalArray<Scalar> n_rho_coeff(order*(2*order+1), m_exec_conf);
     m_rho_coeff.swap(n_rho_coeff);
 
     m_need_initialize = true;
@@ -381,13 +381,13 @@ void PPPMForceCompute::setupMesh()
     m_n_inner_cells = m_mesh_points.x * m_mesh_points.y * m_mesh_points.z;
 
     // allocate memory for influence function and k values
-    GPUArray<Scalar> inf_f(m_n_inner_cells, m_exec_conf);
+    GlobalArray<Scalar> inf_f(m_n_inner_cells, m_exec_conf);
     m_inf_f.swap(inf_f);
 
-    GPUArray<Scalar3> k(m_n_inner_cells, m_exec_conf);
+    GlobalArray<Scalar3> k(m_n_inner_cells, m_exec_conf);
     m_k.swap(k);
 
-    GPUArray<Scalar> virial_mesh(6*m_n_inner_cells, m_exec_conf);
+    GlobalArray<Scalar> virial_mesh(6*m_n_inner_cells, m_exec_conf);
     m_virial_mesh.swap(virial_mesh);
 
     initializeFFT();
@@ -495,30 +495,30 @@ void PPPMForceCompute::initializeFFT()
     // allocate mesh and transformed mesh
 
     // pad with offset
-    GPUArray<kiss_fft_cpx> mesh(m_n_cells + m_ghost_offset,m_exec_conf);
+    GlobalArray<kiss_fft_cpx> mesh(m_n_cells + m_ghost_offset,m_exec_conf);
     m_mesh.swap(mesh);
 
-    GPUArray<kiss_fft_cpx> fourier_mesh(m_n_inner_cells, m_exec_conf);
+    GlobalArray<kiss_fft_cpx> fourier_mesh(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh.swap(fourier_mesh);
 
-    GPUArray<kiss_fft_cpx> fourier_mesh_G_x(m_n_inner_cells, m_exec_conf);
+    GlobalArray<kiss_fft_cpx> fourier_mesh_G_x(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_x.swap(fourier_mesh_G_x);
 
-    GPUArray<kiss_fft_cpx> fourier_mesh_G_y(m_n_inner_cells, m_exec_conf);
+    GlobalArray<kiss_fft_cpx> fourier_mesh_G_y(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_y.swap(fourier_mesh_G_y);
 
-    GPUArray<kiss_fft_cpx> fourier_mesh_G_z(m_n_inner_cells, m_exec_conf);
+    GlobalArray<kiss_fft_cpx> fourier_mesh_G_z(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_z.swap(fourier_mesh_G_z);
 
     // pad with offset
 
-    GPUArray<kiss_fft_cpx> inv_fourier_mesh_x(m_n_cells+m_ghost_offset, m_exec_conf);
+    GlobalArray<kiss_fft_cpx> inv_fourier_mesh_x(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_x.swap(inv_fourier_mesh_x);
 
-    GPUArray<kiss_fft_cpx> inv_fourier_mesh_y(m_n_cells+m_ghost_offset, m_exec_conf);
+    GlobalArray<kiss_fft_cpx> inv_fourier_mesh_y(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_y.swap(inv_fourier_mesh_y);
 
-    GPUArray<kiss_fft_cpx> inv_fourier_mesh_z(m_n_cells+m_ghost_offset, m_exec_conf);
+    GlobalArray<kiss_fft_cpx> inv_fourier_mesh_z(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_z.swap(inv_fourier_mesh_z);
     }
 
@@ -1425,7 +1425,7 @@ void PPPMForceCompute::computeBodyCorrection()
 
         if (m_group->getNumMembers() != nptl)
             {
-            m_exec_conf->msg->warning() << "charge.pppm: Operating on a group which is not group.all(). Rigid body self-energies may be wrong." << std::endl;
+            m_exec_conf->msg->warning() << "charge.pppm: Operating on a group which is not group.all(). Body self-energies may be wrong." << std::endl;
             }
 
         // save references to each body's constituent particles

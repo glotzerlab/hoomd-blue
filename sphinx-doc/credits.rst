@@ -90,6 +90,8 @@ Jens Glaser, University of Michigan
  * hpmc interaction_matrix
  * special_pair framework
  * TBB support
+ * randomize integrator variables
+ * GPUArray refactoring
 
 Pavani Medapuram, University of Minnesota
  * Framework for external potentials
@@ -200,12 +202,25 @@ Lin Yang, Alex Travesset, Iowa State University
 
 Tim Moore, Vanderbilt University
   * angle.cosinesq
+  * Documentation fixes
 
 Bradley Dice, Avisek Das, University of Michigan
   * integrator.randomize_velocities()
 
+Bradley Dice, Simon Adorf, University of Michigan
+  * SSAGES support
+
+Bradley Dice, University of Michigan
+  * Documentation improvements
+
 Peter Schwendeman, Jens Glaser, University of Michigan
-  * NLINK optimized multi-GPU execution
+  * NVLINK optimized multi-GPU execution
+
+Alyssa Travitz, University of Michigan
+  * `get_net_force` implementation
+
+Mike Henry, Boise State University
+  * Documentation improvements
 
 HPMC developers
 ---------------
@@ -293,9 +308,11 @@ Paul Dodd, Erin Teich, University of Michigan
 Vyas Ramasubramani, University of Michigan
  * hpmc.util.tune fixes for tuning by type
  * hpmc.update.boxmc fixes for non-orthorhombic box volume moves
+ * `jit.external.user` implementation
 
 William Zygmunt, Luis Rivera-Rivera, University of Michigan
  * Patchy interaction support in HPMC CPU integrators
+ * GSD state bug fixes
 
 DEM developers
 --------------
@@ -680,6 +697,39 @@ cereal is used to serialize C++ objects for transmission over MPI. Used under th
     ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Random123 is used to generate random numbers and is used under the following license::
+
+    Copyright 2010-2012, D. E. Shaw Research.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions, and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions, and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+
+    * Neither the name of D. E. Shaw Research nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 Libraries
 ---------

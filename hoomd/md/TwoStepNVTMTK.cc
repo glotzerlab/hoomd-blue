@@ -1,14 +1,11 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-
-// Maintainer: joaander
-
-
 
 #include "TwoStepNVTMTK.h"
 
 #include "hoomd/VectorMath.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -441,6 +438,64 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
         }
 
     setIntegratorVariables(v);
+    }
+
+void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
+    {
+    if (m_shouldRandomize == false)
+        {
+        return;
+        }
+
+    m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing velocities" << std::endl;
+
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+
+    unsigned int g = m_thermo->getNDOF();
+    Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_T_randomize*m_tau*m_tau);
+
+    bool master = m_exec_conf->getRank() == 0;
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNVTMTK, m_seed_randomize, timestep);
+
+    if (master)
+        {
+        // draw a random Gaussian thermostat variable on rank 0
+        xi = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // broadcast integrator variables from rank 0 to other processors
+        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    if (m_aniso)
+        {
+        // update thermostat for rotational DOF
+        Scalar &xi_rot = v.variable[2];
+        Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_thermo->getRotationalNDOF()*m_T_randomize*m_tau*m_tau);
+
+        if (master)
+            {
+            xi_rot = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
+            }
+
+        #ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            // broadcast integrator variables from rank 0 to other processors
+            MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+            }
+        #endif
+        }
+
+    setIntegratorVariables(v);
+
+    // call base class method
+    IntegrationMethodTwoStep::randomizeVelocities(timestep);
     }
 
 void export_TwoStepNVTMTK(py::module& m)

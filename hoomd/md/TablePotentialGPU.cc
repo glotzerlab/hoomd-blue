@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -76,6 +76,8 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
 
+    this->m_exec_conf->beginMultiGPU();
+
     // run the kernel on all GPUs in parallel
     m_tuner->begin();
     gpu_compute_table_forces(d_force.data,
@@ -95,11 +97,14 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
                              m_table_width,
                              m_tuner->getParam(),
                              m_exec_conf->getComputeCapability(),
-                             m_exec_conf->dev_prop.maxTexture1DLinear);
+                             m_exec_conf->dev_prop.maxTexture1DLinear,
+                             m_pdata->getGPUPartition());
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
+
+    this->m_exec_conf->endMultiGPU();
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }

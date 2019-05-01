@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (c) 2009-2018 The Regents of the University of Michigan
+# Copyright (c) 2009-2019 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -270,6 +270,9 @@ class nvt(_integration_method):
         removes drift (the center of mass velocity).
 
         .. versionadded:: 2.3
+
+        Starting in version 2.5, `randomize_velocities` also chooses random values
+        for the internal integrator variables.
 
         Args:
             seed (int): Random number seed
@@ -654,6 +657,9 @@ class npt(_integration_method):
 
         .. versionadded:: 2.3
 
+        Starting in version 2.5, `randomize_velocities` also chooses random values
+        for the internal integrator variables.
+
         Args:
             seed (int): Random number seed
 
@@ -689,7 +695,7 @@ class nph(npt):
          A time scale *tauP* for the relaxation of the barostat is required. This is defined as the
          relaxation time the barostat would have at an average temperature *T_0 = 1*, and it
          is related to the internally used (Andersen) Barostat mass :math:`W` via
-         :math:`W=d N T_0 \tauP^2`, where :math:`d` is the dimensionality and :math:`N` the number
+         :math:`W=d N T_0 \tau_P^2`, where :math:`d` is the dimensionality and :math:`N` the number
          of particles.
 
     :py:class:`nph` is an integration method and must be used with :py:class:`mode_standard`.
@@ -718,6 +724,9 @@ class nph(npt):
         removes drift (the center of mass velocity).
 
         .. versionadded:: 2.3
+
+        Starting in version 2.5, `randomize_velocities` also chooses random values
+        for the internal integrator variables.
 
         Args:
             kT (float): Temperature (in energy units)
@@ -1043,7 +1052,7 @@ class langevin(_integration_method):
 
         Args:
             a (str):  Particle type name
-            gamma_r (float): :math:`\gamma_r` for particle type a (in units of force/velocity)
+            gamma_r (float or tuple): :math:`\gamma_r` for particle type a (in units of force/velocity), optionally for all body frame directions
 
         :py:meth:`set_gamma_r()` sets the coefficient :math:`\gamma_r` for a single particle type, identified
         by name. The default is 1.0 if not specified for a type. It must be positive or zero, if set
@@ -1051,15 +1060,19 @@ class langevin(_integration_method):
 
         Examples::
 
-            bd.set_gamma_r('A', gamma_r=2.0)
+            langevin.set_gamma_r('A', gamma_r=2.0)
+            langevin.set_gamma_r('A', gamma_r=(1.0,2.0,3.0))
 
         """
 
-        if (gamma_r < 0):
-            raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
-
         hoomd.util.print_status_line();
         self.check_initialization();
+
+        if not isinstance(gamma_r,tuple):
+            gamma_r = (gamma_r, gamma_r, gamma_r)
+
+        if (gamma_r[0] < 0 or gamma_r[1] < 0 or gamma_r[2] < 0):
+            raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -1069,7 +1082,7 @@ class langevin(_integration_method):
         # change the parameters
         for i in range(0,ntypes):
             if a == type_list[i]:
-                self.cpp_method.setGamma_r(i,gamma_r);
+                self.cpp_method.setGamma_r(i,_hoomd.make_scalar3(*gamma_r));
 
 class brownian(_integration_method):
     R""" Brownian dynamics.
@@ -1250,7 +1263,7 @@ class brownian(_integration_method):
 
         Args:
             a (str):  Particle type name
-            gamma_r (float): :math:`\gamma_r` for particle type a (in units of force/velocity)
+            gamma_r (float or tuple): :math:`\gamma_r` for particle type a (in units of force/velocity), optionally for all body frame directions
 
         :py:meth:`set_gamma_r()` sets the coefficient :math:`\gamma_r` for a single particle type, identified
         by name. The default is 1.0 if not specified for a type. It must be positive or zero, if set
@@ -1259,14 +1272,18 @@ class brownian(_integration_method):
         Examples::
 
             bd.set_gamma_r('A', gamma_r=2.0)
+            bd.set_gamma_r('A', gamma_r=(1,2,3))
 
         """
 
-        if (gamma_r < 0):
-            raise ValueError("The gamma_r must be positive or zero (ignoring any rotational updates)")
-
         hoomd.util.print_status_line();
         self.check_initialization();
+
+        if not isinstance(gamma_r,tuple):
+            gamma_r = (gamma_r, gamma_r, gamma_r)
+
+        if (gamma_r[0] < 0 or gamma_r[1] < 0 or gamma_r[2] < 0):
+            raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -1276,7 +1293,7 @@ class brownian(_integration_method):
         # change the parameters
         for i in range(0,ntypes):
             if a == type_list[i]:
-                self.cpp_method.setGamma_r(i,gamma_r);
+                self.cpp_method.setGamma_r(i,_hoomd.make_scalar3(*gamma_r));
 
 class mode_minimize_fire(_integrator):
     R""" Energy Minimizer (FIRE).

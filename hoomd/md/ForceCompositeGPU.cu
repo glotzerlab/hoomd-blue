@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -123,7 +123,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
 
     __syncthreads();
 
-    if (mol_idx[m] != NO_BODY)
+    if (mol_idx[m] < MIN_FLOPPY)
         {
         // compute the number of windows that we need to loop over
         unsigned int mol_len = d_molecule_len[mol_idx[m]];
@@ -226,7 +226,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         }
 
     // thread 0 within this body writes out the total force and torque for the body
-    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] != NO_BODY && central_idx[m] < N)
+    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_FLOPPY && central_idx[m] < N)
         {
         d_force[central_idx[m]] = body_force[threadIdx.x];
         d_torque[central_idx[m]] = make_scalar4(body_torque[threadIdx.x].x, body_torque[threadIdx.x].y, body_torque[threadIdx.x].z, 0.0f);
@@ -236,6 +236,8 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
 __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                                                 const unsigned int *d_molecule_len,
                                                 const unsigned int *d_molecule_list,
+                                                const unsigned int *d_molecule_idx,
+                                                const unsigned int *d_rigid_center,
                                                 Index2D molecule_indexer,
                                                 const Scalar4 *d_postype,
                                                 const Scalar4* d_orientation,
@@ -252,7 +254,9 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                                                 unsigned int virial_pitch,
                                                 unsigned int window_size,
                                                 unsigned int thread_mask,
-                                                unsigned int n_bodies_per_block)
+                                                unsigned int n_bodies_per_block,
+                                                unsigned int first_body,
+                                                unsigned int nwork)
     {
     // determine which body (0 ... n_bodies_per_block-1) this thread is working on
     // assign threads 0, 1, 2, ... to body 0, n, n+1, n+2, ... to body 1, and so on.
@@ -288,17 +292,15 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
         {
         // thread 0 for this body reads in the body id and orientation and stores them in shared memory
         int group_idx = blockIdx.x*n_bodies_per_block + m;
-        if (group_idx < n_mol)
+        if (group_idx < nwork)
             {
-            mol_idx[m] = group_idx;
-
-            // first ptl is central ptl
-            central_idx[m] = d_molecule_list[molecule_indexer(0,group_idx)];
+            central_idx[m] = d_rigid_center[group_idx + first_body];
+            mol_idx[m] = d_molecule_idx[central_idx[m]];
 
             if (d_tag[central_idx[m]] != d_body[central_idx[m]])
                 {
                 // this is not the central ptl, molecule is incomplete - mark as such
-                body_type[m] = 0xffffffff;
+                body_type[m] = NO_BODY;
                 body_orientation[m] = make_scalar4(1,0,0,0);
                 }
             else
@@ -315,7 +317,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
 
     __syncthreads();
 
-    if (mol_idx[m] != NO_BODY)
+    if (mol_idx[m] < MIN_FLOPPY)
         {
         // compute the number of windows that we need to loop over
         unsigned int mol_len = d_molecule_len[mol_idx[m]];
@@ -333,7 +335,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                 // determine the particle idx of the particle
                 unsigned int pidx = d_molecule_list[molecule_indexer(k,mol_idx[m])];
 
-                if (body_type[m] != 0xffffffff && pidx != central_idx[m])
+                if (body_type[m] < MIN_FLOPPY && pidx != central_idx[m])
                     {
                     // calculate body force and torques
                     Scalar4 fi = d_net_force[pidx];
@@ -408,7 +410,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
         }
 
     // thread 0 within this body writes out the total virial for the body
-    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] != NO_BODY && central_idx[m] < N)
+    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] < MIN_FLOPPY && central_idx[m] < N)
         {
         d_virial[0*virial_pitch+central_idx[m]] = body_virial_xx[threadIdx.x];
         d_virial[1*virial_pitch+central_idx[m]] = body_virial_xy[threadIdx.x];
@@ -521,6 +523,8 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
 cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  const unsigned int *d_molecule_len,
                  const unsigned int *d_molecule_list,
+                 const unsigned int *d_molecule_idx,
+                 const unsigned int *d_rigid_center,
                  Index2D molecule_indexer,
                  const Scalar4 *d_postype,
                  const Scalar4* d_orientation,
@@ -537,65 +541,74 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  unsigned int net_virial_pitch,
                  unsigned int virial_pitch,
                  unsigned int block_size,
-                 const cudaDeviceProp& dev_prop)
+                 const cudaDeviceProp& dev_prop,
+                 const GPUPartition &gpu_partition)
     {
-    // reset virial
-    cudaMemset(d_virial,0, sizeof(Scalar)*virial_pitch*6);
-
-    dim3 force_grid(n_mol / n_bodies_per_block + 1, 1, 1);
-
-    static unsigned int max_block_size = UINT_MAX;
-    static cudaFuncAttributes attr;
-    if (max_block_size == UINT_MAX)
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
-        cudaFuncGetAttributes(&attr, (const void *) gpu_rigid_virial_sliding_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+
+        dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
+
+        static unsigned int max_block_size = UINT_MAX;
+        static cudaFuncAttributes attr;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncGetAttributes(&attr, (const void *) gpu_rigid_virial_sliding_kernel);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
+
+        // round down to nearest power of two
+        unsigned int b = 1;
+        while (b * 2 <= run_block_size) { b *= 2; }
+        run_block_size = b;
+
+        unsigned int window_size = run_block_size / n_bodies_per_block;
+        unsigned int thread_mask = window_size - 1;
+
+        unsigned int shared_bytes = 6 * run_block_size * sizeof(Scalar);
+
+        while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
+            {
+            // block size is power of two
+            run_block_size /= 2;
+
+            shared_bytes = 6 * run_block_size * sizeof(Scalar);
+
+            window_size = run_block_size / n_bodies_per_block;
+            thread_mask = window_size - 1;
+            }
+
+        gpu_rigid_virial_sliding_kernel<<< force_grid, run_block_size, shared_bytes >>>(
+            d_virial,
+            d_molecule_len,
+            d_molecule_list,
+            d_molecule_idx,
+            d_rigid_center,
+            molecule_indexer,
+            d_postype,
+            d_orientation,
+            body_indexer,
+            d_body_pos,
+            d_body_orientation,
+            d_net_force,
+            d_net_virial,
+            d_body,
+            d_tag,
+            n_mol,
+            N,
+            net_virial_pitch,
+            virial_pitch,
+            window_size,
+            thread_mask,
+            n_bodies_per_block,
+            range.first,
+            nwork);
         }
-
-    unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
-
-    // round down to nearest power of two
-    unsigned int b = 1;
-    while (b * 2 <= run_block_size) { b *= 2; }
-    run_block_size = b;
-
-    unsigned int window_size = run_block_size / n_bodies_per_block;
-    unsigned int thread_mask = window_size - 1;
-
-    unsigned int shared_bytes = 6 * run_block_size * sizeof(Scalar);
-
-    while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
-        {
-        // block size is power of two
-        run_block_size /= 2;
-
-        shared_bytes = 6 * run_block_size * sizeof(Scalar);
-
-        window_size = run_block_size / n_bodies_per_block;
-        thread_mask = window_size - 1;
-        }
-
-    gpu_rigid_virial_sliding_kernel<<< force_grid, run_block_size, shared_bytes >>>(
-        d_virial,
-        d_molecule_len,
-        d_molecule_list,
-        molecule_indexer,
-        d_postype,
-        d_orientation,
-        body_indexer,
-        d_body_pos,
-        d_body_orientation,
-        d_net_force,
-        d_net_virial,
-        d_body,
-        d_tag,
-        n_mol,
-        N,
-        net_virial_pitch,
-        virial_pitch,
-        window_size,
-        thread_mask,
-        n_bodies_per_block);
 
     return cudaSuccess;
     }
@@ -728,8 +741,8 @@ void gpu_update_composite(unsigned int N,
         run_block_size = max_block_size;
         }
 
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function 
-    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev) 
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
 
@@ -778,7 +791,7 @@ struct lookup_op : thrust::unary_function<unsigned int, unsigned int>
 
     __device__ unsigned int operator()(const unsigned int& body)
         {
-        return (body != NO_BODY) ? d_rtag[body] : NO_BODY;
+        return (body < MIN_FLOPPY) ? d_rtag[body] : NO_BODY;
         }
 
     const unsigned int *d_rtag;
@@ -801,7 +814,7 @@ cudaError_t gpu_find_rigid_centers(const unsigned int *d_body,
 
     // create a contiguos list of rigid center indicies
     auto it = thrust::copy_if(count,
-                    count + N,
+                    count + N + nghost,
                     thrust::make_zip_iterator(thrust::make_tuple(body, tag)),
                     rigid_center,
                     is_center());

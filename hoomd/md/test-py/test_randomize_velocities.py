@@ -54,7 +54,7 @@ class velocity_randomization_tests (unittest.TestCase):
         # Set one particle to be really massive for validation
         self.system.particles[0].mass = 10000
 
-        md.integrate.mode_standard(dt=0.)
+        self.mode_standard = md.integrate.mode_standard(dt=0.)
         self.all = group.all()
         self.aniso = False
         self.quantities = ['N',
@@ -62,7 +62,10 @@ class velocity_randomization_tests (unittest.TestCase):
                            'translational_kinetic_energy',
                            'rotational_kinetic_energy',
                            'temperature',
-                           'momentum']
+                           'momentum',
+                           'nvt_mtk_reservoir_energy_all',
+                           'npt_thermostat_energy',
+                           'npt_barostat_energy']
         self.log = analyze.log(filename=None, quantities=self.quantities, period=None)
 
     def aniso_prep(self):
@@ -88,10 +91,17 @@ class velocity_randomization_tests (unittest.TestCase):
             self.assertAlmostEqual(avg_rot_KE, 0.5*self.rot_dof*self.kT, 2)
 
     def test_nvt(self):
+        thermostat_energy = self.log.query('nvt_mtk_reservoir_energy_all')
+        self.assertTrue(thermostat_energy == 0.0)
+
         self.kT = 1.0
         integrator = md.integrate.nvt(group=self.all, kT=self.kT, tau=0.5)
         integrator.randomize_velocities(seed=42)
         run(1)
+
+        # even with dt=0 we should observe a finite thermostat variable (exactly zero is unlikely)
+        thermostat_energy = self.log.query('nvt_mtk_reservoir_energy_all')
+        self.assertTrue(thermostat_energy != 0.0)
         self.check_quantities()
 
     def test_berendsen(self):
@@ -107,17 +117,46 @@ class velocity_randomization_tests (unittest.TestCase):
             pass
 
     def test_npt(self):
+        thermostat_energy = self.log.query('npt_thermostat_energy')
+        barostat_energy = self.log.query('npt_barostat_energy')
+        self.assertTrue(thermostat_energy == 0.0)
+        self.assertTrue(barostat_energy == 0.0)
         self.kT = 1.0
-        integrator = md.integrate.npt(group=self.all, kT=self.kT, tau=0.5, tauP=1.0, P=2.0)
+        integrator = md.integrate.npt(group=self.all, kT=self.kT, tau=0.5, tauP=1.0, P=2.0, couple='xyz')
         integrator.randomize_velocities(seed=42)
+
+        box = self.system.box
+        ratio_xy = box.Lx/box.Ly
+        ratio_xz = box.Lx/box.Lz
+        ratio_yz = box.Ly/box.Lz
         run(1)
+        thermostat_energy = self.log.query('npt_thermostat_energy')
+        barostat_energy = self.log.query('npt_barostat_energy')
+        self.assertTrue(thermostat_energy != 0.0)
+        self.assertTrue(barostat_energy != 0.0)
         self.check_quantities()
 
+        # check that box degrees of freedom are correctly coupled
+        self.mode_standard.set_params(dt=0.005)
+        run(100)
+        box = self.system.box
+        self.assertAlmostEqual(box.Lx/box.Ly, ratio_xy, 5)
+        self.assertAlmostEqual(box.Lx/box.Lz, ratio_xz, 5)
+        self.assertAlmostEqual(box.Ly/box.Lz, ratio_yz, 5)
+
     def test_nph(self):
+        thermostat_energy = self.log.query('npt_thermostat_energy')
+        barostat_energy = self.log.query('npt_barostat_energy')
+        self.assertTrue(thermostat_energy == 0.0)
+        self.assertTrue(barostat_energy == 0.0)
         self.kT = 1.0
         integrator = md.integrate.nph(group=self.all, P=2.0, tauP=1.0)
         integrator.randomize_velocities(kT=self.kT, seed=42)
         run(1)
+        thermostat_energy = self.log.query('npt_thermostat_energy')
+        barostat_energy = self.log.query('npt_barostat_energy')
+        self.assertTrue(thermostat_energy == 0.0)
+        self.assertTrue(barostat_energy != 0.0)
         self.check_quantities()
 
     def test_nve(self):

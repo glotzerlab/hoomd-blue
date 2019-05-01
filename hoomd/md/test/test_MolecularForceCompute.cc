@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -6,7 +6,7 @@
 #include "hoomd/ExecutionConfiguration.h"
 
 #include "hoomd/md/MolecularForceCompute.cc"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
 
 #include <set>
 
@@ -145,7 +145,7 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std:
     unsigned int niter = 100;
 
     std::vector<unsigned int> molecule_tags(nptl, NO_MOLECULE);
-    hoomd::detail::Saru saru(123456);
+    hoomd::RandomGenerator rng(123456);
 
     MyMolecularForceCompute mfc_cpu(sysdef_cpu, molecule_tags, 0);
     MyMolecularForceCompute mfc_gpu(sysdef_gpu, molecule_tags, 0);
@@ -156,8 +156,8 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std:
 
         for (unsigned int j = 0; j < nptl; ++j)
             {
-            // choose a molecule tag 0<=mol_tag< nptl
-            unsigned int t = saru.f()*(nptl+1);
+            // choose a molecule tag 0 <= mol_tag <= nptl
+            unsigned int t = hoomd::UniformIntDistribution(nptl)(rng);
             if (t == nptl) t = NO_MOLECULE;
 
             molecule_tags[j] = t;

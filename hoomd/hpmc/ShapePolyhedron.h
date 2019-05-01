@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: jglaser
@@ -25,8 +25,10 @@
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #include <iostream>
 #endif
 
@@ -991,4 +993,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
 }; // end namespace hpmc
 
+#undef DEVICE
+#undef HOSTDEVICE
 #endif //__SHAPE_POLYHEDRON_H__

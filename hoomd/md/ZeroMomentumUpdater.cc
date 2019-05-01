@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -52,10 +52,10 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     Scalar sum_pz = 0.0;
     unsigned int n = 0;
 
-    // add up the momentum of every free particle and every central particle of a rigid body
+    // add up the momentum of every free particle (including floppy body particles) and every central particle of a rigid body
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        if (h_body.data[i] == NO_BODY || h_body.data[i] == h_tag.data[i])
+        if (h_body.data[i] >= MIN_FLOPPY || h_body.data[i] == h_tag.data[i])
             {
             Scalar mass = h_vel.data[i].w;
             sum_px += mass*h_vel.data[i].x;
@@ -80,10 +80,10 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     Scalar avg_py = sum_py / Scalar(n);
     Scalar avg_pz = sum_pz / Scalar(n);
 
-    // subtract this momentum from every free particle
+    // subtract this momentum from every free particle (including floppy body particles) and every central particle of a rigid body
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        if (h_body.data[i] == NO_BODY || h_body.data[i] == h_tag.data[i])
+        if (h_body.data[i] >= MIN_FLOPPY || h_body.data[i] == h_tag.data[i])
             {
             Scalar mass = h_vel.data[i].w;
             h_vel.data[i].x -= avg_px/mass;

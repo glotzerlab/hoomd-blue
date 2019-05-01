@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -54,6 +54,10 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_num_blocks = group_size / m_block_size + 1;
     GPUArray<Scalar> partial_sum1(m_num_blocks, m_exec_conf);
     m_partial_sum1.swap(partial_sum1);
+
+    cudaDeviceProp dev_prop = m_exec_conf->dev_prop;
+    m_tuner_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "langevin_nve", this->m_exec_conf));
+    m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "langevin_angular", this->m_exec_conf));
     }
 
 /*! \param timestep Current time step
@@ -71,29 +75,32 @@ void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
     // access all the needed data
     BoxDim box = m_pdata->getBox();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getNumMembers();
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
+    m_exec_conf->beginMultiGPU();
+    m_tuner_one->begin();
     // perform the update on the GPU
     gpu_nve_step_one(d_pos.data,
                      d_vel.data,
                      d_accel.data,
                      d_image.data,
                      d_index_array.data,
-                     group_size,
+                     m_group->getGPUPartition(),
                      box,
                      m_deltaT,
                      false,
                      0,
                      false,
-                     256);
+                     m_tuner_one->getParam());
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    m_tuner_one->end();
+    m_exec_conf->endMultiGPU();
 
     if (m_aniso)
         {
@@ -103,14 +110,21 @@ void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
         ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
+        m_exec_conf->beginMultiGPU();
+        m_tuner_angular_one->begin();
+
         gpu_nve_angular_step_one(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
                                  d_index_array.data,
-                                 group_size,
+                                 m_group->getGPUPartition(),
                                  m_deltaT,
-                                 1.0);
+                                 1.0,
+                                 m_tuner_angular_one->getParam());
+
+        m_tuner_angular_one->end();
+        m_exec_conf->endMultiGPU();
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -137,7 +151,7 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
         {

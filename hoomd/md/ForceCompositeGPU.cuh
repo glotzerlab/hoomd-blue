@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -40,6 +40,8 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
 cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  const unsigned int *d_molecule_len,
                  const unsigned int *d_molecule_list,
+                 const unsigned int *d_molecule_idx,
+                 const unsigned int *d_rigid_center,
                  Index2D molecule_indexer,
                  const Scalar4 *d_postype,
                  const Scalar4* d_orientation,
@@ -56,7 +58,8 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  unsigned int net_virial_pitch,
                  unsigned int virial_pitch,
                  unsigned int block_size,
-                 const cudaDeviceProp& dev_prop);
+                 const cudaDeviceProp& dev_prop,
+                 const GPUPartition& gpu_partition);
 
 
 void gpu_update_composite(unsigned int N,

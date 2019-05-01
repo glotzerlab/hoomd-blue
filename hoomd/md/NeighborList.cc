@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -706,7 +706,7 @@ void NeighborList::countExclusions()
     else
         m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: no" << endl;
 
-    bool has_bodies = m_pdata->hasRigidBodies();
+    bool has_bodies = m_pdata->hasBodies();
     if (!m_filter_body && has_bodies)
         {
         m_exec_conf->msg->warning() << "Disabling the body exclusion will cause rigid bodies to behave erratically" << endl
@@ -1613,6 +1613,10 @@ void NeighborList::updateMemoryMapping()
             // set preferred location
             auto range = gpu_partition.getRange(idev);
             unsigned int nelem =  range.second - range.first;
+
+            if (nelem == 0)
+                continue;
+
             cudaMemAdvise(m_head_list.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_n_neigh.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_last_pos.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -169,7 +169,7 @@ void ConstraintSphere::validate()
             errors = true;
             }
 
-        if (h_body.data[j] != NO_BODY)
+        if (h_body.data[j] < MIN_FLOPPY)
             {
             m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " belongs to a rigid body"
                                       << " - cannot constrain" << endl;

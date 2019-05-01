@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -9,8 +9,8 @@
  */
 
 #include "SRDCollisionMethod.h"
-#include "RandomNumbers.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                              unsigned int cur_timestep,
@@ -93,12 +93,12 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                 const unsigned int idx = ci(i,j,k);
 
                 // Initialize the PRNG using the current cell index, timestep, and seed for the hash
-                hoomd::detail::Saru saru(global_idx, timestep, m_seed);
+                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SRDCollisionMethod, m_seed, global_idx, timestep);
 
                 // draw rotation vector off the surface of the sphere
                 double3 rotvec;
-                mpcd::detail::SpherePointGenerator<double> sphgen;
-                sphgen(saru, rotvec);
+                hoomd::SpherePointGenerator<double> sphgen;
+                sphgen(rng, rotvec);
                 h_rotvec.data[idx] = rotvec;
 
                 if (use_thermostat)
@@ -112,8 +112,8 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                         const double alpha = m_sysdef->getNDimensions()*(np-1)/(double)2.;
 
                         // draw a random kinetic energy for the cell at the set temperature
-                        mpcd::detail::GammaGenerator<double> gamma_gen(alpha,T_set);
-                        const double rand_ke = gamma_gen(saru);
+                        hoomd::GammaDistribution<double> gamma_gen(alpha,T_set);
+                        const double rand_ke = gamma_gen(rng);
 
                         // generate the scale factor from the current temperature
                         // (don't use the kinetic energy of this cell, since this

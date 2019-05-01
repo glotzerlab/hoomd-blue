@@ -1,11 +1,12 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 // Maintainer: joaander
 
 #include "TwoStepLangevin.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 #include "hoomd/VectorMath.h"
 
 #ifdef ENABLE_MPI
@@ -96,7 +97,7 @@ void TwoStepLangevin::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
-    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -253,7 +254,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
@@ -275,13 +276,14 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         unsigned int ptag = h_tag.data[j];
 
         // Initialize the RNG
-        detail::Saru saru(ptag, timestep, m_seed);
+        RandomGenerator rng(RNGIdentifier::TwoStepLangevin, m_seed, ptag, timestep);
 
         // first, calculate the BD forces
         // Generate three random numbers
-        Scalar rx = saru.s<Scalar>(-1,1);
-        Scalar ry = saru.s<Scalar>(-1,1);
-        Scalar rz = saru.s<Scalar>(-1,1);
+        hoomd::UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
+        Scalar rx = uniform(rng);
+        Scalar ry = uniform(rng);
+        Scalar rz = uniform(rng);
 
         Scalar gamma;
         if (m_use_lambda)
@@ -321,7 +323,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         if (m_aniso)
             {
             unsigned int type_r = __scalar_as_int(h_pos.data[j].w);
-            Scalar gamma_r = h_gamma_r.data[type_r];
+            Scalar3 gamma_r = h_gamma_r.data[type_r];
             // get body frame ang_mom
             quat<Scalar> p(h_angmom.data[j]);
             quat<Scalar> q(h_orientation.data[j]);
@@ -332,27 +334,28 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
             vec3<Scalar> s;
             s = (Scalar(1./2.) * conj(q) * p).v;
 
-            if (gamma_r > 0)
+            if (gamma_r.x > 0 || gamma_r.y > 0 || gamma_r.z > 0)
                 {
                 // first calculate in the body frame random and damping torque imposed by the dynamics
                 vec3<Scalar> bf_torque;
 
                 // original Gaussian random torque
-                // for future reference: if gamma_r is different for xyz, then we need to generate 3 sigma_r
-                Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*currentTemp/m_deltaT);
-                if (m_noiseless_r) sigma_r = Scalar(0.0);
+                Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0)*gamma_r.x*currentTemp/m_deltaT),
+                                               fast::sqrt(Scalar(2.0)*gamma_r.y*currentTemp/m_deltaT),
+                                               fast::sqrt(Scalar(2.0)*gamma_r.z*currentTemp/m_deltaT));
+                if (m_noiseless_r) sigma_r = make_scalar3(0.0,0.0,0.0);
 
-                Scalar rand_x = gaussian_rng(saru, sigma_r);
-                Scalar rand_y = gaussian_rng(saru, sigma_r);
-                Scalar rand_z = gaussian_rng(saru, sigma_r);
+                Scalar rand_x = hoomd::NormalDistribution<Scalar>(sigma_r.x)(rng);
+                Scalar rand_y = hoomd::NormalDistribution<Scalar>(sigma_r.y)(rng);
+                Scalar rand_z = hoomd::NormalDistribution<Scalar>(sigma_r.z)(rng);
 
                 // check for degenerate moment of inertia
                 bool x_zero, y_zero, z_zero;
                 x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
 
-                bf_torque.x = rand_x - gamma_r * (s.x / I.x);
-                bf_torque.y = rand_y - gamma_r * (s.y / I.y);
-                bf_torque.z = rand_z - gamma_r * (s.z / I.z);
+                bf_torque.x = rand_x - gamma_r.x * (s.x / I.x);
+                bf_torque.y = rand_y - gamma_r.y * (s.y / I.y);
+                bf_torque.z = rand_z - gamma_r.z * (s.z / I.z);
 
                 // ignore torque component along an axis for which the moment of inertia zero
                 if (x_zero) bf_torque.x = 0;

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -122,8 +122,14 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
             std::pair<unsigned int, unsigned int> range = m_pdata->getGPUPartition().getRangeAndSetGPU(idev);
             unsigned int nelem = range.second - range.first;
 
+            if (nelem == 0)
+                continue;
+
             cudaMemsetAsync(d_force.data+range.first, 0, sizeof(Scalar4)*nelem);
             cudaMemsetAsync(d_torque.data+range.first, 0, sizeof(Scalar4)*nelem);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             }
         m_exec_conf->endMultiGPU();
 
@@ -184,6 +190,28 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
 
     if (compute_virial)
         {
+        // reset virial
+        m_exec_conf->beginMultiGPU();
+
+        for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; idev--)
+            {
+            std::pair<unsigned int, unsigned int> range = m_pdata->getGPUPartition().getRangeAndSetGPU(idev);
+            unsigned int nelem = range.second - range.first;
+
+            if (nelem == 0)
+                continue;
+
+            for (unsigned int i = 0; i < 6; i++)
+                {
+                cudaMemsetAsync(d_virial.data+i*m_virial_pitch+range.first, 0, sizeof(Scalar)*nelem);
+                }
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        m_exec_conf->endMultiGPU();
+
+        m_exec_conf->beginMultiGPU();
         m_tuner_virial->begin();
         unsigned int param = m_tuner_virial->getParam();
         unsigned int block_size = param % 10000;
@@ -193,6 +221,8 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
         gpu_rigid_virial(d_virial.data,
                         d_molecule_length.data,
                         d_molecule_list.data,
+                        d_molecule_idx.data,
+                        d_rigid_center.data,
                         molecule_indexer,
                         d_postype.data,
                         d_orientation.data,
@@ -209,14 +239,15 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
                         m_pdata->getNetVirial().getPitch(),
                         m_virial_pitch,
                         block_size,
-                        m_exec_conf->dev_prop);
+                        m_exec_conf->dev_prop,
+                        m_gpu_partition);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
         m_tuner_virial->end();
+        m_exec_conf->endMultiGPU();
         }
-
 
     if (m_prof) m_prof->pop(m_exec_conf);
     if (m_prof) m_prof->pop(m_exec_conf);
@@ -330,8 +361,17 @@ void ForceCompositeGPU::findRigidCenters()
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
-    m_rigid_center.resize(m_pdata->getN());
+    m_rigid_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
+
+    unsigned int old_size = m_lookup_center.getNumElements();
     m_lookup_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
+
+    if (m_exec_conf->allConcurrentManagedAccess() && m_lookup_center.getNumElements() != old_size)
+        {
+        // set memory hints
+        cudaMemAdvise(m_lookup_center.get(), sizeof(unsigned int)*m_lookup_center.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
+        }
 
     ArrayHandle<unsigned int> d_rigid_center(m_rigid_center, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_lookup_center(m_lookup_center, access_location::device, access_mode::overwrite);

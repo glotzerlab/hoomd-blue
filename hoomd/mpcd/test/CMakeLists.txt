@@ -8,7 +8,6 @@ set(TEST_LIST
     cell_list
     cell_thermo_compute
     sorter
-    random_numbers
     srd_collision_method
     streaming_method
     )

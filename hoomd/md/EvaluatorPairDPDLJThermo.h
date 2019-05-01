@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -12,7 +12,8 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 
 /*! \file EvaluatorPairDPDLJThermo.h
@@ -201,11 +202,11 @@ class EvaluatorPairDPDLJThermo
                    m_oj = m_j;
                    }
 
-                hoomd::detail::Saru rng(m_oi, m_oj, m_seed + m_timestep);
+                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_seed, m_oi, m_oj, m_timestep);
 
 
                 // Generate a single random number
-                Scalar alpha = rng.s<Scalar>(-1,1);
+                Scalar alpha = hoomd::UniformDistribution<Scalar>(-1,1)(rng);
 
                 // conservative lj
                 force_divr = r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);

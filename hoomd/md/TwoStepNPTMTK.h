@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -75,18 +75,6 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
                    couplingMode couple,
                    unsigned int flags,
                    const bool nph=false);
-
-       TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
-                  std::shared_ptr<ParticleGroup> group,
-                  std::shared_ptr<ComputeThermo> thermo_group,
-                  std::shared_ptr<ComputeThermo> thermo_group_t,
-                  Scalar tau,
-                  Scalar tauP,
-                  std::shared_ptr<Variant> T,
-                  std::shared_ptr<Variant> P,
-                  couplingMode couple,
-                  unsigned int flags,
-                  const bool nph=false);
 
         virtual ~TwoStepNPTMTK();
 
@@ -166,10 +154,10 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             }
 
         //! Returns a list of log quantities this compute calculates
-        std::vector< std::string > getProvidedLogQuantities();
+        virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Returns logged values
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
         //! Initialize integrator variables
         virtual void initializeIntegratorVariables()
@@ -180,6 +168,9 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             v.variable.resize(10,Scalar(0.0));
             setIntegratorVariables(v);
             }
+
+        //! Randomize the barostat variables
+        virtual void randomizeVelocities(unsigned int timestep);
 
     protected:
         std::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
@@ -217,6 +208,8 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         //! Helper function to update the propagator elements
         void updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz);
 
+        //! Get the relevant couplings for the active box degrees of freedom
+        couplingMode getRelevantCouplings();
         };
 
 //! Exports the TwoStepNPTMTK class to python

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -37,6 +37,8 @@ TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     m_tuner_one.reset(new Autotuner(valid_params, 5, 100000, "nve_step_one", this->m_exec_conf));
     m_tuner_two.reset(new Autotuner(valid_params, 5, 100000, "nve_step_two", this->m_exec_conf));
+    m_tuner_angular_one.reset(new Autotuner(valid_params, 5, 100000, "nve_angular_one", this->m_exec_conf));
+    m_tuner_angular_two.reset(new Autotuner(valid_params, 5, 100000, "nve_angular_two", this->m_exec_conf));
     }
 
 /*! \param timestep Current time step
@@ -45,8 +47,6 @@ TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumMembers();
-
     // profile this step
     if (m_prof)
         m_prof->push(m_exec_conf, "NVE step 1");
@@ -61,23 +61,26 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
+    m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     gpu_nve_step_one(d_pos.data,
                      d_vel.data,
                      d_accel.data,
                      d_image.data,
                      d_index_array.data,
-                     group_size,
+                     m_group->getGPUPartition(),
                      box,
                      m_deltaT,
                      m_limit,
                      m_limit_val,
                      m_zero_force,
                      m_tuner_one->getParam());
-    m_tuner_one->end();
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_tuner_one->end();
+    m_exec_conf->endMultiGPU();
 
     if (m_aniso)
         {
@@ -87,17 +90,24 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
         ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
+        m_exec_conf->beginMultiGPU();
+        m_tuner_angular_one->begin();
+
         gpu_nve_angular_step_one(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
                                  d_index_array.data,
-                                 group_size,
+                                 m_group->getGPUPartition(),
                                  m_deltaT,
-                                 1.0);
+                                 1.0,
+                                 m_tuner_angular_one->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+
+        m_tuner_angular_one->end();
+        m_exec_conf->endMultiGPU();
         }
 
     // done profiling
@@ -110,8 +120,6 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     {
-    unsigned int group_size = m_group->getNumMembers();
-
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // profile this step
@@ -124,22 +132,26 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
-    m_tuner_two->begin();
     // perform the update on the GPU
+    m_exec_conf->beginMultiGPU();
+    m_tuner_two->begin();
+
     gpu_nve_step_two(d_vel.data,
                      d_accel.data,
                      d_index_array.data,
-                     group_size,
+                     m_group->getGPUPartition(),
                      d_net_force.data,
                      m_deltaT,
                      m_limit,
                      m_limit_val,
                      m_zero_force,
                      m_tuner_two->getParam());
-    m_tuner_two->end();
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_tuner_two->end();
+    m_exec_conf->endMultiGPU();
 
     if (m_aniso)
         {
@@ -149,17 +161,24 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
+        m_exec_conf->beginMultiGPU();
+        m_tuner_angular_two->begin();
+
         gpu_nve_angular_step_two(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
                                  d_index_array.data,
-                                 group_size,
+                                 m_group->getGPUPartition(),
                                  m_deltaT,
-                                 1.0);
+                                 1.0,
+                                 m_tuner_angular_two->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+
+        m_tuner_angular_two->end();
+        m_exec_conf->endMultiGPU();
         }
 
     // done profiling

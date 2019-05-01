@@ -1,13 +1,10 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-
-// Maintainer: jglaser
-
-
 
 #include "TwoStepNPTMTK.h"
 #include "hoomd/VectorMath.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 using namespace std;
 namespace py = pybind11;
@@ -99,73 +96,6 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
     m_log_names[1] = "npt_barostat_energy";
     }
 
-
-// TODO: rewrite the unit test in /hoomd-blue/hoomd/md/test/test_npt_mtk_integrator.cc so we don't need to do this
-TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<ParticleGroup> group,
-                       std::shared_ptr<ComputeThermo> thermo_group,
-                       std::shared_ptr<ComputeThermo> thermo_group_t,
-                       Scalar tau,
-                       Scalar tauP,
-                       std::shared_ptr<Variant> T,
-                       std::shared_ptr<Variant> P,
-                       couplingMode couple,
-                       unsigned int flags,
-                       const bool nph)
-    : IntegrationMethodTwoStep(sysdef, group),
-                            m_thermo_group(thermo_group), m_thermo_group_t(thermo_group_t),
-                            m_ndof(0),
-                            m_tau(tau),
-                            m_tauP(tauP),
-                            m_T(T),
-                            m_S(),
-                            m_couple(couple),
-                            m_flags(flags),
-                            m_nph(nph),
-                            m_rescale_all(false)
-    {
-    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
-
-    if (m_tau <= 0.0)
-        m_exec_conf->msg->warning() << "integrate.npt: tau set less than 0.0" << endl;
-    if (m_tauP <= 0.0)
-        m_exec_conf->msg->warning() << "integrate.npt: tauP set less than 0.0" << endl;
-
-    if (flags == 0)
-        m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified."
-                                    << endl;
-
-    std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
-    m_S.push_back(P);
-    m_S.push_back(P);
-    m_S.push_back(P);
-    m_S.push_back(zero_variant);
-    m_S.push_back(zero_variant);
-    m_S.push_back(zero_variant);
-
-    bool twod = m_sysdef->getNDimensions()==2;
-    m_V = m_pdata->getGlobalBox().getVolume(twod);  // volume
-
-    // set initial state
-    IntegratorVariables v = getIntegratorVariables();
-
-    if (!restartInfoTestValid(v, "npt_mtk", 10))
-        {
-        v.type = "npt_mtk";
-        v.variable.resize(10,Scalar(0.0));
-        setValidRestart(false);
-        }
-    else
-        {
-        setValidRestart(true);
-        }
-
-    setIntegratorVariables(v);
-
-    m_log_names.resize(2);
-    m_log_names[0] = "npt_thermostat_energy";
-    m_log_names[1] = "npt_barostat_energy";
-    }
 
 TwoStepNPTMTK::~TwoStepNPTMTK()
     {
@@ -785,42 +715,7 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     Scalar mtk_term = Scalar(2.0)*m_thermo_group_t->getTranslationalKineticEnergy();
     mtk_term *= Scalar(1.0/2.0)*m_deltaT/(Scalar)m_ndof/W;
 
-    couplingMode couple = m_couple;
-
-    // disable irrelevant couplings
-    if (! (m_flags & baro_x))
-        {
-        if (couple == couple_xyz)
-            {
-            couple = couple_yz;
-            }
-        if (couple == couple_xy || couple == couple_xz)
-            {
-            couple = couple_none;
-            }
-        }
-    if (! (m_flags & baro_y))
-        {
-        if (couple == couple_xyz)
-            {
-            couple = couple_xz;
-            }
-        if (couple == couple_yz || couple == couple_xy)
-            {
-            couple = couple_none;
-            }
-        }
-    if (! (m_flags & baro_z))
-        {
-        if (couple == couple_xyz)
-            {
-            couple = couple_xy;
-            }
-        if (couple == couple_yz || couple == couple_xz)
-            {
-            couple = couple_none;
-            }
-        }
+    couplingMode couple = getRelevantCouplings();
 
     // couple diagonal elements of pressure tensor together
     Scalar3 P_diag = make_scalar3(0.0,0.0,0.0);
@@ -942,6 +837,172 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
         }
 
     setIntegratorVariables(v);
+    }
+
+TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
+    {
+    couplingMode couple = m_couple;
+
+    // disable irrelevant couplings
+    if (! (m_flags & baro_x))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_yz;
+            }
+        if (couple == couple_xy || couple == couple_xz)
+            {
+            couple = couple_none;
+            }
+        }
+    if (! (m_flags & baro_y))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_xz;
+            }
+        if (couple == couple_yz || couple == couple_xy)
+            {
+            couple = couple_none;
+            }
+        }
+    if (! (m_flags & baro_z))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_xy;
+            }
+        if (couple == couple_yz || couple == couple_xz)
+            {
+            couple = couple_none;
+            }
+        }
+    return couple;
+    }
+
+void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
+    {
+    if (m_shouldRandomize == false)
+        {
+        return;
+        }
+
+    m_exec_conf->msg->notice(6) << "TwoStepNPTMTK randomizing velocities" << std::endl;
+
+    IntegratorVariables v = getIntegratorVariables();
+
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNPTMTK, m_seed_randomize, timestep);
+
+    bool master = m_exec_conf->getRank() == 0;
+
+    if (!m_nph)
+        {
+        // randomize thermostat variables
+        Scalar& xi = v.variable[1];
+
+        unsigned int g = m_thermo_group->getNDOF();
+        Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_T_randomize*m_tau*m_tau);
+
+        if (master)
+            {
+            // draw a random Gaussian thermostat variable on rank 0
+            xi = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
+            }
+
+        if (m_aniso)
+            {
+            // update thermostat for rotational DOF
+            Scalar &xi_rot = v.variable[8];
+            Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_thermo_group->getRotationalNDOF()*m_T_randomize*m_tau*m_tau);
+
+            if (master)
+                {
+                xi_rot = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
+                }
+            }
+        }
+
+    // randomize barostat variables
+    Scalar& nuxx = v.variable[2];  // Barostat tensor, xx component
+    Scalar& nuxy = v.variable[3];  // Barostat tensor, xy component
+    Scalar& nuxz = v.variable[4];  // Barostat tensor, xz component
+    Scalar& nuyy = v.variable[5];  // Barostat tensor, yy component
+    Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
+    Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
+
+    unsigned int d = m_sysdef->getNDimensions();
+    Scalar sigmasq_baro = Scalar(1.0)/((Scalar)(m_ndof+d)/(Scalar)d*m_T_randomize*m_tauP*m_tauP);
+
+    if (master)
+        {
+        if (m_flags & baro_x)
+            {
+            nuxx = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            }
+
+        if (m_flags & baro_xy)
+            {
+            nuxy = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            }
+
+        if (m_flags & baro_xz)
+            {
+            nuxz = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            }
+
+        if (m_flags & baro_y)
+            {
+            nuyy = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            }
+
+        if (m_flags & baro_yz)
+            {
+            nuyz = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            }
+
+        if (m_flags & baro_z)
+            {
+            nuzz = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            }
+
+        // couple box degrees of freedom
+        couplingMode couple = getRelevantCouplings();
+
+        if (couple == couple_xy)
+            {
+            nuyy = nuxx;
+            }
+        else if (couple == couple_xz)
+            {
+            nuzz = nuxx;
+            }
+        else if (couple == couple_yz)
+            {
+            nuyy = nuzz;
+            }
+        else if (couple == couple_xyz)
+            {
+            nuxx = nuyy = nuzz;
+            }
+        else
+            {
+            m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl << std::endl;
+            throw std::runtime_error("Error in NPT integration");
+            }
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // broadcast integrator variables from rank 0 to other processors
+        MPI_Bcast(&v.variable.front(), 10, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    setIntegratorVariables(v);
+
+    // call base class method
+    IntegrationMethodTwoStep::randomizeVelocities(timestep);
     }
 
 void export_TwoStepNPTMTK(py::module& m)

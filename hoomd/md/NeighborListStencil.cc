@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -281,7 +281,7 @@ void NeighborListStencil::buildNlist(unsigned int timestep)
                 const Scalar diam_j = neigh_tdb.y;
                 const unsigned int body_j = __scalar_as_int(neigh_tdb.z);
 
-                // skip any particles belonging to the same rigid body if requested
+                // skip any particles belonging to the same body if requested
                 if (m_filter_body && body_i != NO_BODY && body_i == body_j) continue;
 
                 // read cutoff and skip if pair is inactive

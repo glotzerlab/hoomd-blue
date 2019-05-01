@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -63,8 +63,8 @@ void dpd_conservative_force_test(std::shared_ptr<ExecutionConfiguration> exec_co
     // compute the forces
     dpdc->compute(0);
 
-    GPUArray<Scalar4>& force_array_1 =  dpdc->getForceArray();
-    GPUArray<Scalar>& virial_array_1 =  dpdc->getVirialArray();
+    GlobalArray<Scalar4>& force_array_1 =  dpdc->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  dpdc->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_1.data[0].x, -28.5, tol);

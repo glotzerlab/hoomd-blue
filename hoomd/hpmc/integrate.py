@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2018 The Regents of the University of Michigan
+# Copyright (c) 2009-2019 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 from hoomd import _hoomd
@@ -371,11 +371,16 @@ class mode_hpmc(_integrator):
             pos.set_def(type_list[i], shapedef + ' ' + color)
 
     def get_type_shapes(self):
-        """ Get all the types of shapes in the current simulation
+        """Get all the types of shapes in the current simulation.
 
-        Since this behaves differently for different types of shapes, the default behavior just raises an exception. Subclasses can override this to properly return
+        Since this behaves differently for different types of shapes, the
+        default behavior just raises an exception. Subclasses can override this
+        to properly return.
         """
-        raise NotImplementedError("You are using a shape type that is not implemented! If you want it, please modify the hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function")
+        raise NotImplementedError(
+            "You are using a shape type that is not implemented! "
+            "If you want it, please modify the "
+            "hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function.")
 
     def initialize_shape_params(self):
         shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
@@ -851,9 +856,18 @@ class sphere(mode_hpmc):
         return 'sphere {0}'.format(d);
 
     def get_type_shapes(self):
-        """ Get all the types of shapes in the current simulation
+        """Get all the types of shapes in the current simulation.
+
+        Examples:
+            The types will be either Sphere or Disk, depending on system dimensionality.
+
+            >>> mc.get_type_shapes()  # in 3D
+            [{'type': 'Sphere', 'diameter': 1.0, 'orientable': False}]
+            >>> mc.get_type_shapes()  # in 2D
+            [{'type': 'Disk', 'diameter': 1.0, 'orientable': False}]
+
         Returns:
-            A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
+            A list of dictionaries, one for each particle type in the system.
         """
         result = []
 
@@ -863,12 +877,11 @@ class sphere(mode_hpmc):
         for i in range(ntypes):
             typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             shape = self.shape_param.get(typename)
-            # Need to add logic to figure out whether this is 2D or not
             if dim == 3:
-                result.append(dict(type='Sphere',diameter=shape.diameter,
+                result.append(dict(type='Sphere', diameter=shape.diameter,
                                    orientable=shape.orientable));
             else:
-                result.append(dict(type='Disk',diameter=shape.diameter,
+                result.append(dict(type='Disk', diameter=shape.diameter,
                                    orientable=shape.orientable));
 
         return result
@@ -957,9 +970,15 @@ class convex_polygon(mode_hpmc):
         return shape_def
 
     def get_type_shapes(self):
-        """ Get all the types of shapes in the current simulation
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'Polygon', 'rounding_radius': 0,
+              'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
+
         Returns:
-            A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
+            A list of dictionaries, one for each particle type in the system.
         """
         result = []
 
@@ -1066,9 +1085,15 @@ class convex_spheropolygon(mode_hpmc):
         return shape_def
 
     def get_type_shapes(self):
-        """ Get all the types of shapes in the current simulation
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'Polygon', 'rounding_radius': 0.1,
+              'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
+
         Returns:
-            A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
+            A list of dictionaries, one for each particle type in the system.
         """
         result = []
 
@@ -1166,9 +1191,15 @@ class simple_polygon(mode_hpmc):
         return shape_def
 
     def get_type_shapes(self):
-        """ Get all the types of shapes in the current simulation
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'Polygon', 'rounding_radius': 0,
+              'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
+
         Returns:
-            A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
+            A list of dictionaries, one for each particle type in the system.
         """
         result = []
 
@@ -1428,9 +1459,16 @@ class convex_polyhedron(mode_hpmc):
         return shape_def
 
     def get_type_shapes(self):
-        """ Get all the types of shapes in the current simulation
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'ConvexPolyhedron', 'rounding_radius': 0,
+              'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
+                           [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
+
         Returns:
-            A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
+            A list of dictionaries, one for each particle type in the system.
         """
         result = []
 
@@ -1447,7 +1485,129 @@ class convex_polyhedron(mode_hpmc):
 
         return result
 
-class faceted_sphere(mode_hpmc):
+class faceted_ellipsoid(mode_hpmc):
+    R""" HPMC integration for faceted ellipsoids (3D).
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): The number of trial moves to perform in each cell.
+        implicit (bool): Flag to enable implicit depletants.
+        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
+            (added in version 2.2)
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
+
+    A faceted ellipsoid is an ellipsoid intersected with a convex polyhedron defined through
+    halfspaces. The equation defining each halfspace is given by:
+
+    .. math::
+        n_i\cdot r + b_i \le 0
+
+    where :math:`n_i` is the face normal, and :math:`b_i` is  the offset.
+
+    Warning:
+        The origin must be chosen so as to lie **inside the shape**, or the overlap check will not work.
+        This condition is not checked.
+
+    Faceted ellipsoid parameters:
+
+    * *normals* (**required**) - list of (x,y,z) tuples defining the facet normals (distance units)
+    * *offsets* (**required**) - list of offsets (distance unit^2)
+    * *a* (**required**) - first half axis of ellipsoid
+    * *b* (**required**) - second half axis of ellipsoid
+    * *c* (**required**) - third half axis of ellipsoid
+    * *vertices* (**required**) - list of vertices for intersection polyhedron
+    * *origin* (**required**) - origin vector
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
+
+    Warning:
+        Planes must not be coplanar.
+
+    Note:
+        The half-space intersection of the normals has to match the convex polyhedron defined by
+        the vertices (if non-empty), currently the half-space intersection is **not** calculated automatically.
+        For simple intersections with planes that do not intersect within the sphere, the vertices
+        list can be left empty.
+
+    Example::
+
+        mc = hpmc.integrate.faceted_ellipsoid(seed=415236)
+        mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4)
+
+        # half-space intersection
+        slab_normals = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)]
+        slab_offsets = [-0.1,-1,-.5,-.5,-.5,-.5)
+
+        # polyedron vertices
+        slab_verts = [[-.1,-.5,-.5],[-.1,-.5,.5],[-.1,.5,.5],[-.1,.5,-.5], [1,-.5,-.5],[1,-.5,.5],[1,.5,.5],[1,.5,-.5]]
+
+        mc.shape_param.set('A', normals=slab_normals, offsets=slab_offsets, vertices=slab_verts,a=1.0, b=0.5, c=0.5);
+        print('a = {}, b = {}, c = {}', mc.shape_param['A'].a,mc.shape_param['A'].b,mc.shape_param['A'].c)
+
+    Depletants Example::
+
+        mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
+        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],a=1.0, b=0.5, c=0.25);
+        # depletant sphere
+        mc.shape_param.set('B', normals=[],a=0.1,b=0.1,c=0.1);
+    """
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere', restore_state=False):
+        hoomd.util.print_status_line();
+
+        # initialize base class
+        mode_hpmc.__init__(self,implicit, depletant_mode);
+
+        # initialize the reflected c++ class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
+                if depletant_mode_circumsphere(depletant_mode):
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoid(hoomd.context.current.system_definition, seed, 0)
+                else:
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoid(hoomd.context.current.system_definition, seed, 1)
+            else:
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedEllipsoid(hoomd.context.current.system_definition, seed);
+        else:
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
+            if not implicit:
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
+            else:
+                if depletant_mode_circumsphere(depletant_mode):
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
+                else:
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUFacetedEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
+
+        # set default parameters
+        setD(self.cpp_integrator,d);
+        setA(self.cpp_integrator,a);
+        self.cpp_integrator.setMoveRatio(move_ratio)
+        self.cpp_integrator.setNSelect(nselect);
+
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
+        self.initialize_shape_params();
+
+        if implicit:
+            self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
+
+
+    # \internal
+    # \brief Format shape parameters for pos file output
+    def format_param_pos(self, param):
+        raise RuntimeError("faceted_ellipsoid shape doesn't have a .pos representation")
+
+class faceted_sphere(faceted_ellipsoid):
     R""" HPMC integration for faceted spheres (3D).
 
     Args:
@@ -1489,16 +1649,28 @@ class faceted_sphere(mode_hpmc):
     Warning:
         Planes must not be coplanar.
 
+    Note:
+        The half-space intersection of the normals has to match the convex polyhedron defined by
+        the vertices (if non-empty), currently the half-space intersection is **not** calculated automatically.
+        For simple intersections with planes that do not intersect within the sphere, the vertices
+        list can be left empty.
+
     Example::
+        # half-space intersection
+        slab_normals = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)]
+        slab_offsets = [-0.1,-1,-.5,-.5,-.5,-.5)
+
+        # polyedron vertices
+        slab_verts = [[-.1,-.5,-.5],[-.1,-.5,.5],[-.1,.5,.5],[-.1,.5,-.5], [.5,-.5,-.5],[.5,-.5,.5],[.5,.5,.5],[.5,.5,-.5]]
 
         mc = hpmc.integrate.faceted_sphere(seed=415236)
         mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
+        mc.shape_param.set('A', normals=slab_normals,offsets=slab_offsets, vertices=slab_verts,diameter=1.0);
         print('diameter = ', mc.shape_param['A'].diameter)
 
     Depletants Example::
 
-        mc = hpmc.integrate.pathcy_sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
+        mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
         mc.set_param(nselect=1,nR=3,depletant_type='B')
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
         mc.shape_param.set('B', normals=[],diameter=0.1);
@@ -1507,44 +1679,8 @@ class faceted_sphere(mode_hpmc):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
-
-        # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(implicit):
-                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed, 0)
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedSphere(hoomd.context.current.system_definition, seed, 1)
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedSphere(hoomd.context.current.system_definition, seed);
-        else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
-            else:
-                if depletant_mode_circumsphere(depletant_mode):
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
-                else:
-                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
-
-        # set default parameters
-        setD(self.cpp_integrator,d);
-        setA(self.cpp_integrator,a);
-        self.cpp_integrator.setMoveRatio(move_ratio)
-        self.cpp_integrator.setNSelect(nselect);
-
-        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
-
-        if restore_state:
-            self.restore_state()
-
+        super(faceted_sphere, self).__init__(seed=seed, d=d, a=a, move_ratio=move_ratio,
+            nselect=nselect, implicit=implicit, depletant_mode=depletant_mode, restore_state=restore_state)
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1562,6 +1698,7 @@ class faceted_sphere(mode_hpmc):
             return shape_def
         else:
             raise RuntimeError("No vertices supplied.")
+
 
 class sphinx(mode_hpmc):
     R""" HPMC integration for sphinx particles (3D).
@@ -1791,9 +1928,16 @@ class convex_spheropolyhedron(mode_hpmc):
         return shape_def
 
     def get_type_shapes(self):
-        """ Get all the types of shapes in the current simulation
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'ConvexPolyhedron', 'rounding_radius': 0.1,
+              'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
+                           [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
+
         Returns:
-            A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
+            A list of dictionaries, one for each particle type in the system.
         """
         result = []
 
@@ -2203,4 +2347,107 @@ class convex_polyhedron_union(convex_spheropolyhedron_union):
 
         # just fall back on base class
         convex_spheropolyhedron_union.__init__(self,seed,d,a,move_ratio,nselect, implicit, depletant_mode)
+
+class faceted_ellipsoid_union(mode_hpmc):
+    R""" HPMC integration for unions of faceted ellipsoids (3D).
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): The number of trial moves to perform in each cell.
+        implicit (bool): Flag to enable implicit depletants.
+        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
+            (added in version 2.2)
+        max_members (int): Set the maximum number of members in the convex polyhedron union
+        capacity (int): Set to the number of constituent convex polyhedra per leaf node
+
+    .. versionadded:: 2.5
+
+    See :py:class:`faceted_ellipsoid` for a detailed explanation of the constituent particle parameters.
+
+    Faceted ellipsiod union parameters:
+
+    * *normals* (**required**) - list of list of (x,y,z) tuples defining the facet normals (distance units)
+    * *offsets* (**required**) - list of list of offsets (distance unit^2)
+    * *axes* (**required**) - list of half axes, tuple of three per constituent ellipsoid
+    * *vertices* (**required**) - list of list list of vertices for intersection polyhedron
+    * *origin* (**required**) - list of origin vectors
+
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
+
+    Example::
+
+        mc = hpmc.integrate.faceted_ellipsoid_union(seed=27)
+        mc = hpmc.integrate.faceted_ellipsoid_union(seed=27, d=0.3, a=0.4)
+
+        # make a prolate Janus ellipsoid
+        # cut away -x halfspace
+        normals = [(-1,0,0)]
+        offsets = [0]
+
+        mc.shape_param.set('A', normals=[normals, normals],
+                                offsets=[offsets, offsets],
+                                vertices=[[], []],
+                                axes=[(.5,.5,2),(.5,.5,2)],
+                                centers=[[0,0,0],[0,0,0]],
+                                orientations=[[1,0,0,0],[0,0,0,-1]]);
+
+        print('offsets of the first faceted ellipsoid = ', mc.shape_param['A'].members[0].normals)
+        print('normals of the first faceted ellispoid = ', mc.shape_param['A'].members[0].offsets)
+        print('vertices of the first faceted ellipsoid = ', mc.shape_param['A'].members[0].vertices)
+    """
+
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere'):
+        hoomd.util.print_status_line();
+
+        # initialize base class
+        mode_hpmc.__init__(self,implicit, depletant_mode);
+
+        # initialize the reflected c++ class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            if(implicit):
+                # In C++ mode circumsphere = 0 and mode overlap_regions = 1
+                if depletant_mode_circumsphere(depletant_mode):
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoidUnion(hoomd.context.current.system_definition, seed, 0)
+                else:
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitFacetedEllipsoidUnion(hoomd.context.current.system_definition, seed, 1)
+            else:
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedEllipsoidUnion(hoomd.context.current.system_definition, seed)
+        else:
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
+            if not implicit:
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedEllipsoidUnion(hoomd.context.current.system_definition, cl_c, seed)
+            else:
+                if depletant_mode_circumsphere(depletant_mode):
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUFacetedEllipsoidUnion(hoomd.context.current.system_definition, cl_c, seed)
+                else:
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUFacetedEllipsoidUnion(hoomd.context.current.system_definition, cl_c, seed)
+
+        # set default parameters
+        setD(self.cpp_integrator,d);
+        setA(self.cpp_integrator,a);
+        self.cpp_integrator.setMoveRatio(move_ratio)
+        self.cpp_integrator.setNSelect(nselect);
+
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
+        self.initialize_shape_params();
+
+        # meta data
+        self.metadata_fields = ['capacity']
+
+        if implicit:
+            self.implicit_required_params=['nR', 'depletant_type']
+
+    # \internal
+    # \brief Format shape parameters for pos file output
+    def format_param_pos(self, param):
+        raise RuntimeError('.pos output not supported.')
+
 

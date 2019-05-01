@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -8,7 +8,8 @@
 #include "hoomd/VectorMath.h"
 #include "hoomd/HOOMDMath.h"
 
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 using namespace hoomd;
 
 #include <assert.h>
@@ -17,8 +18,11 @@ using namespace hoomd;
     \brief Defines GPU kernel code for Brownian integration on the GPU. Used by TwoStepBDGPU.
 */
 
-//! Shared memory array for gpu_langevin_step_two_kernel()
+//! Shared memory array for gpu_brownian_step_one_kernel()
 extern __shared__ Scalar s_gammas[];
+
+//! Shared memory array for gpu_brownian_step_one_kernel()
+extern __shared__ Scalar3 s_gammas_r[];
 
 //! Takes the second half-step forward in the Langevin integration on a group of particles with
 /*! \param d_pos array of particle positions and types
@@ -51,9 +55,6 @@ extern __shared__ Scalar s_gammas[];
 
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
 
-    Random number generation is done per thread with Saru's 3-seed constructor. The seeds are, the time step,
-    the particle tag, and the user-defined seed.
-
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
 extern "C" __global__
@@ -66,7 +67,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const unsigned int *d_group_members,
                                   const unsigned int nwork,
                                   const Scalar4 *d_net_force,
-                                  const Scalar *d_gamma_r,
+                                  const Scalar3 *d_gamma_r,
                                   Scalar4 *d_orientation,
                                   Scalar4 *d_torque,
                                   const Scalar3 *d_inertia,
@@ -96,9 +97,8 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         __syncthreads();
         }
 
-    // read in the gamma_r, stored in s_gammas[n_type: 2 * n_type], which is s_gamma_r[0:n_type]
+    // read in the gamma_r, stored in s_gammas_r[0: n_type], which is s_gamma_r[0:n_type]
 
-    Scalar * s_gammas_r = s_gammas + n_types;
     for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < n_types)
@@ -124,10 +124,11 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         unsigned int ptag = d_tag[idx];
 
         // compute the random force
-        detail::Saru saru(ptag, timestep, seed);
-        Scalar rx = saru.s<Scalar>(-1,1);
-        Scalar ry = saru.s<Scalar>(-1,1);
-        Scalar rz =  saru.s<Scalar>(-1,1);
+        RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, ptag, timestep);
+        UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
+        Scalar rx = uniform(rng);
+        Scalar ry = uniform(rng);
+        Scalar rz =  uniform(rng);
 
         // calculate the magnitude of the random force
         Scalar gamma;
@@ -166,10 +167,11 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         // draw a new random velocity for particle j
         Scalar mass = vel.w;
         Scalar sigma = fast::sqrt(T/mass);
-        vel.x = gaussian_rng(saru, sigma);
-        vel.y = gaussian_rng(saru, sigma);
+        NormalDistribution<Scalar> normal(sigma);
+        vel.x = normal(rng);
+        vel.y = normal(rng);
         if (D > 2)
-            vel.z = gaussian_rng(saru, sigma);
+            vel.z = normal(rng);
         else
             vel.z = 0;
 
@@ -184,8 +186,8 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
             unsigned int type_r = __scalar_as_int(d_pos[idx].w);
 
             // gamma_r is stored in the second half of s_gammas a.k.a s_gammas_r
-            Scalar gamma_r = s_gammas_r[type_r];
-            if (gamma_r > 0)
+            Scalar3 gamma_r = s_gammas_r[type_r];
+            if (gamma_r.x > 0 || gamma_r.y > 0 || gamma_r.z > 0)
                 {
                 vec3<Scalar> p_vec;
                 quat<Scalar> q(d_orientation[idx]);
@@ -196,16 +198,18 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 bool x_zero, y_zero, z_zero;
                 x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
 
-                Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*T/deltaT);
+                Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0)*gamma_r.x*T/deltaT),
+                                               fast::sqrt(Scalar(2.0)*gamma_r.y*T/deltaT),
+                                               fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
                 if (d_noiseless_r)
-                    sigma_r = Scalar(0.0);
+                    sigma_r = make_scalar3(0,0,0);
 
                 // original Gaussian random torque
                 // Gaussian random distribution is preferred in terms of preserving the exact math
                 vec3<Scalar> bf_torque;
-                bf_torque.x = gaussian_rng(saru, sigma_r);
-                bf_torque.y = gaussian_rng(saru, sigma_r);
-                bf_torque.z = gaussian_rng(saru, sigma_r);
+                bf_torque.x = NormalDistribution<Scalar>(sigma_r.x)(rng);
+                bf_torque.y = NormalDistribution<Scalar>(sigma_r.y)(rng);
+                bf_torque.z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
                 if (x_zero) bf_torque.x = 0;
                 if (y_zero) bf_torque.y = 0;
@@ -223,14 +227,14 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                     }
 
                 // do the integration for quaternion
-                q += Scalar(0.5) * deltaT * ((t + bf_torque) / gamma_r) * q ;
+                q += Scalar(0.5) * deltaT * ((t + bf_torque) / vec3<Scalar>(gamma_r)) * q ;
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 d_orientation[idx] = quat_to_scalar4(q);
 
                 // draw a new random ang_mom for particle j in body frame
-                p_vec.x = gaussian_rng(saru, fast::sqrt(T * I.x));
-                p_vec.y = gaussian_rng(saru, fast::sqrt(T * I.y));
-                p_vec.z = gaussian_rng(saru, fast::sqrt(T * I.z));
+                p_vec.x = NormalDistribution<Scalar>(fast::sqrt(T * I.x))(rng);
+                p_vec.y = NormalDistribution<Scalar>(fast::sqrt(T * I.y))(rng);
+                p_vec.z = NormalDistribution<Scalar>(fast::sqrt(T * I.z))(rng);
                 if (x_zero) p_vec.x = 0;
                 if (y_zero) p_vec.y = 0;
                 if (z_zero) p_vec.z = 0;
@@ -278,7 +282,7 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   const unsigned int *d_group_members,
                                   const unsigned int group_size,
                                   const Scalar4 *d_net_force,
-                                  const Scalar *d_gamma_r,
+                                  const Scalar3 *d_gamma_r,
                                   Scalar4 *d_orientation,
                                   Scalar4 *d_torque,
                                   const Scalar3 *d_inertia,
@@ -306,9 +310,7 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_brownian_step_one_kernel<<< grid, threads, max( (unsigned int)(sizeof(Scalar)*langevin_args.n_types) * 2,
-                                                            (unsigned int)(langevin_args.block_size*sizeof(Scalar))
-                                                          )>>>
+        gpu_brownian_step_one_kernel<<< grid, threads, (unsigned int)(sizeof(Scalar)*langevin_args.n_types + sizeof(Scalar3)*langevin_args.n_types)>>>
                                     (d_pos,
                                      d_vel,
                                      d_image,

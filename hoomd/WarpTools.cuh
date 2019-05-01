@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -20,6 +20,21 @@ namespace hoomd
 namespace detail
 {
 
+//! Computes warp-level reduction using shuffle instructions
+/*!
+ * Reduction operations are performed at the warp or sub-warp level using shuffle instructions. The sub-warp is defined as
+ * a consecutive group of threads that is (1) smaller than the hardware warp size (32 threads) and (2) a power of 2.
+ * For additional details about any operator, refer to the CUB documentation.
+ *
+ * This class is a thin wrapper around cub::WarpReduceShfl. The CUB scan classes nominally request "temporary" memory,
+ * which is shared memory for non-shuffle scans. However, the shuffle-based scan does not use any shared memory,
+ * and so this temporary variable is put unused into a register. The compiler can then optimize this out.
+ * Care must be taken to monitor the CUB implementation in future to ensure the temporary memory is never used.
+ *
+ * \tparam T data type to scan
+ * \tparam LOGICAL_WARP_THREADS number of threads in a "logical" warp, must be a multiple of 2.
+ * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
+ */
 template<typename T, int LOGICAL_WARP_THREADS = CUB_PTX_WARP_THREADS, int PTX_ARCH = CUB_PTX_ARCH>
 class WarpReduce
     {
@@ -31,16 +46,44 @@ class WarpReduce
             static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS-1)), "Logical warp size must be a power of 2");
             }
 
+        //! Sum reduction.
+        /*!
+         * \param input Thread data to sum.
+         * \returns output The result of the sum reduction in thread 0 of the (sub-)warp.
+         *
+         * The sum reduction for a 4-thread sub-warp with \a input <tt>{1,2,3,4}</tt> gives \a output <tt>10</tt> in thread 0.
+         * The result in the other threads is undefined.
+         */
         DEVICE T Sum(T input)
             {
             return Reduce(input, cub::Sum());
             }
 
+        //! Sum reduction over valid items.
+        /*!
+         * \param input Thread data to sum.
+         * \param valid_items Total number of valid items in the (sub)-warp.
+         * \returns output The result of the sum reduction in thread 0 of the (sub-)warp.
+         *
+         * The number of valid items may be smaller than the (sub-)warp. For example, if \a valid items is 3, then
+         * the sum reduction for a 4-thread sub-warp with \a input <tt>{1,2,3,4}</tt> gives \a output <tt>6</tt> in thread 0.
+         * The result in the other threads is undefined.
+         */
         DEVICE T Sum(T input, int valid_items)
             {
             return Reduce(input, cub::Sum(), valid_items);
             }
 
+        //! Custom reduction.
+        /*!
+         * \param input Thread data to sum.
+         * \param reduce_op Custom reduction operation.
+         * \returns output The result of the reduction in thread 0 of the (sub-)warp.
+         *
+         * \tparam ReduceOpT The type of the reduction operation.
+         *
+         * This is a generalization of Sum() to custom operators.
+         */
         template<typename ReduceOpT>
         DEVICE T Reduce(T input, ReduceOpT reduce_op)
             {
@@ -49,6 +92,17 @@ class WarpReduce
             return WarpReduceShfl(tmp).template Reduce<true>(input, LOGICAL_WARP_THREADS, reduce_op);
             }
 
+        //! Custom reduction over valid items.
+        /*!
+         * \param input Thread data to sum.
+         * \param reduce_op Custom reduction operation.
+         * \param valid_items Total number of valid items in the (sub)-warp.
+         * \returns output The result of the reduction in thread 0 of the (sub-)warp.
+         *
+         * \tparam ReduceOpT The type of the reduction operation.
+         *
+         * This is a generalization of Sum() over valid items to custom operators.
+         */
         template<typename ReduceOpT>
         DEVICE T Reduce(T input, ReduceOpT reduce_op, int valid_items)
             {

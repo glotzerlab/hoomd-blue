@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -52,13 +52,8 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     m_tuner_one.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_one", this->m_exec_conf));
     m_tuner_two.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two", this->m_exec_conf));
-
-    // generate power-of-two block sizes
-    valid_params.clear();
-    for (unsigned int block_size = 32; block_size <= 1024; block_size *= 2)
-        {
-        valid_params.push_back(block_size);
-        }
+    m_tuner_angular_one.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_angular_one", this->m_exec_conf));
+    m_tuner_angular_two.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_angular_two", this->m_exec_conf));
     }
 
 /*! \param timestep Current time step
@@ -126,17 +121,22 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
         Scalar xi_rot = v.variable[2];
         Scalar exp_fac = exp(-m_deltaT/Scalar(2.0)*xi_rot);
 
+        m_exec_conf->beginMultiGPU();
+        m_tuner_angular_one->begin();
         gpu_nve_angular_step_one(d_orientation.data,
                              d_angmom.data,
                              d_inertia.data,
                              d_net_torque.data,
                              d_index_array.data,
-                             group_size,
+                             m_group->getGPUPartition(),
                              m_deltaT,
-                             exp_fac);
+                             exp_fac,
+                             m_tuner_angular_one->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+        m_tuner_angular_one->end();
+        m_exec_conf->endMultiGPU();
         }
 
     // advance thermostat
@@ -200,17 +200,22 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
         Scalar xi_rot = v.variable[2];
         Scalar exp_fac = exp(-m_deltaT/Scalar(2.0)*xi_rot);
 
+        m_exec_conf->beginMultiGPU();
+        m_tuner_angular_two->begin();
         gpu_nve_angular_step_two(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
                                  d_index_array.data,
-                                 group_size,
+                                 m_group->getGPUPartition(),
                                  m_deltaT,
-                                 exp_fac);
+                                 exp_fac,
+                                 m_tuner_angular_two->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+        m_tuner_angular_two->end();
+        m_exec_conf->endMultiGPU();
         }
 
     // done profiling

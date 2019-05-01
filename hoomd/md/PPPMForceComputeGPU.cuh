@@ -1,9 +1,11 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/BoxDim.h"
+
+#include "hoomd/GPUPartition.cuh"
 
 #include <cufft.h>
 
@@ -15,11 +17,20 @@ void gpu_assign_particles(const uint3 mesh_dim,
                          const Scalar4 *d_postype,
                          const Scalar *d_charge,
                          cufftComplex *d_mesh,
+                         cufftComplex *d_mesh_scratch,
+                         const unsigned int mesh_elements,
                          int order,
                          const BoxDim& box,
                          unsigned int block_size,
-                         const cudaDeviceProp& dev_prop);
+                         const cudaDeviceProp& dev_prop,
+                         const GPUPartition& gpu_partition);
 
+void gpu_reduce_meshes(const unsigned int mesh_elements,
+    const cufftComplex *d_mesh_scratch,
+    cufftComplex *d_mesh,
+    const unsigned int ngpu,
+    const unsigned int block_size);
+ 
 void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
                              cufftComplex *d_fourier_mesh,
                              Scalar *d_inf_f,
@@ -50,8 +61,11 @@ void gpu_compute_forces(const unsigned int N,
                         const BoxDim& box,
                         int order,
                         const unsigned int *d_index_array,
-                        unsigned int group_size,
-                        unsigned int block_size);
+                        const GPUPartition& gpu_partition,
+                        const GPUPartition& all_gpu_partition,
+                        unsigned int block_size,
+                        bool local_fft,
+                        unsigned int inv_mesh_elements);
 
 void gpu_compute_pe(unsigned int n_wave_vectors,
                    Scalar *d_sum_partial,
@@ -102,4 +116,5 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
 
 void gpu_initialize_coeff(
     Scalar *CPU_rho_coeff,
-    int order);
+    int order,
+    const GPUPartition& gpu_partition);

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -101,8 +101,11 @@ struct CScalar
     Scalar i; //!< Imaginary part
     };
 
-//! Sentinel value in \a body to signify that this particle does not belong to a rigid body
+//! Sentinel value in \a body to signify that this particle does not belong to a body
 const unsigned int NO_BODY = 0xffffffff;
+
+//! Unsigned value equivalent to a sign flip in a signed int. All larger values of the \a body flag indicate a floppy body (forces between are ignored, but they are integrated independently).
+const unsigned int MIN_FLOPPY = 0x80000000;
 
 //! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
@@ -351,6 +354,11 @@ struct pdata_element
     of course) where integration methods like NVERigid will handle updating the degrees of freedom of the composite
     body and then set the constrained position, velocity, and orientation of the constituent particles.
 
+    Particles that are part of a floppy body will have the same value of the body flag, but that value must be a
+    negative number less than -1 (which is reserved as NO_BODY). Such particles do not need to be treated specially by the integrator;
+    they are integrated independently of one another, but they do not interact. This lack of interaction is enforced through the neighbor
+    list, in which particles that belong to the same body are excluded by default.
+
     To enable correct initialization of the composite body moment of inertia, each particle is also assigned
     an individual moment of inertia which is summed up correctly to determine the composite body's total moment of
     inertia.
@@ -533,9 +541,9 @@ class PYBIND11_EXPORT ParticleData
             return maxdiam;
             }
 
-        /*! Returns true if there are rigid bodies in the system
+        /*! Returns true if there are bodies in the system
          */
-        bool hasRigidBodies() const
+        bool hasBodies() const
             {
             unsigned int has_bodies = 0;
             ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::read);

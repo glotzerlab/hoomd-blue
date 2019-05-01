@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME_GPU_H__
@@ -253,7 +253,8 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
                                                    this->m_cl->getDim(),
                                                    this->m_pdata->getN(),
                                                    this->m_pdata->getNTypes(),
-                                                   this->m_seed+this->m_exec_conf->getRank(),
+                                                   this->m_seed,
+                                                   this->m_exec_conf->getRank(),
                                                    0,
                                                    timestep,
                                                    this->m_sysdef->getNDimensions(),
