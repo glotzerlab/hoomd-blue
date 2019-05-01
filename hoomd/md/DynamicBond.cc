@@ -8,6 +8,7 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
+#include "hoomd/Index1D.h"
 
 #include "hoomd/Saru.h"
 using namespace hoomd;
@@ -36,19 +37,18 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
     }
 
 
-    /*! \param r_cut cut off distance for computing bonds
-        \param bond_type type of bond to be formed or broken
-        \param prob_form probability that a bond will form
-        \param prob_break probability that a bond will break
+/*! \param r_cut cut off distance for computing bonds
+    \param bond_type type of bond to be formed or broken
+    \param prob_form probability that a bond will form
+    \param prob_break probability that a bond will break
 
-        Sets parameters for the dynamic bond updater
-    */
+    Sets parameters for the dynamic bond updater
+*/
 void DynamicBond::setParams(Scalar r_cut,
-                        std::string bond_type,
-                        Scalar prob_form,
-                        Scalar prob_break)
+                            std::string bond_type,
+                            Scalar prob_form,
+                            Scalar prob_break)
     {
-    // TODO: write test
     if (m_r_cut < 0)
         {
         m_exec_conf->msg->error() << "r_cut cannot be less than 0.\n" << std::endl;
@@ -56,8 +56,8 @@ void DynamicBond::setParams(Scalar r_cut,
     m_r_cut = r_cut;
     m_prob_form = prob_form;
     m_prob_break = prob_break;
-    // unsigned int b_type = m_bond_data->getTypeByName(bond_type);
     }
+
 
 DynamicBond::~DynamicBond()
     {
@@ -73,6 +73,7 @@ void DynamicBond::update(unsigned int timestep)
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
+    // get box dimensions
     const BoxDim& box = m_pdata->getGlobalBox();
 
     // start the profile for this compute
@@ -94,10 +95,13 @@ void DynamicBond::update(unsigned int timestep)
     const GPUArray<typename BondData::members_t>& gpu_bond_list = this->m_bond_data->getGPUTable();
     const Index2D& gpu_table_indexer = this->m_bond_data->getGPUTableIndexer();
 
+    ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
+    ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int>  h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
 
-    // m_bond_data->getGPUTableIndexer().getW();
+    max_n_bonds = m_bond_data->getGPUTableIndexer().getW() // width of the table
 
-    // assert(h_pos.data);
+    assert(h_pos);
 
     Scalar r_cut_sq = m_r_cut*m_r_cut;
 
@@ -156,6 +160,37 @@ void DynamicBond::update(unsigned int timestep)
                     m_bond_data->addBondedGroup(Bond(0, i, j));
                     }
                 }
+
+                for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++) // bond index for all bonds on particle i
+                    {
+                    group_storage<2> cur_bond = blist[blist_idx(idx, bond_idx)];
+
+                    int bonded_idx = cur_bond.idx[0];
+                    int bonded_type = cur_bond.idx[1];
+
+                Scalar rnd2 = saru.s<Scalar>(0,1);
+                if (rnd2 < m_prob_break)
+                    {
+                    const unsigned int size = (unsigned int)m_bond_data->getN();
+                    for (unsigned int bond_idx = 0; bond_idx < size; bond_idx++)
+                        {
+                        // lookup the tag of each of the particles participating in the bond
+                        const typename BondData::members_t& bond = h_bonds.data[bond_idx];
+                        assert(bond.tag[0] < m_pdata->getMaximumTag()+1);
+                        assert(bond.tag[1] < m_pdata->getMaximumTag()+1);
+
+                        // transform a and b into indices into the particle data arrays
+                        // (MEM TRANSFER: 4 integers)
+                        unsigned int idx_a = h_rtag.data[bond.tag[0]];
+                        unsigned int idx_b = h_rtag.data[bond.tag[1]];
+                        if ((idx_a == i & idx_b == j) | (idx_a == j & idx_b == i)) {
+                            m_bond_data->removeBondedGroup(h_bond_tags[bond_idx]);
+
+                            }
+                        }
+                    }
+                }
+
             }
         }
 

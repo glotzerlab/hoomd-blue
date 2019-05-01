@@ -72,6 +72,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
         // Access the bond table for reading
         ArrayHandle<BondData::members_t> d_gpu_bondlist(this->m_bond_data->getGPUTable(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNGroupsArray(), access_location::device, access_mode::read);
+
         // access the flags array for overwriting
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
 

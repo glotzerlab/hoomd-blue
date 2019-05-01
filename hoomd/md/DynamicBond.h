@@ -6,6 +6,7 @@
 
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
+#include "hoomd/Index1D.h"
 #include "hoomd/md/NeighborList.h"
 #include <memory>
 
