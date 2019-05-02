@@ -197,7 +197,6 @@ UP_TEST( mpcd_cell_communicator )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      2));
         cell_communicator_reduce_test(exec_conf, true, false, false);
         cell_communicator_reduce_test(exec_conf, false, true, false);
@@ -209,7 +208,6 @@ UP_TEST( mpcd_cell_communicator )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      4));
         cell_communicator_reduce_test(exec_conf, true, true, false);
         cell_communicator_reduce_test(exec_conf, true, false, true);
@@ -221,7 +219,6 @@ UP_TEST( mpcd_cell_communicator )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      8));
         cell_communicator_reduce_test(exec_conf, true, true, true);
         }
@@ -244,7 +241,6 @@ UP_TEST( mpcd_cell_communicator_gpu )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      2));
         cell_communicator_reduce_test(exec_conf, true, false, false);
         cell_communicator_reduce_test(exec_conf, false, true, false);
@@ -256,7 +252,6 @@ UP_TEST( mpcd_cell_communicator_gpu )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      4));
         cell_communicator_reduce_test(exec_conf, true, true, false);
         cell_communicator_reduce_test(exec_conf, true, false, true);
@@ -268,7 +263,6 @@ UP_TEST( mpcd_cell_communicator_gpu )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      8));
         cell_communicator_reduce_test(exec_conf, true, true, true);
         }

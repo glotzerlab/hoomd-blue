@@ -23,16 +23,7 @@ TIME_START = time.time()
 CLOCK_START = time.clock()
 
 ## Global Messenger
-# \note This is initialized to a default messenger on load so that python code may have a unified path for sending
-# messages
-msg = _hoomd.Messenger();
-
-# only use python stdout/stderr in non-mpi runs
-if not (  'OMPI_COMM_WORLD_RANK' in os.environ
-        or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ
-        or 'PMI_RANK' in os.environ
-        or 'ALPS_APP_PE' in os.environ):
-    msg.openPython();
+msg = None;
 
 ## Global bibliography
 bib = None;
@@ -238,13 +229,13 @@ def initialize(args=None, memory_traceback=False, mpi_comm=None):
         print('exiting now to prevent many sequential jobs from starting');
         raise RuntimeError('Error launching hoomd')
 
-    # output the version info on initialization
-    msg.notice(1, _hoomd.output_version_info())
+    exec_conf = _create_exec_conf(mpi_comm);
 
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()
 
-    exec_conf = _create_exec_conf(mpi_comm);
+    # output the version info on initialization
+    msg.notice(1, _hoomd.output_version_info())
 
     # set memory tracing option
     exec_conf.setMemoryTracing(memory_traceback)
@@ -290,10 +281,10 @@ def _create_exec_conf(mpi_comm):
 
     # create the specified configuration
     if mpi_comm is None:
-        exec_conf = _hoomd.ExecutionConfiguration(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, msg, nrank);
+        exec_conf = _hoomd.ExecutionConfiguration(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, nrank);
+        msg = exec_conf.msg
     else:
         if not mpi_available:
-            msg.error("mpi_comm provided, but MPI support was disabled at compile time\n");
             raise RuntimeError("mpi_comm is not supported in serial builds");
 
         handled = False;
@@ -303,7 +294,8 @@ def _create_exec_conf(mpi_comm):
             import mpi4py
             if isinstance(mpi_comm, mpi4py.MPI.Comm):
                 addr = mpi4py.MPI._addressof(mpi_comm);
-                exec_conf = _hoomd.ExecutionConfiguration._make_exec_conf_mpi_comm(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, msg, nrank, addr);
+                exec_conf = _hoomd.ExecutionConfiguration._make_exec_conf_mpi_comm(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, nrank, addr);
+                msg = exec_conf.msg
                 handled = True
         except ImportError:
             # silently ignore when mpi4py is missing
@@ -311,12 +303,20 @@ def _create_exec_conf(mpi_comm):
 
         # undocumented case: handle plain integers as pointers to MPI_Comm objects
         if not handled and isinstance(mpi_comm, int):
-            exec_conf = _hoomd.ExecutionConfiguration._make_exec_conf_mpi_comm(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, msg, nrank, mpi_comm);
+            exec_conf = _hoomd.ExecutionConfiguration._make_exec_conf_mpi_comm(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, nrank, mpi_comm);
+            msg = exec_conf.msg
             handled = True
 
         if not handled:
             msg.error("unknown mpi_comm object: {}.\n".format(mpi_comm));
             raise RuntimeError("Invalid mpi_comm object");
+
+    # only use python stdout/stderr in non-mpi runs
+    if not (  'OMPI_COMM_WORLD_RANK' in os.environ
+            or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ
+            or 'PMI_RANK' in os.environ
+            or 'ALPS_APP_PE' in os.environ):
+        msg.openPython();
 
     # if gpu_error_checking is set, enable it on the GPU
     if options.gpu_error_checking:

@@ -58,7 +58,11 @@ class mpi_io : public std::streambuf
     \post The notice level is set to 2
     \post prefixes are "error!!!!" , "warning!!" and "notice"
 */
+#ifdef ENABLE_MPI
+Messenger::Messenger(MPI_Comm hoomd_world)
+#else
 Messenger::Messenger()
+#endif
     {
     m_err_stream = &cerr;
     m_warning_stream = &cerr;
@@ -72,7 +76,8 @@ Messenger::Messenger()
 
 #ifdef ENABLE_MPI
     // initial value
-    m_mpi_comm = MPI_COMM_WORLD;
+    m_hoomd_world = hoomd_world;
+    m_mpi_comm = hoomd_world;
     m_error_flag = NULL;
     m_has_lock = false;
     initializeSharedMem();
@@ -467,7 +472,6 @@ void Messenger::releaseSharedMem()
 void export_Messenger(py::module& m)
     {
     py::class_<Messenger, std::shared_ptr<Messenger> >(m,"Messenger")
-        .def(py::init< >())
         .def("error", &Messenger::errorStr)
         .def("warning", &Messenger::warningStr)
         .def("notice", &Messenger::noticeStr)

@@ -105,7 +105,11 @@ class PYBIND11_EXPORT Messenger
     {
     public:
         //! Construct a messenger
+        #ifdef ENABLE_MPI
+        Messenger(MPI_Comm hoomd_world=MPI_COMM_WORLD);
+        #else
         Messenger();
+        #endif
 
         //! Copy constructor
         Messenger(const Messenger& msg);
@@ -190,7 +194,7 @@ class PYBIND11_EXPORT Messenger
 
             releaseSharedMem();
 
-            m_mpi_comm = MPI_COMM_WORLD;
+            m_mpi_comm = m_hoomd_world;
 
             // initialize RMA memory for error messages
             initializeSharedMem();
@@ -366,6 +370,7 @@ class PYBIND11_EXPORT Messenger
 #ifdef ENABLE_MPI
         std::string m_shared_filename;  //!< Filename of shared log file
         MPI_Comm m_mpi_comm;            //!< The MPI communicator
+        MPI_Comm m_hoomd_world;         //!< The world communicator
 
         MPI_Win m_mpi_win;              //!< MPI Window for atomic printing of error messages
         int *m_error_flag;              //!< Flag on (on processor 0) to lock stdout

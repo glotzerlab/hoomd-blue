@@ -1366,7 +1366,6 @@ UP_TEST( mpcd_cell_list_dimensions )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      2));
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, false, false);
         celllist_dimension_test<mpcd::CellList>(exec_conf, false, true, false);
@@ -1378,7 +1377,6 @@ UP_TEST( mpcd_cell_list_dimensions )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      4));
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, true, false);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, false, true);
@@ -1390,7 +1388,6 @@ UP_TEST( mpcd_cell_list_dimensions )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      8));
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, true, true);
         }
@@ -1418,7 +1415,6 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      2));
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, false, false);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, false, true, false);
@@ -1430,7 +1426,6 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      4));
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, true, false);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, false, true);
@@ -1442,7 +1437,6 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
                                                                                      std::vector<int>(),
                                                                                      false,
                                                                                      false,
-                                                                                     std::shared_ptr<Messenger>(),
                                                                                      8));
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, true, true);
         }

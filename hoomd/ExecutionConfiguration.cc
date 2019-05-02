@@ -45,16 +45,22 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                std::vector<int> gpu_id,
                                                bool min_cpu,
                                                bool ignore_display,
-                                               std::shared_ptr<Messenger> _msg,
-                                               unsigned int n_ranks
+                                               unsigned int n_ranks,
                                                #ifdef ENABLE_MPI
-                                               , MPI_Comm hoomd_world
+                                               MPI_Comm hoomd_world,
                                                #endif
+                                               std::shared_ptr<Messenger> _msg
                                                )
     : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
+        {
+        #ifdef ENABLE_MPI
+        msg = std::shared_ptr<Messenger>(new Messenger(hoomd_world));
+        #else
         msg = std::shared_ptr<Messenger>(new Messenger());
+        #endif
+        }
 
     ostringstream s;
     for (auto it = gpu_id.begin(); it != gpu_id.end(); ++it)
@@ -906,7 +912,7 @@ void ExecutionConfiguration::endMultiGPU() const
 void export_ExecutionConfiguration(py::module& m)
     {
     py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration> > executionconfiguration(m,"ExecutionConfiguration");
-    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, std::vector<int>, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
+    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, std::vector<int>, bool, bool, unsigned int >())
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
         .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
@@ -931,12 +937,11 @@ void export_ExecutionConfiguration(py::module& m)
                                                     std::vector<int> gpu_id,
                                                     bool min_cpu,
                                                     bool ignore_display,
-                                                    std::shared_ptr<Messenger> _msg,
                                                     unsigned int n_ranks,
                                                     py::object mpi_comm) -> std::shared_ptr<ExecutionConfiguration>
             {
             MPI_Comm *comm = (MPI_Comm*)PyLong_AsVoidPtr(mpi_comm.ptr());
-            return std::make_shared<ExecutionConfiguration>(mode, gpu_id, min_cpu, ignore_display, _msg, n_ranks, *comm);
+            return std::make_shared<ExecutionConfiguration>(mode, gpu_id, min_cpu, ignore_display, n_ranks, *comm);
             })
 #endif
 #ifdef ENABLE_TBB
