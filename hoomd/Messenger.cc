@@ -15,6 +15,9 @@
 #include "HOOMDMPI.h"
 #endif
 
+#include <stdlib.h>
+#include <vector>
+
 #include <hoomd/extern/pybind/include/pybind11/iostream.h>
 #include <sstream>
 #include <assert.h>
@@ -91,13 +94,36 @@ Messenger::Messenger()
     setRank(0,0);
     #endif
 
-    int nranks = 1;
+    // try to detect if we're running inside an MPI job
+    bool mpi_job = false;
     #ifdef ENABLE_MPI
+    int nranks = 1;
     MPI_Comm_size(m_hoomd_world, &nranks);
+    mpi_job = nranks > 1;
     #endif
 
+    std::vector<std::string> env_vars;
+    char *env;
+
+    // add environment variables here as needed
+    env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
+    env_vars.push_back("OMPI_COMM_WORLD_RANK");
+    env_vars.push_back("PMI_RANK");
+    env_vars.push_back("ALPS_APP_PE");
+
+    std::vector<std::string>::iterator it;
+
+    for (it = env_vars.begin(); it != env_vars.end(); it++)
+        {
+        if ((env = getenv(it->c_str())) != NULL)
+            {
+            msg->notice(3) << "Found rank in: " << *it << ", not using sys.stdout/stderr" << std::endl;
+            mpi_job = true;
+            }
+        }
+
     // only open python stdout/stderr in non-MPI runs
-    if (nranks == 1)
+    if (!mpi_job)
         openPython();
     }
 
