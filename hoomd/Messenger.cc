@@ -117,7 +117,6 @@ Messenger::Messenger()
         {
         if ((env = getenv(it->c_str())) != NULL)
             {
-            msg->notice(3) << "Found rank in: " << *it << ", not using sys.stdout/stderr" << std::endl;
             mpi_job = true;
             }
         }
