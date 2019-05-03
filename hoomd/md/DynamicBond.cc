@@ -95,9 +95,9 @@ void DynamicBond::update(unsigned int timestep)
     const GPUArray<typename BondData::members_t>& gpu_bond_list = this->m_bond_data->getGPUTable();
     const Index2D& gpu_table_index = this->m_bond_data->getGPUTableIndexer();
 
-    ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
-    ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int>  h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
+    // ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
+    // ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(), access_location::host, access_mode::read);
+    // ArrayHandle<unsigned int>  h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
 
     ArrayHandle<BondData::members_t> h_gpu_bondlist(this->m_bond_data->getGPUTable(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int > h_gpu_n_bonds(this->m_bond_data->getNGroupsArray(), access_location::host, access_mode::read);
@@ -129,21 +129,21 @@ void DynamicBond::update(unsigned int timestep)
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
             {
-            // access the index of this neighbor (MEM TRANSFER: 1 scalar)
+            // access the index of neighbor particle j (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[myHead + k];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
+
+            // access the type of particle j (MEM TRANSFER: 1 scalar)
+            unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+            assert(typej < m_pdata->getNTypes());
+
+            // access diameter of particle j
+            Scalar dj = Scalar(0.0);
+            dj = h_diameter.data[j];
 
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
             Scalar3 dx = pi - pj;
-
-            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
-            unsigned int typej = __scalar_as_int(h_pos.data[j].w);
-            assert(typej < m_pdata->getNTypes());
-
-            // access diameter of j
-            Scalar dj = Scalar(0.0);
-            dj = h_diameter.data[j];
 
             // apply periodic boundary conditions
             dx = box.minImage(dx);
@@ -166,12 +166,16 @@ void DynamicBond::update(unsigned int timestep)
                     {
                     group_storage<2> cur_bond = h_gpu_bondlist.data[gpu_table_index(i, bond_idx)];
 
-                    // int bonded_idx = cur_bond.idx[0];
-                    // int bonded_type = cur_bond.idx[1];
+                    int bonded_idx = cur_bond.idx[0];
+                    int bonded_type = cur_bond.idx[1];
 
                     Scalar rnd2 = saru.s<Scalar>(0,1);
                     if (rnd2 < m_prob_break)
                         {
+                        ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
+
+                        unsigned int max_local = m_pdata->getN() + m_pdata->getNGhosts();
+
                         // for each of the bonds
                         const unsigned int size = (unsigned int)m_bond_data->getN();
                         for (unsigned int bond_idx = 0; bond_idx < size; bond_idx++)
@@ -181,14 +185,29 @@ void DynamicBond::update(unsigned int timestep)
                             assert(bond.tag[0] < m_pdata->getMaximumTag()+1);
                             assert(bond.tag[1] < m_pdata->getMaximumTag()+1);
 
+
+
+                            m_exec_conf->msg->notice(2) << "Bond Tags: " << bond.tag[0] << ',' << bond.tag[1] << endl;
+                            m_exec_conf->msg->notice(2) << "max tag: " << m_pdata->getMaximumTag()+1<< endl;
+
                             // transform a and b into indices into the particle data arrays
                             // (MEM TRANSFER: 4 integers)
                             unsigned int idx_a = h_rtag.data[bond.tag[0]];
                             unsigned int idx_b = h_rtag.data[bond.tag[1]];
-                            if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
+
+                            // throw an error if this bond is incomplete
+                            if (idx_a >= max_local || idx_b >= max_local)
                                 {
-                                m_bond_data->removeBondedGroup(h_bond_tags.data[bond_idx]);
+                                this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond " <<
+                                    bond.tag[0] << " " << bond.tag[1] << " incomplete." << std::endl << std::endl;
+                                throw std::runtime_error("Error in bond calculation");
                                 }
+
+                            // if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
+                            //     {
+                            //     // m_bond_data->removeBondedGroup(h_bond_tags.data[idx_a]);
+                            //     m_exec_conf->msg->notice(2) << "Bond Tag: " << bond_idx << endl;
+                            //     }
                             }
                         }
                     }
