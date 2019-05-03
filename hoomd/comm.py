@@ -145,15 +145,14 @@ class decomposition(object):
     def __init__(self, x=None, y=None, z=None, nx=None, ny=None, nz=None):
         hoomd.util.print_status_line()
 
+        # check that the context has been initialized though
+        if hoomd.context.exec_conf is None:
+            raise RuntimeError("Cannot initialize decomposition without context.initialize() first")
+
         # check that system is not initialized
         if hoomd.context.current.system is not None:
             hoomd.context.msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
             raise RuntimeError("Cannot create decomposition after system is initialized. Call before init.*")
-
-        # check that the context has been initialized though
-        if hoomd.context.exec_conf is None:
-            hoomd.context.msg.error("comm.decomposition: call context.initialize() before decomposition can be set\n")
-            raise RuntimeError("Cannot initialize decomposition without context.initialize() first")
 
         # check that there are ranks available for decomposition
         if get_num_ranks() == 1:

@@ -337,8 +337,7 @@ def _verify_init():
     global exec_conf, msg, current
 
     if exec_conf is None:
-        msg.error("call context.initialize() before any other method in hoomd.")
-        raise RuntimeError("hoomd execution context is not available")
+        raise RuntimeError("Call context.initialize() before any method")
 
 ## \internal
 # \brief Gather context from the environment
