@@ -777,7 +777,6 @@ UP_TEST( mpcd_communicator_overdecompose_test )
                                                                   std::vector<int>(),
                                                                   false,
                                                                   false,
-                                                                  std::shared_ptr<Messenger>(),
                                                                   2);
         test_communicator_overdecompose(exec_conf, 2, 1, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 2, 1, false);
@@ -789,7 +788,6 @@ UP_TEST( mpcd_communicator_overdecompose_test )
                                                                   std::vector<int>(),
                                                                   false,
                                                                   false,
-                                                                  std::shared_ptr<Messenger>(),
                                                                   4);
         test_communicator_overdecompose(exec_conf, 4, 1, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 4, 1, false);
@@ -801,7 +799,6 @@ UP_TEST( mpcd_communicator_overdecompose_test )
                                                                   std::vector<int>(),
                                                                   false,
                                                                   false,
-                                                                  std::shared_ptr<Messenger>(),
                                                                   8);
         test_communicator_overdecompose(exec_conf, 8, 1, 1, true);
         test_communicator_overdecompose(exec_conf, 1, 8, 1, true);
