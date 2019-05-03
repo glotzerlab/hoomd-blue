@@ -90,6 +90,15 @@ Messenger::Messenger()
     #else
     setRank(0,0);
     #endif
+
+    int nranks = 1;
+    #ifdef ENABLE_MPI
+    MPI_Comm_size(m_hoomd_world, &nranks);
+    #endif
+
+    // only open python stdout/stderr in non-MPI runs
+    if (nranks == 1)
+        openPython();
     }
 
 Messenger::Messenger(const Messenger& msg)

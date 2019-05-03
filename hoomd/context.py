@@ -311,13 +311,6 @@ def _create_exec_conf(mpi_comm):
             msg.error("unknown mpi_comm object: {}.\n".format(mpi_comm));
             raise RuntimeError("Invalid mpi_comm object");
 
-    # only use python stdout/stderr in non-mpi runs
-    if not (  'OMPI_COMM_WORLD_RANK' in os.environ
-            or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ
-            or 'PMI_RANK' in os.environ
-            or 'ALPS_APP_PE' in os.environ):
-        msg.openPython();
-
     # if gpu_error_checking is set, enable it on the GPU
     if options.gpu_error_checking:
        exec_conf.setCUDAErrorChecking(True);
