@@ -8,7 +8,7 @@ executors:
       python-version:
         type: string
     docker:
-      - image: glotzerlab/ci:2018.09-<< parameters.image >>
+      - image: glotzerlab/ci:2019.05-<< parameters.image >>
     environment:
       PYTHONPATH: /home/ci/project/build
       PYTHON: "/usr/bin/python<< parameters.python-version >>"
@@ -154,6 +154,30 @@ workflows:
   workflow:
     jobs:
       - sphinx-docs
+      - build_and_test:
+          name: gcc9-py37-cm313-llvm8-mpi-tbb3
+          image: ubuntu19.04
+          cc: gcc-9
+          cxx: g++-9
+          python-version: "3.7"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: on
+          llvm-version: "8"
+          threads: "3"
+
+      - build_and_test:
+          name: gcc8-py37-cm313-llvm7-mpi-tbb3
+          image: ubuntu19.04
+          cc: gcc-9
+          cxx: g++-9
+          python-version: "3.7"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: on
+          llvm-version: "7"
+          threads: "3"
+
       - build_and_test:
           name: gcc8-py36-cm310-llvm6-mpi-tbb3
           image: ubuntu18.04
