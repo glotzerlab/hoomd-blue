@@ -270,15 +270,14 @@ workflows:
           build-jit: off
 
       - build_and_test:
-          name: gcc48-py36-cm310-llvm6-mpi-tbb3
+          name: gcc48-py36-cm310-mpi-tbb3
           image: ubuntu18.04
           cc: gcc-4.8
           cxx: g++-4.8
-          llvm-version: "6.0"
           python-version: "3.6"
           enable-mpi: on
           enable-tbb: on
-          build-jit: on
+          build-jit: off
           threads: "3"
 
       - build_and_test:
