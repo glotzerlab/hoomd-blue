@@ -3,6 +3,7 @@
 
 // Maintainer: mphoward
 
+#include "utils.h"
 #include "hoomd/mpcd/CellList.h"
 #include "hoomd/mpcd/CellThermoCompute.h"
 #ifdef ENABLE_CUDA
@@ -60,6 +61,7 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
     std::shared_ptr<CT> thermo = std::make_shared<CT>(mpcd_sys);
+    AllThermoRequest thermo_req(thermo);
     thermo->compute(0);
         {
         // check per-cell stats

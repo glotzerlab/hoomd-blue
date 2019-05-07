@@ -519,18 +519,6 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
 
             checkAcquired(*this);
 
-            // store old data in temporary vector
-            std::vector<T> old(m_num_elements);
-            std::copy(m_data.get(), m_data.get()+m_num_elements, old.begin());
-
-            unsigned int num_copy_elements = m_num_elements > num_elements ? num_elements : m_num_elements;
-
-            m_num_elements = num_elements;
-
-            assert(m_num_elements > 0);
-
-            allocate();
-
             #ifdef ENABLE_CUDA
             if (this->m_exec_conf && this->m_exec_conf->isCUDAEnabled())
                 {
@@ -543,6 +531,18 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                     }
                 }
             #endif
+
+            // store old data in temporary vector
+            std::vector<T> old(m_num_elements);
+            std::copy(m_data.get(), m_data.get()+m_num_elements, old.begin());
+
+            unsigned int num_copy_elements = m_num_elements > num_elements ? num_elements : m_num_elements;
+
+            m_num_elements = num_elements;
+
+            assert(m_num_elements > 0);
+
+            allocate();
 
             std::copy(old.begin(), old.begin() + num_copy_elements, m_data.get());
 
@@ -568,16 +568,6 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             // make m_pitch the next multiple of 16 larger or equal to the given width
             unsigned int pitch = (width + (16 - (width & 15)));
 
-            // store old data in temporary vector
-            std::vector<T> old(m_num_elements);
-            std::copy(m_data.get(), m_data.get()+m_num_elements, old.begin());
-
-            m_num_elements = pitch * height;
-
-            assert(m_num_elements > 0);
-
-            allocate();
-
             #ifdef ENABLE_CUDA
             if (this->m_exec_conf->isCUDAEnabled())
                 {
@@ -590,6 +580,16 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                     }
                 }
             #endif
+
+            // store old data in temporary vector
+            std::vector<T> old(m_num_elements);
+            std::copy(m_data.get(), m_data.get()+m_num_elements, old.begin());
+
+            m_num_elements = pitch * height;
+
+            assert(m_num_elements > 0);
+
+            allocate();
 
             // copy over data
             // every column is copied separately such as to align with the new pitch

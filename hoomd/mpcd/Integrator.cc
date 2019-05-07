@@ -28,6 +28,10 @@ mpcd::Integrator::Integrator(std::shared_ptr<mpcd::SystemData> sysdata, Scalar d
 mpcd::Integrator::~Integrator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Integrator" << std::endl;
+    #ifdef ENABLE_MPI
+    if (m_mpcd_comm)
+        m_mpcd_comm->getMigrateRequestSignal().disconnect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
+    #endif // ENABLE_MPI
     }
 
 /*!
@@ -42,6 +46,8 @@ void mpcd::Integrator::setProfiler(std::shared_ptr<Profiler> prof)
         m_collide->setProfiler(prof);
     if (m_stream)
         m_stream->setProfiler(prof);
+    if (m_sorter)
+        m_sorter->setProfiler(prof);
     #ifdef ENABLE_MPI
     if (m_mpcd_comm)
         m_mpcd_comm->setProfiler(prof);
@@ -63,12 +69,34 @@ void mpcd::Integrator::update(unsigned int timestep)
         m_gave_warning = true;
         }
 
-    // call the MPCD collision rule before the first MD step so that any embedded
-    // velocities are updated first
-    if (m_collide)
+    // remove any leftover virtual particles
+    if (checkCollide(timestep))
         {
-        m_collide->collide(timestep);
+        m_mpcd_sys->getParticleData()->removeVirtualParticles();
+        m_collide->drawGridShift(timestep);
         }
+
+    #ifdef ENABLE_MPI
+    if (m_mpcd_comm)
+        m_mpcd_comm->communicate(timestep);
+    #endif // ENABLE_MPI
+
+    // fill in any virtual particles
+    if (checkCollide(timestep) && !m_fillers.empty())
+        {
+        for (auto filler = m_fillers.begin(); filler != m_fillers.end(); ++filler)
+            {
+            (*filler)->fill(timestep);
+            }
+        }
+
+    // optionally sort
+    if (m_sorter)
+        m_sorter->update(timestep);
+
+    // call the MPCD collision rule before the first MD step so that any embedded velocities are updated first
+    if (m_collide)
+        m_collide->collide(timestep);
 
     // perform the first MD integration step
     if (m_prof) m_prof->push("Integrate");
@@ -76,16 +104,10 @@ void mpcd::Integrator::update(unsigned int timestep)
         (*method)->integrateStepOne(timestep);
     if (m_prof) m_prof->pop();
 
-    // this handles the MD communication
-    // TODO: should the MPCD communication step also be called (and typically go unused?)
+    // MD communication / rigid body updates
     #ifdef ENABLE_MPI
     if (m_comm)
         {
-        // perform all necessary communication steps. This ensures
-        // a) that particles have migrated to the correct domains
-        // b) that forces are calculated correctly, if ghost atom positions are updated every time step
-
-        // also updates rigid bodies after ghost updating
         m_comm->communicate(timestep+1);
         }
     else
@@ -113,13 +135,6 @@ void mpcd::Integrator::update(unsigned int timestep)
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepTwo(timestep);
     if (m_prof) m_prof->pop();
-
-    // draw the MPCD grid shift at the next timestep in case analyzers are called in between
-    // (note: this is usually a **bad** idea)
-    if (m_collide)
-        {
-        m_collide->drawGridShift(timestep+1);
-        }
     }
 
 /*!
@@ -168,6 +183,26 @@ void mpcd::Integrator::setAutotunerParams(bool enable, unsigned int period)
         m_collide->setAutotunerParams(enable,period);
     if (m_stream)
         m_stream->setAutotunerParams(enable,period);
+    if (m_sorter)
+        m_sorter->setAutotunerParams(enable,period);
+    }
+
+/*!
+ * \param filler Virtual particle filler to add to the integrator
+ *
+ * The \a filler is attached to the integrator exactly once. An error is raised if this filler has
+ * already been added.
+ */
+void mpcd::Integrator::addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> filler)
+    {
+    auto it = std::find(m_fillers.begin(), m_fillers.end(), filler);
+    if (it != m_fillers.end())
+        {
+        m_exec_conf->msg->error() << "Trying to add same MPCD virtual particle filler twice! Please report this bug." << std::endl;
+        throw std::runtime_error("Duplicate attachment of MPCD virtual particle filler");
+        }
+
+    m_fillers.push_back(filler);
     }
 
 /*!
@@ -182,6 +217,10 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
         .def("removeCollisionMethod", &mpcd::Integrator::removeCollisionMethod)
         .def("setStreamingMethod", &mpcd::Integrator::setStreamingMethod)
         .def("removeStreamingMethod", &mpcd::Integrator::removeStreamingMethod)
+        .def("setSorter", &mpcd::Integrator::setSorter)
+        .def("removeSorter", &mpcd::Integrator::removeSorter)
+        .def("addFiller", &mpcd::Integrator::addFiller)
+        .def("removeAllFillers", &mpcd::Integrator::removeAllFillers)
         #ifdef ENABLE_MPI
         .def("setMPCDCommunicator", &mpcd::Integrator::setMPCDCommunicator)
         #endif // ENABLE_MPI

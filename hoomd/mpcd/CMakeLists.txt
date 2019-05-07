@@ -14,30 +14,40 @@ set(_mpcd_sources
     Integrator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
+    SlitGeometryFiller.cc
     Sorter.cc
     SRDCollisionMethod.cc
+    StreamingGeometry.cc
     StreamingMethod.cc
     SystemData.cc
     SystemDataSnapshot.cc
+    VirtualParticleFiller.cc
     )
 
 set(_mpcd_headers
     ATCollisionMethod.h
+    BoundaryCondition.h
+    BulkGeometry.h
     CellCommunicator.h
     CellThermoCompute.h
     CellList.h
     CollisionMethod.h
+    ConfinedStreamingMethod.h
     Communicator.h
     CommunicatorUtilities.h
     Integrator.h
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
+    SlitGeometry.h
+    SlitGeometryFiller.h
     Sorter.h
     SRDCollisionMethod.h
+    StreamingGeometry.h
     StreamingMethod.h
     SystemData.h
     SystemDataSnapshot.h
+    VirtualParticleFiller.h
     )
 
 if (ENABLE_CUDA)
@@ -46,9 +56,9 @@ list(APPEND _mpcd_sources
     CellThermoComputeGPU.cc
     CellListGPU.cc
     CommunicatorGPU.cc
+    SlitGeometryFillerGPU.cc
     SorterGPU.cc
     SRDCollisionMethodGPU.cc
-    StreamingMethodGPU.cc
     )
 list(APPEND _mpcd_headers
     ATCollisionMethodGPU.cuh
@@ -60,13 +70,15 @@ list(APPEND _mpcd_headers
     CellListGPU.h
     CommunicatorGPU.cuh
     CommunicatorGPU.h
+    ConfinedStreamingMethodGPU.cuh
+    ConfinedStreamingMethodGPU.h
     ParticleData.cuh
+    SlitGeometryFillerGPU.cuh
+    SlitGeometryFillerGPU.h
     SorterGPU.cuh
     SorterGPU.h
     SRDCollisionMethodGPU.cuh
     SRDCollisionMethodGPU.h
-    StreamingMethodGPU.cuh
-    StreamingMethodGPU.h
     )
 endif()
 
@@ -74,11 +86,12 @@ set(_mpcd_cu_sources
     ATCollisionMethodGPU.cu
     CellThermoComputeGPU.cu
     CellListGPU.cu
+    ConfinedStreamingMethodGPU.cu
     CommunicatorGPU.cu
     ParticleData.cu
+    SlitGeometryFillerGPU.cu
     SorterGPU.cu
     SRDCollisionMethodGPU.cu
-    StreamingMethodGPU.cu
     )
 
 if (ENABLE_CUDA)

@@ -19,7 +19,8 @@ mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
         : Compute(sysdef), m_mpcd_pdata(mpcd_pdata),
           m_cell_size(1.0), m_cell_np_max(4), m_cell_np(m_exec_conf), m_cell_list(m_exec_conf),
-          m_embed_cell_ids(m_exec_conf), m_conditions(m_exec_conf), m_needs_compute_dim(true)
+          m_embed_cell_ids(m_exec_conf), m_conditions(m_exec_conf), m_needs_compute_dim(true),
+          m_particles_sorted(false), m_virtual_change(false)
     {
     assert(m_mpcd_pdata);
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellList" << std::endl;
@@ -41,6 +42,7 @@ mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
     #endif // ENABLE_MPI
 
     m_mpcd_pdata->getSortSignal().connect<mpcd::CellList, &mpcd::CellList::sort>(this);
+    m_mpcd_pdata->getNumVirtualSignal().connect<mpcd::CellList, &mpcd::CellList::slotNumVirtual>(this);
     m_pdata->getParticleSortSignal().connect<mpcd::CellList, &mpcd::CellList::slotSorted>(this);
     m_pdata->getBoxChangeSignal().connect<mpcd::CellList, &mpcd::CellList::slotBoxChanged>(this);
     }
@@ -49,6 +51,7 @@ mpcd::CellList::~CellList()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD CellList" << std::endl;
     m_mpcd_pdata->getSortSignal().disconnect<mpcd::CellList, &mpcd::CellList::sort>(this);
+    m_mpcd_pdata->getNumVirtualSignal().disconnect<mpcd::CellList, &mpcd::CellList::slotNumVirtual>(this);
     m_pdata->getParticleSortSignal().disconnect<mpcd::CellList, &mpcd::CellList::slotSorted>(this);
     m_pdata->getBoxChangeSignal().disconnect<mpcd::CellList, &mpcd::CellList::slotBoxChanged>(this);
     }
@@ -56,6 +59,12 @@ mpcd::CellList::~CellList()
 void mpcd::CellList::compute(unsigned int timestep)
     {
     if (m_prof) m_prof->push(m_exec_conf, "MPCD cell list");
+
+    if (m_virtual_change)
+        {
+        m_virtual_change = false;
+        m_force_compute = true;
+        }
 
     if (m_particles_sorted)
         {
@@ -73,12 +82,6 @@ void mpcd::CellList::compute(unsigned int timestep)
         {
         #ifdef ENABLE_MPI
         if (m_prof) m_prof->pop(m_exec_conf);
-
-        // perform mpcd communication before building the cell list so particles are safely on rank now
-        if (auto mpcd_comm = m_mpcd_comm.lock())
-            {
-            mpcd_comm->communicate(timestep);
-            }
 
         // exchange embedded particles if necessary
         if (m_comm && needsEmbedMigrate(timestep))
@@ -113,10 +116,11 @@ void mpcd::CellList::compute(unsigned int timestep)
         m_first_compute = false;
         m_force_compute = false;
         m_last_computed = timestep;
+
+        // signal to the ParticleData that the cell list cache is now valid
+        m_mpcd_pdata->validateCellCache();
         }
 
-    // signal to the ParticleData that the cell list cache is now valid
-    m_mpcd_pdata->validateCellCache();
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
@@ -504,7 +508,7 @@ void mpcd::CellList::buildCellList()
 
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    unsigned int N_mpcd = m_mpcd_pdata->getN();
+    unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // we can't modify the velocity of embedded particles, so we only read their position
@@ -658,7 +662,7 @@ void mpcd::CellList::sort(unsigned int timestep,
             {
             const unsigned int cl_idx = m_cell_list_indexer(offset,idx);
             const unsigned int pid = h_cell_list.data[cl_idx];
-            // only update indexes of MPCD particles, not embedded particles
+            // only update indexes of MPCD particles, not virtual or embedded particles
             if (pid < N_mpcd)
                 {
                 h_cell_list.data[cl_idx] = h_rorder.data[pid];
@@ -726,10 +730,12 @@ bool mpcd::CellList::checkConditions()
         unsigned int n = conditions.y - 1;
         if (n < m_mpcd_pdata->getN())
             m_exec_conf->msg->error() << "MPCD particle " << n << " has position NaN" << std::endl;
+        else if (n < m_mpcd_pdata->getNVirtual())
+            m_exec_conf->msg->error() << "MPCD virtual particle " << n << " has position NaN" << std::endl;
         else
             {
             ArrayHandle<unsigned int> h_embed_member_idx(m_embed_group->getIndexArray(), access_location::host, access_mode::read);
-            m_exec_conf->msg->error() << "Embedded particle " << h_embed_member_idx.data[n - m_mpcd_pdata->getN()] << " has position NaN" << std::endl;
+            m_exec_conf->msg->error() << "Embedded particle " << h_embed_member_idx.data[n - (m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual())] << " has position NaN" << std::endl;
             }
         throw std::runtime_error("Error computing cell list");
         }
@@ -737,17 +743,20 @@ bool mpcd::CellList::checkConditions()
         {
         unsigned int n = conditions.z - 1;
         Scalar4 pos_empty_i;
-        if (n < m_mpcd_pdata->getN())
+        if (n < m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual())
             {
             ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
             pos_empty_i = h_pos.data[n];
-            m_exec_conf->msg->error() << "MPCD particle is no longer in the simulation box"<<std::endl;
+            if (n < m_mpcd_pdata->getN())
+                m_exec_conf->msg->error() << "MPCD particle is no longer in the simulation box"<<std::endl;
+            else
+                m_exec_conf->msg->error() << "MPCD virtual particle is no longer in the simulation box"<<std::endl;
             }
         else
             {
             ArrayHandle<Scalar4> h_pos_embed(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_embed_member_idx(m_embed_group->getIndexArray(), access_location::host, access_mode::read);
-            pos_empty_i = h_pos_embed.data[h_embed_member_idx.data[n - m_mpcd_pdata->getN()]];
+            pos_empty_i = h_pos_embed.data[h_embed_member_idx.data[n - (m_mpcd_pdata->getN()+m_mpcd_pdata->getNVirtual())]];
             m_exec_conf->msg->error() << "Embedded particle is no longer in the simulation box"<<std::endl;
             }
 
@@ -848,9 +857,8 @@ void mpcd::detail::export_CellList(pybind11::module& m)
 
     py::class_<mpcd::CellList, std::shared_ptr<mpcd::CellList> >(m, "CellList", py::base<Compute>())
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData> >())
-        .def("setCellSize", &mpcd::CellList::setCellSize)
-        #ifdef ENABLE_MPI
-        .def("setMPCDCommunicator", &mpcd::CellList::setMPCDCommunicator)
-        #endif // ENABLE_MPI
+        .def_property("cell_size", &mpcd::CellList::getCellSize, &mpcd::CellList::setCellSize)
+        .def("setEmbeddedGroup", &mpcd::CellList::setEmbeddedGroup)
+        .def("removeEmbeddedGroup", &mpcd::CellList::removeEmbeddedGroup)
         ;
     }

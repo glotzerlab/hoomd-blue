@@ -97,73 +97,6 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
     }
 
 
-// TODO: rewrite the unit test in /hoomd-blue/hoomd/md/test/test_npt_mtk_integrator.cc so we don't need to do this
-TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<ParticleGroup> group,
-                       std::shared_ptr<ComputeThermo> thermo_group,
-                       std::shared_ptr<ComputeThermo> thermo_group_t,
-                       Scalar tau,
-                       Scalar tauP,
-                       std::shared_ptr<Variant> T,
-                       std::shared_ptr<Variant> P,
-                       couplingMode couple,
-                       unsigned int flags,
-                       const bool nph)
-    : IntegrationMethodTwoStep(sysdef, group),
-                            m_thermo_group(thermo_group), m_thermo_group_t(thermo_group_t),
-                            m_ndof(0),
-                            m_tau(tau),
-                            m_tauP(tauP),
-                            m_T(T),
-                            m_S(),
-                            m_couple(couple),
-                            m_flags(flags),
-                            m_nph(nph),
-                            m_rescale_all(false)
-    {
-    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
-
-    if (m_tau <= 0.0)
-        m_exec_conf->msg->warning() << "integrate.npt: tau set less than 0.0" << endl;
-    if (m_tauP <= 0.0)
-        m_exec_conf->msg->warning() << "integrate.npt: tauP set less than 0.0" << endl;
-
-    if (flags == 0)
-        m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified."
-                                    << endl;
-
-    std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
-    m_S.push_back(P);
-    m_S.push_back(P);
-    m_S.push_back(P);
-    m_S.push_back(zero_variant);
-    m_S.push_back(zero_variant);
-    m_S.push_back(zero_variant);
-
-    bool twod = m_sysdef->getNDimensions()==2;
-    m_V = m_pdata->getGlobalBox().getVolume(twod);  // volume
-
-    // set initial state
-    IntegratorVariables v = getIntegratorVariables();
-
-    if (!restartInfoTestValid(v, "npt_mtk", 10))
-        {
-        v.type = "npt_mtk";
-        v.variable.resize(10,Scalar(0.0));
-        setValidRestart(false);
-        }
-    else
-        {
-        setValidRestart(true);
-        }
-
-    setIntegratorVariables(v);
-
-    m_log_names.resize(2);
-    m_log_names[0] = "npt_thermostat_energy";
-    m_log_names[1] = "npt_barostat_energy";
-    }
-
 TwoStepNPTMTK::~TwoStepNPTMTK()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepNPTMTK" << endl;
@@ -782,42 +715,7 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     Scalar mtk_term = Scalar(2.0)*m_thermo_group_t->getTranslationalKineticEnergy();
     mtk_term *= Scalar(1.0/2.0)*m_deltaT/(Scalar)m_ndof/W;
 
-    couplingMode couple = m_couple;
-
-    // disable irrelevant couplings
-    if (! (m_flags & baro_x))
-        {
-        if (couple == couple_xyz)
-            {
-            couple = couple_yz;
-            }
-        if (couple == couple_xy || couple == couple_xz)
-            {
-            couple = couple_none;
-            }
-        }
-    if (! (m_flags & baro_y))
-        {
-        if (couple == couple_xyz)
-            {
-            couple = couple_xz;
-            }
-        if (couple == couple_yz || couple == couple_xy)
-            {
-            couple = couple_none;
-            }
-        }
-    if (! (m_flags & baro_z))
-        {
-        if (couple == couple_xyz)
-            {
-            couple = couple_xy;
-            }
-        if (couple == couple_yz || couple == couple_xz)
-            {
-            couple = couple_none;
-            }
-        }
+    couplingMode couple = getRelevantCouplings();
 
     // couple diagonal elements of pressure tensor together
     Scalar3 P_diag = make_scalar3(0.0,0.0,0.0);
@@ -941,6 +839,47 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
     setIntegratorVariables(v);
     }
 
+TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
+    {
+    couplingMode couple = m_couple;
+
+    // disable irrelevant couplings
+    if (! (m_flags & baro_x))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_yz;
+            }
+        if (couple == couple_xy || couple == couple_xz)
+            {
+            couple = couple_none;
+            }
+        }
+    if (! (m_flags & baro_y))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_xz;
+            }
+        if (couple == couple_yz || couple == couple_xy)
+            {
+            couple = couple_none;
+            }
+        }
+    if (! (m_flags & baro_z))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_xy;
+            }
+        if (couple == couple_yz || couple == couple_xz)
+            {
+            couple = couple_none;
+            }
+        }
+    return couple;
+    }
+
 void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
     {
     if (m_shouldRandomize == false)
@@ -1024,6 +963,31 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
         if (m_flags & baro_z)
             {
             nuzz = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_baro))(rng);
+            }
+
+        // couple box degrees of freedom
+        couplingMode couple = getRelevantCouplings();
+
+        if (couple == couple_xy)
+            {
+            nuyy = nuxx;
+            }
+        else if (couple == couple_xz)
+            {
+            nuzz = nuxx;
+            }
+        else if (couple == couple_yz)
+            {
+            nuyy = nuzz;
+            }
+        else if (couple == couple_xyz)
+            {
+            nuxx = nuyy = nuzz;
+            }
+        else
+            {
+            m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl << std::endl;
+            throw std::runtime_error("Error in NPT integration");
             }
         }
 

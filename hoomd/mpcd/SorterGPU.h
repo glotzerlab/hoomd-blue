@@ -30,7 +30,9 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
     {
     public:
         //! Constructor
-        SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata);
+        SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+                  unsigned int cur_timestep,
+                  unsigned int period);
 
         //! Set autotuner parameters
         /*!
@@ -50,9 +52,6 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
         std::unique_ptr<Autotuner> m_sentinel_tuner;    //!< Kernel tuner for filling sentinels in cell list
         std::unique_ptr<Autotuner> m_reverse_tuner;     //!< Kernel tuner for setting reverse map
         std::unique_ptr<Autotuner> m_apply_tuner;       //!< Kernel tuner for applying sorted order
-
-        GPUVector<unsigned char> m_tmp_storage;     //!< Temporary storage allocated for sorting
-        GPUFlags<unsigned int> m_compact_flag;      //!< Flag for value returned by compaction
 
         //! Compute the sorting order at the current timestep on the GPU
         virtual void computeOrder(unsigned int timestep);

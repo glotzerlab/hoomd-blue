@@ -521,6 +521,31 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
         }
     }
 
+class MigrateSelectOp
+    {
+    public:
+        MigrateSelectOp(std::shared_ptr<mpcd::Communicator> comm)
+            : m_comm(comm)
+            {
+            if (m_comm)
+                m_comm->getMigrateRequestSignal().connect<MigrateSelectOp, &MigrateSelectOp::operator()>(this);
+            }
+
+        ~MigrateSelectOp()
+            {
+            if (m_comm)
+                m_comm->getMigrateRequestSignal().disconnect<MigrateSelectOp, &MigrateSelectOp::operator()>(this);
+            }
+
+        bool operator()(unsigned int timestep) const
+            {
+            return !(timestep % 2);
+            }
+
+    private:
+        std::shared_ptr<mpcd::Communicator> m_comm;
+    };
+
 //! Test particle migration of Communicator in orthorhombic box where decomposition is not cubic
 void test_communicator_migrate_ortho(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf, unsigned int nstages)
     {
@@ -558,6 +583,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator, std::sha
 
     // initialize the communicator
     std::shared_ptr<mpcd::Communicator> comm = comm_creator(mpcd_sys, nstages);
+    MigrateSelectOp migrate_op(comm);
 
     // check that all particles were initialized onto their proper ranks
     std::shared_ptr<mpcd::ParticleData> pdata = mpcd_sys->getParticleData();
@@ -634,7 +660,11 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator, std::sha
             }
         h_pos.data[0].x = new_pos.x; h_pos.data[0].y = new_pos.y; h_pos.data[0].z = new_pos.z;
         }
+    // first call to communicate should fail since only migrating on even steps
     comm->communicate(1);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
+    // but forcing a migration should proceed
+    comm->forceMigrate(); comm->communicate(1);
     if (rank == 5 || rank == 6)
         {
         UP_ASSERT_EQUAL(pdata->getN(), 4);
@@ -678,7 +708,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator, std::sha
         }
 
     // finally, call again and just make sure nobody moved
-    comm->communicate(3);
+    comm->forceMigrate(); comm->communicate(3);
     if (rank == 5)
         {
         UP_ASSERT_EQUAL(pdata->getN(), 3);

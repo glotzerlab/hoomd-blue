@@ -29,8 +29,6 @@
 
 namespace mpcd
 {
-// forward declaration
-class Communicator;
 
 //! Computes the MPCD cell list on the CPU
 class PYBIND11_EXPORT CellList : public Compute
@@ -229,14 +227,6 @@ class PYBIND11_EXPORT CellList : public Compute
             return m_embed_cell_ids;
             }
 
-        #ifdef ENABLE_MPI
-        //! Set the MPCD particle communicator
-        virtual void setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm)
-            {
-            m_mpcd_comm = comm;
-            }
-        #endif // ENABLE_MPI
-
         //! Get the signal for dimensions changing
         /*!
          * \returns A signal that subscribers can attach to be notified that the
@@ -275,7 +265,6 @@ class PYBIND11_EXPORT CellList : public Compute
         unsigned int m_num_extra;               //!< Number of extra cells to communicate over
         std::array<unsigned int, 6> m_num_comm; //!< Number of cells to communicate on each face
         BoxDim m_cover_box;                     //!< Box covered by the cell list
-        std::weak_ptr<mpcd::Communicator> m_mpcd_comm;    //!< MPCD particle communicator
 
         //! Determine if embedded particles require migration
         virtual bool needsEmbedMigrate(unsigned int timestep);
@@ -315,6 +304,13 @@ class PYBIND11_EXPORT CellList : public Compute
         void slotSorted()
             {
             m_particles_sorted = true;
+            }
+
+        bool m_virtual_change;  //!< True if the number of virtual particles has changed
+        //! Slot for the number of virtual particles changing
+        void slotNumVirtual()
+            {
+            m_virtual_change = true;
             }
 
         //! Update global simulation box and check that cell list is compatible with it
