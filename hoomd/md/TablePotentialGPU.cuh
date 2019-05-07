@@ -11,6 +11,7 @@
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/GPUPartition.cuh"
 
 #ifndef __TABLEPOTENTIALGPU_CUH__
 #define __TABLEPOTENTIALGPU_CUH__
@@ -33,6 +34,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
                                      const unsigned int table_width,
                                      const unsigned int block_size,
                                      const unsigned int compute_capability,
-                                     const unsigned int max_tex1d_width);
+                                     const unsigned int max_tex1d_width,
+                                     const GPUPartition& gpu_partition);
 
 #endif

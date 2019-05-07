@@ -28,6 +28,12 @@
 #endif
 
 #include "hoomd/RandomNumbers.h"
+#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include "hoomd/extern/pybind/include/pybind11/embed.h"
+namespace py = pybind11;
+
+#include "hoomd/Variant.h"
+
 using namespace hoomd;
 
 #include <math.h>
@@ -42,6 +48,12 @@ using namespace std::placeholders;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
+
+PYBIND11_EMBEDDED_MODULE(variant, m)
+    {
+    export_Variant(m);
+    }
+
 
 typedef struct
     {
@@ -773,6 +785,18 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
 std::shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(args_t args)
     {
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
+    std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
+    // necessary to create python objects
+    py::scoped_interpreter guard{};
+    py::module::import("variant");
+    py::list S;
+    S.append(P_variant);
+    S.append(P_variant);
+    S.append(P_variant);
+    S.append(zero_variant);
+    S.append(zero_variant);
+    S.append(zero_variant);
+
     std::shared_ptr<Variant> T_variant(new VariantConst(args.T));
     // for the tests, we can assume that group is the all group
     return std::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTK(args.sysdef,
@@ -782,7 +806,7 @@ std::shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(args_t args)
         args.tau,
         args.tauP,
         T_variant,
-        P_variant,
+        S,
         args.mode,
         args.flags,
         false));
@@ -791,6 +815,19 @@ std::shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(args_t args)
 std::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(args_t args)
     {
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
+    std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
+    // necessary to create python objects
+    py::scoped_interpreter guard{};
+    py::module::import("variant");
+    py::list S;
+    S.append(P_variant);
+    S.append(P_variant);
+    S.append(P_variant);
+    S.append(zero_variant);
+    S.append(zero_variant);
+    S.append(zero_variant);
+    std::cout << py::len(S) << std::endl;
+
     std::shared_ptr<Variant> T_variant(new VariantConst(args.T));
     // for the tests, we can assume that group is the all group
     return std::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTK(args.sysdef,
@@ -800,7 +837,7 @@ std::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(args_t args)
         args.tau,
         args.tauP,
         T_variant,
-        P_variant,
+        S,
         args.mode,
         args.flags,true));
     }
@@ -810,18 +847,41 @@ std::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(args_t args)
 std::shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(args_t args)
     {
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
+    std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
+    // necessary to create python objects
+    py::scoped_interpreter guard{};
+    py::module::import("variant");
+    py::list S;
+    S.append(P_variant);
+    S.append(P_variant);
+    S.append(P_variant);
+    S.append(zero_variant);
+    S.append(zero_variant);
+    S.append(zero_variant);
     std::shared_ptr<Variant> T_variant(new VariantConst(args.T));
     // for the tests, we can assume that group is the all group
     return std::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(args.sysdef, args.group, args.thermo_group, args.thermo_group_t,
-        args.tau, args.tauP, T_variant, P_variant,args.mode,args.flags,false));
+        args.tau, args.tauP, T_variant, S,args.mode,args.flags,false));
     }
 
 std::shared_ptr<TwoStepNPTMTK> gpu_nph_creator(args_t args)
     {
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
+    std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
+    // necessary to create python objects
+    py::scoped_interpreter guard{};
+    py::module::import("variant");
+    py::list S;
+    S.append(P_variant);
+    S.append(P_variant);
+    S.append(P_variant);
+    S.append(zero_variant);
+    S.append(zero_variant);
+    S.append(zero_variant);
+
     std::shared_ptr<Variant> T_variant(new VariantConst(args.T));
     return std::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(args.sysdef, args.group, args.thermo_group, args.thermo_group_t,
-        args.tau, args.tauP, T_variant, P_variant,args.mode,args.flags,true));
+        args.tau, args.tauP, T_variant, S, args.mode,args.flags,true));
     }
 #endif
 
