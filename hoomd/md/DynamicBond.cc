@@ -95,16 +95,17 @@ void DynamicBond::update(unsigned int timestep)
     const GPUArray<typename BondData::members_t>& gpu_bond_list = this->m_bond_data->getGPUTable();
     const Index2D& gpu_table_index = this->m_bond_data->getGPUTableIndexer();
 
-    // ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
-    // ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(), access_location::host, access_mode::read);
-    // ArrayHandle<unsigned int>  h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
-
-    ArrayHandle<BondData::members_t> h_gpu_bondlist(this->m_bond_data->getGPUTable(), access_location::host, access_mode::read);
+    ArrayHandle<BondData::members_t> h_gpu_bondlist(gpu_bond_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int > h_gpu_n_bonds(this->m_bond_data->getNGroupsArray(), access_location::host, access_mode::read);
+
+    ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
+
+    // ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int>  h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
-    assert(h_pos);
 
+    assert(h_pos);
     Scalar r_cut_sq = m_r_cut*m_r_cut;
 
     // for each particle
@@ -162,52 +163,46 @@ void DynamicBond::update(unsigned int timestep)
 
                 // iterate over all bond indexes for all bonds on particle i
                 int n_bonds = h_gpu_n_bonds.data[i];
-                for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
-                    {
-                    group_storage<2> cur_bond = h_gpu_bondlist.data[gpu_table_index(i, bond_idx)];
-
-                    int bonded_idx = cur_bond.idx[0];
-                    int bonded_type = cur_bond.idx[1];
-
-                    Scalar rnd2 = saru.s<Scalar>(0,1);
-                    if (rnd2 < m_prob_break)
+                if (n_bonds > 0) {
+                    for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
                         {
-                        ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
+                        group_storage<2> curr_bond = h_gpu_bondlist.data[gpu_table_index(i, bond_idx)];
 
-                        unsigned int max_local = m_pdata->getN() + m_pdata->getNGhosts();
+                        int bonded_idx = curr_bond.idx[0];
+                        int bonded_type = curr_bond.idx[1];
 
-                        // for each of the bonds
-                        const unsigned int size = (unsigned int)m_bond_data->getN();
-                        for (unsigned int bond_idx = 0; bond_idx < size; bond_idx++)
+                        Scalar rnd2 = saru.s<Scalar>(0,1);
+                        if (rnd2 < m_prob_break)
                             {
-                            // lookup the tag of each of the particles participating in the bond
-                            const typename BondData::members_t& bond = h_bonds.data[bond_idx];
-                            assert(bond.tag[0] < m_pdata->getMaximumTag()+1);
-                            assert(bond.tag[1] < m_pdata->getMaximumTag()+1);
 
-
-
-                            m_exec_conf->msg->notice(2) << "Bond Tags: " << bond.tag[0] << ',' << bond.tag[1] << endl;
-                            m_exec_conf->msg->notice(2) << "max tag: " << m_pdata->getMaximumTag()+1<< endl;
-
-                            // transform a and b into indices into the particle data arrays
-                            // (MEM TRANSFER: 4 integers)
-                            unsigned int idx_a = h_rtag.data[bond.tag[0]];
-                            unsigned int idx_b = h_rtag.data[bond.tag[1]];
-
-                            // throw an error if this bond is incomplete
-                            if (idx_a >= max_local || idx_b >= max_local)
+                            // for each of the bonds in the system
+                            const unsigned int size = (unsigned int)m_bond_data->getN();
+                            m_exec_conf->msg->notice(2) << "bonds in the system " << size << endl;
+                            for (unsigned int bond_number = 0; bond_number < size; bond_number++)
                                 {
-                                this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond " <<
-                                    bond.tag[0] << " " << bond.tag[1] << " incomplete." << std::endl << std::endl;
-                                throw std::runtime_error("Error in bond calculation");
-                                }
+                                // lookup the tag of each of the particles participating in the bond
+                                const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
+                                assert(bond.tag[0] < m_pdata->getN());
+                                assert(bond.tag[1] < m_pdata->getN());
+                                m_exec_conf->msg->notice(2) << "bond particle tags: " << bond.tag[0] << ", " << bond.tag[1] << endl;
+                                m_exec_conf->msg->notice(2) << "particle tags: " << i << "," << j << endl;
 
-                            // if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
-                            //     {
-                            //     // m_bond_data->removeBondedGroup(h_bond_tags.data[idx_a]);
-                            //     m_exec_conf->msg->notice(2) << "Bond Tag: " << bond_idx << endl;
-                            //     }
+                                // transform a and b into indices into the particle data arrays
+                                // (MEM TRANSFER: 4 integers)
+                                unsigned int idx_a = h_rtag.data[bond.tag[0]];
+                                unsigned int idx_b = h_rtag.data[bond.tag[1]];
+                                assert(idx_a <= m_pdata->getMaximumTag());
+                                assert(idx_b <= m_pdata->getMaximumTag());
+
+                                m_exec_conf->msg->notice(2) << "bond index: " << bond_idx  << endl;
+                                m_exec_conf->msg->notice(2) << "Bond Tag: " << bond_number << endl;
+
+                                if ((bond.tag[0] == i && bond.tag[1] == j) || (bond.tag[0] == j & bond.tag[1] == i))
+                                    {
+                                    // m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
+                                    m_bond_data->removeBondedGroup(bond_number);
+                                    }
+                                }
                             }
                         }
                     }
