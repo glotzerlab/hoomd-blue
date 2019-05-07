@@ -3,9 +3,10 @@
 
 // Maintainer: mphoward
 
-#include "hoomd/mpcd/StreamingMethod.h"
+#include "hoomd/mpcd/StreamingGeometry.h"
+#include "hoomd/mpcd/ConfinedStreamingMethod.h"
 #ifdef ENABLE_CUDA
-#include "hoomd/mpcd/StreamingMethodGPU.h"
+#include "hoomd/mpcd/ConfinedStreamingMethodGPU.h"
 #endif // ENABLE_CUDA
 
 #include "hoomd/SnapshotSystemData.h"
@@ -37,7 +38,8 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
 
     // setup a streaming method at timestep 2 with period 2 and phase 1
-    std::shared_ptr<mpcd::StreamingMethod> stream = std::make_shared<SM>(mpcd_sys, 2, 2, 1);
+    auto geom = std::make_shared<const mpcd::detail::BulkGeometry>();
+    std::shared_ptr<mpcd::StreamingMethod> stream = std::make_shared<SM>(mpcd_sys, 2, 2, 1, geom);
 
     // set timestep to 0.05, so the MPCD step is 2 x 0.05 = 0.1
     stream->setDeltaT(0.05);
@@ -106,12 +108,14 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
 //! basic test case for MPCD StreamingMethod class
 UP_TEST( mpcd_streaming_method_basic )
     {
-    streaming_method_basic_test<mpcd::StreamingMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
+    typedef mpcd::ConfinedStreamingMethod<mpcd::detail::BulkGeometry> method;
+    streaming_method_basic_test<method>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 #ifdef ENABLE_CUDA
 //! basic test case for MPCD StreamingMethod class
 UP_TEST( mpcd_streaming_method_setup )
     {
-    streaming_method_basic_test<mpcd::StreamingMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    typedef mpcd::ConfinedStreamingMethodGPU<mpcd::detail::BulkGeometry> method;
+    streaming_method_basic_test<method>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 #endif // ENABLE_CUDA

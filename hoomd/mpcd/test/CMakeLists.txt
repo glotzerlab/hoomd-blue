@@ -7,9 +7,11 @@ set(TEST_LIST
     at_collision_method
     cell_list
     cell_thermo_compute
+    slit_geometry_filler
     sorter
     srd_collision_method
     streaming_method
+    virtual_particle
     )
 endif()
 
@@ -29,6 +31,7 @@ if(ENABLE_MPI)
     ADD_TO_MPI_TESTS(cell_communicator 8)
     ADD_TO_MPI_TESTS(cell_list 8)
     ADD_TO_MPI_TESTS(cell_thermo_compute 8)
+    ADD_TO_MPI_TESTS(slit_geometry_filler 8)
     endif()
 endif()
 

@@ -23,6 +23,7 @@
 namespace mpcd
 {
 
+//! Implements the Anderson thermostat collision rule for MPCD.
 class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
     {
     public:
@@ -39,9 +40,6 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
         //! Destructor
         virtual ~ATCollisionMethod();
 
-        //! Implementation of the collision rule
-        virtual void collide(unsigned int timestep);
-
         //! Set the temperature and enable the thermostat
         void setTemperature(std::shared_ptr<::Variant> T)
             {
@@ -52,6 +50,9 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
         std::shared_ptr<mpcd::CellThermoCompute> m_thermo;      //!< Cell thermo
         std::shared_ptr<mpcd::CellThermoCompute> m_rand_thermo; //!< Cell thermo for random velocities
         std::shared_ptr<::Variant> m_T; //!< Temperature for thermostat
+
+        //! Implementation of the collision rule
+        virtual void rule(unsigned int timestep);
 
         //! Draw velocities for particles in each cell
         virtual void drawVelocities(unsigned int timestep);

@@ -38,7 +38,7 @@ class PYBIND11_EXPORT StreamingMethod
         virtual ~StreamingMethod();
 
         //! Implementation of the streaming rule
-        virtual void stream(unsigned int timestep);
+        virtual void stream(unsigned int timestep) { }
 
         //! Peek if the next step requires streaming
         virtual bool peekStream(unsigned int timestep) const;
