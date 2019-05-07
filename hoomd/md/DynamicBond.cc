@@ -163,49 +163,49 @@ void DynamicBond::update(unsigned int timestep)
 
                 // iterate over all bond indexes for all bonds on particle i
                 int n_bonds = h_gpu_n_bonds.data[i];
-                if (n_bonds > 0) {
-                    for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+
+                for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+                    {
+                    group_storage<2> curr_bond = h_gpu_bondlist.data[gpu_table_index(i, bond_idx)];
+
+                    int bonded_idx = curr_bond.idx[0];
+                    int bonded_type = curr_bond.idx[1];
+
+                    Scalar rnd2 = saru.s<Scalar>(0,1);
+                    if (rnd2 < m_prob_break)
                         {
-                        group_storage<2> curr_bond = h_gpu_bondlist.data[gpu_table_index(i, bond_idx)];
 
-                        int bonded_idx = curr_bond.idx[0];
-                        int bonded_type = curr_bond.idx[1];
-
-                        Scalar rnd2 = saru.s<Scalar>(0,1);
-                        if (rnd2 < m_prob_break)
+                        // for each of the bonds in the system
+                        const unsigned int size = (unsigned int)m_bond_data->getN();
+                        m_exec_conf->msg->notice(2) << "bonds in the system " << size << endl;
+                        for (unsigned int bond_number = 0; bond_number < size; bond_number++)
                             {
+                            // lookup the tag of each of the particles participating in the bond
+                            const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
+                            assert(bond.tag[0] < m_pdata->getN());
+                            assert(bond.tag[1] < m_pdata->getN());
+                            m_exec_conf->msg->notice(2) << "bond particle tags: " << bond.tag[0] << ", " << bond.tag[1] << endl;
+                            m_exec_conf->msg->notice(2) << "particle tags: " << i << "," << j << endl;
 
-                            // for each of the bonds in the system
-                            const unsigned int size = (unsigned int)m_bond_data->getN();
-                            m_exec_conf->msg->notice(2) << "bonds in the system " << size << endl;
-                            for (unsigned int bond_number = 0; bond_number < size; bond_number++)
+                            // transform a and b into indices into the particle data arrays
+                            // (MEM TRANSFER: 4 integers)
+                            unsigned int idx_a = h_rtag.data[bond.tag[0]];
+                            unsigned int idx_b = h_rtag.data[bond.tag[1]];
+                            assert(idx_a <= m_pdata->getMaximumTag());
+                            assert(idx_b <= m_pdata->getMaximumTag());
+
+                            m_exec_conf->msg->notice(2) << "bond index: " << bond_idx  << endl;
+                            m_exec_conf->msg->notice(2) << "Bond Tag: " << bond_number << endl;
+
+                            if ((bond.tag[0] == i && bond.tag[1] == j) || (bond.tag[0] == j & bond.tag[1] == i))
                                 {
-                                // lookup the tag of each of the particles participating in the bond
-                                const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
-                                assert(bond.tag[0] < m_pdata->getN());
-                                assert(bond.tag[1] < m_pdata->getN());
-                                m_exec_conf->msg->notice(2) << "bond particle tags: " << bond.tag[0] << ", " << bond.tag[1] << endl;
-                                m_exec_conf->msg->notice(2) << "particle tags: " << i << "," << j << endl;
-
-                                // transform a and b into indices into the particle data arrays
-                                // (MEM TRANSFER: 4 integers)
-                                unsigned int idx_a = h_rtag.data[bond.tag[0]];
-                                unsigned int idx_b = h_rtag.data[bond.tag[1]];
-                                assert(idx_a <= m_pdata->getMaximumTag());
-                                assert(idx_b <= m_pdata->getMaximumTag());
-
-                                m_exec_conf->msg->notice(2) << "bond index: " << bond_idx  << endl;
-                                m_exec_conf->msg->notice(2) << "Bond Tag: " << bond_number << endl;
-
-                                if ((bond.tag[0] == i && bond.tag[1] == j) || (bond.tag[0] == j & bond.tag[1] == i))
-                                    {
-                                    // m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
-                                    m_bond_data->removeBondedGroup(bond_number);
-                                    }
+                                // m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
+                                m_bond_data->removeBondedGroup(bond_number);
                                 }
                             }
                         }
                     }
+
                 }
             }
         }
