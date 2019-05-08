@@ -5,7 +5,6 @@
     \brief Defines the driver functions for computing all types of pair forces on the GPU
 */
 
-#include "EvaluatorPairFourier.h"
 #include "AllDriverPotentialPairGPU.cuh"
 cudaError_t gpu_compute_fourier_forces(const pair_args_t &  pair_args,
                                    const typename EvaluatorPairFourier::param_type *d_params)

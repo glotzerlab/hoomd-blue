@@ -15,6 +15,7 @@
 #include "PotentialPairDPDThermoGPU.cuh"
 #include "EvaluatorPairDPDThermo.h"
 #include "EvaluatorPairDPDLJThermo.h"
+#include "EvaluatorPairFourier.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 cudaError_t gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
