@@ -131,6 +131,20 @@ class sphere_params(_hpmc.sphere_param_proxy, _param):
     def make_param(self, diameter, ignore_statistics=False,orientable=False):
         return self.make_fn(float(diameter)/2.0,ignore_statistics,orientable);
 
+class sphere_nec_params(_hpmc.sphere_param_proxy, _param):
+    def __init__(self, mc, index):
+        _hpmc.sphere_param_proxy.__init__(self, mc.cpp_integrator, index);
+        _param.__init__(self, mc, index);
+        self._keys += ['diameter','orientable'];
+        self.make_fn = _hpmc.make_sph_params;
+
+    def __str__(self):
+        # should we put this in the c++ side?
+        return "sphere(diameter = {})".format(self.diameter)
+
+    def make_param(self, diameter, ignore_statistics=False,orientable=False):
+        return self.make_fn(float(diameter)/2.0,ignore_statistics,orientable);
+
 class convex_polygon_params(_hpmc.convex_polygon_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.convex_polygon_param_proxy.__init__(self, mc.cpp_integrator, index);
@@ -182,6 +196,23 @@ class simple_polygon_params(_hpmc.simple_polygon_param_proxy, _param):
                             float(0),
                             ignore_statistics);
 
+class convex_polyhedron_nec_params(_hpmc.convex_polyhedron_param_proxy,_param):
+    def __init__(self, mc, index):
+        _hpmc.convex_polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
+        _param.__init__(self, mc, index);
+        self._keys += ['vertices'];
+        self.make_fn = _hpmc.make_poly3d_verts
+
+    def __str__(self):
+        # should we put this in the c++ side?
+        string = "convex polyhedron(vertices = {})".format(self.vertices);
+        return string;
+
+    def make_param(self, vertices, ignore_statistics=False):
+        return self.make_fn(self.ensure_list(vertices),
+                            float(0),
+                            ignore_statistics,
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
 class convex_polyhedron_params(_hpmc.convex_polyhedron_param_proxy,_param):
     def __init__(self, mc, index):
         _hpmc.convex_polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);

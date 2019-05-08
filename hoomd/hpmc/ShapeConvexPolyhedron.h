@@ -6,6 +6,7 @@
 #include "hoomd/VectorMath.h"
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "XenoCollide3D.h"
+#include "XenoSweep3D.h"
 #include "hoomd/ManagedArray.h"
 
 #ifndef __SHAPE_CONVEX_POLYHEDRON_H__
@@ -427,6 +428,45 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     */
     }
 
+
+//! Convex polyhedron sweep distance
+/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    \param a first shape
+    \param b second shape
+    \param err in/out variable incremented when error conditions occur in the overlap test
+    \returns true when *a* and *b* overlap, and false when they are disjoint
+
+    \ingroup shape
+*/
+DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
+                                 const ShapeConvexPolyhedron& a,
+                                 const ShapeConvexPolyhedron& b,
+								 const vec3<Scalar>& direction,
+                                 unsigned int& err,
+								 vec3<Scalar>& collisionPlaneVector
+)
+    {
+    vec3<OverlapReal> dr(r_ab);
+    vec3<OverlapReal> to(direction);
+ 
+	vec3<OverlapReal> csp(collisionPlaneVector);
+	
+	OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+
+    double distance = detail::xenosweep_3d(detail::SupportFuncConvexPolyhedron(a.verts),
+                                detail::SupportFuncConvexPolyhedron(b.verts),
+                                rotate(conj(quat<OverlapReal>(a.orientation)), dr),
+                                conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
+								rotate(conj(quat<OverlapReal>(a.orientation)), to),
+                                DaDb/2.0,
+                                err,
+								csp
+   							);
+	collisionPlaneVector = vec3<Scalar>( rotate(quat<OverlapReal>(a.orientation), csp) );
+	
+	return distance;
+    }
+    
 }; // end namespace hpmc
 
 #undef DEVICE
