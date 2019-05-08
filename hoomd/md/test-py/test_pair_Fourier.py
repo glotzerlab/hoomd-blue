@@ -10,12 +10,10 @@ from hoomd import md
 context.initialize()
 
 # md.pair.fourier
-
-
 class pair_fourier_test (unittest.TestCase):
     def setUp(self):
         print
-        snapshot = data.make_snapshot(N=2, box=data.boxdim(L=10))
+        snapshot = data.make_snapshot(N=2, box=data.boxdim(L=100))
         if comm.get_rank() == 0:
             # suppose spherical particles
             snapshot.particles.position[0] = [0.0, 0.0, 0.0]
@@ -24,7 +22,7 @@ class pair_fourier_test (unittest.TestCase):
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 
-    def test(self):
+    def test_pair_fourier_value(self):
         fourier = md.pair.fourier(r_cut=3.0, nlist=self.nl)
         fourier_a = [0.08658918, -0.00177933, -0.0886236]
         fourier_b = [-0.18217308, -0.04460936, 0.06499778]
