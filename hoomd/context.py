@@ -259,6 +259,10 @@ def initialize(args=None, memory_traceback=False, mpi_comm=None):
 def _create_mpi_conf(mpi_comm, options):
     global mpi_conf
 
+    # use a cached MPI configuration if available
+    if mpi_conf is not None:
+        return mpi_conf
+
     mpi_available = _hoomd.is_MPI_available();
 
     # create the specified configuration
@@ -304,6 +308,10 @@ def _create_mpi_conf(mpi_comm, options):
 # \internal
 def _create_messenger(mpi_config, options):
     global msg
+
+    # use a cached messenger if available
+    if msg is not None:
+        return msg
 
     msg = _hoomd.Messenger(mpi_config)
 
