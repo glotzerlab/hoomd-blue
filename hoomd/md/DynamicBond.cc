@@ -20,17 +20,17 @@ namespace py = pybind11;
 
 using namespace std;
 
-double capfraction(double x)
+Scalar capfraction(Scalar x)
     {
-	double frac;
-	double a0= 0.0925721;
-    double a1= -0.00699901;
-    double a2= 0.000378692;
-    double a3= -1.55671e-05;
-    double a4= 4.33718e-07;
-    double a5= -7.41086e-09;
-    double a6= 6.8603e-11;
-    double a7= -2.61042e-13;
+	Scalar frac;
+	Scalar a0= 0.0925721;
+    Scalar a1= -0.00699901;
+    Scalar a2= 0.000378692;
+    Scalar a3= -1.55671e-05;
+    Scalar a4= 4.33718e-07;
+    Scalar a5= -7.41086e-09;
+    Scalar a6= 6.8603e-11;
+    Scalar a7= -2.61042e-13;
 
     frac=a0+a1*x+a2*x*x+a3*x*x*x+a4*x*x*x*x+a5*x*x*x*x*x+a6*x*x*x*x*x*x+a7*x*x*x*x*x*x*x;
 
@@ -174,21 +174,38 @@ void DynamicBond::update(unsigned int timestep)
 
             // calculate r_ij squared (FLOPS: 5)
             Scalar rsq = dot(dx, dx);
-
             if (rsq < r_cut_sq)
                 {
-                // check to see if a bond should be created between particles i and j
+                Scalar r = sqrt(rsq);
+                Scalar surf_dist = r - (di+dj)/2;
+                Scalar tstep = 0.05;
+                Scalar omega = 1.2;
+                Scalar deltaG = 8;
+
+                // calculate probabilities
+                // Scalar p0=tstep*omega*exp(-(deltaG+bond(extension_rC)));
+                // Scalar q0=tstep*omega*exp(-(deltaG-bond(extension)+bond(extension_rC)));
+                //
+                // p12=p0*pow((1-p0),(numBridges[i][i]*capfrac-1.0))*numBridges[i][i]*capfrac;
+                // p21=p0*pow((1-p0),(numBridges[j][j]*capfrac-1.0))*numBridges[j][j]*capfrac;
+                // q1=q0*pow((1-q0),(numBridges[i][j]-1.0))*numBridges[i][j];
+
+                // generate random numbers
                 Scalar rnd1 = saru.s<Scalar>(0,1);
-                if (rnd1 < m_prob_form)
+                Scalar rnd2 = saru.s<Scalar>(0,1);
+                Scalar rnd3 = saru.s<Scalar>(0,1);
+                Scalar rnd4 = saru.s<Scalar>(0,1);
+
+                // check to see if a bond should be created between particles i and j
+                if (rnd1 < p12) && (n_bridges[i][i]>=1)
                     {
                     m_bond_data->addBondedGroup(Bond(0, i, j));
                     }
 
                 // check to see if a bond should be broken between particles i and j
-                Scalar rnd2 = saru.s<Scalar>(0,1);
-                if (rnd2 < m_prob_break)
-                    {
 
+                if (rnd2 < p21)
+                    {
                     // for each of the bonds in the system
                     const unsigned int size = (unsigned int)m_bond_data->getN();
                     m_exec_conf->msg->notice(2) << "bonds in the system " << size << endl;
@@ -216,6 +233,7 @@ void DynamicBond::update(unsigned int timestep)
                         }
                     }
                 }
+            // sanity check number of loops and number of bridges
             }
         }
 

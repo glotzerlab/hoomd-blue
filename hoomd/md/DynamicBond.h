@@ -9,6 +9,7 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/md/NeighborList.h"
 #include <memory>
+#include <math.h>
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 /*! \file DynamicBond.h
