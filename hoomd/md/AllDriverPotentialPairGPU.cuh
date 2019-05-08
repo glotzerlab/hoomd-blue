@@ -90,6 +90,6 @@ cudaError_t gpu_compute_dlvo_forces(const pair_args_t & args,
 
 //! Compute Fourier potential pair forces on the GPU with PairEvaluatorFourier
 cudaError_t gpu_compute_fourier_forces(const pair_args_t & pair_args,
-                                            const typename EvaluatorPairFourier:: param_type *d_params);
+                                            const typename EvaluatorPairFourier::param_type *d_params);
 
 #endif

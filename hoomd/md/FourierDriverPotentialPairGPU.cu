@@ -8,7 +8,7 @@
 #include "EvaluatorPairFourier.h"
 #include "AllDriverPotentialPairGPU.cuh"
 cudaError_t gpu_compute_fourier_forces(const pair_args_t &  pair_args,
-                                   const typename EvaluatorPairFourier:: param_type *d_params)
+                                   const typename EvaluatorPairFourier::param_type *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairFourier>(pair_args,
                                                      d_params);
