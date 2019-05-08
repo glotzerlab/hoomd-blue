@@ -164,7 +164,7 @@ class EvaluatorPairFourier
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        const pair_fourier_params params;      //!< Fourier component coefficents
+        const pair_fourier_params& params;      //!< Fourier component coefficents
     };
 
 

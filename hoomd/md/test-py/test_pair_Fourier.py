@@ -14,17 +14,17 @@ context.initialize()
 
 class pair_fourier_test (unittest.TestCase):
     def setUp(self):
-        context.initialize()
-        snapshot = data.make_snapshot(N=2, box=data.boxdim(L=1000.0))
+        print
+        snapshot = data.make_snapshot(N=2, box=data.boxdim(L=10))
         if comm.get_rank() == 0:
             # suppose spherical particles
             snapshot.particles.position[0] = [0.0, 0.0, 0.0]
             snapshot.particles.position[1] = [0.5, 0.75, 1.0]
         self.system = init.read_snapshot(snapshot)
+        self.nl = md.nlist.cell()
+        context.current.sorter.set_params(grid=8)
 
     def test(self):
-
-        self.nl = md.nlist.cell()
         fourier = md.pair.fourier(r_cut=3.0, nlist=self.nl)
         fourier_a = [0.08658918, -0.00177933, -0.0886236]
         fourier_b = [-0.18217308, -0.04460936, 0.06499778]
