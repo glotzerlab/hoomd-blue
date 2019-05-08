@@ -2780,18 +2780,28 @@ class fourier(pair):
         :nowrap:
 
         \begin{eqnarray*}
-
-        # TODO add formula
-
+        V_{\mathrm{Fourier}}(r) = & \frac{1}{r^{12}} + \frac{1}{r^2}\sum_{n=1}^4 [a_n cos(\frac{n \pi r}{r_{cut}}) + b_n sin(\frac{n \pi r}{r_{cut}})] & r < r_{\mathrm{cut}}  \\
+                                = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
+
+        where:
+        \begin{eqnarray*}
+        a_1 = \sum_{n=2}^4 (-1)^n a_n cos(\frac{n \pi r}{r_{cut}})
+        \end{eqnarray*}
+
+        \begin{eqnarray*}
+        b_1 = \sum_{n=2}^4 n (-1)^n b_n cos(\frac{n \pi r}{r_{cut}})
+        \end{eqnarray*}
+
+        is calculated to enforce close to zero value at $r_{cut}$
 
     See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
     Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
-    - :math:`\a` - *a* (array of 9 value, unitless)
-    - :math:`\b` - *b* (array of 9 value, unitless)
+    - :math:`\a` - *a* (array of 3 values corresponding to a2, a3 and a4 in the Fourier series, unitless)
+    - :math:`\b` - *b* (array of 3 values corresponding to b2, b3 and b4 in the Fourier series, unitless)
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
@@ -2801,7 +2811,7 @@ class fourier(pair):
 
         nl = nlist.cell()
         fourier = pair.fourier(r_cut=3.0, nlist=nl)
-        fourier.pair_coeff.set('A', 'A', a=[], b=[])
+        fourier.pair_coeff.set('A', 'A', a=[a2,a3,a4], b=[b2,b3,b4])
     """
 
     def __init__(self, r_cut, nlist, name=None):

@@ -26,18 +26,26 @@
 #define DEVICE
 #endif
 
-// TODO: documentation
 //! Class for evaluating the Fourier pair potential
 /*! <b>General Overview</b>
 
-    See EvaluatorPairLJ
+    See EvaluatorPairLJ.
 
     <b>Fourier specifics</b>
 
     EvaluatorPairFourier evaluates the function:
+    \f[ V_{\mathrm{Fourier}}(r) = \frac{1}{r^{12}}
+    + \frac{1}{r^2}\sum_{n=1}^4 [a_n cos(\frac{n \pi r}{r_{cut}})
+    + b_n sin(\frac{n \pi r}{r_{cut}})] \f]
 
+    where:
+    \f[ a_1 = \sum_{n=2}^4 (-1)^n a_n cos(\frac{n \pi r}{r_{cut}}) \f]
 
-    The Fourier potential does not need diameter or charge. 18 parameters are specified and stored in a two array for a and b.
+    \f[ b_1 = \sum_{n=2}^4 n (-1)^n b_n cos(\frac{n \pi r}{r_{cut}}) \f]
+
+    is calculated to enforce close to zero value at $r_{cut}$
+
+    The Fourier potential does not need diameter or charge. two sets of parameters: a and b (both list of size 3) are specified and stored in a pair_fourier_params type.
     \a a is placed in \a params.a, \a b is in \a params.b.
 
 */
