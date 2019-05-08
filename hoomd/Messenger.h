@@ -13,9 +13,7 @@
 #include <string>
 #include <memory>
 
-#ifdef ENABLE_MPI
-#include "HOOMDMPI.h"
-#endif
+#include "MPIConfiguration.h"
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
@@ -105,11 +103,7 @@ class PYBIND11_EXPORT Messenger
     {
     public:
         //! Construct a messenger
-        #ifdef ENABLE_MPI
-        Messenger(MPI_Comm hoomd_world=MPI_COMM_WORLD);
-        #else
-        Messenger();
-        #endif
+        Messenger(std::shared_ptr<MPIConfiguration> mpi_conf = std::shared_ptr<MPIConfiguration>());
 
         //! Copy constructor
         Messenger(const Messenger& msg);
@@ -118,7 +112,7 @@ class PYBIND11_EXPORT Messenger
         Messenger& operator=(Messenger& msg);
 
         //! Destructor
-        ~Messenger();
+        virtual ~Messenger();
 
         //! Get the error stream
         std::ostream& error();
@@ -141,66 +135,6 @@ class PYBIND11_EXPORT Messenger
         //! Alternate method to print notice strings
         void noticeStr(unsigned int level, const std::string& msg);
 
-        //! Set processor rank
-        /*! Error and warning messages are prefixed with rank information.
-
-            Notice messages are only output on processor with rank 0.
-
-            \param rank This processor's rank
-
-         */
-        void setRank(unsigned int rank, unsigned int partition)
-            {
-            // prefix all messages with rank information
-            m_rank = rank;
-            m_nranks = 1;
-            #ifdef ENABLE_MPI
-            bcast(m_notice_level,0,m_mpi_comm);
-
-            // get communicator size
-            int nranks;
-            if (m_rank != 0) m_notice_level = 0;
-            MPI_Comm_size(m_mpi_comm, &nranks);
-            m_nranks = nranks;
-            #endif
-            m_partition = partition;
-            }
-
-
-#ifdef ENABLE_MPI
-        //! Set MPI communicator
-        /*! \param mpi_comm The MPI communicator to use
-         */
-        void setMPICommunicator(const MPI_Comm mpi_comm)
-            {
-            // clean up data associated with old communicator
-            releaseSharedMem();
-
-            m_mpi_comm = mpi_comm;
-
-            // open shared log file if necessary
-            if (m_shared_filename != "")
-                openSharedFile();
-
-            // initialize RMA memory for error messages
-            initializeSharedMem();
-            }
-
-        //! Revert to MPI_COMM_WORLD communicator
-        void unsetMPICommunicator()
-            {
-            if (m_shared_filename != "")
-                openStd();
-
-            releaseSharedMem();
-
-            m_mpi_comm = m_hoomd_world;
-
-            // initialize RMA memory for error messages
-            initializeSharedMem();
-            }
-#endif
-
         //! Get the notice level
         /*! \returns Current notice level
         */
@@ -214,7 +148,7 @@ class PYBIND11_EXPORT Messenger
         */
         void setNoticeLevel(unsigned int level)
             {
-            m_notice_level = (m_rank == 0) ? level : 0;
+            m_notice_level = (m_mpi_config->getRank() == 0) ? level : 0;
             }
 
         //! Set the error stream
@@ -341,7 +275,10 @@ class PYBIND11_EXPORT Messenger
 
         //! Open stdout and stderr again, closing any open file
         void openStd();
+
     private:
+        std::shared_ptr<MPIConfiguration> m_mpi_config; //!< The MPI configuration
+
         std::ostream *m_err_stream;     //!< error stream
         std::ostream *m_warning_stream; //!< warning stream
         std::ostream *m_notice_stream;  //!< notice stream
@@ -358,10 +295,6 @@ class PYBIND11_EXPORT Messenger
 
         unsigned int m_notice_level;    //!< Notice level
 
-        unsigned int m_rank;            //!< The MPI rank (default 0)
-        unsigned int m_partition;       //!< The MPI partition
-        unsigned int m_nranks;          //!< Number of ranks in communicator
-
         bool m_python_open=false;       //!< True when the python output stream is open
         pybind11::module m_sys;         //!< sys module
         pybind11::object m_pystdout;    //!< Currently bound python sys.stdout
@@ -369,9 +302,6 @@ class PYBIND11_EXPORT Messenger
 
 #ifdef ENABLE_MPI
         std::string m_shared_filename;  //!< Filename of shared log file
-        MPI_Comm m_mpi_comm;            //!< The MPI communicator
-        MPI_Comm m_hoomd_world;         //!< The world communicator
-
         MPI_Win m_mpi_win;              //!< MPI Window for atomic printing of error messages
         int *m_error_flag;              //!< Flag on (on processor 0) to lock stdout
         mutable bool m_has_lock;        //!< True if this rank has exclusive access to stdout

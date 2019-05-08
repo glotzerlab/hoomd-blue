@@ -196,8 +196,8 @@ UP_TEST( mpcd_cell_communicator )
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
                                                                                      std::vector<int>(),
                                                                                      false,
-                                                                                     false,
-                                                                                     2));
+                                                                                     false));
+        exec_conf->getMPIConfig()->splitPartitions(2);
         cell_communicator_reduce_test(exec_conf, true, false, false);
         cell_communicator_reduce_test(exec_conf, false, true, false);
         cell_communicator_reduce_test(exec_conf, false, false, true);
@@ -207,8 +207,8 @@ UP_TEST( mpcd_cell_communicator )
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
                                                                                      std::vector<int>(),
                                                                                      false,
-                                                                                     false,
-                                                                                     4));
+                                                                                     false));
+        exec_conf->getMPIConfig()->splitPartitions(4);
         cell_communicator_reduce_test(exec_conf, true, true, false);
         cell_communicator_reduce_test(exec_conf, true, false, true);
         cell_communicator_reduce_test(exec_conf, false, true, true);
@@ -216,10 +216,8 @@ UP_TEST( mpcd_cell_communicator )
     // mpi in 3d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false,
-                                                                                     8));
+                                                                                     std::vector<int>()));
+        exec_conf->getMPIConfig()->splitPartitions(8);
         cell_communicator_reduce_test(exec_conf, true, true, true);
         }
     }
@@ -240,8 +238,8 @@ UP_TEST( mpcd_cell_communicator_gpu )
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
                                                                                      std::vector<int>(),
                                                                                      false,
-                                                                                     false,
-                                                                                     2));
+                                                                                     false));
+        exec_conf->getMPIConfig()->splitPartitions(2);
         cell_communicator_reduce_test(exec_conf, true, false, false);
         cell_communicator_reduce_test(exec_conf, false, true, false);
         cell_communicator_reduce_test(exec_conf, false, false, true);
@@ -251,8 +249,8 @@ UP_TEST( mpcd_cell_communicator_gpu )
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
                                                                                      std::vector<int>(),
                                                                                      false,
-                                                                                     false,
-                                                                                     4));
+                                                                                     false));
+        exec_conf->getMPIConfig()->splitPartitions(4);
         cell_communicator_reduce_test(exec_conf, true, true, false);
         cell_communicator_reduce_test(exec_conf, true, false, true);
         cell_communicator_reduce_test(exec_conf, false, true, true);
@@ -262,8 +260,8 @@ UP_TEST( mpcd_cell_communicator_gpu )
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
                                                                                      std::vector<int>(),
                                                                                      false,
-                                                                                     false,
-                                                                                     8));
+                                                                                     false));
+        exec_conf->getMPIConfig()->splitPartitions(8);
         cell_communicator_reduce_test(exec_conf, true, true, true);
         }
     }

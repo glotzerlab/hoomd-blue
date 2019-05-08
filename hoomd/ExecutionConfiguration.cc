@@ -35,8 +35,8 @@ using namespace std;
     \param gpu_id List of GPU IDs on which to run, or empty for automatic selection
     \param min_cpu If set to true, cudaDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
     \param ignore_display If set to true, try to ignore GPUs attached to the display
+    \param mpi_config MPI configuration object
     \param _msg Messenger to use for status message printing
-    \param n_ranks Number of ranks per partition
 
     Explicitly force the use of either CPU or GPU execution. If GPU execution is selected, then a default GPU choice
     is made by not calling cudaSetDevice.
@@ -45,21 +45,21 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                std::vector<int> gpu_id,
                                                bool min_cpu,
                                                bool ignore_display,
-                                               unsigned int n_ranks,
-                                               #ifdef ENABLE_MPI
-                                               MPI_Comm hoomd_world,
-                                               #endif
+                                               std::shared_ptr<MPIConfiguration> mpi_config,
                                                std::shared_ptr<Messenger> _msg
                                                )
-    : m_cuda_error_checking(false), msg(_msg)
+    : m_cuda_error_checking(false), m_mpi_config(mpi_config), msg(_msg)
     {
+    if (! m_mpi_config)
+        {
+        // create mpi config internally
+        m_mpi_config = std::shared_ptr<MPIConfiguration>(new MPIConfiguration());
+        }
+
     if (!msg)
         {
-        #ifdef ENABLE_MPI
-        msg = std::shared_ptr<Messenger>(new Messenger(hoomd_world));
-        #else
-        msg = std::shared_ptr<Messenger>(new Messenger());
-        #endif
+        // create Messenger internally
+        msg = std::shared_ptr<Messenger>(new Messenger(m_mpi_config));
         }
 
     ostringstream s;
@@ -70,14 +70,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     msg->notice(5) << "Constructing ExecutionConfiguration: ( " << s.str() << ") " <<  min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
-
-    m_rank = 0;
-
-#ifdef ENABLE_MPI
-    m_n_rank = n_ranks;
-    m_hoomd_world = hoomd_world;
-    splitPartitions(hoomd_world);
-#endif
 
 #ifdef ENABLE_CUDA
     // scan the available GPUs
@@ -186,14 +178,14 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     if (getNRanks() > 1)
         {
         executionMode rank0_mode = exec_mode;
-        bcast(rank0_mode, 0, getMPICommunicator());
+        bcast(rank0_mode, 0, m_mpi_config->getCommunicator());
 
         // ensure that all ranks terminate here
         int errors = 0;
         if (rank0_mode != exec_mode)
             errors = 1;
 
-        MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, m_mpi_config->getCommunicator());
 
         if (errors != 0)
             {
@@ -202,7 +194,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             }
         }
 
-    if (hoomd_launch_timing && getNRanksGlobal() > 1)
+    if (hoomd_launch_timing && m_mpi_config->getNRanksGlobal() > 1)
         {
         // compute the number of seconds to get an exec conf
         timeval t;
@@ -211,17 +203,17 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
         // get the min and max times
         unsigned int start_time_min, start_time_max, mpi_init_time_min, mpi_init_time_max, conf_time_min, conf_time_max;
-        MPI_Reduce(&hoomd_start_time, &start_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_hoomd_world);
-        MPI_Reduce(&hoomd_start_time, &start_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_hoomd_world);
+        MPI_Reduce(&hoomd_start_time, &start_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_mpi_config->getHOOMDWorldCommunicator());
+        MPI_Reduce(&hoomd_start_time, &start_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_mpi_config->getHOOMDWorldCommunicator());
 
-        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_hoomd_world);
-        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_hoomd_world);
+        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_mpi_config->getHOOMDWorldCommunicator());
+        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_mpi_config->getHOOMDWorldCommunicator());
 
-        MPI_Reduce(&conf_time, &conf_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_hoomd_world);
-        MPI_Reduce(&conf_time, &conf_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_hoomd_world);
+        MPI_Reduce(&conf_time, &conf_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_mpi_config->getHOOMDWorldCommunicator());
+        MPI_Reduce(&conf_time, &conf_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_mpi_config->getHOOMDWorldCommunicator());
 
         // write them out to a file
-        if (getRankGlobal() == 0)
+        if (m_mpi_config->getRankGlobal() == 0)
             {
             msg->notice(2) << "start_time:    [" << start_time_min << ", " << start_time_max << "]" << std::endl;
             msg->notice(2) << "mpi_init_time: [" << mpi_init_time_min << ", " << mpi_init_time_max << "]" << std::endl;
@@ -278,52 +270,7 @@ ExecutionConfiguration::~ExecutionConfiguration()
         #endif
         }
     #endif
-
-    #ifdef ENABLE_MPI
-    // enable Messenger to gracefully finish any MPI-IO
-    msg->unsetMPICommunicator();
-    #endif
     }
-
-#ifdef ENABLE_MPI
-void ExecutionConfiguration::splitPartitions(MPI_Comm mpi_comm)
-    {
-    m_mpi_comm = mpi_comm;
-
-    int num_total_ranks;
-    MPI_Comm_size(m_mpi_comm, &num_total_ranks);
-
-    unsigned int partition = 0;
-
-    if  (m_n_rank != 0)
-        {
-        int rank;
-        MPI_Comm_rank(m_mpi_comm, &rank);
-
-        if (num_total_ranks % m_n_rank != 0)
-            {
-            msg->error() << "Invalid setting --nrank" << std::endl;
-            throw(runtime_error("Error setting up MPI."));
-            }
-
-        partition = rank / m_n_rank;
-
-        // Split the communicator
-        MPI_Comm new_comm;
-        MPI_Comm_split(m_mpi_comm, partition, rank, &new_comm);
-
-        // update communicator
-        m_mpi_comm = new_comm;
-        }
-
-    int rank;
-    MPI_Comm_rank(m_mpi_comm, &rank);
-    m_rank = rank;
-
-    msg->setRank(rank, partition);
-    msg->setMPICommunicator(m_mpi_comm);
-    }
-#endif
 
 std::string ExecutionConfiguration::getGPUName(unsigned int idev) const
     {
@@ -709,77 +656,6 @@ int ExecutionConfiguration::getNumCapableGPUs()
     }
 #endif
 
-int ExecutionConfiguration::guessLocalRank(bool &found)
-    {
-    found = false;
-
-    #ifdef ENABLE_MPI
-    // single rank simulations emulate the ENABLE_MPI=off behavior
-
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    if (size == 1)
-        {
-        found = false;
-        return 0;
-        }
-
-    std::vector<std::string> env_vars;
-    char *env;
-
-    // setup common environment variables containing local rank information
-    env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
-    env_vars.push_back("OMPI_COMM_WORLD_LOCAL_RANK");
-    env_vars.push_back("JSM_NAMESPACE_LOCAL_RANK");
-
-    std::vector<std::string>::iterator it;
-
-    for (it = env_vars.begin(); it != env_vars.end(); it++)
-        {
-        if ((env = getenv(it->c_str())) != NULL)
-            {
-            msg->notice(3) << "Found local rank in: " << *it << std::endl;
-            found = true;
-            return atoi(env);
-            }
-        }
-
-    // try SLURM_LOCALID
-    if (((env = getenv("SLURM_LOCALID"))) != NULL)
-        {
-        int num_total_ranks = 0;
-        int errors = 0;
-        int slurm_localid = atoi(env);
-
-        if (slurm_localid == 0)
-            errors = 1;
-
-        // some SLURMs set LOCALID to 0 on all ranks, check for this
-        MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, m_hoomd_world);
-        MPI_Comm_size(m_hoomd_world, &num_total_ranks);
-        if (errors == num_total_ranks)
-            {
-            msg->notice(3) << "SLURM_LOCALID is 0 on all ranks, it cannot be used" << std::endl;
-            }
-        else
-            {
-            msg->notice(3) << "Found local rank in: SLURM_LOCALID" << std::endl;
-            found = true;
-            return slurm_localid;
-            }
-        }
-
-    // fall back on global rank id
-    msg->notice(3) << "Using global rank to select GPUs" << std::endl;
-    int global_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
-    found = true;
-    return global_rank;
-    #else
-    return 0;
-    #endif
-    }
-
 /*! Print out GPU stats if running on the GPU, otherwise determine and print out the CPU stats
 */
 void ExecutionConfiguration::setupStats()
@@ -815,15 +691,6 @@ void ExecutionConfiguration::setupStats()
         msg->collectiveNoticeStr(1,s.str());
         }
     }
-
-#ifdef ENABLE_MPI
-unsigned int ExecutionConfiguration::getNRanks() const
-    {
-    int size;
-    MPI_Comm_size(m_mpi_comm, &size);
-    return size;
-    }
-#endif
 
 void ExecutionConfiguration::multiGPUBarrier() const
     {
@@ -909,10 +776,84 @@ void ExecutionConfiguration::endMultiGPU() const
     #endif
     }
 
+int ExecutionConfiguration::guessLocalRank(bool &found)
+    {
+    found = false;
+
+    #ifdef ENABLE_MPI
+    // single rank simulations emulate the ENABLE_MPI=off behavior
+
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    if (size == 1)
+        {
+        found = false;
+        return 0;
+        }
+
+    std::vector<std::string> env_vars;
+    char *env;
+
+    // setup common environment variables containing local rank information
+    env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
+    env_vars.push_back("OMPI_COMM_WORLD_LOCAL_RANK");
+    env_vars.push_back("JSM_NAMESPACE_LOCAL_RANK");
+
+    std::vector<std::string>::iterator it;
+
+    for (it = env_vars.begin(); it != env_vars.end(); it++)
+        {
+        if ((env = getenv(it->c_str())) != NULL)
+            {
+            msg->notice(3) << "Found local rank in: " << *it << std::endl;
+            found = true;
+            return atoi(env);
+            }
+        }
+
+    // try SLURM_LOCALID
+    if (((env = getenv("SLURM_LOCALID"))) != NULL)
+        {
+        int num_total_ranks = 0;
+        int errors = 0;
+        int slurm_localid = atoi(env);
+
+        if (slurm_localid == 0)
+            errors = 1;
+
+        // some SLURMs set LOCALID to 0 on all ranks, check for this
+        MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, m_mpi_config->getHOOMDWorldCommunicator());
+        MPI_Comm_size(m_mpi_config->getHOOMDWorldCommunicator(), &num_total_ranks);
+        if (errors == num_total_ranks)
+            {
+            msg->notice(3) << "SLURM_LOCALID is 0 on all ranks, it cannot be used" << std::endl;
+            }
+        else
+            {
+            msg->notice(3) << "Found local rank in: SLURM_LOCALID" << std::endl;
+            found = true;
+            return slurm_localid;
+            }
+        }
+
+    // fall back on global rank id
+    msg->notice(3) << "Using global rank to select GPUs" << std::endl;
+    int global_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
+    found = true;
+    return global_rank;
+    #else
+    return 0;
+    #endif
+    }
+
+
 void export_ExecutionConfiguration(py::module& m)
     {
     py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration> > executionconfiguration(m,"ExecutionConfiguration");
-    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, std::vector<int>, bool, bool, unsigned int >())
+    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, std::vector<int>, bool, bool,
+        std::shared_ptr<MPIConfiguration>, std::shared_ptr<Messenger> >())
+        .def("getMPIConfig", &ExecutionConfiguration::getMPIConfig)
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
         .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
@@ -926,24 +867,9 @@ void export_ExecutionConfiguration(py::module& m)
 #ifdef ENABLE_CUDA
         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
-#ifdef ENABLE_MPI
         .def("getPartition", &ExecutionConfiguration::getPartition)
         .def("getNRanks", &ExecutionConfiguration::getNRanks)
         .def("getRank", &ExecutionConfiguration::getRank)
-        .def("barrier", &ExecutionConfiguration::barrier)
-        .def_static("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
-        .def_static("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
-        .def_static("_make_exec_conf_mpi_comm",  [](ExecutionConfiguration::executionMode mode,
-                                                    std::vector<int> gpu_id,
-                                                    bool min_cpu,
-                                                    bool ignore_display,
-                                                    unsigned int n_ranks,
-                                                    py::object mpi_comm) -> std::shared_ptr<ExecutionConfiguration>
-            {
-            MPI_Comm *comm = (MPI_Comm*)PyLong_AsVoidPtr(mpi_comm.ptr());
-            return std::make_shared<ExecutionConfiguration>(mode, gpu_id, min_cpu, ignore_display, n_ranks, *comm);
-            })
-#endif
 #ifdef ENABLE_TBB
         .def("setNumThreads", &ExecutionConfiguration::setNumThreads)
 #endif

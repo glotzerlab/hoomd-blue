@@ -125,7 +125,7 @@ def _parse_command_line(arg_string=None):
     # Convert nx to an integer
     if cmd_options.nx is not None:
         if not _hoomd.is_MPI_available():
-            hoomd.context.msg.error("The --nx option is only available in MPI builds.\n");
+            parser.error("The --nx option is only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
         try:
             cmd_options.nx = int(cmd_options.nx);
@@ -135,7 +135,7 @@ def _parse_command_line(arg_string=None):
     # Convert ny to an integer
     if cmd_options.ny is not None:
         if not _hoomd.is_MPI_available():
-            hoomd.context.msg.error("The --ny option is only available in MPI builds.\n");
+            parser.error("The --ny option is only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
         try:
             cmd_options.ny = int(cmd_options.ny);
@@ -145,7 +145,7 @@ def _parse_command_line(arg_string=None):
     # Convert nz to an integer
     if cmd_options.nz is not None:
        if not _hoomd.is_MPI_available():
-            hoomd.context.msg.error("The --nz option is only available in MPI builds.\n");
+            parser.error("The --nz option is only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
        try:
             cmd_options.nz = int(cmd_options.nz);
@@ -155,7 +155,7 @@ def _parse_command_line(arg_string=None):
     # Convert nthreads to an integer
     if cmd_options.nthreads is not None:
        if not _hoomd.is_TBB_available():
-            hoomd.context.msg.error("The --nthreads option is only available in TBB-enabled builds.\n");
+            parser.error("The --nthreads option is only available in TBB-enabled builds.\n");
             raise RuntimeError('Error setting option');
        try:
             cmd_options.nthreads = int(cmd_options.nthreads);
@@ -178,20 +178,14 @@ def _parse_command_line(arg_string=None):
     hoomd.context.options.single_mpi = cmd_options.single_mpi
     hoomd.context.options.nthreads = cmd_options.nthreads
 
-    if cmd_options.notice_level is not None:
-        hoomd.context.options.notice_level = cmd_options.notice_level;
-        hoomd.context.msg.setNoticeLevel(hoomd.context.options.notice_level);
-
-    if cmd_options.msg_file is not None:
-        hoomd.context.options.msg_file = cmd_options.msg_file;
-        hoomd.context.msg.openFile(hoomd.context.options.msg_file);
+    hoomd.context.options.notice_level = cmd_options.notice_level;
+    hoomd.context.options.msg_file = cmd_options.msg_file;
 
     if cmd_options.shared_msg_file is not None:
         if not _hoomd.is_MPI_available():
-            hoomd.context.msg.error("Shared log files are only available in MPI builds.\n");
+            parser.error("Shared log files are only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
         hoomd.context.options.shared_msg_file = cmd_options.shared_msg_file;
-        hoomd.context.msg.setSharedFile(hoomd.context.options.shared_msg_file);
 
     if cmd_options.nrank is not None:
         if not _hoomd.is_MPI_available():
