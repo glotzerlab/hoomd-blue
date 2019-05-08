@@ -6,10 +6,18 @@
 /*!
  * \file mpcd/ConfinedStreamingMethodGPU.cu
  * \brief Defines GPU functions and kernels used by mpcd::ConfinedStreamingMethodGPU
+ *
+ * \warning
+ * This file needs separable compilation with ExternalFields.cu. Any plugins extending
+ * the ConfinedStreamingGeometryGPU will also need to do separable compilation with
+ * ExternalFields.cu.
  */
 
 #include "ConfinedStreamingMethodGPU.cuh"
 #include "StreamingGeometry.h"
+
+#include "ExternalField.h"
+#include "hoomd/GPUPolymorph.cuh"
 
 namespace mpcd
 {

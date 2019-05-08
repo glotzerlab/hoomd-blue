@@ -135,6 +135,7 @@ Michael P. Howard, Princeton University & University of Texas at Austin
  * Fix references when disabling/enabling objects
  * Misc. bug fixes
  * CUDA9+V100 compatibility
+ * GPU polymorphic object wrapper
 
 James Antonaglia, University of Michigan
  * pair.mie
@@ -335,6 +336,7 @@ Michael P. Howard, Princeton University & University of Texas at Austin - **Lead
  * Slit streaming method
  * SRD and AT collision rules
  * Virtual particle filling framework
+ * External force framework and block, constant, and sine forces
 
 Source code
 -----------
