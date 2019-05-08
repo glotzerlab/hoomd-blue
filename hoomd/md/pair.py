@@ -2765,7 +2765,7 @@ class lj1208(pair):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 8.0);
         return _hoomd.make_scalar2(lj1, lj2);
 
-class Fourier(pair):
+class fourier(pair):
     R""" Fourier pair potential.
 
     Args:
@@ -2773,7 +2773,7 @@ class Fourier(pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`Fourier` specifies that a Oscillating pair potential with fast decay near cutoff should be applied between every
+    :py:class:`fourier` specifies that a Oscillating pair potential with fast decay near cutoff should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -2800,8 +2800,8 @@ class Fourier(pair):
     Example::
 
         nl = nlist.cell()
-        Fourier = pair.Fourier(r_cut=3.0, nlist=nl)
-        Fourier.pair_coeff.set('A', 'A', a=[], b=[])
+        fourier = pair.fourier(r_cut=3.0, nlist=nl)
+        fourier.pair_coeff.set('A', 'A', a=[], b=[])
     """
 
     def __init__(self, r_cut, nlist, name=None):

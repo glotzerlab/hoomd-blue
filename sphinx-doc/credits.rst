@@ -222,6 +222,9 @@ Alyssa Travitz, University of Michigan
 Mike Henry, Boise State University
   * Documentation improvements
 
+Pengji Zhou, University of Michigan
+  * pair.fourier
+
 HPMC developers
 ---------------
 

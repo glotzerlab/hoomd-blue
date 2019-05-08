@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: zhoupj
@@ -127,8 +127,8 @@ class EvaluatorPairFourier
                 Scalar b1 = 0;
                 for (int i=2; i<5; i++)
                     {
-                    a1 = a1 + std::pow(-1,i) * a[i-2];
-                    b1 = b1 + i * std::pow(-1,i) * b[i-2];
+                    a1 = a1 + fast::pow(Scalar(-1),Scalar(i)) * a[i-2];
+                    b1 = b1 + i * fast::pow(Scalar(-1),Scalar(i)) * b[i-2];
                     }
                 Scalar theta = x;
                 Scalar s;
@@ -163,7 +163,7 @@ class EvaluatorPairFourier
         */
         static std::string getName()
             {
-            return std::string("Fourier");
+            return std::string("fourier");
             }
         #endif
 
