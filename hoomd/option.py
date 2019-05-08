@@ -191,12 +191,7 @@ def _parse_command_line(arg_string=None):
         if not _hoomd.is_MPI_available():
             hoomd.context.msg.error("The --nrank option is only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
-        # check validity
-        nrank = int(cmd_options.nrank)
-        if (_hoomd.ExecutionConfiguration.getNRanksGlobal() % nrank):
-            hoomd.context.msg.error("Total number of ranks is not a multiple of --nrank\n");
-            raise RuntimeError('Error checking option');
-        hoomd.context.options.nrank = nrank
+        hoomd.context.options.nrank = int(cmd_options.nrank)
 
     if cmd_options.user is not None:
         hoomd.context.options.user = shlex.split(cmd_options.user);

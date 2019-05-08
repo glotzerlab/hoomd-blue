@@ -290,8 +290,13 @@ def _create_mpi_conf(mpi_comm, options):
             raise RuntimeError("Invalid mpi_comm object: {}".format(mpi_comm));
 
     if options.nrank is not None:
-         # split the communicator into partitions
-         mpi_conf.splitPartitions(options.nrank)
+        # check validity
+        nrank = options.nrank
+        if (mpi_conf.getNRanksGlobal() % nrank):
+            raise RuntimeError('Total number of ranks is not a multiple of --nrank');
+
+        # split the communicator into partitions
+        mpi_conf.splitPartitions(nrank)
 
     return mpi_conf
 

@@ -47,26 +47,26 @@ void MPIConfiguration::splitPartitions(unsigned int nrank)
     MPI_Comm_size(m_mpi_comm, &num_total_ranks);
 
     unsigned int partition = 0;
+    m_n_rank = nrank;
 
-    if  (m_n_rank != 0)
-        {
-        int rank;
-        MPI_Comm_rank(m_mpi_comm, &rank);
-
-        if (num_total_ranks % m_n_rank != 0)
-            throw(std::runtime_error("Invalid setting --nrank."));
-
-        partition = rank / m_n_rank;
-
-        // Split the communicator
-        MPI_Comm new_comm;
-        MPI_Comm_split(m_mpi_comm, partition, rank, &new_comm);
-
-        // update communicator
-        m_mpi_comm = new_comm;
-        }
+    if (m_n_rank == 0)
+        throw std::runtime_error("--nrank setting has to be > 0");
 
     int rank;
+    MPI_Comm_rank(m_mpi_comm, &rank);
+
+    if (num_total_ranks % m_n_rank != 0)
+        throw std::runtime_error("Invalid setting --nrank.");
+
+    partition = rank / m_n_rank;
+
+    // Split the communicator
+    MPI_Comm new_comm;
+    MPI_Comm_split(m_mpi_comm, partition, rank, &new_comm);
+
+    // update communicator
+    m_mpi_comm = new_comm;
+
     MPI_Comm_rank(m_mpi_comm, &rank);
     m_rank = rank;
 #endif
