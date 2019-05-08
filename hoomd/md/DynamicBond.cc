@@ -20,6 +20,31 @@ namespace py = pybind11;
 
 using namespace std;
 
+double capfraction(double x)
+    {
+	double frac;
+	double a0= 0.0925721;
+    double a1= -0.00699901;
+    double a2= 0.000378692;
+    double a3= -1.55671e-05;
+    double a4= 4.33718e-07;
+    double a5= -7.41086e-09;
+    double a6= 6.8603e-11;
+    double a7= -2.61042e-13;
+
+    frac=a0+a1*x+a2*x*x+a3*x*x*x+a4*x*x*x*x+a5*x*x*x*x*x+a6*x*x*x*x*x*x+a7*x*x*x*x*x*x*x;
+
+    if (frac<=0.0)
+        {
+        frac = 0.0;
+        }
+	else if (frac>=1.0)
+        {
+         frac = 1.0;
+        }
+    return frac;
+    }
+
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
     \param group Group of particles on which to apply this constraint
     \param nlist Neighborlist to use
@@ -100,7 +125,6 @@ void DynamicBond::update(unsigned int timestep)
 
     ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
 
-    // ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int>  h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
@@ -164,14 +188,6 @@ void DynamicBond::update(unsigned int timestep)
                 Scalar rnd2 = saru.s<Scalar>(0,1);
                 if (rnd2 < m_prob_break)
                     {
-                    // // find the last bond formed on particle i
-                    // int n_bonds = h_gpu_n_bonds.data[i];
-                    // int bond_idx = n_bonds - 1;
-                    //
-                    // group_storage<2> curr_bond = h_gpu_bondlist.data[gpu_table_index(i, bond_idx)];
-                    //
-                    // int bonded_idx = curr_bond.idx[0];
-                    // int bonded_type = curr_bond.idx[1];
 
                     // for each of the bonds in the system
                     const unsigned int size = (unsigned int)m_bond_data->getN();
