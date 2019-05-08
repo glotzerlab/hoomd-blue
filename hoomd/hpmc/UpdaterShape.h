@@ -4,7 +4,6 @@
 #include <numeric>
 #include <algorithm>
 #include "hoomd/Updater.h"
-#include "hoomd/Saru.h"
 #include "IntegratorHPMCMono.h"
 #include "hoomd/HOOMDMPI.h"
 
@@ -60,7 +59,7 @@ public:
 
     void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
 
-    void registerShapeMove(std::shared_ptr<shape_move_function<Shape, hoomd::detail::Saru> > move);
+    void registerShapeMove(std::shared_ptr<shape_move_function<Shape, hoomd::RandomGenerator> > move);
 
     Scalar getStepSize(unsigned int typ)
         {
@@ -96,7 +95,7 @@ private:
     std::vector<unsigned int>   m_box_total;
     unsigned int                m_move_ratio;
 
-    std::shared_ptr< shape_move_function<Shape, hoomd::detail::Saru> >   m_move_function;
+    std::shared_ptr< shape_move_function<Shape, hoomd::RandomGenerator> >   m_move_function;
     std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
     std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function;
 
@@ -245,8 +244,8 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     	return;
         }
 
-    hoomd::detail::Saru rng(m_move_ratio, m_seed, timestep);
-    unsigned int move_type_select = rng.u32() & 0xffff;
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterShapeUpdate, m_move_ratio, m_seed, timestep);
+    unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
     bool move = (move_type_select < m_move_ratio);
     if (!move)
         return;
@@ -259,6 +258,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         if (this->m_prof)
             this->m_prof->push(this->m_exec_conf, "UpdaterShape setup");
         // Shuffle the order of particles for this sweep
+        // TODO: should these be better random numbers?
         m_update_order.choose(timestep+40591, m_nselect, sweep+91193); // order of the list doesn't matter the probability of each combination is the same.
         if (this->m_prof)
             this->m_prof->pop();
@@ -304,7 +304,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             ArrayHandle<Scalar> h_det_backup(determinant_backup, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
 
-            hoomd::detail::Saru rng_i(m_seed + m_nselect + sweep + m_nsweeps, typ_i+1046527, timestep+7919);
+            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterShapeConstruct, m_seed, timestep, typ_i, m_nselect);
             m_move_function->construct(timestep, typ_i, param, rng_i);
             h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
@@ -319,7 +319,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                                                     h_det_backup.data[typ_i]        // old determinant
                                                 );
             m_mc->setParam(typ_i, param, cur_type == (m_nselect-1));
-            }
+            }  // end loop over particle types
         if (this->m_prof)
             this->m_prof->pop();
 
@@ -327,7 +327,9 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             this->m_prof->push(this->m_exec_conf, "UpdaterShape cleanup");
         // calculate boltzmann factor.
         bool accept = false, reject=true; // looks redundant but it is not because of the pretend mode.
-        Scalar p = rng.s(Scalar(0.0),Scalar(1.0)), Z = fast::exp(log_boltz);
+
+        Scalar p = hoomd::detail::generate_canonical<Scalar>(rng);
+        Scalar Z = fast::exp(log_boltz);
         m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
         
     if(m_multi_phase)
@@ -444,7 +446,7 @@ void UpdaterShape<Shape>::registerLogBoltzmannFunction(std::shared_ptr< ShapeLog
     }
 
 template< typename Shape>
-void UpdaterShape<Shape>::registerShapeMove(std::shared_ptr<shape_move_function<Shape, hoomd::detail::Saru> > move)
+void UpdaterShape<Shape>::registerShapeMove(std::shared_ptr<shape_move_function<Shape, hoomd::RandomGenerator> > move)
     {
     if(m_move_function) // if it exists I do not want to reset it.
         return;

@@ -25,6 +25,7 @@ struct RNGIdentifier
     {
     static const uint32_t ComputeFreeVolume = 0x23ed56f2;
     static const uint32_t HPMCMonoShuffle = 0xfa870af6;
+    static const uint32_t HPMCMonoChoose = 0xfa870af7;
     static const uint32_t HPMCMonoTrialMove = 0x754dea60;
     static const uint32_t HPMCMonoShift = 0xf4a3210e;
     static const uint32_t UpdaterBoxMC= 0xf6a510ab;
@@ -34,6 +35,8 @@ struct RNGIdentifier
     static const uint32_t UpdaterMuVT = 0x186df7ba;
     static const uint32_t UpdaterMuVTBox1 = 0x05d4a502;
     static const uint32_t UpdaterMuVTBox2 = 0xa74201bd;
+    static const uint32_t UpdaterShapeUpdate = 0xfa870af8;
+    static const uint32_t UpdaterShapeConstruct = 0xfa870af9;
     static const uint32_t ActiveForceCompute = 0x7edf0a42;
     static const uint32_t EvaluatorPairDPDThermo = 0x4a84f5d0;
     static const uint32_t IntegrationMethodTwoStep = 0x11df5642;

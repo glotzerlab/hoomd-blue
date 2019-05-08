@@ -1,7 +1,6 @@
 #ifndef _SHAPE_MOVES_H
 #define _SHAPE_MOVES_H
 
-#include "hoomd/Saru.h"
 #include "ShapeUtils.h"
 #include <hoomd/Variant.h>
 #include "Moves.h"
@@ -182,7 +181,10 @@ public:
         {
         for(size_t i = 0; i < m_params[type_id].size(); i++)
             {
-            Scalar x = ((rng.u32() & 0xffff) < m_select_ratio) ? rng.s(fmax(-m_step_size[type_id], -(m_params[type_id][i])), fmin(m_step_size[type_id], (1.0-m_params[type_id][i]))) : 0.0;
+            hoomd::UniformDistribution<Scalar> uniform(
+                    fmax(-m_step_size[type_id], -(m_params[type_id][i])),
+                    fmin(m_step_size[type_id], (1.0-m_params[type_id][i])));
+            Scalar x = (hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio) ? uniform(rng) : 0.0;
             m_params[type_id][i] += x;
             }
         pybind11::object shape_data = m_python_callback(m_params[type_id]);
@@ -333,7 +335,7 @@ public:
         // mix the shape.
         for(size_t i = 0; i < shape.N; i++)
             {
-            if( (rng.u32()& 0xffff) < m_select_ratio )
+            if( hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio )
                 {
                 vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
                 move_translate(vert, rng,  m_step_size[type_id], 3);
@@ -397,10 +399,11 @@ inline bool isIn(Scalar x, Scalar y, Scalar alpha)
 template <class RNG>
 inline void generate_scale_R(Scalar& x, Scalar& y, RNG& rng, Scalar alpha)
     {
+    hoomd::UniformDistribution<Scalar> uniform(Scalar(1)/alpha, alpha);
     do
         {
-        x = rng.s(Scalar(1)/alpha, alpha);
-        y = rng.s(Scalar(1)/alpha, alpha);
+        x = uniform(rng);
+        y = uniform(rng);
         }while(!isIn(x,y,alpha));
     }
 template <class RNG>
@@ -412,7 +415,7 @@ inline void generate_scale_S(Scalar& x, Scalar& y, RNG& rng, Scalar alpha)
         {
         generate_scale_R(x,y,rng,alpha);
         sigma = sqrt((1.0/(x*x*x*x*y*y)) + (1.0/(x*x*y*y*y*y)) + 1);
-        U = rng.s(0.0,1.0);
+        U = hoomd::detail::generate_canonical<Scalar>(rng);
         }while(U > sigma/sigma_max);
     }
 
@@ -459,7 +462,7 @@ public:
         {
         using Eigen::Matrix3d;
         Matrix3d transform;
-        if( (rng.u32()& 0xffff) < m_select_ratio ) // perform a scaling move
+        if( hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio ) // perform a scaling move
             {
             generate_scale(transform, rng, m_step_size[type_id]+1.0);
             }
@@ -620,11 +623,10 @@ class ShapeSpring : public ShapeSpringBase< Shape >
 {
     using ShapeSpringBase< Shape >::m_reference_shape;
     using ShapeSpringBase< Shape >::m_volume;
-    //using elastic_shape_move_function<Shape, hoomd::detail::Saru>;
-    std::shared_ptr<elastic_shape_move_function<Shape, hoomd::detail::Saru> > m_shape_move;
+    std::shared_ptr<elastic_shape_move_function<Shape, hoomd::RandomGenerator> > m_shape_move;
 public:
     using ShapeSpringBase< Shape >::m_k;
-    ShapeSpring(std::shared_ptr<Variant> k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, hoomd::detail::Saru> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
+    ShapeSpring(std::shared_ptr<Variant> k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, hoomd::RandomGenerator> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
         {
         }
 

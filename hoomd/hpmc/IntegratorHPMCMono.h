@@ -93,17 +93,6 @@ class UpdateOrder
                     m_update_order[i] = i;
                 }
             }
-        //! randomize the order
-        /*! \param timestep Current timestep of the simulation
-            \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
-            timestep.
-        */
-        void randomize(unsigned int timestep, unsigned int select = 0)
-            {
-            shuffle(timestep, select);
-            hoomd::detail::Saru rng(timestep, m_seed+select+0xbaddab, 0xfa870af6);
-            std::shuffle(m_update_order.begin(), m_update_order.end(), rng);
-            }
 
         //! randomly choose a subset of the list
         /*! \param timestep Current timestep of the simulation
@@ -116,7 +105,7 @@ class UpdateOrder
             {
             // this is an implementation of the classic reservoir sampling
             // algorithm.
-            hoomd::detail::Saru rng(timestep, m_seed+select+53469, 0xfa870af6);
+            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoChoose, m_seed, timestep, select);
             std::vector<unsigned int>::iterator next, iter, end, last;
             next = m_update_order.begin();
             iter = next;
@@ -124,7 +113,7 @@ class UpdateOrder
             last = m_update_order.end();
             while(next != end && end <= last)
                 {
-                Scalar p = rng.s(Scalar(0.0),Scalar(1.0));
+                Scalar p = hoomd::detail::generate_canonical<Scalar>(rng);
                 if(p < Scalar(std::distance(next,end))/Scalar(std::distance(iter, last)))
                     {
                     std::swap((*next), (*iter));
