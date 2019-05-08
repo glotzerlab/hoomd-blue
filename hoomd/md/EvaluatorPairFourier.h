@@ -70,16 +70,10 @@ class EvaluatorPairFourier
             \param _rcutsq Sqauared distance at which the potential goes to 0
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairFourier(Scalar _rsq, Scalar _rcutsq,
-                                    const param_type& _params)
-            {
-                rsq = _rsq;
-                rcutsq= _rcutsq;
-                for (int i = 0 ;i < 3; ++i) {
-                    a[i] = _params.a[i];}
-                for (int i = 0; i < 3; ++i) {
-                    b[i] = _params.b[i];}
 
+        DEVICE EvaluatorPairFourier(Scalar _rsq, Scalar _rcutsq,
+                                    const param_type& _params) : rsq(_rsq), rcutsq(_rcutsq), params(_params)
+            {
             }
 
         //! Fourier doesn't use diameter
@@ -127,8 +121,8 @@ class EvaluatorPairFourier
                 Scalar b1 = 0;
                 for (int i=2; i<5; i++)
                     {
-                    a1 = a1 + fast::pow(Scalar(-1),Scalar(i)) * a[i-2];
-                    b1 = b1 + i * fast::pow(Scalar(-1),Scalar(i)) * b[i-2];
+                    a1 = a1 + fast::pow(Scalar(-1),Scalar(i)) * params.a[i-2];
+                    b1 = b1 + i * fast::pow(Scalar(-1),Scalar(i)) * params.b[i-2];
                     }
                 Scalar theta = x;
                 Scalar s;
@@ -141,8 +135,8 @@ class EvaluatorPairFourier
                     {
                     theta = Scalar(i) * x;
                     fast::sincos(theta, s, c);
-                    fourier_part += a[i-2] * c + b[i-2] * s;
-                    force_divr += a[i-2] * Scalar(i) * s - b[i-2] * Scalar(i) * c;
+                    fourier_part += params.a[i-2] * c + params.b[i-2] * s;
+                    force_divr += params.a[i-2] * Scalar(i) * s - params.b[i-2] * Scalar(i) * c;
                     }
 
                 force_divr = r1inv * (r1inv * r12inv * Scalar(12)
@@ -170,8 +164,7 @@ class EvaluatorPairFourier
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        Scalar a[3];      //!< Fourier component coefficents
-        Scalar b[3];      //!< Fourier component coefficents
+        const pair_fourier_params params;      //!< Fourier component coefficents
     };
 
 
