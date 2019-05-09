@@ -118,8 +118,7 @@ class EvaluatorPairFourier
             if (rsq < rcutsq)
                 {
                 Scalar half_period = fast::sqrt(rcutsq);
-                Scalar pi = atan(1)*Scalar(4);
-                Scalar period_scale = pi / half_period;
+		Scalar period_scale = M_PI / half_period;
                 Scalar r = fast::sqrt(rsq);
                 Scalar x = r * period_scale;
                 Scalar r1inv = Scalar(1)/r;
