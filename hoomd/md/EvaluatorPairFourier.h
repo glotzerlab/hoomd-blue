@@ -11,6 +11,7 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 /*! \file EvaluatorPairFourier.h
     \brief Defines the pair evaluator class for potential in form of Fourier series
