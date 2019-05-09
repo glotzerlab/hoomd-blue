@@ -295,13 +295,11 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             {
             Scalar phi = s_phi_ab[threadIdx.x*ntypes+typ_b];
 
-            #if (__CUDA_ARCH__ >= 300)
             // reduce in warp
             phi = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(phi);
 
             // broadcast into shared mem
             s_phi_ab[threadIdx.x*ntypes+typ_b] = hoomd::detail::WarpScan<Scalar, tpp>().Broadcast(phi, 0);
-            #endif
 
             if (threadIdx.x % tpp == 0)
                 {

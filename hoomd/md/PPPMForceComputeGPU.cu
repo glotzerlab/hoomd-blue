@@ -16,23 +16,6 @@
 //! The developer has chosen not to document this variable
 __device__ __constant__ Scalar GPU_rho_coeff[CONSTANT_SIZE];
 
-//! Implements workaround atomic float addition on sm_1x hardware
-__device__ inline void atomicFloatAdd(float* address, float value)
-    {
-#if (__CUDA_ARCH__ < 200)
-    float old = value;
-    float new_old;
-    do
-        {
-        new_old = atomicExch(address, 0.0f);
-        new_old += old;
-        }
-    while ((old = atomicExch(address, new_old))!=0.0f);
-#else
-    atomicAdd(address, value);
-#endif
-    }
-
 //! GPU implementation of sinc(x)==sin(x)/x
 __device__ Scalar gpu_sinc(Scalar x)
     {
@@ -257,7 +240,7 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
 
                     // compute fraction of particle density assigned to cell
                     // from particles in this bin
-                    atomicFloatAdd(&d_mesh[cell_idx].x, z0*result);
+                    atomicAdd(&d_mesh[cell_idx].x, z0*result);
                     }
 
                 ignore_z = false;
@@ -333,7 +316,7 @@ void gpu_assign_particles(const uint3 mesh_dim,
 
         if (ngpu > 1)
             {
-            // zero the temporary mesh array 
+            // zero the temporary mesh array
             cudaMemsetAsync(d_mesh_scratch + idev*mesh_elements, 0, sizeof(cufftComplex)*mesh_elements);
             }
 
@@ -369,7 +352,7 @@ void gpu_reduce_meshes(const unsigned int mesh_elements,
         d_mesh,
         ngpu);
     }
-   
+
 __global__ void gpu_compute_mesh_virial_kernel(const unsigned int n_wave_vectors,
                                          cufftComplex *d_fourier_mesh,
                                          Scalar *d_inf_f,

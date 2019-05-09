@@ -528,11 +528,7 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
                     Scalar4 postype_j;
                     do {
                         // read in position, and orientation of neighboring particle
-                        #if (__CUDA_ARCH__ > 300)
                         j = __ldg(&d_excell_idx[excli(local_k, my_cell)]);
-                        #else
-                        j = d_excell_idx[excli(local_k, my_cell)];
-                        #endif
 
                         // check against neighbor
                         postype_j = texFetchScalar4(d_postype_old, implicit_postype_old_tex, j);
@@ -1056,11 +1052,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
             unsigned int j, next_j = 0;
             if (k < excell_size)
                 {
-                #if (__CUDA_ARCH__ > 300)
                 next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
-                #else
-                next_j = d_excell_idx[excli(k, my_cell)];
-                #endif
                 }
 
             // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
@@ -1082,11 +1074,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
 
                     if (k < excell_size)
                         {
-                        #if (__CUDA_ARCH__ > 300)
                         next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
-                        #else
-                        next_j = d_excell_idx[excli(k, my_cell)];
-                        #endif
                         }
 
                     // read in position, and orientation of neighboring particle

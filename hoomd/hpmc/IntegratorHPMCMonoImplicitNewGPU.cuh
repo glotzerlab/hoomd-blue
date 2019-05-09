@@ -508,11 +508,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
                 unsigned int j, next_j = 0;
                 if (k < excell_size)
                     {
-                    #if (__CUDA_ARCH__ > 300)
                     next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
-                    #else
-                    next_j = d_excell_idx[excli(k, my_cell)];
-                    #endif
                     }
 
                 // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
@@ -536,11 +532,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
 
                         if (k < excell_size)
                             {
-                            #if (__CUDA_ARCH__ > 300)
                             next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
-                            #else
-                            next_j = d_excell_idx[excli(k, my_cell)];
-                            #endif
                             }
 
                         // read in position, and orientation of neighboring particle

@@ -329,11 +329,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
             if (local_k < excell_size)
                 {
                 // read in position, and orientation of neighboring particle
-                #if ( __CUDA_ARCH__ > 300)
                 unsigned int j = __ldg(&d_excell_idx[excli(local_k, my_cell)]);
-                #else
-                unsigned int j = d_excell_idx[excli(local_k, my_cell)];
-                #endif
 
                 Scalar4 postype_j = texFetchScalar4(d_postype, free_volume_postype_tex, j);
                 Scalar4 orientation_j = make_scalar4(1,0,0,0);
