@@ -42,26 +42,8 @@ __device__ inline unsigned int texFetchUint(const unsigned int *ptr, texture<uns
 
 #ifdef SINGLE_PRECISION
 
-typedef texture<Scalar, 1, cudaReadModeElementType> scalar_tex_t;
 typedef texture<Scalar2, 1, cudaReadModeElementType> scalar2_tex_t;
 typedef texture<Scalar4, 1, cudaReadModeElementType> scalar4_tex_t;
-
-//! Fetch a Scalar value from texture memory.
-/*! This function should be called whenever a CUDA kernel wants to retrieve a
-    Scalar value from texture memory.
-
-    \param ptr Pointer to bound memory
-    \param tex_ref Texture in which the desired values are stored.
-    \param ii Index at which to look.
-*/
-__device__ inline Scalar texFetchScalar(const Scalar *ptr, texture<Scalar, 1> tex_ref, unsigned int ii)
-    {
-    #if __CUDA_ARCH__ >= 350
-    return __ldg(ptr+ii);
-    #else
-    return tex1Dfetch(tex_ref, ii);
-    #endif
-    }
 
 //! Fetch a Scalar2 value from texture memory.
 /*! This function should be called whenever a CUDA kernel wants to retrieve a
@@ -98,27 +80,8 @@ __device__ inline Scalar4 texFetchScalar4(const Scalar4 *ptr, texture<Scalar4, 1
     }
 
 #else
-typedef texture<int2, 1, cudaReadModeElementType> scalar_tex_t;
 typedef texture<int4, 1, cudaReadModeElementType> scalar2_tex_t;
 typedef texture<int4, 1, cudaReadModeElementType> scalar4_tex_t;
-
-//! Fetch a Scalar value from texture memory.
-/*! This function should be called whenever a CUDA kernel wants to retrieve a
-    Scalar value from texture memory.
-
-    \param ptr Pointer to bound memory
-    \param tex_ref Texture in which the desired values are stored.
-    \param ii Index at which to look.
-*/
-__device__ inline Scalar texFetchScalar(const Scalar *ptr, texture<int2, 1> tex_ref, unsigned int ii)
-    {
-    #if __CUDA_ARCH__ >= 350
-    return __ldg(ptr+ii);
-    #else
-    int2 val = tex1Dfetch(tex_ref, ii);
-    return Scalar(__hiloint2double(val.y, val.x));
-    #endif
-    }
 
 //! Fetch a Scalar2 value from texture memory.
 /*! This function should be called whenever a CUDA kernel wants to retrieve a

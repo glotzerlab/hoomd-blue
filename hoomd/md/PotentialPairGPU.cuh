@@ -111,12 +111,6 @@ struct pair_args_t
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 
-//! Texture for reading particle diameters
-scalar_tex_t pdata_diam_tex;
-
-//! Texture for reading particle charges
-scalar_tex_t pdata_charge_tex;
-
 // there is some naming conflict between the DPD pair force and PotentialPair because
 // the DPD does not extend PotentialPair, and so we need to choose a different name for this texture
 //! Texture for reading neighbor list
@@ -236,12 +230,12 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
 
         Scalar di;
         if (evaluator::needsDiameter())
-            di = texFetchScalar(d_diameter, pdata_diam_tex, idx);
+            di = __ldg(d_diameter + idx);
         else
             di += Scalar(1.0); // shut up compiler warning
         Scalar qi;
         if (evaluator::needsCharge())
-            qi = texFetchScalar(d_charge, pdata_charge_tex, idx);
+            qi = __ldg(d_charge + idx);
         else
             qi += Scalar(1.0); // shut up compiler warning
 
@@ -281,13 +275,13 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
 
                 Scalar dj = Scalar(0.0);
                 if (evaluator::needsDiameter())
-                    dj = texFetchScalar(d_diameter, pdata_diam_tex, cur_j);
+                    dj = __ldg(d_diameter + cur_j);
                 else
                     dj += Scalar(1.0); // shut up compiler warning
 
                 Scalar qj = Scalar(0.0);
                 if (evaluator::needsCharge())
-                    qj = texFetchScalar(d_charge, pdata_charge_tex, cur_j);
+                    qj = __ldg(d_charge + cur_j);
                 else
                     qj += Scalar(1.0); // shut up compiler warning
 
@@ -430,15 +424,6 @@ inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.n_max);
 
-    // bind the diameter texture
-    pdata_diam_tex.normalized = false;
-    pdata_diam_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) * pair_args.n_max);
-
-    pdata_charge_tex.normalized = false;
-    pdata_charge_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.n_max);
-
     // bind the neighborlist texture if it will fit
     if (pair_args.size_neigh_list <= pair_args.max_tex1d_width)
         {
@@ -451,8 +436,6 @@ inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
 inline void gpu_pair_force_unbind_textures(const pair_args_t pair_args)
     {
     cudaUnbindTexture(pdata_pos_tex);
-    cudaUnbindTexture(pdata_diam_tex);
-    cudaUnbindTexture(pdata_charge_tex);
 
     if (pair_args.size_neigh_list <= pair_args.max_tex1d_width)
         {

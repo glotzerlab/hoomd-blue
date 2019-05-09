@@ -124,12 +124,6 @@ scalar4_tex_t aniso_pdata_pos_tex;
 //! Texture for reading particle quaternions
 scalar4_tex_t aniso_pdata_quat_tex;
 
-//! Texture for reading particle diameters
-scalar_tex_t aniso_pdata_diam_tex;
-
-//! Texture for reading particle charges
-scalar_tex_t aniso_pdata_charge_tex;
-
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
     forces for each pair is handled via the template class \a evaluator.
@@ -229,12 +223,12 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
 
     Scalar di;
     if (evaluator::needsDiameter())
-        di = texFetchScalar(d_diameter, aniso_pdata_diam_tex, idx);
+        di = __ldg(d_diameter + idx);
     else
         di += 1.0f; // shut up compiler warning
     Scalar qi;
     if (evaluator::needsCharge())
-        qi = texFetchScalar(d_charge, aniso_pdata_charge_tex, idx);
+        qi = __ldg(d_charge + idx);
     else
         qi += 1.0f; // shut up compiler warning
 
@@ -271,13 +265,13 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
 
             Scalar dj = 0.0f;
             if (evaluator::needsDiameter())
-                dj = texFetchScalar(d_diameter, aniso_pdata_diam_tex, cur_j);
+                dj = __ldg(d_diameter + cur_j);
             else
                 dj += 1.0f; // shut up compiler warning
 
             Scalar qj = 0.0f;
             if (evaluator::needsCharge())
-                qj = texFetchScalar(d_charge, aniso_pdata_charge_tex, cur_j);
+                qj = __ldg(d_charge + cur_j);
             else
                 qj += 1.0f; // shut up compiler warning
 
@@ -424,15 +418,6 @@ void gpu_pair_aniso_force_bind_textures(const a_pair_args_t pair_args)
     aniso_pdata_quat_tex.normalized = false;
     aniso_pdata_quat_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, aniso_pdata_quat_tex, pair_args.d_orientation, sizeof(Scalar4)*pair_args.n_max);
-
-    // bind the diameter texture
-    aniso_pdata_diam_tex.normalized = false;
-    aniso_pdata_diam_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, aniso_pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) * pair_args.n_max);
-
-    aniso_pdata_charge_tex.normalized = false;
-    aniso_pdata_charge_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, aniso_pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.n_max);
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU

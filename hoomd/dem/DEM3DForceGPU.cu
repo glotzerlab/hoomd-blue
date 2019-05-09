@@ -30,7 +30,6 @@
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 scalar4_tex_t pdata_quat_tex;
-scalar_tex_t pdata_diam_tex;
 scalar4_tex_t pdata_velocity_tex;
 
 //! Kernel for calculating 3D DEM forces
@@ -242,7 +241,7 @@ __global__ void gpu_compute_dem3d_forces_kernel(
 
         Scalar di = 0.0f;
         if (Evaluator::needsDiameter())
-            di = texFetchScalar(d_diam, pdata_diam_tex, partIdx);
+            di = __ldg(d_diam + partIdx);
         else
             di += 1.0f; //shut up compiler warning. Vestigial from HOOMD
 
@@ -299,7 +298,7 @@ __global__ void gpu_compute_dem3d_forces_kernel(
                 Scalar dj(0);
                 if (Evaluator::needsDiameter())
                     {
-                    dj = texFetchScalar(d_diam, pdata_diam_tex, cur_neigh);
+                    dj = __ldg(d_diam + cur_neigh);
                     evaluator.setDiameter(di, dj);
                     }
                 else
@@ -524,11 +523,6 @@ cudaError_t gpu_compute_dem3d_forces(
     pdata_quat_tex.normalized = false;
     pdata_quat_tex.filterMode = cudaFilterModePoint;
     error = cudaBindTexture(0, pdata_quat_tex, d_quat, sizeof(Scalar4)*(N+n_ghosts));
-    if (error != cudaSuccess)
-        return error;
-    pdata_diam_tex.normalized = false;
-    pdata_diam_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_diam_tex, d_diam, sizeof(Scalar)*(N+n_ghosts));
     if (error != cudaSuccess)
         return error;
     pdata_velocity_tex.normalized = false;

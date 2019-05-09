@@ -24,8 +24,6 @@ scalar4_tex_t tex_rphi;
 scalar4_tex_t tex_dF;
 scalar4_tex_t tex_drho;
 scalar4_tex_t tex_drphi;
-//! Texture for dF/dP
-scalar_tex_t tex_dFdP;
 
 //! Storage space for EAM parameters on the GPU
 __constant__ EAMTexInterData eam_data_ti;
@@ -202,7 +200,7 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const unsigned 
     int nr = eam_data_ti.nr;
     Scalar rdr = eam_data_ti.rdr;
     Scalar r_cutsq = eam_data_ti.r_cutsq;
-    Scalar d_dFdPidx = texFetchScalar(d_dFdP, tex_dFdP, idx);
+    Scalar d_dFdPidx = __ldg(d_dFdP + idx);
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
         {
         cur_neigh = next_neigh;
@@ -265,7 +263,7 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const unsigned 
         dv = texFetchScalar4(d_drho, tex_drho, idxs);
         Scalar derivativeRhoJ = dv.z + dv.y * remainder + dv.x * remainder * remainder;
         // fullDerivativePhi = dF/dP * drho / dr for j + dF/dP * drho / dr for j + phi
-        Scalar d_dFdPcur = texFetchScalar(d_dFdP, tex_dFdP, cur_neigh);
+        Scalar d_dFdPcur = __ldg(d_dFdP + cur_neigh);
         Scalar fullDerivativePhi = d_dFdPidx * derivativeRhoJ + d_dFdPcur * derivativeRhoI + derivativePhi;
         // compute forces
         pairForce = -fullDerivativePhi * inverseR;
@@ -362,12 +360,6 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4) * N);
-    if (error != cudaSuccess)
-        return error;
-
-    tex_dFdP.normalized = false;
-    tex_dFdP.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, tex_dFdP, d_dFdP, sizeof(Scalar) * N);
     if (error != cudaSuccess)
         return error;
 

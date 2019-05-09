@@ -1216,10 +1216,6 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 
-//! Texture for reading charge parameters
-scalar_tex_t pdata_charge_tex;
-
-
 //! The developer has chosen not to document this function
 __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                                           Scalar *d_virial,
@@ -1245,7 +1241,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
         Scalar4 postypei =  texFetchScalar4(d_pos, pdata_pos_tex, idx);
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
-        Scalar qi = texFetchScalar(d_charge, pdata_charge_tex, idx);
+        Scalar qi = __ldg(d_charge + idx);
         // initialize the force to 0
         Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
         Scalar virial[6];
@@ -1268,7 +1264,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
                     Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
-                    Scalar qj = texFetchScalar(d_charge, pdata_charge_tex, cur_j);
+                    Scalar qj = __ldg(d_charge + cur_j);
 
                     // calculate dr (with periodic boundary conditions) (FLOPS: 3)
                     Scalar3 dx = posi - posj;
@@ -1341,10 +1337,6 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
     if (compute_capability < 350)
         {
         cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*Nmax);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * Nmax);
         if (error != cudaSuccess)
             return error;
         }
