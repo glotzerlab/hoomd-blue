@@ -776,8 +776,8 @@ UP_TEST( mpcd_communicator_overdecompose_test )
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
                                                                   std::vector<int>(),
                                                                   false,
-                                                                  false,
-                                                                  2);
+                                                                  false);
+        exec_conf->getMPIConfig()->splitPartitions(2);
         test_communicator_overdecompose(exec_conf, 2, 1, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 2, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 1, 2, false);
@@ -787,8 +787,8 @@ UP_TEST( mpcd_communicator_overdecompose_test )
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
                                                                   std::vector<int>(),
                                                                   false,
-                                                                  false,
-                                                                  4);
+                                                                  false);
+        exec_conf->getMPIConfig()->splitPartitions(4);
         test_communicator_overdecompose(exec_conf, 4, 1, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 4, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 1, 4, false);
@@ -798,8 +798,8 @@ UP_TEST( mpcd_communicator_overdecompose_test )
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
                                                                   std::vector<int>(),
                                                                   false,
-                                                                  false,
-                                                                  8);
+                                                                  false);
+        exec_conf->getMPIConfig()->splitPartitions(8);
         test_communicator_overdecompose(exec_conf, 8, 1, 1, true);
         test_communicator_overdecompose(exec_conf, 1, 8, 1, true);
         test_communicator_overdecompose(exec_conf, 1, 1, 8, true);
