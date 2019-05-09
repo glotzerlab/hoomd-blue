@@ -21,9 +21,6 @@ scalar4_tex_t pdata_pos_tex;
 //! Texture for reading the neighborlist
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
-//! Texture for reading table values
-scalar2_tex_t tables_tex;
-
 /*!  This kernel is called to calculate the table pair forces on all N particles
 
     \param d_force Device memory to write computed forces
@@ -44,10 +41,6 @@ scalar2_tex_t tables_tex;
 
     \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
                            is used depending on architecture.
-
-    \b Details:
-    * Table entries are read from tables_tex. Note that currently this is bound to a 1D memory region. Performance tests
-      at a later date may result in this changing.
 */
 template<unsigned char use_gmem_nlist>
 __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
@@ -161,8 +154,8 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
 
             // compute index into the table and read in values
             unsigned int value_i = floor(value_f);
-            Scalar2 VF0 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_table_index));
-            Scalar2 VF1 = texFetchScalar2(d_tables, tables_tex, table_value(value_i+1, cur_table_index));
+            Scalar2 VF0 = __ldg(d_tables + table_value(value_i, cur_table_index));
+            Scalar2 VF1 = __ldg(d_tables + table_value(value_i+1, cur_table_index));
 
             // unpack the data
             Scalar V0 = VF0.x;
@@ -283,13 +276,6 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
                 if (error != cudaSuccess)
                     return error;
                 }
-
-            // bind the tables texture
-            tables_tex.normalized = false;
-            tables_tex.filterMode = cudaFilterModePoint;
-            error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_width * table_index.getNumElements());
-            if (error != cudaSuccess)
-                return error;
             }
 
         if (compute_capability < 350 && size_nlist > max_tex1d_width)

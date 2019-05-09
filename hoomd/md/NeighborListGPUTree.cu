@@ -20,8 +20,6 @@
 scalar4_tex_t pdata_pos_tex;
 //! Texture for reading leaf data
 scalar4_tex_t leaf_xyzf_tex;
-//! Texture for the diameter / body
-scalar2_tex_t leaf_db_tex;
 //! Texture for reading node upper and lower bounds
 scalar4_tex_t aabb_node_bounds_tex;
 //! Texture for the head list
@@ -1030,7 +1028,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
     const unsigned int type_i = __scalar_as_int(postype_i.w);
 
     // fetch the diameter and body out of the leaf texture since it's bound anyway
-    const Scalar2 db_i = texFetchScalar2(d_leaf_db, leaf_db_tex, idx);
+    const Scalar2 db_i = __ldg(d_leaf_db + idx);
     const Scalar diam_i = db_i.x;
     const unsigned int body_i = __scalar_as_int(db_i.y);
 
@@ -1098,7 +1096,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                             const Scalar3 pos_j = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
                             const unsigned int j = __scalar_as_int(cur_xyzf.w);
 
-                            const Scalar2 cur_db = texFetchScalar2(d_leaf_db, leaf_db_tex, cur_p);
+                            const Scalar2 cur_db = __ldg(d_leaf_db + cur_p);
                             const Scalar diam_j = cur_db.x;
                             const unsigned int body_j = __scalar_as_int(cur_db.y);
 
@@ -1242,12 +1240,6 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         leaf_xyzf_tex.normalized = false;
         leaf_xyzf_tex.filterMode = cudaFilterModePoint;
         error = cudaBindTexture(0, leaf_xyzf_tex, d_leaf_xyzf, sizeof(Scalar4)*(N+nghosts));
-        if (error != cudaSuccess)
-            return error;
-
-        leaf_db_tex.normalized = false;
-        leaf_db_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, leaf_db_tex, d_leaf_db, sizeof(Scalar2)*(N+nghosts));
         if (error != cudaSuccess)
             return error;
 
@@ -1413,10 +1405,6 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
             return error;
 
         error = cudaUnbindTexture(leaf_xyzf_tex);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaUnbindTexture(leaf_db_tex);
         if (error != cudaSuccess)
             return error;
 

@@ -16,12 +16,6 @@
     \brief Defines GPU kernel code for calculating the CGCMM angle forces. Used by CGCMMAngleForceComputeGPU.
 */
 
-//! Texture for reading angle parameters
-scalar2_tex_t angle_params_tex;
-
-//! Texture for reading angle CGCMM S-R parameters
-scalar2_tex_t angle_CGCMMsr_tex; // MISSING EPSILON!!! sigma=.x, rcut=.y
-
 //! Texture for reading angle CGCMM Epsilon-pow/pref parameters
 scalar4_tex_t angle_CGCMMepow_tex; // now with EPSILON=.x, pow1=.y, pow2=.z, pref=.w
 
@@ -124,7 +118,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
         dac = box.minImage(dac);
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
-        Scalar2 params = texFetchScalar2(d_params, angle_params_tex, cur_angle_type);
+        Scalar2 params = __ldg(d_params + cur_angle_type);
         Scalar K = params.x;
         Scalar t_0 = params.y;
 
@@ -154,7 +148,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
             vac[i] = Scalar(0.0);
 
         // get the angle E-S-R parameters (MEM TRANSFER: 12 bytes)
-        const Scalar2 cgSR = texFetchScalar2(d_CGCMMsr, angle_CGCMMsr_tex, cur_angle_type);
+        const Scalar2 cgSR = __ldg(d_CGCMMsr + cur_angle_type);
 
         Scalar cgsigma = cgSR.x;
         Scalar cgrcut = cgSR.y;
@@ -309,15 +303,7 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
     // bind the textures on pre sm 35 arches
     if (compute_capability < 350)
         {
-        cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaBindTexture(0, angle_CGCMMsr_tex, d_CGCMMsr, sizeof(Scalar2) * n_angle_types);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaBindTexture(0, angle_CGCMMepow_tex, d_CGCMMepow, sizeof(Scalar4) * n_angle_types);
+        cudaError_t error = cudaBindTexture(0, angle_CGCMMepow_tex, d_CGCMMepow, sizeof(Scalar4) * n_angle_types);
         if (error != cudaSuccess)
             return error;
         }

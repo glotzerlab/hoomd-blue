@@ -42,25 +42,7 @@ __device__ inline unsigned int texFetchUint(const unsigned int *ptr, texture<uns
 
 #ifdef SINGLE_PRECISION
 
-typedef texture<Scalar2, 1, cudaReadModeElementType> scalar2_tex_t;
 typedef texture<Scalar4, 1, cudaReadModeElementType> scalar4_tex_t;
-
-//! Fetch a Scalar2 value from texture memory.
-/*! This function should be called whenever a CUDA kernel wants to retrieve a
-    Scalar2 value from texture memory.
-
-    \param ptr Pointer to bound memory
-    \param tex_ref Texture in which the desired values are stored.
-    \param ii Index at which to look.
-*/
-__device__ inline Scalar2 texFetchScalar2(const Scalar2 *ptr, texture<Scalar2, 1> tex_ref, unsigned int ii)
-    {
-    #if __CUDA_ARCH__ >= 350
-    return __ldg(ptr+ii);
-    #else
-    return tex1Dfetch(tex_ref, ii);
-    #endif
-    }
 
 //! Fetch a Scalar4 value from texture memory.
 /*! This function should called whenever a CUDA kernel wants to retrieve a
@@ -80,27 +62,7 @@ __device__ inline Scalar4 texFetchScalar4(const Scalar4 *ptr, texture<Scalar4, 1
     }
 
 #else
-typedef texture<int4, 1, cudaReadModeElementType> scalar2_tex_t;
 typedef texture<int4, 1, cudaReadModeElementType> scalar4_tex_t;
-
-//! Fetch a Scalar2 value from texture memory.
-/*! This function should be called whenever a CUDA kernel wants to retrieve a
-    Scalar2 value from texture memory.
-
-    \param ptr Pointer to bound memory
-    \param tex_ref Texture in which the desired values are stored.
-    \param ii Index at which to look.
-*/
-__device__ inline Scalar2 texFetchScalar2(const Scalar2* ptr, texture<int4, 1> tex_ref, unsigned int ii)
-    {
-    #if __CUDA_ARCH__ >= 350
-    return __ldg(ptr+ii);
-    #else
-    int4 val = tex1Dfetch(tex_ref, ii);
-    return make_scalar2(__hiloint2double(val.y, val.x),
-                        __hiloint2double(val.w, val.z));
-    #endif
-    }
 
 //! Fetch a Scalar4 value from texture memory.
 /*! This function should be called whenever a CUDA kernel wants to retrieve a
