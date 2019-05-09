@@ -117,10 +117,10 @@ void DynamicBond::update(unsigned int timestep)
     m_bond_data = m_sysdef->getBondData();
 
     // Access the bond table for reading
-    const GPUArray<typename BondData::members_t>& gpu_bond_list = this->m_bond_data->getGPUTable();
+    // const GPUArray<typename BondData::members_t>& gpu_bondlist = this->m_bond_data->getGPUTable();
     const Index2D& gpu_table_index = this->m_bond_data->getGPUTableIndexer();
 
-    ArrayHandle<BondData::members_t> h_gpu_bondlist(gpu_bond_list, access_location::host, access_mode::read);
+    ArrayHandle<BondData::members_t> h_gpu_bondlist(this->m_bond_data->getGPUTable(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int > h_gpu_n_bonds(this->m_bond_data->getNGroupsArray(), access_location::host, access_mode::read);
 
     ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
@@ -174,21 +174,42 @@ void DynamicBond::update(unsigned int timestep)
 
             // calculate r_ij squared (FLOPS: 5)
             Scalar rsq = dot(dx, dx);
+
             if (rsq < r_cut_sq)
                 {
+
+                // TODO: find number of bonds between i and j
+                int n_bonds = h_gpu_n_bonds.data[i];
+                int nbridges_ij = 0;
+                for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+                    {
+                    group_storage<2> cur_bond = h_gpu_bondlist.data[gpu_table_index(i, bond_idx)];
+                    int bonded_idx = cur_bond.idx[0];
+                    // lookup the tag of each of the particles participating in the bond
+                    const BondData::members_t bond = m_bond_data->getMembersByIndex(bonded_idx);
+                    m_exec_conf->msg->notice(2) << "h_gpu_bondlist " << bond.tag[0] << "," << bond.tag[1] << endl;
+
+                    }
+
+                // TODO: find number of loops on i, number on j
+                Scalar nloops_i = 400;
+                Scalar nloops_j = 400;
                 Scalar r = sqrt(rsq);
                 Scalar surf_dist = r - (di+dj)/2;
                 Scalar tstep = 0.05;
                 Scalar omega = 1.2;
                 Scalar deltaG = 8;
+                Scalar capfrac = 1.0;
 
-                // calculate probabilities
-                // Scalar p0=tstep*omega*exp(-(deltaG+bond(extension_rC)));
-                // Scalar q0=tstep*omega*exp(-(deltaG-bond(extension)+bond(extension_rC)));
-                //
-                // p12=p0*pow((1-p0),(numBridges[i][i]*capfrac-1.0))*numBridges[i][i]*capfrac;
-                // p21=p0*pow((1-p0),(numBridges[j][j]*capfrac-1.0))*numBridges[j][j]*capfrac;
-                // q1=q0*pow((1-q0),(numBridges[i][j]-1.0))*numBridges[i][j];
+                // // calculate probabilities
+                Scalar p0=tstep*omega*exp(-(deltaG+bond(surf_dist)));
+                Scalar q0=tstep*omega*exp(-(deltaG-bond(surf_dist)+bond(surf_dist)));
+                Scalar p12=p0*pow((1-p0),(nloops_i*capfrac-1.0))*nloops_i*capfrac;
+                Scalar p21=p0*pow((1-p0),(nloops_j*capfrac-1.0))*nloops_j*capfrac;
+                Scalar q1=q0*pow((1-q0),(nbridges_ij-1.0))*nbridges_ij;
+
+                Scalar p12 = 0.5;
+                Scalar p21 = 0.5;
 
                 // generate random numbers
                 Scalar rnd1 = saru.s<Scalar>(0,1);
@@ -197,16 +218,15 @@ void DynamicBond::update(unsigned int timestep)
                 Scalar rnd4 = saru.s<Scalar>(0,1);
 
                 // check to see if a bond should be created between particles i and j
-                if (rnd1 < p12) && (n_bridges[i][i]>=1)
+                if (rnd1 < p12)  // && (n_bridges[i][i]>=1)
                     {
                     m_bond_data->addBondedGroup(Bond(0, i, j));
                     }
 
                 // check to see if a bond should be broken between particles i and j
-
                 if (rnd2 < p21)
                     {
-                    // for each of the bonds in the system
+                    // for each of the bonds in the *system*
                     const unsigned int size = (unsigned int)m_bond_data->getN();
                     m_exec_conf->msg->notice(2) << "bonds in the system " << size << endl;
                     for (unsigned int bond_number = 0; bond_number < size; bond_number++)
