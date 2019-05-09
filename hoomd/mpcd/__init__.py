@@ -90,7 +90,7 @@ Example script for a pure bulk SRD fluid::
 When upgrading versions, existing job scripts may need to be need to be updated.
 Such modifications will be noted in the change log.
 
-**Maintainer:** Michael P. Howard, Princeton University.
+**Maintainer:** Michael P. Howard, University of Texas at Austin.
 """
 
 # these imports are necessary in order to link derived types between modules
@@ -100,6 +100,7 @@ from hoomd.md import _md
 
 from hoomd.mpcd import collide
 from hoomd.mpcd import data
+from hoomd.mpcd import force
 from hoomd.mpcd import init
 from hoomd.mpcd import stream
 from hoomd.mpcd import update
@@ -225,17 +226,22 @@ class integrator(hoomd.integrate._integrator):
         for m in hoomd.context.current.integration_methods:
             self.cpp_integrator.addIntegrationMethod(m.cpp_method)
 
+        # remove all virtual particle fillers before readding them
+        self.cpp_integrator.removeAllFillers()
+
         # ensure that the streaming and collision methods are up to date
         stream = hoomd.context.current.mpcd._stream
         if stream is not None:
             self.cpp_integrator.setStreamingMethod(stream._cpp)
+            if stream._filler is not None:
+                self.cpp_integrator.addFiller(stream._filler)
         else:
             hoomd.context.msg.warning("Running mpcd without a streaming method!\n")
             self.cpp_integrator.removeStreamingMethod()
 
         collide = hoomd.context.current.mpcd._collide
         if collide is not None:
-            if stream is not None and collide.period % stream.period != 0:
+            if stream is not None and (collide.period < stream.period or collide.period % stream.period != 0):
                 hoomd.context.msg.error('mpcd.integrate: collision period must be multiple of integration period\n')
                 raise ValueError('Collision period must be multiple of integration period')
 
@@ -243,3 +249,12 @@ class integrator(hoomd.integrate._integrator):
         else:
             hoomd.context.msg.warning("Running mpcd without a collision method!\n")
             self.cpp_integrator.removeCollisionMethod()
+
+        sorter = hoomd.context.current.mpcd.sorter
+        if sorter is not None and sorter.enabled:
+            if collide is not None and (sorter.period < collide.period or sorter.period % collide.period != 0):
+                hoomd.context.msg.error('mpcd.integrate: sorting period should be a multiple of collision period\n')
+                raise ValueError('Sorting period must be multiple of collision period')
+            self.cpp_integrator.setSorter(sorter._cpp)
+        else:
+            self.cpp_integrator.removeSorter()

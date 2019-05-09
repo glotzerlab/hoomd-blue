@@ -37,9 +37,6 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
         //! Destructor
         virtual ~SRDCollisionMethod();
 
-        //! Implementation of the collision rule
-        virtual void collide(unsigned int timestep);
-
         //! Get the MPCD rotation angle
         double getRotationAngle() const
             {
@@ -96,6 +93,9 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
 
         std::shared_ptr<::Variant> m_T; //!< Temperature for thermostat
         GPUVector<double> m_factors;    //!< Cell-level rescale factors
+
+        //! Implementation of the collision rule
+        virtual void rule(unsigned int timestep);
 
         //! Randomly draw cell rotation vectors
         virtual void drawRotationVectors(unsigned int timestep);

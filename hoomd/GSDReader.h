@@ -79,6 +79,12 @@ class PYBIND11_EXPORT GSDReader
             m_snapshot.reset();
             }
 
+        //! get handle
+        gsd_handle getHandle(void) const
+            {
+            return m_handle;
+            }
+
     private:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         uint64_t m_timestep;                                         //!< Timestep at the selected frame
