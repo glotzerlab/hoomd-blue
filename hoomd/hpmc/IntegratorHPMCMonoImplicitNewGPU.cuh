@@ -338,7 +338,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
     if (i == UINT_MAX || !d_active_cell_accept[active_cell_idx]) return;
 
     // load updated particle position
-    Scalar4 postype_i = texFetchScalar4(d_postype, i);
+    Scalar4 postype_i = __ldg(d_postype + i);
     unsigned int type_i = __scalar_as_int(postype_i.w);
 
     curandState_t local_state;
@@ -394,7 +394,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
             Scalar r = Scalar(0.5)*d_max*fast::pow(r3,Scalar(1.0/3.0));
 
             // test depletant position around old configuration
-            Scalar4 postype_i_old = texFetchScalar4(d_postype_old, i);
+            Scalar4 postype_i_old = __ldg(d_postype_old + i);
             vec3<Scalar> pos_test = vec3<Scalar>(postype_i_old)+r*n;
 
             if (shape_test.hasOrientation())
@@ -409,7 +409,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
                 Shape shape_i(quat<Scalar>(orientation_i), s_params[type_i]);
                 if (shape_i.hasOrientation())
                     {
-                    orientation_i = texFetchScalar4(d_orientation, i);
+                    orientation_i = __ldg(d_orientation + i);
                     shape_i.orientation = quat<Scalar>(orientation_i);
                     }
 
@@ -441,7 +441,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
                 Shape shape_i_old(quat<Scalar>(quat<Scalar>(orientation_i_old)), d_params[type_i]);
                 if (shape_i_old.hasOrientation())
                     {
-                    orientation_i_old = texFetchScalar4(d_orientation_old, i);
+                    orientation_i_old = __ldg(d_orientation_old + i);
                     shape_i_old.orientation = quat<Scalar>(orientation_i_old);
                     }
 
@@ -527,7 +527,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
                             }
 
                         // read in position, and orientation of neighboring particle
-                        postype_j = texFetchScalar4(d_postype, j);
+                        postype_j = __ldg(d_postype + j);
                         unsigned int type_j = __scalar_as_int(postype_j.w);
                         Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
 
@@ -586,12 +586,12 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
                 Shape shape_test(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type]);
 
                 // build shape j from global memory
-                postype_j = texFetchScalar4(d_postype, check_j);
+                postype_j = __ldg(d_postype + check_j);
                 orientation_j = make_scalar4(1,0,0,0);
                 unsigned int type_j = __scalar_as_int(postype_j.w);
                 Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
                 if (shape_j.hasOrientation())
-                    shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation, check_j));
+                    shape_j.orientation = quat<Scalar>(__ldg(d_orientation + check_j));
 
                 // put particle j into the coordinate system of particle i
                 r_ij = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);

@@ -193,7 +193,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
             unsigned int j;
             Scalar4 postype_j;
             if (!use_index)
-                cur_xyzf = texFetchScalar4(d_cell_xyzf, cli(cur_offset, neigh_cell));
+                cur_xyzf = __ldg(d_cell_xyzf + cli(cur_offset, neigh_cell));
             else
                 {
                 j = d_cell_idx[cli(cur_offset, neigh_cell)+igpu*cli.getNumElements()];

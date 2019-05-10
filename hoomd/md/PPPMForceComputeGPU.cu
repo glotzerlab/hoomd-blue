@@ -1235,7 +1235,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
         unsigned int idx = d_group_members[group_idx];
         const Scalar sqrtpi = sqrtf(M_PI);
         unsigned int n_neigh = d_n_neigh[idx];
-        Scalar4 postypei =  texFetchScalar4(d_pos, idx);
+        Scalar4 postypei =  __ldg(d_pos + idx);
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
         Scalar qi = __ldg(d_charge + idx);
@@ -1258,7 +1258,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                         next_j = d_nlist[nli(idx, neigh_idx+1)];
 
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
-                    Scalar4 postypej = texFetchScalar4(d_pos, cur_j);
+                    Scalar4 postypej = __ldg(d_pos + cur_j);
                     Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
                     Scalar qj = __ldg(d_charge + cur_j);

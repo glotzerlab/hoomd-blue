@@ -139,7 +139,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
     int n_bonds =n_bonds_list[idx];
 
     // read in the position of our particle. (MEM TRANSFER: 16 bytes)
-    Scalar4 postype = texFetchScalar4(d_pos, idx);
+    Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // read in the diameter of our particle if needed
@@ -175,7 +175,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         int cur_bond_type = cur_bond.idx[1];
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
-        Scalar4 neigh_postypej = texFetchScalar4(d_pos, cur_bond_idx);
+        Scalar4 neigh_postypej = __ldg(d_pos + cur_bond_idx);
         Scalar3 neigh_pos= make_scalar3(neigh_postypej.x, neigh_postypej.y, neigh_postypej.z);
 
         // calculate dr (FLOPS: 3)

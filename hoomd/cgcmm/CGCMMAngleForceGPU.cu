@@ -152,7 +152,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
 
         if (rac < cgrcut)
             {
-            const Scalar4 cgEPOW = texFetchScalar4(d_CGCMMepow, cur_angle_type);
+            const Scalar4 cgEPOW = __ldg(d_CGCMMepow + cur_angle_type);
 
             // get the angle pow/pref parameters (MEM TRANSFER: 12 bytes)
             Scalar cgeps = cgEPOW.x;

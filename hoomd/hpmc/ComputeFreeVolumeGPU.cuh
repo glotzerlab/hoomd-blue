@@ -327,12 +327,12 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                 // read in position, and orientation of neighboring particle
                 unsigned int j = __ldg(&d_excell_idx[excli(local_k, my_cell)]);
 
-                Scalar4 postype_j = texFetchScalar4(d_postype, j);
+                Scalar4 postype_j = __ldg(d_postype + j);
                 Scalar4 orientation_j = make_scalar4(1,0,0,0);
                 unsigned int typ_j = __scalar_as_int(postype_j.w);
                 Shape shape_j(quat<Scalar>(orientation_j), s_params[typ_j]);
                 if (shape_j.hasOrientation())
-                    shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation, j));
+                    shape_j.orientation = quat<Scalar>(__ldg(d_orientation + j));
 
                 // put particle j into the coordinate system of particle i
                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i;

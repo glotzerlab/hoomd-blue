@@ -134,7 +134,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
         dcbm = box.minImage(dcbm);
 
         // get the dihedral parameters (MEM TRANSFER: 12 bytes)
-        Scalar4 params = texFetchScalar4(d_params, cur_dihedral_type);
+        Scalar4 params = __ldg(d_params + cur_dihedral_type);
         Scalar K = params.x;
         Scalar sign = params.y;
         Scalar multi = params.z;

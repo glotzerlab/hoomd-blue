@@ -212,9 +212,9 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-    Scalar4 postypei = texFetchScalar4(d_pos, idx);
+    Scalar4 postypei = __ldg(d_pos + idx);
     Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
-    Scalar4 quati = texFetchScalar4(d_orientation, idx);
+    Scalar4 quati = __ldg(d_orientation + idx);
 
     Scalar di;
     if (evaluator::needsDiameter())
@@ -254,9 +254,9 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                 next_j = d_nlist[myHead + neigh_idx + tpp];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            Scalar4 postypej = texFetchScalar4(d_pos, cur_j);
+            Scalar4 postypej = __ldg(d_pos + cur_j);
             Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
-            Scalar4 quatj = texFetchScalar4(d_orientation, cur_j);
+            Scalar4 quatj = __ldg(d_orientation + cur_j);
 
             Scalar dj = 0.0f;
             if (evaluator::needsDiameter())

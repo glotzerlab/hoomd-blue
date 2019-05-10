@@ -156,7 +156,7 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
 
         // get values for k1/2 through k4/2 (MEM TRANSFER: 16 bytes)
         // ----- The 1/2 factor is already stored in the parameters --------
-        Scalar4 params = texFetchScalar4(d_params, cur_dihedral_type);
+        Scalar4 params = __ldg(d_params + cur_dihedral_type);
         Scalar k1 = params.x;
         Scalar k2 = params.y;
         Scalar k3 = params.z;

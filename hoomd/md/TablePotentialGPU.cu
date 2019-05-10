@@ -15,9 +15,6 @@
     \brief Defines GPU kernel code for calculating the table pair forces. Used by TablePotentialGPU.
 */
 
-//! Texture for reading the neighborlist
-texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
-
 /*!  This kernel is called to calculate the table pair forces on all N particles
 
     \param d_force Device memory to write computed forces
@@ -39,7 +36,6 @@ texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
     \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
                            is used depending on architecture.
 */
-template<unsigned char use_gmem_nlist>
 __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
                                                 Scalar* d_virial,
                                                 const unsigned virial_pitch,
@@ -82,7 +78,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     const unsigned int head_idx = d_head_list[idx];
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
-    Scalar4 postype = texFetchScalar4(d_pos, idx);
+    Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     unsigned int typei = __scalar_as_int(postype.w);
 
@@ -98,14 +94,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
     unsigned int next_neigh(0);
-    if (use_gmem_nlist)
-        {
-        next_neigh = d_nlist[head_idx];
-        }
-    else
-        {
-        next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx);
-        }
+    next_neigh = __ldg(d_nlist + head_idx);
 
     // loop over neighbors
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
@@ -113,17 +102,10 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
         // read the current neighbor index
         // prefetch the next value and set the current one
         cur_neigh = next_neigh;
-        if (use_gmem_nlist)
-            {
-            next_neigh = d_nlist[head_idx + neigh_idx + 1];
-            }
-        else
-            {
-            next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
-            }
+        next_neigh = __ldg(d_nlist + head_idx + neigh_idx+1);
 
         // get the neighbor's position
-        Scalar4 neigh_postype = texFetchScalar4(d_pos, cur_neigh);
+        Scalar4 neigh_postype = __ldg(d_pos + cur_neigh);
         Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions)
@@ -217,8 +199,6 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     \param ntypes Number of particle types in the system
     \param table_width Number of points in each table
     \param block_size Block size at which to run the kernel
-    \param compute_capability Compute capability of the device (200, 300, 350)
-    \param max_tex1d_width Maximum width of a linear 1d texture
 
     \note This is just a kernel driver. See gpu_compute_table_forces_kernel for full documentation.
 */
@@ -238,8 +218,6 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
                                      const unsigned int ntypes,
                                      const unsigned int table_width,
                                      const unsigned int block_size,
-                                     const unsigned int compute_capability,
-                                     const unsigned int max_tex1d_width,
                                      const GPUPartition& gpu_partition)
     {
     assert(d_params);
@@ -255,85 +233,37 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-        // texture bind
-        if (compute_capability < 350)
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
             {
-            if (size_nlist <= max_tex1d_width)
-                {
-                nlist_tex.normalized = false;
-                nlist_tex.filterMode = cudaFilterModePoint;
-                cudaError_t error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
-                if (error != cudaSuccess)
-                    return error;
-                }
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, gpu_compute_table_forces_kernel);
+            max_block_size = attr.maxThreadsPerBlock;
             }
 
-        if (compute_capability < 350 && size_nlist > max_tex1d_width)
-            { // use global memory when the neighbor list must be texture bound, but exceeds the max size of a texture
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                {
-                cudaFuncAttributes attr;
-                cudaFuncGetAttributes(&attr, gpu_compute_table_forces_kernel<1>);
-                max_block_size = attr.maxThreadsPerBlock;
-                }
+        unsigned int run_block_size = min(block_size, max_block_size);
 
-            unsigned int run_block_size = min(block_size, max_block_size);
+        // index calculation helper
+        Index2DUpperTriangular table_index(ntypes);
 
-            // setup the grid to run the kernel
-            dim3 grid( (range.second-range.first) / run_block_size + 1, 1, 1);
-            dim3 threads(run_block_size, 1, 1);
+        // setup the grid to run the kernel
+        dim3 grid( (range.second-range.first) / run_block_size + 1, 1, 1);
+        dim3 threads(run_block_size, 1, 1);
 
-            gpu_compute_table_forces_kernel<1><<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>(d_force,
-                                                                                                               d_virial,
-                                                                                                               virial_pitch,
-                                                                                                               range.second-range.first,
-                                                                                                               d_pos,
-                                                                                                               box,
-                                                                                                               d_n_neigh,
-                                                                                                               d_nlist,
-                                                                                                               d_head_list,
-                                                                                                               d_tables,
-                                                                                                               d_params,
-                                                                                                               ntypes,
-                                                                                                               table_width,
-                                                                                                               range.first
-                                                                                                               );
-            }
-        else
-            {
-            static unsigned int max_block_size = UINT_MAX;
-            if (max_block_size == UINT_MAX)
-                {
-                cudaFuncAttributes attr;
-                cudaFuncGetAttributes(&attr, gpu_compute_table_forces_kernel<0>);
-                max_block_size = attr.maxThreadsPerBlock;
-                }
-
-            unsigned int run_block_size = min(block_size, max_block_size);
-
-            // index calculation helper
-            Index2DUpperTriangular table_index(ntypes);
-
-            // setup the grid to run the kernel
-            dim3 grid( (range.second-range.first) / run_block_size + 1, 1, 1);
-            dim3 threads(run_block_size, 1, 1);
-
-            gpu_compute_table_forces_kernel<0><<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>(d_force,
-                                                                                                               d_virial,
-                                                                                                               virial_pitch,
-                                                                                                               range.second-range.first,
-                                                                                                               d_pos,
-                                                                                                               box,
-                                                                                                               d_n_neigh,
-                                                                                                               d_nlist,
-                                                                                                               d_head_list,
-                                                                                                               d_tables,
-                                                                                                               d_params,
-                                                                                                               ntypes,
-                                                                                                               table_width,
-                                                                                                               range.first);
-            }
+        gpu_compute_table_forces_kernel<<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>(d_force,
+                                                                                                           d_virial,
+                                                                                                           virial_pitch,
+                                                                                                           range.second-range.first,
+                                                                                                           d_pos,
+                                                                                                           box,
+                                                                                                           d_n_neigh,
+                                                                                                           d_nlist,
+                                                                                                           d_head_list,
+                                                                                                           d_tables,
+                                                                                                           d_params,
+                                                                                                           ntypes,
+                                                                                                           table_width,
+                                                                                                           range.first);
         }
     return cudaSuccess;
     }

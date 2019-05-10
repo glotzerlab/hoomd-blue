@@ -42,7 +42,6 @@ struct tersoff_args_t
                    const unsigned int _ntypes,
                    const unsigned int _block_size,
                    const unsigned int _tpp,
-                   const unsigned int _compute_capability,
                    const cudaDeviceProp& _devprop)
                    : d_force(_d_force),
                      N(_N),
@@ -61,7 +60,6 @@ struct tersoff_args_t
                      ntypes(_ntypes),
                      block_size(_block_size),
                      tpp(_tpp),
-                     compute_capability(_compute_capability),
                      devprop(_devprop)
         {
         };
@@ -83,14 +81,11 @@ struct tersoff_args_t
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int tpp;         //!< Threads per particle
-    const unsigned int compute_capability; //!< GPU compute capability (20, 30, 35, ...)
     const cudaDeviceProp& devprop;   //!< CUDA device properties
     };
 
 
 #ifdef NVCC
-//! Texture for reading neighbor list
-texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
 #if !defined(SINGLE_PRECISION)
 
@@ -151,15 +146,13 @@ __device__ float myAtomicAdd(float* address, float val)
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evaluate V(r) and -delta V(r)/r
-    \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
-                           is used depending on architecture.
 
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator , unsigned char use_gmem_nlist, unsigned char compute_virial, int tpp>
+template< class evaluator, unsigned char compute_virial, int tpp>
 __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const unsigned int N,
                                                   Scalar *d_virial,
@@ -213,7 +206,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     unsigned int n_neigh = d_n_neigh[idx];
 
     // read in the position of the particle
-    Scalar4 postypei = texFetchScalar4(d_pos, idx);
+    Scalar4 postypei = __ldg(d_pos + idx);
     Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
     // initialize the force to 0
@@ -235,14 +228,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
         unsigned int next_j(0);
         unsigned int my_head = d_head_list[idx];
 
-        if (use_gmem_nlist)
-            {
-            next_j = (threadIdx.x%tpp < n_neigh) ? d_nlist[my_head + threadIdx.x%tpp] : 0;
-            }
-        else
-            {
-            next_j = threadIdx.x%tpp < n_neigh ? texFetchUint(d_nlist, nlist_tex, my_head + threadIdx.x%tpp) : 0;
-            }
+        next_j = threadIdx.x%tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x%tpp) : 0;
 
         // loop over neighbors in strided way
         for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
@@ -252,18 +238,11 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             cur_j = next_j;
             if (neigh_idx+tpp < n_neigh)
                 {
-                if (use_gmem_nlist)
-                    {
-                    next_j = d_nlist[head_idx + neigh_idx + tpp];
-                    }
-                else
-                    {
-                    next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + tpp);
-                    }
+                next_j = __ldg(d_nlist + head_idx + neigh_idx + tpp);
                 }
 
             // read the position of j (MEM TRANSFER: 16 bytes)
-            Scalar4 postypej = texFetchScalar4(d_pos, cur_j);
+            Scalar4 postypej = __ldg(d_pos + cur_j);
             Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
             // initialize the force on j
@@ -319,14 +298,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     unsigned int next_j(0);
     unsigned int my_head = d_head_list[idx];
 
-    if (use_gmem_nlist)
-        {
-        next_j = (threadIdx.x%tpp < n_neigh) ? d_nlist[my_head + threadIdx.x%tpp] : 0;
-        }
-    else
-        {
-        next_j = threadIdx.x%tpp < n_neigh ? texFetchUint(d_nlist, nlist_tex, my_head + threadIdx.x%tpp) : 0;
-        }
+    next_j = threadIdx.x%tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x%tpp) : 0;
 
     // loop over neighbors in strided way
     for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
@@ -336,18 +308,11 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
         cur_j = next_j;
         if (neigh_idx+tpp < n_neigh)
             {
-            if (use_gmem_nlist)
-                {
-                next_j = d_nlist[head_idx + neigh_idx + tpp];
-                }
-            else
-                {
-                next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + tpp);
-                }
+            next_j = __ldg(d_nlist + head_idx + neigh_idx + tpp);
             }
 
         // read the position of j (MEM TRANSFER: 16 bytes)
-        Scalar4 postypej = texFetchScalar4(d_pos, cur_j);
+        Scalar4 postypej = __ldg(d_pos + cur_j);
         Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
         // initialize the force on j
@@ -389,31 +354,17 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                 // compute chi
                 unsigned int cur_k = 0;
                 unsigned int next_k(0);
-                if (use_gmem_nlist)
-                    {
-                    next_k = d_nlist[head_idx];
-                    }
-                else
-                    {
-                    next_k = texFetchUint(d_nlist, nlist_tex, head_idx);
-                    }
+                next_k = __ldg(d_nlist + head_idx);
 
                 // loop over neighbors one by one
                 for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
                     {
                     // read the current index of k and prefetch the next one
                     cur_k = next_k;
-                    if (use_gmem_nlist)
-                        {
-                        next_k = d_nlist[head_idx + neigh_idy + 1];
-                        }
-                    else
-                        {
-                        next_k = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idy+1);
-                        }
+                    next_k = __ldg(d_nlist + head_idx + neigh_idy+1);
 
                     // get the position of neighbor k
-                    Scalar4 postypek = texFetchScalar4(d_pos, cur_k);
+                    Scalar4 postypek = __ldg(d_pos + cur_k);
                     Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
                     // get the type pair parameters for i and k
@@ -501,31 +452,17 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                 // now evaluate the force from the ik interactions
                 unsigned int cur_k = 0;
                 unsigned int next_k(0);
-                if (use_gmem_nlist)
-                    {
-                    next_k = d_nlist[head_idx];
-                    }
-                else
-                    {
-                    next_k = texFetchUint(d_nlist, nlist_tex, head_idx);
-                    }
+                next_k = __ldg(d_nlist + head_idx);
 
                 // loop over neighbors one by one
                 for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
                     {
                     // read the current neighbor index and prefetch the next one
                     cur_k = next_k;
-                    if (use_gmem_nlist)
-                        {
-                        next_k = d_nlist[head_idx + neigh_idy + 1];
-                        }
-                    else
-                        {
-                        next_k = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idy+1);
-                        }
+                    next_k = __ldg(d_nlist + head_idx + neigh_idy+1);
 
                     // get the position of neighbor k
-                    Scalar4 postypek = texFetchScalar4(d_pos, cur_k);
+                    Scalar4 postypek = __ldg(d_pos + cur_k);
                     Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
                     // get the type pair parameters for i and k
@@ -711,7 +648,7 @@ void get_max_block_size(T func, const tersoff_args_t& pair_args, unsigned int& m
  * Partial function template specialization is not allowed in C++, so instead we have to wrap this with a struct that
  * we are allowed to partially specialize.
  */
-template<class evaluator, unsigned int use_gmem_nlist, unsigned int compute_virial, int tpp>
+template<class evaluator, unsigned int compute_virial, int tpp>
 struct TersoffComputeKernel
     {
     //! Launcher for the tersoff triplet kernel
@@ -726,19 +663,8 @@ struct TersoffComputeKernel
             static unsigned int max_block_size = UINT_MAX;
             static unsigned int kernel_shared_bytes = 0;
             if (max_block_size == UINT_MAX)
-                get_max_block_size(gpu_compute_triplet_forces_kernel<evaluator, use_gmem_nlist, compute_virial, tpp>, pair_args, max_block_size, kernel_shared_bytes);
+                get_max_block_size(gpu_compute_triplet_forces_kernel<evaluator, compute_virial, tpp>, pair_args, max_block_size, kernel_shared_bytes);
             int run_block_size = min(pair_args.block_size, max_block_size);
-
-            // bind to texture
-            if (pair_args.compute_capability < 35)
-                {
-                if (pair_args.size_nlist <= (unsigned int) pair_args.devprop.maxTexture1DLinear)
-                    {
-                    nlist_tex.normalized = false;
-                    nlist_tex.filterMode = cudaFilterModePoint;
-                    cudaBindTexture(0, nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_nlist);
-                    }
-                }
 
             // size shared bytes
             Index2D typpair_idx(pair_args.ntypes);
@@ -763,7 +689,7 @@ struct TersoffComputeKernel
             dim3 grid( pair_args.N / (run_block_size/pair_args.tpp) + 1, 1, 1);
             dim3 threads(run_block_size, 1, 1);
 
-            gpu_compute_triplet_forces_kernel<evaluator, use_gmem_nlist, compute_virial, tpp>
+            gpu_compute_triplet_forces_kernel<evaluator, compute_virial, tpp>
               <<<grid, threads, shared_bytes>>>(pair_args.d_force,
                                                 pair_args.N,
                                                 pair_args.d_virial,
@@ -780,14 +706,14 @@ struct TersoffComputeKernel
             }
         else
             {
-            TersoffComputeKernel<evaluator, use_gmem_nlist, compute_virial, tpp/2>::launch(pair_args, d_params);
+            TersoffComputeKernel<evaluator, compute_virial, tpp/2>::launch(pair_args, d_params);
             }
         }
     };
 
 //! Template specialization to do nothing for the tpp = 0 case
-template<class evaluator, unsigned int use_gmem_nlist,  unsigned int compute_virial>
-struct TersoffComputeKernel<evaluator, use_gmem_nlist, compute_virial, 0>
+template<class evaluator, unsigned int compute_virial>
+struct TersoffComputeKernel<evaluator, compute_virial, 0>
     {
     static void launch(const tersoff_args_t& pair_args, const typename evaluator::param_type *d_params)
         {
@@ -813,25 +739,11 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     // compute the new forces
     if (!pair_args.compute_virial)
         {
-        if (pair_args.compute_capability < 35 && pair_args.size_nlist > (unsigned int) pair_args.devprop.maxTexture1DLinear)
-            {
-            TersoffComputeKernel<evaluator, 1, 0, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
-            }
-        else
-            {
-            TersoffComputeKernel<evaluator, 0, 0, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
-            }
+        TersoffComputeKernel<evaluator, 0, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
         }
     else
         {
-        if (pair_args.compute_capability < 35 && pair_args.size_nlist > (unsigned int) pair_args.devprop.maxTexture1DLinear)
-            {
-            TersoffComputeKernel<evaluator, 1, 1, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
-            }
-        else
-            {
-            TersoffComputeKernel<evaluator, 0, 1, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
-            }
+        TersoffComputeKernel<evaluator, 1, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
         }
     return cudaSuccess;
     }

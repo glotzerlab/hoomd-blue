@@ -170,7 +170,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int *d_nlist,
             if (cur_adj < n_stencil)
                 {
                 // compute the stenciled cell cartesian coordinates
-                Scalar4 stencil = texFetchScalar4(d_stencil, stencil_idx(cur_adj, my_type));
+                Scalar4 stencil = __ldg(d_stencil + stencil_idx(cur_adj, my_type));
                 int sib = ib + __scalar_as_int(stencil.x);
                 int sjb = jb + __scalar_as_int(stencil.y);
                 int skb = kb + __scalar_as_int(stencil.z);
@@ -203,7 +203,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int *d_nlist,
             do
                 {
                 // read in the particle type (diameter and body as well while we've got the Scalar4 in)
-                const Scalar4 neigh_tdb = texFetchScalar4(d_cell_tdb, cli(cur_offset, neigh_cell));
+                const Scalar4 neigh_tdb = __ldg(d_cell_tdb + cli(cur_offset, neigh_cell));
                 const unsigned int type_j = __scalar_as_int(neigh_tdb.x);
                 const Scalar diam_j = neigh_tdb.y;
                 const unsigned int body_j = __scalar_as_int(neigh_tdb.z);
@@ -228,7 +228,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int *d_nlist,
                 if (cell_dist2 > r_listsq) break;
 
                 // only load in the particle position and id if distance check is required
-                const Scalar4 neigh_xyzf = texFetchScalar4(d_cell_xyzf, cli(cur_offset, neigh_cell));
+                const Scalar4 neigh_xyzf = __ldg(d_cell_xyzf + cli(cur_offset, neigh_cell));
                 const Scalar3 neigh_pos = make_scalar3(neigh_xyzf.x, neigh_xyzf.y, neigh_xyzf.z);
                 unsigned int cur_neigh = __scalar_as_int(neigh_xyzf.w);
 

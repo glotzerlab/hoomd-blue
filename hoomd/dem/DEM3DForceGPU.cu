@@ -228,10 +228,10 @@ __global__ void gpu_compute_dem3d_forces_kernel(
         const unsigned int myHead(d_head_list[partIdx]);
 
         // fetch position and orientation of this particle
-        const Scalar4 postype(texFetchScalar4(d_pos, partIdx));
+        const Scalar4 postype(__ldg(d_pos + partIdx));
         const vec3<Scalar> pos_i(postype.x, postype.y, postype.z);
         const unsigned int type_i(__scalar_as_int(postype.w));
-        const Scalar4 quati(texFetchScalar4(d_quat, partIdx));
+        const Scalar4 quati(__ldg(d_quat + partIdx));
         const quat<Real> quat_i(quati.x, vec3<Real>(quati.y, quati.z, quati.w));
 
         Scalar di = 0.0f;
@@ -243,7 +243,7 @@ __global__ void gpu_compute_dem3d_forces_kernel(
         vec3<Scalar> vi;
         if (Evaluator::needsVelocity())
             vi = vec3<Scalar>(
-                texFetchScalar4(d_velocity, partIdx));
+                __ldg(d_velocity + partIdx));
 
         for(unsigned int featureEpoch(0);
             featureEpoch < (maxFeatures + blockDim.y - 1)/blockDim.y; ++featureEpoch)
@@ -277,7 +277,7 @@ __global__ void gpu_compute_dem3d_forces_kernel(
                 next_neigh = d_nlist[myHead + neigh_idx + 1];
 
                 // grab the position and type of the neighbor
-                const Scalar4 neigh_postype(texFetchScalar4(d_pos, cur_neigh));
+                const Scalar4 neigh_postype(__ldg(d_pos + cur_neigh));
                 const unsigned int type_j(__scalar_as_int(neigh_postype.w));
                 const vec3<Scalar> neigh_pos(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
@@ -302,13 +302,13 @@ __global__ void gpu_compute_dem3d_forces_kernel(
                 if(evaluator.withinCutoff(rsq, r_cutsq))
                     {
                     // fetch neighbor's orientation
-                    const Scalar4 neighQuatF(texFetchScalar4(d_quat, cur_neigh));
+                    const Scalar4 neighQuatF(__ldg(d_quat + cur_neigh));
                     const quat<Real> neighQuat(
                         neighQuatF.x, vec3<Real>(neighQuatF.y, neighQuatF.z, neighQuatF.w));
 
                     if (Evaluator::needsVelocity())
                         {
-                        Scalar4 vj(texFetchScalar4(d_velocity, cur_neigh));
+                        Scalar4 vj(__ldg(d_velocity + cur_neigh));
                         evaluator.setVelocity(vi - vec3<Scalar>(vj));
                         }
 
