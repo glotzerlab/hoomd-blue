@@ -28,10 +28,10 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda8.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python2.7 -DENABLE_CUDA=ON -DENABLE_MPI=OFF -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPULER=/usr/bin/g++ -GNinja
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda8.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python2.7 -DENABLE_CUDA=ON -DENABLE_MPI=OFF -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPULER=/usr/bin/g++ -GNinja
                                    '''
 
-                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda8.simg ninja -j 3'
+                                sh 'singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda8.simg ninja -j 3'
                                 }
 
                             timeout(time: 1, unit: 'HOURS')
@@ -39,7 +39,7 @@ pipeline
                                 sh '''
                                     export OMP_NUM_THREADS=1
                                     export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-/bin
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda8.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda8.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                                    '''
                                 }
                             }
@@ -76,10 +76,10 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda9.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc-7 -DCMAKE_CXX_COMPULER=/usr/bin/g++-7 -GNinja
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda9.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc-7 -DCMAKE_CXX_COMPULER=/usr/bin/g++-7 -GNinja
                                    '''
 
-                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda9.simg ninja -j 3'
+                                sh 'singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda9.simg ninja -j 3'
                                 }
 
                             timeout(time: 1, unit: 'HOURS')
@@ -87,7 +87,7 @@ pipeline
                                 sh '''
                                     export OMP_NUM_THREADS=1
                                     export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-/bin
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda9.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda9.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                                    '''
                                 }
                             }
@@ -124,10 +124,10 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=ON -DCMAKE_C_COMPILER=/usr/bin/gcc-7 -DCMAKE_CXX_COMPULER=/usr/bin/g++-7 -GNinja
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda10.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=ON -DCMAKE_C_COMPILER=/usr/bin/gcc-7 -DCMAKE_CXX_COMPULER=/usr/bin/g++-7 -GNinja
                                    '''
 
-                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg ninja -j 3'
+                                sh 'singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda10.simg ninja -j 3'
                                 }
 
                             timeout(time: 1, unit: 'HOURS')
@@ -135,7 +135,7 @@ pipeline
                                 sh '''
                                     export OMP_NUM_THREADS=1
                                     export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-/bin
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda10.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                                    '''
                                 }
                             }
@@ -180,10 +180,10 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc-6 -DCMAKE_CXX_COMPULER=/usr/bin/g++-6 -GNinja
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc-6 -DCMAKE_CXX_COMPULER=/usr/bin/g++-6 -GNinja
                                    '''
 
-                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg ninja -j 3'
+                                sh 'singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-ubuntu18.04.simg ninja -j 3'
                                 }
 
                             timeout(time: 12, unit: 'HOURS')
@@ -191,7 +191,7 @@ pipeline
                                 sh '''
                                     export OMP_NUM_THREADS=1
                                     export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-6.0/bin
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                                    '''
                                 }
                             }
@@ -228,10 +228,10 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc-7 -DCMAKE_CXX_COMPULER=/usr/bin/g++-7 -GNinja
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc-7 -DCMAKE_CXX_COMPULER=/usr/bin/g++-7 -GNinja
                                    '''
 
-                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg ninja -j 3'
+                                sh 'singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-ubuntu18.04.simg ninja -j 3'
                                 }
 
                             timeout(time: 12, unit: 'HOURS')
@@ -239,7 +239,7 @@ pipeline
                                 sh '''
                                     export OMP_NUM_THREADS=1
                                     export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-6.0/bin
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                                    '''
                                 }
                             }
@@ -276,10 +276,10 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc-8 -DCMAKE_CXX_COMPULER=/usr/bin/g++-8 -GNinja
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-ubuntu18.04.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=OFF -DENABLE_MPI=ON -DENABLE_TBB=ON -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=ON -DLLVM_DIR=/usr/lib/llvm-6.0/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc-8 -DCMAKE_CXX_COMPULER=/usr/bin/g++-8 -GNinja
                                    '''
 
-                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg ninja -j 3'
+                                sh 'singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-ubuntu18.04.simg ninja -j 3'
                                 }
 
                             timeout(time: 12, unit: 'HOURS')
@@ -287,7 +287,7 @@ pipeline
                                 sh '''
                                     export OMP_NUM_THREADS=3
                                     export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-6.0/bin
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-ubuntu18.04.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                                    '''
                                 }
                             }
@@ -324,10 +324,10 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc-7 -DCMAKE_CXX_COMPULER=/usr/bin/g++-7 -GNinja
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda10.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=ON -DENABLE_TBB=OFF -DBUILD_VALIDATION=on -DBUILD_TESTING=off -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc-7 -DCMAKE_CXX_COMPULER=/usr/bin/g++-7 -GNinja
                                    '''
 
-                                sh 'singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg ninja -j 3'
+                                sh 'singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda10.simg ninja -j 3'
                                 }
 
                             timeout(time: 12, unit: 'HOURS')
@@ -335,7 +335,7 @@ pipeline
                                 sh '''
                                     export OMP_NUM_THREADS=1
                                     export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-/bin
-                                    singularity exec --nv /nfs/glotzer/containers/ci-2018.10-cuda10.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda10.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                                    '''
                                 }
                             }
