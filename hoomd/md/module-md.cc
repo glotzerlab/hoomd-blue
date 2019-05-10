@@ -122,6 +122,18 @@ void export_tersoff_params(py::module& m)
     m.def("make_tersoff_params", &make_tersoff_params);
 }
 
+//! Function to make the parameter type
+DEVICE inline pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
+    {
+    pair_fourier_params retval;
+    for (int i = 0; i < 3; ++i)
+        {
+        retval.a[i] = py::cast<Scalar>(a[i]);
+        retval.b[i] = py::cast<Scalar>(b[i]);
+        }
+    return retval;
+    }
+
 // ! Function to export the fourier parameter type to python
 void export_pair_fourier_params(py::module& m)
 {

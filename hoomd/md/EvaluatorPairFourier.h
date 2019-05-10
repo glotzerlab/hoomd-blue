@@ -11,7 +11,6 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 /*! \file EvaluatorPairFourier.h
     \brief Defines the pair evaluator class for potential in form of Fourier series
@@ -55,19 +54,6 @@ struct pair_fourier_params
   Scalar a[3];      //!< Fourier component coefficents
   Scalar b[3];      //!< Fourier component coefficents
 };
-
-//! Function to make the parameter type
-DEVICE inline pair_fourier_params make_pair_fourier_params(pybind11::list a, pybind11::list b)
-    {
-    pair_fourier_params retval;
-    for (int i = 0; i < 3; ++i)
-        {
-        retval.a[i] = pybind11::cast<Scalar>(a[i]);
-        retval.b[i] = pybind11::cast<Scalar>(b[i]);
-        }
-    return retval;
-    }
-
 
 class EvaluatorPairFourier
     {
