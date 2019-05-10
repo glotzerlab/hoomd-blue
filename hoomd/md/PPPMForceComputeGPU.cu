@@ -1213,9 +1213,6 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
     #endif
     }
 
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
-
 //! The developer has chosen not to document this function
 __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                                           Scalar *d_virial,
@@ -1238,7 +1235,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
         unsigned int idx = d_group_members[group_idx];
         const Scalar sqrtpi = sqrtf(M_PI);
         unsigned int n_neigh = d_n_neigh[idx];
-        Scalar4 postypei =  texFetchScalar4(d_pos, pdata_pos_tex, idx);
+        Scalar4 postypei =  texFetchScalar4(d_pos, idx);
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
         Scalar qi = __ldg(d_charge + idx);
@@ -1261,7 +1258,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                         next_j = d_nlist[nli(idx, neigh_idx+1)];
 
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
-                    Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
+                    Scalar4 postypej = texFetchScalar4(d_pos, cur_j);
                     Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
                     Scalar qj = __ldg(d_charge + cur_j);
@@ -1327,21 +1324,12 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
                            Scalar alpha,
                            unsigned int *d_group_members,
                            unsigned int group_size,
-                           int block_size,
-                           const unsigned int compute_capability)
+                           int block_size)
     {
     dim3 grid( group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    // bind the textures on pre sm35 arches
-    if (compute_capability < 350)
-        {
-        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*Nmax);
-        if (error != cudaSuccess)
-            return error;
-        }
-
-     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
+    gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
                                                       d_virial,
                                                       virial_pitch,
                                                       d_pos,

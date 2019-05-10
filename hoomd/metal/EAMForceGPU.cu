@@ -13,17 +13,8 @@
  \brief Defines GPU kernel code for calculating the EAM forces. Used by EAMForceComputeGPU.
  */
 
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
 //! Texture for reading the neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
-//! Texture for reading potential
-scalar4_tex_t tex_F;
-scalar4_tex_t tex_rho;
-scalar4_tex_t tex_rphi;
-scalar4_tex_t tex_dF;
-scalar4_tex_t tex_drho;
-scalar4_tex_t tex_drphi;
 
 //! Storage space for EAM parameters on the GPU
 __constant__ EAMTexInterData eam_data_ti;
@@ -47,7 +38,7 @@ __global__ void gpu_kernel_1(Scalar4 *d_force, Scalar *d_virial, const unsigned 
     const unsigned int head_idx = d_head_list[idx];
 
     // read in the position of our particle.
-    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+    Scalar4 postype = texFetchScalar4(d_pos, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // index and remainder
@@ -97,7 +88,7 @@ __global__ void gpu_kernel_1(Scalar4 *d_force, Scalar *d_virial, const unsigned 
             }
 
         // get the neighbor's position
-        Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
+        Scalar4 neigh_postype = texFetchScalar4(d_pos, cur_neigh);
         Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions)
@@ -118,7 +109,7 @@ __global__ void gpu_kernel_1(Scalar4 *d_force, Scalar *d_virial, const unsigned 
             remainder = position - int_position;
             // calculate P = sum{rho}
             idxs = int_position + nr * (typej * ntypes + typei);
-            v = texFetchScalar4(d_rho, tex_rho, idxs);
+            v = texFetchScalar4(d_rho, idxs);
             atomElectronDensity += v.w + v.z * remainder + v.y * remainder * remainder
             + v.x * remainder * remainder * remainder;
             }
@@ -131,8 +122,8 @@ __global__ void gpu_kernel_1(Scalar4 *d_force, Scalar *d_virial, const unsigned 
     remainder = position - int_position;
 
     idxs = int_position + typei * nrho;
-    dv = texFetchScalar4(d_dF, tex_dF, idxs);
-    v = texFetchScalar4(d_F, tex_F, idxs);
+    dv = texFetchScalar4(d_dF, idxs);
+    v = texFetchScalar4(d_F, idxs);
     // compute dF / dP
     d_dFdP[idx] = dv.z + dv.y * remainder + dv.x * remainder * remainder;
     // compute embedded energy F(P), sum up each particle
@@ -161,7 +152,7 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const unsigned 
     const unsigned int head_idx = d_head_list[idx];
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads
-    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+    Scalar4 postype = texFetchScalar4(d_pos, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     int typei = __scalar_as_int(postype.w);
 
@@ -214,7 +205,7 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const unsigned 
             }
 
         // get the neighbor's position
-        Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
+        Scalar4 neigh_postype = texFetchScalar4(d_pos, cur_neigh);
         Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions)
@@ -243,8 +234,8 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const unsigned 
         (int) (0.5 * (2 * ntypes - typei - 1) * typei + typej) * nr;
 
         idxs = int_position + shift;
-        v = texFetchScalar4(d_rphi, tex_rphi, idxs);
-        dv = texFetchScalar4(d_drphi, tex_drphi, idxs);
+        v = texFetchScalar4(d_rphi, idxs);
+        dv = texFetchScalar4(d_drphi, idxs);
         // aspair_potential = r * phi
         Scalar aspair_potential = v.w + v.z * remainder + v.y * remainder * remainder
         + v.x * remainder * remainder * remainder;
@@ -256,11 +247,11 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const unsigned 
         Scalar derivativePhi = (derivative_pair_potential - pair_eng) * inverseR;
         // derivativeRhoI = drho / dr of i
         idxs = int_position + typei * ntypes * nr + typej * nr;
-        dv = texFetchScalar4(d_drho, tex_drho, idxs);
+        dv = texFetchScalar4(d_drho, idxs);
         Scalar derivativeRhoI = dv.z + dv.y * remainder + dv.x * remainder * remainder;
         // derivativeRhoJ = drho / dr of j
         idxs = int_position + typej * ntypes * nr + typei * nr;
-        dv = texFetchScalar4(d_drho, tex_drho, idxs);
+        dv = texFetchScalar4(d_drho, idxs);
         Scalar derivativeRhoJ = dv.z + dv.y * remainder + dv.x * remainder * remainder;
         // fullDerivativePhi = dF/dP * drho / dr for j + dF/dP * drho / dr for j + phi
         Scalar d_dFdPcur = __ldg(d_dFdP + cur_neigh);
@@ -314,54 +305,6 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
         if (error != cudaSuccess)
             return error;
         }
-
-    if (compute_capability < 350)
-        {
-        tex_F.normalized = false;
-        tex_F.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, tex_F, d_F, sizeof(Scalar4) * eam_data.nrho * eam_data.ntypes);
-        if (error != cudaSuccess)
-            return error;
-
-        tex_dF.normalized = false;
-        tex_dF.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, tex_dF, d_dF, sizeof(Scalar4) * eam_data.nrho * eam_data.ntypes);
-        if (error != cudaSuccess)
-            return error;
-
-        tex_rho.normalized = false;
-        tex_rho.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, tex_rho, d_rho, sizeof(Scalar4) * eam_data.nrho * eam_data.ntypes * eam_data.ntypes);
-        if (error != cudaSuccess)
-            return error;
-
-        tex_drho.normalized = false;
-        tex_drho.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, tex_drho, d_drho,
-                sizeof(Scalar4) * eam_data.nrho * eam_data.ntypes * eam_data.ntypes);
-        if (error != cudaSuccess)
-            return error;
-
-        tex_rphi.normalized = false;
-        tex_rphi.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, tex_rphi, d_rphi,
-                sizeof(Scalar4) * (int) (0.5 * eam_data.nr * (eam_data.ntypes + 1) * eam_data.ntypes));
-        if (error != cudaSuccess)
-            return error;
-
-        tex_drphi.normalized = false;
-        tex_drphi.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, tex_drphi, d_drphi,
-                sizeof(Scalar4) * (int) (0.5 * eam_data.nr * (eam_data.ntypes + 1) * eam_data.ntypes));
-        if (error != cudaSuccess)
-            return error;
-        }
-
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4) * N);
-    if (error != cudaSuccess)
-        return error;
 
     // run the kernel
     cudaMemcpyToSymbol(eam_data_ti, &eam_data, sizeof(EAMTexInterData));

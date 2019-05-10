@@ -13,15 +13,6 @@
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU with multiple bin stencils
 */
 
-//! Texture for reading d_cell_xyzf
-scalar4_tex_t cell_xyzf_1d_tex;
-
-//! Texture for reading d_cell_tdb
-scalar4_tex_t cell_tdb_1d_tex;
-
-//! Texture for reading d_stencil
-scalar4_tex_t stencil_1d_tex;
-
 //! Kernel call for generating neighbor list on the GPU using multiple stencils (Kepler optimized version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
     \tparam threads_per_particle Number of threads cooperatively computing the neighbor list
@@ -179,7 +170,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int *d_nlist,
             if (cur_adj < n_stencil)
                 {
                 // compute the stenciled cell cartesian coordinates
-                Scalar4 stencil = texFetchScalar4(d_stencil, stencil_1d_tex, stencil_idx(cur_adj, my_type));
+                Scalar4 stencil = texFetchScalar4(d_stencil, stencil_idx(cur_adj, my_type));
                 int sib = ib + __scalar_as_int(stencil.x);
                 int sjb = jb + __scalar_as_int(stencil.y);
                 int skb = kb + __scalar_as_int(stencil.z);
@@ -212,7 +203,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int *d_nlist,
             do
                 {
                 // read in the particle type (diameter and body as well while we've got the Scalar4 in)
-                const Scalar4 neigh_tdb = texFetchScalar4(d_cell_tdb, cell_tdb_1d_tex, cli(cur_offset, neigh_cell));
+                const Scalar4 neigh_tdb = texFetchScalar4(d_cell_tdb, cli(cur_offset, neigh_cell));
                 const unsigned int type_j = __scalar_as_int(neigh_tdb.x);
                 const Scalar diam_j = neigh_tdb.y;
                 const unsigned int body_j = __scalar_as_int(neigh_tdb.z);
@@ -237,7 +228,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int *d_nlist,
                 if (cell_dist2 > r_listsq) break;
 
                 // only load in the particle position and id if distance check is required
-                const Scalar4 neigh_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
+                const Scalar4 neigh_xyzf = texFetchScalar4(d_cell_xyzf, cli(cur_offset, neigh_cell));
                 const Scalar3 neigh_pos = make_scalar3(neigh_xyzf.x, neigh_xyzf.y, neigh_xyzf.z);
                 unsigned int cur_neigh = __scalar_as_int(neigh_xyzf.w);
 
@@ -301,36 +292,6 @@ int get_max_block_size_stencil(T func)
     return max_threads;
     }
 
-//! Bind the textures on sm <= 30
-/*!
- * \param d_cell_xyzf Cell list particle array
- * \param d_cell_tdb Cell list type-diameter-body array
- * \param n_elements Number of elements in the cell list arrays
- * \param d_stencil Stencil offset array
- * \param n_stencil_elements Number of elements in the stencil offset array
- */
-void gpu_nlist_stencil_bind_texture(const Scalar4 *d_cell_xyzf,
-                                    const Scalar4 *d_cell_tdb,
-                                    unsigned int n_elements,
-                                    const Scalar4 *d_stencil,
-                                    unsigned int n_stencil_elements)
-    {
-    // bind the position texture
-    cell_xyzf_1d_tex.normalized = false;
-    cell_xyzf_1d_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, cell_xyzf_1d_tex, d_cell_xyzf, sizeof(Scalar4)*n_elements);
-
-    // bind the position texture
-    cell_tdb_1d_tex.normalized = false;
-    cell_tdb_1d_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, cell_tdb_1d_tex, d_cell_tdb, sizeof(Scalar4)*n_elements);
-
-    // bind the stencil texture
-    stencil_1d_tex.normalized = false;
-    stencil_1d_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, stencil_1d_tex, d_stencil, sizeof(Scalar4)*n_stencil_elements);
-    }
-
 //! recursive template to launch neighborlist with given template parameters
 /* \tparam cur_tpp Number of threads per particle (assumed to be power of two) */
 template<int cur_tpp>
@@ -361,8 +322,7 @@ inline void stencil_launcher(unsigned int *d_nlist,
                              bool filter_body,
                              bool diameter_shift,
                              const unsigned int threads_per_particle,
-                             const unsigned int block_size,
-                             const unsigned int compute_capability)
+                             const unsigned int block_size)
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
@@ -375,11 +335,6 @@ inline void stencil_launcher(unsigned int *d_nlist,
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<0,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_stencil_bind_texture(d_cell_xyzf,
-                                                                        d_cell_tdb,
-                                                                        cli.getNumElements(),
-                                                                        d_stencil,
-                                                                        stencil_idx.getNumElements());
 
             unsigned int run_block_size = (block_size < max_block_size) ? block_size : max_block_size;
             dim3 grid(N / (block_size/threads_per_particle) + 1);
@@ -413,11 +368,6 @@ inline void stencil_launcher(unsigned int *d_nlist,
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<1,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_stencil_bind_texture(d_cell_xyzf,
-                                                                        d_cell_tdb,
-                                                                        cli.getNumElements(),
-                                                                        d_stencil,
-                                                                        stencil_idx.getNumElements());
 
             unsigned int run_block_size = (block_size < max_block_size) ? block_size : max_block_size;
             dim3 grid(N / (block_size/threads_per_particle) + 1);
@@ -451,11 +401,6 @@ inline void stencil_launcher(unsigned int *d_nlist,
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<2,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_stencil_bind_texture(d_cell_xyzf,
-                                                                        d_cell_tdb,
-                                                                        cli.getNumElements(),
-                                                                        d_stencil,
-                                                                        stencil_idx.getNumElements());
 
             unsigned int run_block_size = (block_size < max_block_size) ? block_size : max_block_size;
             dim3 grid(N / (block_size/threads_per_particle) + 1);
@@ -489,11 +434,6 @@ inline void stencil_launcher(unsigned int *d_nlist,
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<3,cur_tpp>);
-            if (compute_capability < 35) gpu_nlist_stencil_bind_texture(d_cell_xyzf,
-                                                                        d_cell_tdb,
-                                                                        cli.getNumElements(),
-                                                                        d_stencil,
-                                                                        stencil_idx.getNumElements());
 
             unsigned int run_block_size = (block_size < max_block_size) ? block_size : max_block_size;
             dim3 grid(N / (block_size/threads_per_particle) + 1);
@@ -552,8 +492,7 @@ inline void stencil_launcher(unsigned int *d_nlist,
                                     filter_body,
                                     diameter_shift,
                                     threads_per_particle,
-                                    block_size,
-                                    compute_capability);
+                                    block_size);
         }
     }
 
@@ -586,8 +525,7 @@ inline void stencil_launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
                                                          bool filter_body,
                                                          bool diameter_shift,
                                                          const unsigned int threads_per_particle,
-                                                         const unsigned int block_size,
-                                                         const unsigned int compute_capability)
+                                                         const unsigned int block_size)
     { }
 
 cudaError_t gpu_compute_nlist_stencil(unsigned int *d_nlist,
@@ -617,8 +555,7 @@ cudaError_t gpu_compute_nlist_stencil(unsigned int *d_nlist,
                                       bool filter_body,
                                       bool diameter_shift,
                                       const unsigned int threads_per_particle,
-                                      const unsigned int block_size,
-                                      const unsigned int compute_capability)
+                                      const unsigned int block_size)
     {
     stencil_launcher<max_threads_per_particle>(d_nlist,
                                                d_n_neigh,
@@ -647,8 +584,7 @@ cudaError_t gpu_compute_nlist_stencil(unsigned int *d_nlist,
                                                filter_body,
                                                diameter_shift,
                                                threads_per_particle,
-                                               block_size,
-                                               compute_capability);
+                                               block_size);
     return cudaSuccess;
     }
 

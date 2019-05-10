@@ -108,8 +108,6 @@ struct pair_args_t
     };
 
 #ifdef NVCC
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
 
 // there is some naming conflict between the DPD pair force and PotentialPair because
 // the DPD does not extend PotentialPair, and so we need to choose a different name for this texture
@@ -225,7 +223,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
 
         // read in the position of our particle.
         // (MEM TRANSFER: 16 bytes)
-        Scalar4 postypei = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+        Scalar4 postypei = texFetchScalar4(d_pos, idx);
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
         Scalar di;
@@ -270,7 +268,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                         }
                     }
                 // get the neighbor's position (MEM TRANSFER: 16 bytes)
-                Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
+                Scalar4 postypej = texFetchScalar4(d_pos, cur_j);
                 Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
                 Scalar dj = Scalar(0.0);
@@ -419,11 +417,6 @@ int get_max_block_size(T func)
 
 inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
     {
-    // bind the position texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.n_max);
-
     // bind the neighborlist texture if it will fit
     if (pair_args.size_neigh_list <= pair_args.max_tex1d_width)
         {
@@ -435,8 +428,6 @@ inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
 
 inline void gpu_pair_force_unbind_textures(const pair_args_t pair_args)
     {
-    cudaUnbindTexture(pdata_pos_tex);
-
     if (pair_args.size_neigh_list <= pair_args.max_tex1d_width)
         {
         cudaUnbindTexture(pair_nlist_tex);

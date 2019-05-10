@@ -42,46 +42,32 @@ __device__ inline unsigned int texFetchUint(const unsigned int *ptr, texture<uns
 
 #ifdef SINGLE_PRECISION
 
-typedef texture<Scalar4, 1, cudaReadModeElementType> scalar4_tex_t;
-
 //! Fetch a Scalar4 value from texture memory.
 /*! This function should called whenever a CUDA kernel wants to retrieve a
     Scalar4 value from texture memory.
 
     \param ptr Pointer to bound memory
-    \param tex_ref Texture in which the desired values are stored.
     \param ii Index at which to look.
 */
-__device__ inline Scalar4 texFetchScalar4(const Scalar4 *ptr, texture<Scalar4, 1> tex_ref, unsigned int ii)
+__device__ inline Scalar4 texFetchScalar4(const Scalar4 *ptr, unsigned int ii)
     {
-    #if __CUDA_ARCH__ >= 350
     return __ldg(ptr+ii);
-    #else
-    return tex1Dfetch(tex_ref, ii);
-    #endif
     }
 
 #else
-typedef texture<int4, 1, cudaReadModeElementType> scalar4_tex_t;
 
 //! Fetch a Scalar4 value from texture memory.
 /*! This function should be called whenever a CUDA kernel wants to retrieve a
     Scalar4 value from texture memory.
 
     \param ptr Pointer to bound memory
-    \param tex_ref Texture in which the desired values are stored.
     \param ii Index at which to look.
 */
-__device__ inline Scalar4 texFetchScalar4(const Scalar4 *ptr, texture<int4, 1> tex_ref, unsigned int ii)
+__device__ inline Scalar4 texFetchScalar4(const Scalar4 *ptr, unsigned int ii)
     {
     unsigned int idx = 2*ii;
-    #if __CUDA_ARCH__ >= 350
     int4 part1 = __ldg(((int4 *)ptr)+idx);;
     int4 part2 = __ldg(((int4 *)ptr)+idx+1);;
-    #else
-    int4 part1 = tex1Dfetch(tex_ref, idx);
-    int4 part2 = tex1Dfetch(tex_ref, idx+1);
-    #endif
     return make_scalar4(__hiloint2double(part1.y, part1.x),
                         __hiloint2double(part1.w, part1.z),
                         __hiloint2double(part2.y, part2.x),
@@ -89,7 +75,5 @@ __device__ inline Scalar4 texFetchScalar4(const Scalar4 *ptr, texture<int4, 1> t
     }
 #endif
 #endif
-
-
 
 #endif // __HOOMD_MATH_H__

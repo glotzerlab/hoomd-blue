@@ -108,11 +108,6 @@ struct dpd_pair_args_t
     };
 
 #ifdef NVCC
-//! Texture for reading particle positions
-scalar4_tex_t pdata_dpd_pos_tex;
-
-//! Texture for reading particle velocities
-scalar4_tex_t pdata_dpd_vel_tex;
 
 //! Texture for reading particle tags
 texture<unsigned int, 1, cudaReadModeElementType> pdata_dpd_tag_tex;
@@ -222,12 +217,12 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
 
         // read in the position of our particle.
         // (MEM TRANSFER: 16 bytes)
-        Scalar4 postypei = texFetchScalar4(d_pos, pdata_dpd_pos_tex, idx);
+        Scalar4 postypei = texFetchScalar4(d_pos, idx);
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
         // read in the velocity of our particle.
         // (MEM TRANSFER: 16 bytes)
-        Scalar4 velmassi = texFetchScalar4(d_vel, pdata_dpd_vel_tex, idx);
+        Scalar4 velmassi = texFetchScalar4(d_vel, idx);
         Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
 
         // prefetch neighbor index
@@ -266,11 +261,11 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                     }
 
                 // get the neighbor's position (MEM TRANSFER: 16 bytes)
-                Scalar4 postypej = texFetchScalar4(d_pos, pdata_dpd_pos_tex, cur_j);
+                Scalar4 postypej = texFetchScalar4(d_pos, cur_j);
                 Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
                 // get the neighbor's position (MEM TRANSFER: 16 bytes)
-                Scalar4 velmassj = texFetchScalar4(d_vel, pdata_dpd_vel_tex, cur_j);
+                Scalar4 velmassj = texFetchScalar4(d_vel, cur_j);
                 Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);
 
                 // calculate dr (with periodic boundary conditions) (FLOPS: 3)
@@ -376,16 +371,6 @@ int dpd_get_max_block_size(T func)
 
 inline void gpu_dpd_pair_force_bind_textures(const dpd_pair_args_t pair_args)
     {
-    // bind the position texture
-    pdata_dpd_pos_tex.normalized = false;
-    pdata_dpd_pos_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, pdata_dpd_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.n_max);
-
-    // bind the diameter texture
-    pdata_dpd_vel_tex.normalized = false;
-    pdata_dpd_vel_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, pdata_dpd_vel_tex, pair_args.d_vel, sizeof(Scalar4) * pair_args.n_max);
-
     pdata_dpd_tag_tex.normalized = false;
     pdata_dpd_tag_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_dpd_tag_tex, pair_args.d_tag, sizeof(unsigned int) * pair_args.n_max);

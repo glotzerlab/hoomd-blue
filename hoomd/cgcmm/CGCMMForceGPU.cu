@@ -13,8 +13,6 @@
     \brief Defines GPU kernel code for calculating the Lennard-Jones pair forces. Used by CGCMMForceComputeGPU.
 */
 
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
 //! Texture for reading the neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
@@ -80,7 +78,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+    Scalar4 postype = texFetchScalar4(d_pos, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
@@ -117,7 +115,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
             }
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
+        Scalar4 neigh_postype = texFetchScalar4(d_pos, cur_neigh);
         Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions)
@@ -226,17 +224,11 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
     // bind the texture
     if (compute_capability < 35)
         {
-        pdata_pos_tex.normalized = false;
-        pdata_pos_tex.filterMode = cudaFilterModePoint;
-        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
-        if (error != cudaSuccess)
-            return error;
-
         if (size_nlist <= max_tex1d_width)
             {
             nlist_tex.normalized = false;
             nlist_tex.filterMode = cudaFilterModePoint;
-            error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
+            cudaError_t error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
             if (error != cudaSuccess)
                 return error;
             }

@@ -89,9 +89,6 @@ struct tersoff_args_t
 
 
 #ifdef NVCC
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
-
 //! Texture for reading neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
@@ -216,7 +213,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     unsigned int n_neigh = d_n_neigh[idx];
 
     // read in the position of the particle
-    Scalar4 postypei = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+    Scalar4 postypei = texFetchScalar4(d_pos, idx);
     Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
     // initialize the force to 0
@@ -266,7 +263,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                 }
 
             // read the position of j (MEM TRANSFER: 16 bytes)
-            Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
+            Scalar4 postypej = texFetchScalar4(d_pos, cur_j);
             Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
             // initialize the force on j
@@ -350,7 +347,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             }
 
         // read the position of j (MEM TRANSFER: 16 bytes)
-        Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
+        Scalar4 postypej = texFetchScalar4(d_pos, cur_j);
         Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
         // initialize the force on j
@@ -416,7 +413,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         }
 
                     // get the position of neighbor k
-                    Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
+                    Scalar4 postypek = texFetchScalar4(d_pos, cur_k);
                     Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
                     // get the type pair parameters for i and k
@@ -528,7 +525,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         }
 
                     // get the position of neighbor k
-                    Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
+                    Scalar4 postypek = texFetchScalar4(d_pos, cur_k);
                     Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
                     // get the type pair parameters for i and k
@@ -735,10 +732,6 @@ struct TersoffComputeKernel
             // bind to texture
             if (pair_args.compute_capability < 35)
                 {
-                pdata_pos_tex.normalized = false;
-                pdata_pos_tex.filterMode = cudaFilterModePoint;
-                cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * (pair_args.N+pair_args.Nghosts));
-
                 if (pair_args.size_nlist <= (unsigned int) pair_args.devprop.maxTexture1DLinear)
                     {
                     nlist_tex.normalized = false;

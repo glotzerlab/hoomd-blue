@@ -15,9 +15,6 @@
     \brief Defines GPU kernel code for calculating the table pair forces. Used by TablePotentialGPU.
 */
 
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
-
 //! Texture for reading the neighborlist
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
@@ -85,7 +82,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     const unsigned int head_idx = d_head_list[idx];
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
-    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+    Scalar4 postype = texFetchScalar4(d_pos, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     unsigned int typei = __scalar_as_int(postype.w);
 
@@ -126,7 +123,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
             }
 
         // get the neighbor's position
-        Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
+        Scalar4 neigh_postype = texFetchScalar4(d_pos, cur_neigh);
         Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions)
@@ -261,18 +258,11 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
         // texture bind
         if (compute_capability < 350)
             {
-            // bind the pdata position texture
-            pdata_pos_tex.normalized = false;
-            pdata_pos_tex.filterMode = cudaFilterModePoint;
-            cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4) * (N+n_ghost));
-            if (error != cudaSuccess)
-                return error;
-
             if (size_nlist <= max_tex1d_width)
                 {
                 nlist_tex.normalized = false;
                 nlist_tex.filterMode = cudaFilterModePoint;
-                error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
+                cudaError_t error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
                 if (error != cudaSuccess)
                     return error;
                 }

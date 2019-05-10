@@ -118,11 +118,6 @@ struct a_pair_args_t
     };
 
 #ifdef NVCC
-//! Texture for reading particle positions
-scalar4_tex_t aniso_pdata_pos_tex;
-
-//! Texture for reading particle quaternions
-scalar4_tex_t aniso_pdata_quat_tex;
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -217,9 +212,9 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-    Scalar4 postypei = texFetchScalar4(d_pos, aniso_pdata_pos_tex, idx);
+    Scalar4 postypei = texFetchScalar4(d_pos, idx);
     Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
-    Scalar4 quati = texFetchScalar4(d_orientation,aniso_pdata_quat_tex, idx);
+    Scalar4 quati = texFetchScalar4(d_orientation, idx);
 
     Scalar di;
     if (evaluator::needsDiameter())
@@ -259,9 +254,9 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                 next_j = d_nlist[myHead + neigh_idx + tpp];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            Scalar4 postypej = texFetchScalar4(d_pos, aniso_pdata_pos_tex, cur_j);
+            Scalar4 postypej = texFetchScalar4(d_pos, cur_j);
             Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
-            Scalar4 quatj = texFetchScalar4(d_orientation, aniso_pdata_quat_tex, cur_j);
+            Scalar4 quatj = texFetchScalar4(d_orientation, cur_j);
 
             Scalar dj = 0.0f;
             if (evaluator::needsDiameter())
@@ -407,19 +402,6 @@ int aniso_get_compute_capability(T func)
     return attr.binaryVersion;
     }
 
-void gpu_pair_aniso_force_bind_textures(const a_pair_args_t pair_args)
-    {
-    // bind the position texture
-    aniso_pdata_pos_tex.normalized = false;
-    aniso_pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, aniso_pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.n_max);
-
-    // bind the position texture
-    aniso_pdata_quat_tex.normalized = false;
-    aniso_pdata_quat_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, aniso_pdata_quat_tex, pair_args.d_orientation, sizeof(Scalar4)*pair_args.n_max);
-    }
-
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 /*! \param pair_args Other arguments to pass onto the kernel
     \param d_params Parameters for the potential, stored per type pair
@@ -455,13 +437,8 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 case 0:
                     {
                     static unsigned int max_block_size = UINT_MAX;
-                    static unsigned int sm = UINT_MAX;
                     if (max_block_size == UINT_MAX)
                         max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>);
-                    if (sm == UINT_MAX)
-                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>);
-
-                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
 
                     block_size = block_size < max_block_size ? block_size : max_block_size;
                     dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
@@ -492,13 +469,8 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 case 1:
                     {
                     static unsigned int max_block_size = UINT_MAX;
-                    static unsigned int sm = UINT_MAX;
                     if (max_block_size == UINT_MAX)
                         max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>);
-                    if (sm == UINT_MAX)
-                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>);
-
-                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
 
                     block_size = block_size < max_block_size ? block_size : max_block_size;
                     dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
@@ -537,13 +509,9 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 case 0:
                     {
                     static unsigned int max_block_size = UINT_MAX;
-                    static unsigned int sm = UINT_MAX;
                     if (max_block_size == UINT_MAX)
                         max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>);
-                    if (sm == UINT_MAX)
-                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>);
 
-                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
 
                     block_size = block_size < max_block_size ? block_size : max_block_size;
                     dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
@@ -574,21 +542,11 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 case 1:
                     {
                     static unsigned int max_block_size = UINT_MAX;
-                    static unsigned int sm = UINT_MAX;
                     if (max_block_size == UINT_MAX)
                         max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>);
-                    if (sm == UINT_MAX)
-                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>);
-
-                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
 
                     block_size = block_size < max_block_size ? block_size : max_block_size;
                     dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
-                    if (sm < 30 && grid.x > 65535)
-                        {
-                        grid.y = grid.x/65535 + 1;
-                        grid.x = 65535;
-                        }
 
                     shared_bytes += sizeof(Scalar)*block_size;
 
