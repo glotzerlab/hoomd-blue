@@ -43,10 +43,11 @@
 
     \f[ b_1 = \sum_{n=2}^4 n (-1)^n b_n cos(\frac{n \pi r}{r_{cut}}) \f]
 
-    is calculated to enforce close to zero value at $r_{cut}$
+    is calculated to enforce close to zero value at r_cut
 
     The Fourier potential does not need diameter or charge. two sets of parameters: a and b (both list of size 3) are specified and stored in a pair_fourier_params type.
-    \a a is placed in \a params.a, \a b is in \a params.b.
+    - \a a is placed in params.a,
+    - \a b is placed in params.b.
 
 */
 struct pair_fourier_params
