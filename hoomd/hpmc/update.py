@@ -655,14 +655,13 @@ class muvt(_updater):
         fugacity_variant = hoomd.variant._setup_variant_input(fugacity);
         self.cpp_updater.setFugacity(type_id, fugacity_variant.cpp_variant);
 
-    def set_params(self, dV=None, move_ratio=None, transfer_ratio=None, n_trial=None):
+    def set_params(self, dV=None, move_ratio=None, n_trial=None):
         R""" Set muVT parameters.
 
         Args:
             dV (float): (if set) Set volume rescaling factor (dimensionless)
             move_ratio (float): (if set) Set the ratio between volume and exchange/transfer moves (applies to Gibbs ensemble)
             n_trial (int): (if set) Number of re-insertion attempts per depletant
-            transfer_ratio (float): (if set) Set the ratio between transfer and exchange moves
 
         Example::
 
@@ -684,9 +683,6 @@ class muvt(_updater):
             if not self.gibbs:
                 hoomd.context.msg.warning("Parameter dV only available for Gibbs ensemble.\n");
             self.cpp_updater.setMaxVolumeRescale(float(dV))
-
-        if transfer_ratio is not None:
-            self.cpp_updater.setTransferRatio(float(transfer_ratio))
 
         if n_trial is not None:
             self.cpp_updater.setNTrial(int(n_trial))
