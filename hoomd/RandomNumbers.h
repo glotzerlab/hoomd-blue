@@ -3,7 +3,7 @@
 
 /*!
    \file RandomNumbers.h
-   \brief Declaration of mpcd::RandomNumbers
+   \brief Declaration of hoomd::RandomNumbers
 
    This header includes templated generators for various types of random numbers required used throughout hoomd. These
    work with the RandomGenerator generator that wraps random123's Philox4x32 RNG with an API that handles streams of
@@ -602,6 +602,6 @@ class PoissonDistribution
           }
     };
 
-} // end namespace mpcd
+} // end namespace hoomd
 
 #endif // #define HOOMD_RANDOM_NUMBERS_H_

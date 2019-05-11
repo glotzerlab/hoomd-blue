@@ -5,6 +5,8 @@
 
 #include "IntegratorHPMCMono.h"
 #include "hoomd/Autotuner.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 #include "hoomd/Saru.h"
 
 #include <random>
@@ -174,18 +176,13 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
 
         //! Test whether to reject the current particle move based on depletants
         #ifndef ENABLE_TBB
-        inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i);
+        inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, hoomd::RandomGenerator& rng_depletants, hoomd::detail::Saru& rng_i);
         #else
-        inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, hoomd::detail::Saru& rng_i, tbb::enumerable_thread_specific< hoomd::detail::Saru >& rng_parallel, tbb::enumerable_thread_specific<std::mt19937>& rng_parallel_mt);
+        inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, hoomd::detail::Saru& rng_i, tbb::enumerable_thread_specific< hoomd::RandomGenerator >& rng_depletants_parallel);
         #endif
 
         //! Set the nominal width appropriate for depletion interaction
         virtual void updateCellWidth();
-
-        //! Generate a random depletant position in a sphere around a particle
-        template<class RNG>
-        inline void generateDepletant(RNG& rng, vec3<Scalar> pos_sphere, Scalar delta, Scalar d_min,
-            vec3<Scalar>& pos, quat<Scalar>& orientation, const typename Shape::param_type& params_depletants);
     };
 
 /*! \param sysdef System definition
@@ -317,42 +314,21 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
 
     // Combine the three seeds to generate RNG for poisson distribution
     #ifndef ENABLE_TBB
-    std::vector<unsigned int> seed_seq(4);
-    seed_seq[0] = this->m_seed;
-    seed_seq[1] = timestep;
-    seed_seq[2] = this->m_exec_conf->getRank();
-    seed_seq[3] = 0x91baff72;
-    std::seed_seq seed(seed_seq.begin(), seed_seq.end());
-    std::mt19937 rng_poisson(seed);
+    hoomd::RandomGenerator rng_depletants(this->m_seed,
+        timestep,
+        this->m_exec_conf->getRank(),
+        hoomd::RNGIdentifier::HPMCDepletants);
     #else
     // create one RNG per thread
-    tbb::enumerable_thread_specific< hoomd::detail::Saru > rng_parallel([=]
+    tbb::enumerable_thread_specific< hoomd::RandomGenerator > rng_depletants_parallel([=]
         {
         std::vector<unsigned int> seed_seq(5);
-        seed_seq[0] = this->m_seed;
-        seed_seq[1] = timestep;
-        seed_seq[2] = this->m_exec_conf->getRank();
         std::hash<std::thread::id> hash;
-        seed_seq[3] = hash(std::this_thread::get_id());
-        seed_seq[4] = 0x6b71abc8;
-        std::seed_seq seed(seed_seq.begin(), seed_seq.end());
-        std::vector<unsigned int> s(1);
-        seed.generate(s.begin(),s.end());
-        return s[0];
-        });
-    tbb::enumerable_thread_specific<std::mt19937> rng_parallel_mt([=]
-        {
-        std::vector<unsigned int> seed_seq(5);
-        seed_seq[0] = this->m_seed;
-        seed_seq[1] = timestep;
-        seed_seq[2] = this->m_exec_conf->getRank();
-        std::hash<std::thread::id> hash;
-        seed_seq[3] = hash(std::this_thread::get_id());
-        seed_seq[4] = 0x91baff72;
-        std::seed_seq seed(seed_seq.begin(), seed_seq.end());
-        std::vector<unsigned int> s(1);
-        seed.generate(s.begin(),s.end());
-        return s[0]; // use a single seed
+        return hoomd::RandomGenerator(this->m_seed,
+            timestep,
+            this->m_exec_conf->getRank(),
+            hash(std::this_thread::get_id()),
+            hoomd::RNGIdentifier::HPMCDepletants);
         });
     #endif
 
@@ -663,9 +639,9 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             if (accept)
                 {
                 #ifndef ENABLE_TBB
-                accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_postype.data, h_orientation.data, h_overlaps.data, counters, h_implicit_counters.data, rng_poisson, rng_i);
+                accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_postype.data, h_orientation.data, h_overlaps.data, counters, h_implicit_counters.data, rng_depletants, rng_i);
                 #else
-                accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_postype.data, h_orientation.data, h_overlaps.data, counters, h_implicit_counters.data, rng_i, rng_parallel, rng_parallel_mt);
+                accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_postype.data, h_orientation.data, h_overlaps.data, counters, h_implicit_counters.data, rng_i, rng_depletants_parallel);
                 #endif
                 } // end depletant placement
 
@@ -770,16 +746,15 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
     \param rng_i The RNG used for evaluating the Metropolis criterion
 
     In order to determine whether or not moves are accepted, particle positions are checked against a randomly generated set of depletant positions.
-    In principle this function should enable multiple depletant modes, although at present only one (cirumsphere) has been implemented here.
 
-    NOTE: To avoid numerous acquires and releases of GPUArrays, ArrayHandles are passed directly into this const function.
+    NOTE: To avoid numerous acquires and releases of GPUArrays, data pointers are passed directly into this const function.
     */
 #ifndef ENABLE_TBB
 template<class Shape>
-inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i)
+inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, hoomd::RandomGenerator& rng_depletants, hoomd::detail::Saru& rng_i)
 #else
 template<class Shape>
-inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, hoomd::detail::Saru& rng_i, tbb::enumerable_thread_specific< hoomd::detail::Saru >& rng_parallel, tbb::enumerable_thread_specific<std::mt19937>& rng_parallel_mt)
+inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, hoomd::detail::Saru& rng_i, tbb::enumerable_thread_specific< hoomd::RandomGenerator >& rng_depletants_parallel)
 #endif
     {
     bool accept = true;
@@ -925,7 +900,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             #ifdef ENABLE_TBB
             tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size()),
                 [=, &intersect_i, &image_i, &aabbs_i,
-                    &accept, &rng_parallel, &rng_parallel_mt,
+                    &accept, &rng_depletants_parallel,
                     &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& s) {
             for (unsigned int k = s.begin(); k != s.end(); ++k)
             #else
@@ -956,18 +931,20 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y)*(intersect_upper.z-intersect_lower.z);
 
                 // chooose the number of depletants in the intersection volume
-                std::poisson_distribution<unsigned int> poisson(m_fugacity[type]*V);
+                hoomd::PoissonDistribution<Scalar> poisson(m_fugacity[type]*V);
                 #ifdef ENABLE_TBB
-                std::mt19937& rng_poisson = rng_parallel_mt.local();
+                hoomd::RandomGenerator& my_rng = rng_depletants_parallel.local();
+                #else
+                hoomd::RandomGenerator& my_rng = rng_depletants;
                 #endif
 
-                unsigned int n = poisson(rng_poisson);
+                unsigned int n = poisson(my_rng);
 
                 // for every depletant
                 #ifdef ENABLE_TBB
                 tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n),
                     [=, &intersect_i, &image_i, &aabbs_i,
-                        &accept, &rng_parallel,
+                        &accept, &rng_depletants_parallel,
                         &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
                 for (unsigned int l = t.begin(); l != t.end(); ++l)
                 #else
@@ -975,9 +952,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #endif
                     {
                     #ifdef ENABLE_TBB
-                    hoomd::detail::Saru& my_rng = rng_parallel.local();
+                    hoomd::RandomGenerator& my_rng = rng_depletants_parallel.local();
                     #else
-                    hoomd::detail::Saru& my_rng = rng_i;
+                    hoomd::RandomGenerator& my_rng = rng_depletants;
                     #endif
 
                     #ifdef ENABLE_TBB
@@ -1329,7 +1306,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
             #ifdef ENABLE_TBB
             tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)intersect_i.size()),
                 [=, &intersect_i, &image_i, &aabbs_i,
-                    &accept, &rng_parallel, &rng_parallel_mt,
+                    &accept, &rng_depletants_parallel,
                     &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& s) {
             for (unsigned int k = s.begin(); k != s.end(); ++k)
             #else
@@ -1360,18 +1337,20 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 Scalar V = (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y)*(intersect_upper.z-intersect_lower.z);
 
                 // chooose the number of depletants in the intersection volume
-                std::poisson_distribution<unsigned int> poisson(-m_fugacity[type]*V);
+                hoomd::PoissonDistribution<Scalar> poisson(-m_fugacity[type]*V);
                 #ifdef ENABLE_TBB
-                std::mt19937& rng_poisson = rng_parallel_mt.local();
+                hoomd::RandomGenerator& my_rng = rng_depletants_parallel.local();
+                #else
+                hoomd::RandomGenerator& my_rng = rng_depletants;
                 #endif
 
-                unsigned int n = poisson(rng_poisson);
+                unsigned int n = poisson(my_rng);
 
                 // for every depletant
                 #ifdef ENABLE_TBB
                 tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n),
                     [=, &intersect_i, &image_i, &aabbs_i,
-                        &accept, &rng_parallel,
+                        &accept, &rng_depletants_parallel,
                         &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
                 for (unsigned int l = t.begin(); l != t.end(); ++l)
                 #else
@@ -1379,9 +1358,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
                 #endif
                     {
                     #ifdef ENABLE_TBB
-                    hoomd::detail::Saru& my_rng = rng_parallel.local();
+                    hoomd::RandomGenerator& my_rng = rng_depletants_parallel.local();
                     #else
-                    hoomd::detail::Saru& my_rng = rng_i;
+                    hoomd::RandomGenerator& my_rng = rng_depletants;
                     #endif
 
                     #ifdef ENABLE_TBB
@@ -1630,41 +1609,6 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     #endif
 
     return accept;
-    }
-
-/* \param rng The random number generator
- * \param pos_sphere Center of sphere
- * \param delta diameter of sphere
- * \param d_min Diameter of smaller sphere excluding depletant
- * \param pos Position of depletant (return value)
- * \param orientation ion of depletant (return value)
- * \param params_depletant Depletant parameters
- */
-template<class Shape>
-template<class RNG>
-inline void IntegratorHPMCMonoImplicit<Shape>::generateDepletant(RNG& rng, vec3<Scalar> pos_sphere, Scalar delta,
-    Scalar d_min, vec3<Scalar>& pos, quat<Scalar>& orientation, const typename Shape::param_type& params_depletant)
-    {
-    // draw a random vector in the excluded volume sphere of the colloid
-    Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
-    Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
-
-    // random normalized vector
-    vec3<Scalar> n(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
-
-    // draw random radial coordinate in test sphere
-    Scalar r3 = rng.template s<Scalar>(fast::pow(d_min/delta,Scalar(3.0)),Scalar(1.0));
-    Scalar r = Scalar(0.5)*delta*fast::pow(r3,Scalar(1.0/3.0));
-
-    // test depletant position
-    vec3<Scalar> pos_depletant = pos_sphere+r*n;
-
-    Shape shape_depletant(quat<Scalar>(), params_depletant);
-    if (shape_depletant.hasOrientation())
-        {
-        orientation = generateRandomOrientation(rng);
-        }
-    pos = pos_depletant;
     }
 
 /*! \param quantity Name of the log quantity to get

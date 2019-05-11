@@ -229,9 +229,9 @@ DEVICE inline vec3<Scalar> generatePositionInAABB(RNG& rng, const detail::AABB& 
     vec3<Scalar> lower = aabb.getLower();
     vec3<Scalar> upper = aabb.getUpper();
 
-    p.x = rng.template s<Scalar>(lower.x, upper.x);
-    p.y = rng.template s<Scalar>(lower.y, upper.y);
-    p.z = rng.template s<Scalar>(lower.z, upper.z);
+    p.x = hoomd::UniformDistribution<Scalar>(lower.x, upper.x)(rng);
+    p.y = hoomd::UniformDistribution<Scalar>(lower.y, upper.y)(rng);
+    p.z = hoomd::UniformDistribution<Scalar>(lower.z, upper.z)(rng);
 
     return p;
     }
