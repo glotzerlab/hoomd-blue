@@ -832,7 +832,7 @@ class convex_polygon(mode_hpmc):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self, False);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -941,7 +941,7 @@ class convex_spheropolygon(mode_hpmc):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,False);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -1053,7 +1053,7 @@ class simple_polygon(mode_hpmc):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,False);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
