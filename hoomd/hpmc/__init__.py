@@ -21,7 +21,7 @@ The following quantities are provided by the integrator for use in HOOMD-blue's 
 - ``hpmc_move_ratio`` - Probability of making a translation move (1- P(rotate move))
 - ``hpmc_overlap_count`` - Count of the number of particle-particle overlaps in the current system configuration
 
-With non-interacting depletants (**implicit=True**), the following log quantities are available:
+With non-interacting depletants, the following log quantities are available:
 
 - ``hpmc_fugacity_**type**`` - The current value of the depletant fugacity for a given type (in units of density, volume^-1)
 - ``hpmc_insert_count`` - Number of depletants inserted per colloid
