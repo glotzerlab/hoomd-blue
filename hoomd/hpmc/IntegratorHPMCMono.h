@@ -196,6 +196,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Get the current counter values
         std::vector<hpmc_implicit_counters_t> getImplicitCounters(unsigned int mode=0);
 
+        //! Method to scale the box
+        virtual bool attemptBoxResize(unsigned int timestep, const BoxDim& new_box);
+
         /*
          * Common HPMC API
          */
@@ -2966,6 +2969,24 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
     #endif
 
     return accept;
+    }
+
+template<class Shape>
+bool IntegratorHPMCMono<Shape>::attemptBoxResize(unsigned int timestep, const BoxDim& new_box)
+    {
+    // call parent class method
+    bool result = IntegratorHPMC::attemptBoxResize(timestep, new_box);
+
+    if (result)
+        {
+        for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
+            {
+            if (getDepletantFugacity(type_d) != 0.0)
+                throw std::runtime_error("Implicit depletants not supported with NPT ensemble\n");
+            }
+        }
+
+    return result;
     }
 
 //! Export the IntegratorHPMCMono class to python
