@@ -9,6 +9,7 @@
 
 #include "Moves.h"
 #include "IntegratorHPMCMono.h"
+#include "hoomd/Saru.h"
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>

@@ -53,7 +53,7 @@ class nvt_lj_sphere_energy(unittest.TestCase):
         N = len(system.particles);
 
         if use_depletants:
-            mc = hpmc.integrate.sphere(d=0.3,seed=321,implicit=True);
+            mc = hpmc.integrate.sphere(d=0.3,seed=321);
         else:
             mc = hpmc.integrate.sphere(d=0.3,seed=65412);
 

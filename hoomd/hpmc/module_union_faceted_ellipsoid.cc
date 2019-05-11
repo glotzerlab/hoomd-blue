@@ -4,7 +4,6 @@
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "IntegratorHPMCMonoImplicit.h"
 #include "ComputeFreeVolume.h"
 #include "AnalyzerSDF.h"
 
@@ -19,13 +18,10 @@
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterMuVTImplicit.h"
 #include "UpdaterClusters.h"
-#include "UpdaterClustersImplicit.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
-#include "IntegratorHPMCMonoImplicitNewGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
@@ -42,13 +38,10 @@ namespace hpmc
 void export_union_faceted_ellipsoid(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeUnion<ShapeFacetedEllipsoid> >(m, "IntegratorHPMCMonoFacetedEllipsoidUnion");
-    export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeFacetedEllipsoid> >(m, "IntegratorHPMCMonoImplicitFacetedEllipsoidUnion");
     export_ComputeFreeVolume< ShapeUnion<ShapeFacetedEllipsoid> >(m, "ComputeFreeVolumeFacetedEllipsoidUnion");
     // export_AnalyzerSDF< ShapeUnion<ShapeFacetedEllipsoid> >(m, "AnalyzerSDFFacetedEllipsoidUnion");
     export_UpdaterMuVT< ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterMuVTFacetedEllipsoidUnion");
     export_UpdaterClusters<ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterClustersFacetedEllipsoidUnion");
-    export_UpdaterClustersImplicit<ShapeUnion<ShapeFacetedEllipsoid>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeFacetedEllipsoid> > >(m, "UpdaterClustersImplicitFacetedEllipsoidUnion");
-    export_UpdaterMuVTImplicit< ShapeUnion<ShapeFacetedEllipsoid>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeFacetedEllipsoid> > >(m, "UpdaterMuVTImplicitFacetedEllipsoidUnion");
 
     export_ExternalFieldInterface<ShapeUnion<ShapeFacetedEllipsoid> >(m, "ExternalFieldFacetedEllipsoidUnion");
     export_LatticeField<ShapeUnion<ShapeFacetedEllipsoid> >(m, "ExternalFieldLatticeFacetedEllipsoidUnion");
@@ -60,7 +53,6 @@ void export_union_faceted_ellipsoid(py::module& m)
     #ifdef ENABLE_CUDA
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "IntegratorHPMCMonoGPUFacetedEllipsoidUnion");
-    export_IntegratorHPMCMonoImplicitNewGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "IntegratorHPMCMonoImplicitNewGPUFacetedEllipsoidUnion");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "ComputeFreeVolumeGPUFacetedEllipsoidUnion");
 
     #endif
