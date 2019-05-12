@@ -137,7 +137,7 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng, unsigned int ndim
     // 2D just needs a random rotation in the plane
     if (ndim==2)
         {
-        Scalar angle = hoomd::UniformDistribution(-M_PI, M_PI)(rng);
+        Scalar angle = hoomd::UniformDistribution<Scalar>(-M_PI, M_PI)(rng);
         vec3<Scalar> axis(Scalar(0), Scalar(0), Scalar(1));
         return quat<Scalar>::fromAxisAngle(axis, angle);
         }
