@@ -598,7 +598,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
             #ifdef ENABLE_MPI
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants4, this->m_seed, this->m_exec_conf->getRank(), this->m_exec_conf->getPartition(), timestep);
             #else
-            hoomd::RandomGenarator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants4, this->m_seed, timestep);
+            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants4, this->m_seed, timestep);
             #endif
 
             uint3 dim = make_uint3(1,1,1);
