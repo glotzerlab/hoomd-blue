@@ -3,7 +3,6 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
-#include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
 #include "ShapeSphere.h"
 
@@ -18,11 +17,6 @@ template cudaError_t gpu_hpmc_free_volume<ShapeSphere>(const hpmc_free_volume_ar
                                                        const typename ShapeSphere::param_type *d_params);
 template cudaError_t gpu_hpmc_update<ShapeSphere>(const hpmc_args_t& args,
                                                   const typename ShapeSphere::param_type *d_params);
-template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeSphere>(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapeSphere::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapeSphere>(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapeSphere::param_type *d_params);
-
 }; // end namespace detail
 
 } // end namespace hpmc
