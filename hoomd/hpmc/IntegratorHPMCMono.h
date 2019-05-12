@@ -714,8 +714,6 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
     GlobalArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
 
-    updateCellWidth();
-
     // depletant related counters
     unsigned int old_ntypes = m_implicit_count.getNumElements();
     m_implicit_count.resize(this->m_pdata->getNTypes());
@@ -730,6 +728,8 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     // depletant fugacities
     m_fugacity.resize(this->m_pdata->getNTypes(),0.0);
+
+    updateCellWidth();
     }
 
 template <class Shape>
@@ -1737,7 +1737,7 @@ void IntegratorHPMCMono<Shape>::updateCellWidth()
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
 
-    this->m_exec_conf->msg->notice(5) << "IntegratorHPMCMonoImplicit: updating nominal width to " << this->m_nominal_width << std::endl;
+    this->m_exec_conf->msg->notice(5) << "IntegratorHPMCMono: updating nominal width to " << this->m_nominal_width << std::endl;
     }
 
 template <class Shape>
