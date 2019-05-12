@@ -52,7 +52,7 @@ void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_co
     uint3 dim = make_uint3(nx-2, ny-2, nz-2);
     uint3 embed = make_uint3(nx, ny, nz);
     CG_uint grid_comm(sysdef, dim, embed, n_ghost_offset,false);
-    GPUArray<unsigned int> grid(nx*ny*nz, exec_conf);
+    GlobalArray<unsigned int> grid(nx*ny*nz, exec_conf);
 
     unsigned int rank = exec_conf->getRank();
         {
@@ -135,7 +135,7 @@ void test_communicate_grid_basic(std::shared_ptr<ExecutionConfiguration> exec_co
 
     // test outer-to-inner communication
     CG_uint grid_comm_3(sysdef, dim, embed, n_ghost_offset, true);
-    GPUArray<unsigned int> grid_3(nx*ny*nz, exec_conf);
+    GlobalArray<unsigned int> grid_3(nx*ny*nz, exec_conf);
 
         {
         ArrayHandle<unsigned int> h_grid_3(grid_3, access_location::host, access_mode::overwrite);
@@ -269,7 +269,7 @@ void test_communicate_grid_positions(std::shared_ptr<ExecutionConfiguration> exe
 
     // second test, ensure that ghost cells are updated in correct order
     CG_uint grid_comm_2(sysdef, dim, embed, n_ghost_offset,false);
-    GPUArray<unsigned int> grid_2(nx*ny*nz, exec_conf);
+    GlobalArray<unsigned int> grid_2(nx*ny*nz, exec_conf);
 
         {
         ArrayHandle<unsigned int> h_grid_2(grid_2, access_location::host, access_mode::overwrite);

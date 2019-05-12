@@ -11,7 +11,6 @@
 
 
 #include "hoomd/Compute.h"
-#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 
 #include "HPMCCounters.h"   // do we need this to keep track of the statistics?

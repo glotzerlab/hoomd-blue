@@ -5,13 +5,10 @@
 
 HOOMD_UP_MAIN();
 
-
-
-
-#include "hoomd/Saru.h"
-#include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/BoxDim.h"
 
 #include "hoomd/hpmc/Moves.h"
 #include "hoomd/hpmc/IntegratorHPMCMono.h"
@@ -33,7 +30,7 @@ struct ShapeDummy
 
 UP_TEST( rand_rotate_3d )
     {
-    hoomd::detail::Saru rng(123, 456, 789);
+    hoomd::RandomGenerator rng(123, 456, 789);
 
     quat<Scalar> a(1, vec3<Scalar>(0,0,0));
     for (int i=0; i<10000; i++)
@@ -58,7 +55,7 @@ UP_TEST( rand_rotate_3d )
 
 UP_TEST( rand_rotate_2d )
     {
-    hoomd::detail::Saru rng(123, 456, 789);
+    hoomd::RandomGenerator rng(123, 456, 789);
 
     Scalar a = .1;
 
@@ -88,7 +85,7 @@ UP_TEST( rand_rotate_2d )
 
 UP_TEST( rand_translate_3d )
     {
-    hoomd::detail::Saru rng(123, 456, 789);
+    hoomd::RandomGenerator rng(123, 456, 789);
     Scalar d = 0.1;
     // test randomly generated quaternions for unit norm
 
@@ -114,7 +111,7 @@ UP_TEST( rand_translate_3d )
 
 UP_TEST( rand_translate_2d )
     {
-    hoomd::detail::Saru rng(123, 456, 789);
+    hoomd::RandomGenerator rng(123, 456, 789);
     Scalar d = 0.1;
     // test randomly generated quaternions for unit norm
 
@@ -136,40 +133,6 @@ UP_TEST( rand_translate_2d )
         // check that the move distance is appropriate
         UP_ASSERT(sqrt(dot(delta,delta)) <= d);
         }
-    }
-
-void test_rand_select(const unsigned int max)
-    {
-    hoomd::detail::Saru rng(123, 456, 789);
-
-    const unsigned int nsamples = (max+1)*1000000;
-    unsigned int counts[max+1];
-
-    for (unsigned int i = 0; i <= max; i++)
-        counts[i] = 0;
-
-    for (unsigned int i = 0 ; i < nsamples; i++)
-        {
-        counts[rand_select(rng, max)]++;
-        }
-
-    /*for (unsigned int i = 0; i <= max; i++)
-        std::cout << double(counts[i])/double(nsamples) << std::endl;*/
-
-    for (unsigned int i = 0; i <= max; i++)
-         MY_CHECK_CLOSE(double(counts[i])/double(nsamples), 1.0/double(max+1), 0.5);
-    }
-
-UP_TEST( rand_select_test )
-    {
-    for (unsigned int max=0; max < 10; max++)
-        {
-        //std::cout << "Testing max=" << max << std::endl;
-        test_rand_select(max);
-        }
-
-    //std::cout << "Testing max=" << 100 << std::endl;
-    test_rand_select(100);
     }
 
 void test_update_order(const unsigned int max)

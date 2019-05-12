@@ -9,7 +9,6 @@
 */
 
 #include "hoomd/Compute.h"
-#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/HOOMDMPI.h"
 

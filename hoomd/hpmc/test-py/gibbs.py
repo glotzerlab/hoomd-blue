@@ -21,7 +21,7 @@ class gibbs_ensemble_test(unittest.TestCase):
         self.system = init.create_lattice(unitcell=unitcell, n=5)
 
         self.system.particles.types.add('B')
-        self.mc = hpmc.integrate.sphere(seed=123+p,implicit=True)
+        self.mc = hpmc.integrate.sphere(seed=123+p)
         self.mc.set_params(d=0.1)
 
     def tearDown(self):

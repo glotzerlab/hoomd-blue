@@ -10,7 +10,8 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #include <curand_kernel.h>
 
@@ -50,6 +51,7 @@ struct hpmc_free_volume_args_t
                 const unsigned int _N,
                 const unsigned int _num_types,
                 const unsigned int _seed,
+                const unsigned int _rank,
                 unsigned int _select,
                 const unsigned int _timestep,
                 const unsigned int _dim,
@@ -80,6 +82,7 @@ struct hpmc_free_volume_args_t
                   N(_N),
                   num_types(_num_types),
                   seed(_seed),
+                  rank(_rank),
                   select(_select),
                   timestep(_timestep),
                   dim(_dim),
@@ -112,6 +115,7 @@ struct hpmc_free_volume_args_t
     const unsigned int N;             //!< Number of particles
     const unsigned int num_types;     //!< Number of particle types
     const unsigned int seed;          //!< RNG seed
+    const unsigned int rank;          //!< MPI rank
     unsigned int select;              //!< RNG select value
     const unsigned int timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions
@@ -202,6 +206,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                                      const unsigned int N,
                                      const unsigned int num_types,
                                      const unsigned int seed,
+                                     const unsigned int rank,
                                      const unsigned int select,
                                      const unsigned int timestep,
                                      const unsigned int dim,
@@ -284,7 +289,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         }
 
     // one RNG per particle
-    hoomd::detail::Saru rng(i, seed+select, timestep);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ComputeFreeVolume, seed, rank, i, timestep);
 
     unsigned int my_cell;
 
@@ -296,9 +301,9 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     if (active)
         {
         // select a random particle coordinate in the box
-        Scalar xrand = rng.template s<Scalar>();
-        Scalar yrand = rng.template s<Scalar>();
-        Scalar zrand = rng.template s<Scalar>();
+        Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng);
+        Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng);
+        Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng);
 
         Scalar3 f = make_scalar3(xrand, yrand, zrand);
         pos_i = vec3<Scalar>(box.makeCoordinates(f));
@@ -476,6 +481,7 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
                                                      args.N,
                                                      args.num_types,
                                                      args.seed,
+                                                     args.rank,
                                                      args.select,
                                                      args.timestep,
                                                      args.dim,

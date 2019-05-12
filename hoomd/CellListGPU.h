@@ -77,7 +77,7 @@ class PYBIND11_EXPORT CellListGPU : public CellList
         virtual void printStats()
             {
             // first reduce the cell size counter per device
-            if (m_exec_conf->getNumActiveGPUs() > 1)
+            if (m_per_device)
                 combineCellLists();
 
             CellList::printStats();

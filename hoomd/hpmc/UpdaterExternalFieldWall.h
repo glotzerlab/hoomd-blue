@@ -8,8 +8,9 @@
     \brief Updates ExternalField base class
 */
 #include "hoomd/Updater.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
 #include "hoomd/VectorMath.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #include "IntegratorHPMCMono.h"
 #include "ExternalField.h"
@@ -136,8 +137,8 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         virtual void update(unsigned int timestep)
             {
             // Choose whether or not to update the external field
-            hoomd::detail::Saru rng(m_seed, timestep, 0xba015a6f);
-            unsigned int move_type_select = rng.u32() & 0xffff;
+            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterExternalFieldWall, m_seed, timestep);
+            unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
             unsigned int move_ratio = m_move_ratio * 65536;
             // Attempt and evaluate a move
             if (move_type_select < move_ratio)

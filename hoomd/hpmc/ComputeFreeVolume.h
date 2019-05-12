@@ -11,6 +11,7 @@
 
 #include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMCMono.h"
+#include "hoomd/RNGIdentifiers.h"
 
 
 /*! \file ComputeFreeVolume.h
@@ -171,11 +172,11 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
         for (unsigned int i = 0; i < n_sample; i++)
             {
             // select a random particle coordinate in the box
-            hoomd::detail::Saru rng_i(i, m_seed + m_exec_conf->getRank(), timestep);
+            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::ComputeFreeVolume, m_seed, m_exec_conf->getRank(), i, timestep);
 
-            Scalar xrand = rng_i.f();
-            Scalar yrand = rng_i.f();
-            Scalar zrand = rng_i.f();
+            Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
+            Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
+            Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
 
             Scalar3 f = make_scalar3(xrand, yrand, zrand);
             vec3<Scalar> pos_i = vec3<Scalar>(box.makeCoordinates(f));

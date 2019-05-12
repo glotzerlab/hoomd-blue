@@ -2,6 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "UpdaterBoxMC.h"
+#include "hoomd/RNGIdentifiers.h"
 
 namespace py = pybind11;
 
@@ -312,7 +313,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                           Scalar yz,
                                           unsigned int timestep,
                                           Scalar deltaE,
-                                          hoomd::detail::Saru& rng
+                                          hoomd::RandomGenerator& rng
                                           )
     {
     // Make a backup copy of position data
@@ -352,7 +353,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
         deltaE += ext_energy;
         }
 
-    double p = rng.d();
+    double p = hoomd::detail::generate_canonical<double>(rng);
 
     if (allowed && p < fast::exp(-deltaE))
         {
@@ -409,7 +410,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     m_exec_conf->msg->notice(10) << "UpdaterBoxMC: " << timestep << std::endl;
 
     // Create a prng instance for this timestep
-    hoomd::detail::Saru rng(m_seed, timestep, 0xf6a510ab);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterBoxMC, m_seed, timestep);
 
     // Choose a move type
     // This seems messy and can hopefully be simplified and generalized.
@@ -422,7 +423,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
         if (m_prof) m_prof->pop();
         return;
         }
-    float move_type_select = rng.f() * range; // generate a number on [0, range)
+    float move_type_select = hoomd::detail::generate_canonical<float>(rng) * range; // generate a number on (0, range]
 
     // Attempt and evaluate a move
     // This section will need to be updated when move types are added.
@@ -450,7 +451,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
         m_exec_conf->msg->notice(8) << "Box shear move performed at step " << timestep << std::endl;
         update_shear(timestep, rng);
         }
-    else if (move_type_select < m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
+    else if (move_type_select <= m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
         {
         // Volume conserving aspect change
         m_exec_conf->msg->notice(8) << "Box aspect move performed at step " << timestep << std::endl;
@@ -475,7 +476,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
+void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_L");
     // Get updater parameters for current timestep
@@ -504,7 +505,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
         if (m_Length_delta[i] != 0.0)
             nonzero_dim++;
 
-    unsigned int i = rand_select(rng, nonzero_dim-1);
+    unsigned int i = hoomd::UniformIntDistribution(nonzero_dim-1)(rng);
     for (unsigned int j = 0; j < Ndim; ++j)
         if (m_Length_delta[j] == 0.0 && i == j)
             ++i;
@@ -519,7 +520,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
     Scalar dL_max(m_Length_delta[i]);
 
     // Choose a length change
-    Scalar dL = rng.s(-dL_max, dL_max);
+    Scalar dL = hoomd::UniformDistribution<Scalar>(-dL_max, dL_max)(rng);
     // perform volume change by applying a delta to one dimension
     newL[i] += dL;
 
@@ -565,7 +566,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
     }
 
 //! Update the box volume in logarithmic steps
-void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::detail::Saru& rng)
+void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_lnV");
     // Get updater parameters for current timestep
@@ -600,7 +601,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::detail::Saru& rng)
     Scalar dlnV_max(m_lnVolume_delta);
 
     // Choose a volume change
-    Scalar dlnV = rng.s(-dlnV_max, dlnV_max);
+    Scalar dlnV = hoomd::UniformDistribution<Scalar>(-dlnV_max, dlnV_max)(rng);
     Scalar new_V = V*exp(dlnV);
 
     // perform isotropic volume change
@@ -649,7 +650,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::detail::Saru& rng)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::detail::Saru& rng)
+void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_V");
     // Get updater parameters for current timestep
@@ -684,7 +685,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::detail::Saru& rng)
     Scalar dV_max(m_Volume_delta);
 
     // Choose a volume change
-    Scalar dV = rng.s(-dV_max, dV_max);
+    Scalar dV = hoomd::UniformDistribution<Scalar>(-dV_max, dV_max)(rng);
 
     // perform isotropic volume change
     if (Ndim == 3)
@@ -738,7 +739,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::detail::Saru& rng)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::detail::Saru& rng)
+void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_shear");
     // Get updater parameters for current timestep
@@ -762,10 +763,10 @@ void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::detail::Saru& rng)
     unsigned int i(0);
     if (Ndim == 3)
         {
-        i = rand_select(rng, 2);
+        i = hoomd::UniformIntDistribution(2)(rng);
         }
     dA_max = m_Shear_delta[i];
-    dA = rng.s(-dA_max, dA_max);
+    dA = hoomd::UniformDistribution<Scalar>(-dA_max, dA_max)(rng);
     newShear[i] += dA;
 
     // Attempt box resize
@@ -789,7 +790,7 @@ void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::detail::Saru& rng)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_aspect(unsigned int timestep, hoomd::detail::Saru& rng)
+void UpdaterBoxMC::update_aspect(unsigned int timestep, hoomd::RandomGenerator& rng)
     {
     // We have not established what ensemble this samples:
     // This is not a thermodynamic updater.
@@ -812,9 +813,9 @@ void UpdaterBoxMC::update_aspect(unsigned int timestep, hoomd::detail::Saru& rng
     newShear[2] = curBox.getTiltFactorYZ();
 
     // Choose an aspect ratio and randomly perturb it
-    unsigned int i = rand_select(rng, Ndim - 1);
-    Scalar dA = Scalar(1.0) + rng.s(Scalar(0.0), m_Aspect_delta);
-    if (rand_select(rng, 1))
+    unsigned int i = hoomd::UniformIntDistribution(Ndim - 1)(rng);
+    Scalar dA = Scalar(1.0) + hoomd::UniformDistribution<Scalar>(Scalar(0.0), m_Aspect_delta)(rng);
+    if (hoomd::UniformIntDistribution(1)(rng))
         {
         dA = Scalar(1.0)/dA;
         }
