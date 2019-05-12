@@ -123,7 +123,7 @@ David Tarjan, University of Virginia
 Sumedh R. Risbud, James W. Swan, Massachusetts Institute of Technology
  * bug fixes for rigid body virial corrections
 
-Michael P. Howard, Princeton University
+Michael P. Howard, Princeton University & University of Texas at Austin
  * Automatic citation list generator
  * Neighbor list memory footprint reduction
  * Bounding volume hierarchy (tree) neighbor lists
@@ -135,6 +135,7 @@ Michael P. Howard, Princeton University
  * Fix references when disabling/enabling objects
  * Misc. bug fixes
  * CUDA9+V100 compatibility
+ * GPU polymorphic object wrapper
 
 James Antonaglia, University of Michigan
  * pair.mie
@@ -218,6 +219,7 @@ Peter Schwendeman, Jens Glaser, University of Michigan
 
 Alyssa Travitz, University of Michigan
   * `get_net_force` implementation
+  * bond bug fixes 
 
 Mike Henry, Boise State University
   * Documentation improvements
@@ -327,12 +329,15 @@ MPCD developers
 
 The following people contributed to the :py:mod:`hoomd.mpcd` package.
 
-Michael P. Howard, Princeton University - **Lead developer**
+Michael P. Howard, Princeton University & University of Texas at Austin - **Lead developer**
  * Design
  * Cell list and properties
  * Particle and cell communication
  * Basic streaming method
+ * Slit streaming method
  * SRD and AT collision rules
+ * Virtual particle filling framework
+ * External force framework and block, constant, and sine forces
 
 Source code
 -----------
