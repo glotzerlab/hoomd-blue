@@ -22,12 +22,9 @@ void gpu_load_balance_mark_rank(unsigned int *d_ranks,
                                 const unsigned int N,
                                 const unsigned int block_size);
 
-//! CUB driver to select the particles that are off rank
-void gpu_load_balance_select_off_rank(unsigned int *d_off_rank,
-                                      unsigned int *d_n_select,
-                                      unsigned int *d_ranks,
-                                      void *d_tmp_storage,
-                                      size_t &tmp_storage_bytes,
-                                      const unsigned int N,
-                                      const unsigned int cur_rank);
+//! thrust driver to select the particles that are off rank
+unsigned int gpu_load_balance_select_off_rank(unsigned int *d_off_rank,
+                                              unsigned int *d_ranks,
+                                              const unsigned int N,
+                                              const unsigned int cur_rank);
 #endif // ENABLE_MPI

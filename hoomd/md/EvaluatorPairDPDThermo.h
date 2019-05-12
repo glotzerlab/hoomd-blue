@@ -13,7 +13,8 @@
 
 #include "hoomd/HOOMDMath.h"
 
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 
 /*! \file EvaluatorPairDPDThermo.h
@@ -195,10 +196,10 @@ class EvaluatorPairDPDThermo
                    m_oj = m_j;
                    }
 
-                hoomd::detail::Saru rng(m_oi, m_oj, m_seed + m_timestep);
+                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_seed, m_oi, m_oj, m_timestep);
 
                 // Generate a single random number
-                Scalar alpha = rng.s<Scalar>(-1,1);
+                Scalar alpha = hoomd::UniformDistribution<Scalar>(-1,1)(rng);
 
                 // conservative dpd
                 //force_divr = FDIV(a,r)*(Scalar(1.0) - r*rcutinv);

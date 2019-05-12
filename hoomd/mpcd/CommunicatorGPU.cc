@@ -162,6 +162,12 @@ void mpcd::CommunicatorGPU::migrateParticles(unsigned int timestep)
     {
     if (m_prof) m_prof->push("migrate");
 
+    if (m_mpcd_pdata->getNVirtual() > 0)
+        {
+        m_exec_conf->msg->warning() << "MPCD communication with virtual particles set is not supported, removing them." << std::endl;
+        m_mpcd_pdata->removeVirtualParticles();
+        }
+
     // reserve per neighbor memory
     m_n_send_ptls.resize(m_n_unique_neigh);
     m_n_recv_ptls.resize(m_n_unique_neigh);

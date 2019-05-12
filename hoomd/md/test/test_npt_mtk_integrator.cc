@@ -1,9 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-
-
 #include <iostream>
 
 #include <functional>
@@ -30,13 +27,13 @@
 #include "hoomd/CellListGPU.h"
 #endif
 
+#include "hoomd/RandomNumbers.h"
 #include "hoomd/extern/pybind/include/pybind11/pybind11.h"
 #include "hoomd/extern/pybind/include/pybind11/embed.h"
 namespace py = pybind11;
 
 #include "hoomd/Variant.h"
 
-#include "hoomd/Saru.h"
 using namespace hoomd;
 
 #include <math.h>
@@ -327,16 +324,6 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         }
     }
 
-//! Helper function to get gaussian random numbers
-Scalar inline gaussianRand(detail::Saru& saru, Scalar sigma)
-{
-    Scalar x1 = saru.d();
-    Scalar x2 = saru.d();
-    Scalar z = sqrt(-2.0 * log(x1)) * cos(2 * M_PI * x2);
-    z = z * sigma;
-    return z;
-}
-
 //! Test ability to integrate in the NPH ensemble
 void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
@@ -355,7 +342,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // give the particles velocities according to a Maxwell-Boltzmann distribution
-    detail::Saru saru(54321);
+    RandomGenerator rng(54321);
 
     // total up the system momentum
     Scalar3 total_momentum = make_scalar3(0.0, 0.0, 0.0);
@@ -367,9 +354,10 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
         // generate gaussian velocities
         Scalar mass = pdata->getMass(idx);
         Scalar sigma = T0 / mass;
-        Scalar vx = gaussianRand(saru, sigma);
-        Scalar vy = gaussianRand(saru, sigma);
-        Scalar vz = gaussianRand(saru, sigma);
+        NormalDistribution<Scalar> normal(sigma);
+        Scalar vx = normal(rng);
+        Scalar vy = normal(rng);
+        Scalar vz = normal(rng);
 
         // total up the system momentum
         total_momentum.x += vx * mass;

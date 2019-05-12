@@ -21,6 +21,7 @@ mpcd
 
     module-mpcd-collide
     module-mpcd-data
+    module-mpcd-force
     module-mpcd-init
     module-mpcd-stream
     module-mpcd-update

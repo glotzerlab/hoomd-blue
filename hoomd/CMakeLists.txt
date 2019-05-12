@@ -101,6 +101,8 @@ set(_hoomd_headers
     GPUArray.h
     GPUFlags.h
     GPUPartition.cuh
+    GPUPolymorph.h
+    GPUPolymorph.cuh
     GPUVector.h
     GSDDumpWriter.h
     GSDReader.h

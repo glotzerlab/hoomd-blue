@@ -25,8 +25,10 @@
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #include <iostream>
 #endif
 
@@ -991,4 +993,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
 }; // end namespace hpmc
 
+#undef DEVICE
+#undef HOSTDEVICE
 #endif //__SHAPE_POLYHEDRON_H__

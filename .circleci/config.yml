@@ -57,7 +57,7 @@ commands:
           name: Compile
           command: |
             cd build
-            ninja -j3
+            ninja -j2
 
   test:
     parameters:

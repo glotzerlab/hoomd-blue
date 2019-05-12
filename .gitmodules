@@ -22,3 +22,6 @@
 [submodule "hoomd/extern/Eigen"]
 	path = hoomd/extern/Eigen
 	url = https://github.com/glotzerlab/eigen-git-mirror.git
+[submodule "hoomd/extern/random123"]
+	path = hoomd/extern/random123
+	url = https://github.com/glotzerlab/random123.git

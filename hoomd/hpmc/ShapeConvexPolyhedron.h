@@ -429,4 +429,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
 }; // end namespace hpmc
 
+#undef DEVICE
+#undef HOSTDEVICE
 #endif //__SHAPE_CONVEX_POLYHEDRON_H__

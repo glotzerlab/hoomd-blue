@@ -116,6 +116,26 @@ class sphere_union_test(unittest.TestCase):
         # self.assertEqual(meta_data['hoomd.hpmc.integrate.sphere_union']['shape_param']['A']['diameters'], diameters)
         # self.assertEqual(meta_data['hoomd.hpmc.integrate.sphere_union']['shape_param']['A']['centers'], centers)
 
+class faceted_ellipsoid_union_test(unittest.TestCase):
+    def setUp(self):
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=3), particle_types=['A'])
+        self.mc = hpmc.integrate.faceted_ellipsoid_union(seed=10);
+
+    def tearDown(self):
+        del self.mc
+        del self.system
+        context.initialize();
+
+    def test_metadata_dump(self):
+        self.mc.shape_param.set('A', normals=[[(1,0,0)],[(0,0,1)]], offsets=[[-0.2],[-0.3]],
+            vertices=[[],[]], origins=[(0,0,0),(0,0,0)],
+            axes=[(0.5,0.5,0.5),(0.5,0.5,1)],centers=[(-0.25, 0, 0), (0.25, 0, 0)],
+            orientations=[(1,0,0,0),(0,0,0,1)], capacity=16);
+
+        context.current.sorter.set_params(grid=8)
+        meta_data = meta.dump_metadata()
+        self.assertIn('hoomd.hpmc.integrate.faceted_ellipsoid_union', meta_data)
+
 class convex_spheropolygon_test(unittest.TestCase):
 
     def setUp(self):

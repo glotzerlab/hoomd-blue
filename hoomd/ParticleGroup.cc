@@ -151,15 +151,58 @@ std::vector<unsigned int> ParticleSelectorType::getSelectedTags() const
         if (m_typ_min <= typ && typ <= m_typ_max)
             member_tags.push_back(tag);
         }
-
     return member_tags;
     }
+
+
+//////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorBody
+
+/*! \param sysdef System the particles are to be selected from
+    \param rigid true selects particles that are in bodies, false selects particles that are not part of a body
+*/
+ParticleSelectorBody::ParticleSelectorBody(std::shared_ptr<SystemDefinition> sysdef,
+                                             bool body)
+    : ParticleSelector(sysdef), m_body(body)
+    {
+    }
+
+/*! \param tag Tag of the particle to check
+    \returns true if the type of particle \a tag meets the body criteria selected
+*/
+std::vector<unsigned int> ParticleSelectorBody::getSelectedTags() const
+    {
+    std::vector<unsigned int> member_tags;
+
+    // loop through local particles and select those that match selection criterion
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+        {
+        unsigned int tag = h_tag.data[idx];
+
+        // get position of particle
+        unsigned int body = h_body.data[idx];
+
+        // see if it matches the criteria
+        bool result = false;
+        if (m_body && body != NO_BODY)
+            result = true;
+        if (!m_body && body == NO_BODY)
+            result = true;
+
+        if (result)
+            member_tags.push_back(tag);
+        }
+    return member_tags;
+    }
+
 
 //////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorRigid
 
 /*! \param sysdef System the particles are to be selected from
-    \param rigid true selects particles that are in rigid bodies, false selects particles that are not part of a body
+    \param rigid true selects particles that are in rigid bodies, false selects particles that are not part of a rigid body
 */
 ParticleSelectorRigid::ParticleSelectorRigid(std::shared_ptr<SystemDefinition> sysdef,
                                              bool rigid)
@@ -186,17 +229,60 @@ std::vector<unsigned int> ParticleSelectorRigid::getSelectedTags() const
 
         // see if it matches the criteria
         bool result = false;
-        if (m_rigid && body != NO_BODY)
+        if (m_rigid && body < MIN_FLOPPY)
             result = true;
-        if (!m_rigid && body == NO_BODY)
+        if (!m_rigid && body >= MIN_FLOPPY)
             result = true;
 
         if (result)
             member_tags.push_back(tag);
         }
-
     return member_tags;
     }
+
+
+//////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorFloppy
+
+/*! \param sysdef System the particles are to be selected from
+    \param floppy true selects particles that are in floppy bodies, false selects particles that are not part of a floppy (non-rigid body)
+*/
+ParticleSelectorFloppy::ParticleSelectorFloppy(std::shared_ptr<SystemDefinition> sysdef,
+                                             bool floppy)
+    : ParticleSelector(sysdef), m_floppy(floppy)
+    {
+    }
+
+/*! \param tag Tag of the particle to check
+    \returns true if the type of particle \a tag meets the rigid criteria selected
+*/
+std::vector<unsigned int> ParticleSelectorFloppy::getSelectedTags() const
+    {
+    std::vector<unsigned int> member_tags;
+
+    // loop through local particles and select those that match selection criterion
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+        {
+        unsigned int tag = h_tag.data[idx];
+
+        // get position of particle
+        unsigned int body = h_body.data[idx];
+
+        // see if it matches the criteria
+        bool result = false;
+        if (m_floppy && body >= MIN_FLOPPY && body != NO_BODY)
+            result = true;
+        if (!m_floppy && (body < MIN_FLOPPY || body == NO_BODY))
+            result = true;
+
+        if (result)
+            member_tags.push_back(tag);
+        }
+    return member_tags;
+    }
+
 
 //////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorRigidCenter
@@ -226,9 +312,9 @@ std::vector<unsigned int> ParticleSelectorRigidCenter::getSelectedTags() const
         if (body==tag)
             member_tags.push_back(tag);
         }
-
     return member_tags;
     }
+
 
 //////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorCuboid
@@ -873,6 +959,15 @@ void export_ParticleGroup(py::module& m)
         ;
 
     py::class_<ParticleSelectorRigid, std::shared_ptr<ParticleSelectorRigid> >(m,"ParticleSelectorRigid",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
+        ;
+
+    py::class_<ParticleSelectorBody, std::shared_ptr<ParticleSelectorBody> >(m,"ParticleSelectorBody",py::base<ParticleSelector>())
+
+            .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
+        ;
+
+    py::class_<ParticleSelectorFloppy, std::shared_ptr<ParticleSelectorFloppy> >(m,"ParticleSelectorFloppy",py::base<ParticleSelector>())
             .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
         ;
 

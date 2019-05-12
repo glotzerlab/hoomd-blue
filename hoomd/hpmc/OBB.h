@@ -106,6 +106,7 @@ struct OBB
         return is_sphere;
         }
 
+    #ifndef NVCC
     //! Get list of OBB corners
     std::vector<vec3<OverlapReal> > getCorners() const
         {
@@ -122,6 +123,7 @@ struct OBB
         corners[7] = center - r.row0*lengths.x - r.row1*lengths.y - r.row2*lengths.z;
         return corners;
         }
+    #endif
 
     //! Rotate OBB, then translate the given vector
     DEVICE void affineTransform(const quat<OverlapReal>& q, const vec3<OverlapReal>& v)
