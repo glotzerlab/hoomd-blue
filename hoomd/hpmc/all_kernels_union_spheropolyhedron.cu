@@ -3,7 +3,6 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
-#include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
 #include "ShapeSpheropolyhedron.h"
 #include "ShapeUnion.h"
@@ -18,10 +17,6 @@ namespace detail
 template cudaError_t gpu_hpmc_free_volume<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_free_volume_args_t &args,
                                                   const typename ShapeUnion<ShapeSpheropolyhedron> ::param_type *d_params);
 template cudaError_t gpu_hpmc_update<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_args_t& args,
-                                                  const typename ShapeUnion<ShapeSpheropolyhedron> ::param_type *d_params);
-template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapeUnion<ShapeSpheropolyhedron> ::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_implicit_args_new_t& args,
                                                   const typename ShapeUnion<ShapeSpheropolyhedron> ::param_type *d_params);
 }; // end namespace detail
 

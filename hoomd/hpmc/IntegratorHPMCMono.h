@@ -25,6 +25,7 @@
 
 #ifdef ENABLE_TBB
 #include <thread>
+#include <tbb/tbb.h>
 #endif
 
 #ifdef ENABLE_MPI
@@ -639,8 +640,6 @@ void IntegratorHPMCMono<Shape>::printStats()
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
         total_insert_count += result[i].insert_count;
 
-    double cur_time = double(this->m_clock.getTime()) / Scalar(1e9);
-
     bool has_depletants = false;
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
         {
@@ -656,7 +655,7 @@ void IntegratorHPMCMono<Shape>::printStats()
 
     this->m_exec_conf->msg->notice(2) << "-- Implicit depletants stats:" << "\n";
     this->m_exec_conf->msg->notice(2) << "Depletant insertions per trial move:      "
-        << double(total_insert_count)/cur_time << "\n";
+        << double(total_insert_count)/double(counters.getNMoves()) << "\n";
 
     // supply additional statistics
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
