@@ -18,6 +18,7 @@ pipeline
                         CC = '{{ test.CC }}'
                         CXX = '{{ test.CXX }}'
                         OMP_NUM_THREADS = '{{ test.OMP_NUM_THREADS }}'
+                        OMPI_MCA_btl = 'tcp,self'
                         }
 
                     steps
@@ -80,6 +81,7 @@ pipeline
                         CC = '{{ test.CC }}'
                         CXX = '{{ test.CXX }}'
                         OMP_NUM_THREADS = '{{ test.OMP_NUM_THREADS }}'
+                        OMPI_MCA_btl = 'tcp,self'
                         }
 
                     steps

@@ -107,8 +107,7 @@ class user(object):
 
         # check if initialization has occurred
         if hoomd.context.exec_conf is None:
-            hoomd.context.msg.error("Cannot create patch energy before context initialization\n");
-            raise RuntimeError('Error creating patch energy');
+            raise RuntimeError('Error creating patch energy, call context.initialize() first');
 
         # raise an error if this run is on the GPU
         if hoomd.context.exec_conf.isCUDAEnabled():
@@ -278,8 +277,7 @@ class user_union(user):
 
         # check if initialization has occurred
         if hoomd.context.exec_conf is None:
-            hoomd.context.msg.error("Cannot create patch energy before context initialization\n");
-            raise RuntimeError('Error creating patch energy');
+            raise RuntimeError('Error creating patch energy, call context.initialize() first');
 
         if clang_exec is not None:
             clang = clang_exec;

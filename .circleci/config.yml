@@ -13,6 +13,7 @@ executors:
       PYTHONPATH: /home/ci/project/build
       PYTHON: "/usr/bin/python<< parameters.python-version >>"
       PYTEST: "/usr/bin/python<< parameters.python-version >> -m pytest"
+      OMPI_MCA_btl: "tcp,self"
     working_directory: /home/ci/project
 
 commands:
