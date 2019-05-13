@@ -587,6 +587,8 @@ class muvt(_updater):
                     cls = _hpmc.UpdaterMuVTImplicitSphereUnion;
                 elif isinstance(mc, integrate.convex_polyhedron_union):
                     cls = _hpmc.UpdaterMuVTImplicitConvexPolyhedronUnion;
+                elif isinstance(mc, integrate.sphinx_union):
+                    cls = _hpmc.UpdaterMuVTImplicitSphinxUnion;
                 elif isinstance(mc, integrate.faceted_ellipsoid_union):
                     cls = _hpmc.UpdaterMuVTImplicitFacetedEllipsoidUnion;
                 elif isinstance(mc, integrate.polyhedron):
@@ -617,6 +619,8 @@ class muvt(_updater):
                     cls = _hpmc.UpdaterMuVTImplicitSphereUnion;
                 elif isinstance(mc, integrate.convex_polyhedron_union):
                     cls = _hpmc.UpdaterMuVTImplicitConvexPolyhedronUnion;
+                elif isinstance(mc, integrate.sphinx_union):
+                    cls = _hpmc.UpdaterMuVTImplicitSphinxUnion;
                 elif isinstance(mc, integrate.faceted_ellipsoid_union):
                     cls = _hpmc.UpdaterMuVTImplicitFacetedEllipsoidUnion;
                 elif isinstance(mc, integrate.polyhedron):
@@ -647,6 +651,8 @@ class muvt(_updater):
                 cls = _hpmc.UpdaterMuVTSphereUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
                 cls = _hpmc.UpdaterMuVTConvexPolyhedronUnion;
+            elif isinstance(mc, integrate.sphinx_union):
+                cls = _hpmc.UpdaterMuVTSphinxUnion;
             elif isinstance(mc, integrate.faceted_ellipsoid_union):
                 cls = _hpmc.UpdaterMuVTFacetedEllipsoidUnion;
             elif isinstance(mc, integrate.polyhedron):
@@ -803,6 +809,8 @@ class remove_drift(_updater):
                 cls = _hpmc.RemoveDriftUpdaterSphereUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
                 cls = _hpmc.RemoveDriftUpdaterConvexPolyhedronUnion;
+            elif isinstance(mc, integrate.sphinx_union):
+                cls = _hpmc.RemoveDriftUpdaterSphinxUnion;
             elif isinstance(mc, integrate.faceted_ellipsoid_union):
                 cls = _hpmc.RemoveDriftUpdaterFacetedEllipsoidUnion;
             else:
@@ -900,6 +908,8 @@ class clusters(_updater):
                 cls =_hpmc.UpdaterClustersSphereUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
                 cls =_hpmc.UpdaterClustersConvexPolyhedronUnion;
+            elif isinstance(mc, integrate.sphinx_union):
+                cls =_hpmc.UpdaterClustersSphinxUnion;
             elif isinstance(mc, integrate.faceted_ellipsoid_union):
                 cls =_hpmc.UpdaterClustersFacetedEllipsoidUnion;
             elif isinstance(mc, integrate.polyhedron):
@@ -929,6 +939,8 @@ class clusters(_updater):
                 cls =_hpmc.UpdaterClustersImplicitSphereUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
                 cls =_hpmc.UpdaterClustersImplicitConvexPolyhedronUnion;
+            elif isinstance(mc, integrate.sphinx_union):
+                cls =_hpmc.UpdaterClustersImplicitSphinxUnion;
             elif isinstance(mc, integrate.faceted_ellipsoid_union):
                 cls =_hpmc.UpdaterClustersImplicitFacetedEllipsoidUnion;
             elif isinstance(mc, integrate.polyhedron):

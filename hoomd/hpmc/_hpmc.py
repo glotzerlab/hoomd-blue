@@ -37,5 +37,8 @@ class sphere_union_param_proxy(object):
 class convex_polyhedron_union_param_proxy(object):
     pass
 
+class sphinx_union_param_proxy(object):
+    pass
+
 class faceted_ellipsoid_union_param_proxy(object):
     pass

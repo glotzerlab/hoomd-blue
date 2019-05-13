@@ -23,6 +23,7 @@ set(_hpmc_sources   module.cc
                     module_union_convex_polyhedron.cc
                     module_union_faceted_ellipsoid.cc
                     module_union_sphere.cc
+		    module_union_sphinx.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
                     UpdaterBoxMC.cc

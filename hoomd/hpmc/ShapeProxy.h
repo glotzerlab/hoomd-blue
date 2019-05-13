@@ -778,7 +778,7 @@ protected:
     typedef typename shape_param_proxy<Shape, AccessType>::param_type param_type;
 public:
     typedef ShapeSphinx::param_type access_type;
-    sphinx3d_param_proxy(std::shared_ptr< IntegratorHPMCMono<ShapeSphinx> > mc, unsigned int typendx, const AccessType& acc = AccessType())
+    sphinx3d_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType())
         : shape_param_proxy<Shape, AccessType>(mc,typendx,acc)
         {}
 
@@ -829,6 +829,9 @@ struct get_member_proxy<Shape, ShapeUnion<ShapeSpheropolyhedron>, AccessType >{ 
 
 template<typename Shape, typename AccessType >
 struct get_member_proxy<Shape, ShapeUnion<ShapeFacetedEllipsoid>, AccessType >{ typedef faceted_ellipsoid_param_proxy<Shape, AccessType> proxy_type; };
+
+template<typename Shape, typename AccessType >
+struct get_member_proxy<Shape, ShapeUnion<ShapeSphinx>, AccessType >{ typedef faceted_ellipsoid_param_proxy<Shape, AccessType> proxy_type; };
 
 template< class ShapeUnionType >
 struct access_shape_union_members
@@ -1057,16 +1060,16 @@ void export_faceted_ellipsoid_proxy(pybind11::module& m, std::string class_name)
 
     }
 
+template<class ShapeType, class AccessType>
 void export_sphinx_proxy(pybind11::module& m, std::string class_name)
     {
     using detail::shape_param_proxy;
     using detail::sphinx3d_param_proxy;
-    typedef ShapeSphinx                         ShapeType;
-    typedef shape_param_proxy<ShapeType>        proxy_base;
-    typedef sphinx3d_param_proxy<ShapeType>     proxy_class;
+    typedef shape_param_proxy<ShapeType, AccessType> proxy_base;
+    typedef sphinx3d_param_proxy<ShapeType, AccessType> proxy_class;
     std::string base_name=class_name+"_base";
 
-    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
+    export_shape_param_proxy<ShapeType, AccessType>(m, base_name);
     pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
     .def_property_readonly("centers", &proxy_class::getCenters)
@@ -1116,7 +1119,7 @@ void export_shape_params(pybind11::module& m)
 
     export_polyhedron_proxy(m, "polyhedron_param_proxy");
     export_faceted_ellipsoid_proxy<ShapeFacetedEllipsoid, detail::access<ShapeFacetedEllipsoid> >(m, "faceted_ellipsoid_param_proxy");
-    export_sphinx_proxy(m, "sphinx3d_param_proxy");
+    export_sphinx_proxy<ShapeSphinx, detail::access<ShapeSphinx> >(m, "sphinx3d_param_proxy");
 
     auto export_fnct_sphero = std::bind(export_poly3d_proxy<ShapeUnion<ShapeSpheropolyhedron>, detail::access_shape_union_members< ShapeUnion<ShapeSpheropolyhedron> > >, std::placeholders::_1, std::placeholders::_2, true);
     export_shape_union_proxy<ShapeSpheropolyhedron>(m, "convex_polyhedron_union_param_proxy", export_fnct_sphero);
@@ -1125,6 +1128,11 @@ void export_shape_params(pybind11::module& m)
     export_shape_union_proxy<ShapeFacetedEllipsoid>(m, "faceted_ellipsoid_union_param_proxy", export_fnct_faceted);
 
     export_shape_union_proxy<ShapeSphere>(m, "sphere_union_param_proxy", export_sphere_proxy<ShapeUnion<ShapeSphere>, detail::access_shape_union_members< ShapeUnion<ShapeSphere> > > );
+
+    // auto export_fnct_sphinx = std::bind(export_sphinx_proxy<ShapeUnion<ShapeSphinx>, detail::access_shape_union_members< ShapeUnion<ShapeSphinx> > >);
+    // export_shape_union_proxy<ShapeSphinx>(m, "sphinx_union_param_proxy", export_fnct_sphinx);
+
+    export_shape_union_proxy<ShapeSphinx>(m, "sphinx_union_param_proxy",export_sphinx_proxy<ShapeUnion<ShapeSphinx>, detail::access_shape_union_members< ShapeUnion<ShapeSphinx> > > );
     }
 
 } // end namespace hpmc

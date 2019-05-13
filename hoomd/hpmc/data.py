@@ -454,6 +454,7 @@ class convex_spheropolyhedron_union_params(_hpmc.convex_polyhedron_union_param_p
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
 
+
 class convex_polyhedron_union_params(convex_spheropolyhedron_union_params):
     # provided for backward compatibility
     def __init__(self, mc, index):
@@ -535,3 +536,52 @@ class faceted_ellipsoid_union_params(_hpmc.faceted_ellipsoid_union_param_proxy,_
                             ignore_statistics,
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
+
+
+class sphinx_union_params(_hpmc.sphinx_union_param_proxy,_param):
+    def __init__(self, mc, index):
+        _hpmc.sphinx_union_param_proxy.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size templated
+        _param.__init__(self, mc, index);
+        self.__dict__.update(dict(colors=None));
+        self._keys += ['centers', 'sub_centers', 'orientations', 'diameters', 'colors','overlap'];
+        self.make_fn = _hpmc.make_sphinx_union_params;
+
+    def get_metadata(self):
+        data = {}
+        for key in self._keys:
+            if key == 'diameters':
+                val = [ m.diameters for m in self.members ];
+            elif key == 'sub_centers':
+                val = [ m.sub_centers for m in self.members ]
+            else:
+                val = getattr(self, key);
+            data[key] = val;
+        return data;
+
+    def make_param(self, centers, orientations, sub_centers, diameters, overlap=None, ignore_statistics=False, colors=None, capacity=4):
+        if overlap is None:
+            overlap = [1 for c in centers]
+
+        members = []
+        for i in range(0,len(centers)):
+            member_fn = _hpmc.make_sphinx3d_params
+            members.append( member_fn(self.ensure_list(diameters[i]), self.ensure_list(sub_centers[i]), ignore_statistics ) )
+
+        N = len(diameters)
+        if len(centers) != N or len(orientations)!= N:
+            raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
+
+        self.colors = None if colors is None else self.ensure_list(colors);
+        return self.make_fn(self.ensure_list(members),
+                            self.ensure_list(centers),
+                            self.ensure_list(orientations),
+                            self.ensure_list(overlap),
+                            ignore_statistics,
+                            capacity,
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
+
+
+
+
+
+
