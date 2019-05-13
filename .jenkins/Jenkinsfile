@@ -18,6 +18,7 @@ pipeline
                         CC = '/usr/bin/gcc'
                         CXX = '/usr/bin/g++'
                         OMP_NUM_THREADS = '1'
+                        OMPI_MCA_btl = 'tcp,self'
                         }
 
                     steps
@@ -72,6 +73,7 @@ pipeline
                         CC = '/usr/bin/gcc-7'
                         CXX = '/usr/bin/g++-7'
                         OMP_NUM_THREADS = '1'
+                        OMPI_MCA_btl = 'tcp,self'
                         }
 
                     steps
@@ -126,6 +128,7 @@ pipeline
                         CC = '/usr/bin/gcc-7'
                         CXX = '/usr/bin/g++-7'
                         OMP_NUM_THREADS = '1'
+                        OMPI_MCA_btl = 'tcp,self'
                         }
 
                     steps
@@ -188,6 +191,7 @@ pipeline
                         CC = '/usr/bin/gcc-6'
                         CXX = '/usr/bin/g++-6'
                         OMP_NUM_THREADS = '1'
+                        OMPI_MCA_btl = 'tcp,self'
                         }
 
                     steps
@@ -242,6 +246,7 @@ pipeline
                         CC = '/usr/bin/gcc-7'
                         CXX = '/usr/bin/g++-7'
                         OMP_NUM_THREADS = '1'
+                        OMPI_MCA_btl = 'tcp,self'
                         }
 
                     steps
@@ -296,6 +301,7 @@ pipeline
                         CC = '/usr/bin/gcc-8'
                         CXX = '/usr/bin/g++-8'
                         OMP_NUM_THREADS = '3'
+                        OMPI_MCA_btl = 'tcp,self'
                         }
 
                     steps
@@ -350,6 +356,7 @@ pipeline
                         CC = '/usr/bin/gcc-7'
                         CXX = '/usr/bin/g++-7'
                         OMP_NUM_THREADS = '1'
+                        OMPI_MCA_btl = 'tcp,self'
                         }
 
                     steps
