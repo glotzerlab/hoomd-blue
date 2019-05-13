@@ -131,6 +131,8 @@ set(_hoomd_headers
     ParticleGroup.cuh
     ParticleGroup.h
     Profiler.h
+    RandomNumbers.h
+    RNGIdentifiers.h
     Saru.h
     SFCPackUpdaterGPU.cuh
     SFCPackUpdaterGPU.h
