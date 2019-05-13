@@ -83,8 +83,7 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
                              d_tables.data,
                              m_table_width,
                              m_table_value,
-                             m_tuner->getParam(),
-                             m_exec_conf->getComputeCapability());
+                             m_tuner->getParam());
         }
 
 

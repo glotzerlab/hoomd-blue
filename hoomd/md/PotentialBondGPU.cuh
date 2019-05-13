@@ -37,8 +37,7 @@ struct bond_args_t
               const Index2D & _gpu_table_indexer,
               const unsigned int *_d_gpu_n_bonds,
               const unsigned int _n_bond_types,
-              const unsigned int _block_size,
-              const unsigned int _compute_capability)
+              const unsigned int _block_size)
                 : d_force(_d_force),
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
@@ -52,8 +51,7 @@ struct bond_args_t
                   gpu_table_indexer(_gpu_table_indexer),
                   d_gpu_n_bonds(_d_gpu_n_bonds),
                   n_bond_types(_n_bond_types),
-                  block_size(_block_size),
-                  compute_capability(_compute_capability)
+                  block_size(_block_size)
         {
         };
 
@@ -71,18 +69,9 @@ struct bond_args_t
     const unsigned int *d_gpu_n_bonds; //!< List of number of bonds stored on the GPU
     const unsigned int n_bond_types;   //!< Number of bond types in the simulation
     const unsigned int block_size;     //!< Block size to execute
-    const unsigned int compute_capability;  //!< Compute capability of the device
     };
 
 #ifdef NVCC
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
-
-//! Texture for reading particle diameters
-scalar_tex_t pdata_diam_tex;
-
-//! Texture for reading particle charges
-scalar_tex_t pdata_charge_tex;
 
 //! Kernel for calculating bond forces
 /*! This kernel is called to calculate the bond forces on all N particles. Actual evaluation of the potentials and
@@ -150,14 +139,14 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
     int n_bonds =n_bonds_list[idx];
 
     // read in the position of our particle. (MEM TRANSFER: 16 bytes)
-    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+    Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // read in the diameter of our particle if needed
     Scalar diam(0);
     if (evaluator::needsDiameter())
         {
-        diam = texFetchScalar(d_diameter, pdata_diam_tex, idx);
+        diam = __ldg(d_diameter + idx);
         }
     else
         diam += 0; // shut up compiler warning
@@ -165,7 +154,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
     Scalar q(0);
     if (evaluator::needsCharge())
         {
-        q = texFetchScalar(d_charge, pdata_charge_tex, idx);
+        q = __ldg(d_charge + idx);
         }
     else
         q += 0; // shut up compiler warning
@@ -186,7 +175,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         int cur_bond_type = cur_bond.idx[1];
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
-        Scalar4 neigh_postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_bond_idx);
+        Scalar4 neigh_postypej = __ldg(d_pos + cur_bond_idx);
         Scalar3 neigh_pos= make_scalar3(neigh_postypej.x, neigh_postypej.y, neigh_postypej.z);
 
         // calculate dr (FLOPS: 3)
@@ -209,12 +198,12 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         // get the bonded particle's diameter if needed
         if (evaluator::needsDiameter())
             {
-            Scalar neigh_diam = texFetchScalar(d_diameter, pdata_diam_tex, cur_bond_idx);
+            Scalar neigh_diam = __ldg(d_diameter + cur_bond_idx);
             eval.setDiameter(diam, neigh_diam);
             }
         if (evaluator::needsCharge())
             {
-            Scalar neigh_q = texFetchScalar(d_charge, pdata_charge_tex, cur_bond_idx);
+            Scalar neigh_q = __ldg(d_charge + cur_bond_idx);
             eval.setCharge(q, neigh_q);
             }
 
@@ -285,29 +274,6 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     // setup the grid to run the kernel
     dim3 grid( bond_args.N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
-
-    // bind the position texture on pre sm35 devices
-    if (bond_args.compute_capability < 350)
-        {
-        pdata_pos_tex.normalized = false;
-        pdata_pos_tex.filterMode = cudaFilterModePoint;
-        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, bond_args.d_pos, sizeof(Scalar4)*(bond_args.n_max));
-        if (error != cudaSuccess)
-            return error;
-
-        // bind the diameter texture
-        pdata_diam_tex.normalized = false;
-        pdata_diam_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, pdata_diam_tex, bond_args.d_diameter, sizeof(Scalar) *(bond_args.n_max));
-        if (error != cudaSuccess)
-            return error;
-
-        pdata_charge_tex.normalized = false;
-        pdata_charge_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, pdata_charge_tex, bond_args.d_charge, sizeof(Scalar) * (bond_args.n_max));
-        if (error != cudaSuccess)
-            return error;
-        }
 
     unsigned int shared_bytes = sizeof(typename evaluator::param_type) *
                                 bond_args.n_bond_types;

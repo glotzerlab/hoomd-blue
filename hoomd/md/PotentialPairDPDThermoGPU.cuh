@@ -49,9 +49,7 @@ struct dpd_pair_args_t
                     const Scalar _T,
                     const unsigned int _shift_mode,
                     const unsigned int _compute_virial,
-                    const unsigned int _threads_per_particle,
-                    const unsigned int _compute_capability,
-                    const unsigned int _max_tex1d_width)
+                    const unsigned int _threads_per_particle)
                         : d_force(_d_force),
                         d_virial(_d_virial),
                         virial_pitch(_virial_pitch),
@@ -74,9 +72,7 @@ struct dpd_pair_args_t
                         T(_T),
                         shift_mode(_shift_mode),
                         compute_virial(_compute_virial),
-                        threads_per_particle(_threads_per_particle),
-                        compute_capability(_compute_capability),
-                        max_tex1d_width(_max_tex1d_width)
+                        threads_per_particle(_threads_per_particle)
         {
         };
 
@@ -103,22 +99,9 @@ struct dpd_pair_args_t
     const unsigned int shift_mode;  //!< The potential energy shift mode
     const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 32==1 warp)
-    const unsigned int compute_capability;  //!< Compute capability of the device (20, 30, 35, ...)
-    const unsigned int max_tex1d_width;     //!< Maximum width of a 1d linear texture
     };
 
 #ifdef NVCC
-//! Texture for reading particle positions
-scalar4_tex_t pdata_dpd_pos_tex;
-
-//! Texture for reading particle velocities
-scalar4_tex_t pdata_dpd_vel_tex;
-
-//! Texture for reading particle tags
-texture<unsigned int, 1, cudaReadModeElementType> pdata_dpd_tag_tex;
-
-//! Texture for reading neighbor list
-texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -153,8 +136,6 @@ texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
     \tparam evaluator EvaluatorPair class to evaluate V(r) and -delta V(r)/r
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut.
     \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
-    \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
-                           is used depending on architecture.
 
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
@@ -222,26 +203,19 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
 
         // read in the position of our particle.
         // (MEM TRANSFER: 16 bytes)
-        Scalar4 postypei = texFetchScalar4(d_pos, pdata_dpd_pos_tex, idx);
+        Scalar4 postypei = __ldg(d_pos + idx);
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
         // read in the velocity of our particle.
         // (MEM TRANSFER: 16 bytes)
-        Scalar4 velmassi = texFetchScalar4(d_vel, pdata_dpd_vel_tex, idx);
+        Scalar4 velmassi = __ldg(d_vel + idx);
         Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
 
         // prefetch neighbor index
         const unsigned int head_idx = d_head_list[idx];
         unsigned int cur_j = 0;
         unsigned int next_j(0);
-        if (use_gmem_nlist)
-            {
-            next_j = (threadIdx.x%tpp < n_neigh) ? d_nlist[head_idx + threadIdx.x%tpp] : 0;
-            }
-        else
-            {
-            next_j = (threadIdx.x%tpp < n_neigh) ? texFetchUint(d_nlist, nlist_tex, head_idx + threadIdx.x%tpp) : 0;
-            }
+        next_j = (threadIdx.x%tpp < n_neigh) ? __ldg(d_nlist + head_idx + threadIdx.x%tpp) : 0;
 
         // this particle's tag
         unsigned int tagi = d_tag[idx];
@@ -255,22 +229,15 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                 cur_j = next_j;
                 if (neigh_idx+tpp < n_neigh)
                     {
-                    if (use_gmem_nlist)
-                        {
-                        next_j = d_nlist[head_idx + neigh_idx + tpp];
-                        }
-                    else
-                        {
-                        next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + tpp);
-                        }
+                    next_j = __ldg(d_nlist + head_idx + neigh_idx + tpp);
                     }
 
                 // get the neighbor's position (MEM TRANSFER: 16 bytes)
-                Scalar4 postypej = texFetchScalar4(d_pos, pdata_dpd_pos_tex, cur_j);
+                Scalar4 postypej = __ldg(d_pos + cur_j);
                 Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
                 // get the neighbor's position (MEM TRANSFER: 16 bytes)
-                Scalar4 velmassj = texFetchScalar4(d_vel, pdata_dpd_vel_tex, cur_j);
+                Scalar4 velmassj = __ldg(d_vel + cur_j);
                 Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);
 
                 // calculate dr (with periodic boundary conditions) (FLOPS: 3)
@@ -308,7 +275,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
 
                 // Special Potential Pair DPD Requirements
                 // use particle i's and j's tags
-                unsigned int tagj = texFetchUint(d_tag, pdata_dpd_tag_tex, cur_j);
+                unsigned int tagj = __ldg(d_tag + cur_j);
                 eval.set_seed_ij_timestep(d_seed,tagi,tagj,d_timestep);
                 eval.setDeltaT(d_deltaT);
                 eval.setRDotV(rdotv);
@@ -374,30 +341,6 @@ int dpd_get_max_block_size(T func)
     return max_threads;
     }
 
-inline void gpu_dpd_pair_force_bind_textures(const dpd_pair_args_t pair_args)
-    {
-    // bind the position texture
-    pdata_dpd_pos_tex.normalized = false;
-    pdata_dpd_pos_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, pdata_dpd_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.n_max);
-
-    // bind the diameter texture
-    pdata_dpd_vel_tex.normalized = false;
-    pdata_dpd_vel_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, pdata_dpd_vel_tex, pair_args.d_vel, sizeof(Scalar4) * pair_args.n_max);
-
-    pdata_dpd_tag_tex.normalized = false;
-    pdata_dpd_tag_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, pdata_dpd_tag_tex, pair_args.d_tag, sizeof(unsigned int) * pair_args.n_max);
-
-    if (pair_args.size_nlist <= pair_args.max_tex1d_width)
-        {
-        nlist_tex.normalized = false;
-        nlist_tex.filterMode = cudaFilterModePoint;
-        cudaBindTexture(0, nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_nlist);
-        }
-    }
-
 //! DPD force compute kernel launcher
 /*!
  * \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
@@ -433,8 +376,6 @@ struct DPDForceComputeKernel
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist, tpp>);
-
-            if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
@@ -492,82 +433,40 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     assert(args.ntypes > 0);
 
     // run the kernel
-    if (args.compute_capability < 35 && args.size_nlist > args.max_tex1d_width)
+    if (args.compute_virial)
         {
-        if (args.compute_virial)
+        switch (args.shift_mode)
             {
-            switch (args.shift_mode)
+            case 0:
                 {
-                case 0:
-                    {
-                    DPDForceComputeKernel<evaluator, 0, 1, 1, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
-                    break;
-                    }
-                case 1:
-                    {
-                    DPDForceComputeKernel<evaluator, 1, 1, 1, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
-                    break;
-                    }
-                default:
-                    return cudaErrorUnknown;
+                DPDForceComputeKernel<evaluator, 0, 1, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
+                break;
                 }
-            }
-        else
-            {
-            switch (args.shift_mode)
+            case 1:
                 {
-                case 0:
-                    {
-                    DPDForceComputeKernel<evaluator, 0, 0, 1, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
-                    break;
-                    }
-                case 1:
-                    {
-                    DPDForceComputeKernel<evaluator, 1, 0, 1, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
-                    break;
-                    }
-                default:
-                    return cudaErrorUnknown;
+                DPDForceComputeKernel<evaluator, 1, 1, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
+                break;
                 }
+            default:
+                return cudaErrorUnknown;
             }
         }
     else
         {
-        if (args.compute_virial)
+        switch (args.shift_mode)
             {
-            switch (args.shift_mode)
+            case 0:
                 {
-                case 0:
-                    {
-                    DPDForceComputeKernel<evaluator, 0, 1, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
-                    break;
-                    }
-                case 1:
-                    {
-                    DPDForceComputeKernel<evaluator, 1, 1, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
-                    break;
-                    }
-                default:
-                    return cudaErrorUnknown;
+                DPDForceComputeKernel<evaluator, 0, 0, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
+                break;
                 }
-            }
-        else
-            {
-            switch (args.shift_mode)
+            case 1:
                 {
-                case 0:
-                    {
-                    DPDForceComputeKernel<evaluator, 0, 0, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
-                    break;
-                    }
-                case 1:
-                    {
-                    DPDForceComputeKernel<evaluator, 1, 0, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
-                    break;
-                    }
-                default:
-                    return cudaErrorUnknown;
+                DPDForceComputeKernel<evaluator, 1, 0, 0, gpu_dpd_pair_force_max_tpp>::launch(args, d_params);
+                break;
                 }
+            default:
+                return cudaErrorUnknown;
             }
         }
 
