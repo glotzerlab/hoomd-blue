@@ -17,7 +17,7 @@ CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python"
 # Compile against correct python
 CMAKE_FLAGS="${CMAKE_FLAGS} -DPYTHON_EXECUTABLE=$(which python)"
 PYTHON_LIBRARY_PATH=$(python -c "import distutils.sysconfig as sysconfig; import os; print(os.path.join(sysconfig.get_config_var('LIBDIR'), sysconfig.get_config_var('LDLIBRARY')))")
-CMAKE_FLAGS="${CMAKE_FLAGS} -DPYTHON_LIBRARY=${PYTHON_LIBRARY_PATH}"
+CMAKE_FLAGS="${CMAKE_FLAGS} -DPYTHON_LIBRARY=${PYTHON_LIBRARY_PATH}"  # -DCMAKE_BUILD_TYPE=Debug"
 
 # Install to the conda packages path
 # CMAKE_FLAGS="${CMAKE_FLAGS} -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX}/lib/python3.6/site-packages"

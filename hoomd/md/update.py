@@ -42,9 +42,9 @@ class dynamic_bond(_updater):
         self.setupUpdater(period, phase);
 
 
-    def set_params(self, r_cut, bond_type, prob_form, prob_break):
+    def set_params(self, r_cut, bond_type, delta_G):
         self.check_initialization()
-        self.cpp_updater.setParams(r_cut, bond_type, prob_form, prob_break);
+        self.cpp_updater.setParams(r_cut, bond_type, delta_G);
         # store metadata
         # metadata_fields = ['r_cut', 'bond_type', 'prob_form', 'prob_break']
 
