@@ -13,6 +13,11 @@ pipeline
                     {
                     agent { label '{{ test.agent }}' }
 
+                    environment
+                        {
+                        OMPI_MCA_btl = 'tcp,self'
+                        }
+
                     steps
                         {
                         sh 'echo ${NODE_NAME}'
@@ -68,6 +73,11 @@ pipeline
                 {% for test in vldt_tests %}stage('{{ test.name }}')
                     {
                     agent { label '{{ test.agent }}' }
+
+                    environment
+                        {
+                        OMPI_MCA_btl = 'tcp,self'
+                        }
 
                     steps
                         {
