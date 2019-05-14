@@ -33,11 +33,10 @@ v2.6.0 (not yet released)
 - Fix compile errors with LLVM 8 and ``-DBUILD_JIT=on``.
 - Allow simulations with 0 bonds to specify bond potentials.
 - Fix a problem where HOOMD could not be imported in ``mpi4py`` jobs.
-- Refactor handling of MPI_Comm inside library.
 
 *C++ API changes*
 
-- Refactor handling of MPI_Comm inside library
+- Refactor handling of ``MPI_Comm`` inside library
 - Use ``random123`` for random number generation
 - CMake version 2.8.10.1 is now a minimum requirement for compiling from source
 
