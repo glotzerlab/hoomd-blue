@@ -27,12 +27,6 @@
   \brief Defines GPU kernel code for calculating conservative DEM pair forces. Used by DEM3DForceComputeGPU.
 */
 
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
-scalar4_tex_t pdata_quat_tex;
-scalar_tex_t pdata_diam_tex;
-scalar4_tex_t pdata_velocity_tex;
-
 //! Kernel for calculating 3D DEM forces
 /*! This kernel is called to calculate the DEM forces for all N particles.
 
@@ -234,22 +228,22 @@ __global__ void gpu_compute_dem3d_forces_kernel(
         const unsigned int myHead(d_head_list[partIdx]);
 
         // fetch position and orientation of this particle
-        const Scalar4 postype(texFetchScalar4(d_pos,pdata_pos_tex, partIdx));
+        const Scalar4 postype(__ldg(d_pos + partIdx));
         const vec3<Scalar> pos_i(postype.x, postype.y, postype.z);
         const unsigned int type_i(__scalar_as_int(postype.w));
-        const Scalar4 quati(texFetchScalar4(d_quat, pdata_quat_tex, partIdx));
+        const Scalar4 quati(__ldg(d_quat + partIdx));
         const quat<Real> quat_i(quati.x, vec3<Real>(quati.y, quati.z, quati.w));
 
         Scalar di = 0.0f;
         if (Evaluator::needsDiameter())
-            di = texFetchScalar(d_diam, pdata_diam_tex, partIdx);
+            di = __ldg(d_diam + partIdx);
         else
             di += 1.0f; //shut up compiler warning. Vestigial from HOOMD
 
         vec3<Scalar> vi;
         if (Evaluator::needsVelocity())
             vi = vec3<Scalar>(
-                texFetchScalar4(d_velocity, pdata_velocity_tex, partIdx));
+                __ldg(d_velocity + partIdx));
 
         for(unsigned int featureEpoch(0);
             featureEpoch < (maxFeatures + blockDim.y - 1)/blockDim.y; ++featureEpoch)
@@ -283,7 +277,7 @@ __global__ void gpu_compute_dem3d_forces_kernel(
                 next_neigh = d_nlist[myHead + neigh_idx + 1];
 
                 // grab the position and type of the neighbor
-                const Scalar4 neigh_postype(texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh));
+                const Scalar4 neigh_postype(__ldg(d_pos + cur_neigh));
                 const unsigned int type_j(__scalar_as_int(neigh_postype.w));
                 const vec3<Scalar> neigh_pos(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
@@ -299,7 +293,7 @@ __global__ void gpu_compute_dem3d_forces_kernel(
                 Scalar dj(0);
                 if (Evaluator::needsDiameter())
                     {
-                    dj = texFetchScalar(d_diam, pdata_diam_tex, cur_neigh);
+                    dj = __ldg(d_diam + cur_neigh);
                     evaluator.setDiameter(di, dj);
                     }
                 else
@@ -308,13 +302,13 @@ __global__ void gpu_compute_dem3d_forces_kernel(
                 if(evaluator.withinCutoff(rsq, r_cutsq))
                     {
                     // fetch neighbor's orientation
-                    const Scalar4 neighQuatF(texFetchScalar4(d_quat, pdata_quat_tex, cur_neigh));
+                    const Scalar4 neighQuatF(__ldg(d_quat + cur_neigh));
                     const quat<Real> neighQuat(
                         neighQuatF.x, vec3<Real>(neighQuatF.y, neighQuatF.z, neighQuatF.w));
 
                     if (Evaluator::needsVelocity())
                         {
-                        Scalar4 vj(texFetchScalar4(d_velocity, pdata_velocity_tex, cur_neigh));
+                        Scalar4 vj(__ldg(d_velocity + cur_neigh));
                         evaluator.setVelocity(vi - vec3<Scalar>(vj));
                         }
 
@@ -514,28 +508,6 @@ cudaError_t gpu_compute_dem3d_forces(
     assert(numFeatures);
 
     dim3 threads(particlesPerBlock, numFeatures, 1);
-
-    // bind the textures for position and orientation
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*(N+n_ghosts));
-    if (error != cudaSuccess)
-        return error;
-    pdata_quat_tex.normalized = false;
-    pdata_quat_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_quat_tex, d_quat, sizeof(Scalar4)*(N+n_ghosts));
-    if (error != cudaSuccess)
-        return error;
-    pdata_diam_tex.normalized = false;
-    pdata_diam_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_diam_tex, d_diam, sizeof(Scalar)*(N+n_ghosts));
-    if (error != cudaSuccess)
-        return error;
-    pdata_velocity_tex.normalized = false;
-    pdata_velocity_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_velocity_tex, d_velocity, sizeof(Scalar4)*(N+n_ghosts));
-    if (error != cudaSuccess)
-        return error;
 
     // Calculate the amount of shared memory required
     const size_t shmSize(2*particlesPerBlock*sizeof(Real4) + 6*particlesPerBlock*sizeof(Real) + // forces, torques, virials per-particle

@@ -24,10 +24,10 @@ class mpcd_update_sort_test(unittest.TestCase):
     # test default initialization
     def test_init(self):
         self.assertTrue(self.s is not None)
+        # check that sorter was created in system
+        self.assertTrue(self.s.sorter is not None)
         # check default period
         self.assertEqual(self.s.sorter.period, 50)
-        # check sorter was injected into updater list
-        self.assertTrue(self.s.sorter in hoomd.context.current.updaters)
 
     # test setting period of sorter
     def test_set_period(self):
@@ -42,11 +42,9 @@ class mpcd_update_sort_test(unittest.TestCase):
         # disabling sorter should remove it from list
         self.s.sorter.disable()
         self.assertFalse(self.s.sorter.enabled)
-        self.assertFalse(self.s.sorter in hoomd.context.current.updaters)
 
         self.s.sorter.enable()
         self.assertTrue(self.s.sorter.enabled)
-        self.assertTrue(self.s.sorter in hoomd.context.current.updaters)
 
     # test that an error is raised if a second sorter gets made
     def test_reinit(self):

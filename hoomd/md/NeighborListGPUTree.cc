@@ -809,7 +809,6 @@ void NeighborListGPUTree::traverseTree()
                             m_pdata->getNTypes(),
                             m_filter_body,
                             m_diameter_shift,
-                            m_exec_conf->getComputeCapability()/10,
                             m_tuner_traverse->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

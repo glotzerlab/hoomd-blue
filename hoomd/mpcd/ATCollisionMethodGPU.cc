@@ -30,7 +30,7 @@ void mpcd::ATCollisionMethodGPU::drawVelocities(unsigned int timestep)
     // mpcd particle data
     ArrayHandle<unsigned int> d_tag(m_mpcd_pdata->getTags(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getAltVelocities(), access_location::device, access_mode::overwrite);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // random velocities are drawn for each particle and stored into the "alternate" arrays
@@ -84,7 +84,7 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
     // mpcd particle data
     ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel_alt(m_mpcd_pdata->getAltVelocities(), access_location::device, access_mode::read);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // cell data

@@ -34,9 +34,6 @@ LoadBalancerGPU::LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
     GPUArray<unsigned int> off_ranks(m_pdata->getMaxN(), m_exec_conf);
     m_off_ranks.swap(off_ranks);
 
-    GPUFlags<unsigned int> n_off_rank(m_exec_conf);
-    m_n_off_rank.swap(n_off_rank);
-
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "load_balance", this->m_exec_conf));
     }
 
@@ -76,36 +73,15 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
         {
         ArrayHandle<unsigned int> d_comm_flag(m_pdata->getCommFlags(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_off_ranks(m_off_ranks, access_location::device, access_mode::overwrite);
-        m_n_off_rank.resetFlags(0);
 
         // size the temporary storage
-        void *d_tmp_storage = NULL;
-        size_t tmp_storage_bytes = 0;
-        gpu_load_balance_select_off_rank(d_off_ranks.data,
-                                         m_n_off_rank.getDeviceFlags(),
-                                         d_comm_flag.data,
-                                         d_tmp_storage,
-                                         tmp_storage_bytes,
-                                         m_pdata->getN(),
-                                         m_exec_conf->getRank());
-
-        // always allocate a minimum of 4 bytes so that d_tmp_storage is never NULL
-        size_t n_alloc = (tmp_storage_bytes > 0) ? tmp_storage_bytes : 4;
-        ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), n_alloc);
-        d_tmp_storage = (void*)d_alloc();
-
-        // perform the selection
-        gpu_load_balance_select_off_rank(d_off_ranks.data,
-                                         m_n_off_rank.getDeviceFlags(),
-                                         d_comm_flag.data,
-                                         d_tmp_storage,
-                                         tmp_storage_bytes,
-                                         m_pdata->getN(),
-                                         m_exec_conf->getRank());
+        const unsigned int n_off_rank = gpu_load_balance_select_off_rank(d_off_ranks.data,
+                                                                         d_comm_flag.data,
+                                                                         m_pdata->getN(),
+                                                                         m_exec_conf->getRank());
 
         // copy just the subset of particles that are off rank on the device into host memory
         // this can save substantially on the memcpy if there are many particles on a rank
-        const unsigned int n_off_rank = m_n_off_rank.readFlags();
         off_rank.resize(n_off_rank);
         cudaMemcpy(&off_rank[0], d_off_ranks.data, sizeof(unsigned int)*n_off_rank, cudaMemcpyDeviceToHost);
         }
