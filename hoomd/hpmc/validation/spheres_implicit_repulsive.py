@@ -59,7 +59,7 @@ class depletion_test(unittest.TestCase):
         self.system.particles.types.add('C')
 
     def test_measure_etap(self):
-        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True)
+        self.mc = hpmc.integrate.sphere(seed=seed)
         self.mc.set_params(d=0.1,a=0.1)
         self.mc.shape_param.set('A', diameter=d_sphere)
         self.mc.shape_param.set('B', diameter=d_sphere*q)
