@@ -133,10 +133,6 @@ template< class Shape >
 cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t &args, const typename Shape::param_type *d_params);
 
 #ifdef NVCC
-//! Texture for reading postype
-scalar4_tex_t free_volume_postype_tex;
-//! Texture for reading orientation
-scalar4_tex_t free_volume_orientation_tex;
 
 //! Compute the cell that a particle sits in
 __device__ inline unsigned int compute_cell_idx(const Scalar3 p,
@@ -326,18 +322,14 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
             if (local_k < excell_size)
                 {
                 // read in position, and orientation of neighboring particle
-                #if ( __CUDA_ARCH__ > 300)
                 unsigned int j = __ldg(&d_excell_idx[excli(local_k, my_cell)]);
-                #else
-                unsigned int j = d_excell_idx[excli(local_k, my_cell)];
-                #endif
 
-                Scalar4 postype_j = texFetchScalar4(d_postype, free_volume_postype_tex, j);
+                Scalar4 postype_j = __ldg(d_postype + j);
                 Scalar4 orientation_j = make_scalar4(1,0,0,0);
                 unsigned int typ_j = __scalar_as_int(postype_j.w);
                 Shape shape_j(quat<Scalar>(orientation_j), s_params[typ_j]);
                 if (shape_j.hasOrientation())
-                    shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation, free_volume_orientation_tex, j));
+                    shape_j.orientation = quat<Scalar>(__ldg(d_orientation + j));
 
                 // put particle j into the coordinate system of particle i
                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i;
@@ -402,20 +394,6 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
     assert(args.group_size >= 1);
     assert(args.group_size <= 32);  // note, really should be warp size of the device
     assert(args.block_size%(args.stride*args.group_size)==0);
-
-
-    // bind the textures
-    free_volume_postype_tex.normalized = false;
-    free_volume_postype_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, free_volume_postype_tex, args.d_postype, sizeof(Scalar4)*args.max_n);
-    if (error != cudaSuccess)
-        return error;
-
-    free_volume_orientation_tex.normalized = false;
-    free_volume_orientation_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, free_volume_orientation_tex, args.d_orientation, sizeof(Scalar4)*args.max_n);
-    if (error != cudaSuccess)
-        return error;
 
     // reset counters
     cudaMemsetAsync(args.d_n_overlap_all,0, sizeof(unsigned int));

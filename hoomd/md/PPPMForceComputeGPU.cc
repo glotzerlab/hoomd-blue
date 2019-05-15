@@ -186,7 +186,7 @@ void PPPMForceComputeGPU::initializeFFT()
         cudaMemPrefetchAsync(m_fourier_mesh_G_z.get(), m_n_inner_cells*sizeof(cufftComplex), gpu_map[0]);
         cudaMemAdvise(m_fourier_mesh_G_z.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
         cudaMemPrefetchAsync(m_fourier_mesh_G_y.get(), m_n_inner_cells*sizeof(cufftComplex), gpu_map[0]);
-        } 
+        }
 
     unsigned int n_blocks = (m_mesh_points.x*m_mesh_points.y*m_mesh_points.z)/m_block_size+1;
     GlobalArray<Scalar> sum_partial(n_blocks,m_exec_conf);
@@ -686,8 +686,7 @@ void PPPMForceComputeGPU::fixExclusions()
                    m_alpha,
                    d_index_array.data,
                    group_size,
-                   m_block_size,
-                   m_exec_conf->getComputeCapability());
+                   m_block_size);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

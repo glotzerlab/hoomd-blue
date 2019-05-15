@@ -102,8 +102,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
     eam_data.block_size = m_tuner->getParam();
     gpu_compute_eam_tex_inter_forces(d_force.data, d_virial.data, m_virial.getPitch(), m_pdata->getN(), d_pos.data, box,
             d_n_neigh.data, d_nlist.data, d_head_list.data, this->m_nlist->getNListArray().getPitch(), eam_data,
-            d_dFdP.data, d_F.data, d_rho.data, d_rphi.data, d_dF.data, d_drho.data, d_drphi.data,
-            m_exec_conf->getComputeCapability() / 10, m_exec_conf->dev_prop.maxTexture1DLinear);
+            d_dFdP.data, d_F.data, d_rho.data, d_rphi.data, d_dF.data, d_drho.data, d_drphi.data);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
