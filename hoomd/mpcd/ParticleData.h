@@ -107,10 +107,37 @@ class PYBIND11_EXPORT ParticleData
             return m_N;
             }
 
+        //! Get the number of MPCD virtual particles on this rank
+        unsigned int getNVirtual() const
+            {
+            return m_N_virtual;
+            }
+
         //! Get global number of MPCD particles
         unsigned int getNGlobal() const
             {
             return m_N_global;
+            }
+
+        //! Get the global number of virtual MPCD particles
+        /*!
+         * This method requires a collective reduction in MPI simulations. The caller is responsible for caching
+         * the returned value for performance if necessary.
+         */
+        unsigned int getNVirtualGlobal() const
+            {
+            #ifdef ENABLE_MPI
+            if (m_exec_conf->getNRanks() > 1)
+                {
+                unsigned int N_virtual_global = m_N_virtual;
+                MPI_Allreduce(MPI_IN_PLACE, &N_virtual_global, 1, MPI_UNSIGNED, MPI_SUM, m_exec_conf->getMPICommunicator());
+                return N_virtual_global;
+                }
+            else
+            #endif // ENABLE_MPI
+                {
+                return m_N_virtual;
+                }
             }
 
         //! Get number of MPCD particle types
@@ -302,6 +329,45 @@ class PYBIND11_EXPORT ParticleData
             }
         //@}
 
+        //! \name virtual particle methods
+        //@{
+        //! Get the signal for the number of virtual particles changing
+        /*!
+         * \returns A signal that notifies subscribers when the number of virtual
+         *          particles changes. This includes addition and removal of particles.
+         */
+        Nano::Signal<void ()>& getNumVirtualSignal()
+            {
+            return m_virtual_signal;
+            }
+
+        //! Notify subscribers that the number of virtual particles has changed
+        void notifyNumVirtual()
+            {
+            m_virtual_signal.emit();
+            }
+
+        //! Allocate memory for virtual particles
+        void addVirtualParticles(unsigned int N);
+
+        //! Remove all virtual particles
+        /*!
+         * \post The virtual particle counter is reset to zero.
+         *
+         * The memory associated with the previous virtual particle allocation is not freed
+         * since the array growth is amortized in allocateVirtualParticles.
+         */
+        void removeVirtualParticles()
+            {
+            const unsigned int old_N_virtual = m_N_virtual;
+            m_N_virtual = 0;
+
+            // only notify of a change if there were virtual particles that have now been removed
+            if (old_N_virtual != 0)
+                notifyNumVirtual();
+            }
+        //@}
+
         #ifdef ENABLE_MPI
         //! \name communication methods
         //@{
@@ -343,6 +409,7 @@ class PYBIND11_EXPORT ParticleData
 
     private:
         unsigned int m_N;           //!< Number of MPCD particles
+        unsigned int m_N_virtual;   //!< Number of virtual MPCD particles
         unsigned int m_N_global;    //!< Total number of MPCD particles
         unsigned int m_N_max;       //!< Maximum number of MPCD particles arrays can hold
 
@@ -377,6 +444,7 @@ class PYBIND11_EXPORT ParticleData
 
         bool m_valid_cell_cache;    //!< Flag for validity of cell cache
         SortSignal m_sort_signal;   //!< Signal triggered when particles are sorted
+        Nano::Signal<void ()> m_virtual_signal; //!< Signal for number of virtual particles changing
 
         //! Check for a valid snapshot
         bool checkSnapshot(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot);

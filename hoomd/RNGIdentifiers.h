@@ -53,6 +53,7 @@ struct RNGIdentifier
     static const uint32_t ATCollisionMethod = 0xf4009e6a;
     static const uint32_t CollisionMethod = 0x5af53be6;
     static const uint32_t SRDCollisionMethod = 0x7b61fda0;
+    static const uint32_t SlitGeometryFiller = 0xdb68c12c;
 
     };
 

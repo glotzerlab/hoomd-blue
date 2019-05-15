@@ -8,11 +8,12 @@ executors:
       python-version:
         type: string
     docker:
-      - image: glotzerlab/ci:2018.09-<< parameters.image >>
+      - image: glotzerlab/ci:2019.05-<< parameters.image >>
     environment:
       PYTHONPATH: /home/ci/project/build
       PYTHON: "/usr/bin/python<< parameters.python-version >>"
       PYTEST: "/usr/bin/python<< parameters.python-version >> -m pytest"
+      OMPI_MCA_btl: "tcp,self"
     working_directory: /home/ci/project
 
 commands:
@@ -155,6 +156,54 @@ workflows:
     jobs:
       - sphinx-docs
       - build_and_test:
+          name: clang8-py37-cm313-llvm8-mpi-tbb3
+          image: ubuntu19.04
+          cc: clang-8
+          cxx: clang++-8
+          llvm-version: "8"
+          python-version: "3.7"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: on
+          threads: "3"
+
+      - build_and_test:
+          name: clang7-py37-cm313-llvm7-mpi-tbb3
+          image: ubuntu19.04
+          cc: clang-7
+          cxx: clang++-7
+          llvm-version: "7"
+          python-version: "3.7"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: on
+          threads: "3"
+
+      - build_and_test:
+          name: gcc9-py37-cm313-llvm8-mpi-tbb3
+          image: ubuntu19.04
+          cc: gcc-9
+          cxx: g++-9
+          python-version: "3.7"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: on
+          llvm-version: "8"
+          threads: "3"
+
+      - build_and_test:
+          name: gcc8-py37-cm313-llvm7-mpi-tbb3
+          image: ubuntu19.04
+          cc: gcc-9
+          cxx: g++-9
+          python-version: "3.7"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: on
+          llvm-version: "7"
+          threads: "3"
+
+      - build_and_test:
           name: gcc8-py36-cm310-llvm6-mpi-tbb3
           image: ubuntu18.04
           cc: gcc-8
@@ -167,15 +216,14 @@ workflows:
           threads: "3"
 
       - build_and_test:
-          name: gcc7-py36-cm310-llvm6-mpi-tbb3
+          name: gcc7-py36-cm310-tbb3
           image: ubuntu18.04
           cc: gcc-7
           cxx: g++-7
           python-version: "3.6"
-          enable-mpi: on
+          enable-mpi: off
           enable-tbb: on
-          build-jit: on
-          llvm-version: "6.0"
+          build-jit: off
           threads: "3"
 
       - build_and_test:
@@ -201,15 +249,36 @@ workflows:
           threads: "3"
 
       - build_and_test:
-          name: clang5-py36-cm310-llvm5-mpi-tbb3
+          name: clang5-py36-cm310-llvm5-tbb3
           image: ubuntu18.04
           cc: clang-5.0
           cxx: clang++-5.0
           llvm-version: "5.0"
           python-version: "3.6"
-          enable-mpi: on
+          enable-mpi: off
           enable-tbb: on
           build-jit: on
+          threads: "3"
+
+      - build_and_test:
+          name: gcc55-py36-cm310
+          image: ubuntu18.04
+          cc: gcc-5
+          cxx: g++-5
+          python-version: "3.6"
+          enable-mpi: off
+          enable-tbb: off
+          build-jit: off
+
+      - build_and_test:
+          name: gcc48-py36-cm310-mpi-tbb3
+          image: ubuntu18.04
+          cc: gcc-4.8
+          cxx: g++-4.8
+          python-version: "3.6"
+          enable-mpi: on
+          enable-tbb: on
+          build-jit: off
           threads: "3"
 
       - build_and_test:

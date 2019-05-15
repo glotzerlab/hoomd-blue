@@ -11,7 +11,8 @@
 #ifdef ENABLE_MPI
 
 #include "LoadBalancerGPU.cuh"
-#include "hoomd/extern/cub/cub/cub.cuh"
+#include <thrust/copy.h>
+#include <thrust/execution_policy.h>
 
 //! Mark the particles that are off rank
 /*!
@@ -126,32 +127,28 @@ struct NotEqual
 
 /*!
  * \param d_off_rank (Reduced) list of particles that are off the current rank
- * \param d_n_select Number of particles that are off the current rank
  * \param d_ranks The current rank of each particle
- * \param d_tmp_storage Temporary storage array, or NULL
- * \param tmp_storage_bytes Size of temporary storage, or 0
  * \param N Number of local particles
  * \param cur_rank Current rank index
  *
- * This function uses the CUB DeviceSelect::If primitive to select particles that are off rank using the NotEqual
- * functor. As is usual, this function must be called twice in order to perform the selection. If \a d_tmp_storage
- * is NULL, the temporary storage requirement is computed and saved in \a tmp_storage_bytes. This is externally
- * allocated from the CachedAllocator. When called the second time, the ranks of the particles not on the current
- * rank are saved in \a d_off_rank, and the number of these particles is saved in \a d_n_select.
+ * \returns The number of particles that are off the current rank.
+ *
+ * This function uses thrust::copy_if to select particles that are off rank using the NotEqual functor.
+ *
+ * \b Note
+ * This function previously used cub::DeviceSelect::If to perform this operation. But, I ran into issues
+ * with that in mpcd/SorterGPU.cu. As a precaution, I am also replacing this method here.
  */
-void gpu_load_balance_select_off_rank(unsigned int *d_off_rank,
-                                      unsigned int *d_n_select,
-                                      unsigned int *d_ranks,
-                                      void *d_tmp_storage,
-                                      size_t &tmp_storage_bytes,
-                                      const unsigned int N,
-                                      const unsigned int cur_rank)
+unsigned int gpu_load_balance_select_off_rank(unsigned int *d_off_rank,
+                                              unsigned int *d_ranks,
+                                              const unsigned int N,
+                                              const unsigned int cur_rank)
     {
     // final precaution against calling with an empty array
-    if (N == 0) return;
+    if (N == 0) return 0;
 
-    NotEqual select_op(cur_rank);
-    cub::DeviceSelect::If(d_tmp_storage, tmp_storage_bytes, d_ranks, d_off_rank, d_n_select, N, select_op);
+    unsigned int* last = thrust::copy_if(thrust::device, d_ranks, d_ranks+N, d_off_rank, NotEqual(cur_rank));
+    return (last-d_off_rank);
     }
 
 #endif // ENABLE_MPI

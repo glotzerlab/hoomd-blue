@@ -15,6 +15,7 @@ md.pair
     md.pair.dpd_conservative
     md.pair.ewald
     md.pair.force_shifted_lj
+    md.pair.fourier
     md.pair.gauss
     md.pair.gb
     md.pair.lj

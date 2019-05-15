@@ -169,7 +169,6 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             this->m_pdata->getNTypes(),
                             block_size,
                             threads_per_particle,
-                            this->m_exec_conf->getComputeCapability()/10,
                             this->m_exec_conf->dev_prop),
                             d_params.data);
 
