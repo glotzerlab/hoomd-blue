@@ -44,6 +44,7 @@ set(_hoomd_sources Analyzer.cc
                    LogHDF5.cc
                    Messenger.cc
                    MemoryTraceback.cc
+                   MPIConfiguration.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    Profiler.cc
@@ -126,6 +127,7 @@ set(_hoomd_headers
     ManagedArray.h
     MemoryTraceback.h
     Messenger.h
+    MPIConfiguration.h
     ParticleData.cuh
     ParticleData.h
     ParticleGroup.cuh
