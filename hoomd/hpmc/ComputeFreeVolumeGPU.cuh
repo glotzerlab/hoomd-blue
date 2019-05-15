@@ -64,7 +64,6 @@ struct hpmc_free_volume_args_t
                 const Scalar3 _ghost_width,
                 const unsigned int *_d_check_overlaps,
                 Index2D _overlap_idx,
-                cudaStream_t _stream,
                 const cudaDeviceProp& _devprop
                 )
                 : n_sample(_n_sample),
@@ -95,7 +94,6 @@ struct hpmc_free_volume_args_t
                   ghost_width(_ghost_width),
                   d_check_overlaps(_d_check_overlaps),
                   overlap_idx(_overlap_idx),
-                  stream(_stream),
                   devprop(_devprop)
         {
         };
@@ -128,7 +126,6 @@ struct hpmc_free_volume_args_t
     const Scalar3 ghost_width;       //!< Width of ghost layer
     const unsigned int *d_check_overlaps;   //!< Interaction matrix
     Index2D overlap_idx;              //!< Interaction matrix indexer
-    cudaStream_t stream;               //!< Stream for kernel execution
     const cudaDeviceProp& devprop;    //!< CUDA device properties
     };
 
@@ -421,7 +418,7 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
         return error;
 
     // reset counters
-    cudaMemsetAsync(args.d_n_overlap_all,0, sizeof(unsigned int), args.stream);
+    cudaMemsetAsync(args.d_n_overlap_all,0, sizeof(unsigned int));
 
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
@@ -446,15 +443,6 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
 
     unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes;
 
-    // attach the parameters to the kernel stream so that they are visible
-    // when other kernels are called
-    cudaStreamAttachMemAsync(args.stream, d_params, 0, cudaMemAttachSingle);
-    for (unsigned int i = 0; i < args.num_types; ++i)
-        {
-        // attach nested memory regions
-        d_params[i].attach_to_stream(args.stream);
-        }
-
     // determine dynamically requested shared memory
     char *ptr = (char *)nullptr;
     unsigned int available_bytes = max_extra_bytes;
@@ -466,7 +454,7 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
 
     shared_bytes += extra_bytes;
 
-    gpu_hpmc_free_volume_kernel<Shape><<<grid, threads, shared_bytes, args.stream>>>(
+    gpu_hpmc_free_volume_kernel<Shape><<<grid, threads, shared_bytes>>>(
                                                      args.n_sample,
                                                      args.type,
                                                      args.d_postype,
