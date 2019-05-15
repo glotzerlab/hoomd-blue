@@ -11,12 +11,21 @@ namespace hpmc
 
 namespace detail
 {
-
 //! HPMC kernels for ShapeEllipsoid
 template cudaError_t gpu_hpmc_free_volume<ShapeEllipsoid>(const hpmc_free_volume_args_t &args,
                                                        const typename ShapeEllipsoid::param_type *d_params);
-template cudaError_t gpu_hpmc_update<ShapeEllipsoid>(const hpmc_args_t& args,
-                                                  const typename ShapeEllipsoid::param_type *d_params);
-}; // end namespace detail
+}
+
+namespace gpu
+{
+//! Driver for kernel::hpmc_gen_moves()
+template void hpmc_gen_moves<ShapeEllipsoid>(const hpmc_args_t& args, const ShapeEllipsoid::param_type *params);
+//! Driver for kernel::hpmc_narrow_phase()
+template void hpmc_narrow_phase<ShapeEllipsoid>(const hpmc_args_t& args, const ShapeEllipsoid::param_type *params);
+//! Driver for kernel::hpmc_insert_depletants()
+template void hpmc_insert_depletants<ShapeEllipsoid>(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapeEllipsoid::param_type *params);
+//! Driver for kernel::hpmc_accept()
+template void hpmc_accept<ShapeEllipsoid>(const hpmc_update_args_t& args, const ShapeEllipsoid::param_type *params);
+}
 
 } // end namespace hpmc

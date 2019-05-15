@@ -193,24 +193,31 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
     ArrayHandle<unsigned int> d_cell_idx(this->m_cl->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cell_adj(this->m_cl->getCellAdjArray(), access_location::device, access_mode::read);
 
+    // per-device cell list data
+    const ArrayHandle<unsigned int>& d_cell_size_per_device = this->m_cl->getPerDevice() ?
+        ArrayHandle<unsigned int>(this->m_cl->getCellSizeArrayPerDevice(),access_location::device, access_mode::read) :
+        ArrayHandle<unsigned int>(GlobalArray<unsigned int>(), access_location::device, access_mode::read);
+    const ArrayHandle<unsigned int>& d_cell_idx_per_device = this->m_cl->getPerDevice() ?
+        ArrayHandle<unsigned int>(this->m_cl->getIndexArrayPerDevice(), access_location::device, access_mode::read) :
+        ArrayHandle<unsigned int>(GlobalArray<unsigned int>(), access_location::device, access_mode::read);
+
     ArrayHandle< unsigned int > d_excell_idx(this->m_excell_idx, access_location::device, access_mode::readwrite);
     ArrayHandle< unsigned int > d_excell_size(this->m_excell_size, access_location::device, access_mode::readwrite);
 
     // update the expanded cells
     this->m_tuner_excell_block_size->begin();
-    detail::gpu_hpmc_excell(d_excell_idx.data,
-                            d_excell_size.data,
-                            this->m_excell_list_indexer,
-                            d_cell_idx.data,
-                            d_cell_size.data,
-                            d_cell_adj.data,
-                            this->m_cl->getCellIndexer(),
-                            this->m_cl->getCellListIndexer(),
-                            this->m_cl->getCellAdjIndexer(),
-                            this->m_tuner_excell_block_size->getParam());
-    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
+    gpu::hpmc_excell(d_excell_idx.data,
+                        d_excell_size.data,
+                        m_excell_list_indexer,
+                        this->m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
+                        this->m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
+                        d_cell_adj.data,
+                        this->m_cl->getCellIndexer(),
+                        this->m_cl->getCellListIndexer(),
+                        this->m_cl->getCellAdjIndexer(),
+                        this->m_cl->getPerDevice() ? this->m_exec_conf->getNumActiveGPUs() : 1,
+                        this->m_tuner_excell_block_size->getParam());
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     this->m_tuner_excell_block_size->end();
 
     // access the particle data
