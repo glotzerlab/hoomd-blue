@@ -16,9 +16,6 @@
     CosineSqAngleForceComputeGPU.
 */
 
-//! Texture for reading angle parameters
-scalar2_tex_t angle_params_tex;
-
 //! Kernel for calculating cosine squared angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -115,7 +112,7 @@ extern "C" __global__ void gpu_compute_cosinesq_angle_forces_kernel(Scalar4* d_f
         dac = box.minImage(dac);
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
-        Scalar2 params = texFetchScalar2(d_params, angle_params_tex, cur_angle_type);
+        Scalar2 params = __ldg(d_params + cur_angle_type);
         Scalar K = params.x;
         Scalar t_0 = params.y;
 
@@ -205,7 +202,6 @@ extern "C" __global__ void gpu_compute_cosinesq_angle_forces_kernel(Scalar4* d_f
     \param d_params K and t_0 params packed as Scalar2 variables
     \param n_angle_types Number of angle types in d_params
     \param block_size Block size to use when performing calculations
-    \param compute_capability Device compute capability (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
     \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
@@ -225,8 +221,7 @@ cudaError_t gpu_compute_cosinesq_angle_forces(Scalar4* d_force,
                                               const unsigned int *n_angles_list,
                                               Scalar2 *d_params,
                                               unsigned int n_angle_types,
-                                              int block_size,
-                                              const unsigned int compute_capability)
+                                              int block_size)
     {
     assert(d_params);
 
@@ -243,14 +238,6 @@ cudaError_t gpu_compute_cosinesq_angle_forces(Scalar4* d_force,
     // setup the grid to run the kernel
     dim3 grid( N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
-
-    // bind the texture on pre sm 35 arches
-    if (compute_capability < 350)
-        {
-        cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
-        if (error != cudaSuccess)
-            return error;
-        }
 
     // run the kernel
     gpu_compute_cosinesq_angle_forces_kernel<<< grid, threads>>>(

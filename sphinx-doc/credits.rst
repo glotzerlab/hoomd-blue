@@ -219,9 +219,13 @@ Peter Schwendeman, Jens Glaser, University of Michigan
 
 Alyssa Travitz, University of Michigan
   * `get_net_force` implementation
+  * bond bug fixes 
 
 Mike Henry, Boise State University
   * Documentation improvements
+
+Pengji Zhou, University of Michigan
+  * pair.fourier
 
 HPMC developers
 ---------------

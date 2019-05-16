@@ -37,8 +37,8 @@
 
 #include <memory>
 
-// use legacy interfaces in LLVM 9
-#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 9
+// use legacy interfaces in LLVM 8 and 9
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 8
 
 #define RTDYLDOBJECTLINKINGLAYER LegacyRTDyldObjectLinkingLayer
 #define IRCOMPILELAYER LegacyIRCompileLayer

@@ -16,23 +16,6 @@
 //! The developer has chosen not to document this variable
 __device__ __constant__ Scalar GPU_rho_coeff[CONSTANT_SIZE];
 
-//! Implements workaround atomic float addition on sm_1x hardware
-__device__ inline void atomicFloatAdd(float* address, float value)
-    {
-#if (__CUDA_ARCH__ < 200)
-    float old = value;
-    float new_old;
-    do
-        {
-        new_old = atomicExch(address, 0.0f);
-        new_old += old;
-        }
-    while ((old = atomicExch(address, new_old))!=0.0f);
-#else
-    atomicAdd(address, value);
-#endif
-    }
-
 //! GPU implementation of sinc(x)==sin(x)/x
 __device__ Scalar gpu_sinc(Scalar x)
     {
@@ -257,7 +240,7 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
 
                     // compute fraction of particle density assigned to cell
                     // from particles in this bin
-                    atomicFloatAdd(&d_mesh[cell_idx].x, z0*result);
+                    atomicAdd(&d_mesh[cell_idx].x, z0*result);
                     }
 
                 ignore_z = false;
@@ -333,7 +316,7 @@ void gpu_assign_particles(const uint3 mesh_dim,
 
         if (ngpu > 1)
             {
-            // zero the temporary mesh array 
+            // zero the temporary mesh array
             cudaMemsetAsync(d_mesh_scratch + idev*mesh_elements, 0, sizeof(cufftComplex)*mesh_elements);
             }
 
@@ -369,7 +352,7 @@ void gpu_reduce_meshes(const unsigned int mesh_elements,
         d_mesh,
         ngpu);
     }
-   
+
 __global__ void gpu_compute_mesh_virial_kernel(const unsigned int n_wave_vectors,
                                          cufftComplex *d_fourier_mesh,
                                          Scalar *d_inf_f,
@@ -1230,13 +1213,6 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
     #endif
     }
 
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
-
-//! Texture for reading charge parameters
-scalar_tex_t pdata_charge_tex;
-
-
 //! The developer has chosen not to document this function
 __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                                           Scalar *d_virial,
@@ -1259,10 +1235,10 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
         unsigned int idx = d_group_members[group_idx];
         const Scalar sqrtpi = sqrtf(M_PI);
         unsigned int n_neigh = d_n_neigh[idx];
-        Scalar4 postypei =  texFetchScalar4(d_pos, pdata_pos_tex, idx);
+        Scalar4 postypei =  __ldg(d_pos + idx);
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
-        Scalar qi = texFetchScalar(d_charge, pdata_charge_tex, idx);
+        Scalar qi = __ldg(d_charge + idx);
         // initialize the force to 0
         Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
         Scalar virial[6];
@@ -1282,10 +1258,10 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                         next_j = d_nlist[nli(idx, neigh_idx+1)];
 
                     // get the neighbor's position (MEM TRANSFER: 16 bytes)
-                    Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
+                    Scalar4 postypej = __ldg(d_pos + cur_j);
                     Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
-                    Scalar qj = texFetchScalar(d_charge, pdata_charge_tex, cur_j);
+                    Scalar qj = __ldg(d_charge + cur_j);
 
                     // calculate dr (with periodic boundary conditions) (FLOPS: 3)
                     Scalar3 dx = posi - posj;
@@ -1348,25 +1324,12 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
                            Scalar alpha,
                            unsigned int *d_group_members,
                            unsigned int group_size,
-                           int block_size,
-                           const unsigned int compute_capability)
+                           int block_size)
     {
     dim3 grid( group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    // bind the textures on pre sm35 arches
-    if (compute_capability < 350)
-        {
-        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*Nmax);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * Nmax);
-        if (error != cudaSuccess)
-            return error;
-        }
-
-     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
+    gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
                                                       d_virial,
                                                       virial_pitch,
                                                       d_pos,
