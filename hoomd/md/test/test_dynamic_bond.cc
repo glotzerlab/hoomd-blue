@@ -9,7 +9,7 @@
 
 #include <functional>
 
-#include "hoomd/md/AllBondPotentials.h"
+#include "hoomd/md/DynamicBond.h"
 #include "hoomd/ConstForceCompute.h"
 
 #include "hoomd/Initializers.h"
@@ -27,7 +27,7 @@ using namespace std::placeholders;
 HOOMD_UP_MAIN();
 
 //! Typedef to make using the std::function factory easier
-// typedef std::function<std::shared_ptr<PotentialBondFENE>  (std::shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
+typedef std::function<std::shared_ptr<PotentialBondFENE>  (std::shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)

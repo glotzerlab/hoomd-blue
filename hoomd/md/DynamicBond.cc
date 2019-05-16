@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+// TODO: debug by looking at dij - might be wrong??
 
 // Maintainer: ?
 
@@ -117,7 +118,6 @@ void DynamicBond::update(unsigned int timestep)
 
     // Access the GPU bond table for reading
     const Index2D& gpu_table_indexer = this->m_bond_data->getGPUTableIndexer();
-
     ArrayHandle<BondData::members_t> h_gpu_bondlist(this->m_bond_data->getGPUTable(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int > h_gpu_n_bonds(this->m_bond_data->getNGroupsArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -126,7 +126,6 @@ void DynamicBond::update(unsigned int timestep)
     ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int>  h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
 
     Scalar r_cut_sq = m_r_cut*m_r_cut;
 
@@ -146,6 +145,7 @@ void DynamicBond::update(unsigned int timestep)
         // access diameter of particle i
         Scalar di = Scalar(0.0);
         di = h_diameter.data[i];
+        assert(di > 0.0);
 
         // loop over all of the neighbors of this particle
         const unsigned int myHead = h_head_list.data[i];
@@ -183,7 +183,7 @@ void DynamicBond::update(unsigned int timestep)
                     {
                     group_storage<2> cur_bond = h_gpu_bondlist.data[gpu_table_indexer(i, bond_idx)];
                     int bonded_tag = cur_bond.tag[0];
-                    if (bonded_tag == j)
+                    if (bonded_tag == h_tag.data[j])
                         {
                         nbridges_ij += 1;
                         }
@@ -197,11 +197,11 @@ void DynamicBond::update(unsigned int timestep)
                 // // calculate probabilities
                 // Scalar p0=tstep*omega*exp(-(m_delta_G+bond(surf_dist)));
                 // Scalar q0=tstep*omega*exp(-(m_delta_G-bond(surf_dist)+bond(surf_dist)));
-                Scalar p0 = tstep*omega*exp(-(m_delta_G));
-                Scalar q0 = tstep*omega*exp(-(m_delta_G));
-                Scalar p12 = p0*pow((1-p0),(m_nloops_i*capfrac-1.0))*m_nloops_i*capfrac;
-                Scalar p21 = p0*pow((1-p0),(m_nloops_j*capfrac-1.0))*m_nloops_j*capfrac;
-                Scalar q1 = q0*pow((1-q0),(nbridges_ij-1.0))*nbridges_ij;
+                // Scalar p0 = tstep*omega*exp(-(m_delta_G));
+                // Scalar q0 = tstep*omega*exp(-(m_delta_G));
+                Scalar p12 = 0.3; // p0*pow((1-p0),(m_nloops[i]*capfrac-1.0))*m_nloops[i]*capfrac;
+                Scalar p21 = 0.7; // p0*pow((1-p0),(m_nloops[j]*capfrac-1.0))*m_nloops[j]*capfrac;
+                Scalar q1 = 0.3; //q0*pow((1-q0),(nbridges_ij-1.0))*nbridges_ij;
 
                 // generate random numbers
                 Scalar rnd1 = saru.s<Scalar>(0,1);
@@ -210,16 +210,15 @@ void DynamicBond::update(unsigned int timestep)
                 Scalar rnd4 = saru.s<Scalar>(0,1);
 
                 // check to see if a bond should be created between particles i and j
-                if (rnd1 < p12)  // && (n_bridges[i][i]>=1)
+                if (rnd1 < p12)
                     {
-                    // m_exec_conf->msg->notice(2) << "Adding bond between " << i << "," << j << endl;
-                    m_bond_data->addBondedGroup(Bond(0, i, j));
+                    m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                     m_nloops[i] -= 1;
                     }
-                if (rnd2 < p21)  // && (n_bridges[i][i]>=1)
+
+                if (rnd2 < p21)
                     {
-                    // m_exec_conf->msg->notice(2) << "Adding bond between " << i << "," << j << endl;
-                    m_bond_data->addBondedGroup(Bond(0, i, j));
+                    m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                     m_nloops[j] -= 1;
                     }
 
@@ -245,19 +244,19 @@ void DynamicBond::update(unsigned int timestep)
 
                         if ((bond.tag[0] == i && bond.tag[1] == j) || (bond.tag[0] == j & bond.tag[1] == i))
                             {
-                            // m_exec_conf->msg->notice(2) << "Removing bond with tag: " << bond_number << endl;
-                            // m_exec_conf->msg->notice(2) << "between particles with tags: " << i << "," << j << endl;
+                            m_exec_conf->msg->notice(2) << "Removing bond with tag: " << bond_number << endl;
+                            m_exec_conf->msg->notice(2) << "between particles with tags: " << i << "," << j << endl;
                             m_bond_data->removeBondedGroup(bond_number);
                             break;
                             }
                         }
                     if (rnd4 < 0.5)
                         {
-                        m_nloops_i += 1
+                        m_nloops[i] += 1;
                         }
                     else if (rnd4 >=0.5)
                         {
-                        m_nloops_j +=1
+                        m_nloops[j] +=1;
                         }
                     }
                 }
