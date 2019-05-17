@@ -171,13 +171,13 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
 
     // tuning parameters for narrow phase
     std::vector<unsigned int> valid_params;
-    const unsigned int narrow_phase_max_tpp = 256;
+    const unsigned int narrow_phase_max_tpp = dev_prop.maxThreadsPerBlock;
     for (unsigned int block_size = dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += dev_prop.warpSize)
         {
         for (unsigned int group_size=1; group_size <= narrow_phase_max_tpp; group_size*=2)
             {
             if ((block_size % group_size) == 0)
-                valid_params.push_back(block_size*1000 + group_size);
+                valid_params.push_back(block_size*10000 + group_size);
             }
         }
     m_tuner_narrow.reset(new Autotuner(valid_params, 5, 100000, "hpmc_narrow", this->m_exec_conf));
@@ -626,8 +626,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     this->m_exec_conf->beginMultiGPU();
                     m_tuner_narrow->begin();
                     unsigned int param = m_tuner_narrow->getParam();
-                    args.block_size = param/1000;
-                    args.tpp = param%1000;
+                    args.block_size = param/10000;
+                    args.tpp = param%10000;
                     gpu::hpmc_narrow_phase<Shape>(args, params.data());
                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                         CHECK_CUDA_ERROR();
