@@ -46,6 +46,7 @@ Scalar capfraction(Scalar x)
     return frac;
     }
 
+
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
     \param group Group of particles on which to apply this constraint
     \param nlist Neighborlist to use
@@ -62,6 +63,7 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
     int n_particles = m_pdata->getN();
     m_nloops.resize(n_particles);
+    std::fill(m_nloops.begin(), m_nloops.end(), 400);
     }
 
 
@@ -191,17 +193,18 @@ void DynamicBond::update(unsigned int timestep)
                 Scalar r = sqrt(rsq);
                 Scalar surf_dist = r - (di+dj)/2;
                 Scalar tstep = 0.05;
-                Scalar omega = 1.2;
+                Scalar omega = 4.68;  // natural thermal vibration frequency 1.2E0*3.9E-9
                 Scalar capfrac = 1.0;
 
-                // // calculate probabilities
+                // calculate probabilities
                 // Scalar p0=tstep*omega*exp(-(m_delta_G+bond(surf_dist)));
                 // Scalar q0=tstep*omega*exp(-(m_delta_G-bond(surf_dist)+bond(surf_dist)));
-                // Scalar p0 = tstep*omega*exp(-(m_delta_G));
-                // Scalar q0 = tstep*omega*exp(-(m_delta_G));
-                Scalar p12 = 0.3; // p0*pow((1-p0),(m_nloops[i]*capfrac-1.0))*m_nloops[i]*capfrac;
-                Scalar p21 = 0.7; // p0*pow((1-p0),(m_nloops[j]*capfrac-1.0))*m_nloops[j]*capfrac;
-                Scalar q1 = 0.3; //q0*pow((1-q0),(nbridges_ij-1.0))*nbridges_ij;
+                Scalar p0 = tstep*omega*exp(-(m_delta_G));
+                Scalar q0 = tstep*omega*exp(-(m_delta_G));
+
+                Scalar p12 = p0*pow((1-p0),(m_nloops[i]*capfrac-1.0))*m_nloops[i]*capfrac;
+                Scalar p21 = p0*pow((1-p0),(m_nloops[j]*capfrac-1.0))*m_nloops[j]*capfrac;
+                Scalar q1 =  q0*pow((1-q0),(nbridges_ij-1.0))*nbridges_ij;
 
                 // generate random numbers
                 Scalar rnd1 = saru.s<Scalar>(0,1);
@@ -228,6 +231,7 @@ void DynamicBond::update(unsigned int timestep)
                     // for each of the bonds in the *system*
                     const unsigned int size = (unsigned int)m_bond_data->getN();
                     // m_exec_conf->msg->notice(2) << "bonds in the system " << size << endl;
+
                     for (unsigned int bond_number = 0; bond_number < size; bond_number++)
                         {
                         // lookup the tag of each of the particles participating in the bond
@@ -244,8 +248,8 @@ void DynamicBond::update(unsigned int timestep)
 
                         if ((bond.tag[0] == i && bond.tag[1] == j) || (bond.tag[0] == j & bond.tag[1] == i))
                             {
-                            m_exec_conf->msg->notice(2) << "Removing bond with tag: " << bond_number << endl;
-                            m_exec_conf->msg->notice(2) << "between particles with tags: " << i << "," << j << endl;
+                            // m_exec_conf->msg->notice(2) << "Removing bond with tag: " << bond_number << endl;
+                            // m_exec_conf->msg->notice(2) << "between particles with tags: " << i << "," << j << endl;
                             m_bond_data->removeBondedGroup(bond_number);
                             break;
                             }
