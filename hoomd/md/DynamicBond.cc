@@ -63,7 +63,6 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
     int n_particles = m_pdata->getN();
     m_nloops.resize(n_particles);
-    std::fill(m_nloops.begin(), m_nloops.end(), 400);
     }
 
 
@@ -75,7 +74,9 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
 */
 void DynamicBond::setParams(Scalar r_cut,
                             std::string bond_type,
-                            Scalar delta_G)
+                            Scalar delta_G,
+                            int n_polymer,
+                            int nK)
     {
     if (m_r_cut < 0)
         {
@@ -83,6 +84,7 @@ void DynamicBond::setParams(Scalar r_cut,
         }
     m_r_cut = r_cut;
     m_delta_G = delta_G;
+    std::fill(m_nloops.begin(), m_nloops.end(), 400);
     }
 
 
@@ -194,7 +196,6 @@ void DynamicBond::update(unsigned int timestep)
                 Scalar surf_dist = r - (di+dj)/2;
                 Scalar tstep = 0.05;
                 Scalar omega = 4.68;  // natural thermal vibration frequency 1.2E0*3.9E-9
-                Scalar capfrac = 1.0;
 
                 // calculate probabilities
                 // Scalar p0=tstep*omega*exp(-(m_delta_G+bond(surf_dist)));
@@ -202,8 +203,8 @@ void DynamicBond::update(unsigned int timestep)
                 Scalar p0 = tstep*omega*exp(-(m_delta_G));
                 Scalar q0 = tstep*omega*exp(-(m_delta_G));
 
-                Scalar p12 = p0*pow((1-p0),(m_nloops[i]*capfrac-1.0))*m_nloops[i]*capfrac;
-                Scalar p21 = p0*pow((1-p0),(m_nloops[j]*capfrac-1.0))*m_nloops[j]*capfrac;
+                Scalar p12 = p0*pow((1-p0),(m_nloops[i]*capfraction(surf_dist)-1.0))*m_nloops[i]*capfraction(surf_dist);
+                Scalar p21 = p0*pow((1-p0),(m_nloops[j]*capfraction(surf_dist)-1.0))*m_nloops[j]*capfraction(surf_dist);
                 Scalar q1 =  q0*pow((1-q0),(nbridges_ij-1.0))*nbridges_ij;
 
                 // generate random numbers

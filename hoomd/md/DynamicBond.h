@@ -42,7 +42,9 @@ class PYBIND11_EXPORT DynamicBond : public Updater
 
         virtual void setParams(Scalar r_cut,
                             std::string bond_type,
-                            Scalar delta_G);
+                            Scalar delta_G,
+                            int n_polymer,
+                            int nK);
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
@@ -55,9 +57,11 @@ class PYBIND11_EXPORT DynamicBond : public Updater
         int period;                               //!< period to create/destroy bonds
         int seed;                                 //!< a seed for the random number generator
         int bond_type;
-        Scalar m_r_cut;                           //!<cut off distance for computing bonds
-        Scalar m_delta_G;                        //!<sticker strength
+        Scalar m_r_cut;                           //!< cut off distance for computing bonds
+        Scalar m_delta_G;                         //!< sticker strength
         std::vector<int> m_nloops;
+        int n_polymer;                            //!< number of polymers per colloid
+        int nK;                                   //!< kuhn steps per polymer
 
     // private:
     };
