@@ -431,7 +431,7 @@ class table(_dihedral):
         self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
         hoomd.util.unquiet_status();
 
-class opls(force._force):
+class opls(_dihedral):
     R""" OPLS dihedral force
 
     :py:class:`opls` specifies an OPLS-style dihedral potential energy between every defined dihedral.

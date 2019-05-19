@@ -99,7 +99,6 @@ UP_TEST( BoxDim_basic_test )
     UP_ASSERT_EQUAL(d.getPeriodic().y, 0);
     UP_ASSERT_EQUAL(d.getPeriodic().z, 1);
 
-    b = b;
     MY_CHECK_CLOSE(b.getLo().x,-5.0, tol);
     MY_CHECK_CLOSE(b.getLo().y,-5.0, tol);
     MY_CHECK_CLOSE(b.getLo().z,-5.0, tol);

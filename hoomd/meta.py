@@ -69,7 +69,11 @@ def should_track():
     """
     stack = traceback.extract_stack().format()
     last_file = re.findall('File "(.*?)"', stack[-3])[0]
-    return hoomd.__file__.replace('__init__.py', '') not in last_file
+    hoomd_root = hoomd.__file__.replace('__init__.py', '')
+    meta_file = hoomd.__file__.replace('__init__.py', 'meta.py')
+    is_hoomd = hoomd_root in last_file
+    is_meta = last_file == meta_file
+    return not is_hoomd or is_meta
 
 ## \internal
 # \brief A Mixin to facilitate storage of simulation metadata
@@ -283,6 +287,7 @@ def dump_metadata(filename=None, user=None, indent=4, fields=['timestamp', 'modu
             metadata[META_KEY_USER] = user
 
     # Only write files on rank 0
+    print(metadata)
     if filename is not None and hoomd.comm.get_rank() == 0:
         with open(filename, 'w') as file:
             meta_str = json.dumps(
@@ -326,12 +331,12 @@ def load_metadata(system, metadata=None, filename=None):
             "read from.")
 
     # Explicitly import all subpackages so getattr works
-    packages = ['hoomd.hpmc', 'hoomd.md', 'hoomd.mpcd', 'hoomd.dem',
-                'hoomd.cgcmm', 'hoomd.jit', 'hoomd.metal']
-    for package in packages:
+    modules = metadata.get(META_KEY_MODULES, [])
+    for module in modules:
         try:
-            exec('import {}'.format(package))
-        except (ImportError, ModuleNotFoundError):
+            # Support both naming schemes
+            exec('from hoomd import {mod}; import hoomd.{mod}'.format(mod=module))
+        except ImportError:
             # Not all packages need to be installed
             pass
 
