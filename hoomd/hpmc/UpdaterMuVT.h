@@ -219,7 +219,7 @@ class UpdaterMuVT : public Updater
          * \param n_insert Number of depletants to insert
          * \param delta Sphere diameter
          * \param tag Particle that is replaced
-         * \param new_type New type of particle (ignored, if ignore==True)
+         * \param new_type New type of particle
          * \param n_trial Number of insertion trials per depletant
          * \param lnboltzmann Log of Boltzmann factor for insertion (return value)
          * \param type_d Depletant type
@@ -229,7 +229,7 @@ class UpdaterMuVT : public Updater
             unsigned int tag, unsigned int new_type, unsigned int n_trial, Scalar &lnboltzmann,
             unsigned int type_d);
 
-        /*! Insert depletants into such that they overlap with a particle of given tag
+        /*! Insert depletants such that they overlap with a particle of given tag
          * \param timestep time step
          * \param n_insert Number of depletants to insert
          * \param delta Sphere diameter
