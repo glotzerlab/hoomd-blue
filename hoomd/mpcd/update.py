@@ -14,11 +14,13 @@ from hoomd.md import _md
 
 from . import _mpcd
 
-class sort(hoomd.update._updater):
+class sort(hoomd.meta._metadata):
     R""" Sorts MPCD particles in memory to improve cache coherency.
 
     Args:
         system (:py:class:`hoomd.mpcd.data.system`): MPCD system to create sorter for
+        period (int): Sort whenever the timestep is a multiple of *period*.
+            .. versionadded:: 2.6
 
     Warning:
         Do not create :py:class:`hoomd.mpcd.update.sort` explicitly in your script.
@@ -45,11 +47,11 @@ class sort(hoomd.update._updater):
 
     """
 
-    def __init__(self, system):
+    def __init__(self, system, period=50):
         hoomd.util.print_status_line()
 
         # base class initialization
-        hoomd.update._updater.__init__(self)
+        hoomd.meta._metadata.__init__(self)
 
         # check for mpcd initialization
         if system.sorter is not None:
@@ -61,11 +63,19 @@ class sort(hoomd.update._updater):
             cpp_class = _mpcd.Sorter
         else:
             cpp_class = _mpcd.SorterGPU
-        self.cpp_updater = cpp_class(system.data)
+        self._cpp = cpp_class(system.data, hoomd.context.current.system.getCurrentTimeStep(), period)
 
-        self.period = 50
+        self.metadata_fields = ['period','enabled']
+        self.period = period
+        self.enabled = True
 
-        self.setupUpdater(self.period)
+    def disable(self):
+        hoomd.util.print_status_line()
+        self.enabled = False
+
+    def enable(self):
+        hoomd.util.print_status_line()
+        self.enabled = True
 
     def set_period(self, period):
         """ Change the sorting period.
@@ -85,12 +95,8 @@ class sort(hoomd.update._updater):
         """
         hoomd.util.print_status_line()
 
-        # call base updater's set period method
-        hoomd.util.quiet_status()
-        hoomd.update._updater.set_period(self, period)
-        hoomd.util.unquiet_status()
-        # and save the period into ourselves as metadata
         self.period = period
+        self._cpp.setPeriod(hoomd.context.current.system.getCurrentTimeStep(), self.period)
 
     def tune(self, start, stop, step, tsteps, quiet=False):
         """ Tune the sorting period.

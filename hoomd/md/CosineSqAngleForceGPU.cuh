@@ -28,7 +28,6 @@ cudaError_t gpu_compute_cosinesq_angle_forces(Scalar4* d_force,
                                               const unsigned int *n_angles_list,
                                               Scalar2 *d_params,
                                               unsigned int n_angle_types,
-                                              int block_size,
-                                              const unsigned int compute_capability);
+                                              int block_size);
 
 #endif

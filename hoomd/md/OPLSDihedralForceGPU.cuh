@@ -28,7 +28,6 @@ cudaError_t gpu_compute_opls_dihedral_forces(Scalar4* d_force,
                                                 const unsigned int *n_dihedrals_list,
                                                 const Scalar4 *d_params,
                                                 const unsigned int n_dihedral_types,
-                                                const int block_size,
-                                                const unsigned int compute_capability);
+                                                const int block_size);
 
 #endif

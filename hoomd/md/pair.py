@@ -2516,35 +2516,19 @@ class square_density(pair):
 
     The self energy per particle takes the form
 
-    .. math::
-        :nowrap:
-
-        \begin{equation}
-        \Psi^{ex} = B (\rho - A)^2
-        \end{equation}
+    .. math:: \Psi^{ex} = B (\rho - A)^2
 
     which gives a pair-wise additive, three-body force
 
-    .. math::
-        \begin{equation}
-        \vec f_{ij} = \left\{B (n_i - A) + B (n_j - A)\right\} w'_{ij} \vec e_{ij}
-        \end{equation}
+    .. math:: \vec{f}_{ij} = \left( B (n_i - A) + B (n_j - A) \right) w'_{ij} \vec{e}_{ij}
 
     Here, :math:`w_{ij}` is a quadratic, normalized weighting function,
 
-    .. math::
-        :nowrap:
+    .. math:: w(x) = \frac{15}{2 \pi r_{c,\mathrm{weight}}^3} (1-r/r_{c,\mathrm{weight}})^2
 
-        \begin{equation}
-        w(x) = \frac{15}{2 \pi r_{c,\mathrm{weight}}^3} (1-r/r_{c,\mathrm{weight}})^2
-        \end{equation}
+    The local density at the location of particle *i* is defined as
 
-    The local density at the location of particle $i$ is defined as
-
-    .. math::
-        \begin{equation}
-        n_i = \sum\limits_{j\neq i} w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
-        \end{equation}
+    .. math:: n_i = \sum\limits_{j\neq i} w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -2624,7 +2608,7 @@ class buckingham(pair):
 
     - :math:`A` - *A* (in energy units)
     - :math:`\rho` - *rho* (in distance units)
-    - :math:`\C` - *C* (in energy/distance units )
+    - :math:`C` - *C* (in energy/distance units )
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
@@ -2750,3 +2734,82 @@ class lj1208(pair):
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 8.0);
         return _hoomd.make_scalar2(lj1, lj2);
+
+class fourier(pair):
+    R""" Fourier pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+
+    :py:class:`fourier` specifies that a fourier series form potential.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{Fourier}}(r) = & \frac{1}{r^{12}} + \frac{1}{r^2}\sum_{n=1}^4 [a_n cos(\frac{n \pi r}{r_{cut}}) + b_n sin(\frac{n \pi r}{r_{cut}})] & r < r_{\mathrm{cut}}  \\
+                                = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+        where:
+        \begin{eqnarray*}
+        a_1 = \sum_{n=2}^4 (-1)^n a_n cos(\frac{n \pi r}{r_{cut}})
+        \end{eqnarray*}
+
+        \begin{eqnarray*}
+        b_1 = \sum_{n=2}^4 n (-1)^n b_n cos(\frac{n \pi r}{r_{cut}})
+        \end{eqnarray*}
+
+        is calculated to enforce close to zero value at r_cut.
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`a` - *a* (array of 3 values corresponding to a2, a3 and a4 in the Fourier series, unitless)
+    - :math:`a` - *b* (array of 3 values corresponding to b2, b3 and b4 in the Fourier series, unitless)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        nl = nlist.cell()
+        fourier = pair.fourier(r_cut=3.0, nlist=nl)
+        fourier.pair_coeff.set('A', 'A', a=[a2,a3,a4], b=[b2,b3,b4])
+    """
+
+    def __init__(self, r_cut, nlist, name=None):
+
+        hoomd.util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialPairFourier(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairFourier;
+        else:
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.cpp_force = _md.PotentialPairFourierGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairFourierGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+
+        self.required_coeffs = ['fourier_a','fourier_b'];
+        # self.pair_coeff.set_default_coeff('alpha', 1.0);
+
+    def process_coeff(self, coeff):
+        fourier_a = coeff['fourier_a'];
+        fourier_b = coeff['fourier_b'];
+
+        return _md.make_pair_fourier_params(fourier_a,fourier_b);

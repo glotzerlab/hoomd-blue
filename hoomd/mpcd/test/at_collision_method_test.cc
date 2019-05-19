@@ -3,6 +3,7 @@
 
 // Maintainer: mphoward
 
+#include "utils.h"
 #include "hoomd/mpcd/ATCollisionMethod.h"
 #ifdef ENABLE_CUDA
 #include "hoomd/mpcd/ATCollisionMethodGPU.h"
@@ -49,6 +50,8 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
 
     // thermos and temperature variant
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
+    AllThermoRequest thermo_req(thermo);
+
     auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
     std::shared_ptr<::Variant> T = std::make_shared<::VariantConst>(1.5);
 

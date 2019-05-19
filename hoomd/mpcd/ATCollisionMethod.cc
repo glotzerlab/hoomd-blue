@@ -9,8 +9,8 @@
  */
 
 #include "ATCollisionMethod.h"
-#include "RandomNumbers.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                            unsigned int cur_timestep,
@@ -36,17 +36,11 @@ mpcd::ATCollisionMethod::~ATCollisionMethod()
     m_thermo->getCallbackSignal().disconnect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::drawVelocities>(this);
     }
 
-void mpcd::ATCollisionMethod::collide(unsigned int timestep)
+/*!
+ * \param timestep Current timestep.
+ */
+void mpcd::ATCollisionMethod::rule(unsigned int timestep)
     {
-    if (!shouldCollide(timestep)) return;
-
-    if (m_prof) m_prof->push("MPCD collide");
-    // set random grid shift
-    drawGridShift(timestep);
-    if (m_prof) m_prof->pop();
-
-    // update cell list and thermo
-    m_cl->compute(timestep);
     m_thermo->compute(timestep);
 
     if (m_prof) m_prof->push("MPCD collide");
@@ -59,15 +53,19 @@ void mpcd::ATCollisionMethod::collide(unsigned int timestep)
     // apply random velocities
     applyVelocities();
     if (m_prof) m_prof->pop(m_exec_conf);
+
     if (m_prof) m_prof->pop();
     }
 
+/*!
+ * \param timestep Current timestep.
+ */
 void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
     {
     // mpcd particle data
     ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getAltVelocities(), access_location::host, access_mode::overwrite);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // embedded particle data
@@ -103,9 +101,11 @@ void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
             }
 
         // draw random velocities from normal distribution
-        hoomd::detail::Saru rng(tag, timestep, m_seed);
-        mpcd::detail::NormalGenerator<Scalar,true> gen;
-        const Scalar3 vel = fast::sqrt(T/mass) * make_scalar3(gen(rng), gen(rng), gen(rng));
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ATCollisionMethod, m_seed, tag, timestep);
+        hoomd::NormalDistribution<Scalar> gen(fast::sqrt(T/mass), 0.0);
+        Scalar3 vel;
+        gen(vel.x, vel.y, rng);
+        vel.z = gen(rng);
 
         // save out velocities
         if (idx < N_mpcd)
@@ -124,7 +124,7 @@ void mpcd::ATCollisionMethod::applyVelocities()
     // mpcd particle data
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel_alt(m_mpcd_pdata->getAltVelocities(), access_location::host, access_mode::read);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // embedded particle data

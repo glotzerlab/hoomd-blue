@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.10.1 FATAL_ERROR)
 
 if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
 if(COMMAND cmake_policy)
@@ -71,13 +71,14 @@ if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cereal/include/cereal/ce
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/nano-signal-slot/nano_signal_slot.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/pybind/include/pybind11/pybind11.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h OR
-	NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/include/Random123/philox.h
     )
 
     if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
         # appropriate message for a git repository
         message(FATAL_ERROR "Submodules not found. Execute `git submodule update --init`. "
-                            "in the source directory to provide them, or clone with the --recurisve option.")
+                            "in the source directory to provide them, or clone with the --recursive option.")
     else()
         # appropriate message for a tarball checkout
         message(FATAL_ERROR "Submodules not found. This is not a git clone. You can either use git to clone hoomd "
@@ -101,7 +102,8 @@ endif (libgetar_DIR)
 ################################
 # install cmake scripts into hoomd/CMake
 
-set(cmake_files CMake/hoomd/HOOMDCFlagsSetup.cmake
+set(cmake_files CMake/hoomd/FindTBB.cmake
+                CMake/hoomd/HOOMDCFlagsSetup.cmake
                 CMake/hoomd/HOOMDCommonLibsSetup.cmake
                 CMake/hoomd/HOOMDCUDASetup.cmake
                 CMake/hoomd/test.cc

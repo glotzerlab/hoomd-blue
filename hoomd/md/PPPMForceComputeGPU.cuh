@@ -5,6 +5,8 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/BoxDim.h"
 
+#include "hoomd/GPUPartition.cuh"
+
 #include <cufft.h>
 
 void gpu_assign_particles(const uint3 mesh_dim,
@@ -15,10 +17,19 @@ void gpu_assign_particles(const uint3 mesh_dim,
                          const Scalar4 *d_postype,
                          const Scalar *d_charge,
                          cufftComplex *d_mesh,
+                         cufftComplex *d_mesh_scratch,
+                         const unsigned int mesh_elements,
                          int order,
                          const BoxDim& box,
                          unsigned int block_size,
-                         const cudaDeviceProp& dev_prop);
+                         const cudaDeviceProp& dev_prop,
+                         const GPUPartition& gpu_partition);
+
+void gpu_reduce_meshes(const unsigned int mesh_elements,
+    const cufftComplex *d_mesh_scratch,
+    cufftComplex *d_mesh,
+    const unsigned int ngpu,
+    const unsigned int block_size);
 
 void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
                              cufftComplex *d_fourier_mesh,
@@ -50,8 +61,11 @@ void gpu_compute_forces(const unsigned int N,
                         const BoxDim& box,
                         int order,
                         const unsigned int *d_index_array,
-                        unsigned int group_size,
-                        unsigned int block_size);
+                        const GPUPartition& gpu_partition,
+                        const GPUPartition& all_gpu_partition,
+                        unsigned int block_size,
+                        bool local_fft,
+                        unsigned int inv_mesh_elements);
 
 void gpu_compute_pe(unsigned int n_wave_vectors,
                    Scalar *d_sum_partial,
@@ -97,9 +111,9 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
                            Scalar alpha,
                            unsigned int *d_group_members,
                            unsigned int group_size,
-                           int block_size,
-                           const unsigned int compute_capability);
+                           int block_size);
 
 void gpu_initialize_coeff(
     Scalar *CPU_rho_coeff,
-    int order);
+    int order,
+    const GPUPartition& gpu_partition);

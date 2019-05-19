@@ -7,9 +7,6 @@
 
 HOOMD_UP_MAIN();
 
-
-
-
 #include <iostream>
 #include <string>
 
@@ -17,6 +14,7 @@ HOOMD_UP_MAIN();
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/RandomNumbers.h"
 
 using namespace hpmc;
 using namespace hpmc::detail;
