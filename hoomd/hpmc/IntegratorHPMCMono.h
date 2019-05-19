@@ -183,7 +183,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             {
             // check if supported
             if (sweep_radius != 0.0 && !Shape::supportsSweepRadius())
-                throw std::runtime_error("This shape doesn's support setting a sweep radius to extend the surface out.\n");
+                throw std::runtime_error("This shape doesn't support setting a sweep radius to extend the surface out.\n");
 
             m_sweep_radius = sweep_radius;
             }
@@ -522,12 +522,13 @@ std::vector<hpmc_implicit_counters_t> IntegratorHPMCMono<Shape>::getImplicitCoun
     std::vector<hpmc_implicit_counters_t> result(this->m_pdata->getNTypes());
 
     std::copy(h_counters.data, h_counters.data + this->m_pdata->getNTypes(), result.begin());
+
     if (mode == 1)
         {
         for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
             result[i] = result[i] - m_implicit_count_run_start[i];
         }
-    else
+    else if (mode == 2)
         {
         for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
             result[i] = result[i] - m_implicit_count_step_start[i];
