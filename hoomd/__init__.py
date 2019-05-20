@@ -164,7 +164,6 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     once at the end of the run. Otherwise the callback is executed whenever the current
     time step number is a multiple of ``callback_period``.
     """
-
     if not quiet:
         util.print_status_line();
     # check if initialization has occurred
@@ -204,6 +203,10 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     context.current.system.run(int(tsteps), callback_period, callback, limit_hours, int(limit_multiple));
     if not quiet:
         context.msg.notice(1, "** run complete **\n");
+
+    # Augment total run count.
+    meta.UNSUPPORTED_COUNTERS['run'] += 1
+
 
 def run_upto(step, **keywords):
     """Runs the simulation up to a given time step number.

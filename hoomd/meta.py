@@ -24,6 +24,10 @@ import copy
 import re
 import traceback
 import inspect
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 # Registry of all modules used in the script.
 MODULES = []
@@ -42,6 +46,12 @@ META_KEY_TRACKED = 'tracked_fields'
 
 # Simple lamba to generate a fully qualified class name.
 to_name = lambda obj: obj.__module__ + '.' + obj.__class__.__name__
+
+# Tracking usage of unsupported features.
+UNSUPPORTED_COUNTERS = {
+    'run': 0,
+    'context': 0
+}
 
 def cls_from_name(name):
     """Gets the class object named by a fully qualified name, e.g. calling
@@ -74,6 +84,7 @@ def should_track():
     is_hoomd = hoomd_root in last_file
     is_meta = last_file == meta_file
     return not is_hoomd or is_meta
+
 
 ## \internal
 # \brief A Mixin to facilitate storage of simulation metadata
@@ -229,6 +240,23 @@ def dump_metadata(filename=None, user=None, indent=4, fields=['timestamp', 'modu
         hoomd.context.msg.error("Need to initialize system first.\n")
         raise RuntimeError("Error writing out metadata.")
 
+    # Warn if any of the known unsupported cases are triggered.
+    if UNSUPPORTED_COUNTERS['run'] > 1:
+        logger.warning("Metadata dumps do not include calls to hoomd.run, so "
+                        "any script depending on modifying system state in "
+                        "between runs must have separate metadata files "
+                        "dumped to capture the state before each run.")
+    UNSUPPORTED_COUNTERS['run'] -= 1
+
+    if UNSUPPORTED_COUNTERS['context'] > 1:
+        logger.warning("Metadata dumps only capture data about the current "
+                        "context. Your script appears to create multiple "
+                        "contexts without dumping metadata for all of them. "
+                        "If you do not intend to use this metadata for "
+                        "reproducing runs, you can safely ignore this "
+                        "message.")
+    UNSUPPORTED_COUNTERS['context'] -= 1
+
     def to_metadata(obj):
         """Converts the object to its metadata representation. This involves
         potentially making recursive calls to generate metadata representations
@@ -287,7 +315,6 @@ def dump_metadata(filename=None, user=None, indent=4, fields=['timestamp', 'modu
             metadata[META_KEY_USER] = user
 
     # Only write files on rank 0
-    print(metadata)
     if filename is not None and hoomd.comm.get_rank() == 0:
         with open(filename, 'w') as file:
             meta_str = json.dumps(

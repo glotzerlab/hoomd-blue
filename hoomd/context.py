@@ -154,6 +154,9 @@ class SimulationContext(object):
         ## Stored reference to the reader that was used to initialize the system
         self.state_reader = None;
 
+        ## Keep track of the number of contexts
+        hoomd.meta.UNSUPPORTED_COUNTERS['context'] += 1
+
     def set_current(self):
         R""" Force this to be the current context
         """
@@ -399,7 +402,7 @@ def _verify_init():
 
 ## \internal
 # \brief Classes to gather metadata about the context configuration.
-class MetadataContext(hoomd.meta._metadata):
+class ContextMetadata(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
@@ -416,7 +419,7 @@ class MetadataContext(hoomd.meta._metadata):
 
 ## \internal
 # \brief Gather context from the execution environment
-class ExecutionContext(MetadataContext):
+class ExecutionContextMetadata(ContextMetadata):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
@@ -508,7 +511,7 @@ class ExecutionContext(MetadataContext):
 
 ## \internal
 # \brief Gather context about HOOMD
-class HOOMDContext(MetadataContext):
+class HOOMDContextMetadata(ContextMetadata):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
