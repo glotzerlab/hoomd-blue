@@ -25,6 +25,7 @@ import re
 import traceback
 import inspect
 import logging
+import warnings
 
 
 logger = logging.getLogger(__name__)
@@ -83,7 +84,15 @@ def should_track():
     meta_file = hoomd.__file__.replace('__init__.py', 'meta.py')
     is_hoomd = hoomd_root in last_file
     is_meta = last_file == meta_file
+    # print()
+    # print(not is_hoomd or is_meta)
+    # print()
     return not is_hoomd or is_meta
+
+
+class MetadataUnsupportedWarning(UserWarning):
+    """Indicates that metadata dumping is unsupported for this class."""
+    pass
 
 
 ## \internal
@@ -263,6 +272,8 @@ def dump_metadata(filename=None, user=None, indent=4, fields=['timestamp', 'modu
         for nested objects. The recursion is handled using the helper internal
         `convert` function."""
         metadata = obj.get_metadata()
+        if not metadata:
+            return metadata
 
         def convert(obj):
             """Contains the recursive call to `to_metadata` for when metadata
@@ -300,13 +311,15 @@ def dump_metadata(filename=None, user=None, indent=4, fields=['timestamp', 'modu
     if META_KEY_MODULES in fields:
         metadata[META_KEY_MODULES] = MODULES
     if META_KEY_OBJECTS in fields:
-        metadata[META_KEY_OBJECTS] = [to_metadata(o) for o in hoomd.context.current.meta_objects]
+        # Unsupported classes will return an empty dict; remove those.
+        objects = [to_metadata(o) for o in hoomd.context.current.meta_objects]
+        metadata[META_KEY_OBJECTS] = [o for o in objects if o]
     if META_KEY_TIMESTAMP in fields:
         metadata[META_KEY_TIMESTAMP] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     if META_KEY_EXECINFO in fields:
-        metadata[META_KEY_EXECINFO] = hoomd.context.ExecutionContext().get_metadata()
+        metadata[META_KEY_EXECINFO] = hoomd.context.ExecutionContextMetadata().get_metadata()
     if META_KEY_HOOMDINFO in fields:
-        metadata[META_KEY_HOOMDINFO] = hoomd.context.HOOMDContext().get_metadata()
+        metadata[META_KEY_HOOMDINFO] = hoomd.context.HOOMDContextMetadata().get_metadata()
 
     if user is not None:
         if not isinstance(user, collections.Mapping):

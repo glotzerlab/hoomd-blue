@@ -406,7 +406,7 @@ class ContextMetadata(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
-        super(MetadataContext, self).__init__()
+        super(ContextMetadata, self).__init__()
 
     ## \internal
     # \brief Override parent because this class exists solely for gathering
@@ -423,7 +423,7 @@ class ExecutionContextMetadata(ContextMetadata):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
-        super(ExecutionContext, self).__init__()
+        super(ExecutionContextMetadata, self).__init__()
         self.metadata_fields = [
             'hostname', 'gpu', 'mode', 'num_ranks',
             'username', 'wallclocktime', 'cputime',
@@ -515,7 +515,7 @@ class HOOMDContextMetadata(ContextMetadata):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
-        super(HOOMDContext, self).__init__()
+        super(HOOMDContextMetadata, self).__init__()
         self.metadata_fields = [
             'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
             'hoomd_compile_flags', 'cuda_version', 'compiler_version',

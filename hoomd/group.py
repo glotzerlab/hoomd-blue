@@ -201,7 +201,7 @@ class all(group):
 
         # Need to separately address this in both logical branches.
         if hoomd.meta.should_track():
-            hoomd.meta.INSTANCES.append(hoomd.context.current.group_all)
+            hoomd.context.current.meta_objects.append(hoomd.context.current.group_all)
 
         name = 'all'
 

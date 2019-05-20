@@ -11,9 +11,10 @@ to see what they do.
 """
 
 from hoomd import _hoomd;
-import hoomd;
-import sys;
+import hoomd
+import sys
 import numpy
+import warnings
 
 ## \internal
 # \brief Base class for analyzers
@@ -601,3 +602,7 @@ class callback(_analyzer):
         # create the c++ mirror class
         self.cpp_analyzer = _hoomd.CallbackAnalyzer(hoomd.context.current.system_definition, callback)
         self.setupAnalyzer(period, phase);
+
+    def get_metadata(self):
+        warnings.warn("hoomd.analyze.callback does not support restartable metadata logging.", hoomd.meta.MetadataUnsupportedWarning)
+        return {}
