@@ -879,10 +879,16 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 r_cut_patch = m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i);
                 }
 
-            // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0),
-                r_cut_patch-getMinCoreDiameter()/(OverlapReal)2.0);
-            detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+            // get shape AABB and extend
+            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+            vec3<Scalar> lower = aabb_i_local.getLower();
+            vec3<Scalar> upper = aabb_i_local.getUpper();
+            vec3<Scalar> center = Scalar(0.5)*(lower+upper);
+            vec3<Scalar> lengths = Scalar(0.5)*(upper-lower);
+            lengths.x = std::max(lengths.x, (Scalar) r_cut_patch);
+            lengths.y = std::max(lengths.y, (Scalar) r_cut_patch);
+            lengths.z = std::max(lengths.z, (Scalar) r_cut_patch);
+            aabb_i_local = detail::AABB(center-lengths,center+lengths);
 
             // patch + field interaction deltaU
             double patch_field_energy_diff = 0;
@@ -1800,9 +1806,19 @@ const detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
                         m_aabbs[i] = shape.getAABB(vec3<Scalar>(h_postype.data[i]));
                     else
                         {
-                        Scalar radius = std::max(0.5*shape.getCircumsphereDiameter(),
-                            0.5*this->m_patch->getAdditiveCutoff(typ_i));
-                        m_aabbs[i] = detail::AABB(vec3<Scalar>(h_postype.data[i]), radius);
+                        // get AABB and extend
+                        detail::AABB aabb_i = shape.getAABB(vec3<Scalar>(h_postype.data[i]));
+
+                        vec3<Scalar> lower = aabb_i.getLower();
+                        vec3<Scalar> upper = aabb_i.getUpper();
+                        vec3<Scalar> center = Scalar(0.5)*(lower+upper);
+                        vec3<Scalar> lengths = Scalar(0.5)*(upper-lower);
+                        lengths.x = std::max(lengths.x, (Scalar) 0.5*this->m_patch->getAdditiveCutoff(typ_i));
+                        lengths.y = std::max(lengths.y, (Scalar) 0.5*this->m_patch->getAdditiveCutoff(typ_i));
+                        lengths.z = std::max(lengths.z, (Scalar) 0.5*this->m_patch->getAdditiveCutoff(typ_i));
+                        detail::AABB aabb_i_extend = detail::AABB(center-lengths,center+lengths);
+
+                        m_aabbs[i] = aabb_i_extend;
                         }
                     }
                 m_aabb_tree.buildTree(m_aabbs, n_aabb);
