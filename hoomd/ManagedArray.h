@@ -31,13 +31,13 @@ class ManagedArray
     public:
         //! Default constructor
         DEVICE ManagedArray()
-            : data(nullptr), N(0), managed(0), align(0),
+            : data(nullptr), ptr(nullptr), N(0), managed(0), align(0),
               allocation_ptr(nullptr), allocation_bytes(0)
             { }
 
         #ifndef NVCC
         ManagedArray(unsigned int _N, bool _managed, size_t _align = 0)
-            : data(nullptr), N(_N), managed(_managed), align(_align),
+            : data(nullptr), ptr(nullptr), N(_N), managed(_managed), align(_align),
               allocation_ptr(nullptr), allocation_bytes(0)
             {
             if (N > 0)
@@ -60,7 +60,7 @@ class ManagedArray
                   needs to be ensured
          */
         DEVICE ManagedArray(const ManagedArray<T>& other)
-            : data(nullptr), N(other.N), managed(other.managed), align(other.align),
+            : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
               allocation_ptr(nullptr), allocation_bytes(0)
             {
             #ifndef NVCC
@@ -68,9 +68,10 @@ class ManagedArray
                 {
                 allocate();
 
-                std::copy(other.data, other.data+N, data);
+                std::copy(other.ptr, other.ptr+N, ptr);
                 }
             #else
+            ptr = other.ptr;
             data = other.data;
             #endif
             }
@@ -95,9 +96,10 @@ class ManagedArray
                 {
                 allocate();
 
-                std::copy(other.data, other.data+N, data);
+                std::copy(other.ptr, other.ptr+N, ptr);
                 }
             #else
+            ptr = other.ptr;
             data = other.data;
             #endif
 
@@ -132,11 +134,11 @@ class ManagedArray
         //! Attach managed memory to CUDA stream
         void attach_to_stream(cudaStream_t stream) const
             {
-            if (managed && data)
+            if (managed && ptr)
                 {
-                cudaStreamAttachMemAsync(stream, data, 0, cudaMemAttachSingle);
+                cudaStreamAttachMemAsync(stream, ptr, 0, cudaMemAttachSingle);
                 #if (CUDART_VERSION >= 8000)
-                cudaMemAdvise(data, sizeof(T)*N, cudaMemAdviseSetReadMostly, 0);
+                cudaMemAdvise(ptr, sizeof(T)*N, cudaMemAdviseSetReadMostly, 0);
                 #endif
                 }
             }
@@ -146,7 +148,7 @@ class ManagedArray
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
          */
-        HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+        HOSTDEVICE void load_shared(char *& s_ptr, unsigned int &available_bytes) const
             {
             // size in ints (round up)
             unsigned int size_int = (sizeof(T)*N)/sizeof(int);
@@ -154,7 +156,7 @@ class ManagedArray
 
             // align ptr to size of data type
             unsigned long int max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T))-1;
-            char *ptr_align = (char *)(((unsigned long int)ptr + max_align_bytes) & ~max_align_bytes);
+            char *ptr_align = (char *)(((unsigned long int)s_ptr + max_align_bytes) & ~max_align_bytes);
 
             if (size_int*sizeof(int)+max_align_bytes > available_bytes)
                 return;
@@ -168,24 +170,16 @@ class ManagedArray
                 {
                 if (cur_offset + tidx < size_int)
                     {
-                    ((int *)ptr_align)[cur_offset + tidx] = ((int *)data)[cur_offset + tidx];
+                    ((int *)ptr_align)[cur_offset + tidx] = ((int *)ptr)[cur_offset + tidx];
                     }
                 }
 
-            // make sure all threads have read from data
-            __syncthreads();
-
             // redirect data ptr
-            if (tidx == 0)
-                {
-                data = (T *) ptr_align;
-                }
-
-            __syncthreads();
+            data = (T *) ptr_align;
             #endif
 
             // increment pointer
-            ptr = ptr_align + size_int*sizeof(int);
+            s_ptr = ptr_align + size_int*sizeof(int);
             available_bytes -= size_int*sizeof(int)+max_align_bytes;
             }
 
@@ -208,20 +202,22 @@ class ManagedArray
         #ifndef NVCC
         void allocate()
             {
-            data = managed_allocator<T>::allocate_construct_aligned(N, managed, align, allocation_bytes, allocation_ptr);
+            ptr = managed_allocator<T>::allocate_construct_aligned(N, managed, align, allocation_bytes, allocation_ptr);
+            data = ptr;
             }
 
         void deallocate()
             {
             if (N > 0)
                 {
-                managed_allocator<T>::deallocate_destroy_aligned(data, N, managed, allocation_ptr);
+                managed_allocator<T>::deallocate_destroy_aligned(ptr, N, managed, allocation_ptr);
                 }
             }
         #endif
 
     private:
         mutable T *data;         //!< Data pointer
+        T *ptr;                  //!< Original data pointer
         unsigned int N;          //!< Number of data elements
         unsigned int managed;    //!< True if we are CUDA managed
         size_t align;            //!< Alignment size

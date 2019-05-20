@@ -62,6 +62,10 @@ struct union_params : param_base
         morientation.load_shared(ptr, available_bytes);
 
         // load all member parameters
+        #if defined (__CUDA_ARCH__)
+        __syncthreads();
+        #endif
+
         for (unsigned int i = 0; i < mparams.size(); ++i)
             mparams[i].load_shared(ptr, available_bytes);
         }
