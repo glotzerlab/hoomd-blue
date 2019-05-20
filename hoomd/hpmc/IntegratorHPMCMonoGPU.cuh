@@ -999,9 +999,13 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     Scalar4 postype_i_old = d_postype[i];
 
     detail::OBB obb_i;
+
+    quat<Scalar> orientation_i_new(d_trial_orientation[i]);
+    quat<Scalar> orientation_i_old(d_orientation[i]);
+
         {
         // get shape OBB
-        Shape shape_i(quat<Scalar>(!repulsive ? d_orientation[i] : d_trial_orientation[i]), s_params[type_i]);
+        Shape shape_i(!repulsive ? orientation_i_old : orientation_i_new, s_params[type_i]);
         obb_i = shape_i.getOBB(repulsive ? vec3<Scalar>(postype_i) : vec3<Scalar>(postype_i_old));
 
         // extend by depletant radius
@@ -1068,8 +1072,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 Shape shape_i(quat<Scalar>(orientation_i), s_params[type_i]);
                 if (shape_i.hasOrientation())
                     {
-                    orientation_i = k == 0 ? d_trial_orientation[i] : d_orientation[i];
-                    shape_i.orientation = quat<Scalar>(orientation_i);
+                    shape_i.orientation = k == 0 ? orientation_i_new : orientation_i_old;
                     }
 
                 // check depletant overlap with shape
