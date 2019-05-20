@@ -60,6 +60,10 @@ struct union_params : param_base
         mparams.load_shared(ptr, available_bytes);
         moverlap.load_shared(ptr, available_bytes);
         morientation.load_shared(ptr, available_bytes);
+
+        // load all member parameters
+        for (unsigned int i = 0; i < mparams.size(); ++i)
+            mparams[i].load_shared(ptr, available_bytes);
         }
 
     #ifdef ENABLE_CUDA
@@ -73,6 +77,10 @@ struct union_params : param_base
         morientation.attach_to_stream(stream);
         mparams.attach_to_stream(stream);
         moverlap.attach_to_stream(stream);
+
+        // attach member parameters
+        for (unsigned int i = 0; i < mparams.size(); ++i)
+            mparams[i].attach_to_stream(stream);
         }
     #endif
 
