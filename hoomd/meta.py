@@ -26,6 +26,17 @@ import traceback
 import inspect
 import logging
 import warnings
+import numpy as np
+
+
+class NumpyJSONEncoder(json.JSONEncoder):
+    """This will ensure that NumPy arrays (which are not JSON serializable) are
+    encoded as Python lists."""
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(NumpyJSONEncoder, self).default(obj)
 
 
 logger = logging.getLogger(__name__)
@@ -347,7 +358,7 @@ def dump_metadata(filename=None, user=None, indent=4, fields=['timestamp', 'modu
     if filename is not None and hoomd.comm.get_rank() == 0:
         with open(filename, 'w') as file:
             meta_str = json.dumps(
-                metadata, indent=indent, sort_keys=True)
+                metadata, indent=indent, sort_keys=True, cls=NumpyJSONEncoder)
             file.write(meta_str)
     return metadata
 

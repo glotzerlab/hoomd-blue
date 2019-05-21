@@ -401,6 +401,7 @@ class boxmc(_updater):
         self.cpp_updater.computeAspectRatios();
         _updater.enable(self);
 
+@hoomd.meta.metadata_unsupported
 class wall(_updater):
     R""" Apply wall updates with a user-provided python callback.
 

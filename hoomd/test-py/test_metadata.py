@@ -5,7 +5,6 @@ import json
 import warnings
 
 import hoomd
-from hoomd import md
 
 
 def requires_run(func):
@@ -55,10 +54,15 @@ class TestMetadata(object):
     def make_system(self):
         return hoomd.init.create_lattice(hoomd.lattice.sc(a=10), n=[5, 5, 5])
 
+    def preprocess(self):
+        """Any extra setup that child classes may want to do."""
+        pass
+
     def test_dump_redump(self):
         """Check that an object's metadata is identical when reloaded and dumped again."""
         hoomd.context.initialize('--notice-level=0')
         self.system = self.make_system()
+        self.preprocess()
         obj = self.build_object()
         tf = tempfile.NamedTemporaryFile()
 
@@ -71,15 +75,17 @@ class TestMetadata(object):
                 assert issubclass(w[0].category, hoomd.meta.MetadataUnsupportedWarning)
         else:
             original_metadata = hoomd.meta.dump_metadata(tf.name, fields=['objects', 'modules'])
-            tf.seek(0)
-            original_metadata_file = json.load(tf)
             old_context = hoomd.context.current
+            if hoomd.comm.get_rank() == 0:
+                tf.seek(0)
+                original_metadata_file = json.load(tf)
             with hoomd.context.SimulationContext() as new_context:
                 system = self.make_system()
                 objects = hoomd.meta.load_metadata(system, filename=tf.name)
                 new_metadata = hoomd.meta.dump_metadata(tf.name, fields=['objects', 'modules'])
-                tf.seek(0)
-                new_metadata_file = json.load(tf)
+                if hoomd.comm.get_rank() == 0:
+                    tf.seek(0)
+                    new_metadata_file = json.load(tf)
                 self.assertEqual(new_metadata, original_metadata)
                 self.assertEqual(new_metadata_file, original_metadata_file)
 
@@ -92,20 +98,14 @@ class TestMetadata(object):
     def test_run(self):
         """Test whether a hoomd.run succeeds and produces identical output."""
         pass
-        # obj = self.build_object()
-        # tf = tempfile.NamedTemporaryFile()
-        # original_metadata = hoomd.meta.dump_metadata(tf.name, fields=['objects', 'modules'])
-        # tf.seek(0)
-        # original_metadata_file = json.load(tf)
-        # old_context = hoomd.context.current
-        # with hoomd.context.SimulationContext() as new_context:
-            # system = self.make_system()
-            # objects = hoomd.meta.load_metadata(system, filename=tf.name)
-            # new_metadata = hoomd.meta.dump_metadata(tf.name, fields=['objects', 'modules'])
-            # tf.seek(0)
-            # new_metadata_file = json.load(tf)
-            # self.assertEqual(new_metadata, original_metadata)
-            # self.assertEqual(new_metadata_file, original_metadata_file)
+
+
+class TestMetadataSimple(unittest.TestCase):
+    """Test some basics that don't require objects."""
+    def test_without_init(self):
+        hoomd.context.initialize()
+        with self.assertRaises(RuntimeError):
+            hoomd.meta.dump_metadata()
 
 
 @unsupported
@@ -179,7 +179,6 @@ class TestVariantLinear(TestMetadata, unittest.TestCase):
     """Tests hoomd.variant.linear_interp."""
 
     def build_object(self):
-        self.maxDiff=None
         return hoomd.variant.linear_interp(points = [[0, 1.0], [1e5, 2.0]])
 
 

@@ -343,7 +343,7 @@ class wall(_external):
     Example::
 
         mc = hpmc.integrate.sphere(seed = 415236);
-        ext_wall = hpmc.compute.wall(mc);
+        ext_wall = hpmc.field.wall(mc);
         ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
         ext_wall.set_volume(4./3.*np.pi);
         log = analyze.log(quantities=['hpmc_wall_volume','hpmc_wall_sph_rsq-0'], period=100, filename='log.dat', overwrite=True);
@@ -931,6 +931,7 @@ class frenkel_ladd_energy(_compute):
         self.rotat_spring_const = self.q_factor*self.trans_spring_const;
         self.lattice.set_params(self.trans_spring_const, self.rotat_spring_const);
 
+@hoomd.meta.metadata_unsupported
 class callback(_external):
     R""" Use a python-defined energy function in MC integration
 
