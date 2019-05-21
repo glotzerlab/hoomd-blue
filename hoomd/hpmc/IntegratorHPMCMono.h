@@ -728,8 +728,6 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     // call parent class method
     IntegratorHPMC::slotNumTypesChange();
-
-    updateCellWidth();
     }
 
 template <class Shape>
