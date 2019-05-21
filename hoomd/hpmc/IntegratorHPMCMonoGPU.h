@@ -732,7 +732,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             ngpu > 1 ? d_implicit_counters_per_device.data : d_implicit_count.data,
                             m_implicit_counters.getPitch(),
                             d_lambda.data,
-                            this->m_fugacity[itype] < 0
+                            this->m_fugacity[itype] < 0,
+                            this->m_quermass,
+                            this->m_sweep_radius
                             );
                         gpu::hpmc_insert_depletants<Shape>(args, implicit_args, params.data());
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -995,9 +997,6 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
     {
     unsigned int old_ntypes = this->m_params.size();
 
-    // call base class method
-    IntegratorHPMCMono<Shape>::slotNumTypesChange();
-
     // skip the reallocation if the number of types does not change
     // this keeps shape parameters when restoring a snapshot
     // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
@@ -1024,7 +1023,8 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
             }
         }
 
-    updateCellWidth();
+    // call base class method
+    IntegratorHPMCMono<Shape>::slotNumTypesChange();
     }
 
 template< class Shape >
@@ -1074,6 +1074,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
         {
         Shape shape_i(quat<Scalar>(), this->m_params[i_type]);
         Scalar d_i(shape_i.getCircumsphereDiameter());
+        Scalar range = this->m_quermass ? 2.0*this->m_sweep_radius : d_i;
 
         if (this->m_fugacity[i_type] == 0.0)
             continue;
@@ -1085,10 +1086,10 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
 
             // get OBB and extend by depletant radius
             detail::OBB obb = shape_j.getOBB(vec3<Scalar>(0,0,0));
-            obb.lengths.x += 0.5*d_i;
-            obb.lengths.y += 0.5*d_i;
+            obb.lengths.x += 0.5*range;
+            obb.lengths.y += 0.5*range;
             if (this->m_sysdef->getNDimensions() == 3)
-                obb.lengths.z += 0.5*d_i;
+                obb.lengths.z += 0.5*range;
             else
                 obb.lengths.z = 0.5; // unit length
 

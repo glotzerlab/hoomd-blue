@@ -696,9 +696,6 @@ void IntegratorHPMCMono<Shape>::resetStats()
 template <class Shape>
 void IntegratorHPMCMono<Shape>::slotNumTypesChange()
     {
-    // call parent class method
-    IntegratorHPMC::slotNumTypesChange();
-
     // re-allocate the parameter storage
     m_params.resize(m_pdata->getNTypes());
 
@@ -728,6 +725,9 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     // depletant fugacities
     m_fugacity.resize(this->m_pdata->getNTypes(),0.0);
+
+    // call parent class method
+    IntegratorHPMC::slotNumTypesChange();
 
     updateCellWidth();
     }

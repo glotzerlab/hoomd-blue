@@ -173,12 +173,16 @@ struct hpmc_implicit_args_t
                          hpmc_implicit_counters_t *_d_implicit_count,
                          const unsigned int _implicit_counters_pitch,
                          const Scalar *_d_lambda,
-                         const bool _repulsive)
+                         const bool _repulsive,
+                         const bool _quermass,
+                         const Scalar _sweep_radius)
                 : depletant_type(_depletant_type),
                   d_implicit_count(_d_implicit_count),
                   implicit_counters_pitch(_implicit_counters_pitch),
                   d_lambda(_d_lambda),
-                  repulsive(_repulsive)
+                  repulsive(_repulsive),
+                  quermass(_quermass),
+                  sweep_radius(_sweep_radius)
         { };
 
     const unsigned int depletant_type;             //!< Particle type of depletant
@@ -186,6 +190,8 @@ struct hpmc_implicit_args_t
     const unsigned int implicit_counters_pitch;    //!< Pitch of 2D array counters per device
     const Scalar *d_lambda;                        //!< Mean number of depletants to insert in excluded volume
     const bool repulsive;                          //!< True if the fugacity is negative
+    const bool quermass;                           //!< Enable quermass mode?
+    const Scalar sweep_radius;                     //!< Sweep radius in quermass mode
     };
 
 //! Wraps arguments for hpmc_accept
@@ -854,7 +860,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     }
 
 //! Kernel to insert depletants on-the-fly
-template< class Shape >
+template< class Shape, bool quermass >
 __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const Scalar4 *d_trial_orientation,
                                      const unsigned int *d_trial_move_type,
@@ -891,7 +897,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      bool repulsive,
                                      const Index2D csi,
                                      const unsigned int *d_cell_sets,
-                                     const unsigned int *d_cell_select)
+                                     const unsigned int *d_cell_select,
+                                     Scalar sweep_radius)
     {
     // variables to tell what type of thread we are
     unsigned int group = threadIdx.y;
@@ -1003,17 +1010,16 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     quat<Scalar> orientation_i_new(d_trial_orientation[i]);
     quat<Scalar> orientation_i_old(d_orientation[i]);
 
-        {
-        // get shape OBB
-        Shape shape_i(!repulsive ? orientation_i_old : orientation_i_new, s_params[type_i]);
-        obb_i = shape_i.getOBB(repulsive ? vec3<Scalar>(postype_i) : vec3<Scalar>(postype_i_old));
+    // get shape OBB
+    Shape shape_i(!repulsive ? orientation_i_old : orientation_i_new, s_params[type_i]);
+    obb_i = shape_i.getOBB(repulsive ? vec3<Scalar>(postype_i) : vec3<Scalar>(postype_i_old));
 
-        // extend by depletant radius
-        Scalar r_dep(0.5*shape_test.getCircumsphereDiameter());
-        obb_i.lengths.x += r_dep;
-        obb_i.lengths.y += r_dep;
-        obb_i.lengths.z += r_dep;
-        }
+    // extend by depletant radius
+    Scalar r_dep(0.5*shape_test.getCircumsphereDiameter());
+    Scalar range = sweep_radius + r_dep;
+    obb_i.lengths.x += range;
+    obb_i.lengths.y += range;
+    obb_i.lengths.z += range;
 
     // load number of neighbors
     if (master && group == 0)
@@ -1062,7 +1068,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
         __syncthreads();
 
-        if (depletant_active)
+        if (!quermass && depletant_active)
             {
             overlap_checks += 2;
 
@@ -1095,7 +1101,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         // sync so that s_postype_group and s_orientation are available before other threads might process overlap checks
         __syncthreads();
 
-        if (depletant_active)
+        if (!quermass && depletant_active)
             {
             if ((!repulsive && (!s_overlap_old_group[group] || s_overlap_new_group[group])) ||
                 (repulsive && (s_overlap_old_group[group] || !s_overlap_new_group[group])))
@@ -1148,7 +1154,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
                     Scalar4 postype_j;
                     Scalar4 orientation_j = make_scalar4(1,0,0,0);
-                    vec3<Scalar> r_ij;
+                    vec3<Scalar> r_jk;
 
                     // build some shapes, but we only need them to get diameters, so don't load orientations
                     // build shape i from shared memory
@@ -1172,12 +1178,31 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                     unsigned int type_j = __scalar_as_int(postype_j.w);
                     Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
 
-                    // put particle j into the coordinate system of particle i
-                    r_ij = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
-                    r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
-                    if (s_check_overlaps[overlap_idx(depletant_type, type_j)]
-                        && i != j && (old || j < N_new)
-                        && check_circumsphere_overlap(r_ij, shape_test, shape_j))
+                    bool insert_in_queue = false;
+                    r_jk = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
+                    r_jk = vec3<Scalar>(box.minImage(vec_to_scalar3(r_jk)));
+
+                    if (!quermass)
+                        {
+                        // put test particle into the coordinate system of particle i
+                        if (s_check_overlaps[overlap_idx(depletant_type, type_j)]
+                            && i != j && (old || j < N_new)
+                            && check_circumsphere_overlap(r_jk, shape_test, shape_j))
+                            {
+                            insert_in_queue = true;
+                            }
+                        }
+                    else
+                        {
+                        // check triple overlap of circumspheres
+                        vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - (repulsive ? vec3<Scalar>(postype_i) : vec3<Scalar>(postype_i_old));
+                        r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
+
+                        insert_in_queue = (i != j) && (old || j < N_new)
+                            && check_circumsphere_overlap_three(shape_i, shape_j, shape_test, r_ij, -r_jk+r_ij, sweep_radius, sweep_radius, 0.0);
+                        }
+
+                    if (insert_in_queue)
                         {
                         // add this particle to the queue
                         unsigned int insert_point = atomicAdd(&s_queue_size, 1);
@@ -1219,7 +1244,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
                 Scalar4 postype_j;
                 Scalar4 orientation_j;
-                vec3<Scalar> r_ij;
+                vec3<Scalar> r_jk;
 
                 // build shape i from shared memory
                 Scalar3 pos_test = s_pos_group[check_group];
@@ -1234,10 +1259,22 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                     shape_j.orientation = quat<Scalar>(check_old ? d_orientation[check_j] : d_trial_orientation[check_j]);
 
                 // put particle j into the coordinate system of particle i
-                r_ij = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
-                r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
+                r_jk = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
+                r_jk = vec3<Scalar>(box.minImage(vec_to_scalar3(r_jk)));
 
-                if (test_overlap(r_ij, shape_test, shape_j, err_count))
+                bool insert_in_nlist = false;
+                if (!quermass)
+                    {
+                    insert_in_nlist = test_overlap(r_jk, shape_test, shape_j, err_count);
+                    }
+                else
+                    {
+                    vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - (repulsive ? vec3<Scalar>(postype_i) : vec3<Scalar>(postype_i_old));
+                    r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
+                    insert_in_nlist = test_overlap_intersection(shape_i, shape_j, shape_test, r_ij, -r_jk+r_ij, err_count,
+                                        sweep_radius, sweep_radius, 0.0);
+                    }
+                if (insert_in_nlist)
                     {
                     // write out to global memory
                     unsigned int n = atomicAdd(&s_nneigh, 1);
@@ -1619,111 +1656,224 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
     assert(args.d_excell_size);
     assert(args.d_check_overlaps);
 
-    // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    static cudaFuncAttributes attr;
-    if (max_block_size == -1)
+    if (!implicit_args.quermass)
         {
-        cudaFuncGetAttributes(&attr, kernel::hpmc_insert_depletants<Shape>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
-
-    // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
-    unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-
-    unsigned int tpp = min(args.tpp,block_size);
-    unsigned int n_groups = block_size / tpp;
-    unsigned int max_queue_size = n_groups*tpp;
-
-    const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
-               args.overlap_idx.getNumElements() * sizeof(unsigned int);
-
-    unsigned int shared_bytes = n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
-                                max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
-                                min_shared_bytes;
-
-    if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
-        throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
-
-    while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
-        {
-        block_size -= args.devprop.warpSize;
-        if (block_size == 0)
-            throw std::runtime_error("Insufficient shared memory for HPMC kernel");
-        tpp = min(tpp, block_size);
-        n_groups = block_size / tpp;
-        max_queue_size = n_groups*tpp;
-
-        shared_bytes = n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
-                       max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
-                       min_shared_bytes;
-        }
-
-    static unsigned int base_shared_bytes = UINT_MAX;
-    bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-    base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
-
-    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
-    static unsigned int extra_bytes = UINT_MAX;
-    if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
-        {
-        // required for memory coherency
-        cudaDeviceSynchronize();
-
-        // determine dynamically requested shared memory
-        char *ptr = (char *) nullptr;
-        unsigned int available_bytes = max_extra_bytes;
-        for (unsigned int i = 0; i < args.num_types; ++i)
+        // determine the maximum block size and clamp the input block size down
+        static int max_block_size = -1;
+        static cudaFuncAttributes attr;
+        if (max_block_size == -1)
             {
-            params[i].load_shared(ptr, available_bytes);
+            cudaFuncGetAttributes(&attr, kernel::hpmc_insert_depletants<Shape, false>);
+            max_block_size = attr.maxThreadsPerBlock;
             }
-        extra_bytes = max_extra_bytes - available_bytes;
+
+        // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
+        unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
+
+        unsigned int tpp = min(args.tpp,block_size);
+        unsigned int n_groups = block_size / tpp;
+        unsigned int max_queue_size = n_groups*tpp;
+
+        const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
+                   args.overlap_idx.getNumElements() * sizeof(unsigned int);
+
+        unsigned int shared_bytes = n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
+                                    max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
+                                    min_shared_bytes;
+
+        if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
+            throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
+
+        while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
+            {
+            block_size -= args.devprop.warpSize;
+            if (block_size == 0)
+                throw std::runtime_error("Insufficient shared memory for HPMC kernel");
+            tpp = min(tpp, block_size);
+            n_groups = block_size / tpp;
+            max_queue_size = n_groups*tpp;
+
+            shared_bytes = n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
+                           max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
+                           min_shared_bytes;
+            }
+
+        static unsigned int base_shared_bytes = UINT_MAX;
+        bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
+        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+
+        unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+        static unsigned int extra_bytes = UINT_MAX;
+        if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
+            {
+            // required for memory coherency
+            cudaDeviceSynchronize();
+
+            // determine dynamically requested shared memory
+            char *ptr = (char *) nullptr;
+            unsigned int available_bytes = max_extra_bytes;
+            for (unsigned int i = 0; i < args.num_types; ++i)
+                {
+                params[i].load_shared(ptr, available_bytes);
+                }
+            extra_bytes = max_extra_bytes - available_bytes;
+            }
+
+        shared_bytes += extra_bytes;
+
+        // setup the grid to run the kernel
+        dim3 threads(tpp, n_groups,1);
+        dim3 grid(args.csi.getNumElements(), 1, 1);
+
+        unsigned int idev = 0;
+        kernel::hpmc_insert_depletants<Shape, false><<<grid, threads, shared_bytes>>>(args.d_trial_postype,
+                                                                     args.d_trial_orientation,
+                                                                     args.d_trial_move_type,
+                                                                     args.d_postype,
+                                                                     args.d_orientation,
+                                                                     args.d_counters,
+                                                                     args.d_excell_idx,
+                                                                     args.d_excell_size,
+                                                                     args.excli,
+                                                                     args.cell_dim,
+                                                                     args.ghost_width,
+                                                                     args.ci,
+                                                                     args.N + args.N_ghost,
+                                                                     args.N,
+                                                                     args.num_types,
+                                                                     args.seed,
+                                                                     args.d_check_overlaps,
+                                                                     args.overlap_idx,
+                                                                     args.timestep,
+                                                                     args.dim,
+                                                                     args.box,
+                                                                     args.select,
+                                                                     args.d_accept,
+                                                                     params,
+                                                                     max_queue_size,
+                                                                     max_extra_bytes,
+                                                                     implicit_args.depletant_type,
+                                                                     implicit_args.d_implicit_count + idev*implicit_args.implicit_counters_pitch,
+                                                                     implicit_args.d_lambda,
+                                                                     args.d_nneigh,
+                                                                     args.d_nlist,
+                                                                     args.maxn,
+                                                                     args.d_overflow,
+                                                                     implicit_args.repulsive,
+                                                                     args.csi,
+                                                                     args.d_cell_sets,
+                                                                     args.d_cell_select,
+                                                                     implicit_args.sweep_radius);
         }
+    else
+        {
+        // determine the maximum block size and clamp the input block size down
+        static int max_block_size = -1;
+        static cudaFuncAttributes attr;
+        if (max_block_size == -1)
+            {
+            cudaFuncGetAttributes(&attr, kernel::hpmc_insert_depletants<Shape, true>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
 
-    shared_bytes += extra_bytes;
+        // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
+        unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 threads(tpp, n_groups,1);
-    dim3 grid(args.csi.getNumElements(), 1, 1);
+        unsigned int tpp = min(args.tpp,block_size);
+        unsigned int n_groups = block_size / tpp;
+        unsigned int max_queue_size = n_groups*tpp;
 
-    unsigned int idev = 0;
-    kernel::hpmc_insert_depletants<Shape><<<grid, threads, shared_bytes>>>(args.d_trial_postype,
-                                                                 args.d_trial_orientation,
-                                                                 args.d_trial_move_type,
-                                                                 args.d_postype,
-                                                                 args.d_orientation,
-                                                                 args.d_counters,
-                                                                 args.d_excell_idx,
-                                                                 args.d_excell_size,
-                                                                 args.excli,
-                                                                 args.cell_dim,
-                                                                 args.ghost_width,
-                                                                 args.ci,
-                                                                 args.N + args.N_ghost,
-                                                                 args.N,
-                                                                 args.num_types,
-                                                                 args.seed,
-                                                                 args.d_check_overlaps,
-                                                                 args.overlap_idx,
-                                                                 args.timestep,
-                                                                 args.dim,
-                                                                 args.box,
-                                                                 args.select,
-                                                                 args.d_accept,
-                                                                 params,
-                                                                 max_queue_size,
-                                                                 max_extra_bytes,
-                                                                 implicit_args.depletant_type,
-                                                                 implicit_args.d_implicit_count + idev*implicit_args.implicit_counters_pitch,
-                                                                 implicit_args.d_lambda,
-                                                                 args.d_nneigh,
-                                                                 args.d_nlist,
-                                                                 args.maxn,
-                                                                 args.d_overflow,
-                                                                 implicit_args.repulsive,
-                                                                 args.csi,
-                                                                 args.d_cell_sets,
-                                                                 args.d_cell_select);
+        const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
+                   args.overlap_idx.getNumElements() * sizeof(unsigned int);
+
+        unsigned int shared_bytes = n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
+                                    max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
+                                    min_shared_bytes;
+
+        if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
+            throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
+
+        while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
+            {
+            block_size -= args.devprop.warpSize;
+            if (block_size == 0)
+                throw std::runtime_error("Insufficient shared memory for HPMC kernel");
+            tpp = min(tpp, block_size);
+            n_groups = block_size / tpp;
+            max_queue_size = n_groups*tpp;
+
+            shared_bytes = n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
+                           max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
+                           min_shared_bytes;
+            }
+
+        static unsigned int base_shared_bytes = UINT_MAX;
+        bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
+        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+
+        unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+        static unsigned int extra_bytes = UINT_MAX;
+        if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
+            {
+            // required for memory coherency
+            cudaDeviceSynchronize();
+
+            // determine dynamically requested shared memory
+            char *ptr = (char *) nullptr;
+            unsigned int available_bytes = max_extra_bytes;
+            for (unsigned int i = 0; i < args.num_types; ++i)
+                {
+                params[i].load_shared(ptr, available_bytes);
+                }
+            extra_bytes = max_extra_bytes - available_bytes;
+            }
+
+        shared_bytes += extra_bytes;
+
+        // setup the grid to run the kernel
+        dim3 threads(tpp, n_groups,1);
+        dim3 grid(args.csi.getNumElements(), 1, 1);
+
+        unsigned int idev = 0;
+        kernel::hpmc_insert_depletants<Shape, true><<<grid, threads, shared_bytes>>>(args.d_trial_postype,
+                                                                     args.d_trial_orientation,
+                                                                     args.d_trial_move_type,
+                                                                     args.d_postype,
+                                                                     args.d_orientation,
+                                                                     args.d_counters,
+                                                                     args.d_excell_idx,
+                                                                     args.d_excell_size,
+                                                                     args.excli,
+                                                                     args.cell_dim,
+                                                                     args.ghost_width,
+                                                                     args.ci,
+                                                                     args.N + args.N_ghost,
+                                                                     args.N,
+                                                                     args.num_types,
+                                                                     args.seed,
+                                                                     args.d_check_overlaps,
+                                                                     args.overlap_idx,
+                                                                     args.timestep,
+                                                                     args.dim,
+                                                                     args.box,
+                                                                     args.select,
+                                                                     args.d_accept,
+                                                                     params,
+                                                                     max_queue_size,
+                                                                     max_extra_bytes,
+                                                                     implicit_args.depletant_type,
+                                                                     implicit_args.d_implicit_count + idev*implicit_args.implicit_counters_pitch,
+                                                                     implicit_args.d_lambda,
+                                                                     args.d_nneigh,
+                                                                     args.d_nlist,
+                                                                     args.maxn,
+                                                                     args.d_overflow,
+                                                                     implicit_args.repulsive,
+                                                                     args.csi,
+                                                                     args.d_cell_sets,
+                                                                     args.d_cell_select,
+                                                                     implicit_args.sweep_radius);
+        }
     }
 
 //! Driver for kernel::hpmc_accept()
