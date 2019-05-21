@@ -55,7 +55,8 @@ class TestMetadata(object):
     def make_system(self):
         return hoomd.init.create_lattice(hoomd.lattice.sc(a=10), n=[5, 5, 5])
 
-    def test_object_dump(self):
+    def test_dump_redump(self):
+        """Check that an object's metadata is identical when reloaded and dumped again."""
         hoomd.context.initialize('--notice-level=0')
         self.system = self.make_system()
         obj = self.build_object()
@@ -72,22 +73,24 @@ class TestMetadata(object):
             original_metadata = hoomd.meta.dump_metadata(tf.name, fields=['objects', 'modules'])
             tf.seek(0)
             original_metadata_file = json.load(tf)
-            print(original_metadata_file)
-            print(original_metadata)
             old_context = hoomd.context.current
             with hoomd.context.SimulationContext() as new_context:
                 system = self.make_system()
                 objects = hoomd.meta.load_metadata(system, filename=tf.name)
                 new_metadata = hoomd.meta.dump_metadata(tf.name, fields=['objects', 'modules'])
-                print(new_metadata)
                 tf.seek(0)
                 new_metadata_file = json.load(tf)
-                print(new_metadata_file)
                 self.assertEqual(new_metadata, original_metadata)
                 self.assertEqual(new_metadata_file, original_metadata_file)
 
+    def test_dump_reload(self):
+        """Check that an object is equal to the version created when metadata is reloaded."""
+        ###TODO: Requires implementing __eq__ for classes
+        pass
+
     @requires_run
     def test_run(self):
+        """Test whether a hoomd.run succeeds and produces identical output."""
         pass
         # obj = self.build_object()
         # tf = tempfile.NamedTemporaryFile()
@@ -105,7 +108,6 @@ class TestMetadata(object):
             # self.assertEqual(new_metadata_file, original_metadata_file)
 
 
-@unittest.skip("tmp")
 @unsupported
 class TestAnalyzeCallback(TestMetadata, unittest.TestCase):
     """Tests hoomd.analyze.callback."""
@@ -114,7 +116,6 @@ class TestAnalyzeCallback(TestMetadata, unittest.TestCase):
             lambda ts: ts, period=10)
 
 
-@unittest.skip("tmp")
 class TestAnalyzeIMD(TestMetadata, unittest.TestCase):
     """Tests hoomd.analyze.imd."""
     def build_object(self):
@@ -122,9 +123,8 @@ class TestAnalyzeIMD(TestMetadata, unittest.TestCase):
             8888, period=10, rate=10, pause=True)
 
 
-@unittest.skip("tmp")
-class TestAnalyzeLog(TestMetadata, unittest.TestCase):
-    """Tests hoomd.analyze.log."""
+class TestWithFile(unittest.TestCase):
+    """Parent for tests that require an additional temporary file."""
     def setUp(self):
         self.file = tempfile.NamedTemporaryFile()
 
@@ -132,6 +132,9 @@ class TestAnalyzeLog(TestMetadata, unittest.TestCase):
         # Should happen automatically, but be safe and explicitly close the file.
         del self.file
 
+
+class TestAnalyzeLog(TestMetadata, TestWithFile):
+    """Tests hoomd.analyze.log."""
     def build_object(self):
         return hoomd.analyze.log(
              filename=self.file.name, quantities=['potential_energy', 'temperature'],
@@ -139,25 +142,55 @@ class TestAnalyzeLog(TestMetadata, unittest.TestCase):
              overwrite=True)
 
 
-@unittest.skip("tmp")
-class TestCommDecomposition(TestMetadata, unittest.TestCase):
-    """Tests hoomd.comm.decomposition."""
-    def build_object(self):
-        return self.dd
-
-    def make_system(self):
-        # Because domain decomposition has to happen before system creation, we
-        # need to put this logic here instead.
-        self.dd = hoomd.comm.decomposition(
-            nx=10, y=[0.1, 0.2], nz=5)
-        super(TestCommDecomposition, self).make_system()
-
-
 class TestComputeThermo(TestMetadata, unittest.TestCase):
     """Tests hoomd.compute.thermo."""
     def build_object(self):
         return hoomd.compute.thermo(
-            hoomd.group.all())
+            hoomd.group.rigid())
+
+
+class TestDumpDcd(TestMetadata, TestWithFile):
+    """Tests hoomd.dump.dcd."""
+    def build_object(self):
+        return hoomd.dump.dcd(
+            filename=self.file.name, period=10, group=hoomd.group.all(),
+            overwrite=True, phase=10, unwrap_full=True)
+
+
+class TestDumpGetar(TestMetadata, TestWithFile):
+    """Tests hoomd.dump.getar."""
+    def build_object(self):
+        return hoomd.dump.getar(
+            filename=self.file.name, static=['viz_dynamic', 'bond_all'],
+            dynamic={'orientation': 10000,
+                     'velocity': 5000})
+
+
+class TestDumpGsd(TestMetadata, TestWithFile):
+    """Tests hoomd.dump.gsd."""
+    def build_object(self):
+        return hoomd.dump.gsd(
+            filename=self.file.name, period=10, group=hoomd.group.all(),
+            overwrite=True, truncate=True, phase=10,
+            dynamic=['momentum', 'topology'])
+
+
+class TestVariantLinear(TestMetadata, unittest.TestCase):
+    """Tests hoomd.variant.linear_interp."""
+
+    def build_object(self):
+        self.maxDiff=None
+        return hoomd.variant.linear_interp(points = [[0, 1.0], [1e5, 2.0]])
+
+
+@unsupported
+class TestHDF5Log(TestMetadata, TestWithFile):
+    """Tests hoomd.hdf5.log."""
+    # hoomd.hdf5 is not automatically imported.
+    import hoomd.hdf5
+    def build_object(self):
+        return hoomd.hdf5.log(hoomd.hdf5.File(self.file.name, 'w'), 10)
+
 
 
 if __name__ == "__main__":

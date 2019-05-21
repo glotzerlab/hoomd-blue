@@ -576,6 +576,7 @@ class log(_analyzer):
 
         hoomd.context.current.loggers.append(self)
 
+@hoomd.meta.metadata_unsupported
 class callback(_analyzer):
     R""" Callback analyzer.
 
@@ -602,7 +603,3 @@ class callback(_analyzer):
         # create the c++ mirror class
         self.cpp_analyzer = _hoomd.CallbackAnalyzer(hoomd.context.current.system_definition, callback)
         self.setupAnalyzer(period, phase);
-
-    def get_metadata(self):
-        warnings.warn("hoomd.analyze.callback does not support restartable metadata logging.", hoomd.meta.MetadataUnsupportedWarning)
-        return {}

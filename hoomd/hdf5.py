@@ -44,6 +44,7 @@ class File(h5py.File):
             return super(File, self).__exit__(*args, **kwargs)
 
 
+@hoomd.meta.metadata_unsupported
 class log(hoomd.analyze._analyzer):
     R""" Log a number of calculated quantities or matrices to a hdf5 file.
 

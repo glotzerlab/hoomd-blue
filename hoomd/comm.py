@@ -82,7 +82,7 @@ def barrier():
     if _hoomd.is_MPI_available():
         hoomd.context.mpi_conf.barrier()
 
-class decomposition(hoomd.meta._metadata):
+class decomposition(object):
     """ Set the domain decomposition.
 
     Args:

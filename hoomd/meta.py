@@ -95,6 +95,12 @@ class MetadataUnsupportedWarning(UserWarning):
     pass
 
 
+def metadata_unsupported(cls):
+    """Decorator for classes to indicate that they do not support metadata dumping."""
+    cls.metadata_supported = False
+    return cls
+
+
 ## \internal
 # \brief A Mixin to facilitate storage of simulation metadata
 class _metadata(object):
@@ -126,6 +132,10 @@ class _metadata(object):
        will not support maintaining state information that involves changing
        these parameters, *e.g.* between multiple `hoomd.run` calls.
     """
+    # Flag to indicate that subclasses support metadata dumping. Due to the
+    # inheritance structure in HOOMD, however, not all subclasses of _metadata
+    # will actually allow dumping.
+    metadata_supported = True
 
     def __new__(cls, *args, **kwargs):
         obj = super(_metadata, cls).__new__(cls)
@@ -144,6 +154,14 @@ class _metadata(object):
     # is the default).
     def get_metadata(self):
         metadata = {}
+
+        if not self.metadata_supported:
+            warnings.warn(
+                "{} does not support restartable metadata logging.".format(
+                    type(self).__name__),
+                hoomd.meta.MetadataUnsupportedWarning)
+            return metadata
+
         try:
             # This can be removed when we remove Python2 support.
             signature = inspect.signature(self.__init__)
@@ -272,8 +290,6 @@ def dump_metadata(filename=None, user=None, indent=4, fields=['timestamp', 'modu
         for nested objects. The recursion is handled using the helper internal
         `convert` function."""
         metadata = obj.get_metadata()
-        if not metadata:
-            return metadata
 
         def convert(obj):
             """Contains the recursive call to `to_metadata` for when metadata
