@@ -178,6 +178,22 @@ IntegratorHPMCMonoGPU< Shape>::~IntegratorHPMCMonoGPU()
 template< class Shape >
 void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     {
+    bool has_depletants = false;
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        {
+        if (this->m_fugacity[i] != 0.0)
+            {
+            has_depletants = true;
+            break;
+            }
+        }
+
+    if (has_depletants)
+        {
+        IntegratorHPMCMono<Shape>::update(timestep);
+        return;
+        }
+
     if (this->m_patch && !this->m_patch_log)
         {
         this->m_exec_conf->msg->error() << "GPU simulations with patches are unsupported." << std::endl;
@@ -457,12 +473,13 @@ void IntegratorHPMCMonoGPU< Shape >::initializeExcellMem()
 template< class Shape >
 void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
     {
+    IntegratorHPMCMono<Shape>::updateCellWidth();
+
     // changing the cell width means that the particle shapes have changed, assume this invalidates the
     // image list and aabb tree
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
 
-    this->m_nominal_width = this->getMaxCoreDiameter();
     this->m_cl->setNominalWidth(this->m_nominal_width);
     }
 
