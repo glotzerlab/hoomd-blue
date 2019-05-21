@@ -92,7 +92,7 @@ namespace detail
 */
 struct __attribute__((visibility("default"))) AABB
     {
-    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
     __m256d lower_v;    //!< Lower left corner (AVX data type)
     __m256d upper_v;   //!< Upper left corner (AVX data type)
 
@@ -111,7 +111,7 @@ struct __attribute__((visibility("default"))) AABB
     //! Default construct a 0 AABB
     DEVICE AABB() : tag(0)
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
         double in = 0.0f;
         lower_v = _mm256_broadcast_sd(&in);
         upper_v = _mm256_broadcast_sd(&in);
@@ -131,7 +131,7 @@ struct __attribute__((visibility("default"))) AABB
     */
     DEVICE AABB(const vec3<Scalar>& _lower, const vec3<Scalar>& _upper) : tag(0)
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
         lower_v = sse_load_vec3_double(_lower);
         upper_v = sse_load_vec3_double(_upper);
 
@@ -160,7 +160,7 @@ struct __attribute__((visibility("default"))) AABB
         new_upper.y = _position.y + radius;
         new_upper.z = _position.z + radius;
 
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
         lower_v = sse_load_vec3_double(new_lower);
         upper_v = sse_load_vec3_double(new_upper);
 
@@ -181,7 +181,7 @@ struct __attribute__((visibility("default"))) AABB
     */
     DEVICE AABB(const vec3<Scalar>& _position, unsigned int _tag) : tag(_tag)
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
         lower_v = sse_load_vec3_double(_position);
         upper_v = sse_load_vec3_double(_position);
 
@@ -199,7 +199,7 @@ struct __attribute__((visibility("default"))) AABB
     //! Get the AABB's position
     DEVICE vec3<Scalar> getPosition() const
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
         double half = 0.5;
         __m256d half_v = _mm256_broadcast_sd(&half);
         __m256d pos_v = _mm256_mul_pd(half_v, _mm256_add_pd(lower_v, upper_v));
@@ -220,7 +220,7 @@ struct __attribute__((visibility("default"))) AABB
     //! Get the AABB's lower point
     DEVICE vec3<Scalar> getLower() const
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
         return sse_unload_vec3_double(lower_v);
 
         #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(NVCC)
@@ -235,7 +235,7 @@ struct __attribute__((visibility("default"))) AABB
     //! Get the AABB's upper point
     DEVICE vec3<Scalar> getUpper() const
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
         return sse_unload_vec3_double(upper_v);
 
         #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(NVCC)
@@ -250,7 +250,7 @@ struct __attribute__((visibility("default"))) AABB
     //! Translate the AABB by the given vector
     DEVICE void translate(const vec3<Scalar>& v)
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
         __m256d v_v = sse_load_vec3_double(v);
         lower_v = _mm256_add_pd(lower_v, v_v);
         upper_v = _mm256_add_pd(upper_v, v_v);
@@ -275,7 +275,7 @@ struct __attribute__((visibility("default"))) AABB
 */
 DEVICE inline bool overlap(const AABB& a, const AABB& b)
     {
-    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
     int r0 = _mm256_movemask_pd(_mm256_cmp_pd(b.upper_v,a.lower_v,0x11));  // 0x11=lt
     int r1 = _mm256_movemask_pd(_mm256_cmp_pd(b.lower_v,a.upper_v,0x1e));  // 0x1e=gt
     return !(r0 || r1);
@@ -304,7 +304,7 @@ DEVICE inline bool overlap(const AABB& a, const AABB& b)
 */
 DEVICE inline bool contains(const AABB& a, const AABB& b)
     {
-    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
     int r0 = _mm256_movemask_pd(_mm256_cmp_pd(b.lower_v,a.lower_v,0x1d));  // 0x1d=ge
     int r1 = _mm256_movemask_pd(_mm256_cmp_pd(b.upper_v,a.upper_v,0x12));  // 0x12=le
     return ((r0 & r1) == 0xF);
@@ -331,7 +331,7 @@ DEVICE inline bool contains(const AABB& a, const AABB& b)
 DEVICE inline AABB merge(const AABB& a, const AABB& b)
     {
     AABB new_aabb;
-    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC)
     new_aabb.lower_v = _mm256_min_pd(a.lower_v, b.lower_v);
     new_aabb.upper_v = _mm256_max_pd(a.upper_v, b.upper_v);
 
