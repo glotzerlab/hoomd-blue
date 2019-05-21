@@ -61,7 +61,7 @@ class PYBIND11_EXPORT DynamicBond : public Updater
         Scalar m_delta_G;                         //!< sticker strength
         std::vector<int> m_nloops;
         int n_polymer;                            //!< number of polymers per colloid
-        int nK;                                   //!< kuhn steps per polymer
+        int m_nK;                                   //!< kuhn steps per polymer
 
     // private:
     };

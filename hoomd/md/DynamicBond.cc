@@ -46,6 +46,19 @@ Scalar capfraction(Scalar x)
     return frac;
     }
 
+Scalar feneEnergy(Scalar x, int nK)
+    {
+	Scalar UBi;
+	UBi = nK * (-1.5 * log(1.0 - x * x));
+	return UBi;
+    }
+
+
+Scalar feneForce(Scalar x) {
+	Scalar FBi;
+	FBi = (3.0 * x) / (1.0 - x * x);
+	return FBi;
+}
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
     \param group Group of particles on which to apply this constraint
@@ -58,7 +71,7 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<NeighborList> nlist,
                         int seed,
                         int period)
-        : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed), m_r_cut(0.0)
+        : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed), m_r_cut(0.0), m_nK(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
     int n_particles = m_pdata->getN();
@@ -85,6 +98,7 @@ void DynamicBond::setParams(Scalar r_cut,
     m_r_cut = r_cut;
     m_delta_G = delta_G;
     std::fill(m_nloops.begin(), m_nloops.end(), 400);
+    m_nK = nK;
     }
 
 
@@ -198,10 +212,9 @@ void DynamicBond::update(unsigned int timestep)
                 Scalar omega = 4.68;  // natural thermal vibration frequency 1.2E0*3.9E-9
 
                 // calculate probabilities
-                // Scalar p0=tstep*omega*exp(-(m_delta_G+bond(surf_dist)));
-                // Scalar q0=tstep*omega*exp(-(m_delta_G-bond(surf_dist)+bond(surf_dist)));
-                Scalar p0 = tstep*omega*exp(-(m_delta_G));
-                Scalar q0 = tstep*omega*exp(-(m_delta_G));
+                Scalar extension = surf_dist/m_nK;
+                Scalar p0=tstep*omega*exp(-(m_delta_G+feneEnergy(extension, m_nK)));
+                Scalar q0=tstep*omega*exp(-(m_delta_G-feneEnergy(extension, m_nK)+feneEnergy(extension, m_nK)));
 
                 Scalar p12 = p0*pow((1-p0),(m_nloops[i]*capfraction(surf_dist)-1.0))*m_nloops[i]*capfraction(surf_dist);
                 Scalar p21 = p0*pow((1-p0),(m_nloops[j]*capfraction(surf_dist)-1.0))*m_nloops[j]*capfraction(surf_dist);
