@@ -363,6 +363,15 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Build the AABB tree (if needed)
         const detail::AABBTree& buildAABBTree();
 
+        //! Set the AABB leaf node capacity
+        void setAABBLeafCapacity(unsigned int leaf_capacity)
+            {
+            if (leaf_capacity == 0)
+                throw std::runtime_error("Leaf node capacity needs to be > 0");
+
+            m_leaf_capacity = leaf_capacity;
+            }
+
         //! Make list of image indices for boxes to check in small-box mode
         const std::vector<vec3<Scalar> >& updateImageList();
 
@@ -408,7 +417,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         Scalar m_extra_image_width;                 //! Extra width to extend the image list
 
-        Index2D m_overlap_idx;                      //!!< Indexer for interaction matrix
+        Index2D m_overlap_idx;                      //!< Indexer for interaction matrix
+        unsigned int m_leaf_capacity;               //!< Capacity of leaf nodes in the AABB tree
 
         /* Depletants related data members */
 
@@ -469,6 +479,7 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
               m_image_list_valid(false),
               m_hasOrientation(true),
               m_extra_image_width(0.0),
+              m_leaf_capacity(16),
               m_quermass(false),
               m_sweep_radius(0.0)
     {
@@ -1821,7 +1832,7 @@ const detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
                         m_aabbs[i] = aabb_i_extend;
                         }
                     }
-                m_aabb_tree.buildTree(m_aabbs, n_aabb);
+                m_aabb_tree.buildTree(m_aabbs, n_aabb, m_leaf_capacity);
                 }
             }
 
@@ -3028,6 +3039,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setSweepRadius", &IntegratorHPMCMono<Shape>::setSweepRadius)
           .def("getQuermassMode", &IntegratorHPMCMono<Shape>::getQuermassMode)
           .def("getSweepRadius", &IntegratorHPMCMono<Shape>::getSweepRadius)
+          .def("setAABBLeafCapacity", &IntegratorHPMCMono<Shape>::setAABBLeafCapacity)
           ;
     }
 

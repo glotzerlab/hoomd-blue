@@ -35,7 +35,7 @@ UP_TEST( basic )
 
     // construct the tree
     AABBTree tree;
-    tree.buildTree(aabbs, 3);
+    tree.buildTree(aabbs, 3, 16);
 
     // try some test queries
     std::vector<unsigned int> hits;
@@ -77,7 +77,7 @@ UP_TEST( bigger )
 
     // build the tree
     AABBTree tree;
-    tree.buildTree(aabbs, N);
+    tree.buildTree(aabbs, N, 16);
 
     // query each particle to ensure it can be found
     std::vector<unsigned int> hits;

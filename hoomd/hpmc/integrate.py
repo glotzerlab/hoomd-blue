@@ -381,6 +381,7 @@ class mode_hpmc(_integrator):
                    a=None,
                    move_ratio=None,
                    nselect=None,
+                   leaf_capacity=None,
                    quermass=None,
                    sweep_radius=None,
                    deterministic=None):
@@ -391,6 +392,7 @@ class mode_hpmc(_integrator):
             a (float): (if set) Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
             move_ratio (float): (if set) New value for the move ratio.
             nselect (int): (if set) New value for the number of particles to select for trial moves in one cell.
+            leaf_capacity (int): (if set) New value for the capacity of leaf nodes in the AABB BVH
             quermass (bool): (if set) **Implicit depletants only**: Enable/disable quermass integration mode
             sweep_radius (float): (if set): **Implicit depletants only**: Additional radius of a sphere to sweep the shapes by in **quermass** mode
             deterministic (bool): (if set) Make HPMC integration deterministic on the GPU by sorting the cell list.
@@ -427,6 +429,9 @@ class mode_hpmc(_integrator):
 
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
+
+        if leaf_capacity is not None:
+            self.cpp_integrator.setAABBLeafCapacity(leaf_capacity)
 
         if quermass is not None:
             self.implicit_params.append('quermass')

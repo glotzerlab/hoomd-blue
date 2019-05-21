@@ -36,7 +36,6 @@ namespace detail
     @{
 */
 
-const unsigned int NODE_CAPACITY = 16;           //!< Maximum number of particles in a node
 const unsigned int INVALID_NODE = 0xffffffff;   //!< Invalid node index sentinel
 
 #ifndef NVCC
@@ -50,7 +49,6 @@ struct PYBIND11_EXPORT AABBNode
     AABBNode()
         {
         left = right = parent = INVALID_NODE;
-        num_particles = 0;
         skip = 0;
         }
 
@@ -60,13 +58,50 @@ struct PYBIND11_EXPORT AABBNode
     unsigned int parent; //!< Index of the parent node
     unsigned int skip;   //!< Number of array indices to skip to get to the next node in an in order traversal
 
-    unsigned int particles[NODE_CAPACITY];      //!< Indices of the particles contained in the node
-    unsigned int particle_tags[NODE_CAPACITY];  //!< Corresponding particle tags for particles in node
-    unsigned int num_particles;                 //!< Number of particles contained in the node
+    std::vector<unsigned int> particles;        //!< Indices of the particles contained in the node
+    std::vector<unsigned int> particle_tags;    //!< Corresponding particle tags for particles in node
+
+    //! Custom new operator with SIMD alignment
+    static void* operator new(std::size_t sz)
+        {
+        void *ret = 0;
+        int retval = posix_memalign(&ret, 32, sz);
+        if (retval != 0)
+            {
+            throw std::runtime_error("Error allocating aligned memory");
+            }
+
+        return ret;
+        }
+
+    //! Custom new operator for arrays, with SIMD alignment
+    static void* operator new[](std::size_t sz)
+        {
+        void *ret = 0;
+        int retval = posix_memalign(&ret, 32, sz);
+        if (retval != 0)
+            {
+            throw std::runtime_error("Error allocating aligned memory");
+            }
+
+        return ret;
+        }
+
+    //! Custom delete operator
+    static void operator delete(void *ptr)
+        {
+        free(ptr);
+        }
+
+    //! Custom delete operator for arrays
+    static void operator delete[](void *ptr)
+        {
+        free(ptr);
+        }
     } __attribute__((aligned(32)));
 
 //! AABB Tree
-/*! An AABBTree stores a binary tree of AABBs. A leaf node stores up to NODE_CAPACITY particles by index. The bounding
+/*! An AABBTree stores a binary tree of AABBs. A leaf node stores up to m_leaf_capacity particles by index. The bounding
     box of a leaf node surrounds all the bounding boxes of its contained particles. Internal nodes have AABBs that
     enclose all of their children. The tree supports the following operations:
 
@@ -95,7 +130,7 @@ class PYBIND11_EXPORT AABBTree
     public:
         //! Construct an AABBTree
         AABBTree()
-            : m_nodes(0), m_num_nodes(0), m_node_capacity(0), m_root(0)
+            : m_nodes(0), m_num_nodes(0), m_node_capacity(0), m_leaf_capacity(16), m_root(0)
             {
             }
 
@@ -103,7 +138,7 @@ class PYBIND11_EXPORT AABBTree
         ~AABBTree()
             {
             if (m_nodes)
-                free(m_nodes);
+                delete[] m_nodes;
             }
 
         //! Copy constructor
@@ -111,6 +146,7 @@ class PYBIND11_EXPORT AABBTree
             {
             m_num_nodes = from.m_num_nodes;
             m_node_capacity = from.m_node_capacity;
+            m_leaf_capacity = from.m_leaf_capacity;
             m_root = from.m_root;
             m_mapping = from.m_mapping;
 
@@ -119,11 +155,7 @@ class PYBIND11_EXPORT AABBTree
             if (from.m_nodes)
                 {
                 // allocate memory
-                int retval = posix_memalign((void**)&m_nodes, 32, m_node_capacity*sizeof(AABBNode));
-                if (retval != 0)
-                    {
-                    throw std::runtime_error("Error allocating AABBTree memory");
-                    }
+                m_nodes = new AABBNode[m_node_capacity];
 
                 // copy over data
                 std::copy(from.m_nodes, from.m_nodes + m_num_nodes, m_nodes);
@@ -135,22 +167,19 @@ class PYBIND11_EXPORT AABBTree
             {
             m_num_nodes = from.m_num_nodes;
             m_node_capacity = from.m_node_capacity;
+            m_leaf_capacity = from.m_leaf_capacity;
             m_root = from.m_root;
             m_mapping = from.m_mapping;
 
             if (m_nodes)
-                free(m_nodes);
+                delete[] m_nodes;
 
             m_nodes = NULL;
 
             if (from.m_nodes)
                 {
                 // allocate memory
-                int retval = posix_memalign((void**)&m_nodes, 32, m_node_capacity*sizeof(AABBNode));
-                if (retval != 0)
-                    {
-                    throw std::runtime_error("Error allocating AABBTree memory");
-                    }
+                m_nodes = new AABBNode[m_node_capacity];
 
                 // copy over data
                 std::copy(from.m_nodes, from.m_nodes + m_num_nodes, m_nodes);
@@ -159,7 +188,7 @@ class PYBIND11_EXPORT AABBTree
             }
 
         //! Build a tree smartly from a list of AABBs
-        inline void buildTree(AABB *aabbs, unsigned int N);
+        inline void buildTree(AABB *aabbs, unsigned int N, unsigned int leaf_capacity);
 
         //! Find all particles that overlap with the query AABB
         inline unsigned int query(std::vector<unsigned int>& hits, const AABB& aabb) const;
@@ -221,7 +250,7 @@ class PYBIND11_EXPORT AABBTree
         */
         inline unsigned int getNodeNumParticles(unsigned int node) const
             {
-            return (m_nodes[node].num_particles);
+            return (m_nodes[node].particles.size());
             }
 
         //! Get the particles in a given node
@@ -244,6 +273,7 @@ class PYBIND11_EXPORT AABBTree
         AABBNode *m_nodes;                  //!< The nodes of the tree
         unsigned int m_num_nodes;           //!< Number of nodes
         unsigned int m_node_capacity;       //!< Capacity of the nodes array
+        unsigned int m_leaf_capacity;       //!< Capacitiy of every leaf node
         unsigned int m_root;                //!< Index to the root node of the tree
         std::vector<unsigned int> m_mapping;//!< Reverse mapping to find node given a particle index
 
@@ -303,7 +333,7 @@ inline unsigned int AABBTree::query(std::vector<unsigned int>& hits, const AABB&
             {
             if (current_node.left == INVALID_NODE)
                 {
-                for (unsigned int i = 0; i < current_node.num_particles; i++)
+                for (unsigned int i = 0; i < current_node.particles.size(); i++)
                     hits.push_back(current_node.particles[i]);
                 }
             }
@@ -380,12 +410,16 @@ inline unsigned int AABBTree::height(unsigned int idx)
 
 /*! \param aabbs List of AABBs for each particle (must be 32-byte aligned)
     \param N Number of AABBs in the list
+    \param leaf_capacity Capacity of every leaf node
 
     Builds a balanced tree from a given list of AABBs for each particle. Data in \a aabbs will be modified during
     the construction process.
 */
-inline void AABBTree::buildTree(AABB *aabbs, unsigned int N)
+inline void AABBTree::buildTree(AABB *aabbs, unsigned int N, unsigned int leaf_capacity)
     {
+    // set the leaf capacity
+    m_leaf_capacity = leaf_capacity;
+
     init(N);
 
     std::vector<unsigned int> idx;
@@ -424,18 +458,17 @@ inline unsigned int AABBTree::buildNode(AABB *aabbs,
     vec3<Scalar> my_radius = my_aabb.getUpper() - my_aabb.getLower();
 
     // handle the case of a leaf node creation
-    if (len <= NODE_CAPACITY)
+    if (len <= m_leaf_capacity)
         {
         unsigned int new_node = allocateNode();
         m_nodes[new_node].aabb = my_aabb;
         m_nodes[new_node].parent = parent;
-        m_nodes[new_node].num_particles = len;
 
         for (unsigned int i = 0; i < len; i++)
             {
             // assign the particle indices into the leaf node
-            m_nodes[new_node].particles[i] = idx[start+i];
-            m_nodes[new_node].particle_tags[i] = aabbs[start+i].tag;
+            m_nodes[new_node].particles.push_back(idx[start+i]);
+            m_nodes[new_node].particle_tags.push_back(aabbs[start+i].tag);
 
             // assign the reverse mapping from particle indices to leaf node indices
             m_mapping[idx[start+i]] = new_node;
@@ -587,17 +620,13 @@ inline unsigned int AABBTree::allocateNode()
             m_new_node_capacity = 16;
 
         // allocate new memory
-        int retval = posix_memalign((void**)&m_new_nodes, 32, m_new_node_capacity*sizeof(AABBNode));
-        if (retval != 0)
-            {
-            throw std::runtime_error("Error allocating AABBTree memory");
-            }
+        m_new_nodes = new AABBNode[m_new_node_capacity];
 
         // if we have old memory, copy it over
         if (m_nodes != NULL)
             {
-            memcpy((void *)m_new_nodes, (void *)m_nodes, sizeof(AABBNode)*m_num_nodes);
-            free(m_nodes);
+            std::copy(m_nodes, m_nodes+m_num_nodes, m_new_nodes);
+            delete[] m_nodes;
             }
         m_nodes = m_new_nodes;
         m_node_capacity = m_new_node_capacity;

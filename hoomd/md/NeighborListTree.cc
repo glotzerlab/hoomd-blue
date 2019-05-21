@@ -20,6 +20,8 @@ namespace py = pybind11;
 using namespace std;
 using namespace hpmc::detail;
 
+const unsigned int NLIST_TREE_LEAF_CAPACITY = 16;
+
 NeighborListTree::NeighborListTree(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
@@ -268,7 +270,7 @@ void NeighborListTree::buildTree()
         {
         if (m_num_per_type[i] > 0)
             {
-            m_aabb_trees[i].buildTree(&(h_aabbs.data[0]) + m_type_head[i], m_num_per_type[i]);
+            m_aabb_trees[i].buildTree(&(h_aabbs.data[0]) + m_type_head[i], m_num_per_type[i], NLIST_TREE_LEAF_CAPACITY);
             }
         }
     if (this->m_prof) this->m_prof->pop();
