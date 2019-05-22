@@ -26,6 +26,7 @@ import sys;
 
 from math import sqrt
 
+@hoomd.meta.metadata_unsupported
 class pppm(force._force):
     R""" Long-range electrostatics computed with the PPPM method.
 

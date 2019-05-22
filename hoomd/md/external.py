@@ -328,7 +328,7 @@ class e_field(_external_force):
         # setup the coefficient options
         self.required_coeffs = None;
 
-        self.field_coeff = tuple(field)
+        self.field_coeff = list(field)
 
     def process_coeff(self, coeff):
         pass;

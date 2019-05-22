@@ -103,6 +103,8 @@ class _force(hoomd.meta._metadata):
     # overridden to accomodate this as well.
     def get_metadata(self):
         metadata = super(_force, self).get_metadata()
+        if not self.metadata_supported:
+            return metadata
 
         coeff_obj = metadata[meta.META_KEY_TRACKED].pop(self.__module__.split('.')[-1] + '_coeff')
         parameters = {}

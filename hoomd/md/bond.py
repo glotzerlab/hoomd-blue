@@ -328,7 +328,8 @@ def _table_eval(r, rmin, rmax, V, F, width):
       i = int(round((r - rmin)/dr))
       return (V[i], F[i])
 
-class table(force._force):
+@hoomd.meta.metadata_unsupported
+class table(_bond):
     R""" Tabulated bond potential.
 
     Args:

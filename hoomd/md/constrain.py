@@ -252,6 +252,7 @@ class distance(_constraint_force):
         self._rel_tol = value
         self.cpp_force.setRelativeTolerance(float(value))
 
+@hoomd.meta.metadata_unsupported
 class rigid(_constraint_force):
     R""" Constrain particles in rigid bodies.
 

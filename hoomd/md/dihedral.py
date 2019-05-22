@@ -253,6 +253,7 @@ def _table_eval(theta, V, T, width):
       i = int(round((theta+math.pi)/dth))
       return (V[i], T[i])
 
+@hoomd.meta.metadata_unsupported
 class table(_dihedral):
     R""" Tabulated dihedral potential.
 

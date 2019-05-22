@@ -95,9 +95,6 @@ def should_track():
     meta_file = hoomd.__file__.replace('__init__.py', 'meta.py')
     is_hoomd = hoomd_root in last_file
     is_meta = last_file == meta_file
-    # print()
-    # print(not is_hoomd or is_meta)
-    # print()
     return not is_hoomd or is_meta
 
 
@@ -217,7 +214,7 @@ class _metadata(object):
             for field, value in params[META_KEY_TRACKED].items():
                 # Need to differentiate between attributes that are themselves
                 # HOOMD classes and others.
-                if isinstance(value, dict) and isinstance(next(iter(value.keys())), str) and next(iter(value.keys())).startswith('hoomd.'):
+                if isinstance(value, dict) and len(value) and isinstance(next(iter(value.keys())), str) and next(iter(value.keys())).startswith('hoomd.'):
                     classname, class_params = next(iter(value.items()))
                     setattr(obj, field, cls_from_name(classname)(**class_params[META_KEY_ARGS]))
                 else:

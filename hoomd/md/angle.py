@@ -235,7 +235,7 @@ class harmonic(_angle):
 
             self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['t0']);
 
-class cosinesq(force._force):
+class cosinesq(_angle):
     R""" Cosine squared angle potential.
 
     The command angle.cosinesq specifies a cosine squared potential energy
@@ -321,7 +321,8 @@ def _table_eval(theta, V, T, width):
       i = int(round((theta)/dth))
       return (V[i], T[i])
 
-class table(force._force):
+@hoomd.meta.metadata_unsupported
+class table(_angle):
     R""" Tabulated angle potential.
 
     Args:
