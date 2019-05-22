@@ -14,3 +14,7 @@ set(CMAKE_CXX_STANDARD 11)
 # hoomd's cflags setup script will take care of proper cxx flags settings
 
 include(pybind11Tools)
+
+if (PYTHON_VERSION_MAJOR LESS 3)
+    message(SEND_ERROR "HOOMD requires Python 3")
+endif()
