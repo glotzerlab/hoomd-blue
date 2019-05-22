@@ -3,7 +3,7 @@ import hoomd
 import hoomd.md
 import unittest
 
-hoomd.context.initialize("");
+hoomd.context.initialize();
 
 # test the md.constrain.rigid() functionality
 class test_log_energy_upon_run_command(unittest.TestCase):
@@ -34,21 +34,22 @@ class test_log_energy_upon_run_command(unittest.TestCase):
         lj.set_params(mode='shift')
         lj.pair_coeff.set(['R', 'A'], ['R', 'A'], epsilon=1.0, sigma=1.0)
         hoomd.md.integrate.mode_standard(dt=0.001);
-        rigid = hoomd.group.rigid_center();
-        integrator=hoomd.md.integrate.langevin(group=rigid, kT=1.0, seed=42);
+        rigid_gr = hoomd.group.rigid_center();
+        integrator=hoomd.md.integrate.langevin(group=rigid_gr, kT=1.0, seed=42);
         log = hoomd.analyze.log(filename=None,
                           quantities=['potential_energy',
                                       'translational_kinetic_energy',
                                       'rotational_kinetic_energy', 'pressure'],
                           period=1,
                           overwrite=True);
-        hoomd.run(1e3);
+        hoomd.run(100);
 
         self.last_l = None
         def cb(timestep):
             l = log.query('potential_energy')
             if self.last_l is not None:
                 rel_dl = abs(l)/abs(self.last_l)
+
             else:
                 rel_dl = 1.0
             # the log value shouldn't change abruptly
@@ -56,7 +57,7 @@ class test_log_energy_upon_run_command(unittest.TestCase):
             self.assertTrue(rel_dl < 1.5)
             self.last_l = l
         for i in range(10):
-            hoomd.run(100,callback=cb, callback_period=1)
+            hoomd.run(10,callback=cb, callback_period=1)
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
