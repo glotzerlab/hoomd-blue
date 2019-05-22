@@ -189,14 +189,14 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
     idx += offset;
 
     // initialize the force to 0
-    Scalar4 force = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
-    Scalar4 torque = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
-    Scalar virialxx = 0.0f;
-    Scalar virialxy = 0.0f;
-    Scalar virialxz = 0.0f;
-    Scalar virialyy = 0.0f;
-    Scalar virialyz = 0.0f;
-    Scalar virialzz = 0.0f;
+    Scalar4 force = make_scalar4(Scalar(0), Scalar(0), Scalar(0), Scalar(0));
+    Scalar4 torque = make_scalar4(Scalar(0), Scalar(0), Scalar(0), Scalar(0));
+    Scalar virialxx = Scalar(0);
+    Scalar virialxy = Scalar(0);
+    Scalar virialxz = Scalar(0);
+    Scalar virialyy = Scalar(0);
+    Scalar virialyz = Scalar(0);
+    Scalar virialzz = Scalar(0);
 
     if (active)
         {
@@ -208,11 +208,11 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
         Scalar4 quati = __ldg(d_orientation + idx);
 
-        Scalar di = 0.0f;
+        Scalar di = Scalar(0);
         if (evaluator::needsDiameter())
             di = __ldg(d_diameter + idx);
 
-        Scalar qi = 0.0f;
+        Scalar qi = Scalar(0);
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
 
@@ -239,11 +239,11 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                 Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
                 Scalar4 quatj = __ldg(d_orientation + cur_j);
 
-                Scalar dj = 0.0f;
+                Scalar dj = Scalar(0);
                 if (evaluator::needsDiameter())
                     dj = __ldg(d_diameter + cur_j);
 
-                Scalar qj = 0.0f;
+                Scalar qj = Scalar(0);
                 if (evaluator::needsCharge())
                     qj = __ldg(d_charge + cur_j);
 
@@ -268,10 +268,10 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                     energy_shift = true;
 
                 // evaluate the potential
-                Scalar3 jforce = { 0.0f, 0.0f, 0.0f };
-                Scalar3 torquei = { 0.0f, 0.0f, 0.0f };
-                Scalar3 torquej = { 0.0f, 0.0f, 0.0f };
-                Scalar pair_eng = 0.0f;
+                Scalar3 jforce = { Scalar(0), Scalar(0), Scalar(0) };
+                Scalar3 torquei = { Scalar(0), Scalar(0), Scalar(0) };
+                Scalar3 torquej = { Scalar(0), Scalar(0), Scalar(0) };
+                Scalar pair_eng = Scalar(0);
 
                 // constructor call
                 evaluator eval(dx, quati, quatj, rcutsq, param);
