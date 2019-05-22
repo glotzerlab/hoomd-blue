@@ -16,18 +16,6 @@
     \brief Defines GPU kernel code for neighbor list tree traversal on the GPU
 */
 
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
-//! Texture for reading leaf data
-scalar4_tex_t leaf_xyzf_tex;
-//! Texture for the diameter / body
-scalar2_tex_t leaf_db_tex;
-//! Texture for reading node upper and lower bounds
-scalar4_tex_t aabb_node_bounds_tex;
-//! Texture for the head list
-texture<unsigned int, 1, cudaReadModeElementType> head_list_tex;
-
-
 //!< Expands a 10-bit integer into 30 bits by inserting 2 zeros after each bit.
 /*!
  * \param v unsigned integer with 10 bits set
@@ -1025,16 +1013,16 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
     if (my_pidx >= N)
         return;
 
-    const Scalar4 postype_i = texFetchScalar4(d_pos, pdata_pos_tex, my_pidx);
+    const Scalar4 postype_i = __ldg(d_pos + my_pidx);
     const Scalar3 pos_i = make_scalar3(postype_i.x, postype_i.y, postype_i.z);
     const unsigned int type_i = __scalar_as_int(postype_i.w);
 
     // fetch the diameter and body out of the leaf texture since it's bound anyway
-    const Scalar2 db_i = texFetchScalar2(d_leaf_db, leaf_db_tex, idx);
+    const Scalar2 db_i = __ldg(d_leaf_db + idx);
     const Scalar diam_i = db_i.x;
     const unsigned int body_i = __scalar_as_int(db_i.y);
 
-    const unsigned int nlist_head_i = texFetchUint(d_head_list, head_list_tex, my_pidx);
+    const unsigned int nlist_head_i = __ldg(d_head_list + my_pidx);
 
     unsigned int n_neigh_i = 0;
     for (unsigned int cur_pair_type=0; cur_pair_type < ntypes; ++cur_pair_type)
@@ -1073,8 +1061,8 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
             int cur_node_idx = cur_tree_root;
             while (cur_node_idx > -1)
                 {
-                const Scalar4 upper_rope = texFetchScalar4(d_tree_aabbs, aabb_node_bounds_tex, 2*cur_node_idx);
-                const Scalar4 lower_np = texFetchScalar4(d_tree_aabbs, aabb_node_bounds_tex, 2*cur_node_idx+1);
+                const Scalar4 upper_rope = __ldg(d_tree_aabbs + 2*cur_node_idx);
+                const Scalar4 lower_np = __ldg(d_tree_aabbs + 2*cur_node_idx+1);
 
                 if (!(aabb_upper.x < lower_np.x
                       || aabb_lower.x > upper_rope.x
@@ -1094,11 +1082,11 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                         for (unsigned int cur_p = node_head; cur_p < node_head + n_part; ++cur_p)
                             {
                             // neighbor j
-                            const Scalar4 cur_xyzf = texFetchScalar4(d_leaf_xyzf, leaf_xyzf_tex, cur_p);
+                            const Scalar4 cur_xyzf = __ldg(d_leaf_xyzf + cur_p);
                             const Scalar3 pos_j = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
                             const unsigned int j = __scalar_as_int(cur_xyzf.w);
 
-                            const Scalar2 cur_db = texFetchScalar2(d_leaf_db, leaf_db_tex, cur_p);
+                            const Scalar2 cur_db = __ldg(d_leaf_db + cur_p);
                             const Scalar diam_j = cur_db.x;
                             const unsigned int body_j = __scalar_as_int(cur_db.y);
 
@@ -1223,46 +1211,11 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     const unsigned int ntypes,
                                     bool filter_body,
                                     bool diameter_shift,
-                                    const unsigned int compute_capability,
                                     const unsigned int block_size)
     {
     // shared memory = r_list + Nmax
     Index2D typpair_idx(ntypes);
     unsigned int shared_size = sizeof(Scalar)*typpair_idx.getNumElements() + 2*sizeof(unsigned int)*ntypes;
-
-    // bind the neighborlist texture
-    if (compute_capability < 35)
-        {
-        pdata_pos_tex.normalized = false;
-        pdata_pos_tex.filterMode = cudaFilterModePoint;
-        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*(N+nghosts));
-        if (error != cudaSuccess)
-            return error;
-
-        leaf_xyzf_tex.normalized = false;
-        leaf_xyzf_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, leaf_xyzf_tex, d_leaf_xyzf, sizeof(Scalar4)*(N+nghosts));
-        if (error != cudaSuccess)
-            return error;
-
-        leaf_db_tex.normalized = false;
-        leaf_db_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, leaf_db_tex, d_leaf_db, sizeof(Scalar2)*(N+nghosts));
-        if (error != cudaSuccess)
-            return error;
-
-        aabb_node_bounds_tex.normalized = false;
-        aabb_node_bounds_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, aabb_node_bounds_tex, d_tree_aabbs, sizeof(Scalar4)*2*nnodes);
-        if (error != cudaSuccess)
-            return error;
-
-        head_list_tex.normalized = false;
-        head_list_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, head_list_tex, d_head_list, sizeof(unsigned int)*N);
-        if (error != cudaSuccess)
-            return error;
-        }
 
     if (!filter_body && !diameter_shift)
         {
@@ -1403,30 +1356,6 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     r_buff,
                                                                                     max_diam,
                                                                                     ntypes);
-        }
-
-    // unbind the textures
-    if (compute_capability < 35)
-        {
-        cudaError_t error = cudaUnbindTexture(pdata_pos_tex);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaUnbindTexture(leaf_xyzf_tex);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaUnbindTexture(leaf_db_tex);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaUnbindTexture(aabb_node_bounds_tex);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaUnbindTexture(head_list_tex);
-        if (error != cudaSuccess)
-            return error;
         }
 
     return cudaSuccess;

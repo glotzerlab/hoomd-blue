@@ -10,7 +10,7 @@ if (ENABLE_CUDA)
     # first thrust, then CUDA (to allow for local thrust installation
     # that overrides CUDA toolkit)
     include_directories(${THRUST_INCLUDE_DIR})
-	include_directories(${CUDA_INCLUDE_DIRS})
+    include_directories(${CUDA_INCLUDE_DIRS})
 
     get_directory_property(DIRS INCLUDE_DIRECTORIES SYSTEM)
     # hide some variables users don't need to see
@@ -24,6 +24,13 @@ if (ENABLE_CUDA)
     mark_as_advanced(CUDA_dl_LIBRARY)
     mark_as_advanced(CUDA_rt_LIBRARY)
     mark_as_advanced(THRUST_INCLUDE_DIR)
+
+    # make sure the cudadevrt library has been found (needed in old FindCUDA)
+    if (NOT CUDA_cudadevrt_LIBRARY)
+        get_filename_component(CUDA_LIB_PATH ${CUDA_CUDART_LIBRARY} DIRECTORY)
+        find_library(CUDA_cudadevrt_LIBRARY cudadevrt PATHS ${CUDA_LIB_PATH} NO_DEFAULT_PATH)
+        mark_as_advanced(CUDA_cudadevrt_LIBRARY)
+    endif (NOT CUDA_cudadevrt_LIBRARY)
 
     if (ENABLE_NVTOOLS)
         find_library(CUDA_nvToolsExt_LIBRARY
@@ -41,11 +48,14 @@ endif (ENABLE_CUDA)
 
 # setup CUDA compile options
 if (ENABLE_CUDA)
+    # supress warnings in random123
+    list(APPEND CUDA_NVCC_FLAGS "-Xcudafe;--diag_suppress=code_is_unreachable")
+
     # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
     if (CUDA_VERSION VERSION_GREATER 8.99)
-        set(CUDA_ARCH_LIST 30 35 50 60 70 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        set(CUDA_ARCH_LIST 35 50 60 70 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     elseif (CUDA_VERSION VERSION_GREATER 7.99)
-        set(CUDA_ARCH_LIST 30 35 50 60 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        set(CUDA_ARCH_LIST 35 50 60 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     endif()
 
     foreach(_cuda_arch ${CUDA_ARCH_LIST})
@@ -59,8 +69,8 @@ if (ENABLE_CUDA)
     list(GET _cuda_arch_list_sorted -1 _cuda_max_arch)
     add_definitions(-DCUDA_ARCH=${_cuda_min_arch})
 
-    if (_cuda_min_arch LESS 30)
-        message(SEND_ERROR "HOOMD requires compute 3.0 or newer")
+    if (_cuda_min_arch LESS 35)
+        message(SEND_ERROR "HOOMD requires compute 3.5 or newer")
     endif ()
 
     # only generate ptx code for the maximum supported CUDA_ARCH (saves on file size)

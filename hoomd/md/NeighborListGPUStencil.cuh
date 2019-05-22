@@ -49,8 +49,7 @@ cudaError_t gpu_compute_nlist_stencil(unsigned int *d_nlist,
                                       bool filter_body,
                                       bool diameter_shift,
                                       const unsigned int threads_per_particle,
-                                      const unsigned int block_size,
-                                      const unsigned int compute_capability);
+                                      const unsigned int block_size);
 
 //! Kernel driver for filling the particle types for sorting
 cudaError_t gpu_compute_nlist_stencil_fill_types(unsigned int *d_pids,

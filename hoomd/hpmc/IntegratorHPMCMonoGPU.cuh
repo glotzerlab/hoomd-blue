@@ -8,7 +8,8 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #include <cassert>
 
@@ -183,13 +184,6 @@ cudaError_t gpu_hpmc_shift(Scalar4 *d_postype,
  * Definition of function templates and templated GPU kernels
  */
 
-//! Texture for reading postype
-scalar4_tex_t postype_tex;
-//! Texture for reading orientation
-scalar4_tex_t orientation_tex;
-//! Texture for reading cell index data
-texture<unsigned int, 1, cudaReadModeElementType> cell_idx_tex;
-
 //! Device function to compute the cell that a particle sits in
 __device__ inline unsigned int computeParticleCell(const Scalar3& p,
                                                    const BoxDim& box,
@@ -277,9 +271,6 @@ __device__ inline unsigned int computeParticleCell(const Scalar3& p,
         - threadIdx.y indexes the current group in the block
         - threadIdx.x is the offset within the current group
         - blockIdx.x runs enough blocks so that all active cells are covered
-
-    **Possible enhancements**
-        - Use __ldg and not tex1Dfetch on sm35
 
     \ingroup hpmc_kernels
 */
@@ -466,21 +457,21 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
     if (active)
         {
         // one RNG per cell
-        hoomd::detail::Saru rng(my_cell, seed+select, timestep);
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoTrialMove, seed, my_cell, select, timestep);
 
         // select one of the particles randomly from the cell
-        unsigned int my_cell_offset = rand_select(rng, my_cell_size-1);
-        i = tex1Dfetch(cell_idx_tex, cli(my_cell_offset, my_cell));
+        unsigned int my_cell_offset = hoomd::UniformIntDistribution(my_cell_size-1)(rng);
+        i = __ldg(d_cell_idx + cli(my_cell_offset, my_cell));
 
         // read in the position and orientation of our particle.
-        Scalar4 postype_i = texFetchScalar4(d_postype, postype_tex, i);
+        Scalar4 postype_i = __ldg(d_postype + i);
         Scalar4 orientation_i = make_scalar4(1,0,0,0);
 
         unsigned int typ_i = __scalar_as_int(postype_i.w);
         Shape shape_i(quat<Scalar>(orientation_i), s_params[typ_i]);
 
         if (shape_i.hasOrientation())
-            orientation_i = texFetchScalar4(d_orientation, orientation_tex, i);
+            orientation_i = __ldg(d_orientation + i);
 
         shape_i.orientation = quat<Scalar>(orientation_i);
 
@@ -498,7 +489,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
             move_active = false;
 
         // make the move
-        unsigned int move_type_select = rng.u32() & 0xffff;
+        unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
         move_type_translate = !shape_i.hasOrientation() || (move_type_select < move_ratio);
 
         if (move_type_translate)
@@ -548,11 +539,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
             unsigned int j, next_j = 0;
             if (k < excell_size)
                 {
-                #if (__CUDA_ARCH__ > 300)
                 next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
-                #else
-                next_j = d_excell_idx[excli(k, my_cell)];
-                #endif
                 }
 
             // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
@@ -576,15 +563,11 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
 
                     if (k < excell_size)
                         {
-                        #if (__CUDA_ARCH__ > 300)
                         next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
-                        #else
-                        next_j = d_excell_idx[excli(k, my_cell)];
-                        #endif
                         }
 
                     // read in position, and orientation of neighboring particle
-                    postype_j = texFetchScalar4(d_postype, postype_tex, j);
+                    postype_j = __ldg(d_postype + j);
                     Shape shape_j(quat<Scalar>(orientation_j), s_params[__scalar_as_int(postype_j.w)]);
 
                     // put particle j into the coordinate system of particle i
@@ -644,12 +627,12 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
             Shape shape_i(quat<Scalar>(s_orientation_group[check_group]), s_params[type_i]);
 
             // build shape j from global memory
-            postype_j = texFetchScalar4(d_postype, postype_tex, check_j);
+            postype_j = __ldg(d_postype + check_j);
             orientation_j = make_scalar4(1,0,0,0);
             unsigned int type_j = __scalar_as_int(postype_j.w);
             Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
             if (shape_j.hasOrientation())
-                shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation, orientation_tex, check_j));
+                shape_j.orientation = quat<Scalar>(__ldg(d_orientation + check_j));
 
             // put particle j into the coordinate system of particle i
             r_ij = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_i);
@@ -879,28 +862,6 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         }
 
     dim3 grid( args.n_active_cells / n_groups + 1, 1, 1);
-
-    // bind the textures
-    postype_tex.normalized = false;
-    postype_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, postype_tex, args.d_postype, sizeof(Scalar4)*args.max_n);
-    if (error != cudaSuccess)
-        return error;
-
-    if (args.has_orientation)
-        {
-        orientation_tex.normalized = false;
-        orientation_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, orientation_tex, args.d_orientation, sizeof(Scalar4)*args.max_n);
-        if (error != cudaSuccess)
-            return error;
-        }
-
-    cell_idx_tex.normalized = false;
-    cell_idx_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, cell_idx_tex, args.d_cell_idx, sizeof(Scalar4)*args.cli.getNumElements());
-    if (error != cudaSuccess)
-        return error;
 
     gpu_hpmc_mpmc_kernel<Shape><<<grid, threads, shared_bytes, args.stream>>>(args.d_postype,
                                                                  args.d_orientation,

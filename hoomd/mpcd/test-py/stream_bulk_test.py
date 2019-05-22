@@ -126,6 +126,27 @@ class mpcd_stream_bulk_test(unittest.TestCase):
         self.assertTrue(bulk.enabled)
         self.assertEqual(hoomd.context.current.mpcd._stream, bulk)
 
+    # test for initialization order errors
+    def test_init_errors(self):
+        hoomd.context.initialize()
+
+        # it is an error to make a collision rule without initializing first
+        with self.assertRaises(RuntimeError):
+            mpcd.stream.bulk()
+
+        # it is an error to make a collision rule without initializing MPCD first
+        hoomd.init.read_snapshot(hoomd.data.make_snapshot(N=1, box=hoomd.data.boxdim(L=20.)))
+        with self.assertRaises(RuntimeError):
+            mpcd.stream.bulk()
+
+        # OK, now it should go
+        mpcd.init.read_snapshot(mpcd.data.make_snapshot(N=1))
+        mpcd.stream.bulk()
+
+        # creating another should raise an error
+        with self.assertRaises(RuntimeError):
+            mpcd.stream.bulk()
+
     def tearDown(self):
         del self.s
 

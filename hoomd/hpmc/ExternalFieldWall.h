@@ -8,7 +8,6 @@
     \brief Declaration of ExternalField base class
 */
 #include "hoomd/Compute.h"
-#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 
 #include "IntegratorHPMCMono.h"
@@ -20,6 +19,15 @@
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
+
+// need to declare these class methods with __device__ qualifiers when building in nvcc
+// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
+#ifdef NVCC
+#define DEVICE __device__
+#else
+#define DEVICE
+#endif
+
 
 namespace hpmc
 {
@@ -866,4 +874,5 @@ void export_ExternalFieldWall(pybind11::module& m, const std::string& name)
 
 } // namespace hpmc
 
+#undef DEVICE
 #endif // inclusion guard

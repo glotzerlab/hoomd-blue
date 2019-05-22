@@ -330,7 +330,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         virtual void setFilterBody(bool filter_body)
             {
             // detect if there are any rigid bodies in the system
-            bool has_bodies = m_pdata->hasRigidBodies();
+            bool has_bodies = m_pdata->hasBodies();
             if (has_bodies || !filter_body)
                 {
                 // only activate body filtering if bodies are present,

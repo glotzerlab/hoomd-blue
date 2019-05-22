@@ -11,8 +11,8 @@
 #include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
 
-#include "hoomd/Saru.h"
-
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 namespace py = pybind11;
 
@@ -177,7 +177,7 @@ void IntegrationMethodTwoStep::validateGroup()
         unsigned int tag = h_tag.data[i];
         unsigned int body = h_body.data[i];
 
-        if (body != NO_BODY && body != tag)
+        if (body < MIN_FLOPPY && body != tag)
             {
             m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body, but is not its center particle. "
                 << std::endl << "This integration method does not operate on constituent particles."
@@ -240,15 +240,16 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
         unsigned int ptag = h_tag.data[j];
 
         /* Initialize the random number generator */
-        hoomd::detail::Saru saru(ptag, timestep, m_seed_randomize);
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::IntegrationMethodTwoStep, m_seed_randomize, ptag, timestep);
 
         /* Generate a new random linear velocity for particle j */
         Scalar mass =  h_vel.data[j].w;
         Scalar sigma = fast::sqrt(m_T_randomize / mass);
-        h_vel.data[j].x = gaussian_rng(saru, sigma);
-        h_vel.data[j].y = gaussian_rng(saru, sigma);
+        hoomd::NormalDistribution<Scalar> normal(sigma);
+        h_vel.data[j].x = normal(rng);
+        h_vel.data[j].y = normal(rng);
         if (D > 2)
-            h_vel.data[j].z = gaussian_rng(saru, sigma);
+            h_vel.data[j].z = normal(rng);
         else
             h_vel.data[j].z = 0; // For 2D systems
 
@@ -266,11 +267,11 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
             /* Generate a new random angular momentum for particle j in
              * body frame */
             if (I.x >= EPSILON)
-                p_vec.x = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.x));
+                p_vec.x = hoomd::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.x))(rng);
             if (I.y >= EPSILON)
-                p_vec.y = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.y));
+                p_vec.y = hoomd::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.y))(rng);
             if (I.z >= EPSILON)
-                p_vec.z = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.z));
+                p_vec.z = hoomd::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.z))(rng);
 
             /* Store the angular momentum quaternion */
             quat<Scalar> p = Scalar(2.0) * q * p_vec;

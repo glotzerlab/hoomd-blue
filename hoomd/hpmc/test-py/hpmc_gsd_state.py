@@ -40,7 +40,7 @@ class hpmc_gsd_state(unittest.TestCase):
         self.a = 0.5;
         self.d = 0.5;
         self.params = dict(
-            sphere=dict(first=dict(diameter=1.5), second=dict(diameter=3.0)),
+            sphere=dict(first=dict(diameter=1.5,orientable=False), second=dict(diameter=3.0,orientable=True)),
             ellipsoid=dict(first=dict(a=0.5, b=0.54, c=0.35), second=dict(a=0.98*0.5, b=1.05*0.54, c=1.1*0.35)),
             convex_polygon=dict(first=dict(vertices=v2d), second=dict(vertices=v2dup)),
             convex_spheropolygon=dict(first=dict(vertices=v2d, sweep_radius=r), second=dict(vertices=v2dup, sweep_radius=rup)),
@@ -110,12 +110,16 @@ class hpmc_gsd_state(unittest.TestCase):
 
         self.run_test_2('sphere', 3);
         self.assertAlmostEqual(self.mc.shape_param['A'].diameter, self.params['sphere']['second']['diameter']);
-        self.assertAlmostEqual(self.mc.get_a(), 0.0);
+        self.assertAlmostEqual(self.mc.shape_param['A'].orientable, self.params['sphere']['second']['orientable']);
+        self.assertAlmostEqual(self.mc.get_a(), self.a);
         self.assertAlmostEqual(self.mc.get_d(), self.d);
         self.tear_down()
 
         self.run_test_3('sphere', 3);
         self.assertAlmostEqual(self.mc.shape_param['A'].diameter, self.params['sphere']['first']['diameter']);
+        self.assertAlmostEqual(self.mc.shape_param['A'].orientable, self.params['sphere']['first']['orientable']);
+        # a is set to garbage value in memory (usually zero) if type is not orientable. Might be better to explicitly
+        # set it it to a default value to avoid this test to randomly fail in the future.
         self.assertAlmostEqual(self.mc.get_a(), 0.0);
         self.assertAlmostEqual(self.mc.get_d(), 0.1);
         self.tear_down()

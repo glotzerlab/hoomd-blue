@@ -65,9 +65,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
         #endif
 
-        //! Update the constituent particles of a composite particle
-        /*  Using the position, velocity and orientation of the central particle
-         */
+        //! Update the constituent particles of a composite particle using the position, velocity and orientation of the central particle
         virtual void updateCompositeParticles(unsigned int timestep);
 
         //! Validate or create copies of rigid body constituent particles

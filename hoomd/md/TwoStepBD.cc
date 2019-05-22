@@ -9,7 +9,8 @@
 #include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
 
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 using namespace hoomd;
 
 
@@ -99,12 +100,13 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         unsigned int ptag = h_tag.data[j];
 
         // Initialize the RNG
-        detail::Saru saru(ptag, timestep, m_seed);
+        RandomGenerator rng(RNGIdentifier::TwoStepBD, m_seed, ptag, timestep);
 
         // compute the random force
-        Scalar rx = saru.s<Scalar>(-1,1);
-        Scalar ry = saru.s<Scalar>(-1,1);
-        Scalar rz = saru.s<Scalar>(-1,1);
+        UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
+        Scalar rx = uniform(rng);
+        Scalar ry = uniform(rng);
+        Scalar rz = uniform(rng);
 
         Scalar gamma;
         if (m_use_lambda)
@@ -138,10 +140,11 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         // draw a new random velocity for particle j
         Scalar mass =  h_vel.data[j].w;
         Scalar sigma = fast::sqrt(currentTemp/mass);
-        h_vel.data[j].x = gaussian_rng(saru, sigma);
-        h_vel.data[j].y = gaussian_rng(saru, sigma);
+        NormalDistribution<Scalar> normal(sigma);
+        h_vel.data[j].x = normal(rng);
+        h_vel.data[j].y = normal(rng);
         if (D > 2)
-            h_vel.data[j].z = gaussian_rng(saru, sigma);
+            h_vel.data[j].z = normal(rng);
         else
             h_vel.data[j].z = 0;
 
@@ -169,9 +172,9 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                 // original Gaussian random torque
                 // Gaussian random distribution is preferred in terms of preserving the exact math
                 vec3<Scalar> bf_torque;
-                bf_torque.x = gaussian_rng(saru, sigma_r.x);
-                bf_torque.y = gaussian_rng(saru, sigma_r.y);
-                bf_torque.z = gaussian_rng(saru, sigma_r.z);
+                bf_torque.x = NormalDistribution<Scalar>(sigma_r.x)(rng);
+                bf_torque.y = NormalDistribution<Scalar>(sigma_r.y)(rng);
+                bf_torque.z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
                 if (x_zero) bf_torque.x = 0;
                 if (y_zero) bf_torque.y = 0;
@@ -196,9 +199,9 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                 h_orientation.data[j] = quat_to_scalar4(q);
 
                 // draw a new random ang_mom for particle j in body frame
-                p_vec.x = gaussian_rng(saru, fast::sqrt(currentTemp * I.x));
-                p_vec.y = gaussian_rng(saru, fast::sqrt(currentTemp * I.y));
-                p_vec.z = gaussian_rng(saru, fast::sqrt(currentTemp * I.z));
+                p_vec.x = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.x))(rng);
+                p_vec.y = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.y))(rng);
+                p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
                 if (x_zero) p_vec.x = 0;
                 if (y_zero) p_vec.y = 0;
                 if (z_zero) p_vec.z = 0;
