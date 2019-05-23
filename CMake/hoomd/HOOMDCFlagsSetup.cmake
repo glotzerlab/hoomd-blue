@@ -8,9 +8,9 @@ endif()
 
 # let cmake set the flags
 set(CMAKE_CXX_STANDARD 11)
+set (CMAKE_CUDA_STANDARD 11)
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# findcuda needs to be told explicitly to use c++11 as CMAKE_CXX_STANDARD does not modify CMAKE_CXX_FLAGS
-list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
 
 # Enable compiler warnings on gcc and clang (common compilers used by developers)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")

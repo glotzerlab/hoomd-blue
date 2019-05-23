@@ -98,20 +98,21 @@ set(_mpcd_cu_sources
     )
 
 if (ENABLE_CUDA)
-    # Separable compilation is needed to support ExternalField.cu polymorphism.
-    # This likely breaks plugin support though. :-(
-    set(CUDA_SEPARABLE_COMPILATION ON)
-    # seem to need to inject fPIC here. fortunately, all of HOOMD's compilers should take this option.
-    CUDA_COMPILE(_CUDA_GENERATED_FILES ${_mpcd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
-    CUDA_COMPUTE_SEPARABLE_COMPILATION_OBJECT_FILE_NAME(LINK_OBJ _mpcd ${_CUDA_GENERATED_FILES})
-    CUDA_LINK_SEPARABLE_COMPILATION_OBJECTS(${LINK_OBJ} _mpcd "${CUDA_ADDITIONAL_OPTIONS};--compiler-options=-fPIC" "${_CUDA_GENERATED_FILES}")
+    set(_cuda_sources ${_mpcd_cu_sources})
+    set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
-pybind11_add_module(_mpcd SHARED ${_mpcd_sources} ${LINK_OBJ} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
+pybind11_add_module(_mpcd SHARED ${_mpcd_sources} ${LINK_OBJ} ${_cuda_sources} NO_EXTRAS)
 if (APPLE)
 set_target_properties(_mpcd PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path/../md;@loader_path")
 else()
 set_target_properties(_mpcd PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN/../md;$ORIGIN")
+endif()
+
+if (ENABLE_CUDA)
+    # Separable compilation is needed to support ExternalField.cu polymorphism.
+    # This likely breaks plugin support though. :-(
+    set_property(TARGET _mpcd PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 endif()
 
 # link the library to its dependencies

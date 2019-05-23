@@ -47,12 +47,13 @@ endif()
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     # add and link the unit test executable
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
-        CUDA_COMPILE(_CUDA_GENERATED_FILES ${CUR_TEST}.cu OPTIONS ${CUDA_ADDITIONAL_OPTIONS})
+        set(_cuda_sources ${CUR_TEST}.cu)
+        set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
     else()
-        set(_CUDA_GENERATED_FILES "")
+        set(_cuda_sources "")
     endif()
 
-    add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc ${_CUDA_GENERATED_FILES})
+    add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc ${_cuda_sources})
 
     add_dependencies(test_all ${CUR_TEST})
 
@@ -94,15 +95,6 @@ endforeach(CUR_TEST)
 
 # run tests under cuda-memcheck --tool synccheck
 if(ENABLE_CUDA)
-# cuda-memcheck executable
-find_program(CUDA_MEMCHECK_EXECUTABLE
-  NAMES cuda-memcheck
-  PATHS "${CUDA_TOOLKIT_ROOT_DIR}/bin"
-        "${CUDA_TOOLKIT_ROOT_DIR}/bin64"
-  ENV CUDA_BIN_PATH
-  NO_DEFAULT_PATH
-  )
-mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
 
 foreach (CUR_TEST ${SYNC_TEST_LIST})
     if (ENABLE_MPI)

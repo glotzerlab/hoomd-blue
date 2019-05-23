@@ -203,7 +203,7 @@ and specify these options on the command line:
 
   - Default: ``python3`` or ``python`` detected on ``$PATH``
 
-- ``CUDA_TOOLKIT_ROOT_DIR`` - Specify the root direction of the CUDA installation.
+- ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` to build with.
 
   - Default: location of ``nvcc`` detected on ``$PATH``
 
@@ -275,4 +275,3 @@ These options control CUDA compilation:
 
 - ``CUDA_ARCH_LIST`` - A semicolon-separated list of GPU architectures to
   compile in.
-- ``NVCC_FLAGS`` - Allows additional flags to be passed to ``nvcc``.

@@ -195,10 +195,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 endif()
 
 if (ENABLE_CUDA)
-CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hoomd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
+set(_cuda_sources ${_hoomd_cu_sources})
+set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
-pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
+pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} NO_EXTRAS)
 
 # add quick hull as its own library so that it's symbols can be public
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)

@@ -253,10 +253,11 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       )
 
 if (ENABLE_CUDA)
-CUDA_COMPILE(_CUDA_GENERATED_FILES ${_md_cu_sources} ${DFFT_CU_SOURCES} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
+set(_cuda_sources ${_md_cu_sources} ${DFFT_CU_SOURCES})
+set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
-pybind11_add_module(_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES} ${DFFT_SOURCES} NO_EXTRAS)
+pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} NO_EXTRAS)
 if(APPLE)
 set_target_properties(_md PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()

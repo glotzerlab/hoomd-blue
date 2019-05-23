@@ -38,10 +38,11 @@ if (ENABLE_CUDA)
 endif(ENABLE_CUDA)
 
 if (ENABLE_CUDA)
-CUDA_COMPILE(_CUDA_GENERATED_FILES ${_dem_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
+set(_cuda_sources ${_dem_cu_sources})
+set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
-pybind11_add_module(_dem SHARED ${_dem_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
+pybind11_add_module(_dem SHARED ${_dem_sources} ${_cuda_sources} NO_EXTRAS)
 if (APPLE)
 set_target_properties(_dem PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path/../md;@loader_path")
 else()
