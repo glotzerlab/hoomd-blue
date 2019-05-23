@@ -13,26 +13,6 @@ message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 include (CMake_build_options.cmake)
 
 #################################
-## update submodules
-set (UPDATE_SUBMODULES 1 CACHE BOOL "Update git submodules for dependency projects")
-
-if ((EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git) AND GIT_EXECUTABLE)
-    # only attempt to update submodules if this is a git repository and we have a git executable
-    if (UPDATE_SUBMODULES)
-      message(STATUS "Updating git submodules")
-      execute_process(COMMAND ${GIT_EXECUTABLE} submodule --quiet sync
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-      execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    endif()
-else()
-    if (UPDATE_SUBMODULES)
-    message(STATUS "UPDATE_SUBMODULES is set, but cmake cannot automatically update the submodules. "
-                   "The source directory is not a git clone or the git executable is not available.")
-    endif()
-endif()
-
-#################################
 ## setup python library and executable
 # Set default CFlags
 include (HOOMDCFlagsSetup)
