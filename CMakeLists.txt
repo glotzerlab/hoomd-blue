@@ -41,14 +41,14 @@ endif()
 
 #################################
 ## setup python library and executable
+# Set default CFlags
+include (HOOMDCFlagsSetup)
 # setup MPI support
 include (HOOMDMPISetup)
 # find the python libraries to link to
 include(HOOMDPythonSetup)
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
-# Set default CFlags
-include (HOOMDCFlagsSetup)
 # include some os specific options
 include (HOOMDOSSpecificSetup)
 # setup common libraries used by all targets in this project
