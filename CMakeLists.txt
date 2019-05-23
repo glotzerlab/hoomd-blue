@@ -1,12 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.8 FATAL_ERROR)
 
-if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
-if(COMMAND cmake_policy)
-    cmake_policy(SET CMP0003 NEW)
-    cmake_policy(SET CMP0042 NEW)
-endif(COMMAND cmake_policy)
-endif()
-
 project (HOOMD LANGUAGES C CXX)
 
 # bring in custom modules
