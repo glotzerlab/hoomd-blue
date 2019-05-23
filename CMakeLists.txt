@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.10.1 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.8 FATAL_ERROR)
 
 if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
 if(COMMAND cmake_policy)
@@ -7,7 +7,7 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 endif()
 
-project (HOOMD)
+project (HOOMD LANGUAGES C CXX)
 
 # bring in custom modules
 add_subdirectory (CMake)
@@ -18,9 +18,6 @@ message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 
 # Handle user build options
 include (CMake_build_options.cmake)
-
-# setup the install directories
-include (CMake_install_options.cmake)
 
 #################################
 ## update submodules
@@ -117,7 +114,6 @@ set(cmake_files CMake/hoomd/FindTBB.cmake
                 CMake/libgetar/Findlibgetar.cmake
                 CMake/thrust/FindThrust.cmake
                 CMake_build_options.cmake
-                CMake_install_options.cmake
                 CMake_preprocessor_flags.cmake
                 CMake_src_setup.cmake
                 CMake_version_options.cmake

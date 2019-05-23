@@ -86,8 +86,6 @@ include (hoomd_cache)
 # Handle user build options
 include (CMake_build_options)
 include (CMake_preprocessor_flags)
-# setup the install directories
-include (CMake_install_options)
 
 # Find the python executable and libraries
 include (HOOMDPythonSetup)
