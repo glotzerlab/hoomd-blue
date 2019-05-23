@@ -87,14 +87,12 @@ include (hoomd_cache)
 include (CMake_build_options)
 include (CMake_preprocessor_flags)
 
+# Set default CFlags
+include (HOOMDCFlagsSetup)
 # Find the python executable and libraries
 include (HOOMDPythonSetup)
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
-# Set default CFlags
-include (HOOMDCFlagsSetup)
-# include some os specific options
-include (HOOMDOSSpecificSetup)
 # setup common libraries used by all targets in this project
 include (HOOMDCommonLibsSetup)
 # setup macros

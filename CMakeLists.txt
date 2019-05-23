@@ -49,8 +49,6 @@ include (HOOMDMPISetup)
 include(HOOMDPythonSetup)
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
-# include some os specific options
-include (HOOMDOSSpecificSetup)
 # setup common libraries used by all targets in this project
 include (HOOMDCommonLibsSetup)
 # macros
