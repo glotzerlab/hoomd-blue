@@ -96,7 +96,7 @@ void DynamicBond::setParams(Scalar r_cut,
         }
     m_r_cut = r_cut;
     m_delta_G = delta_G;
-    std::fill(m_nloops.begin(), m_nloops.end(), 400);
+    std::fill(m_nloops.begin(), m_nloops.end(), n_polymer);
     m_nK = nK;
     }
 
