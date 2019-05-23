@@ -104,13 +104,10 @@ set(cmake_files CMake/hoomd/FindTBB.cmake
                 CMake/hoomd/test.cc
                 CMake/hoomd/HOOMDMacros.cmake
                 CMake/hoomd/HOOMDMPISetup.cmake
-                CMake/hoomd/HOOMDNumpySetup.cmake
-                CMake/hoomd/HOOMDOSSpecificSetup.cmake
                 CMake/hoomd/HOOMDPythonSetup.cmake
                 CMake/git/FindGit.cmake
                 CMake/git/GetGitRevisionDescription.cmake
                 CMake/libgetar/Findlibgetar.cmake
-                CMake/thrust/FindThrust.cmake
                 CMake_build_options.cmake
                 CMake_preprocessor_flags.cmake
                 CMake_src_setup.cmake
