@@ -112,30 +112,10 @@ endforeach()
 
 add_custom_target(copy_${PACKAGE_NAME} ALL DEPENDS ${files})
 
-# copy python modules to the build directory to make it a working python package
-MACRO(copy_header file)
-    add_custom_command (
-        OUTPUT ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/../include/hoomd/${PACKAGE_NAME}/${file}
-        COMMENT    "Copy hoomd/include/hoomd/${PACKAGE_NAME}/${file}"
-    )
-ENDMACRO(copy_header)
-
 # install headers in installation target
 install(FILES ${_${PACKAGE_NAME}_headers}
         DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/${PACKAGE_NAME}
        )
-
-if (COPY_HEADERS)
-# copy headers into build directory
-foreach(file ${_${PACKAGE_NAME}_headers})
-    copy_header(${file})
-endforeach()
-
-add_custom_target(copy_${PACKAGE_NAME}_headers ALL DEPENDS ${_${PACKAGE_NAME}_headers})
-endif()
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

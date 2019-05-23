@@ -266,9 +266,6 @@ Other option changes take effect at any time. These can be set from within
   - When set to ``ON``, HOOMD will use TBB to speed up calculations in some
     classes on multiple CPU cores.
 
-- ``COPY_HEADERS`` - When ``ON`` (``OFF`` is default), copy header files into
-  the build directory to make it a valid plugin build source.
-
 These options control CUDA compilation:
 
 - ``CUDA_ARCH_LIST`` - A semicolon-separated list of GPU architectures to

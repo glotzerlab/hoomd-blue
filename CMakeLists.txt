@@ -87,35 +87,16 @@ set(cmake_files CMake/hoomd/FindTBB.cmake
                 CMake_version_options.cmake
    )
 
-# copy cmake scripts we currently use into build directory
-MACRO(copy_cmake file)
-    add_custom_command (
-        OUTPUT hoomd/${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/hoomd/${file}
-        COMMENT    "Copy hoomd/${file}"
-    )
-ENDMACRO(copy_cmake)
-
 # install headers in installation target
 install(FILES ${cmake_files}
         DESTINATION ${PYTHON_MODULE_BASE_DIR}
        )
-
-# copy headers into build directory
-foreach(file ${cmake_files})
-    copy_cmake(${file})
-endforeach()
 
 configure_file(hoomd_cache.cmake.in
     ${HOOMD_BINARY_DIR}/hoomd/CMake/hoomd/hoomd_cache.cmake)
 
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/CMake/hoomd/hoomd_cache.cmake
         DESTINATION ${PYTHON_MODULE_BASE_DIR}/CMake/hoomd)
-
-add_custom_target(copy_cmake ALL
-    DEPENDS ${cmake_files} ${HOOMD_BINARY_DIR}/hoomd/CMake/hoomd/hoomd_cache.cmake)
 
 ################################
 # set up unit tests

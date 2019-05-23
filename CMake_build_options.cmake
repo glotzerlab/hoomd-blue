@@ -47,8 +47,6 @@ if (ENABLE_DOXYGEN)
     endif ()
 endif ()
 
-option(COPY_HEADERS "Copy the headers into the build directories for plugins" off)
-
 ###################################
 ## Components
 option(BUILD_MD "Build the md package" on)

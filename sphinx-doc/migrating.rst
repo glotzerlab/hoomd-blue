@@ -14,3 +14,4 @@ Compiling
 * HOOMD now uses native CUDA support in CMake. Use ``CMAKE_CUDA_COMPILER`` to specify a specific ``nvcc``. Plugins
   will require updates to ``CMakeLists.txt`` to compile ``.cu`` files.
 * External plugins will require additional updates to work with v3 (full list of changes pending).
+* ``COPY_HEADERS`` no longer exists. Users must install HOOMD for use with external plugins.

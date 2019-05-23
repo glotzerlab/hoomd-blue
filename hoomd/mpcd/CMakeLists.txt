@@ -172,30 +172,10 @@ endforeach()
 
 add_custom_target(copy_mpcd ALL DEPENDS ${files})
 
-# copy python modules to the build directory to make it a working python package
-MACRO(copy_header file)
-    add_custom_command (
-        OUTPUT ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/../include/hoomd/mpcd/${file}
-        COMMENT    "Copy hoomd/include/hoomd/mpcd/${file}"
-    )
-ENDMACRO(copy_header)
-
 # install headers in installation target
 install(FILES ${_mpcd_headers}
         DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/mpcd
        )
-
-if (COPY_HEADERS)
-# copy headers into build directory
-foreach(file ${_mpcd_headers})
-    copy_header(${file})
-endforeach()
-
-add_custom_target(copy_mpcd_headers ALL DEPENDS ${_mpcd_headers})
-endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)
