@@ -64,9 +64,9 @@ struct poly3d_verts : param_base
         {
         unsigned int align_size = 8; //for AVX
         unsigned int N_align =((N + align_size - 1)/align_size)*align_size;
-        x = ManagedArray<OverlapReal>(N_align,_managed);
-        y = ManagedArray<OverlapReal>(N_align,_managed);
-        z = ManagedArray<OverlapReal>(N_align,_managed);
+        x = ManagedArray<OverlapReal>(N_align,_managed, 32); // 32byte alignment for AVX
+        y = ManagedArray<OverlapReal>(N_align,_managed, 32);
+        z = ManagedArray<OverlapReal>(N_align,_managed, 32);
         for (unsigned int i = 0; i <  N_align; ++i)
             {
             x[i] = y[i] = z[i] = OverlapReal(0.0);

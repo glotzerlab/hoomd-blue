@@ -130,7 +130,7 @@ class managed_allocator
             else
             #endif
                 {
-                int retval = posix_memalign((void **) &result, 32, n*sizeof(T));
+                int retval = posix_memalign((void **) &result, align_size, n*sizeof(T));
                 if (retval != 0)
                     {
                     throw std::runtime_error("Error allocating aligned memory");
