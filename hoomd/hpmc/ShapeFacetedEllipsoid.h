@@ -78,12 +78,24 @@ struct faceted_ellipsoid_params : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         n.load_shared(ptr,available_bytes);
         offset.load_shared(ptr,available_bytes);
         verts.load_shared(ptr,available_bytes);
         additional_verts.load_shared(ptr, available_bytes);
+        }
+
+    //! Determine size of a shared memory alloation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+        {
+        n.allocate_shared(ptr,available_bytes);
+        offset.allocate_shared(ptr,available_bytes);
+        verts.allocate_shared(ptr,available_bytes);
+        additional_verts.allocate_shared(ptr, available_bytes);
         }
 
     #ifdef ENABLE_CUDA

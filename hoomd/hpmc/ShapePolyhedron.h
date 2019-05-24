@@ -92,7 +92,7 @@ struct poly3d_data : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         tree.load_shared(ptr, available_bytes);
         convex_hull_verts.load_shared(ptr, available_bytes);
@@ -100,6 +100,20 @@ struct poly3d_data : param_base
         face_offs.load_shared(ptr, available_bytes);
         face_verts.load_shared(ptr, available_bytes);
         face_overlap.load_shared(ptr, available_bytes);
+        }
+
+    //! Determine size of the shared memory allocation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
+        {
+        tree.allocate_shared(ptr, available_bytes);
+        convex_hull_verts.allocate_shared(ptr, available_bytes);
+        verts.allocate_shared(ptr, available_bytes);
+        face_offs.allocate_shared(ptr, available_bytes);
+        face_verts.allocate_shared(ptr, available_bytes);
+        face_overlap.allocate_shared(ptr, available_bytes);
         }
 
     #ifdef ENABLE_CUDA

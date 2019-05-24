@@ -118,9 +118,9 @@ class managed_allocator
                     {
                     // align to align_size
                     #ifndef NO_STD_ALIGN
-                    result = std::align(align_size,n*sizeof(T),result,allocation_bytes);
+                    std::align(align_size,n*sizeof(T),result,allocation_bytes);
                     #else
-                    result = my_align(align_size,n*sizeof(T),result,allocation_bytes);
+                    my_align(align_size,n*sizeof(T),result,allocation_bytes);
                     #endif
 
                     if (!result)
@@ -130,10 +130,19 @@ class managed_allocator
             else
             #endif
                 {
-                int retval = posix_memalign((void **) &result, align_size, n*sizeof(T));
-                if (retval != 0)
+                if (align_size > 0)
                     {
-                    throw std::runtime_error("Error allocating aligned memory");
+                    int retval = posix_memalign((void **) &result, align_size, n*sizeof(T));
+                    if (retval != 0)
+                        {
+                        throw std::runtime_error("Error allocating aligned memory");
+                        }
+                    }
+                else
+                    {
+                    result = malloc(n*sizeof(T));
+                    if (!result)
+                        throw std::runtime_error("Error allocating memory");
                     }
                 allocation_bytes = n*sizeof(T);
                 allocation_ptr = result;

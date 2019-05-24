@@ -53,11 +53,11 @@ struct union_params : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         tree.load_shared(ptr, available_bytes);
         mpos.load_shared(ptr, available_bytes);
-        mparams.load_shared(ptr, available_bytes);
+        bool params_in_shared_mem = mparams.load_shared(ptr, available_bytes);
         moverlap.load_shared(ptr, available_bytes);
         morientation.load_shared(ptr, available_bytes);
 
@@ -67,8 +67,36 @@ struct union_params : param_base
         #endif
 
         for (unsigned int i = 0; i < mparams.size(); ++i)
-            mparams[i].load_shared(ptr, available_bytes);
+            {
+            if (params_in_shared_mem)
+                {
+                // load only if we are sure that we are not touching any unified memory
+                mparams[i].load_shared(ptr, available_bytes);
+                }
+            else
+                {
+                // increment pointer only
+                mparams[i].allocate_shared(ptr, available_bytes);
+                }
+            }
         }
+
+    //! Determine size of the shared memory allocaation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
+        {
+        tree.allocate_shared(ptr, available_bytes);
+        mpos.allocate_shared(ptr, available_bytes);
+        mparams.allocate_shared(ptr, available_bytes);
+        moverlap.allocate_shared(ptr, available_bytes);
+        morientation.allocate_shared(ptr, available_bytes);
+
+        for (unsigned int i = 0; i < mparams.size(); ++i)
+            mparams[i].allocate_shared(ptr, available_bytes);
+        }
+
 
     #ifdef ENABLE_CUDA
     //! Attach managed memory to CUDA stream

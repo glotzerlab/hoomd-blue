@@ -78,12 +78,24 @@ struct poly3d_verts : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         x.load_shared(ptr,available_bytes);
         y.load_shared(ptr,available_bytes);
         z.load_shared(ptr,available_bytes);
         hull_verts.load_shared(ptr,available_bytes);
+        }
+
+    //! Determine size of a shared memory allocation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
+        {
+        x.allocate_shared(ptr,available_bytes);
+        y.allocate_shared(ptr,available_bytes);
+        z.allocate_shared(ptr,available_bytes);
+        hull_verts.allocate_shared(ptr,available_bytes);
         }
 
     #ifdef ENABLE_CUDA

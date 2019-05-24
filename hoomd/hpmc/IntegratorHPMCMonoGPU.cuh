@@ -1507,7 +1507,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
         unsigned int available_bytes = max_extra_bytes;
         for (unsigned int i = 0; i < args.num_types; ++i)
             {
-            params[i].load_shared(ptr, available_bytes);
+            params[i].allocate_shared(ptr, available_bytes);
             }
         extra_bytes = max_extra_bytes - available_bytes;
         }
@@ -1616,7 +1616,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             unsigned int available_bytes = max_extra_bytes;
             for (unsigned int i = 0; i < args.num_types; ++i)
                 {
-                params[i].load_shared(ptr, available_bytes);
+                params[i].allocate_shared(ptr, available_bytes);
                 }
             extra_bytes = max_extra_bytes - available_bytes;
             }
@@ -1735,7 +1735,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             unsigned int available_bytes = max_extra_bytes;
             for (unsigned int i = 0; i < args.num_types; ++i)
                 {
-                params[i].load_shared(ptr, available_bytes);
+                params[i].allocate_shared(ptr, available_bytes);
                 }
             extra_bytes = max_extra_bytes - available_bytes;
             }

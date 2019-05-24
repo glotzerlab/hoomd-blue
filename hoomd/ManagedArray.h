@@ -47,7 +47,7 @@ class ManagedArray
             }
         #endif
 
-        DEVICE virtual ~ManagedArray()
+        DEVICE ~ManagedArray()
             {
             #ifndef NVCC
             deallocate();
@@ -56,7 +56,7 @@ class ManagedArray
 
         //! Copy constructor
         /*! \warn the copy constructor reads from the other array and assumes that array is available on the
-                  host. If the GPU isn't synced up, this can lead to erros, so proper multi-GPU synchronization
+                  host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU synchronization
                   needs to be ensured
          */
         DEVICE ManagedArray(const ManagedArray<T>& other)
@@ -148,7 +148,7 @@ class ManagedArray
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
          */
-        HOSTDEVICE void load_shared(char *& s_ptr, unsigned int &available_bytes) const
+        HOSTDEVICE void* allocate_shared(char *& s_ptr, unsigned int &available_bytes) const
             {
             // size in ints (round up)
             unsigned int size_int = (sizeof(T)*N)/sizeof(int);
@@ -159,12 +159,35 @@ class ManagedArray
             char *ptr_align = (char *)(((unsigned long int)s_ptr + max_align_bytes) & ~max_align_bytes);
 
             if (size_int*sizeof(int)+max_align_bytes > available_bytes)
-                return;
+                return nullptr;
 
-            #if defined (__CUDA_ARCH__)
+            // increment pointer
+            s_ptr = ptr_align + size_int*sizeof(int);
+            available_bytes -= size_int*sizeof(int)+max_align_bytes;
+
+            return (void *)ptr_align;
+            }
+
+        //! Load dynamic data members into shared memory and increase pointer
+        /*! \param ptr Pointer to load data to (will be incremented)
+            \param available_bytes Size of remaining shared memory allocation
+
+            \returns true if array was loaded into shared memory
+         */
+        DEVICE bool load_shared(char *& s_ptr, unsigned int &available_bytes)
+            {
+            // align ptr to size of data type
+            void *ptr_align = allocate_shared(s_ptr, available_bytes);
+
+            if (! ptr_align)
+                return false;
+
             // only in GPU code
             unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
             unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
+
+            unsigned int size_int = (sizeof(T)*N)/sizeof(int);
+            if ((sizeof(T)*N) % sizeof(int)) size_int++;
 
             for (unsigned int cur_offset = 0; cur_offset < size_int; cur_offset += block_size)
                 {
@@ -176,11 +199,8 @@ class ManagedArray
 
             // redirect data ptr
             data = (T *) ptr_align;
-            #endif
 
-            // increment pointer
-            s_ptr = ptr_align + size_int*sizeof(int);
-            available_bytes -= size_int*sizeof(int)+max_align_bytes;
+            return true;
             }
 
         bool isManaged() const
@@ -216,7 +236,7 @@ class ManagedArray
         #endif
 
     private:
-        mutable T *data;         //!< Data pointer
+        T *data;                 //!< Data pointer
         T *ptr;                  //!< Original data pointer
         unsigned int N;          //!< Number of data elements
         unsigned int managed;    //!< True if we are CUDA managed
