@@ -226,20 +226,20 @@ void DynamicBond::update(unsigned int timestep)
                 Scalar rnd4 = saru.s<Scalar>(0,1);
 
                 // check to see if a bond should be created between particles i and j
-                if (rnd1 < p12)
+                if (rnd1 < p12 && m_nloops[i] > 0)
                     {
                     m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                     m_nloops[i] -= 1;
                     }
 
-                if (rnd2 < p21)
+                if (rnd2 < p21 && m_nloops[j] > 0)
                     {
                     m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                     m_nloops[j] -= 1;
                     }
 
                 // check to see if a bond should be broken between particles i and j
-                if (rnd3 < q1)
+                if (rnd3 < q1 && n_bridges_ij > 0)
                     {
                     // for each of the bonds in the *system*
                     const unsigned int size = (unsigned int)m_bond_data->getN();
@@ -247,7 +247,7 @@ void DynamicBond::update(unsigned int timestep)
 
                     for (unsigned int bond_number = 0; bond_number < size; bond_number++)
                         {
-                        // lookup the tag of each of the particles participating in the bond
+                        // look up the tag of each of the particles participating in the bond
                         const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
                         assert(bond.tag[0] < m_pdata->getN());
                         assert(bond.tag[1] < m_pdata->getN());
@@ -259,19 +259,19 @@ void DynamicBond::update(unsigned int timestep)
                         assert(idx_a <= m_pdata->getMaximumTag());
                         assert(idx_b <= m_pdata->getMaximumTag());
 
+
                         if ((bond.tag[0] == i && bond.tag[1] == j) || (bond.tag[0] == j & bond.tag[1] == i))
                             {
-                            // m_exec_conf->msg->notice(2) << "Removing bond with tag: " << bond_number << endl;
-                            // m_exec_conf->msg->notice(2) << "between particles with tags: " << i << "," << j << endl;
-                            m_bond_data->removeBondedGroup(bond_number);
+                            // remove bond with tag "bond_number" between particles i and j, the leave the loop
+                            m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
                             break;
                             }
                         }
-                    if (rnd4 < 0.5)
+                    if (rnd4 <= 0.5)
                         {
                         m_nloops[i] += 1;
                         }
-                    else if (rnd4 >=0.5)
+                    else if (rnd4 > 0.5)
                         {
                         m_nloops[j] +=1;
                         }
