@@ -15,3 +15,4 @@ Compiling
   will require updates to ``CMakeLists.txt`` to compile ``.cu`` files.
 * External plugins will require additional updates to work with v3 (full list of changes pending).
 * ``COPY_HEADERS`` no longer exists. Users must install HOOMD for use with external plugins.
+* ``CMAKE_INSTALL_PREFIX`` is set to the python ``site-packages`` directory (if not explicitly set by the user)

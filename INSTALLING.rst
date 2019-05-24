@@ -148,7 +148,7 @@ Configure::
     $ cd hoomd-blue
     $ mkdir build
     $ cd build
-    $ cmake ../ -DCMAKE_INSTALL_PREFIX=`python3 -c "import site; print(site.getsitepackages()[0])"`
+    $ cmake ../
 
 By default, **HOOMD-blue** configures a *Release* optimized build type for a
 generic CPU architecture and with no optional libraries. Specify::
@@ -160,7 +160,7 @@ to your CPU. Specify ``-DENABLE_CUDA=ON`` to compile code for the GPU (requires
 CUDA) and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI.
 Configure a performance optimized build::
 
-    $ cmake ../ -DCMAKE_INSTALL_PREFIX=`python3 -c "import site; print(site.getsitepackages()[0])"` -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native -DENABLE_CUDA=ON -DENABLE_MPI=ON
+    $ cmake ../ -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native -DENABLE_CUDA=ON -DENABLE_MPI=ON
 
 See the build options section below for a full list of options.
 
