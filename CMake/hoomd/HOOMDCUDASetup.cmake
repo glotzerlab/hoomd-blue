@@ -40,7 +40,7 @@ if (ENABLE_CUDA)
     # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
     if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER 8.99)
         set(CUDA_ARCH_LIST 35 50 60 70 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-    elseif (CUDA_VERSION VERSION_GREATER 7.99)
+    elseif (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER 7.99)
         set(CUDA_ARCH_LIST 35 50 60 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     endif()
 
