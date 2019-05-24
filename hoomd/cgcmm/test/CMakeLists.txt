@@ -23,15 +23,6 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     target_link_libraries(${CUR_TEST} _cgcmm _md ${HOOMD_LIBRARIES} ${PYTHON_LIBRARIES})
     fix_cudart_rpath(${CUR_TEST})
 
-    if (ENABLE_MPI)
-        # set appropriate compiler/linker flags
-        if(MPI_COMPILE_FLAGS)
-            set_target_properties(${CUR_TEST} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-        endif(MPI_COMPILE_FLAGS)
-        if(MPI_LINK_FLAGS)
-            set_target_properties(${CUR_TEST} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
-        endif(MPI_LINK_FLAGS)
-    endif (ENABLE_MPI)
 endforeach (CUR_TEST)
 
 # add non-MPI tests to test list first

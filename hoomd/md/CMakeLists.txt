@@ -272,17 +272,6 @@ else()
     target_link_libraries(_md PRIVATE _hoomd ${HOOMD_COMMON_LIBS})
 endif()
 
-# if we are compiling with MPI support built in, set appropriate
-# compiler/linker flags
-if (ENABLE_MPI)
-   if(MPI_COMPILE_FLAGS)
-       set_target_properties(_md PROPERTIES COMPILE_FLAGS "${MPI_CXX_COMPILE_FLAGS}")
-   endif(MPI_COMPILE_FLAGS)
-   if(MPI_LINK_FLAGS)
-       set_target_properties(_md PROPERTIES LINK_FLAGS "${MPI_CXX_LINK_FLAGS}")
-   endif(MPI_LINK_FLAGS)
-endif(ENABLE_MPI)
-
 fix_cudart_rpath(_md)
 
 # install the library

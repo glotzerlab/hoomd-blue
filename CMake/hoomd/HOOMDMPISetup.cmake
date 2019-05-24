@@ -51,9 +51,21 @@ if (ENABLE_MPI)
         endif(MPI_CUDA)
     endif (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
 
-    if (ENABLE_MPI)
-        # add include directories
-        include_directories(${MPI_C_INCLUDE_PATH})
-    endif()
+    include_directories(${MPI_CXX_INCLUDE_PATH})
+
+    # use recommended flags
+    foreach(flag ${MPI_CXX_COMPILE_FLAGS})
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
+    endforeach()
+
+    foreach(flag ${MPI_C_COMPILE_FLAGS})
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flag}")
+    endforeach()
+
+    foreach(flag ${MPI_LINK_FLAGS})
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${flag}")
+        set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${flag}")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${flag}")
+    endforeach()
 
 endif (ENABLE_MPI)

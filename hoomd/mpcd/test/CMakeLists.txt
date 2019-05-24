@@ -54,15 +54,6 @@ macro(compile_test TEST_EXE TEST_SRC)
     target_link_libraries(${TEST_EXE} _mpcd _md ${HOOMD_LIBRARIES} ${PYTHON_LIBRARIES})
     fix_cudart_rpath(${TEST_EXE})
 
-    if (ENABLE_MPI)
-        # set appropriate compiler/linker flags
-        if(MPI_COMPILE_FLAGS)
-            set_target_properties(${TEST_EXE} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-        endif(MPI_COMPILE_FLAGS)
-        if(MPI_LINK_FLAGS)
-            set_target_properties(${TEST_EXE} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
-        endif(MPI_LINK_FLAGS)
-    endif (ENABLE_MPI)
 endmacro(compile_test)
 
 # add non-MPI tests to test list first
