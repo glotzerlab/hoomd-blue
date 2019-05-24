@@ -1,10 +1,17 @@
+option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
+
+option(ALWAYS_USE_MANAGED_MEMORY "Use CUDA managed memory also when running on single GPU" OFF)
+MARK_AS_ADVANCED(ALWAYS_USE_MANAGED_MEMORY)
+
+if (ENABLE_CUDA)
+    option(ENABLE_NVTOOLS "Enable NVTools profiler integration" off)
+endif (ENABLE_CUDA)
+
 if (ENABLE_CUDA)
     enable_language(CUDA)
     if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.0)
         message(SEND_ERROR "HOOMD-blue requires CUDA 9.0 or newer")
     endif()
-
-    include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
     # find CUDA library path
     get_filename_component(CUDA_BIN_PATH ${CMAKE_CUDA_COMPILER} DIRECTORY)
@@ -30,6 +37,20 @@ if (ENABLE_CUDA)
       HINTS "${CUDA_BIN_PATH}"
       NO_DEFAULT_PATH)
     mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
+
+    include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+    list(APPEND HOOMD_COMMON_LIBS ${CUDA_cudart_LIBRARY} ${CUDA_cufft_LIBRARY} ${CUDA_curand_LIBRARY})
+
+    add_definitions (-DENABLE_CUDA)
+
+    if(ALWAYS_USE_MANAGED_MEMORY)
+        add_definitions(-DALWAYS_USE_MANAGED_MEMORY)
+    endif()
+
+    if (ENABLE_NVTOOLS)
+        list(APPEND HOOMD_COMMON_LIBS ${CUDA_nvToolsExt_LIBRARY})
+        add_definitions(-DENABLE_NVTOOLS)
+    endif()
 endif (ENABLE_CUDA)
 
 # setup CUDA compile options
@@ -85,4 +106,19 @@ if (NOT CUSOLVER_AVAILABLE)
     message(STATUS "Could not find cusolver library, constraints will be slower. Perhaps old CMake or missing gomp library.")
 endif()
 
+if (CUSOLVER_AVAILABLE)
+    add_definitions(-DCUSOLVER_AVAILABLE)
 endif()
+
+endif()
+
+###############################
+# Helper macros
+macro(fix_cudart_rpath target)
+if (ENABLE_CUDA AND APPLE)
+add_custom_command(TARGET $<TARGET_FILE:${target}> POST_BUILD
+                          COMMAND install_name_tool ARGS -change @rpath/libcudart.dylib ${CUDA_CUDART_LIBRARY} ${_target_exe})
+add_custom_command(TARGET $<TARGET_FILE:${target}> POST_BUILD
+                          COMMAND install_name_tool ARGS -change @rpath/libcufft.dylib ${CUDA_cufft_LIBRARY} ${_target_exe})
+endif (ENABLE_CUDA AND APPLE)
+endmacro(fix_cudart_rpath)

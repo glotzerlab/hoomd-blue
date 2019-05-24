@@ -1,4 +1,4 @@
-# Maintainer: jglaser
+option (ENABLE_MPI "Enable the compilation of the MPI communication code" off)
 
 ##################################
 ## Find MPI
@@ -52,6 +52,12 @@ if (ENABLE_MPI)
     endif (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
 
     include_directories(${MPI_CXX_INCLUDE_PATH})
+    list(APPEND HOOMD_COMMON_LIBS ${MPI_CXX_LIBRARIES})
+    add_definitions (-DENABLE_MPI)
+
+    if (ENABLE_MPI_CUDA)
+          add_definitions (-DENABLE_MPI_CUDA)
+    endif(ENABLE_MPI_CUDA)
 
     # use recommended flags
     foreach(flag ${MPI_CXX_COMPILE_FLAGS})
