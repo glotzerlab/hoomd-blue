@@ -2,8 +2,8 @@
 
 #ifdef ENABLE_CUDA
 
-#include "IntegratorHPMCMono.h"
-#include "IntegratorHPMCMonoGPU.cuh"
+#include "hoomd/hpmc/IntegratorHPMCMono.h"
+#include "hoomd/hpmc/IntegratorHPMCMonoGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
 #include "hoomd/Autotuner.h"
 #include "hoomd/GlobalArray.h"
@@ -30,6 +30,103 @@
 namespace hpmc
 {
 
+namespace detail
+{
+
+//! Helper class to manage shuffled update orders in a GlobalVector
+/*! Stores an update order from 0 to N-1, inclusive, and can be resized. shuffle() shuffles the order of elements
+    to a new random permutation. operator [i] gets the index of the item at order i in the current shuffled sequence.
+
+    NOTE: this should supersede UpdateOrder
+
+    \note we use GPUArrays instead of GlobalArrays currently to allow host access to the shuffled order without an
+          unnecessary cudaDeviceSynchronize()
+
+    \ingroup hpmc_data_structs
+*/
+class UpdateOrderGPU
+    {
+    public:
+        //! Constructor
+        /*! \param seed Random number seed
+            \param N number of integers to shuffle
+        */
+        UpdateOrderGPU(std::shared_ptr<const ExecutionConfiguration> exec_conf, unsigned int seed, unsigned int N=0)
+            : m_seed(seed), m_is_reversed(false), m_update_order(exec_conf), m_reverse_update_order(exec_conf)
+            {
+            resize(N);
+            }
+
+        //! Resize the order
+        /*! \param N new size
+            \post The order is 0, 1, 2, ... N-1
+        */
+        void resize(unsigned int N)
+            {
+            if (!N || N == m_update_order.size())
+                return;
+
+            // initialize the update order
+            m_update_order.resize(N);
+            m_reverse_update_order.resize(N);
+
+            ArrayHandle<unsigned int> h_update_order(m_update_order, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_reverse_update_order(m_reverse_update_order, access_location::host, access_mode::overwrite);
+
+            for (unsigned int i = 0; i < N; i++)
+                {
+                h_update_order.data[i] = i;
+                h_reverse_update_order.data[i] = N - i - 1;
+                }
+            m_is_reversed = false;
+            }
+
+        //! Shuffle the order
+        /*! \param timestep Current timestep of the simulation
+            \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
+            timestep.
+        */
+        void shuffle(unsigned int timestep, unsigned int select = 0)
+            {
+            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShuffle, m_seed, timestep, select);
+
+            // reverse the order with 1/2 probability
+            m_is_reversed = hoomd::UniformIntDistribution(1)(rng);
+            }
+
+        //! Access element of the shuffled order
+        unsigned int operator[](unsigned int i)
+            {
+            const GlobalVector<unsigned int>& update_order = m_is_reversed ? m_reverse_update_order : m_update_order;
+            ArrayHandle<unsigned int> h_update_order(update_order, access_location::host, access_mode::read);
+            return h_update_order.data[i];
+            }
+
+        //! Access the underlying GlobalVector
+        const GlobalVector<unsigned int> & get() const
+            {
+            if (m_is_reversed)
+                return m_reverse_update_order;
+            else
+                return m_update_order;
+            }
+
+        //! Access the underlying GlobalVector
+        const GlobalVector<unsigned int> & getInverse() const
+            {
+            // with ascending/descending update order, the permutation is self-inverse
+            return get();
+            }
+
+    private:
+        unsigned int m_seed;                               //!< Random number seed
+        bool m_is_reversed;                                //!< True if order is reversed
+        GlobalVector<unsigned int> m_update_order;            //!< Update order
+        GlobalVector<unsigned int> m_reverse_update_order;    //!< Inverse permutation
+    };
+
+} // end namespace detail
+
 //! Template class for HPMC update on the GPU
 /*!
     \ingroup hpmc_integrators
@@ -51,13 +148,8 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            unsigned int ndim = this->m_sysdef->getNDimensions();
-            if (ndim == 3)
-                m_tuner_accept->setPeriod(period*this->m_nselect*8);
-            else
-                m_tuner_accept->setPeriod(period*this->m_nselect*4);
-
-            m_tuner_accept->setEnabled(enable);
+            m_tuner_update_pdata->setPeriod(period*this->m_nselect);
+            m_tuner_update_pdata->setEnabled(enable);
 
             m_tuner_moves->setPeriod(period*this->m_nselect);
             m_tuner_moves->setEnabled(enable);
@@ -68,11 +160,11 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             m_tuner_depletants->setPeriod(period*this->m_nselect);
             m_tuner_depletants->setEnabled(enable);
 
-            m_tuner_depletant_num->setPeriod(period*this->m_nselect);
-            m_tuner_depletant_num->setEnabled(enable);
-
             m_tuner_excell_block_size->setPeriod(period);
             m_tuner_excell_block_size->setEnabled(enable);
+
+            m_tuner_accept->setPeriod(period);
+            m_tuner_accept->setEnabled(enable);
             }
 
         //! Enable deterministic simulations
@@ -90,8 +182,6 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
 
     protected:
         std::shared_ptr<CellList> m_cl;                      //!< Cell list
-        GlobalArray<unsigned int> m_cell_sets;               ///!< List of cells active during each subsweep
-        Index2D m_cell_set_indexer;                          //!< Indexer into the cell set array
         uint3 m_last_dim;                                    //!< Dimensions of the cell list on the last call to update
         unsigned int m_last_nmax;                            //!< Last cell list NMax value allocated in excell
 
@@ -101,31 +191,30 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
 
         std::unique_ptr<Autotuner> m_tuner_moves;            //!< Autotuner for proposing moves
         std::unique_ptr<Autotuner> m_tuner_narrow;           //!< Autotuner for the narrow phase
-        std::unique_ptr<Autotuner> m_tuner_accept;    //!< Autotuner for the update step group and block sizes
+        std::unique_ptr<Autotuner> m_tuner_update_pdata;    //!< Autotuner for the update step group and block sizes
         std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
+        std::unique_ptr<Autotuner> m_tuner_accept;           //!< Autotuner for acceptance kernel
         std::unique_ptr<Autotuner> m_tuner_depletants;       //!< Autotuner for inserting depletants
-        std::unique_ptr<Autotuner> m_tuner_depletant_num;    //!< Autotuner for inserting depletants
 
         GlobalArray<Scalar4> m_trial_postype;                 //!< New positions (and type) of particles
         GlobalArray<Scalar4> m_trial_orientation;             //!< New orientations
         GlobalArray<unsigned int> m_trial_move_type;          //!< Flags to indicate which type of move
-        GlobalArray<unsigned int> m_accept;                   //!< Flags to accept particle moves, per particle
-        GlobalArray<unsigned int> m_cell_select;              //!< Selected particle per cell
+        GlobalArray<unsigned int> m_reject_out_of_cell;       //!< Flags to reject particle moves if they are out of the cell, per particle
+        GlobalArray<unsigned int> m_reject;                   //!< Flags to reject particle moves, per particle
+        GlobalArray<unsigned int> m_reject_out;               //!< Flags to reject particle moves, per particle (temporary)
 
-        GlobalArray<unsigned int> m_nlist;                    //!< List of overlapping particles
-        GlobalArray<unsigned int> m_nneigh;                   //!< Number of neighbors
-        detail::UpdateOrder m_cell_set_order;                 //!< Cell set update order
-        unsigned int m_maxn;                                  //!< Max number of neighbors
-        GlobalArray<unsigned int> m_overflow;                 //!< Overflow condition for neighbor list
+        GlobalArray<unsigned int> m_nlist;                       //!< List of overlapping particles
+        GlobalArray<unsigned int> m_nneigh;                     //!< Number of neighbors
+        detail::UpdateOrderGPU m_update_order;                   //!< Particle update order
+        unsigned int m_maxn;                                     //!< Max number of neighbors
+        GlobalArray<unsigned int> m_overflow;                    //!< Overflow condition for neighbor list
+        GlobalArray<unsigned int> m_condition;                  //!< Condition of acceptance kernel
 
         GlobalArray<hpmc_counters_t> m_counters;                    //!< Per-device counters
         GlobalArray<hpmc_implicit_counters_t> m_implicit_counters;  //!< Per-device counters for depletants
 
         //!< Variables for implicit depletants
         GlobalArray<Scalar> m_lambda;                              //!< Poisson means, per type pair
-
-        //! Set up cell sets
-        virtual void initializeCellSets();
 
         //! Set up excell_list
         virtual void initializeExcellMem();
@@ -145,7 +234,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
                                                                    std::shared_ptr<CellList> cl,
                                                                    unsigned int seed)
     : IntegratorHPMCMono<Shape>(sysdef, seed), m_cl(cl),
-      m_cell_set_order(seed+this->m_exec_conf->getRank()),
+      m_update_order(this->m_exec_conf, seed+this->m_exec_conf->getRank()),
       m_maxn(0)
     {
     this->m_cl->setRadius(1);
@@ -154,7 +243,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     this->m_cl->setComputeIdx(true);
 
     // with multiple GPUs, request a cell list per device
-    //m_cl->setPerDevice(this->m_exec_conf->allConcurrentManagedAccess());
+    m_cl->setPerDevice(this->m_exec_conf->allConcurrentManagedAccess());
 
     // require that cell lists have an even number of cells along each direction
     this->m_cl->setMultiple(2);
@@ -165,9 +254,9 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
 
     cudaDeviceProp dev_prop = this->m_exec_conf->dev_prop;
     m_tuner_moves.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_moves", this->m_exec_conf));
-    m_tuner_accept.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_accept", this->m_exec_conf));
+    m_tuner_update_pdata.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_update_pdata", this->m_exec_conf));
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_excell_block_size", this->m_exec_conf));
-    m_tuner_depletant_num.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_depletant_num", this->m_exec_conf));
+    m_tuner_accept.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_accept", this->m_exec_conf));
 
     // tuning parameters for narrow phase
     std::vector<unsigned int> valid_params;
@@ -177,7 +266,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
         for (unsigned int group_size=1; group_size <= narrow_phase_max_tpp; group_size*=2)
             {
             if ((block_size % group_size) == 0)
-                valid_params.push_back(block_size*10000 + group_size);
+                valid_params.push_back(block_size*1000 + group_size);
             }
         }
     m_tuner_narrow.reset(new Autotuner(valid_params, 5, 100000, "hpmc_narrow", this->m_exec_conf));
@@ -193,8 +282,14 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     GlobalArray<unsigned int>(0,this->m_exec_conf).swap(m_trial_move_type);
     TAG_ALLOCATION(m_trial_move_type);
 
-    GlobalArray<unsigned int>(0, this->m_exec_conf).swap(m_accept);
-    TAG_ALLOCATION(m_accept);
+    GlobalArray<unsigned int>(0, this->m_exec_conf).swap(m_reject_out_of_cell);
+    TAG_ALLOCATION(m_reject_out_of_cell);
+
+    GlobalArray<unsigned int>(0, this->m_exec_conf).swap(m_reject);
+    TAG_ALLOCATION(m_reject);
+
+    GlobalArray<unsigned int>(0, this->m_exec_conf).swap(m_reject_out);
+    TAG_ALLOCATION(m_reject_out);
 
     GlobalArray<unsigned int>(0, this->m_exec_conf).swap(m_nlist);
     TAG_ALLOCATION(m_nlist);
@@ -204,6 +299,9 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
 
     GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_overflow);
     TAG_ALLOCATION(m_overflow);
+
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_condition);
+    TAG_ALLOCATION(m_condition);
 
     GlobalArray<unsigned int> excell_size(0, this->m_exec_conf);
     m_excell_size.swap(excell_size);
@@ -295,8 +393,8 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
             cudaMemPrefetchAsync(m_trial_move_type.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
             cudaMemAdvise(m_trial_move_type.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetAccessedBy, cudaCpuDeviceId);
 
-            cudaMemAdvise(m_accept.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemPrefetchAsync(m_accept.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+            cudaMemAdvise(m_reject.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_reject.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
 
             cudaMemAdvise(m_trial_orientation.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_trial_orientation.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
@@ -348,28 +446,14 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         // start the profile
         if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC");
 
-        // if the cell list is a different size than last time, reinitialize the cell sets list
+        // if the cell list is a different size than last time, reinitialize the expanded cell list
         uint3 cur_dim = this->m_cl->getDim();
-        if (m_last_dim.x != cur_dim.x || m_last_dim.y != cur_dim.y || m_last_dim.z != cur_dim.z)
+        if (m_last_dim.x != cur_dim.x || m_last_dim.y != cur_dim.y || m_last_dim.z != cur_dim.z
+            || m_last_nmax != this->m_cl->getNmax())
             {
-            initializeCellSets();
             initializeExcellMem();
 
             m_last_dim = cur_dim;
-            m_last_nmax = this->m_cl->getNmax();
-
-            // initialize the cell set update order
-            this->m_cell_set_order.resize(m_cell_set_indexer.getH());
-
-            GlobalArray<unsigned int> cell_select(this->m_cl->getCellIndexer().getNumElements(), this->m_exec_conf);
-            m_cell_select.swap(cell_select);
-            TAG_ALLOCATION(m_cell_select);
-            }
-
-        // if only NMax changed, only need to reallocate excell memory
-        if (m_last_nmax != this->m_cl->getNmax())
-            {
-            initializeExcellMem();
             m_last_nmax = this->m_cl->getNmax();
             }
 
@@ -381,11 +465,13 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 #endif
 
         // resize some arrays
-        bool resized = m_accept.getNumElements() < this->m_pdata->getMaxN();
+        bool resized = m_reject.getNumElements() < this->m_pdata->getMaxN();
 
         if (resized)
             {
-            m_accept.resize(this->m_pdata->getMaxN());
+            m_reject.resize(this->m_pdata->getMaxN());
+            m_reject_out_of_cell.resize(this->m_pdata->getMaxN());
+            m_reject_out.resize(this->m_pdata->getMaxN());
             m_nneigh.resize(this->m_pdata->getMaxN());
             m_trial_postype.resize(this->m_pdata->getMaxN());
             m_trial_orientation.resize(this->m_pdata->getMaxN());
@@ -394,14 +480,12 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             updateGPUAdvice();
             }
 
+        m_update_order.resize(this->m_pdata->getN());
+
         // access the cell list data
         ArrayHandle<unsigned int> d_cell_size(this->m_cl->getCellSizeArray(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_cell_idx(this->m_cl->getIndexArray(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_cell_adj(this->m_cl->getCellAdjArray(), access_location::device, access_mode::read);
-
-        ArrayHandle< unsigned int > d_cell_sets(m_cell_sets, access_location::device, access_mode::read);
-
-        ArrayHandle<unsigned int> d_cell_select(m_cell_select, access_location::device, access_mode::overwrite);
 
         // per-device cell list data
         const ArrayHandle<unsigned int>& d_cell_size_per_device = m_cl->getPerDevice() ?
@@ -438,15 +522,11 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         Scalar3 ghost_width = this->m_cl->getGhostWidth();
 
         // randomize particle update order
-        this->m_cell_set_order.shuffle(timestep);
+        this->m_update_order.shuffle(timestep);
 
         // expanded cells & neighbor list
         ArrayHandle< unsigned int > d_excell_idx(m_excell_idx, access_location::device, access_mode::overwrite);
         ArrayHandle< unsigned int > d_excell_size(m_excell_size, access_location::device, access_mode::overwrite);
-
-        // compute the ceiling of the average number of particles in each cell, accounting for ghost particles
-        int ncells = cur_dim.x * cur_dim.y * cur_dim.z;
-        int particles_per_cell = int(ceil(double(this->m_pdata->getN() + this->m_pdata->getNGhosts()) / double(ncells)));
 
         // update the expanded cells
         this->m_tuner_excell_block_size->begin();
@@ -459,7 +539,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             this->m_cl->getCellIndexer(),
                             this->m_cl->getCellListIndexer(),
                             this->m_cl->getCellAdjIndexer(),
-                            m_cl->getPerDevice() ? this->m_exec_conf->getNumActiveGPUs() : 1,
+                            this->m_exec_conf->getNumActiveGPUs(),
                             this->m_tuner_excell_block_size->getParam());
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         this->m_tuner_excell_block_size->end();
@@ -468,13 +548,14 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         // depletants
         ArrayHandle<Scalar> d_lambda(m_lambda, access_location::device, access_mode::read);
 
-        for (unsigned int i = 0; i < this->m_nselect * particles_per_cell; i++)
+        for (unsigned int i = 0; i < this->m_nselect; i++)
             {
                 { // ArrayHandle scope
+                ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.getInverse(), access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_accept(m_accept, access_location::device, access_mode::overwrite);
+                ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::overwrite);
 
                 // access data for proposed moves
                 ArrayHandle<Scalar4> d_trial_postype(m_trial_postype, access_location::device, access_mode::overwrite);
@@ -490,7 +571,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                 ArrayHandle<hpmc_counters_t> d_counters_per_device(this->m_counters, access_location::device, access_mode::read);
 
                 // fill the parameter structure for the GPU kernels
-                hpmc::gpu::hpmc_args_t args(
+                gpu::hpmc_args_t args(
                     d_postype.data,
                     d_orientation.data,
                     ngpu > 1 ? d_counters_per_device.data : d_counters.data,
@@ -501,7 +582,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     this->m_pdata->getN(),
                     this->m_pdata->getNGhosts(),
                     this->m_pdata->getNTypes(),
-                    this->m_seed,
+                    this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i,
                     d_d.data,
                     d_a.data,
                     d_overlaps.data,
@@ -510,15 +591,16 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     timestep,
                     this->m_sysdef->getNDimensions(),
                     box,
-                    this->m_exec_conf->getRank()*this->m_nselect*particles_per_cell + i,
+                    i,
                     ghost_fraction,
                     domain_decomposition,
                     0, // block size
                     0, // tpp
-                    d_accept.data,
+                    d_reject_out_of_cell.data,
                     d_trial_postype.data,
                     d_trial_orientation.data,
                     d_trial_move_type.data,
+                    d_update_order_by_ptl.data,
                     d_excell_idx.data,
                     d_excell_size.data,
                     m_excell_list_indexer,
@@ -528,15 +610,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_overflow.data,
                     i == 0,
                     this->m_exec_conf->dev_prop,
-                    m_cell_set_indexer,
-                    d_cell_sets.data,
-                    m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
-                    m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
-                    m_cl->getPerDevice() ? this->m_exec_conf->getNumActiveGPUs() : 1,
-                    d_cell_select.data,
-                    this->m_cl->getCellListIndexer());
+                    this->m_pdata->getGPUPartition());
 
-                // propose trial moves, \sa hpmc::gpu::kernel::hpmc_moves
+                // propose trial moves, \sa gpu::kernel::hpmc_moves
 
                 // reset acceptance results and move types
                 m_tuner_moves->begin();
@@ -550,10 +626,11 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             do
                 {
                     { // ArrayHandle scope
+                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.getInverse(), access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
                     ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::overwrite);
                     ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::readwrite);
-                    ArrayHandle<unsigned int> d_accept(m_accept, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::read);
 
                     // access data for proposed moves
                     ArrayHandle<Scalar4> d_trial_postype(m_trial_postype, access_location::device, access_mode::read);
@@ -573,7 +650,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     ArrayHandle<hpmc_implicit_counters_t> d_implicit_counters_per_device(this->m_implicit_counters, access_location::device, access_mode::readwrite);
 
                     // fill the parameter structure for the GPU kernels
-                    hpmc::gpu::hpmc_args_t args(
+                    gpu::hpmc_args_t args(
                         d_postype.data,
                         d_orientation.data,
                         ngpu > 1 ? d_counters_per_device.data : d_counters.data,
@@ -593,15 +670,16 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         timestep,
                         this->m_sysdef->getNDimensions(),
                         box,
-                        this->m_exec_conf->getRank()*this->m_nselect*particles_per_cell + i,
+                        this->m_exec_conf->getRank()*this->m_nselect + i,
                         ghost_fraction,
                         domain_decomposition,
                         0, // block size
                         0, // tpp
-                        d_accept.data,
+                        d_reject_out_of_cell.data,
                         d_trial_postype.data,
                         d_trial_orientation.data,
                         d_trial_move_type.data,
+                        d_update_order_by_ptl.data,
                         d_excell_idx.data,
                         d_excell_size.data,
                         m_excell_list_indexer,
@@ -611,13 +689,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_overflow.data,
                         i == 0,
                         this->m_exec_conf->dev_prop,
-                        m_cell_set_indexer,
-                        d_cell_sets.data,
-                        m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
-                        m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
-                        m_cl->getPerDevice() ? this->m_exec_conf->getNumActiveGPUs() : 1,
-                        d_cell_select.data,
-                        this->m_cl->getCellListIndexer());
+                        this->m_pdata->getGPUPartition());
 
                     /*
                      *  check overlaps, new configuration simultaneously against the old and the new configuration
@@ -626,8 +698,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     this->m_exec_conf->beginMultiGPU();
                     m_tuner_narrow->begin();
                     unsigned int param = m_tuner_narrow->getParam();
-                    args.block_size = param/10000;
-                    args.tpp = param%10000;
+                    args.block_size = param/1000;
+                    args.tpp = param%1000;
                     gpu::hpmc_narrow_phase<Shape>(args, params.data());
                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                         CHECK_CUDA_ERROR();
@@ -643,10 +715,11 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     }
 
                     { // ArrayHandle scope
+                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.getInverse(), access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
                     ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::readwrite);
                     ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::readwrite);
-                    ArrayHandle<unsigned int> d_accept(m_accept, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::read);
 
                     // access data for proposed moves
                     ArrayHandle<Scalar4> d_trial_postype(m_trial_postype, access_location::device, access_mode::read);
@@ -666,7 +739,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     ArrayHandle<hpmc_implicit_counters_t> d_implicit_counters_per_device(this->m_implicit_counters, access_location::device, access_mode::readwrite);
 
                     // fill the parameter structure for the GPU kernels
-                    hpmc::gpu::hpmc_args_t args(
+                    gpu::hpmc_args_t args(
                         d_postype.data,
                         d_orientation.data,
                         ngpu > 1 ? d_counters_per_device.data : d_counters.data,
@@ -686,15 +759,16 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         timestep,
                         this->m_sysdef->getNDimensions(),
                         box,
-                        this->m_exec_conf->getRank()*this->m_nselect*particles_per_cell + i,
+                        this->m_exec_conf->getRank()*this->m_nselect + i,
                         ghost_fraction,
                         domain_decomposition,
                         0, // block size
                         0, // tpp
-                        d_accept.data,
+                        d_reject_out_of_cell.data,
                         d_trial_postype.data,
                         d_trial_orientation.data,
                         d_trial_move_type.data,
+                        d_update_order_by_ptl.data,
                         d_excell_idx.data,
                         d_excell_size.data,
                         m_excell_list_indexer,
@@ -704,13 +778,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_overflow.data,
                         i == 0,
                         this->m_exec_conf->dev_prop,
-                        m_cell_set_indexer,
-                        d_cell_sets.data,
-                        m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
-                        m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
-                        m_cl->getPerDevice() ? this->m_exec_conf->getNumActiveGPUs() : 1,
-                        d_cell_select.data,
-                        this->m_cl->getCellListIndexer());
+                        this->m_pdata->getGPUPartition());
 
                     /*
                      * Insert depletants
@@ -732,9 +800,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             ngpu > 1 ? d_implicit_counters_per_device.data : d_implicit_count.data,
                             m_implicit_counters.getPitch(),
                             d_lambda.data,
-                            this->m_fugacity[itype] < 0,
-                            this->m_quermass,
-                            this->m_sweep_radius
+                            this->m_fugacity[itype] < 0
                             );
                         gpu::hpmc_insert_depletants<Shape>(args, implicit_args, params.data());
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -747,10 +813,51 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                 reallocate = checkReallocate();
                 } while (reallocate);
 
-            for (unsigned int j = 0; j < m_cell_set_indexer.getH(); j++)
+            /*
+             * make accept/reject decisions
+             */
+             bool done = false;
+             while (!done)
                 {
-                unsigned cur_set = this->m_cell_set_order[j];
+                    {
+                    ArrayHandle<unsigned int> d_ptl_by_update_order(m_update_order.get(), access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.getInverse(), access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_trial_move_type(m_trial_move_type, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_reject(m_reject, access_location::device, access_mode::readwrite);
+                    ArrayHandle<unsigned int> d_reject_out(m_reject_out, access_location::device, access_mode::overwrite);
+                    ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::overwrite);
 
+                    m_tuner_accept->begin();
+                    gpu::hpmc_accept(d_ptl_by_update_order.data,
+                        d_update_order_by_ptl.data,
+                        d_trial_move_type.data,
+                        d_reject_out_of_cell.data,
+                        d_reject.data,
+                        d_reject_out.data,
+                        d_nneigh.data,
+                        d_nlist.data,
+                        this->m_pdata->getN() + this->m_pdata->getNGhosts(),
+                        this->m_pdata->getN(),
+                        m_maxn,
+                        d_condition.data,
+                        m_tuner_accept->getParam());
+
+                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                        CHECK_CUDA_ERROR();
+                    m_tuner_accept->end();
+                    }
+
+                    {
+                    ArrayHandle<unsigned int> h_condition(m_condition, access_location::host, access_mode::read);
+                    if (*h_condition.data == 0)
+                        done = true;
+                    }
+                } //end while (!done)
+
+                {
                 // access data for proposed moves
                 ArrayHandle<Scalar4> d_trial_postype(m_trial_postype, access_location::device, access_mode::read);
                 ArrayHandle<Scalar4> d_trial_orientation(m_trial_orientation, access_location::device, access_mode::read);
@@ -765,47 +872,27 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                 ArrayHandle<hpmc_counters_t> d_counters_per_device(this->m_counters, access_location::device, access_mode::readwrite);
 
                 // flags
-                ArrayHandle<unsigned int> d_accept(m_accept, access_location::device, access_mode::readwrite);
-
-                // neighbor list
-                ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::read);
+                ArrayHandle<unsigned int> d_reject(m_reject, access_location::device, access_mode::read);
 
                 // Update the particle data and statistics
-                m_tuner_accept->begin();
-                hpmc::gpu::hpmc_update_args_t args(
+                m_tuner_update_pdata->begin();
+                gpu::hpmc_update_args_t args(
                     d_postype.data,
                     d_orientation.data,
-                    this->m_seed,
-                    this->m_exec_conf->getRank()*this->m_nselect*particles_per_cell + i,
-                    timestep,
-                    m_cell_set_indexer.getW(),
-                    &d_cell_sets.data[m_cell_set_indexer(0,cur_set)],
-                    m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
-                    m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
-                    m_cl->getPerDevice() ? this->m_exec_conf->getNumActiveGPUs() : 1,
-                    this->m_cl->getCellListIndexer(),
-                    this->m_cl->getCellIndexer(),
                     ngpu > 1 ? d_counters_per_device.data : d_counters.data,
                     this->m_pdata->getN(),
-                    this->m_pdata->getBox(),
-                    ghost_width,
-                    this->m_cl->getDim(),
                     d_trial_postype.data,
                     d_trial_orientation.data,
                     d_trial_move_type.data,
-                    d_accept.data,
-                    d_nneigh.data,
-                    d_nlist.data,
+                    d_reject.data,
                     m_maxn,
-                    this->m_pdata->getN() + this->m_pdata->getNGhosts(),
-                    d_cell_select.data,
-                    m_tuner_accept->getParam());
-                gpu::hpmc_accept<Shape>(args, params.data());
+                    m_tuner_update_pdata->getParam()
+                    );
+                gpu::hpmc_update_pdata<Shape>(args, params.data());
                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
-                m_tuner_accept->end();
-                } // end loop over cell sets
+                m_tuner_update_pdata->end();
+                }
             } // end loop over nselect
 
         if (ngpu > 1)
@@ -850,11 +937,11 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         ArrayHandle<int3> d_image(this->m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
         gpu::hpmc_shift(d_postype.data,
-                        d_image.data,
-                        this->m_pdata->getN(),
-                        box,
-                        shift,
-                        128);
+                               d_image.data,
+                               this->m_pdata->getN(),
+                               box,
+                               shift,
+                               128);
         }
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -914,54 +1001,6 @@ bool IntegratorHPMCMonoGPU< Shape >::checkReallocate()
     }
 
 template< class Shape >
-void IntegratorHPMCMonoGPU< Shape >::initializeCellSets()
-    {
-    this->m_exec_conf->msg->notice(4) << "hpmc recomputing active cells" << std::endl;
-    // "ghost cells" might contain active particles. So they must be included in the active cell sets
-    // we should not run into a multiple issue since the base multiple is 2 and the ghost cells added are 2 in each
-    // direction. Check just to be on the safe side
-
-    // compute the number of cells in each set
-    // every other cell is active along each direction, excluding ghost cells
-    uint3 dim = this->m_cl->getDim();
-    const Index3D& cell_indexer = this->m_cl->getCellIndexer();
-    unsigned int n_active = dim.x / 2 * dim.y / 2;
-    unsigned int n_sets = 4;
-
-    if (this->m_sysdef->getNDimensions() == 3)
-        {
-        n_active *= dim.z / 2;
-        n_sets = 8;
-        }
-
-    GlobalArray< unsigned int > cell_sets(n_active, n_sets, this->m_exec_conf);
-    m_cell_sets.swap(cell_sets);
-    m_cell_set_indexer = Index2D(n_active, n_sets);
-
-    // build a list of active cells
-    ArrayHandle< unsigned int > h_cell_sets(m_cell_sets, access_location::host, access_mode::overwrite);
-
-    // offsets for x and y based on the set index
-    unsigned int ox[] = {0, 1, 0, 1, 0, 1, 0, 1};
-    unsigned int oy[] = {0, 0, 1, 1, 0, 0, 1, 1};
-    unsigned int oz[] = {0, 0, 0, 0, 1, 1, 1, 1};
-
-    for (unsigned int cur_set = 0; cur_set < n_sets; cur_set++)
-        {
-        unsigned int active_idx = 0;
-        // loop over all cells in the active region, using information from num_ghost cells to avoid adding ghost cells
-        // to the active set
-        for (int k = oz[cur_set]; k < int(dim.z); k+=2)
-            for (int j = oy[cur_set]; j < int(dim.y); j+=2)
-                for (int i = ox[cur_set]; i < int(dim.x); i+=2)
-                    {
-                    h_cell_sets.data[m_cell_set_indexer(active_idx, cur_set)] = cell_indexer(i,j,k);
-                    active_idx++;
-                    }
-        }
-    }
-
-template< class Shape >
 void IntegratorHPMCMonoGPU< Shape >::initializeExcellMem()
     {
     this->m_exec_conf->msg->notice(4) << "hpmc resizing expanded cells" << std::endl;
@@ -997,6 +1036,9 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
     {
     unsigned int old_ntypes = this->m_params.size();
 
+    // call base class method
+    IntegratorHPMCMono<Shape>::slotNumTypesChange();
+
     // skip the reallocation if the number of types does not change
     // this keeps shape parameters when restoring a snapshot
     // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
@@ -1023,8 +1065,7 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
             }
         }
 
-    // call base class method
-    IntegratorHPMCMono<Shape>::slotNumTypesChange();
+    updateCellWidth();
     }
 
 template< class Shape >
@@ -1074,7 +1115,6 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
         {
         Shape shape_i(quat<Scalar>(), this->m_params[i_type]);
         Scalar d_i(shape_i.getCircumsphereDiameter());
-        Scalar range = 2.0*this->m_sweep_radius + d_i;
 
         if (this->m_fugacity[i_type] == 0.0)
             continue;
@@ -1086,10 +1126,10 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
 
             // get OBB and extend by depletant radius
             detail::OBB obb = shape_j.getOBB(vec3<Scalar>(0,0,0));
-            obb.lengths.x += 0.5*range;
-            obb.lengths.y += 0.5*range;
+            obb.lengths.x += 0.5*d_i;
+            obb.lengths.y += 0.5*d_i;
             if (this->m_sysdef->getNDimensions() == 3)
-                obb.lengths.z += 0.5*range;
+                obb.lengths.z += 0.5*d_i;
             else
                 obb.lengths.z = 0.5; // unit length
 

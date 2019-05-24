@@ -24,8 +24,8 @@ template void hpmc_gen_moves<ShapePolyhedron>(const hpmc_args_t& args, const Sha
 template void hpmc_narrow_phase<ShapePolyhedron>(const hpmc_args_t& args, const ShapePolyhedron::param_type *params);
 //! Driver for kernel::hpmc_insert_depletants()
 template void hpmc_insert_depletants<ShapePolyhedron>(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapePolyhedron::param_type *params);
-//! Driver for kernel::hpmc_accept()
-template void hpmc_accept<ShapePolyhedron>(const hpmc_update_args_t& args, const ShapePolyhedron::param_type *params);
+//! Driver for kernel::hpmc_update_pdata()
+template void hpmc_update_pdata<ShapePolyhedron>(const hpmc_update_args_t& args, const ShapePolyhedron::param_type *params);
 }
 
 } // end namespace hpmc

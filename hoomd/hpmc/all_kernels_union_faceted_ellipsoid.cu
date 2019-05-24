@@ -25,8 +25,8 @@ template void hpmc_gen_moves<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_args
 template void hpmc_narrow_phase<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_args_t& args, const ShapeUnion<ShapeFacetedEllipsoid>::param_type *params);
 //! Driver for kernel::hpmc_insert_depletants()
 template void hpmc_insert_depletants<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapeUnion<ShapeFacetedEllipsoid>::param_type *params);
-//! Driver for kernel::hpmc_accept()
-template void hpmc_accept<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_update_args_t& args, const ShapeUnion<ShapeFacetedEllipsoid> ::param_type *params);
+//! Driver for kernel::hpmc_update_pdata()
+template void hpmc_update_pdata<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_update_args_t& args, const ShapeUnion<ShapeFacetedEllipsoid> ::param_type *params);
 }
 
 } // end namespace hpmc
