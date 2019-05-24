@@ -92,7 +92,7 @@ class pair_ignore_overlaps_check(unittest.TestCase):
         #not all rots are accepted
         translate_acceptance_prob = self.mc.get_translate_acceptance()
         if hoomd.context.exec_conf.isCUDAEnabled():
-            self.assertLess(translate_acceptance_prob,0.95)
+            self.assertLess(translate_acceptance_prob,0.99)
             self.assertGreater(translate_acceptance_prob,0.90)
         else:
             self.assertEqual(translate_acceptance_prob,1)
