@@ -1,13 +1,6 @@
 # Maintainer: joaander
 
 #################################
-## Optional static build
-## ENABLE_STATIC is an option to control whether HOOMD is built as a statically linked exe or as a python module.
-OPTION(ENABLE_STATIC "Link as many libraries as possible statically, cannot be changed after the first run of CMake" OFF)
-
-mark_as_advanced(ENABLE_STATIC)
-
-#################################
 ## Optional single/double precision build
 option(SINGLE_PRECISION "Use single precision math" OFF)
 
