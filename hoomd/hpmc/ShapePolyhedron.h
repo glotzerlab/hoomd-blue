@@ -376,27 +376,6 @@ DEVICE inline bool test_line_segment_overlap(const vec3<OverlapReal>& p,
     return false;
     }
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapePolyhedron& a,
-    const ShapePolyhedron &b)
-    {
-    vec3<OverlapReal> dr(r_ab);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-
-    // first check overlap of circumspheres
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
-
 // compute shortest distance between two triangles
 // Returns square of shortest distance
 DEVICE inline OverlapReal shortest_distance_triangles(

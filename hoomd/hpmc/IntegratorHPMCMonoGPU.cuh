@@ -993,14 +993,14 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 shape_i.orientation = quat<Scalar>(s_orientation_i_old);
             vec3<Scalar> r_ij = vec3<Scalar>(s_pos_i_old) - pos_test;
             bool overlap_old = (s_check_overlaps[overlap_idx(s_type_i, depletant_type)]
-                && check_circumsphere_overlap(r_ij, shape_test, shape_i)
+                && check_circumsphere_overlap(r_ij, shape_test, shape_i, OverlapReal(0.0), sweep_radius)
                 && test_overlap(r_ij, shape_test, shape_i, err_count, Scalar(0.0), sweep_radius));
 
             if (shape_i.hasOrientation())
                 shape_i.orientation = quat<Scalar>(s_orientation_i_new);
             r_ij = vec3<Scalar>(s_pos_i_new) - pos_test;
             bool overlap_new = (s_check_overlaps[overlap_idx(s_type_i, depletant_type)]
-                && check_circumsphere_overlap(r_ij, shape_test, shape_i)
+                && check_circumsphere_overlap(r_ij, shape_test, shape_i, OverlapReal(0.0), sweep_radius)
                 && test_overlap(r_ij, shape_test, shape_i, err_count, Scalar(0.0), sweep_radius));
             bool add_to_queue = (!repulsive && overlap_old && !overlap_new) || (repulsive && !overlap_old && overlap_new);
 

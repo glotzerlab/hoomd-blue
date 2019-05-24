@@ -364,25 +364,6 @@ struct ShapeUnion
     const param_type& members;     //!< member data
     };
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-template <class Shape>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape>& a,
-    const ShapeUnion<Shape> &b)
-    {
-    vec3<OverlapReal> dr(r_ab);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
 template<class Shape>
 DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                                              const ShapeUnion<Shape>& a,
