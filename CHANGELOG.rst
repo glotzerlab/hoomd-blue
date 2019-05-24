@@ -1,8 +1,8 @@
 Change Log
 ==========
 
-v2.6.0 (not yet released)
--------------------------
+v2.6.0 (2019/05/27)
+-------------------
 
 *New features*
 
@@ -12,6 +12,7 @@ v2.6.0 (not yet released)
   - Fix plug-in builds when ``ENABLE_TBB`` or ``ALWAYS_USE_MANAGED_MEMORY`` CMake parameters are set.
   - Remove support for compute 3.0 GPUs.
   - Report detailed CUDA errors on initialization.
+  - Document upcoming feature removals and API changes.
 
 - MD:
 
@@ -35,6 +36,8 @@ v2.6.0 (not yet released)
 - Allow simulations with 0 bonds to specify bond potentials.
 - Fix a problem where HOOMD could not be imported in ``mpi4py`` jobs.
 - Validate snapshot input in ``restore_snapshot``.
+- Fix a bug where rigid body energy and pressure deviated on the first time step after ``run()``.
+- Fix a bug which could lead to invalid MPI simulations with ``nlist.cell()`` and ``nlist.stencil()``.
 
 *C++ API changes*
 
