@@ -1036,9 +1036,6 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
     {
     unsigned int old_ntypes = this->m_params.size();
 
-    // call base class method
-    IntegratorHPMCMono<Shape>::slotNumTypesChange();
-
     // skip the reallocation if the number of types does not change
     // this keeps shape parameters when restoring a snapshot
     // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
@@ -1065,7 +1062,8 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
             }
         }
 
-    updateCellWidth();
+    // call base class method
+    IntegratorHPMCMono<Shape>::slotNumTypesChange();
     }
 
 template< class Shape >
