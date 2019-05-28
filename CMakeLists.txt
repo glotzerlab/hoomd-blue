@@ -7,7 +7,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "2.5.2")
+set(HOOMD_VERSION_RAW "2.6.0")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
