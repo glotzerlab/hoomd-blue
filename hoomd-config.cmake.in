@@ -35,7 +35,10 @@ include(pybind11Tools)
 include(CMakeFindDependencyMacro)
 
 if (ENABLE_CUDA)
+    enable_language(CUDA)
     find_dependency(HOOMDCUDALibs REQUIRED)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} @CMAKE_CUDA_FLAGS@")
+    set(CUDA_ARCH_LIST "@CUDA_ARCH_LIST@")
 endif()
 
 if (ENABLE_MPI)
