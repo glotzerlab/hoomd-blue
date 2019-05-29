@@ -24,7 +24,6 @@ class update_dynamic_bond_tests (unittest.TestCase):
         md.integrate.mode_standard(dt=0.005);
         md.integrate.langevin(group=group.all(), kT=0.2, seed=43);
 
-
     # tests basic creation of the updater
     def test(self):
         updater = md.update.dynamic_bond(group=group.all(), nlist=self.nl, seed=1994, period=1)

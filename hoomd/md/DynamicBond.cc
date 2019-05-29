@@ -207,39 +207,40 @@ void DynamicBond::update(unsigned int timestep)
                     }
                 Scalar r = sqrt(rsq);
                 Scalar surf_dist = r - (di+dj)/2;
-                Scalar tstep = 0.05;
+                Scalar tstep = 0.005;
                 Scalar omega = 4.68;  // natural thermal vibration frequency 1.2E0*3.9E-9
 
-                // calculate probabilities
+                // (1) Compute P_ij, P_ji, and Q_ij
                 Scalar chain_extension = surf_dist/m_nK;
                 Scalar p0=tstep*omega*exp(-(m_delta_G+feneEnergy(chain_extension, m_nK)));
                 Scalar q0=tstep*omega*exp(-(m_delta_G-feneEnergy(chain_extension, m_nK)+feneEnergy(chain_extension, m_nK)));
 
-                Scalar p12 = p0*pow((1-p0),(m_nloops[i]*capfraction(surf_dist)-1.0))*m_nloops[i]*capfraction(surf_dist);
-                Scalar p21 = p0*pow((1-p0),(m_nloops[j]*capfraction(surf_dist)-1.0))*m_nloops[j]*capfraction(surf_dist);
-                Scalar q1 =  q0*pow((1-q0),(nbridges_ij-1.0))*nbridges_ij;
+                Scalar p_ij = p0*pow((1-p0),(m_nloops[i]*capfraction(surf_dist)-1.0))*m_nloops[i]*capfraction(surf_dist);
+                Scalar p_ji = p0*pow((1-p0),(m_nloops[j]*capfraction(surf_dist)-1.0))*m_nloops[j]*capfraction(surf_dist);
+                Scalar q_ij =  q0*pow((1-q0),(nbridges_ij-1.0))*nbridges_ij;
 
-                // generate random numbers
+                // (2) generate random numbers
                 Scalar rnd1 = saru.s<Scalar>(0,1);
                 Scalar rnd2 = saru.s<Scalar>(0,1);
                 Scalar rnd3 = saru.s<Scalar>(0,1);
                 Scalar rnd4 = saru.s<Scalar>(0,1);
 
-                // check to see if a bond should be created between particles i and j
-                if (rnd1 < p12 && m_nloops[i] > 0)
+                // (3) check to see if a loop on i should form a bridge btwn particles i and j
+                if (rnd1 < p_ij && m_nloops[i] > 0)
                     {
                     m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                     m_nloops[i] -= 1;
                     }
 
-                if (rnd2 < p21 && m_nloops[j] > 0)
+                // (4) check to see if a loop on j should form a bridge btwn particles i and j
+                if (rnd2 < p_ji && m_nloops[j] > 0)
                     {
                     m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                     m_nloops[j] -= 1;
                     }
 
-                // check to see if a bond should be broken between particles i and j
-                if (rnd3 < q1 && n_bridges_ij > 0)
+                // (5) check to see if a bond should be broken between particles i and j
+                if (rnd3 < q_ij && nbridges_ij > 0)
                     {
                     // for each of the bonds in the *system*
                     const unsigned int size = (unsigned int)m_bond_data->getN();
@@ -259,7 +260,6 @@ void DynamicBond::update(unsigned int timestep)
                         assert(idx_a <= m_pdata->getMaximumTag());
                         assert(idx_b <= m_pdata->getMaximumTag());
 
-
                         if ((bond.tag[0] == i && bond.tag[1] == j) || (bond.tag[0] == j & bond.tag[1] == i))
                             {
                             // remove bond with tag "bond_number" between particles i and j, the leave the loop
@@ -267,6 +267,7 @@ void DynamicBond::update(unsigned int timestep)
                             break;
                             }
                         }
+
                     if (rnd4 <= 0.5)
                         {
                         m_nloops[i] += 1;

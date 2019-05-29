@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-#include <functional>
+#include <memory>
 
 #include "hoomd/md/DynamicBond.h"
 #include "hoomd/ConstForceCompute.h"
