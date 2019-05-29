@@ -1,11 +1,8 @@
 option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
+option(ENABLE_NVTOOLS "Enable NVTools profiler integration" off)
 
 option(ALWAYS_USE_MANAGED_MEMORY "Use CUDA managed memory also when running on single GPU" OFF)
 MARK_AS_ADVANCED(ALWAYS_USE_MANAGED_MEMORY)
-
-if (ENABLE_CUDA)
-    option(ENABLE_NVTOOLS "Enable NVTools profiler integration" off)
-endif (ENABLE_CUDA)
 
 if (ENABLE_CUDA)
     enable_language(CUDA)
@@ -13,44 +10,7 @@ if (ENABLE_CUDA)
         message(SEND_ERROR "HOOMD-blue requires CUDA 9.0 or newer")
     endif()
 
-    # find CUDA library path
-    get_filename_component(CUDA_BIN_PATH ${CMAKE_CUDA_COMPILER} DIRECTORY)
-    get_filename_component(CUDA_LIB_PATH "${CUDA_BIN_PATH}/../lib64/" ABSOLUTE)
-
-    # find libraries
-    find_library(CUDA_cudart_LIBRARY cudart HINTS ${CUDA_LIB_PATH} NO_DEFAULT_PATH)
-    mark_as_advanced(CUDA_cudart_LIBRARY)
-    find_library(CUDA_cudadevrt_LIBRARY cudadevrt HINTS ${CUDA_LIB_PATH} NO_DEFAULT_PATH)
-    mark_as_advanced(CUDA_cudadevrt_LIBRARY)
-    find_library(CUDA_cufft_LIBRARY cufft HINTS ${CUDA_LIB_PATH} NO_DEFAULT_PATH)
-    mark_as_advanced(CUDA_cufft_LIBRARY)
-    find_library(CUDA_nvToolsExt_LIBRARY nvToolsExt HINTS ${CUDA_LIB_PATH} NO_DEFAULT_PATH)
-    mark_as_advanced(CUDA_nvToolsExt_LIBRARY)
-    find_library(CUDA_cusolver_LIBRARY cusolver HINTS ${CUDA_LIB_PATH} NO_DEFAULT_PATH)
-    mark_as_advanced(CUDA_cusolver_LIBRARY)
-    find_library(CUDA_cusparse_LIBRARY cusparse HINTS ${CUDA_LIB_PATH} NO_DEFAULT_PATH)
-    mark_as_advanced(CUDA_cusparse_LIBRARY)
-
-    # find cuda-memcheck
-    find_program(CUDA_MEMCHECK_EXECUTABLE
-      NAMES cuda-memcheck
-      HINTS "${CUDA_BIN_PATH}"
-      NO_DEFAULT_PATH)
-    mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
-
-    include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-    list(APPEND HOOMD_COMMON_LIBS ${CUDA_cudart_LIBRARY} ${CUDA_cufft_LIBRARY} ${CUDA_curand_LIBRARY})
-
-    add_definitions (-DENABLE_CUDA)
-
-    if(ALWAYS_USE_MANAGED_MEMORY)
-        add_definitions(-DALWAYS_USE_MANAGED_MEMORY)
-    endif()
-
-    if (ENABLE_NVTOOLS)
-        list(APPEND HOOMD_COMMON_LIBS ${CUDA_nvToolsExt_LIBRARY})
-        add_definitions(-DENABLE_NVTOOLS)
-    endif()
+    find_package(HOOMDCUDALibs REQUIRED)
 endif (ENABLE_CUDA)
 
 # setup CUDA compile options
@@ -104,10 +64,6 @@ if (ENABLE_CUDA)
 
 if (NOT CUSOLVER_AVAILABLE)
     message(STATUS "Could not find cusolver library, constraints will be slower. Perhaps old CMake or missing gomp library.")
-endif()
-
-if (CUSOLVER_AVAILABLE)
-    add_definitions(-DCUSOLVER_AVAILABLE)
 endif()
 
 endif()

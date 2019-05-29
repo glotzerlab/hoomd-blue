@@ -56,7 +56,7 @@ endif()
 target_link_libraries(_${PACKAGE_NAME}_llvm ${llvm_libs})
 
 # need to link llvm_libs here, too, otherwise module import fails
-target_link_libraries(_${PACKAGE_NAME} PRIVATE _hoomd _${PACKAGE_NAME}_llvm ${HOOMD_COMMON_LIBS} ${llvm_libs})
+target_link_libraries(_${PACKAGE_NAME} PUBLIC _hoomd PRIVATE _${PACKAGE_NAME}_llvm ${llvm_libs})
 
 # set installation RPATH
 if(APPLE)

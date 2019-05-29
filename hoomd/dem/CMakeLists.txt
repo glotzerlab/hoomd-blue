@@ -49,7 +49,7 @@ else()
 set_target_properties(_dem PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN/../md;\$ORIGIN")
 endif()
 # link the library to its dependencies
-target_link_libraries(_dem PRIVATE _md ${HOOMD_LIBRARIES})
+target_link_libraries(_dem PUBLIC _md)
 
 fix_cudart_rpath(_dem)
 

@@ -112,12 +112,12 @@ set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
 endif()
 
 # link the library to its dependencies
-target_link_libraries(_hpmc PRIVATE ${HOOMD_LIBRARIES})
+target_link_libraries(_hpmc PUBLIC _hoomd)
 
 fix_cudart_rpath(_hpmc)
 
 # install the library
-install(TARGETS _hpmc
+install(TARGETS _hpmc EXPORT HOOMDTargets
         LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/hpmc
         )
 

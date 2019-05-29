@@ -116,15 +116,15 @@ if (ENABLE_CUDA)
 endif()
 
 # link the library to its dependencies
-target_link_libraries(_mpcd PRIVATE _md ${HOOMD_LIBRARIES})
+target_link_libraries(_mpcd PUBLIC _md)
 if (ENABLE_CUDA)
-    target_link_libraries(_mpcd PRIVATE ${CUDA_cudadevrt_LIBRARY})
+    target_link_libraries(_mpcd PUBLIC CUDA::cudadevrt)
 endif (ENABLE_CUDA)
 
 fix_cudart_rpath(_mpcd)
 
 # install the library
-install(TARGETS _mpcd
+install(TARGETS _mpcd EXPORT HOOMDTargets
         LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/mpcd
         )
 

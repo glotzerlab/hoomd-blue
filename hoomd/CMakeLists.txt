@@ -206,7 +206,45 @@ add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # link the library to its dependencies
 target_link_libraries(_hoomd PUBLIC quickhull)
-target_link_libraries(_hoomd PRIVATE ${HOOMD_COMMON_LIBS})
+target_link_libraries(_hoomd PUBLIC ${HOOMD_COMMON_LIBS})
+
+target_include_directories(_hoomd PUBLIC
+                                  $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>
+                                  $<INSTALL_INTERFACE:include>)
+
+target_include_directories(_hoomd PUBLIC
+                                  $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}/hoomd/extern/cereal/include>
+                                  $<INSTALL_INTERFACE:include/hoomd/extern/cereal/include>)
+
+target_include_directories(_hoomd PUBLIC
+                                  $<BUILD_INTERFACE:${HOOMD_BINARY_DIR}/hoomd/include>)
+
+# specify optional compile time definitions and libraries
+if (ENABLE_CUDA)
+    target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
+    target_compile_definitions(_hoomd PUBLIC ENABLE_CUDA)
+
+    if(ALWAYS_USE_MANAGED_MEMORY)
+        target_compile_definitions(_hoomd PUBLIC ALWAYS_USE_MANAGED_MEMORY)
+    endif()
+
+    if (ENABLE_NVTOOLS)
+        target_link_libraries(_hoomd PUBLIC CUDA::nvToolsExt)
+        target_compile_definitions(_hoomd PUBLIC ENABLE_NVTOOLS)
+    endif()
+
+    if (CUSOLVER_AVAILABLE)
+        target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
+    endif()
+endif()
+
+# specify include directories
+foreach(dir ${HOOMD_COMMON_INCLUDE_DIRECTORIES})
+    target_include_directories(_hoomd PUBLIC
+                                      $<BUILD_INTERFACE:${dir}>
+                                      $<INSTALL_INTERFACE:${dir}>)
+endforeach()
+
 if (APPLE)
 set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "@loader_path")
 else()
@@ -218,10 +256,7 @@ set(HOOMD_LIBRARIES _hoomd quickhull ${HOOMD_COMMON_LIBS})
 fix_cudart_rpath(_hoomd)
 
 # install the library
-install(TARGETS _hoomd
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}
-        )
-install(TARGETS quickhull
+install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
         LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}
         )
 

@@ -71,7 +71,7 @@ endif (NOT HOOMD_FOUND)
 ## Now that we've found hoomd, lets do some setup
 if (HOOMD_FOUND)
 
-include_directories(${HOOMD_INCLUDE_DIR})
+list(APPEND HOOMD_COMMON_INCLUDE_DIRECTORIES ${HOOMD_INCLUDE_DIR})
 
 # run all of HOOMD's generic lib setup scripts
 set(CMAKE_MODULE_PATH ${HOOMD_ROOT}

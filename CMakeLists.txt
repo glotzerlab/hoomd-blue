@@ -76,7 +76,8 @@ option(BUILD_CGCMM "Build the cgcmm package" on)
 option(BUILD_MPCD "Build the mpcd package" on)
 option(BUILD_JIT "Build the jit package" off)
 
-set(HOOMD_COMMON_LIBS "")
+set(HOOMD_COMMON_LIBS)
+set(HOOMD_COMMON_INCLUDE_DIRECTORIES)
 
 #################################
 ## setup python library and executable
@@ -90,13 +91,6 @@ include(HOOMDPythonSetup)
 include (HOOMDCUDASetup)
 # Find TBB and set it up
 include (TBBSetup)
-
-#################################
-## Setup include directories and file lists for sub directories
-include_directories(${HOOMD_SOURCE_DIR}
-                    ${HOOMD_SOURCE_DIR}/hoomd/extern/cereal/include
-                    ${CUDA_INCLUDE}
-                    ${HOOMD_BINARY_DIR}/hoomd/include)
 
 #######################################
 # Global preprocessor flags
@@ -211,3 +205,27 @@ add_subdirectory (hoomd)
 if (ENABLE_DOXYGEN)
     add_subdirectory (doc)
 endif (ENABLE_DOXYGEN)
+
+###############################
+## install cmake config files
+
+include(CMakePackageConfigHelpers)
+
+# version information
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config-version.cmake
+  VERSION ${HOOMD_VERSION}
+  COMPATIBILITY SameMinorVersion )
+
+# exports
+export(EXPORT HOOMDTargets
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/hoomd-targets.cmake"
+)
+
+set(CONFIG_INSTALL_DIR "${PYTHON_MODULE_BASE_DIR}/lib/cmake/hoomd")
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config-version.cmake
+        DESTINATION ${CONFIG_INSTALL_DIR} )
+
+install(EXPORT HOOMDTargets
+  FILE hoomd-targets.cmake
+  DESTINATION ${CONFIG_INSTALL_DIR} )

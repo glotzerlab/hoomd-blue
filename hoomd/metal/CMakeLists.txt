@@ -32,7 +32,7 @@ set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORI
 endif()
 
 # link the library to its dependencies
-target_link_libraries(_${PACKAGE_NAME} PRIVATE _md ${HOOMD_LIBRARIES})
+target_link_libraries(_${PACKAGE_NAME} PUBLIC _md)
 
 fix_cudart_rpath(_${PACKAGE_NAME})
 
