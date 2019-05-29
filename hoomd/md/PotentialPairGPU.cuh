@@ -205,24 +205,20 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
 
     if (active)
         {
-        // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
+        // load in the length of the neighbor list
         unsigned int n_neigh = d_n_neigh[idx];
 
         // read in the position of our particle.
-        // (MEM TRANSFER: 16 bytes)
         Scalar4 postypei = __ldg(d_pos + idx);
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
-        Scalar di;
+        Scalar di = Scalar(0);
         if (evaluator::needsDiameter())
             di = __ldg(d_diameter + idx);
-        else
-            di += Scalar(1.0); // shut up compiler warning
-        Scalar qi;
+
+        Scalar qi = Scalar(0);
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
-        else
-            qi += Scalar(1.0); // shut up compiler warning
 
         unsigned int my_head = d_head_list[idx];
         unsigned int cur_j = 0;
@@ -234,35 +230,31 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
         for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
             {
                 {
-                // read the current neighbor index (MEM TRANSFER: 4 bytes)
+                // read the current neighbor index
                 cur_j = next_j;
                 if (neigh_idx+tpp < n_neigh)
                     {
                     next_j = __ldg(d_nlist + my_head + neigh_idx+tpp);
                     }
-                // get the neighbor's position (MEM TRANSFER: 16 bytes)
+                // get the neighbor's position
                 Scalar4 postypej = __ldg(d_pos + cur_j);
                 Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
                 Scalar dj = Scalar(0.0);
                 if (evaluator::needsDiameter())
                     dj = __ldg(d_diameter + cur_j);
-                else
-                    dj += Scalar(1.0); // shut up compiler warning
 
                 Scalar qj = Scalar(0.0);
                 if (evaluator::needsCharge())
                     qj = __ldg(d_charge + cur_j);
-                else
-                    qj += Scalar(1.0); // shut up compiler warning
 
-                // calculate dr (with periodic boundary conditions) (FLOPS: 3)
+                // calculate dr (with periodic boundary conditions)
                 Scalar3 dx = posi - posj;
 
-                // apply periodic boundary conditions: (FLOPS 12)
+                // apply periodic boundary conditions
                 dx = box.minImage(dx);
 
-                // calculate r squared (FLOPS: 5)
+                // calculate r squared
                 Scalar rsq = dot(dx, dx);
 
                 // access the per type pair parameters
@@ -301,7 +293,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                     {
                     if (rsq >= ronsq && rsq < rcutsq)
                         {
-                        // Implement XPLOR smoothing (FLOPS: 16)
+                        // Implement XPLOR smoothing
                         Scalar old_pair_eng = pair_eng;
                         Scalar old_force_divr = force_divr;
 
@@ -331,7 +323,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                     virialzz +=  dx.z * dx.z * force_div2r;
                     }
 
-                // add up the force vector components (FLOPS: 7)
+                // add up the force vector components
                 force.x += dx.x * force_divr;
                 force.y += dx.y * force_divr;
                 force.z += dx.z * force_divr;
@@ -351,7 +343,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
     force.z = reducer.Sum(force.z);
     force.w = reducer.Sum(force.w);
 
-    // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+    // now that the force calculation is complete, write out the result
     if (active && threadIdx.x % tpp == 0)
         d_force[idx] = force;
 
