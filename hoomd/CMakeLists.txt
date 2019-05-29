@@ -4,7 +4,7 @@ add_subdirectory(extern)
 configure_file (HOOMDVersion.h.in ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h)
 
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include
         )
 
 ##############################
@@ -267,7 +267,7 @@ fix_cudart_rpath(_hoomd)
 
 # install the library
 install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}
+        LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}
         )
 
 ################ Python only modules
@@ -305,7 +305,7 @@ set(files analyze.py
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}
        )
 
 foreach(file ${files})
@@ -316,7 +316,7 @@ add_custom_target(copy_hoomd ALL DEPENDS ${files})
 
 # install headers in installation target
 install(FILES ${_hoomd_headers}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd
        )
 
 if (BUILD_TESTING)

@@ -55,7 +55,7 @@ fix_cudart_rpath(_dem)
 
 # install the library
 install(TARGETS _dem
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/dem
+        LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/dem
         )
 
 ################ Python only modules
@@ -78,7 +78,7 @@ set(files   __init__.py
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/dem
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/dem
        )
 
 foreach(file ${files})
@@ -89,7 +89,7 @@ add_custom_target(copy_dem ALL DEPENDS ${files})
 
 # install headers in installation target
 install(FILES ${_dem_headers}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/dem
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/dem
        )
 
 if (BUILD_TESTING)

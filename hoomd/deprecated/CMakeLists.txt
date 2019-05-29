@@ -46,7 +46,7 @@ fix_cudart_rpath(_deprecated)
 
 # install the library
 install(TARGETS _deprecated
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/deprecated
+        LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/deprecated
         )
 
 ################ Python only modules
@@ -69,7 +69,7 @@ set(files __init__.py
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/deprecated
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/deprecated
        )
 
 foreach(file ${files})
@@ -80,7 +80,7 @@ add_custom_target(copy_deprecated ALL DEPENDS ${files})
 
 # install headers in installation target
 install(FILES ${_deprecated_headers}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/deprecated
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/deprecated
        )
 
 if (BUILD_TESTING)

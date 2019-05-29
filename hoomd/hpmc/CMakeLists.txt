@@ -118,7 +118,7 @@ fix_cudart_rpath(_hpmc)
 
 # install the library
 install(TARGETS _hpmc EXPORT HOOMDTargets
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/hpmc
+        LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
         )
 
 ################ Python only modules
@@ -145,7 +145,7 @@ set(files   analyze.py
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/hpmc
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
        )
 
 foreach(file ${files})
@@ -156,7 +156,7 @@ add_custom_target(copy_hpmc ALL DEPENDS ${files})
 
 # install headers in installation target
 install(FILES ${_hpmc_headers}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/hpmc
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/hpmc
        )
 
 if (BUILD_TESTING)

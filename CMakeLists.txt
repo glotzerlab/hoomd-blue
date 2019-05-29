@@ -144,33 +144,9 @@ else (libgetar_DIR)
                       "pull the libgetar source, i.e. via `git submodule update`.")
 endif (libgetar_DIR)
 
-################################
-# install cmake scripts into hoomd/CMake
-
-set(cmake_files CMake/hoomd/FindTBB.cmake
-                CMake/hoomd/HOOMDCUDASetup.cmake
-                CMake/hoomd/test.cc
-                CMake/hoomd/HOOMDMPISetup.cmake
-                CMake/hoomd/HOOMDPythonSetup.cmake
-                CMake/git/FindGit.cmake
-                CMake/git/GetGitRevisionDescription.cmake
-                CMake/libgetar/Findlibgetar.cmake
-   )
-
-# install headers in installation target
-install(FILES ${cmake_files}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}
-       )
-
 #######################
 ## Get the compile date
 exec_program("date +%x" OUTPUT_VARIABLE COMPILE_DATE)
-
-configure_file(hoomd_cache.cmake.in
-    ${HOOMD_BINARY_DIR}/hoomd/CMake/hoomd/hoomd_cache.cmake)
-
-install(FILES ${HOOMD_BINARY_DIR}/hoomd/CMake/hoomd/hoomd_cache.cmake
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/CMake/hoomd)
 
 ################################
 # set up unit tests
@@ -212,20 +188,28 @@ include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
   ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config-version.cmake
   VERSION ${HOOMD_VERSION}
-  COMPATIBILITY SameMinorVersion )
+  COMPATIBILITY SameMinorVersion)
 
 # exports
-export(EXPORT HOOMDTargets
-  FILE "${CMAKE_CURRENT_BINARY_DIR}/hoomd-targets.cmake"
-)
+export(EXPORT HOOMDTargets FILE "${CMAKE_CURRENT_BINARY_DIR}/hoomd-targets.cmake")
 
-set(CONFIG_INSTALL_DIR "${PYTHON_MODULE_BASE_DIR}/lib/cmake/hoomd")
+set(CONFIG_INSTALL_DIR "${PYTHON_SITE_INSTALL_DIR}/lib/cmake/hoomd")
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config-version.cmake
-        DESTINATION ${CONFIG_INSTALL_DIR} )
+        DESTINATION ${CONFIG_INSTALL_DIR})
 
 install(EXPORT HOOMDTargets
   FILE hoomd-targets.cmake
-  DESTINATION ${CONFIG_INSTALL_DIR} )
+  DESTINATION ${CONFIG_INSTALL_DIR})
+
+configure_package_config_file(hoomd-config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config.cmake
+  INSTALL_DESTINATION ${CONFIG_INSTALL_DIR}
+  PATH_VARS CONFIG_INSTALL_DIR PYTHON_SITE_INSTALL_DIR)
+
+install(FILES CMake/hoomd/FindTBB.cmake
+              CMake/hoomd/FindHOOMDCUDALibs.cmake
+              ${HOOMD_BINARY_DIR}/hoomd-config.cmake
+        DESTINATION ${CONFIG_INSTALL_DIR})
 
 message(STATUS "PYTHON_PREFIX: ${PYTHON_PREFIX}")
 message(STATUS "PYTHON_SITE_PACKAGES: ${PYTHON_SITE_PACKAGES}")

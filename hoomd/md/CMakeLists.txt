@@ -276,7 +276,7 @@ fix_cudart_rpath(_md)
 
 # install the library
 install(TARGETS _md EXPORT HOOMDTargets
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/md
+        LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
         )
 
 ################ Python only modules
@@ -310,7 +310,7 @@ set(files __init__.py
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/md
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
        )
 
 foreach(file ${files})
@@ -321,7 +321,7 @@ add_custom_target(copy_md ALL DEPENDS ${files})
 
 # install headers in installation target
 install(FILES ${_md_headers}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/md
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/md
        )
 
 if (BUILD_TESTING)

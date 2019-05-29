@@ -1,0 +1,51 @@
+########################################################
+# HOOMD CMake configuration for externally built plugins
+
+@PACKAGE_INIT@
+
+# build options
+set(SINGLE_PRECISION "@SINGLE_PRECISION@")
+set(ENABLE_HPMC_MIXED_PRECISION "@ENABLE_HPMC_MIXED_PRECISION@")
+
+set(BUILD_MD "@BUILD_MD@")
+set(BUILD_HPMC "@BUILD_HPMC@")
+set(BUILD_DEPRECATED "@BUILD_DEPRECATED@")
+set(BUILD_METAL "@BUILD_METAL@")
+set(BUILD_DEM "@BUILD_DEM@")
+set(BUILD_CGCMM "@BUILD_CGCMM@")
+set(BUILD_MPCD "@BUILD_MPCD@")
+set(BUILD_JIT "@BUILD_JIT@")
+
+set(ENABLE_CUDA "@ENABLE_CUDA@")
+set(ENABLE_NVTOOLS "@ENABLE_NVTOOLS@")
+set(ENABLE_MPI "@ENABLE_MPI@")
+set(ENABLE_MPI_CUDA "@ENABLE_MPI_CUDA@")
+set(ENABLE_TBB "@ENABLE_TBB@")
+set(ALWAYS_USE_MANAGED_MEMORY "@ALWAYS_USE_MANAGED_MEMORY@")
+
+# C++ standard
+set(CMAKE_CXX_STANDARD "@CMAKE_CXX_STANDARD@")
+set(CMAKE_CUDA_STANDARD "@CMAKE_CUDA_STANDARD@")
+
+# configure python
+set_and_check(_pybind11_tools ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/extern/pybind/tools)
+list(APPEND CMAKE_MODULE_PATH ${_pybind11_tools})
+include(pybind11Tools)
+
+include(CMakeFindDependencyMacro)
+
+if (ENABLE_CUDA)
+    find_dependency(HOOMDCUDALibs REQUIRED)
+endif()
+
+if (ENABLE_MPI)
+    find_dependency(MPI REQUIRED)
+endif()
+
+if (ENABLE_TBB)
+    find_dependency(TBB 4.3 REQUIRED)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/hoomd-targets.cmake")
+
+check_required_components(HOOMD)

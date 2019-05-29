@@ -125,7 +125,7 @@ fix_cudart_rpath(_mpcd)
 
 # install the library
 install(TARGETS _mpcd EXPORT HOOMDTargets
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/mpcd
+        LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/mpcd
         )
 
 ################ Python only modules
@@ -152,7 +152,7 @@ set(files
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/mpcd
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/mpcd
        )
 
 foreach(file ${files})
@@ -163,7 +163,7 @@ add_custom_target(copy_mpcd ALL DEPENDS ${files})
 
 # install headers in installation target
 install(FILES ${_mpcd_headers}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/mpcd
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/mpcd
        )
 
 if (BUILD_TESTING)
