@@ -6,6 +6,7 @@ if (HOOMD_INCLUDE_DIR)
     list(APPEND CMAKE_MODULE_PATH ${HOOMD_INCLUDE_DIR}/hoomd/extern/pybind/tools)
 endif()
 
+# find_package(pybind11 NO_MODULE)
 include(pybind11Tools)
 
 # set python installation location
@@ -16,5 +17,3 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 set(PYTHON_MODULE_BASE_DIR "hoomd")
-
-list(APPEND HOOMD_COMMON_INCLUDE_DIRECTORIES ${PYTHON_INCLUDE_DIR})

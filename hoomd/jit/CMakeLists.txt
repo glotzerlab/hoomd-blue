@@ -28,7 +28,7 @@ set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
                              KaleidoscopeJIT.h
    )
 
-pybind11_add_module (_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} NO_EXTRAS)
+pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} NO_EXTRAS)
 add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 
 # set the appropriate compiler flags on the _llvm target

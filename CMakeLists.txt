@@ -1,4 +1,6 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.8 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
+# >= 3.8 is required for CUDA language support
+# >= 3.9 is required for MPI::MPI_CXX target
 
 project (HOOMD LANGUAGES C CXX)
 
@@ -39,6 +41,28 @@ endif (GIT_SHA1)
 message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 
 #################################
+## CFLAGS configuration
+
+# Set a default build type if none was specified
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'Release' as none was specified.")
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
+endif()
+
+# enable c++11
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 11)
+
+# Enable compiler warnings on gcc and clang (common compilers used by developers)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+endif()
+
+#################################
 ## Build options
 option(SINGLE_PRECISION "Use single precision math" OFF)
 
@@ -73,25 +97,15 @@ option(BUILD_CGCMM "Build the cgcmm package" on)
 option(BUILD_MPCD "Build the mpcd package" on)
 option(BUILD_JIT "Build the jit package" off)
 
-set(HOOMD_COMMON_LIBS)
-set(HOOMD_COMMON_INCLUDE_DIRECTORIES)
+# Optionally use TBB for threading
+option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
 
-#################################
-## setup python library and executable
-# Set default CFlags
-include (HOOMDCFlagsSetup)
 # setup MPI support
 include (HOOMDMPISetup)
 # find the python libraries to link to
 include(HOOMDPythonSetup)
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
-# Find TBB and set it up
-include (TBBSetup)
-
-if (APPLE)
-    list(APPEND HOOMD_COMMON_LIBS "-undefined dynamic_lookup")
-endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
 
@@ -134,9 +148,7 @@ endif (libgetar_DIR)
 # install cmake scripts into hoomd/CMake
 
 set(cmake_files CMake/hoomd/FindTBB.cmake
-                CMake/hoomd/HOOMDCFlagsSetup.cmake
                 CMake/hoomd/HOOMDCUDASetup.cmake
-                CMake/hoomd/TBBSetup.cmake
                 CMake/hoomd/test.cc
                 CMake/hoomd/HOOMDMPISetup.cmake
                 CMake/hoomd/HOOMDPythonSetup.cmake
@@ -214,3 +226,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config-version.cmake
 install(EXPORT HOOMDTargets
   FILE hoomd-targets.cmake
   DESTINATION ${CONFIG_INSTALL_DIR} )
+
+message(STATUS "PYTHON_PREFIX: ${PYTHON_PREFIX}")
+message(STATUS "PYTHON_SITE_PACKAGES: ${PYTHON_SITE_PACKAGES}")
+message(STATUS "PYTHON_LIBRARIES: ${PYTHON_LIBRARIES}")

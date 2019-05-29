@@ -7,6 +7,9 @@ install(FILES ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h
         DESTINATION ${PYTHON_MODULE_BASE_DIR}/include
         )
 
+##############################
+## Source setup
+
 set(_hoomd_sources Analyzer.cc
                    Autotuner.cc
                    BondedGroupData.cc
@@ -175,10 +178,6 @@ foreach(getar_src ${GETAR_SRCS_REL})
   list(APPEND _hoomd_sources ${libgetar_DIR}/${getar_src})
 endforeach(getar_src)
 
-# add libgetar-specific libraries
-get_property(GETAR_LIBS TARGET getar PROPERTY LINK_LIBRARIES)
-list(APPEND HOOMD_COMMON_LIBS ${GETAR_LIBS})
-
 # quiet some warnings locally on files we can't modify
 if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
@@ -189,6 +188,8 @@ set(_cuda_sources ${_hoomd_cu_sources})
 set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
+#########################
+## Build the module
 pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} NO_EXTRAS)
 
 # add quick hull as its own library so that it's symbols can be public
@@ -196,7 +197,6 @@ add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # link the library to its dependencies
 target_link_libraries(_hoomd PUBLIC quickhull)
-target_link_libraries(_hoomd PUBLIC ${HOOMD_COMMON_LIBS})
 
 # specify required include directories
 target_include_directories(_hoomd PUBLIC
@@ -217,7 +217,7 @@ if (SINGLE_PRECISION)
     target_compile_definitions(_hoomd PUBLIC SINGLE_PRECISION)
 endif(SINGLE_PRECISION)
 
-# specify optional compile time definitions and libraries
+# Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_CUDA)
     target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     target_compile_definitions(_hoomd PUBLIC ENABLE_CUDA CUDA_ARCH=${_cuda_min_arch})
@@ -236,12 +236,17 @@ if (ENABLE_CUDA)
     endif()
 endif()
 
+# Libraries and compile definitions for TBB enabled builds
 if (ENABLE_TBB)
+    find_package(TBB 4.3)
     target_compile_definitions(_hoomd PUBLIC ENABLE_TBB)
+    target_link_libraries(_hoomd PUBLIC TBB::tbb)
 endif()
 
+# Libraries and compile definitions for MPI enabled builds
 if (ENABLE_MPI)
     target_compile_definitions(_hoomd PUBLIC ENABLE_MPI)
+    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX)
 
     if (ENABLE_MPI_CUDA)
           target_compile_definitions(_hoomd PUBLIC ENABLE_MPI_CUDA)
@@ -252,20 +257,11 @@ if (ENABLE_HPMC_MIXED_PRECISION)
     target_compile_definitions(_hoomd PUBLIC ENABLE_HPMC_MIXED_PRECISION)
 endif()
 
-# specify include directories
-foreach(dir ${HOOMD_COMMON_INCLUDE_DIRECTORIES})
-    target_include_directories(_hoomd PUBLIC
-                                      $<BUILD_INTERFACE:${dir}>
-                                      $<INSTALL_INTERFACE:${dir}>)
-endforeach()
-
 if (APPLE)
 set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "@loader_path")
 else()
 set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "\$ORIGIN")
 endif()
-
-set(HOOMD_LIBRARIES _hoomd quickhull ${HOOMD_COMMON_LIBS})
 
 fix_cudart_rpath(_hoomd)
 
@@ -327,6 +323,9 @@ if (BUILD_TESTING)
     add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
+
+##################################################
+## Build components
 
 if (BUILD_MD)
     if (ENABLE_MPI)

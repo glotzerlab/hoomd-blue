@@ -51,22 +51,4 @@ if (ENABLE_MPI)
         endif(MPI_CUDA)
     endif (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
 
-    list(APPEND HOOMD_COMMON_INCLUDE_DIRECTORIES ${MPI_CXX_INCLUDE_PATH})
-    list(APPEND HOOMD_COMMON_LIBS ${MPI_CXX_LIBRARIES})
-
-    # use recommended flags
-    foreach(flag ${MPI_CXX_COMPILE_FLAGS})
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
-    endforeach()
-
-    foreach(flag ${MPI_C_COMPILE_FLAGS})
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flag}")
-    endforeach()
-
-    foreach(flag ${MPI_LINK_FLAGS})
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${flag}")
-        set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${flag}")
-        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${flag}")
-    endforeach()
-
 endif (ENABLE_MPI)

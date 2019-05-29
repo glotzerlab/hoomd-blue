@@ -1,5 +1,3 @@
-# Maintainer: joaander
-
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
@@ -16,6 +14,7 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     endif()
 
     add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc ${_cuda_sources})
+    target_include_directories(${CUR_TEST} PRIVATE ${PYTHON_INCLUDE_DIR})
 
     add_dependencies(test_all ${CUR_TEST})
 

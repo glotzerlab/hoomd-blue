@@ -32,7 +32,7 @@ set(_cuda_sources ${_deprecated_cu_sources})
 set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
-pybind11_add_module (_deprecated SHARED ${_deprecated_sources} ${_cuda_sources} NO_EXTRAS)
+pybind11_add_module(_deprecated SHARED ${_deprecated_sources} ${_cuda_sources} NO_EXTRAS)
 if (APPLE)
 set_target_properties(_deprecated PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()
