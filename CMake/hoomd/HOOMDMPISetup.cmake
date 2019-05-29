@@ -53,11 +53,6 @@ if (ENABLE_MPI)
 
     list(APPEND HOOMD_COMMON_INCLUDE_DIRECTORIES ${MPI_CXX_INCLUDE_PATH})
     list(APPEND HOOMD_COMMON_LIBS ${MPI_CXX_LIBRARIES})
-    add_definitions (-DENABLE_MPI)
-
-    if (ENABLE_MPI_CUDA)
-          add_definitions (-DENABLE_MPI_CUDA)
-    endif(ENABLE_MPI_CUDA)
 
     # use recommended flags
     foreach(flag ${MPI_CXX_COMPILE_FLAGS})

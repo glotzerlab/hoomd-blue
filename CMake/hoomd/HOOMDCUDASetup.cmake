@@ -34,7 +34,6 @@ if (ENABLE_CUDA)
     list(SORT _cuda_arch_list_sorted)
     list(GET _cuda_arch_list_sorted 0 _cuda_min_arch)
     list(GET _cuda_arch_list_sorted -1 _cuda_max_arch)
-    add_definitions(-DCUDA_ARCH=${_cuda_min_arch})
 
     if (_cuda_min_arch LESS 35)
         message(SEND_ERROR "HOOMD requires compute 3.5 or newer")

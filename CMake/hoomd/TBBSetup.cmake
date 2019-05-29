@@ -14,7 +14,6 @@ if(ENABLE_TBB)
     endif()
 
     list(APPEND HOOMD_COMMON_LIBS ${TBB_LIBRARY})
-    add_definitions(-DENABLE_TBB)
 endif()
 
 if (TBB_USE_GLIBCXX_VERSION)

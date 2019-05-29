@@ -43,9 +43,6 @@ message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 option(SINGLE_PRECISION "Use single precision math" OFF)
 
 option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
-if (ENABLE_HPMC_MIXED_PRECISION)
-    add_definitions(-DENABLE_HPMC_MIXED_PRECISION)
-endif()
 
 # Optionally enable documentation build
 OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" OFF)
@@ -91,18 +88,6 @@ include(HOOMDPythonSetup)
 include (HOOMDCUDASetup)
 # Find TBB and set it up
 include (TBBSetup)
-
-#######################################
-# Global preprocessor flags
-add_definitions(-D_REENTRANT)
-add_definitions(-DEIGEN_MPL2_ONLY)
-
-if (SINGLE_PRECISION)
-    add_definitions (-DSINGLE_PRECISION)
-# disable for now, only support single precision FFT
-#else(SINGLE_PRECISION)
-#   add_definitions (-Dkiss_fft_scalar=double)
-endif(SINGLE_PRECISION)
 
 if (APPLE)
     list(APPEND HOOMD_COMMON_LIBS "-undefined dynamic_lookup")

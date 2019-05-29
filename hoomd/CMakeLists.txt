@@ -1,5 +1,3 @@
-# Maintainer: joaander
-
 add_subdirectory(extern)
 
 # configure the version information file
@@ -177,14 +175,6 @@ foreach(getar_src ${GETAR_SRCS_REL})
   list(APPEND _hoomd_sources ${libgetar_DIR}/${getar_src})
 endforeach(getar_src)
 
-# add libgetar-specific defines
-get_property(HOOMD_DEFS DIRECTORY . PROPERTY COMPILE_DEFINITIONS)
-get_property(GETAR_DEFS DIRECTORY ${libgetar_DIR} PROPERTY COMPILE_DEFINITIONS)
-list(REMOVE_ITEM GETAR_DEFS ${HOOMD_DEFS})
-foreach(def ${GETAR_DEFS})
-  add_definitions(-D${def})
-endforeach(def)
-
 # add libgetar-specific libraries
 get_property(GETAR_LIBS TARGET getar PROPERTY LINK_LIBRARIES)
 list(APPEND HOOMD_COMMON_LIBS ${GETAR_LIBS})
@@ -208,6 +198,7 @@ add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 target_link_libraries(_hoomd PUBLIC quickhull)
 target_link_libraries(_hoomd PUBLIC ${HOOMD_COMMON_LIBS})
 
+# specify required include directories
 target_include_directories(_hoomd PUBLIC
                                   $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>
                                   $<INSTALL_INTERFACE:include>)
@@ -219,10 +210,17 @@ target_include_directories(_hoomd PUBLIC
 target_include_directories(_hoomd PUBLIC
                                   $<BUILD_INTERFACE:${HOOMD_BINARY_DIR}/hoomd/include>)
 
+# specify required definitions
+target_compile_definitions(_hoomd PUBLIC _REENTRANT EIGEN_MPL2_ONLY)
+
+if (SINGLE_PRECISION)
+    target_compile_definitions(_hoomd PUBLIC SINGLE_PRECISION)
+endif(SINGLE_PRECISION)
+
 # specify optional compile time definitions and libraries
 if (ENABLE_CUDA)
     target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
-    target_compile_definitions(_hoomd PUBLIC ENABLE_CUDA)
+    target_compile_definitions(_hoomd PUBLIC ENABLE_CUDA CUDA_ARCH=${_cuda_min_arch})
 
     if(ALWAYS_USE_MANAGED_MEMORY)
         target_compile_definitions(_hoomd PUBLIC ALWAYS_USE_MANAGED_MEMORY)
@@ -236,6 +234,22 @@ if (ENABLE_CUDA)
     if (CUSOLVER_AVAILABLE)
         target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
     endif()
+endif()
+
+if (ENABLE_TBB)
+    target_compile_definitions(_hoomd PUBLIC ENABLE_TBB)
+endif()
+
+if (ENABLE_MPI)
+    target_compile_definitions(_hoomd PUBLIC ENABLE_MPI)
+
+    if (ENABLE_MPI_CUDA)
+          target_compile_definitions(_hoomd PUBLIC ENABLE_MPI_CUDA)
+    endif(ENABLE_MPI_CUDA)
+endif()
+
+if (ENABLE_HPMC_MIXED_PRECISION)
+    target_compile_definitions(_hoomd PUBLIC ENABLE_HPMC_MIXED_PRECISION)
 endif()
 
 # specify include directories
