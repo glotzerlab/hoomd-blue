@@ -69,8 +69,9 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<ParticleGroup> group,
                         std::shared_ptr<NeighborList> nlist,
                         int seed,
+                        Scalar delta_t,
                         int period)
-        : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed), m_r_cut(0.0), m_nK(0)
+        : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed),m_delta_t(delta_t),  m_r_cut(0.0), m_nK(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
     int n_particles = m_pdata->getN();
@@ -208,13 +209,12 @@ void DynamicBond::update(unsigned int timestep)
                     }
                 Scalar r = sqrt(rsq);
                 Scalar surf_dist = r - (di+dj)/2;
-                Scalar tstep = 0.005;
                 Scalar omega = 4.68;  // natural thermal vibration frequency 1.2E0*3.9E-9
 
                 // (1) Compute P_ij, P_ji, and Q_ij
                 Scalar chain_extension = surf_dist/m_nK;
-                Scalar p0=tstep*omega*exp(-(m_delta_G+feneEnergy(chain_extension, m_nK)));
-                Scalar q0=tstep*omega*exp(-(m_delta_G-feneEnergy(chain_extension, m_nK)+feneEnergy(chain_extension, m_nK)));
+                Scalar p0=m_delta_t*omega*exp(-(m_delta_G+feneEnergy(chain_extension, m_nK)));
+                Scalar q0=m_delta_t*omega*exp(-(m_delta_G-feneEnergy(chain_extension, m_nK)+feneEnergy(chain_extension, m_nK)));
 
                 Scalar p_ij = p0*pow((1-p0),(m_nloops[i]*capfraction(surf_dist)-1.0))*m_nloops[i]*capfraction(surf_dist);
                 Scalar p_ji = p0*pow((1-p0),(m_nloops[j]*capfraction(surf_dist)-1.0))*m_nloops[j]*capfraction(surf_dist);
@@ -293,6 +293,6 @@ void DynamicBond::update(unsigned int timestep)
 void export_DynamicBond(py::module& m)
     {
     py::class_< DynamicBond, std::shared_ptr<DynamicBond> >(m, "DynamicBond", py::base<Updater>())
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, std::shared_ptr<NeighborList>, int, int>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, std::shared_ptr<NeighborList>, int, Scalar, int>())
     .def("setParams", &DynamicBond::setParams);
     }

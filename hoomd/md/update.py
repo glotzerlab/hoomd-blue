@@ -26,7 +26,7 @@ class dynamic_bond(_updater):
         prob_break: probability that a bond will be broken
         seed: rng seed
     """
-    def __init__(self, group, nlist, seed, period=1):
+    def __init__(self, group, nlist, seed, integrator, period=1):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -37,6 +37,7 @@ class dynamic_bond(_updater):
                         group.cpp_group,
                         nlist.cpp_nlist,
                         seed,
+                        integrator.dt,
                         period);
         phase = 0
         self.setupUpdater(period, phase);

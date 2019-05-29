@@ -35,6 +35,7 @@ class PYBIND11_EXPORT DynamicBond : public Updater
                  std::shared_ptr<ParticleGroup> group,
                  std::shared_ptr<NeighborList> nlist,
                  int seed,
+                 Scalar delta_t,
                  int period);
 
         //! Destructor
@@ -59,6 +60,7 @@ class PYBIND11_EXPORT DynamicBond : public Updater
         int bond_type;
         Scalar m_r_cut;                           //!< cut off distance for computing bonds
         Scalar m_delta_G;                         //!< sticker strength
+        Scalar m_delta_t;
         std::vector<int> m_nloops;
         int n_polymer;                            //!< number of polymers per colloid
         int m_nK;                                   //!< kuhn steps per polymer
