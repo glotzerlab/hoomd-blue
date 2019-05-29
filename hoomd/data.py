@@ -898,8 +898,8 @@ class system_data(hoomd.meta._metadata):
         if hoomd.comm.get_rank() == 0:
             if snapshot.has_particle_data and len(snapshot.particles.types) != self.sysdef.getParticleData().getNTypes():
                 raise RuntimeError("Number of particle types must remain the same")
-            if snapshot.has_bond_data and len(snapshot.bonds.types) != self.sysdef.getBondData().getNTypes():
-                raise RuntimeError("Number of bond types must remain the same")
+            # if snapshot.has_bond_data and len(snapshot.bonds.types) != self.sysdef.getBondData().getNTypes():
+            #     raise RuntimeError("Number of bond types must remain the same")
             if snapshot.has_angle_data and len(snapshot.angles.types) != self.sysdef.getAngleData().getNTypes():
                 raise RuntimeError("Number of angle types must remain the same")
             if snapshot.has_dihedral_data and len(snapshot.dihedrals.types) != self.sysdef.getDihedralData().getNTypes():
