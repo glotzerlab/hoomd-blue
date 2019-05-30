@@ -34,6 +34,10 @@ add_library(HOOMD::_${PACKAGE_NAME} ALIAS _${PACKAGE_NAME})
 
 add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 
+target_include_directories(_${PACKAGE_NAME}_llvm PUBLIC
+                           $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>
+                           $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include>)
+
 # set the appropriate compiler flags on the _llvm target
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
