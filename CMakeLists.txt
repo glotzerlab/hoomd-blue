@@ -4,6 +4,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
 
 project (HOOMD LANGUAGES C CXX)
 
+include(GNUInstallDirs)
+
 # bring in custom modules
 add_subdirectory (CMake)
 
@@ -205,7 +207,7 @@ write_basic_package_version_file(
 # exports
 export(EXPORT HOOMDTargets FILE "${CMAKE_CURRENT_BINARY_DIR}/hoomd-targets.cmake")
 
-set(CONFIG_INSTALL_DIR "${PYTHON_SITE_INSTALL_DIR}/lib/cmake/hoomd")
+set(CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/hoomd")
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config-version.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})
 

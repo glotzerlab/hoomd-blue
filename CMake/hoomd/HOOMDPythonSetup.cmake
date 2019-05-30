@@ -9,6 +9,10 @@ endif()
 # find_package(pybind11 NO_MODULE)
 include(pybind11Tools)
 
+# when the user specifies CMAKE_INSTALL_PREFIX on first configure, install to "hoomd" under that prefix
+set(PYTHON_SITE_INSTALL_DIR "hoomd" CACHE PATH
+    "Python site-packages directory (relative to CMAKE_INSTALL_PREFIX)")
+
 # when no CMAKE_INSTALL_PREFIX is set, default to python's install prefix
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND PYTHON_SITE_PACKAGES)
     string(LENGTH "${PYTHON_PREFIX}" _python_prefix_len)
@@ -22,11 +26,8 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND PYTHON_SITE_PACKAGES)
     endif()
 
     set(CMAKE_INSTALL_PREFIX "${PYTHON_PREFIX}" CACHE PATH "HOOMD installation path" FORCE)
+    set(PYTHON_SITE_INSTALL_DIR "${_python_site_package_rel}/hoomd" CACHE PATH
+        "Python site-packages directory (relative to CMAKE_INSTALL_PREFIX)" FORCE)
 endif()
 
-# when the user specifies CMAKE_INSTALL_PREFIX, install to "hoomd" under that prefix
-if (_python_site_package_rel)
-    set(PYTHON_SITE_INSTALL_DIR "${_python_site_package_rel}/hoomd")
-else()
-    set(PYTHON_SITE_INSTALL_DIR "hoomd")
-endif()
+message(STATUS "Installing hoomd python module to: ${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}")
