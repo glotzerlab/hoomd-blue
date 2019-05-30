@@ -30,6 +30,3 @@ if (_python_site_package_rel)
 else()
     set(PYTHON_SITE_INSTALL_DIR "hoomd")
 endif()
-
-message(STATUS "PYTHON_SITE_INSTALL_DIR: ${PYTHON_SITE_INSTALL_DIR}")
-message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")

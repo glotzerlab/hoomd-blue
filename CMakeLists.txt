@@ -223,7 +223,3 @@ install(FILES CMake/hoomd/FindTBB.cmake
               CMake/hoomd/hoomd-macros.cmake
               ${HOOMD_BINARY_DIR}/hoomd-config.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})
-
-message(STATUS "PYTHON_PREFIX: ${PYTHON_PREFIX}")
-message(STATUS "PYTHON_SITE_PACKAGES: ${PYTHON_SITE_PACKAGES}")
-message(STATUS "PYTHON_LIBRARIES: ${PYTHON_LIBRARIES}")
