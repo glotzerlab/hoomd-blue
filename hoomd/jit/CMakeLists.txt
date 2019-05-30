@@ -29,6 +29,9 @@ set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
    )
 
 pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} NO_EXTRAS)
+# alias into the HOOMD namespace so that plugins and symlinked components both work
+add_library(HOOMD::_${PACKAGE_NAME} ALIAS _${PACKAGE_NAME})
+
 add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 
 # set the appropriate compiler flags on the _llvm target

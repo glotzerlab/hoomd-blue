@@ -103,6 +103,9 @@ if (ENABLE_CUDA)
 endif (ENABLE_CUDA)
 
 pybind11_add_module(_mpcd SHARED ${_mpcd_sources} ${LINK_OBJ} ${_cuda_sources} NO_EXTRAS)
+# alias into the HOOMD namespace so that plugins and symlinked components both work
+add_library(HOOMD::_mpcd ALIAS _mpcd)
+
 if (APPLE)
 set_target_properties(_mpcd PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path/../md;@loader_path")
 else()

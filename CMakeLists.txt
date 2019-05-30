@@ -205,13 +205,16 @@ write_basic_package_version_file(
   COMPATIBILITY SameMinorVersion)
 
 # exports
-export(EXPORT HOOMDTargets FILE "${CMAKE_CURRENT_BINARY_DIR}/hoomd-targets.cmake")
+export(EXPORT HOOMDTargets
+       NAMESPACE "HOOMD::"
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/hoomd-targets.cmake")
 
 set(CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/hoomd")
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config-version.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})
 
 install(EXPORT HOOMDTargets
+  NAMESPACE "HOOMD::"
   FILE hoomd-targets.cmake
   DESTINATION ${CONFIG_INSTALL_DIR})
 

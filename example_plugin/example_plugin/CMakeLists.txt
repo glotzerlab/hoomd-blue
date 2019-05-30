@@ -17,6 +17,9 @@ set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVC
 endif (ENABLE_CUDA)
 
 pybind11_add_module(_${COMPONENT_NAME} SHARED ${_${COMPONENT_NAME}_sources} ${_cuda_sources} NO_EXTRAS)
+# alias into the HOOMD namespace so that plugins and symlinked components both work
+add_library(HOOMD::_${COMPONENT_NAME} ALIAS _${COMPONENT_NAME})
+
 if (APPLE)
 set_target_properties(_${COMPONENT_NAME} PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()
@@ -24,7 +27,7 @@ set_target_properties(_${COMPONENT_NAME} PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\
 endif()
 
 # link the library to its dependencies
-target_link_libraries(_${COMPONENT_NAME} PUBLIC _hoomd)
+target_link_libraries(_${COMPONENT_NAME} PUBLIC HOOMD::_hoomd)
 
 fix_cudart_rpath(_${COMPONENT_NAME})
 

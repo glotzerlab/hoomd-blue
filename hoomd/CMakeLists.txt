@@ -192,6 +192,9 @@ endif (ENABLE_CUDA)
 ## Build the module
 pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} NO_EXTRAS)
 
+# alias into the HOOMD namespace so that plugins and symlinked components both work
+add_library(HOOMD::_hoomd ALIAS _hoomd)
+
 # add quick hull as its own library so that it's symbols can be public
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
