@@ -201,7 +201,7 @@ and specify these options on the command line:
 
 - ``PYTHON_EXECUTABLE`` - Specify which ``python`` to build against. Example: ``/usr/bin/python3``.
 
-  - Default: ``python3`` or ``python`` detected on ``$PATH``
+  - Default: ``python3.X`` detected on ``$PATH``
 
 - ``CUDA_TOOLKIT_ROOT_DIR`` - Specify the root direction of the CUDA installation.
 
