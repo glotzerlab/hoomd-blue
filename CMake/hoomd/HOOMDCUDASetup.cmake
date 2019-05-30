@@ -10,7 +10,7 @@ if (ENABLE_CUDA)
         message(SEND_ERROR "HOOMD-blue requires CUDA 9.0 or newer")
     endif()
 
-    find_package(HOOMDCUDALibs REQUIRED)
+    find_package(CUDALibs REQUIRED)
 endif (ENABLE_CUDA)
 
 # setup CUDA compile options
@@ -66,14 +66,3 @@ if (NOT CUSOLVER_AVAILABLE)
 endif()
 
 endif()
-
-###############################
-# Helper macros
-macro(fix_cudart_rpath target)
-if (ENABLE_CUDA AND APPLE)
-add_custom_command(TARGET $<TARGET_FILE:${target}> POST_BUILD
-                          COMMAND install_name_tool ARGS -change @rpath/libcudart.dylib ${CUDA_CUDART_LIBRARY} ${_target_exe})
-add_custom_command(TARGET $<TARGET_FILE:${target}> POST_BUILD
-                          COMMAND install_name_tool ARGS -change @rpath/libcufft.dylib ${CUDA_cufft_LIBRARY} ${_target_exe})
-endif (ENABLE_CUDA AND APPLE)
-endmacro(fix_cudart_rpath)

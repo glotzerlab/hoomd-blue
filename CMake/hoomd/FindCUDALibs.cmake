@@ -73,7 +73,7 @@ find_program(CUDA_MEMCHECK_EXECUTABLE
 mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args("CUDA Libraries:"
+find_package_handle_standard_args(CUDALibs
   REQUIRED_VARS
     CUDA_cudart_LIBRARY
     CUDA_cudadevrt_LIBRARY

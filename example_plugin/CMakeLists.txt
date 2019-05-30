@@ -1,18 +1,15 @@
-project(example_plugin)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6.2 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_MODULE_PATH})
+# Name the plugin project
+project(example_plugin LANGUAGES C CXX)
 
-include(FindHOOMD.cmake)
+# Find the installed HOOMD
+find_package(HOOMD 2.6 REQUIRED)
 
-set(BUILD_SHARED_LIBS on)
+# Force installation to the HOOMD installation location
+set(CMAKE_INSTALL_PREFIX ${HOOMD_INSTALL_PREFIX} CACHE PATH "Installation prefix" FORCE)
 
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX ${HOOMD_ROOT} CACHE PATH "Installation prefix" FORCE)
-endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-
-set(PYTHON_SITE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
-message(STATUS "Install plugin to: " ${PYTHON_SITE_INSTALL_DIR})
+message(STATUS "Installing ${PROJECT_NAME} to: ${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}")
 
 # add subdirectories
 add_subdirectory(${PROJECT_NAME})

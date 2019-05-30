@@ -106,6 +106,7 @@ include (HOOMDMPISetup)
 include(HOOMDPythonSetup)
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
+include (hoomd-macros)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
 
@@ -204,10 +205,11 @@ install(EXPORT HOOMDTargets
 configure_package_config_file(hoomd-config.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config.cmake
   INSTALL_DESTINATION ${CONFIG_INSTALL_DIR}
-  PATH_VARS CONFIG_INSTALL_DIR PYTHON_SITE_INSTALL_DIR)
+  PATH_VARS CMAKE_INSTALL_PREFIX)
 
 install(FILES CMake/hoomd/FindTBB.cmake
-              CMake/hoomd/FindHOOMDCUDALibs.cmake
+              CMake/hoomd/FindCUDALibs.cmake
+              CMake/hoomd/hoomd-macros.cmake
               ${HOOMD_BINARY_DIR}/hoomd-config.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})
 

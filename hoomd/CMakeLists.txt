@@ -201,11 +201,11 @@ target_link_libraries(_hoomd PUBLIC quickhull)
 # specify required include directories
 target_include_directories(_hoomd PUBLIC
                                   $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>
-                                  $<INSTALL_INTERFACE:include>)
+                                  $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include>)
 
 target_include_directories(_hoomd PUBLIC
                                   $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}/hoomd/extern/cereal/include>
-                                  $<INSTALL_INTERFACE:include/hoomd/extern/cereal/include>)
+                                  $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include/hoomd/extern/cereal/include>)
 
 target_include_directories(_hoomd PUBLIC
                                   $<BUILD_INTERFACE:${HOOMD_BINARY_DIR}/hoomd/include>)
