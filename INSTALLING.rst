@@ -41,7 +41,7 @@ Compiling **HOOMD-blue** requires a number of software packages and libraries.
 
 - Required:
 
-  - Python >= 2.7
+  - Python >= 3.5
   - NumPy >= 1.7
   - CMake >= 2.8.10.1
   - C++11 capable compiler (tested with ``gcc`` 4.8, 5.4, 5.5, 6.4, 7,
@@ -50,7 +50,7 @@ Compiling **HOOMD-blue** requires a number of software packages and libraries.
 - Optional:
 
   - Git >= 1.7.0
-  - NVIDIA CUDA Toolkit >= 8.0
+  - NVIDIA CUDA Toolkit >= 9.0
   - Intel Threading Building Blocks >= 4.3
   - MPI (tested with OpenMPI, MVAPICH)
   - LLVM >= 5.0
@@ -201,7 +201,7 @@ and specify these options on the command line:
 
 - ``PYTHON_EXECUTABLE`` - Specify which ``python`` to build against. Example: ``/usr/bin/python3``.
 
-  - Default: ``python3`` or ``python`` detected on ``$PATH``
+  - Default: ``python3.X`` detected on ``$PATH``
 
 - ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` to build with.
 

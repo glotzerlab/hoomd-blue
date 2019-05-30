@@ -9,6 +9,10 @@ endif()
 # find_package(pybind11 NO_MODULE)
 include(pybind11Tools)
 
+if (PYTHON_VERSION_MAJOR LESS 3)
+    message(SEND_ERROR "HOOMD requires Python 3")
+endif()
+
 # when the user specifies CMAKE_INSTALL_PREFIX on first configure, install to "hoomd" under that prefix
 set(PYTHON_SITE_INSTALL_DIR "hoomd" CACHE PATH
     "Python site-packages directory (relative to CMAKE_INSTALL_PREFIX)")
