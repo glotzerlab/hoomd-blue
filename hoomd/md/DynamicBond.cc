@@ -163,7 +163,7 @@ void DynamicBond::update(unsigned int timestep)
 
         // access diameter of particle i
         Scalar di = Scalar(0.0);
-        di = h_diameter.data[i];
+        di = 22.24; //h_diameter.data[i];
         assert(di > 0.0);
 
         // loop over all of the neighbors of this particle
@@ -181,7 +181,7 @@ void DynamicBond::update(unsigned int timestep)
 
             // access diameter of particle j
             Scalar dj = Scalar(0.0);
-            dj = h_diameter.data[j];
+            dj = 22.24; //h_diameter.data[j];
 
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
