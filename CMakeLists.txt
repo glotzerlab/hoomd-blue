@@ -202,7 +202,7 @@ include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
   ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config-version.cmake
   VERSION ${HOOMD_VERSION}
-  COMPATIBILITY SameMinorVersion)
+  COMPATIBILITY SameMajorVersion)
 
 # exports
 export(EXPORT HOOMDTargets
