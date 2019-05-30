@@ -9,7 +9,7 @@ pipeline
             {
             parallel
                 {
-                stage('gcc54-py27-cuda8')
+                stage('gcc7-py36-cuda9')
                     {
                     agent { label 'gpu-short' }
 
@@ -33,10 +33,10 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda8.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python2.7 -DENABLE_CUDA=ON -DENABLE_MPI=OFF -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPULER=/usr/bin/g++ -GNinja
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda9.simg /usr/bin/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DENABLE_CUDA=ON -DENABLE_MPI=OFF -DENABLE_TBB=OFF -DBUILD_VALIDATION=off -DBUILD_TESTING=on -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=OFF -DLLVM_DIR=/usr/lib/llvm-/cmake -DALWAYS_USE_MANAGED_MEMORY=OFF -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPULER=/usr/bin/g++ -GNinja
                                    '''
 
-                                sh 'singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda8.simg ninja -j 3'
+                                sh 'singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda9.simg ninja -j 3'
                                 }
 
                             timeout(time: 1, unit: 'HOURS')
@@ -44,7 +44,7 @@ pipeline
                                 sh '''
                                     export OMP_NUM_THREADS=1
                                     export SINGULARITYENV_PREPEND_PATH=/usr/lib/llvm-/bin
-                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda8.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
+                                    singularity exec --nv /nfs/turbo/glotzer/containers/ci/ci-2019.05-cuda9.simg /usr/bin/ctest --no-compress-output -T test --output-on-failure
                                    '''
                                 }
                             }
