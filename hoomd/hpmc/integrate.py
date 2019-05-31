@@ -2061,7 +2061,7 @@ class ellipsoid(mode_hpmc):
         for i in range(ntypes):
             typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             shape = self.shape_param.get(typename)
-                result.append(dict(type='Ellipsoid', a=shape.a, b=shape.b, c=shape.c));
+            result.append(dict(type='Ellipsoid', a=shape.a, b=shape.b, c=shape.c));
         return result
 
 class sphere_union(mode_hpmc):
