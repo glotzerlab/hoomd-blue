@@ -34,4 +34,4 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND PYTHON_SITE_PACKAGES)
         "Python site-packages directory (relative to CMAKE_INSTALL_PREFIX)" FORCE)
 endif()
 
-message(STATUS "Installing hoomd python module to: ${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}")
+find_package_message(hoomd_install "Installing hoomd python module to: ${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}" "[${CMAKE_INSTALL_PREFIX}][${PYTHON_SITE_INSTALL_DIR}]")
