@@ -3,7 +3,7 @@
 
 import hoomd
 from hoomd import md
-context.initialize()
+hoomd.context.initialize()
 import unittest
 
 class body_group_tests(unittest.TestCase):
@@ -62,7 +62,7 @@ class body_group_tests(unittest.TestCase):
         self.assertEqual(len(hoomd.group.nonbody()), 0)
 
     def tearDown(self):
-        context.initialize()
+        hoomd.context.initialize()
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
