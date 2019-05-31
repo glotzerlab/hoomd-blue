@@ -281,14 +281,3 @@ workflows:
           build-jit: off
           threads: "3"
 
-      - build_and_test:
-          name: gcc54-py35-cm35-llvm6-mpi-tbb3
-          image: ubuntu16.04
-          cc: gcc-5
-          cxx: g++-5
-          llvm-version: "6.0"
-          python-version: "3.5"
-          enable-mpi: on
-          enable-tbb: on
-          build-jit: on
-          threads: "3"
