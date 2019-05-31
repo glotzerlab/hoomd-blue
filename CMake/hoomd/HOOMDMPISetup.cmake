@@ -51,4 +51,20 @@ if (ENABLE_MPI)
         endif(MPI_CUDA)
     endif (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
 
+# backport CMake FindMPI fix from 3.12 to earlier versions
+# https://gitlab.kitware.com/cmake/cmake/merge_requests/2529/diffs
+
+if (CMAKE_VERSION VERSION_LESS 3.12.0)
+    string(REPLACE "-pthread" "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler>;-pthread"
+      _MPI_C_COMPILE_OPTIONS "${MPI_C_COMPILE_OPTIONS}")
+    set_property(TARGET MPI::MPI_C PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_C_COMPILE_OPTIONS}")
+    unset(_MPI_C_COMPILE_OPTIONS)
+
+    string(REPLACE "-pthread" "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler>;-pthread"
+      _MPI_CXX_COMPILE_OPTIONS "${MPI_CXX_COMPILE_OPTIONS}")
+    set_property(TARGET MPI::MPI_CXX PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_CXX_COMPILE_OPTIONS}")
+    message(STATUS "_MPI_CXX_COMPILE_OPTIONS: ${_MPI_CXX_COMPILE_OPTIONS}")
+    unset(_MPI_CXX_COMPILE_OPTIONS)
+endif()
+
 endif (ENABLE_MPI)
