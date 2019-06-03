@@ -1,11 +1,7 @@
+find_path(TBB_INCLUDE_DIR tbb/tbb.h)
+
 find_library(TBB_LIBRARY tbb
-             PATHS ENV TBB_LINK)
-
-get_filename_component(_tbb_lib_dir ${TBB_LIBRARY} DIRECTORY)
-
-find_path(TBB_INCLUDE_DIR tbb/tbb.h
-          HINTS ${_tbb_lib_dir}/../include
-          PATHS ENV TBB_INC)
+             HINTS ${TBB_INCLUDE_DIR}/../lib )
 
 if(TBB_INCLUDE_DIR AND EXISTS "${TBB_INCLUDE_DIR}/tbb/tbb_stddef.h")
     file(STRINGS "${TBB_INCLUDE_DIR}/tbb/tbb_stddef.h" TBB_H REGEX "^#define TBB_VERSION_.*$")
