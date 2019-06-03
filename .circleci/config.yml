@@ -276,7 +276,7 @@ workflows:
           cc: gcc-4.8
           cxx: g++-4.8
           python-version: "3.6"
-          enable-mpi: on
+          enable-mpi: off
           enable-tbb: on
           build-jit: off
           threads: "3"
