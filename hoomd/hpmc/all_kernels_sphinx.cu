@@ -3,7 +3,6 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
-#include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
 #include "ShapeSphinx.h"
 
@@ -17,10 +16,6 @@ namespace detail
 template cudaError_t gpu_hpmc_free_volume<ShapeSphinx>(const hpmc_free_volume_args_t &args,
                                                        const typename ShapeSphinx::param_type *d_params);
 template cudaError_t gpu_hpmc_update<ShapeSphinx>(const hpmc_args_t& args,
-                                                  const typename ShapeSphinx::param_type *d_params);
-template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeSphinx>(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapeSphinx::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapeSphinx>(const hpmc_implicit_args_new_t& args,
                                                   const typename ShapeSphinx::param_type *d_params);
 #endif
 }; // end namespace detail

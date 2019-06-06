@@ -3,7 +3,6 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
-#include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
 #include "ShapeFacetedEllipsoid.h"
 #include "ShapeUnion.h"
@@ -18,10 +17,6 @@ namespace detail
 template cudaError_t gpu_hpmc_free_volume<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_free_volume_args_t &args,
                                                   const typename ShapeUnion<ShapeFacetedEllipsoid> ::param_type *d_params);
 template cudaError_t gpu_hpmc_update<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_args_t& args,
-                                                  const typename ShapeUnion<ShapeFacetedEllipsoid> ::param_type *d_params);
-template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapeUnion<ShapeFacetedEllipsoid> ::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_implicit_args_new_t& args,
                                                   const typename ShapeUnion<ShapeFacetedEllipsoid> ::param_type *d_params);
 }; // end namespace detail
 

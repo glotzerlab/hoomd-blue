@@ -30,7 +30,7 @@ n = 8;
 
 class nvt_lj_sphere_energy(unittest.TestCase):
 
-    def run_statepoint(self, Tstar, rho_star, mean_Uref, sigma_Uref, use_clusters, use_depletants):
+    def run_statepoint(self, Tstar, rho_star, mean_Uref, sigma_Uref, use_clusters):
         """
         Tstar: Temperature (kT/eps)
         rho_star: Reduced density: rhostar = (N / V) * sigma**3
@@ -52,18 +52,9 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
         N = len(system.particles);
 
-        if use_depletants:
-            mc = hpmc.integrate.sphere(d=0.3,seed=321,implicit=True);
-        else:
-            mc = hpmc.integrate.sphere(d=0.3,seed=65412);
+        mc = hpmc.integrate.sphere(d=0.3,seed=321);
 
         mc.shape_param.set('A',diameter=0)
-
-        if use_depletants:
-            # set up a dummy depletant
-            system.particles.types.add('B')
-            mc.shape_param.set('B', diameter=0)
-            mc.set_fugacity('B',0)
 
         lennard_jones = """
                         float rsq = dot(r_ij, r_ij);
@@ -133,27 +124,19 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
     def test_low_density_normal(self):
         self.run_statepoint(Tstar=8.50E-01, rho_star=5.00E-03, mean_Uref=-5.1901E-02, sigma_Uref=7.53E-05,
-                            use_clusters=False, use_depletants=False);
+                            use_clusters=False);
         self.run_statepoint(Tstar=8.50E-01, rho_star=7.00E-03, mean_Uref=-7.2834E-02, sigma_Uref=1.34E-04,
-                            use_clusters=False, use_depletants=False);
+                            use_clusters=False);
         self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
-                            use_clusters=False, use_depletants=False);
+                            use_clusters=False);
 
     def test_low_density_clusters(self):
         self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
-                            use_clusters=True, use_depletants=False);
-
-    def test_low_density_clusters_depletants(self):
-        self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
-                            use_clusters=True, use_depletants=True);
+                            use_clusters=True);
 
     def test_moderate_density_normal(self):
         self.run_statepoint(Tstar=9.00E-01, rho_star=7.76E-01, mean_Uref=-5.4689E+00, sigma_Uref=4.20E-04,
-                            use_clusters=False, use_depletants=False);
-
-    def test_moderate_density_depletants(self):
-        self.run_statepoint(Tstar=9.00E-01, rho_star=7.76E-01, mean_Uref=-5.4689E+00, sigma_Uref=4.20E-04,
-                            use_clusters=False, use_depletants=True);
+                            use_clusters=False);
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

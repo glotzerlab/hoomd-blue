@@ -4,7 +4,6 @@
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "IntegratorHPMCMonoImplicit.h"
 #include "ComputeFreeVolume.h"
 #include "AnalyzerSDF.h"
 
@@ -19,13 +18,10 @@
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterMuVTImplicit.h"
 #include "UpdaterClusters.h"
-#include "UpdaterClustersImplicit.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
-#include "IntegratorHPMCMonoImplicitNewGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
@@ -42,13 +38,10 @@ namespace hpmc
 void export_union_convex_polyhedron(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoConvexPolyhedronUnion");
-    export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoImplicitConvexPolyhedronUnion");
     export_ComputeFreeVolume< ShapeUnion<ShapeSpheropolyhedron> >(m, "ComputeFreeVolumeConvexPolyhedronUnion");
     // export_AnalyzerSDF< ShapeUnion<ShapeSpheropolyhedron> >(m, "AnalyzerSDFConvexPolyhedronUnion");
     export_UpdaterMuVT< ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterMuVTConvexPolyhedronUnion");
     export_UpdaterClusters<ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterClustersConvexPolyhedronUnion");
-    export_UpdaterClustersImplicit<ShapeUnion<ShapeSpheropolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeSpheropolyhedron> > >(m, "UpdaterClustersImplicitConvexPolyhedronUnion");
-    export_UpdaterMuVTImplicit< ShapeUnion<ShapeSpheropolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeSpheropolyhedron> > >(m, "UpdaterMuVTImplicitConvexPolyhedronUnion");
 
     export_ExternalFieldInterface<ShapeUnion<ShapeSpheropolyhedron> >(m, "ExternalFieldConvexPolyhedronUnion");
     export_LatticeField<ShapeUnion<ShapeSpheropolyhedron> >(m, "ExternalFieldLatticeConvexPolyhedronUnion");
@@ -60,7 +53,6 @@ void export_union_convex_polyhedron(py::module& m)
     #ifdef ENABLE_CUDA
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoGPUConvexPolyhedronUnion");
-    export_IntegratorHPMCMonoImplicitNewGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoImplicitNewGPUConvexPolyhedronUnion");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "ComputeFreeVolumeGPUConvexPolyhedronUnion");
 
     #endif

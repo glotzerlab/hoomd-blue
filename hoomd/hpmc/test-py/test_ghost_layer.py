@@ -12,7 +12,7 @@ class test_ghost_layer(unittest.TestCase):
         # setup the MC integration
         system = init.read_snapshot(data.make_snapshot(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50),particle_types=['A','B']))
 
-        mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True)
+        mc = hpmc.integrate.convex_polyhedron(seed=123)
         mc.set_params(d=0,a=0)
 
         mc.set_fugacity('B', 0.01)
