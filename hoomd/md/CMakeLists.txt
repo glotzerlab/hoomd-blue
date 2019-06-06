@@ -254,7 +254,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
 
 if (ENABLE_CUDA)
 set(_cuda_sources ${_md_cu_sources} ${DFFT_CU_SOURCES})
-set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
 pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} NO_EXTRAS)

@@ -99,7 +99,6 @@ set(_mpcd_cu_sources
 
 if (ENABLE_CUDA)
     set(_cuda_sources ${_mpcd_cu_sources})
-    set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
 pybind11_add_module(_mpcd SHARED ${_mpcd_sources} ${LINK_OBJ} ${_cuda_sources} NO_EXTRAS)

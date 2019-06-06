@@ -13,7 +13,6 @@ set(_${COMPONENT_NAME}_cu_sources
 
 if (ENABLE_CUDA)
 set(_cuda_sources ${_${COMPONENT_NAME}_cu_sources})
-set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
 pybind11_add_module(_${COMPONENT_NAME} SHARED ${_${COMPONENT_NAME}_sources} ${_cuda_sources} NO_EXTRAS)

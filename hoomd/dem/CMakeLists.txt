@@ -39,7 +39,6 @@ endif(ENABLE_CUDA)
 
 if (ENABLE_CUDA)
 set(_cuda_sources ${_dem_cu_sources})
-set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
 pybind11_add_module(_dem SHARED ${_dem_sources} ${_cuda_sources} NO_EXTRAS)
