@@ -12,7 +12,7 @@
 #include "../DEM3DForceCompute.h"
 #include "../DEM3DForceComputeGPU.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 namespace py = pybind11;
 
 void export_NF_SWCA_2D(py::module& m)

@@ -18,7 +18,7 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/VectorMath.h"
 // pybind11
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 #include <string>
 #include <vector>

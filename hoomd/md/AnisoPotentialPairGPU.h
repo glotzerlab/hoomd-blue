@@ -22,7 +22,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Template class for computing anisotropic pair potentials on the GPU
 /*! Derived from AnisoPotentialPair, this class provides exactly the same interface for computing anisotropic

@@ -17,7 +17,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __COSINESQANGLEFORCECOMPUTE_H__
 #define __COSINESQANGLEFORCECOMPUTE_H__

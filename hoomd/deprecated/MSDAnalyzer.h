@@ -18,7 +18,7 @@
 #include "hoomd/Analyzer.h"
 #include "hoomd/ParticleGroup.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <string>
 #include <fstream>
 #include <memory>

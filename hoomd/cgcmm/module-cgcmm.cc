@@ -10,7 +10,7 @@
 #include "CGCMMForceComputeGPU.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName

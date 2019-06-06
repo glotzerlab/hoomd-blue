@@ -19,7 +19,7 @@
 #include "ExternalField.h"
 #include "SystemData.h"
 
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {

@@ -10,8 +10,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include "hoomd/extern/pybind/include/pybind11/numpy.h"
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"

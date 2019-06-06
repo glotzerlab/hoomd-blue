@@ -28,8 +28,8 @@
 #endif
 
 #include "hoomd/RandomNumbers.h"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
-#include "hoomd/extern/pybind/include/pybind11/embed.h"
+#include <pybind11/pybind11.h>
+#include <pybind11/embed.h>
 namespace py = pybind11;
 
 #include "hoomd/Variant.h"

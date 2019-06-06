@@ -1,17 +1,8 @@
-# use pybind11's tools to find python and create python modules
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/hoomd/extern/pybind/tools)
-
-# for installed hoomd with external plugins
-if (HOOMD_INCLUDE_DIR)
-    list(APPEND CMAKE_MODULE_PATH ${HOOMD_INCLUDE_DIR}/hoomd/extern/pybind/tools)
-endif()
-
 set(PYBIND11_PYTHON_VERSION 3)
-# find_package(pybind11 NO_MODULE)
-include(pybind11Tools)
+find_package(pybind11 2.2 CONFIG REQUIRED)
 
-if (PYTHON_VERSION_MAJOR LESS 3)
-    message(SEND_ERROR "HOOMD requires Python 3")
+if (pybind11_FOUND)
+    find_package_message(pybind11 "Found pybind11: ${pybind11_DIR} ${pybind11_INCLUDE_DIR} (version ${pybind11_VERSION})" "[${pybind11_DIR}][${pybind11_INCLUDE_DIR}]")
 endif()
 
 # when the user specifies CMAKE_INSTALL_PREFIX on first configure, install to "hoomd" under that prefix

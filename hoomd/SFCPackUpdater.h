@@ -18,7 +18,7 @@
 #include <memory>
 #include <vector>
 #include <utility>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __SFCPACK_UPDATER_H__
 #define __SFCPACK_UPDATER_H__

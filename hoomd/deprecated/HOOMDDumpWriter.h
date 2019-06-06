@@ -17,7 +17,7 @@
 
 #include <string>
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __HOOMD_DUMP_WRITER_H__
 #define __HOOMD_DUMP_WRITER_H__

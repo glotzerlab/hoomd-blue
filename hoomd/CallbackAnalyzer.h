@@ -21,7 +21,7 @@
 #include <string>
 #include <fstream>
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Calls a python functor object
 /*! On construction, CallbackAnalyzer stores a python object to be called every analyzer period.

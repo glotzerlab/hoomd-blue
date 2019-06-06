@@ -35,9 +35,8 @@ set(PYTHON_SITE_INSTALL_DIR "@PYTHON_SITE_INSTALL_DIR@")
 
 # configure python
 set(PYBIND11_PYTHON_VERSION 3)
-set_and_check(_pybind11_tools "${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include/hoomd/extern/pybind/tools")
-list(APPEND CMAKE_MODULE_PATH ${_pybind11_tools})
-include(pybind11Tools)
+find_package(pybind11 2.2 CONFIG REQUIRED)
+find_package_message(pybind11 "Found pybind11: ${pybind11_DIR} ${pybind11_INCLUDE_DIR} (version ${pybind11_VERSION})" "[${pybind11_DIR}][${pybind11_INCLUDE_DIR}]")
 
 find_package(Eigen3 3.2 CONFIG REQUIRED)
 find_package_message(EIGEN3 "Found eigen: ${Eigen3_DIR} ${EIGEN3_INCLUDE_DIR} (version ${Eigen3_VERSION})" "[${Eigen3_DIR}][${EIGEN3_INCLUDE_DIR}]")

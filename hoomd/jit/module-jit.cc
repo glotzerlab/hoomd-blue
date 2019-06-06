@@ -21,7 +21,7 @@
 #include "hoomd/hpmc/ShapeFacetedEllipsoid.h"
 #include "hoomd/hpmc/ShapeSphinx.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 using namespace hpmc;
 using namespace hpmc::detail;
