@@ -249,10 +249,10 @@ DEVICE inline vec3<OverlapReal> generatePositionInOBB(RNG& rng, const detail::OB
     vec3<OverlapReal> lower = -obb.lengths;
     vec3<OverlapReal> upper = obb.lengths;
 
-    p.x = rng.template s<OverlapReal>(lower.x, upper.x);
-    p.y = rng.template s<OverlapReal>(lower.y, upper.y);
+    p.x = hoomd::UniformDistribution<OverlapReal>(lower.x, upper.x)(rng);
+    p.y = hoomd::UniformDistribution<OverlapReal>(lower.y, upper.y)(rng);
     if (dim == 3)
-        p.z = rng.template s<OverlapReal>(lower.z, upper.z);
+        p.z = hoomd::UniformDistribution<OverlapReal>(lower.z, upper.z)(rng);
     else
         p.z = OverlapReal(0.0);
 

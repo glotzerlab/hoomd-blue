@@ -115,7 +115,7 @@ class implicit_test (unittest.TestCase):
         self.system.particles.types.add('B')
 
     def test_measure_etap_new(self):
-        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True)
+        self.mc = hpmc.integrate.sphere(seed=seed)
         self.mc.set_params(d=0.1,a=0.1)
         self.mc.shape_param.set('A', diameter=d_sphere)
         self.mc.shape_param.set('B', diameter=d_sphere*q)
@@ -140,8 +140,8 @@ class implicit_test (unittest.TestCase):
             eta_p_measure.append(v)
             self.assertEqual(log.query('hpmc_overlap_count'),0)
 
-            # if comm.get_rank() == 0:
-            #    print('eta_p =', v);
+            if comm.get_rank() == 0:
+               print('eta_p =', v);
 
         if use_clusters:
             hpmc.update.clusters(self.mc,period=1,seed=seed+1)
@@ -176,7 +176,7 @@ class implicit_test (unittest.TestCase):
         del self.mc
 
     def test_measure_etap_quermass(self):
-        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True)
+        self.mc = hpmc.integrate.sphere(seed=seed)
         self.mc.set_params(d=0.1,a=0.1)
         self.mc.shape_param.set('A', diameter=d_sphere)
 

@@ -4,7 +4,6 @@
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "IntegratorHPMCMonoImplicit.h"
 #include "ComputeFreeVolume.h"
 
 #include "ShapeSimplePolygon.h"
@@ -20,13 +19,10 @@
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterMuVTImplicit.h"
 #include "UpdaterClusters.h"
-#include "UpdaterClustersImplicit.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
-#include "IntegratorHPMCMonoImplicitNewGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
@@ -45,13 +41,10 @@ namespace hpmc
 void export_simple_polygon(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSimplePolygon >(m, "IntegratorHPMCMonoSimplePolygon");
-    export_IntegratorHPMCMonoImplicit< ShapeSimplePolygon >(m, "IntegratorHPMCMonoImplicitSimplePolygon");
     export_ComputeFreeVolume< ShapeSimplePolygon >(m, "ComputeFreeVolumeSimplePolygon");
     export_AnalyzerSDF< ShapeSimplePolygon >(m, "AnalyzerSDFSimplePolygon");
     export_UpdaterMuVT< ShapeSimplePolygon >(m, "UpdaterMuVTSimplePolygon");
     export_UpdaterClusters< ShapeSimplePolygon >(m, "UpdaterClustersSimplePolygon");
-    export_UpdaterClustersImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicit<ShapeSimplePolygon> >(m, "UpdaterClustersImplicitSimplePolygon");
-    export_UpdaterMuVTImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicit<ShapeSimplePolygon> >(m, "UpdaterMuVTImplicitSimplePolygon");
 
     export_ExternalFieldInterface<ShapeSimplePolygon>(m, "ExternalFieldSimplePolygon");
     export_LatticeField<ShapeSimplePolygon>(m, "ExternalFieldLatticeSimplePolygon");
@@ -63,7 +56,6 @@ void export_simple_polygon(py::module& m)
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoGPUSimplePolygon");
-    export_IntegratorHPMCMonoImplicitNewGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoImplicitNewGPUSimplePolygon");
     export_ComputeFreeVolumeGPU< ShapeSimplePolygon >(m, "ComputeFreeVolumeGPUSimplePolygon");
     #endif
     }

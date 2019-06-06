@@ -47,9 +47,6 @@ set(_hpmc_headers
     IntegratorHPMCMonoGPU.cuh
     IntegratorHPMCMonoGPU.h
     IntegratorHPMCMono.h
-    IntegratorHPMCMonoImplicit.h
-    IntegratorHPMCMonoImplicitNewGPU.cuh
-    IntegratorHPMCMonoImplicitNewGPU.h
     MAP3D.h
     MinkowskiMath.h
     modules.h
@@ -72,7 +69,6 @@ set(_hpmc_headers
     UpdaterClusters.h
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
-    UpdaterMuVTImplicit.h
     UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h

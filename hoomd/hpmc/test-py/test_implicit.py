@@ -35,7 +35,7 @@ class implicit_test_cube(unittest.TestCase):
 
         self.system = init.create_lattice(lattice.sc(a=L_ini/float(n[0])),n=n)
 
-        self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True)
+        self.mc = hpmc.integrate.convex_polyhedron(seed=123)
         self.mc.set_params(d=0.1,a=0.15)
 
         etap=1.0
@@ -121,7 +121,7 @@ class implicit_test_sphere_new (unittest.TestCase):
         self.num_samples = 0
         self.steps = 10
 
-        self.mc = hpmc.integrate.sphere(seed=123,implicit=True)
+        self.mc = hpmc.integrate.sphere(seed=123)
         self.mc.set_params(d=0.1)
 
         q=1.0
