@@ -32,6 +32,7 @@ set(HOOMD_INSTALL_PREFIX "@PACKAGE_CMAKE_INSTALL_PREFIX@")
 set(PYTHON_SITE_INSTALL_DIR "@PYTHON_SITE_INSTALL_DIR@")
 
 # configure python
+set(PYBIND11_PYTHON_VERSION 3)
 set_and_check(_pybind11_tools "${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include/hoomd/extern/pybind/tools")
 list(APPEND CMAKE_MODULE_PATH ${_pybind11_tools})
 include(pybind11Tools)
@@ -44,7 +45,6 @@ if (ENABLE_CUDA)
     enable_language(CUDA)
     find_dependency(CUDALibs REQUIRED)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} @CMAKE_CUDA_FLAGS@")
-    set(CUDA_ARCH_LIST "@CUDA_ARCH_LIST@")
 endif()
 
 if (ENABLE_MPI)
