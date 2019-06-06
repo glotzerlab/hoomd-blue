@@ -1,34 +1,49 @@
 Change Log
 ==========
 
-v2.6.0 (not yet released)
--------------------------
+v2.6.0 (2019/05/28)
+-------------------
 
 *New features*
 
 - General:
 
-  - Enable ``HPMC`` plugins
-  - Fix plug-in builds when ``ENABLE_TBB`` or ``ALWAYS_USE_MANAGED_MEMORY`` CMake parameters are set
+  - Enable ``HPMC`` plugins.
+  - Fix plug-in builds when ``ENABLE_TBB`` or ``ALWAYS_USE_MANAGED_MEMORY`` CMake parameters are set.
+  - Remove support for compute 3.0 GPUs.
+  - Report detailed CUDA errors on initialization.
+  - Document upcoming feature removals and API changes.
 
 - MD:
 
-  - Exclude neighbors that belong to the same floppy molecule
+  - Exclude neighbors that belong to the same floppy molecule.
+  - Add fourier potential.
 
 - HPMC:
 
-  - New shape class: ``hpmc.integrate.faceted_ellipsoid_union()``
+  - New shape class: ``hpmc.integrate.faceted_ellipsoid_union()``.
+  - Store the *orientable* shape state.
+
+- MPCD:
+
+  - ``mpcd.stream.slit`` allows for simulations in parallel-plate channels. Users can implement other geometries as a plugin.
+  - MPCD supports virtual particle filling in bounded geometries through the ``set_filler`` method of ``mpcd.stream`` classes.
+  - ``mpcd.stream`` includes an external ``mpcd.force`` acting on the MPCD particles. A block force, a constant force, and a sine force are implemented.
 
 *Bug fixes*
 
-- Fix compile errors with LLVM 8 and ``-DBUILD_JIT=on``
-- Allow simulations with 0 bonds to specify bond potentials
-- Fix a problem where HOOMD could not be imported in `mpi4py` jobs
-- Refactor handling of MPI_Comm inside library (for developers)
+- Fix compile errors with LLVM 8 and ``-DBUILD_JIT=on``.
+- Allow simulations with 0 bonds to specify bond potentials.
+- Fix a problem where HOOMD could not be imported in ``mpi4py`` jobs.
+- Validate snapshot input in ``restore_snapshot``.
+- Fix a bug where rigid body energy and pressure deviated on the first time step after ``run()``.
+- Fix a bug which could lead to invalid MPI simulations with ``nlist.cell()`` and ``nlist.stencil()``.
 
 *C++ API changes*
 
-- Refactor handling of MPI_Comm inside library
+- Refactor handling of ``MPI_Comm`` inside library
+- Use ``random123`` for random number generation
+- CMake version 2.8.10.1 is now a minimum requirement for compiling from source
 
 v2.5.2 (2019/04/30)
 -------------------

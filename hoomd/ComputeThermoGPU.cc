@@ -104,6 +104,8 @@ void ComputeThermoGPU::computeProperties()
 
     // access the particle data
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getGlobalBox();
 
     PDataFlags flags = m_pdata->getFlags();
@@ -153,6 +155,8 @@ void ComputeThermoGPU::computeProperties()
     // perform the computation on the GPU(s)
     gpu_compute_thermo_partial( d_properties.data,
                         d_vel.data,
+                        d_body.data,
+                        d_tag.data,
                         d_index_array.data,
                         group_size,
                         box,
@@ -170,6 +174,8 @@ void ComputeThermoGPU::computeProperties()
     // perform the computation on GPU 0
     gpu_compute_thermo_final( d_properties.data,
                         d_vel.data,
+                        d_body.data,
+                        d_tag.data,
                         d_index_array.data,
                         group_size,
                         box,

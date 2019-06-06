@@ -62,12 +62,13 @@ class force_constant_tests (unittest.TestCase):
 
         run(1000)
 
-        self.assertEqual(self.count,1001)
+        self.assertGreaterEqual(self.count,1001)
+        count_old = self.count
 
         const.set_callback(None)
         run(100)
 
-        self.assertEqual(self.count,1001)
+        self.assertEqual(self.count,count_old)
 
     # test the initialization checks
     def test_init_checks(self):
