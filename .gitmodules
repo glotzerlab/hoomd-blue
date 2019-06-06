@@ -7,9 +7,6 @@
 [submodule "hoomd/extern/nano-signal-slot"]
 	path = hoomd/extern/nano-signal-slot
 	url = https://github.com/glotzerlab/nano-signal-slot.git
-[submodule "hoomd/extern/cereal"]
-	path = hoomd/extern/cereal
-	url = https://github.com/glotzerlab/cereal.git
 [submodule "hoomd/extern/cub"]
 	path = hoomd/extern/cub
 	url = https://github.com/glotzerlab/cub.git
