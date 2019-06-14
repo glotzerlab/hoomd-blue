@@ -32,7 +32,7 @@ Scalar capfraction(Scalar x)
     Scalar a5= -7.41086e-09;
     Scalar a6= 6.8603e-11;
     Scalar a7= -2.61042e-13;
-
+    x *= 1.1;
     frac=a0+a1*x+a2*x*x+a3*x*x*x+a4*x*x*x*x+a5*x*x*x*x*x+a6*x*x*x*x*x*x+a7*x*x*x*x*x*x*x;
 
     if (frac<=0.0)
@@ -69,7 +69,7 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<ParticleGroup> group,
                         std::shared_ptr<NeighborList> nlist,
                         int seed,
-                        Scalar delta_t,
+                        Scalar delta_t, 
                         int period)
         : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed),m_delta_t(delta_t),  m_r_cut(0.0), m_nK(0)
     {
@@ -163,6 +163,8 @@ void DynamicBond::update(unsigned int timestep)
 
         // access diameter of particle i
         Scalar di = Scalar(0.0);
+        
+
         di = 22.24; //h_diameter.data[i];
         assert(di > 0.0);
 
@@ -171,6 +173,7 @@ void DynamicBond::update(unsigned int timestep)
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
             {
+
             // access the index (j) of neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[myHead + k];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
@@ -209,16 +212,24 @@ void DynamicBond::update(unsigned int timestep)
                     }
                 Scalar r = sqrt(rsq);
                 Scalar surf_dist = r - (di+dj)/2;
+                assert(surf_dist > 0.0);
                 Scalar omega = 4.68;  // natural thermal vibration frequency 1.2E0*3.9E-9
+                Scalar capfrac = capfraction(surf_dist);
+
 
                 // (1) Compute P_ij, P_ji, and Q_ij
                 Scalar chain_extension = surf_dist/m_nK;
                 Scalar p0=m_delta_t*omega*exp(-(m_delta_G+feneEnergy(chain_extension, m_nK)));
                 Scalar q0=m_delta_t*omega*exp(-(m_delta_G-feneEnergy(chain_extension, m_nK)+feneEnergy(chain_extension, m_nK)));
 
-                Scalar p_ij = p0*pow((1-p0),(m_nloops[i]*capfraction(surf_dist)-1.0))*m_nloops[i]*capfraction(surf_dist);
-                Scalar p_ji = p0*pow((1-p0),(m_nloops[j]*capfraction(surf_dist)-1.0))*m_nloops[j]*capfraction(surf_dist);
-                Scalar q_ij =  q0*pow((1-q0),(nbridges_ij-1.0))*nbridges_ij;
+                Scalar p_ij = p0*pow((1-p0),(m_nloops[i]*capfrac-1.0))*m_nloops[i]*capfrac;
+                Scalar p_ji = p0*pow((1-p0),(m_nloops[j]*capfrac-1.0))*m_nloops[j]*capfrac;
+                Scalar q_ij = q0*pow((1-q0),(nbridges_ij-1.0))*nbridges_ij;
+
+
+                // m_exec_conf->msg->notice(2) << "p_ij = " << p_ij << endl;
+                // m_exec_conf->msg->notice(2) << "p_ji = " << p_ji << endl;
+                // m_exec_conf->msg->notice(2) << "q_ij = " << q_ij << endl;
 
                 // (2) generate random numbers
                 Scalar rnd1 = saru.s<Scalar>(0,1);
@@ -281,7 +292,6 @@ void DynamicBond::update(unsigned int timestep)
                         }
                     }
                 }
-            // TODO: sanity check number of loops and number of bridges
             }
         }
 
