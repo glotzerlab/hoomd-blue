@@ -459,8 +459,12 @@ class pair(force._force):
     # concatenating the type keys with commas.
     def get_metadata(self):
         metadata = super(pair, self).get_metadata()
-        for k in metadata[meta.META_KEY_TRACKED]['parameters'].keys():
-            metadata[meta.META_KEY_TRACKED]['parameters'][','.join(k)] = metadata[meta.META_KEY_TRACKED]['parameters'].pop(k)
+        parameters = metadata[meta.META_KEY_TRACKED]['parameters']
+        param_keys = list(parameters.keys())
+        new_params = {}
+        for k in param_keys:
+            new_params[','.join(k)] = parameters.pop(k)
+            metadata[meta.META_KEY_TRACKED]['parameters'] = new_params
         return metadata
 
     # Override parent method to correctly split the type names for setting.
