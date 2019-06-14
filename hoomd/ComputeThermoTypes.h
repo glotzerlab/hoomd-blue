@@ -43,4 +43,15 @@ struct PressureTensor
     Scalar yz; //!< yz component
     Scalar zz; //!< zz component
     };
+//
+//! Enum for indexing the GPUArray of computed values
+struct thermoHMA_index
+    {
+    //! The enum
+    enum Enum
+        {
+        potential_energyHMA=0,    //!< Index for the potential energy in the GPUArray
+        num_quantities       // final element to count number of quantities
+        };
+    };
 #endif

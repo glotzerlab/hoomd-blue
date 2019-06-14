@@ -21,6 +21,7 @@ set(_hoomd_sources Analyzer.cc
                    CommunicatorGPU.cc
                    Compute.cc
                    ComputeThermo.cc
+                   ComputeThermoHMA.cc
                    ConstForceCompute.cc
                    DCDDumpWriter.cc
                    DomainDecomposition.cc
@@ -87,6 +88,7 @@ set(_hoomd_headers
     ComputeThermoGPU.cuh
     ComputeThermoGPU.h
     ComputeThermo.h
+    ComputeThermoHMA.h
     ComputeThermoTypes.h
     ConstForceCompute.h
     DCDDumpWriter.h

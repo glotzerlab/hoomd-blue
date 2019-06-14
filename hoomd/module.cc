@@ -16,6 +16,7 @@
 #include "GSDReader.h"
 #include "Compute.h"
 #include "ComputeThermo.h"
+#include "ComputeThermoHMA.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ForceCompute.h"
@@ -346,6 +347,7 @@ PYBIND11_MODULE(_hoomd, m)
     // computes
     export_Compute(m);
     export_ComputeThermo(m);
+    export_ComputeThermoHMA(m);
     export_CellList(m);
     export_CellListStencil(m);
     export_ForceCompute(m);

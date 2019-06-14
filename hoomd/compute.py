@@ -266,6 +266,91 @@ class thermo(_compute):
 
         hoomd.context.current.thermo.append(self)
 
+class thermoHMA(_compute):
+    R""" Compute HMA thermodynamic properties of a group of particles.
+
+    Args:
+        group (:py:mod:`hoomd.group`): Group to compute thermodynamic properties for.
+        temperature (float): Temperature
+
+    :py:class:`hoomd.compute.thermo` acts on a given group of particles and calculates thermodynamic properties of those particles when
+    requested. A default :py:class:`hoomd.compute.thermo` is created that operates on the group of all particles. Integration methods
+    such as :py:class:`hoomd.md.integrate.nvt` automatically create an internal :py:class:`hoomd.compute.thermo` for the group that they operate on.
+    If thermodynamic properties are needed on additional groups, a user can specify additional :py:class:`hoomd.compute.thermo` commands.
+
+    Whether they are automatically created or created by a user, all specified thermos are available for logging via
+    the :py:class:`hoomd.analyze.log` command. Each one provides a set of quantities for logging, suffixed with *_groupname*, so that
+    values for different groups are differentiated in the log file. The default :py:class:`hoomd.compute.thermo` specified on the group
+    of all particles has no suffix placed on its quantity names.
+
+    The quantities provided are (where **groupname** is replaced with the name of the group):
+
+    * **potential_energyHMA_groupname** - :math:`U` potential energy that the group contributes to the entire
+      system (in energy units)
+
+    See Also:
+        :py:class:`hoomd.analyze.log`.
+
+    Examples::
+
+        g = group.type(name='typeA', type='A')
+        compute.thermoHMA(group=g, temperature=1.0)
+    """
+
+    def __init__(self, group, temperature):
+        hoomd.util.print_status_line();
+
+        # initialize base class
+        _compute.__init__(self);
+
+        suffix = '';
+        if group.name != 'all':
+            suffix = '_' + group.name;
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_compute = _hoomd.ComputeThermoHMA(hoomd.context.current.system_definition, group.cpp_group, temperature, suffix);
+        else:
+            hoomd.context.msg.error("Cannot create HMA on GPU\n");
+
+        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
+
+        # save the group for later referencing
+        self.group = group;
+
+    def disable(self):
+        R""" Disables the thermo.
+
+        Examples::
+
+            my_thermo.disable()
+
+        Executing the disable command will remove the thermo compute from the system. Any :py:meth:`hoomd.run()` command
+        executed after disabling a thermo compute will not be able to log computed values with :py:class:`hoomd.analyze.log`.
+
+        A disabled thermo compute can be re-enabled with :py:meth:`enable()`.
+        """
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _compute.disable(self)
+        hoomd.util.unquiet_status()
+
+    def enable(self):
+        R""" Enables the thermo compute.
+
+        Examples::
+
+            my_thermo.enable()
+
+        See :py:meth:`disable()`.
+        """
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _compute.enable(self)
+        hoomd.util.unquiet_status()
+
 ## \internal
 # \brief Returns the previously created compute.thermo with the same group, if created. Otherwise, creates a new
 # compute.thermo
