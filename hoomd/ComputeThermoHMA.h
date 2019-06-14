@@ -6,7 +6,7 @@
 
 #include "Compute.h"
 #include "GPUArray.h"
-#include "ComputeThermoTypes.h"
+#include "ComputeThermoHMATypes.h"
 #include "ParticleGroup.h"
 
 #include <memory>
@@ -59,7 +59,7 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
     public:
         //! Constructs the compute
         ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<ParticleGroup> group, double temperature,
+                      std::shared_ptr<ParticleGroup> group, const double temperature,
                       const std::string& suffix = std::string(""));
 
         //! Destructor
@@ -68,8 +68,8 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
         //! Compute the temperature
         virtual void compute(unsigned int timestep);
 
-        void setNDOF(unsigned int ndof) {}
-        void setRotationalNDOF(unsigned int ndof) {}
+        //! Set the harmonic pressure parameter
+        void setHarmonicPressure(double harmonicPressure);
 
         //! Returns the potential energy last computed by compute()
         /*! \returns Instantaneous potential energy of the system, or NaN if the energy is not valid
@@ -93,6 +93,29 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
                 }
             }
 
+
+        //! Returns the pressure last computed by compute()
+        /*! \returns Instantaneous pressure of the system
+        */
+        Scalar getPressureHMA()
+            {
+            // return NaN if the flags are not valid
+            PDataFlags flags = m_pdata->getFlags();
+            if (flags[pdata_flag::isotropic_virial])
+                {
+                // return the pressure
+                #ifdef ENABLE_MPI
+                if (!m_properties_reduced) reduceProperties();
+                #endif
+
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermoHMA_index::pressureHMA];
+                }
+            else
+                {
+                return std::numeric_limits<Scalar>::quiet_NaN();
+                }
+            }
 
         //! Get the gpu array of properties
         const GPUArray<Scalar>& getProperties()
@@ -140,7 +163,7 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
         virtual void reduceProperties();
         #endif
 
-        double T;
+        double T, pHarmonic;
         std::vector<Scalar> m_lattice_x;
         std::vector<Scalar> m_lattice_y;
         std::vector<Scalar> m_lattice_z;

@@ -90,6 +90,7 @@ set(_hoomd_headers
     ComputeThermo.h
     ComputeThermoHMA.h
     ComputeThermoTypes.h
+    ComputeThermoHMATypes.h
     ConstForceCompute.h
     DCDDumpWriter.h
     DomainDecomposition.h
