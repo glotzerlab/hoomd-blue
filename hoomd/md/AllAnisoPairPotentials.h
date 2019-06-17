@@ -31,7 +31,7 @@ typedef AnisoPotentialPair<EvaluatorPairDipole> AnisoPotentialPairDipole;
 //! Pair potential force compute for 2D anisotropic LJ forces and torques
 typedef AnisoPotentialPair<EvaluatorPair2DALJ> AnisoPotentialPair2DALJ;
 //! Pair potential force compute for 3D anisotropic LJ forces and torques
-typedef AnisoPotentialPair<EvaluatorPairALJTable> AnisoPotentialPairALJTable;
+typedef AnisoPotentialPair<EvaluatorPairALJTable<3> > AnisoPotentialPairALJTable;
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for Gay-Berne forces and torques on the GPU
@@ -41,7 +41,7 @@ typedef AnisoPotentialPairGPU<EvaluatorPairDipole,gpu_compute_pair_aniso_forces_
 //! Pair potential force compute for 2D anisotropic LJ forces and torques on the GPU
 typedef AnisoPotentialPairGPU<EvaluatorPair2DALJ,gpu_compute_pair_aniso_forces_2DALJ> AnisoPotentialPair2DALJGPU;
 //! Pair potential force compute for 3D anisotropicl LJ forces and torques on the GPU
-typedef AnisoPotentialPairGPU<EvaluatorPairALJTable,gpu_compute_pair_aniso_forces_ALJTable> AnisoPotentialPairALJTableGPU;
+typedef AnisoPotentialPairGPU<EvaluatorPairALJTable<3>, gpu_compute_pair_aniso_forces_ALJTable> AnisoPotentialPairALJTableGPU;
 #endif
 
 //

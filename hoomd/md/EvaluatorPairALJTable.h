@@ -37,6 +37,7 @@
  * Anisotropic LJ potential (assuming analytical kernel and (temporarily) sigma = 1.0)
  */
 
+template <unsigned int ndim>
 class EvaluatorPairALJTable
     {
     public:
@@ -139,7 +140,7 @@ class EvaluatorPairALJTable
               vec3<Scalar> pos2 = Scalar(-1.0)*dr;  // Second particle is at -dr
               vec3<Scalar> v1 = vec3<Scalar>(), v2 = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
               bool success, overlap;
-              gjk_inline<3>(pos1, pos2, vertsi, _params.Ni, vertsj, _params.Nj, v1, v2, a, b, success, overlap);
+              gjk_inline<ndim>(pos1, pos2, vertsi, _params.Ni, vertsj, _params.Nj, v1, v2, a, b, success, overlap);
               
               // Get kernel
               Scalar sigma12 = (_params.sigma_i + _params.sigma_j)*Scalar(0.5);     
