@@ -141,15 +141,28 @@ class EvaluatorPairALJTable
               vec3<Scalar> v1 = vec3<Scalar>(), v2 = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
               bool success, overlap;
               gjk_inline<ndim>(pos1, pos2, vertsi, _params.Ni, vertsj, _params.Nj, v1, v2, a, b, success, overlap);
+              if (ndim == 2)
+                  {
+                  v1.z = 0;
+                  v2.z = 0;
+                  a.z = 0;
+                  b.z = 0;
+                  }
               
               // Get kernel
               Scalar sigma12 = (_params.sigma_i + _params.sigma_j)*Scalar(0.5);     
-              Scalar epsilon = _params.epsilon;
 
               rho = sigma12 /r;
-              invr_rsq = sigma12*sigma12/rsq;;
+              invr_rsq = rho*rho;
               invr_6 = invr_rsq*invr_rsq*invr_rsq;
-              invr_12 = invr_6*invr_6 ;
+              Scalar denom = (invr_6*invr_6 - invr_6);
+              Scalar k1 = sqrt(dot(a,a));
+              Scalar k2 = sqrt(dot(b,b));
+              rho = sigma12 / (r - Scalar(0.5)*(k1/_params.sigma_i - 1.0) - Scalar(0.5)*(k2/_params.sigma_j - 1.0));
+              invr_rsq = rho*rho;
+              invr_6 = invr_rsq*invr_rsq*invr_rsq;
+              Scalar numer = (invr_6*invr_6 - invr_6);
+              Scalar epsilon = _params.epsilon*(numer/denom);
 
               // Define relevant vectors
               rvect = Scalar(-1.0)*v1;
@@ -215,6 +228,10 @@ class EvaluatorPairALJTable
 
               // Net force
               f = f_scalar * unitr - f_scalar_contact * rvect;              
+              if (ndim == 2)
+                  {
+                  f.z = 0;
+                  }
               force = vec_to_scalar3(f);
 
               // Torque
