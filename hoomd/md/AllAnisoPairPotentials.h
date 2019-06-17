@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -11,6 +11,8 @@
 
 #include "EvaluatorPairGB.h"
 #include "EvaluatorPairDipole.h"
+#include "EvaluatorPairALJTable.h"
+#include "EvaluatorPair2DALJ.h"
 
 #ifdef ENABLE_CUDA
 #include "AnisoPotentialPairGPU.h"
@@ -26,12 +28,20 @@
 typedef AnisoPotentialPair<EvaluatorPairGB> AnisoPotentialPairGB;
 //! Pair potential force compute for dipole forces and torques
 typedef AnisoPotentialPair<EvaluatorPairDipole> AnisoPotentialPairDipole;
+//! Pair potential force compute for 2D anisotropic LJ forces and torques
+typedef AnisoPotentialPair<EvaluatorPair2DALJ> AnisoPotentialPair2DALJ;
+//! Pair potential force compute for 3D anisotropic LJ forces and torques
+typedef AnisoPotentialPair<EvaluatorPairALJTable> AnisoPotentialPairALJTable;
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for Gay-Berne forces and torques on the GPU
 typedef AnisoPotentialPairGPU<EvaluatorPairGB,gpu_compute_pair_aniso_forces_gb> AnisoPotentialPairGBGPU;
 //! Pair potential force compute for dipole forces and torques on the GPU
 typedef AnisoPotentialPairGPU<EvaluatorPairDipole,gpu_compute_pair_aniso_forces_dipole> AnisoPotentialPairDipoleGPU;
+//! Pair potential force compute for 2D anisotropic LJ forces and torques on the GPU
+typedef AnisoPotentialPairGPU<EvaluatorPair2DALJ,gpu_compute_pair_aniso_forces_2DALJ> AnisoPotentialPair2DALJGPU;
+//! Pair potential force compute for 3D anisotropicl LJ forces and torques on the GPU
+typedef AnisoPotentialPairGPU<EvaluatorPairALJTable,gpu_compute_pair_aniso_forces_ALJTable> AnisoPotentialPairALJTableGPU;
 #endif
 
 //

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -223,7 +223,11 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_tersoff_params(m);
+    export_shape_params(m);
+    export_shape_params2D(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
+    export_AnisoPotentialPair<AnisoPotentialPairALJTable>(m, "AnisoPotentialPairALJTable");
+    export_AnisoPotentialPair<AnisoPotentialPair2DALJ>(m, "AnisoPotentialPair2DALJ");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>(m, "PotentialPairDPDThermoDPD");
@@ -283,6 +287,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >(m, "PotentialPairDPDLJThermoDPDGPU");
     export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB>(m, "AnisoPotentialPairGBGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPair2DALJGPU, AnisoPotentialPair2DALJ>(m, "AnisoPotentialPair2DALJGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairALJTableGPU, AnisoPotentialPairALJTable>(m, "AnisoPotentialPairALJTableGPU");
     export_AnisoPotentialPairGPU<AnisoPotentialPairDipoleGPU, AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipoleGPU");
     export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>(m, "PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");

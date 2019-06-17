@@ -68,7 +68,7 @@ class EvaluatorPairDipole
             \param _kappa Inverse screening length
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairDipole(Scalar3& _dr, Scalar4& _quat_i, Scalar4& _quat_j, Scalar _rcutsq, param_type& params)
+        DEVICE EvaluatorPairDipole(Scalar3& _dr, Scalar4& _quat_i, Scalar4& _quat_j, Scalar _rcutsq, const param_type& params)
             :dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j),
              mu(params.x), A(params.y), kappa(params.z)
             {
