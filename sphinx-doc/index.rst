@@ -88,6 +88,7 @@ containers).
     :caption: Getting started
 
     installation
+    migrating
     changelog
     command-line-options
 

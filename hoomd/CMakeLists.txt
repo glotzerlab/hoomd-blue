@@ -1,13 +1,14 @@
-# Maintainer: joaander
-
 add_subdirectory(extern)
 
 # configure the version information file
 configure_file (HOOMDVersion.h.in ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h)
 
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include
         )
+
+##############################
+## Source setup
 
 set(_hoomd_sources Analyzer.cc
                    Autotuner.cc
@@ -177,62 +178,99 @@ foreach(getar_src ${GETAR_SRCS_REL})
   list(APPEND _hoomd_sources ${libgetar_DIR}/${getar_src})
 endforeach(getar_src)
 
-# add libgetar-specific defines
-get_property(HOOMD_DEFS DIRECTORY . PROPERTY COMPILE_DEFINITIONS)
-get_property(GETAR_DEFS DIRECTORY ${libgetar_DIR} PROPERTY COMPILE_DEFINITIONS)
-list(REMOVE_ITEM GETAR_DEFS ${HOOMD_DEFS})
-foreach(def ${GETAR_DEFS})
-  add_definitions(-D${def})
-endforeach(def)
-
-# add libgetar-specific libraries
-get_property(GETAR_LIBS TARGET getar PROPERTY LINK_LIBRARIES)
-list(APPEND HOOMD_COMMON_LIBS ${GETAR_LIBS})
-
 # quiet some warnings locally on files we can't modify
 if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
 endif()
 
 if (ENABLE_CUDA)
-CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hoomd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
+set(_cuda_sources ${_hoomd_cu_sources})
+set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
-pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
+#########################
+## Build the module
+pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} NO_EXTRAS)
+
+# alias into the HOOMD namespace so that plugins and symlinked components both work
+add_library(HOOMD::_hoomd ALIAS _hoomd)
 
 # add quick hull as its own library so that it's symbols can be public
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # link the library to its dependencies
 target_link_libraries(_hoomd PUBLIC quickhull)
-target_link_libraries(_hoomd PRIVATE ${HOOMD_COMMON_LIBS})
+
+# specify required include directories
+target_include_directories(_hoomd PUBLIC
+                                  $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>
+                                  $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include>)
+
+target_include_directories(_hoomd PUBLIC
+                                  $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}/hoomd/extern/cereal/include>
+                                  $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include/hoomd/extern/cereal/include>)
+
+target_include_directories(_hoomd PUBLIC
+                                  $<BUILD_INTERFACE:${HOOMD_BINARY_DIR}/hoomd/include>)
+
+# specify required definitions
+target_compile_definitions(_hoomd PUBLIC _REENTRANT EIGEN_MPL2_ONLY)
+
+if (SINGLE_PRECISION)
+    target_compile_definitions(_hoomd PUBLIC SINGLE_PRECISION)
+endif(SINGLE_PRECISION)
+
+# Libraries and compile definitions for CUDA enabled builds
+if (ENABLE_CUDA)
+    target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
+    target_compile_definitions(_hoomd PUBLIC ENABLE_CUDA CUDA_ARCH=${_cuda_min_arch})
+
+    if(ALWAYS_USE_MANAGED_MEMORY)
+        target_compile_definitions(_hoomd PUBLIC ALWAYS_USE_MANAGED_MEMORY)
+    endif()
+
+    if (ENABLE_NVTOOLS)
+        target_link_libraries(_hoomd PUBLIC CUDA::nvToolsExt)
+        target_compile_definitions(_hoomd PUBLIC ENABLE_NVTOOLS)
+    endif()
+
+    if (CUSOLVER_AVAILABLE)
+        target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
+    endif()
+endif()
+
+# Libraries and compile definitions for TBB enabled builds
+if (ENABLE_TBB)
+    find_package(TBB 4.3)
+    target_compile_definitions(_hoomd PUBLIC ENABLE_TBB)
+    target_link_libraries(_hoomd PUBLIC TBB::tbb)
+endif()
+
+# Libraries and compile definitions for MPI enabled builds
+if (ENABLE_MPI)
+    target_compile_definitions(_hoomd PUBLIC ENABLE_MPI)
+    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX)
+
+    if (ENABLE_MPI_CUDA)
+          target_compile_definitions(_hoomd PUBLIC ENABLE_MPI_CUDA)
+    endif(ENABLE_MPI_CUDA)
+endif()
+
+if (ENABLE_HPMC_MIXED_PRECISION)
+    target_compile_definitions(_hoomd PUBLIC ENABLE_HPMC_MIXED_PRECISION)
+endif()
+
 if (APPLE)
 set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "@loader_path")
 else()
 set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "\$ORIGIN")
 endif()
 
-set(HOOMD_LIBRARIES _hoomd quickhull ${HOOMD_COMMON_LIBS})
-
-# if we are compiling with MPI support built in, set appropriate
-# compiler/linker flags
-if (ENABLE_MPI)
-   if(MPI_COMPILE_FLAGS)
-       set_target_properties(_hoomd PROPERTIES COMPILE_FLAGS "${MPI_CXX_COMPILE_FLAGS}")
-   endif(MPI_COMPILE_FLAGS)
-   if(MPI_LINK_FLAGS)
-       set_target_properties(_hoomd PROPERTIES LINK_FLAGS "${MPI_CXX_LINK_FLAGS}")
-   endif(MPI_LINK_FLAGS)
-endif(ENABLE_MPI)
-
 fix_cudart_rpath(_hoomd)
 
 # install the library
-install(TARGETS _hoomd
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}
-        )
-install(TARGETS quickhull
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}
+install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
+        LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}
         )
 
 ################ Python only modules
@@ -270,44 +308,27 @@ set(files analyze.py
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}
        )
 
 foreach(file ${files})
     copy_file(${file})
 endforeach()
 
-# copy python modules to the build directory to make it a working python package
-MACRO(copy_header file)
-    add_custom_command (
-        OUTPUT ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/include/hoomd/${file}
-        COMMENT    "Copy hoomd/include/hoomd/${file}"
-    )
-ENDMACRO(copy_header)
-
 add_custom_target(copy_hoomd ALL DEPENDS ${files})
 
 # install headers in installation target
 install(FILES ${_hoomd_headers}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd
        )
-
-if (COPY_HEADERS)
-# copy headers into build directory
-foreach(file ${_hoomd_headers})
-    copy_header(${file})
-endforeach()
-
-add_custom_target(copy_hoomd_headers ALL DEPENDS ${_hoomd_headers})
-endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
+
+##################################################
+## Build components
 
 if (BUILD_MD)
     if (ENABLE_MPI)

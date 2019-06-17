@@ -148,7 +148,7 @@ Configure::
     $ cd hoomd-blue
     $ mkdir build
     $ cd build
-    $ cmake ../ -DCMAKE_INSTALL_PREFIX=`python3 -c "import site; print(site.getsitepackages()[0])"`
+    $ cmake ../
 
 By default, **HOOMD-blue** configures a *Release* optimized build type for a
 generic CPU architecture and with no optional libraries. Specify::
@@ -160,7 +160,7 @@ to your CPU. Specify ``-DENABLE_CUDA=ON`` to compile code for the GPU (requires
 CUDA) and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI.
 Configure a performance optimized build::
 
-    $ cmake ../ -DCMAKE_INSTALL_PREFIX=`python3 -c "import site; print(site.getsitepackages()[0])"` -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native -DENABLE_CUDA=ON -DENABLE_MPI=ON
+    $ cmake ../ -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native -DENABLE_CUDA=ON -DENABLE_MPI=ON
 
 See the build options section below for a full list of options.
 
@@ -203,7 +203,7 @@ and specify these options on the command line:
 
   - Default: ``python3.X`` detected on ``$PATH``
 
-- ``CUDA_TOOLKIT_ROOT_DIR`` - Specify the root direction of the CUDA installation.
+- ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` to build with.
 
   - Default: location of ``nvcc`` detected on ``$PATH``
 
@@ -215,8 +215,6 @@ and specify these options on the command line:
 Other option changes take effect at any time. These can be set from within
 ``ccmake`` or on the command line:
 
-- ``CMAKE_INSTALL_PREFIX`` - Directory to install the ``hoomd`` Python module.
-  All files will be under ``${CMAKE_INSTALL_PREFIX}/hoomd``.
 - ``BUILD_CGCMM`` - Enables building the ``hoomd.cgcmm`` module.
 - ``BUILD_DEPRECATED`` - Enables building the ``hoomd.deprecated`` module.
 - ``BUILD_HPMC`` - Enables building the ``hoomd.hpmc`` module.
@@ -266,13 +264,7 @@ Other option changes take effect at any time. These can be set from within
   - When set to ``ON``, HOOMD will use TBB to speed up calculations in some
     classes on multiple CPU cores.
 
-- ``UPDATE_SUBMODULES`` - When ``ON`` (the default), CMake will execute
-  ``git submodule update --init`` whenever it runs.
-- ``COPY_HEADERS`` - When ``ON`` (``OFF`` is default), copy header files into
-  the build directory to make it a valid plugin build source.
-
 These options control CUDA compilation:
 
 - ``CUDA_ARCH_LIST`` - A semicolon-separated list of GPU architectures to
   compile in.
-- ``NVCC_FLAGS`` - Allows additional flags to be passed to ``nvcc``.

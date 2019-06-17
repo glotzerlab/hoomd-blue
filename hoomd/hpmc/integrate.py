@@ -627,7 +627,7 @@ class mode_hpmc(_integrator):
             * .. versionadded:: 3.0
 
         Args:
-            type (string): Type for which fugacity is returned
+            type (str): Type for which fugacity is returned
             fugacity (float): Ideal gas density of the depletant, can take any scalar value
 
         """
@@ -640,7 +640,7 @@ class mode_hpmc(_integrator):
             * .. versionadded:: 3.0
 
         Args:
-            type (string): Type for which fugacity is returned
+            type (str): Type for which fugacity is returned
         """
         return self.cpp_integrator.getDepletantFugacity(hoomd.context.current.system_definition.getParticleData().getTypeByName(type))
 

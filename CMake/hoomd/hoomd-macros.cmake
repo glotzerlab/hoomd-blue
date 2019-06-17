@@ -1,3 +1,5 @@
+###############################
+# Helper macros
 macro(fix_cudart_rpath target)
 if (ENABLE_CUDA AND APPLE)
 add_custom_command(TARGET $<TARGET_FILE:${target}> POST_BUILD

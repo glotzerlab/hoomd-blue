@@ -1,5 +1,3 @@
-# Maintainer: joaander
-
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
@@ -10,27 +8,20 @@ set(TEST_LIST
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     # add and link the unit test executable
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
-        CUDA_COMPILE(_CUDA_GENERATED_FILES ${CUR_TEST}.cu OPTIONS ${CUDA_ADDITIONAL_OPTIONS})
+        set(_cuda_sources ${CUR_TEST}.cu)
+        set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
     else()
-        set(_CUDA_GENERATED_FILES "")
+        set(_cuda_sources "")
     endif()
 
-    add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc ${_CUDA_GENERATED_FILES})
+    add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc ${_cuda_sources})
+    target_include_directories(${CUR_TEST} PRIVATE ${PYTHON_INCLUDE_DIR})
 
     add_dependencies(test_all ${CUR_TEST})
 
-    target_link_libraries(${CUR_TEST} _cgcmm _md ${HOOMD_LIBRARIES} ${PYTHON_LIBRARIES})
+    target_link_libraries(${CUR_TEST} _cgcmm ${PYTHON_LIBRARIES})
     fix_cudart_rpath(${CUR_TEST})
 
-    if (ENABLE_MPI)
-        # set appropriate compiler/linker flags
-        if(MPI_COMPILE_FLAGS)
-            set_target_properties(${CUR_TEST} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-        endif(MPI_COMPILE_FLAGS)
-        if(MPI_LINK_FLAGS)
-            set_target_properties(${CUR_TEST} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
-        endif(MPI_LINK_FLAGS)
-    endif (ENABLE_MPI)
 endforeach (CUR_TEST)
 
 # add non-MPI tests to test list first
