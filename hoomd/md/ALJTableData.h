@@ -4,7 +4,6 @@
 #ifndef __ALJ_TABLE_DATA_H__
 #define __ALJ_TABLE_DATA_H__
 
-#include "EvaluatorPairALJTable.h"
 #include "hoomd/ManagedArray.h"
 #include "hoomd/VectorMath.h"
 #include <iostream>
@@ -36,26 +35,30 @@ struct shape_table
         {
         //! Construct table for particle i
         unsigned int Ni = len(shape_i);
-        xi  = ManagedArray<float>(Ni,use_device);
-        yi  = ManagedArray<float>(Ni,use_device);
-        zi  = ManagedArray<float>(Ni,use_device);
+        xi  = ManagedArray<Scalar>(Ni,use_device);
+        yi  = ManagedArray<Scalar>(Ni,use_device);
+        zi  = ManagedArray<Scalar>(Ni,use_device);
+        verts_i  = ManagedArray<vec3<Scalar> >(Ni,use_device);
         for (unsigned int i = 0; i < Ni; ++i)
             {
-            xi[i] = float(0.0);
-            yi[i] = float(0.0);
-            zi[i] = float(0.0);
+            xi[i] = Scalar(0.0);
+            yi[i] = Scalar(0.0);
+            zi[i] = Scalar(0.0);
+            verts_i[i] = vec3<Scalar>();
             }
 
         //! Construct table for particle j
         unsigned int Nj = len(shape_j);
-        xj  = ManagedArray<float>(Nj,use_device);
-        yj  = ManagedArray<float>(Nj,use_device);
-        zj  = ManagedArray<float>(Nj,use_device);
+        xj  = ManagedArray<Scalar>(Nj,use_device);
+        yj  = ManagedArray<Scalar>(Nj,use_device);
+        zj  = ManagedArray<Scalar>(Nj,use_device);
+        verts_j  = ManagedArray<vec3<Scalar> >(Nj,use_device);
         for (unsigned int i = 0; i < Nj; ++i)
             {
-            xj[i] = float(0.0);
-            yj[i] = float(0.0);
-            zj[i] = float(0.0);
+            xj[i] = Scalar(0.0);
+            yj[i] = Scalar(0.0);
+            zj[i] = Scalar(0.0);
+            verts_j[i] = vec3<Scalar>();
             }
         }
 
@@ -70,9 +73,11 @@ struct shape_table
         xi.load_shared(ptr,available_bytes);
         yi.load_shared(ptr,available_bytes);
         zi.load_shared(ptr,available_bytes);
+        verts_i.load_shared(ptr,available_bytes);
         xj.load_shared(ptr,available_bytes);
         yj.load_shared(ptr,available_bytes);
         zj.load_shared(ptr,available_bytes);
+        verts_j.load_shared(ptr,available_bytes);
         }
 
     #ifdef ENABLE_CUDA
@@ -82,9 +87,11 @@ struct shape_table
         xi.attach_to_stream(stream);
         yi.attach_to_stream(stream);
         zi.attach_to_stream(stream);
+        verts_i.attach_to_stream(stream);
         xj.attach_to_stream(stream);
         yj.attach_to_stream(stream);
         zj.attach_to_stream(stream);
+        verts_j.attach_to_stream(stream);
         }
     #endif
 
@@ -95,10 +102,10 @@ struct shape_table
     //     {
     //     //! Construct table
     //     unsigned int Ni = len(shape_i);
-    //     omegai  = ManagedArray<float>(Ni, 1);
+    //     omegai  = ManagedArray<Scalar>(Ni, 1);
     //     for (unsigned int i = 0; i < Ni; ++i)
     //         {
-    //         omegai[i] = float(0.0);
+    //         omegai[i] = Scalar(0.0);
     //         }
     //     }
     // #endif
@@ -118,26 +125,28 @@ struct shape_table
     // //     }
 
     //! Shape parameters particle i^th
-    ManagedArray<float> xi;          //! omega coordinates of kernel
-    ManagedArray<float> yi;          //! omega coordinates of kernel
-    ManagedArray<float> zi;          //! omega coordinates of kernel
-    ManagedArray<float> xj;          //! omega coordinates of kernel
-    ManagedArray<float> yj;          //! omega coordinates of kernel
-    ManagedArray<float> zj;          //! omega coordinates of kernel
+    ManagedArray<vec3<Scalar>> verts_i;          //! Vertices of shape i.
+    ManagedArray<vec3<Scalar>> verts_j;          //! Vertices of shape j.
+    ManagedArray<Scalar> xi;          //! omega coordinates of kernel
+    ManagedArray<Scalar> yi;          //! omega coordinates of kernel
+    ManagedArray<Scalar> zi;          //! omega coordinates of kernel
+    ManagedArray<Scalar> xj;          //! omega coordinates of kernel
+    ManagedArray<Scalar> yj;          //! omega coordinates of kernel
+    ManagedArray<Scalar> zj;          //! omega coordinates of kernel
     //! Potential parameters
-    float alpha;                        //! toggle switch fo attractive branch of potential
-    float epsilon;                      //! interaction parameter
-    float sigma_i;                      //! size of i^th particle
-    float sigma_j;                      //! size of j^th particle
-    float ki_max;
-    float kj_max;
+    Scalar alpha;                        //! toggle switch fo attractive branch of potential
+    Scalar epsilon;                      //! interaction parameter
+    Scalar sigma_i;                      //! size of i^th particle
+    Scalar sigma_j;                      //! size of j^th particle
+    Scalar ki_max;
+    Scalar kj_max;
     unsigned int Ni;                           //! number of vertices i^th particle
     unsigned int Nj;                           //! number of vertices j^th particle
     };
 
 //! Helper function to build shape structure from python
 #ifndef NVCC
-shape_table make_shape_table(float epsilon, float sigma_i, float sigma_j, float alpha, pybind11::list shape_i, pybind11::list shape_j,
+shape_table make_shape_table(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Scalar alpha, pybind11::list shape_i, pybind11::list shape_j,
     std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
 
@@ -160,12 +169,12 @@ shape_table make_shape_table(float epsilon, float sigma_i, float sigma_j, float 
     for (unsigned int i = 0; i < Ni; i++)
         {
         pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_i[i]);
-        vec3<float> vert = vec3<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]), pybind11::cast<float>(shape_tmp[2]));
-        result.xi[i] = vert.x;
-        result.yi[i] = vert.y;
-        result.zi[i] = vert.z;
+        result.verts_i[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
+        result.xi[i] = result.verts_i[i].x;
+        result.yi[i] = result.verts_i[i].y;
+        result.zi[i] = result.verts_i[i].z;
         // Calculate kmax on the fly
-        ktest = vert.x*vert.x + vert.y*vert.y + vert.z*vert.z;
+        ktest = result.verts_i[i].x*result.verts_i[i].x + result.verts_i[i].y*result.verts_i[i].y + result.verts_i[i].z*result.verts_i[i].z;
         if (ktest < kmax)
             {
             kmax = ktest;
@@ -189,12 +198,12 @@ shape_table make_shape_table(float epsilon, float sigma_i, float sigma_j, float 
     for (unsigned int i = 0; i < Nj; i++)
         {
         pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_j[i]);
-        vec3<float> vert = vec3<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]), pybind11::cast<float>(shape_tmp[2]));
-        result.xj[i] = vert.x;
-        result.yj[i] = vert.y;
-        result.zj[i] = vert.z;
+        result.verts_j[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
+        result.xj[i] = result.verts_j[i].x;
+        result.yj[i] = result.verts_j[i].y;
+        result.zj[i] = result.verts_j[i].z;
         // Calculate kmax on the fly
-        ktest = vert.x*vert.x + vert.y*vert.y + vert.z*vert.z;
+        ktest = result.verts_j[i].x*result.verts_j[i].x + result.verts_j[i].y*result.verts_j[i].y + result.verts_j[i].z*result.verts_j[i].z;
         if (ktest < kmax)
             {
             kmax = ktest;
@@ -209,6 +218,85 @@ shape_table make_shape_table(float epsilon, float sigma_i, float sigma_j, float 
     return result;
     }
 
+//! Helper function to build shape structure from python
+shape_table make_shape_2D(float epsilon, float sigma_i, float sigma_j, float alpha, pybind11::list shape_i, pybind11::list shape_j,
+    std::shared_ptr<const ExecutionConfiguration> exec_conf)
+    {
+
+    shape_table result(shape_i, shape_j, exec_conf->isCUDAEnabled());
+    result.epsilon = epsilon;
+    result.alpha = alpha;
+    result.sigma_i = sigma_i;
+    result.sigma_j = sigma_j;
+
+    ///////////////////////////////////////////
+    /// Define parameters for i^th particle ///
+    ///////////////////////////////////////////
+
+    //! Length of vertices list
+    int Ni = len(shape_i);
+    //! Extract omega from python list for i^th particle
+    Scalar kmax = 10000.0;
+    Scalar ktest = 100.0;  
+    for (unsigned int i = 0; i < Ni; i++)
+        {
+        pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_i[i]);
+        vec2<float> vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
+        result.xi[i] = vert.x;
+        result.yi[i] = vert.y;
+        result.zi[i] = 0;
+        // Calculate kmax on the fly
+        ktest = vert.x*vert.x + vert.y*vert.y;
+        if (ktest < kmax)
+            {
+            kmax = ktest;
+            }
+        }
+    // Loop back to first value
+    pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_i[0]);
+    vec2<float> vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
+    result.xi[Ni] = vert.x;
+    result.yi[Ni] = vert.y;
+    result.zi[Ni] = 0;
+    result.Ni = len(shape_i) + 1;
+    result.ki_max = kmax;
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+
+    ///////////////////////////////////////////
+    /// Define parameters for j^th particle ///
+    ///////////////////////////////////////////
+
+    //! Length of vertices list
+    int Nj = len(shape_j);
+    //! Extract omega from python list for i^th particle
+    kmax = 10000.0;
+    ktest = 100.0;
+    for (unsigned int i = 0; i < Nj; i++)
+        {
+        pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_j[i]);
+        vec2<float> vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
+        result.xj[i] = vert.x;
+        result.yj[i] = vert.y;
+        result.zj[i] = 0;
+        // Calculate kmax on the fly
+        ktest = vert.x*vert.x + vert.y*vert.y;
+        if (ktest < kmax)
+            {
+            kmax = ktest;
+            }
+        }
+    // Loop back to first value
+    shape_tmp = pybind11::cast<pybind11::list>(shape_j[0]);
+    vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
+    result.xj[Nj] = vert.x;
+    result.yj[Nj] = vert.y;
+    result.zj[Nj] = 0;
+    result.Nj = len(shape_j) + 1;
+    result.kj_max = kmax;
+
+    return result;
+    }
 //! Function to export the LJ parameter type to python
 
 inline void export_shape_params(pybind11::module& m)
@@ -225,6 +313,7 @@ inline void export_shape_params(pybind11::module& m)
         .def_readwrite("Nj", &shape_table::Nj);
 
     m.def("make_shape_table", &make_shape_table);
+    m.def("make_shape_2D", &make_shape_2D);
 }
 #endif
 #endif // end __ALJ_TABLE_DATA_H__

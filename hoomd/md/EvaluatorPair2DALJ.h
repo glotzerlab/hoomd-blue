@@ -16,7 +16,7 @@
 
 #include "hoomd/VectorMath.h"
 #include "hoomd/ManagedArray.h"
-#include "ALJ2DData.h"
+#include "ALJTableData.h"
 #include "GJK_vyas.h"
 #include <iostream>
 
@@ -42,7 +42,7 @@
 class EvaluatorPair2DALJ
     {
     public:
-        typedef shape_2D param_type;
+        typedef shape_table param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centres of mass

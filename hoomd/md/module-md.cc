@@ -224,7 +224,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_tersoff_params(m);
     export_shape_params(m);
-    export_shape_params2D(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairALJTable>(m, "AnisoPotentialPairALJTable");
     export_AnisoPotentialPair<AnisoPotentialPair2DALJ>(m, "AnisoPotentialPair2DALJ");

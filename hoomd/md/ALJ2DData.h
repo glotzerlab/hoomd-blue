@@ -4,7 +4,6 @@
 #ifndef __ALJ_2D_DATA_H__
 #define __ALJ_2D_DATA_H__
 
-#include "EvaluatorPair2DALJ.h"
 #include "hoomd/ManagedArray.h"
 #include "hoomd/VectorMath.h"
 #include <iostream>
@@ -129,82 +128,6 @@ struct shape_2D
 
 //! Helper function to build shape structure from python
 #ifndef NVCC
-shape_2D make_shape_2D(float epsilon, float sigma_i, float sigma_j, float alpha, pybind11::list shape_i, pybind11::list shape_j)
-    {
-
-    shape_2D result(shape_i, shape_j);
-    result.epsilon = epsilon;
-    result.alpha = alpha;
-    result.sigma_i = sigma_i;
-    result.sigma_j = sigma_j;
-
-    ///////////////////////////////////////////
-    /// Define parameters for i^th particle ///
-    ///////////////////////////////////////////
-
-    //! Length of vertices list
-    int Ni = len(shape_i);
-    //! Extract omega from python list for i^th particle
-    Scalar kmax = 10000.0;
-    Scalar ktest = 100.0;  
-    for (unsigned int i = 0; i < Ni; i++)
-        {
-        pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_i[i]);
-        vec2<float> vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
-        result.xi[i] = vert.x;
-        result.yi[i] = vert.y;
-        // Calculate kmax on the fly
-        ktest = vert.x*vert.x + vert.y*vert.y;
-        if (ktest < kmax)
-            {
-            kmax = ktest;
-            }
-        }
-    // Loop back to first value
-    pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_i[0]);
-    vec2<float> vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
-    result.xi[Ni] = vert.x;
-    result.yi[Ni] = vert.y;
-    result.Ni = len(shape_i) + 1;
-    result.ki_max = kmax;
-    ///////////////////////////////////////////
-    ///////////////////////////////////////////
-
-    ///////////////////////////////////////////
-    /// Define parameters for j^th particle ///
-    ///////////////////////////////////////////
-
-    //! Length of vertices list
-    int Nj = len(shape_j);
-    //! Extract omega from python list for i^th particle
-    kmax = 10000.0;
-    ktest = 100.0;
-    for (unsigned int i = 0; i < Nj; i++)
-        {
-        pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_j[i]);
-        vec2<float> vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
-        result.xj[i] = vert.x;
-        result.yj[i] = vert.y;
-        // Calculate kmax on the fly
-        ktest = vert.x*vert.x + vert.y*vert.y;
-        if (ktest < kmax)
-            {
-            kmax = ktest;
-            }
-        }
-    // Loop back to first value
-    shape_tmp = pybind11::cast<pybind11::list>(shape_j[0]);
-    vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
-    result.xj[Nj] = vert.x;
-    result.yj[Nj] = vert.y;
-    result.Nj = len(shape_j) + 1;
-    result.kj_max = kmax;
-
-    return result;
-    }
-    ///////////////////////////////////////////
-    ///////////////////////////////////////////
-    
 
 //! Function to export the LJ parameter type to python
 

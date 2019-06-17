@@ -117,23 +117,16 @@ class EvaluatorPairALJTable
             vec3<Scalar> vertsi[20];
             vec3<Scalar> vertsj[20];
 
-            vec3<Scalar> tmp;            
             // Define internal shape_i
             for (unsigned int i = 0; i < _params.Ni; ++i)
               {
-              tmp.x = _params.xi[i];
-              tmp.y = _params.yi[i];
-              tmp.z = _params.zi[i];
-              vertsi[i] = rotate(qi,tmp);
+              vertsi[i] = rotate(qi, _params.verts_i[i]);
               }
 
             // Define internal shape_j
             for (unsigned int i = 0; i < _params.Nj; ++i)
               {
-              tmp.x = _params.xj[i];
-              tmp.y = _params.yj[i];
-              tmp.z = _params.zj[i];
-              vertsj[i] = rotate(qj,tmp) + Scalar(-1.0)*dr;
+              vertsj[i] = rotate(qj, _params.verts_j[i]) + Scalar(-1.0)*dr;
               }
 
 
