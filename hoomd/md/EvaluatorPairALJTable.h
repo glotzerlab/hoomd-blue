@@ -137,9 +137,7 @@ class EvaluatorPairALJTable
               // Call gjk
               vec3<Scalar> pos1;  // First particle is at 0
               vec3<Scalar> pos2 = Scalar(-1.0)*dr;  // Second particle is at -dr
-              vec3<Scalar> v, v1, v2;
-              vec3<Scalar> a;
-              vec3<Scalar> b;
+              vec3<Scalar> v1 = vec3<Scalar>(), v2 = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
               bool success, overlap;
               gjk_inline<3>(pos1, pos2, vertsi, _params.Ni, vertsj, _params.Nj, v1, v2, a, b, success, overlap);
               
