@@ -2836,7 +2836,9 @@ class alj2D(ai_pair):
         shape_j = coeff['shape_j'];
         alpha = coeff['alpha'];
 
-        return _md.make_shape_2D(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, hoomd.context.exec_conf);
+        shape_i = [[v[0], v[1], 0] for v in shape_i]
+        shape_j = [[v[0], v[1], 0] for v in shape_j]
+        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, hoomd.context.exec_conf, True);
 
 class alj_table(ai_pair):
     R""" Ansitropic (table) LJ potential.
@@ -2895,4 +2897,4 @@ class alj_table(ai_pair):
         shape_j = coeff['shape_j'];
         alpha = coeff['alpha'];
 
-        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, hoomd.context.exec_conf);
+        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, hoomd.context.exec_conf, False);
