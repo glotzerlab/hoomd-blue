@@ -119,6 +119,7 @@ include (HOOMDMPISetup)
 include(HOOMDPythonSetup)
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
+include (HOOMDHIPSetup)
 include (hoomd-macros)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
