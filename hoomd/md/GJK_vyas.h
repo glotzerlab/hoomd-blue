@@ -10,7 +10,7 @@
 #include <stdexcept>
 #endif
 
-DEVICE inline unsigned int support(vec3<Scalar> *verts, unsigned int num_verts, vec3<Scalar> vector)
+DEVICE inline unsigned int support(const vec3<Scalar> *verts, const unsigned int &num_verts, const vec3<Scalar> &vector)
     {
     unsigned int index = 0;
     Scalar max_dist = dot(verts[index], vector);
@@ -382,7 +382,7 @@ DEVICE inline void gjk_with_overlaps(vec3<Scalar> &pos1, vec3<Scalar> &pos2, vec
 
 
 template <unsigned int ndim>
-DEVICE inline void gjk(vec3<Scalar> *verts1, unsigned int N1, vec3<Scalar> *verts2, unsigned int N2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap)
+DEVICE inline void gjk(const vec3<Scalar> *verts1, const unsigned int &N1, const vec3<Scalar> *verts2, const unsigned int &N2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr)
     {
     // At any point only a subset of W is in use (identified by W_used), but
     // the total possible is capped at ndim+1 because that is the largest
