@@ -2853,8 +2853,8 @@ class alj_table(ai_pair):
     The following coefficients must be set per unique pair of particle types:
 
     - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\sigma_i` - *inscribed sphere radius for i^th particle* 
-    - :math:`\sigma_j` - *inscribed sphere radius for j^th particle* 
+    - :math:`\sigma_i` - *inscribed sphere radius for i^th particle*
+    - :math:`\sigma_j` - *inscribed sphere radius for j^th particle*
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 

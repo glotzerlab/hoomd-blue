@@ -14,7 +14,6 @@
 #include "AnisoPotentialPairGPU.cuh"
 #include "EvaluatorPairGB.h"
 #include "EvaluatorPairDipole.h"
-#include "EvaluatorPair2DALJ.h"
 #include "EvaluatorPairALJTable.h"
 
 //! Compute dipole forces and torques on the GPU with EvaluatorPairDipole
@@ -26,7 +25,7 @@ cudaError_t gpu_compute_pair_aniso_forces_dipole(const a_pair_args_t&,
             const EvaluatorPairDipole::param_type*);
 
 cudaError_t gpu_compute_pair_aniso_forces_2DALJ(const a_pair_args_t&,
-            const EvaluatorPair2DALJ::param_type*);        
+            const EvaluatorPairALJTable<2>::param_type*);        
 
 cudaError_t gpu_compute_pair_aniso_forces_ALJTable(const a_pair_args_t&,
             const EvaluatorPairALJTable<3>::param_type*);

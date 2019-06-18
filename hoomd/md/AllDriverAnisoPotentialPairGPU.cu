@@ -23,9 +23,9 @@ cudaError_t gpu_compute_pair_aniso_forces_dipole(const a_pair_args_t& pair_args,
     }
 
 cudaError_t gpu_compute_pair_aniso_forces_2DALJ(const a_pair_args_t& pair_args,
-            const EvaluatorPair2DALJ::param_type* d_param)
+            const EvaluatorPairALJTable<2>::param_type* d_param)
     {
-    return gpu_compute_pair_aniso_forces<EvaluatorPair2DALJ>(pair_args, d_param);
+    return gpu_compute_pair_aniso_forces<EvaluatorPairALJTable<2> >(pair_args, d_param);
     }
 
 cudaError_t gpu_compute_pair_aniso_forces_ALJTable(const a_pair_args_t& pair_args,
