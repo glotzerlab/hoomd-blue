@@ -115,44 +115,28 @@ class EvaluatorPair2DALJ
             vec3<Scalar> f;
 
             vec3<Scalar> rvect;
-            vec3<Scalar> rvect1;
-            vec3<Scalar> rvect2;
 
             // Create rotate structures
             vec3<Scalar> vertsi[20];
             vec3<Scalar> vertsj[20];
-            Scalar xi_final[20];
-            Scalar yi_final[20];
-            Scalar zi_final[20];
-            Scalar xj_final[20];
-            Scalar yj_final[20];
-            Scalar zj_final[20];
 
             vec3<Scalar> tmp;            
             // Define internal shape_i
             for (unsigned int i = 0; i < _params.Ni; i=i+1)
               {
-              tmp.x = _params.xi[i];
-              tmp.y = _params.yi[i];
-              tmp.z = 0.0;
-              tmp = rotate(qi,tmp);
-              xi_final[i] = tmp.x;
-              yi_final[i] = tmp.y;
-              zi_final[i] = 0.0;
-              vertsi[i] = vec3<Scalar>(xi_final[i], yi_final[i], zi_final[i]);
+              tmp = _params.verts_i[i];
+              tmp.z = 0;
+              vertsi[i] = rotate(qi, tmp);
+              vertsi[i].z = 0;
               }
 
             // Define internal shape_j
             for (unsigned int i = 0; i < _params.Nj; i=i+1)
               {
-              tmp.x = _params.xj[i];
-              tmp.y = _params.yj[i];
-              tmp.z = 0.0;
-              tmp = rotate(qj,tmp);
-              xj_final[i] = tmp.x + Scalar(-1.0)*dr.x;
-              yj_final[i] = tmp.y + Scalar(-1.0)*dr.y;
-              zj_final[i] = 0.0;
-              vertsj[i] = vec3<Scalar>(xj_final[i], yj_final[i], zj_final[i]);
+              tmp = _params.verts_j[i];
+              tmp.z = 0;
+              vertsj[i] = rotate(qj, tmp) + Scalar(-1.0)*dr;
+              vertsj[i].z = 0;
               }
 
             // Distance
@@ -240,7 +224,6 @@ class EvaluatorPair2DALJ
 
               // Check repulsion attraction for contact point
               epsilon = _params.epsilon;
-              overlap = false;
               // No overlap
               if (_params.alpha*0.0 < 1.0)
                   {

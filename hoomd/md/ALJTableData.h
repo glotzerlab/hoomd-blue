@@ -30,11 +30,15 @@ struct shape_table
 
     #ifndef NVCC
     //! Shape constructor
-    shape_table(pybind11::list shape_i, pybind11::list shape_j, bool use_device)
+    shape_table(pybind11::list shape_i, pybind11::list shape_j, bool use_device, bool is2D)
         : alpha(0.0), epsilon(0.0), sigma_i(0.0), sigma_j(0.0), ki_max(0.0), kj_max(0.0), Ni(0), Nj(0)
         {
         //! Construct table for particle i
         unsigned int Ni = len(shape_i);
+        if (is2D)
+            {
+            Ni += 1;
+            }
         xi  = ManagedArray<Scalar>(Ni,use_device);
         yi  = ManagedArray<Scalar>(Ni,use_device);
         zi  = ManagedArray<Scalar>(Ni,use_device);
@@ -49,6 +53,10 @@ struct shape_table
 
         //! Construct table for particle j
         unsigned int Nj = len(shape_j);
+        if (is2D)
+            {
+            Nj += 1;
+            }
         xj  = ManagedArray<Scalar>(Nj,use_device);
         yj  = ManagedArray<Scalar>(Nj,use_device);
         zj  = ManagedArray<Scalar>(Nj,use_device);
@@ -150,7 +158,7 @@ shape_table make_shape_table(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Sca
     std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
 
-    shape_table result(shape_i, shape_j, exec_conf->isCUDAEnabled());
+    shape_table result(shape_i, shape_j, exec_conf->isCUDAEnabled(), false);
     result.epsilon = epsilon;
     result.alpha = alpha;
     result.sigma_i = sigma_i;
@@ -223,7 +231,7 @@ shape_table make_shape_2D(float epsilon, float sigma_i, float sigma_j, float alp
     std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
 
-    shape_table result(shape_i, shape_j, exec_conf->isCUDAEnabled());
+    shape_table result(shape_i, shape_j, exec_conf->isCUDAEnabled(), true);
     result.epsilon = epsilon;
     result.alpha = alpha;
     result.sigma_i = sigma_i;
@@ -234,19 +242,19 @@ shape_table make_shape_2D(float epsilon, float sigma_i, float sigma_j, float alp
     ///////////////////////////////////////////
 
     //! Length of vertices list
-    int Ni = len(shape_i);
+    unsigned int Ni = len(shape_i);
     //! Extract omega from python list for i^th particle
     Scalar kmax = 10000.0;
     Scalar ktest = 100.0;  
     for (unsigned int i = 0; i < Ni; i++)
         {
         pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_i[i]);
-        vec2<float> vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
-        result.xi[i] = vert.x;
-        result.yi[i] = vert.y;
+        result.verts_i[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), 0);
+        result.xi[i] = result.verts_i[i].x;
+        result.yi[i] = result.verts_i[i].y;
         result.zi[i] = 0;
         // Calculate kmax on the fly
-        ktest = vert.x*vert.x + vert.y*vert.y;
+        ktest = result.verts_i[i].x*result.verts_i[i].x + result.verts_i[i].y*result.verts_i[i].y;
         if (ktest < kmax)
             {
             kmax = ktest;
@@ -254,9 +262,9 @@ shape_table make_shape_2D(float epsilon, float sigma_i, float sigma_j, float alp
         }
     // Loop back to first value
     pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_i[0]);
-    vec2<float> vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
-    result.xi[Ni] = vert.x;
-    result.yi[Ni] = vert.y;
+    result.verts_i[Ni] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), 0);
+    result.xi[Ni] = result.verts_i[Ni].x;
+    result.yi[Ni] = result.verts_i[Ni].y;
     result.zi[Ni] = 0;
     result.Ni = len(shape_i) + 1;
     result.ki_max = kmax;
@@ -268,19 +276,19 @@ shape_table make_shape_2D(float epsilon, float sigma_i, float sigma_j, float alp
     ///////////////////////////////////////////
 
     //! Length of vertices list
-    int Nj = len(shape_j);
+    unsigned int Nj = len(shape_j);
     //! Extract omega from python list for i^th particle
     kmax = 10000.0;
     ktest = 100.0;
     for (unsigned int i = 0; i < Nj; i++)
         {
         pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_j[i]);
-        vec2<float> vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
-        result.xj[i] = vert.x;
-        result.yj[i] = vert.y;
+        result.verts_j[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), 0);
+        result.xj[i] = result.verts_j[i].x;
+        result.yj[i] = result.verts_j[i].y;
         result.zj[i] = 0;
         // Calculate kmax on the fly
-        ktest = vert.x*vert.x + vert.y*vert.y;
+        ktest = result.verts_j[i].x*result.verts_j[i].x + result.verts_j[i].y*result.verts_j[i].y;
         if (ktest < kmax)
             {
             kmax = ktest;
@@ -288,9 +296,9 @@ shape_table make_shape_2D(float epsilon, float sigma_i, float sigma_j, float alp
         }
     // Loop back to first value
     shape_tmp = pybind11::cast<pybind11::list>(shape_j[0]);
-    vert = vec2<float>(pybind11::cast<float>(shape_tmp[0]), pybind11::cast<float>(shape_tmp[1]));
-    result.xj[Nj] = vert.x;
-    result.yj[Nj] = vert.y;
+    result.verts_j[Nj] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), 0);
+    result.xj[Nj] = result.verts_j[Nj].x;
+    result.yj[Nj] = result.verts_j[Nj].y;
     result.zj[Nj] = 0;
     result.Nj = len(shape_j) + 1;
     result.kj_max = kmax;
