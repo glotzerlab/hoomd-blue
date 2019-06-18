@@ -130,21 +130,17 @@ class EvaluatorPairALJTable
               vertsj[i] = rotate(qj, _params.verts_j[i]) + Scalar(-1.0)*dr;
               }
 
-
             // Distance
             if ( (rsq/_params.ki_max/_params.ki_max < rcutsq) | (rsq/_params.kj_max/_params.kj_max < rcutsq) )
               {
 
               // Call gjk
-              vec3<Scalar> pos1;  // First particle is at 0
-              vec3<Scalar> pos2 = Scalar(-1.0)*dr;  // Second particle is at -dr
-              vec3<Scalar> v1 = vec3<Scalar>(), v2 = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
+              vec3<Scalar> v = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
               bool success, overlap;
-              gjk_inline<ndim>(pos1, pos2, vertsi, _params.Ni, vertsj, _params.Nj, v1, v2, a, b, success, overlap);
+              gjk<ndim>(vertsi, _params.Ni, vertsj, _params.Nj, v, a, b, success, overlap);
               if (ndim == 2)
                   {
-                  v1.z = 0;
-                  v2.z = 0;
+                  v.z = 0;
                   a.z = 0;
                   b.z = 0;
                   }
@@ -165,8 +161,8 @@ class EvaluatorPairALJTable
               Scalar epsilon = _params.epsilon*(numer/denom);
 
               // Define relevant vectors
-              rvect = Scalar(-1.0)*v1;
-              Scalar rcheck = dot(v1,v1);
+              rvect = Scalar(-1.0)*v;
+              Scalar rcheck = dot(v,v);
               Scalar rcheck_isq = fast::rsqrt(rcheck);
               rvect = rvect*rcheck_isq;
               Scalar f_scalar = 0;

@@ -28,7 +28,7 @@ struct shape_table
         {
         //! Construct table for particle i
         unsigned int Ni = len(shape_i);
-        verts_i = ManagedArray<vec3<Scalar> >(Ni,use_device);
+        verts_i = ManagedArray<vec3<Scalar> >(Ni, use_device);
         for (unsigned int i = 0; i < Ni; ++i)
             {
             verts_i[i] = vec3<Scalar>();
@@ -36,7 +36,7 @@ struct shape_table
 
         //! Construct table for particle j
         unsigned int Nj = len(shape_j);
-        verts_j = ManagedArray<vec3<Scalar> >(Nj,use_device);
+        verts_j = ManagedArray<vec3<Scalar> >(Nj, use_device);
         for (unsigned int i = 0; i < Nj; ++i)
             {
             verts_j[i] = vec3<Scalar>();
@@ -51,8 +51,8 @@ struct shape_table
      */
     HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        verts_i.load_shared(ptr,available_bytes);
-        verts_j.load_shared(ptr,available_bytes);
+        verts_i.load_shared(ptr, available_bytes);
+        verts_j.load_shared(ptr, available_bytes);
         }
 
     #ifdef ENABLE_CUDA
@@ -80,7 +80,7 @@ struct shape_table
 
 //! Helper function to build shape structure from python
 #ifndef NVCC
-shape_table make_shape_table(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Scalar alpha, pybind11::list shape_i, pybind11::list shape_j, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool is2D)
+shape_table make_shape_table(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Scalar alpha, pybind11::list shape_i, pybind11::list shape_j, std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
     shape_table result(shape_i, shape_j, exec_conf->isCUDAEnabled());
     result.epsilon = epsilon;
@@ -100,10 +100,6 @@ shape_table make_shape_table(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Sca
     for (unsigned int i = 0; i < Ni; i++)
         {
         pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_i[i]);
-        if (is2D)
-            {
-            shape_tmp[2] = 0;
-            }
         result.verts_i[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
         // Calculate kmax on the fly
         ktest = result.verts_i[i].x*result.verts_i[i].x + result.verts_i[i].y*result.verts_i[i].y + result.verts_i[i].z*result.verts_i[i].z;
@@ -127,10 +123,6 @@ shape_table make_shape_table(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Sca
     for (unsigned int i = 0; i < Nj; i++)
         {
         pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_j[i]);
-        if (is2D)
-            {
-            shape_tmp[2] = 0;
-            }
         result.verts_j[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
         // Calculate kmax on the fly
         ktest = result.verts_j[i].x*result.verts_j[i].x + result.verts_j[i].y*result.verts_j[i].y + result.verts_j[i].z*result.verts_j[i].z;

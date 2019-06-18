@@ -2795,7 +2795,7 @@ class alj2D(ai_pair):
     The following coefficients must be set per unique pair of particle types:
 
     - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\n_i` - *number of vertices i^th particle* 
+    - :math:`\n_i` - *number of vertices i^th particle*
     - :math:`\n_j` - *number of vertices j^th particle*
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
@@ -2838,7 +2838,7 @@ class alj2D(ai_pair):
 
         shape_i = [[v[0], v[1], 0] for v in shape_i]
         shape_j = [[v[0], v[1], 0] for v in shape_j]
-        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, hoomd.context.exec_conf, True);
+        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, hoomd.context.exec_conf);
 
 class alj_table(ai_pair):
     R""" Ansitropic (table) LJ potential.
@@ -2897,4 +2897,4 @@ class alj_table(ai_pair):
         shape_j = coeff['shape_j'];
         alpha = coeff['alpha'];
 
-        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, hoomd.context.exec_conf, False);
+        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, hoomd.context.exec_conf);
