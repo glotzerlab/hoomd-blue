@@ -178,11 +178,18 @@ class EvaluatorPairALJTable
                   if (r < two_p_16 *sigma12)
                       {
                       // Center force and energy
+                      rho = sigma12 /r;
+                      invr_rsq = rho*rho;
+                      invr_6 = invr_rsq*invr_rsq*invr_rsq;
+                      invr_12 = invr_6*invr_6;
                       pair_eng = Scalar(4.0) * epsilon * (invr_12 - invr_6); 
                       f_scalar = Scalar(4.0) * epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) / (r);
 
                       // Shift energy
-                      pair_eng -= Scalar(4.0) * epsilon * (invr_12 - invr_6);
+                      rho = 1.0 / two_p_16;
+                      invr_rsq = rho*rho;
+                      invr_6 = invr_rsq*invr_rsq*invr_rsq;
+                      pair_eng -= Scalar(4.0) * epsilon * (invr_6*invr_6 - invr_6);
                       }
                   else
                       {
@@ -192,11 +199,15 @@ class EvaluatorPairALJTable
               else
                   {
                   // Center force and energy
+                  rho = sigma12 /r;
+                  invr_rsq = rho*rho;
+                  invr_6 = invr_rsq*invr_rsq*invr_rsq;
                   pair_eng = Scalar(4.0) * epsilon * (invr_6*invr_6 - invr_6); 
                   f_scalar = Scalar(4.0) * epsilon * ( Scalar(12.0)*invr_6*invr_6 - Scalar(6.0)*invr_6 ) / (r);
                   }
 
               // Check repulsion attraction for contact point
+              epsilon = _params.epsilon;
               // No overlap
               if (_params.alpha*0.0 < 1.0)
                 {

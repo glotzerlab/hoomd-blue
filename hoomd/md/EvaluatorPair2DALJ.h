@@ -109,11 +109,11 @@ class EvaluatorPair2DALJ
             Scalar rho = 0.0;
             Scalar invr_rsq = 0.0;
             Scalar invr_6 = 0.0; 
+            Scalar invr_12 = 0.0; 
             Scalar sub_sphere = 0.15;
             const Scalar two_p_16 = 1.12246204831;  // 2^(1/6)
             
             vec3<Scalar> f;
-
             vec3<Scalar> rvect;
 
             // Create rotate structures
@@ -124,18 +124,14 @@ class EvaluatorPair2DALJ
             // Define internal shape_i
             for (unsigned int i = 0; i < _params.Ni; i=i+1)
               {
-              tmp = _params.verts_i[i];
-              tmp.z = 0;
-              vertsi[i] = rotate(qi, tmp);
+              vertsi[i] = rotate(qi, _params.verts_i[i]);
               vertsi[i].z = 0;
               }
 
             // Define internal shape_j
             for (unsigned int i = 0; i < _params.Nj; i=i+1)
               {
-              tmp = _params.verts_j[i];
-              tmp.z = 0;
-              vertsj[i] = rotate(qj, tmp) + Scalar(-1.0)*dr;
+              vertsj[i] = rotate(qj, _params.verts_j[i]) + Scalar(-1.0)*dr;
               vertsj[i].z = 0;
               }
 
@@ -146,26 +142,17 @@ class EvaluatorPair2DALJ
               // Call gjk
               vec3<Scalar> pos1;  // First particle is at 0
               vec3<Scalar> pos2 = Scalar(-1.0)*dr;  // Second particle is at -dr
-              vec3<Scalar> v, v1, v2;
-              vec3<Scalar> a;
-              vec3<Scalar> b;
-              a.z = 0.0;
-              b.z = 0.0;
-              v.z = 0.0;
-              v1.z = 0.0;
-              v2.z = 0.0;
+              vec3<Scalar> v1 = vec3<Scalar>(), v2 = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
               bool success, overlap;
               gjk_inline<2>(pos1, pos2, vertsi, _params.Ni, vertsj, _params.Nj, v1, v2, a, b, success, overlap);
               
-
-              // Get kernel
-              Scalar sigma12 = (_params.sigma_i + _params.sigma_j)*Scalar(0.5);     
-              Scalar epsilon = _params.epsilon;
-    	      v.z = 0.0;
     	      v1.z = 0.0;
     	      v2.z = 0.0;
     	      a.z = 0.0;
     	      b.z = 0.0;
+
+              // Get kernel
+              Scalar sigma12 = (_params.sigma_i + _params.sigma_j)*Scalar(0.5);     
 
               rho = sigma12 /r;
               invr_rsq = rho*rho;
@@ -177,16 +164,15 @@ class EvaluatorPair2DALJ
               invr_rsq = rho*rho;
               invr_6 = invr_rsq*invr_rsq*invr_rsq;
               Scalar numer = (invr_6*invr_6 - invr_6);
-              epsilon = epsilon*(numer/denom);
+              Scalar epsilon = _params.epsilon*(numer/denom);;
 
               // Define relevant vectors
               rvect = -1.0*v1;
               Scalar rcheck = dot(v1,v1);
               Scalar rcheck_isq = fast::rsqrt(rcheck);
-              // rvect = b - a;
               rvect = rvect*rcheck_isq;
-              Scalar f_scalar;
-              Scalar f_scalar_contact;
+              Scalar f_scalar = 0;
+              Scalar f_scalar_contact = 0;
 
               // Check repulsion vs attraction for center particle
               if (_params.alpha < 1.0)
@@ -264,8 +250,6 @@ class EvaluatorPair2DALJ
               force = vec_to_scalar3(f);
 
               // Torque
-              Scalar ftotal = 0.5*sqrt(dot(f,f));
-              ftotal = 1.0*f_scalar_contact;
               torque_i = vec_to_scalar3(cross(a-0.5*sub_sphere*sigma12*rvect+sqrt(rcheck)*rvect,Scalar(1.0)*f));
               torque_j = vec_to_scalar3(cross(dr+a+0.5*sub_sphere*sigma12*rvect,Scalar(-1.0)*f));  
 

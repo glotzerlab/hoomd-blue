@@ -39,10 +39,10 @@ struct shape_table
             {
             Ni += 1;
             }
-        xi  = ManagedArray<Scalar>(Ni,use_device);
-        yi  = ManagedArray<Scalar>(Ni,use_device);
-        zi  = ManagedArray<Scalar>(Ni,use_device);
-        verts_i  = ManagedArray<vec3<Scalar> >(Ni,use_device);
+        xi = ManagedArray<Scalar>(Ni,use_device);
+        yi = ManagedArray<Scalar>(Ni,use_device);
+        zi = ManagedArray<Scalar>(Ni,use_device);
+        verts_i = ManagedArray<vec3<Scalar> >(Ni,use_device);
         for (unsigned int i = 0; i < Ni; ++i)
             {
             xi[i] = Scalar(0.0);
@@ -57,10 +57,10 @@ struct shape_table
             {
             Nj += 1;
             }
-        xj  = ManagedArray<Scalar>(Nj,use_device);
-        yj  = ManagedArray<Scalar>(Nj,use_device);
-        zj  = ManagedArray<Scalar>(Nj,use_device);
-        verts_j  = ManagedArray<vec3<Scalar> >(Nj,use_device);
+        xj = ManagedArray<Scalar>(Nj,use_device);
+        yj = ManagedArray<Scalar>(Nj,use_device);
+        zj = ManagedArray<Scalar>(Nj,use_device);
+        verts_j = ManagedArray<vec3<Scalar> >(Nj,use_device);
         for (unsigned int i = 0; i < Nj; ++i)
             {
             xj[i] = Scalar(0.0);
