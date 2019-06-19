@@ -273,28 +273,28 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     m_tuner_depletants.reset(new Autotuner(valid_params, 5, 100000, "hpmc_depletants", this->m_exec_conf));
 
     // initialize memory
-    GlobalArray<Scalar4>(0,this->m_exec_conf).swap(m_trial_postype);
+    GlobalArray<Scalar4>(1,this->m_exec_conf).swap(m_trial_postype);
     TAG_ALLOCATION(m_trial_postype);
 
-    GlobalArray<Scalar4>(0, this->m_exec_conf).swap(m_trial_orientation);
+    GlobalArray<Scalar4>(1, this->m_exec_conf).swap(m_trial_orientation);
     TAG_ALLOCATION(m_trial_orientation);
 
-    GlobalArray<unsigned int>(0,this->m_exec_conf).swap(m_trial_move_type);
+    GlobalArray<unsigned int>(1,this->m_exec_conf).swap(m_trial_move_type);
     TAG_ALLOCATION(m_trial_move_type);
 
-    GlobalArray<unsigned int>(0, this->m_exec_conf).swap(m_reject_out_of_cell);
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_reject_out_of_cell);
     TAG_ALLOCATION(m_reject_out_of_cell);
 
-    GlobalArray<unsigned int>(0, this->m_exec_conf).swap(m_reject);
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_reject);
     TAG_ALLOCATION(m_reject);
 
-    GlobalArray<unsigned int>(0, this->m_exec_conf).swap(m_reject_out);
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_reject_out);
     TAG_ALLOCATION(m_reject_out);
 
-    GlobalArray<unsigned int>(0, this->m_exec_conf).swap(m_nlist);
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_nlist);
     TAG_ALLOCATION(m_nlist);
 
-    GlobalArray<unsigned int>(0, this->m_exec_conf).swap(m_nneigh);
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_nneigh);
     TAG_ALLOCATION(m_nneigh);
 
     GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_overflow);
@@ -625,6 +625,11 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
             do
                 {
+                    // make sure neighbor list size is sufficient before running the kernel
+                    reallocate = checkReallocate();
+                    if (reallocate)
+                        continue;
+
                     { // ArrayHandle scope
                     ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.getInverse(), access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
@@ -994,7 +999,6 @@ bool IntegratorHPMCMonoGPU< Shape >::checkReallocate()
 
                 cudaMemAdvise(m_nlist.get()+range.first*m_maxn, sizeof(unsigned int)*nelem*m_maxn, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
                 cudaMemPrefetchAsync(m_nlist.get()+range.first*m_maxn, sizeof(unsigned int)*nelem*m_maxn, gpu_map[idev]);
-                cudaMemAdvise(m_nlist.get(), sizeof(unsigned int)*m_nlist.getNumElements(), cudaMemAdviseSetAccessedBy, cudaCpuDeviceId);
                 CHECK_CUDA_ERROR();
                 }
             }
