@@ -29,7 +29,8 @@ public:
                     unsigned int nsweeps,
                     bool pretend,
                     bool multiphase,
-                    unsigned int numphase);
+                    unsigned int numphase,
+                    Scalar alpha_iq);
 
     ~UpdaterShape();
 
@@ -95,6 +96,7 @@ private:
     std::vector<unsigned int>   m_box_accepted;
     std::vector<unsigned int>   m_box_total;
     unsigned int                m_move_ratio;
+    Scalar                      m_alpha_iq;
 
     std::shared_ptr< shape_move_function<Shape, hoomd::detail::Saru> >   m_move_function;
     std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
@@ -111,6 +113,7 @@ private:
     unsigned int                m_num_phase;
     detail::UpdateOrder         m_update_order;         //!< Update order
 
+
     static constexpr Scalar m_tol = 0.00001; //!< The minimum move size required not to be ignored.
 
 };
@@ -124,9 +127,10 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  unsigned int nsweeps,
                                  bool pretend,
                                  bool multiphase,
-                                 unsigned int numphase)
+                                 unsigned int numphase,
+                                 Scalar alpha_iq)
     : Updater(sysdef), m_seed(seed), m_global_partition(0), m_nselect(nselect), m_nsweeps(nsweeps),
-      m_move_ratio(move_ratio*65535), m_mc(mc),
+      m_move_ratio(move_ratio*65535), m_alpha_iq(alpha_iq), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
       m_pretend(pretend),m_initialized(false), m_multi_phase(multiphase),
@@ -348,6 +352,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                                                     param_copy[cur_type],           // old shape parameter
                                                     h_det_backup.data[typ_i]        // old determinant
                                                 );
+            log_boltz += this->getLogValue("shape_isoperimetric_quotient", timestep) * m_alpha_iq * -1.0;
             m_mc->setParam(typ_i, param, cur_type == (m_nselect-1));
             }
         if (this->m_prof)
@@ -358,7 +363,12 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         // calculate boltzmann factor.
         bool accept = false, reject=true; // looks redundant but it is not because of the pretend mode.
         Scalar p = rng.s(Scalar(0.0),Scalar(1.0)), Z = fast::exp(log_boltz);
-        m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
+        m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p
+            << ", log_boltz=" << log_boltz
+            << ", z=" << Z
+            << ", alpha_iq=" << m_alpha_iq
+            << ", alpha_iq * I=" << this->getLogValue("shape_isoperimetric_quotient", timestep) * m_alpha_iq
+            << std::endl;
         
     if(m_multi_phase)
         {
@@ -445,7 +455,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     if (this->m_prof)
         this->m_prof->pop();
     m_exec_conf->msg->notice(4) << " UpdaterShape update done" << std::endl;
-    }
+    }  // end UpdaterShape<Shape>::update(unsigned int timestep)
 
 template< typename Shape>
 void UpdaterShape<Shape>::initialize()
@@ -560,7 +570,8 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
                             unsigned int,
                             bool,
                             bool,
-                            unsigned int>())
+                            unsigned int,
+                            Scalar>())
     .def("getAcceptedCount", &UpdaterShape<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterShape<Shape>::getTotalCount)
     .def("registerShapeMove", &UpdaterShape<Shape>::registerShapeMove)
