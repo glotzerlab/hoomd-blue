@@ -87,8 +87,8 @@ lib/python2.7/site-packages/numpy/core/generate_numpy_array.py)
 The following #defines help get around this
 */
 
-#if (PYBIND11_VERSION_MAJOR) != 2 || (PYBIND11_VERSION_MINOR) != 2
-#error HOOMD-blue requires pybind11 2.2.x
+#if (PYBIND11_VERSION_MAJOR) != 2
+#error HOOMD-blue requires pybind11 2.x
 #endif
 
 //! Method for getting the current version of HOOMD
