@@ -68,22 +68,22 @@ endforeach (CUR_TEST)
 foreach(CUR_TEST ${HIP_TEST_LIST})
     if(ENABLE_CUDA)
         set(_hip_sources ${CUR_TEST}.cc)
-	#        set_source_files_properties(${_hip_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
+    #        set_source_files_properties(${_hip_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
     else()
         set(_hip_sources "")
     endif()
 
     if(ENABLE_CUDA)
-	# compile to CUDA targrt
+    # compile to CUDA targrt
         add_executable(${CUR_TEST}_cuda EXCLUDE_FROM_ALL ${_hip_sources})
         set_property(SOURCE ${_hip_sources} PROPERTY LANGUAGE CUDA)
         target_include_directories(${CUR_TEST}_cuda PRIVATE ${PYTHON_INCLUDE_DIR})
 
-	# use the right HIP options
-	set_target_properties(${CUR_TEST}_cuda PROPERTIES COMPILE_FLAGS "${HIP_NVCC_FLAGS}")
-        add_dependencies(test_all ${CUR_TEST}_cuda)
-	target_link_libraries(${CUR_TEST}_cuda _hoomd ${PYTHON_LIBRARIES})
+    # use the right HIP options
+#    set_target_properties(${CUR_TEST}_cuda PROPERTIES COMPILE_FLAGS "${HIP_NVCC_FLAGS}")
+        target_link_libraries(${CUR_TEST}_cuda PUBLIC HIP::hip _hoomd ${PYTHON_LIBRARIES})
         fix_cudart_rpath(${CUR_TEST}_cuda)
+        add_dependencies(test_all ${CUR_TEST}_cuda)
     endif()
 endforeach()
 

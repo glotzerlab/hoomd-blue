@@ -239,6 +239,10 @@ if (ENABLE_CUDA)
     endif()
 endif()
 
+if(ENABLE_HIP)
+    target_link_libraries(_hoomd PUBLIC HIP::hip)
+endif()
+
 # Libraries and compile definitions for TBB enabled builds
 if (ENABLE_TBB)
     find_package(TBB 4.3)

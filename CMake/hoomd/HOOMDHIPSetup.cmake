@@ -18,12 +18,29 @@ if(HIP_FOUND)
     # drop the -x cu option to not duplicate it with CMake's options
     LIST(FIND _hipcc_verbose_options "-x" _idx)
     if (NOT ${_idx} EQUAL "-1")
-	math(EXPR _idx_plus_one "${_idx} + 1")
-	LIST(REMOVE_AT _hipcc_verbose_options ${_idx} ${_idx_plus_one})
+    math(EXPR _idx_plus_one "${_idx} + 1")
+    LIST(REMOVE_AT _hipcc_verbose_options ${_idx} ${_idx_plus_one})
     endif()
 
     # finally drop the test file
     LIST(FILTER _hipcc_verbose_options EXCLUDE REGEX test.cc)
-    string (REPLACE ";" " " _hipcc_options_str "${_hipcc_verbose_options}")
     SET(HIP_NVCC_FLAGS ${_hipcc_options_str})
+
+    #search for HIP include directory
+    find_path(HIP_INCLUDE_DIR hip/hip_runtime.h
+            PATHS
+           "${HIP_ROOT_DIR}"
+            ENV ROCM_PATH
+            ENV HIP_PATH
+            PATH_SUFFIXES include)
+
+    if(NOT TARGET HIP::hip)
+        add_library(HIP::hip INTERFACE IMPORTED)
+        set_target_properties(HIP::hip PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${HIP_INCLUDE_DIR}")
+        target_compile_options(HIP::hip INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:${HIP_NVCC_FLAGS}>)
+    endif()
+
 endif()
+
+
