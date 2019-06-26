@@ -21,6 +21,7 @@ namespace py = pybind11;
 
 using namespace std;
 
+// TODO: make this a table
 Scalar capfraction(Scalar x)
     {
 	Scalar frac;
@@ -46,16 +47,17 @@ Scalar capfraction(Scalar x)
     return frac;
     }
 
+// make these tables or pass in?
 Scalar feneEnergy(Scalar x, int nK)
     {
 	Scalar UBi;
-	UBi = nK * (-1.5 * log(1.0 - x * x));
+	UBi = -1.5*nK * log(1.0-(x/nK)*(x/nK));
 	return UBi;
     }
 
-Scalar feneForce(Scalar x) {
+Scalar feneForce(Scalar x, int nKuhn) {
 	Scalar FBi;
-	FBi = (3.0 * x) / (1.0 - x * x);
+	FBi = (3*nKuhn*x)/(nKuhn*nKuhn - x*x);
 	return FBi;
 }
 
@@ -164,7 +166,7 @@ void DynamicBond::update(unsigned int timestep)
         // access diameter of particle i
         Scalar di = Scalar(0.0);
         
-
+        //TODO alyssa: pass in actual diameter!!
         di = 22.24; //h_diameter.data[i];
         assert(di > 0.0);
 
@@ -173,7 +175,6 @@ void DynamicBond::update(unsigned int timestep)
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
             {
-
             // access the index (j) of neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[myHead + k];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
@@ -184,6 +185,7 @@ void DynamicBond::update(unsigned int timestep)
 
             // access diameter of particle j
             Scalar dj = Scalar(0.0);
+            //TODO alyssa: pass in actual diameter!!
             dj = 22.24; //h_diameter.data[j];
 
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
@@ -193,7 +195,7 @@ void DynamicBond::update(unsigned int timestep)
             // apply periodic boundary conditions
             dx = box.minImage(dx);
 
-            // calculate r_ij squared (FLOPS: 5)
+            // calculate r_ij squared (FLOPS: 5) (center to center dist)
             Scalar rsq = dot(dx, dx);
 
             if (rsq < r_cut_sq)
@@ -210,6 +212,7 @@ void DynamicBond::update(unsigned int timestep)
                         nbridges_ij += 1;
                         }
                     }
+
                 Scalar r = sqrt(rsq);
                 Scalar surf_dist = r - (di+dj)/2;
                 assert(surf_dist > 0.0);
@@ -276,7 +279,7 @@ void DynamicBond::update(unsigned int timestep)
 
                         if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
                             {
-                            // remove bond with index "bond_number" between particles i and j, the leave the loop
+                            // remove bond with index "bond_number" between particles i and j, the exit the loop
                             m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
                             // remove tags from map
                             break;
