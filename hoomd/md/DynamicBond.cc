@@ -62,8 +62,8 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
                         Scalar delta_t,
                         int period)
         : Updater(sysdef), m_group(group), m_nlist(nlist),
-          m_seed(seed), m_delta_t(delta_t),
-          m_r_cut(0.0), m_r_true(0.0), m_nK(0)
+           m_seed(seed), m_r_cut(0.0), m_r_true(0.0),
+          m_delta_t(delta_t), m_nK(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
     int n_particles = m_pdata->getN();
@@ -195,7 +195,6 @@ void DynamicBond::update(unsigned int timestep)
 
                 // (1) Compute P_ij, P_ji, and Q_ij
                 Scalar chain_extension = surf_dist/m_nK;
-
                 if (chain_extension < 1.0 && chain_extension > 0.0)   // bond(extension)-bond(extension_rC)<deltaG?
                     {
                     Scalar p0 = m_delta_t*omega*exp(-(m_delta_G+feneEnergy(chain_extension, m_nK)));
@@ -265,22 +264,43 @@ void DynamicBond::update(unsigned int timestep)
                             }
                         }
                     }
-                    // TODO alyssa: remove all bonds if bond goes beyond extension
-                    // else
-                    // {
-                    //     // break all bridges between i and j
-                    //     Scalar rnd5 = saru.s<Scalar>(0,1);
-                    //     if (rnd5<0.5)
-                    //     {
-                    //         //delta_numBridges[i][i]=floor(numBridges[i][j]/2.0);
-                    //         // delta_numBridges[j][j]=numBridges[i][j]-delta_numBridges[i][i];
-                    //     }
-                    //     else
-                    //     {
-                    //         // delta_numBridges[j][j]=floor(numBridges[i][j]/2.0);
-					// 		// delta_numBridges[i][i]=numBridges[i][j]-delta_numBridges[j][j];
-                    //     }
-                    // }
+                // TODO alyssa: remove all bonds if bond goes beyond extension
+                else if (chain_extension > 1.0)
+                    {
+                    // break all bridges between i and j
+                    // for each of the bonds in the *system*
+                    const unsigned int size = (unsigned int)m_bond_data->getN();
+                    for (unsigned int bond_number = 0; bond_number < size; bond_number++) // turn into hashtable look-up
+                        {
+                        // look up the tag of each of the particles participating in the bond
+                        const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
+                        assert(bond.tag[0] < m_pdata->getN());
+                        assert(bond.tag[1] < m_pdata->getN());
+
+                        // transform a and b into indices into the particle data arrays
+                        // (MEM TRANSFER: 4 integers)
+                        unsigned int idx_a = h_rtag.data[bond.tag[0]];
+                        unsigned int idx_b = h_rtag.data[bond.tag[1]];
+                        assert(idx_a <= m_pdata->getMaximumTag());
+                        assert(idx_b <= m_pdata->getMaximumTag());
+
+                        // remove bond with index "bond_number" between particles i and j, the exit the loop
+                        if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
+                            {
+                            m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
+                            // TODO alyssa: remove tags from multimap
+                            Scalar rnd5 = saru.s<Scalar>(0,1);
+                            if (rnd5 <= 0.5)
+                                {
+                                m_nloops[i] += 1;
+                                }
+                            else if (rnd5 > 0.5)
+                                {
+                                m_nloops[i] += 1;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

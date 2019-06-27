@@ -57,15 +57,15 @@ class PYBIND11_EXPORT DynamicBond : public Updater
         int m_seed;                               //!< seed for random number generator
         int period;                               //!< period to create/destroy bonds
         int seed;                                 //!< a seed for the random number generator
-        int bond_type;
+        int bond_type;                            //!< bond type to create and break
         Scalar m_r_cut;                           //!< cut off distance for computing bonds
-        Scalar m_r_true;
+        Scalar m_r_true;                          //!< the "true" radius, i.e. the sticker-colloid energy well minimum
         Scalar m_delta_G;                         //!< sticker strength
-        Scalar m_delta_t;
-        std::vector<int> m_nloops;
+        Scalar m_delta_t;                         //!< time step from integrator
+        std::vector<int> m_nloops;                //!< structure of size N to store number of loops for each colloid
         int n_polymer;                            //!< number of polymers per colloid
-        int m_nK;                                   //!< kuhn steps per polymer
-    }
+        int m_nK;                                 //!< kuhn steps per polymer
+    };
 
 //! Exports the DynamicBond class to python
 void export_DynamicBond(pybind11::module& m);
