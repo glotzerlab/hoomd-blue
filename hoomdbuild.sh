@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Remove old build directory
-rm -rf build
+# rm -rf build
 
 # Make build directory
-mkdir -p build
+##  mkdir -p build
 
 cd build
 export CC=$(which gcc)

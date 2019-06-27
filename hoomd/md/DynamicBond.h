@@ -2,7 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: ?
+// Maintainer: atravitz
 
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
@@ -20,7 +20,6 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-//
 #ifndef __DYNAMICBOND_H__
 #define __DYNAMICBOND_H__
 
@@ -42,6 +41,7 @@ class PYBIND11_EXPORT DynamicBond : public Updater
         virtual ~DynamicBond();
 
         virtual void setParams(Scalar r_cut,
+                            Scalar r_true,
                             std::string bond_type,
                             Scalar delta_G,
                             int n_polymer,
@@ -59,14 +59,13 @@ class PYBIND11_EXPORT DynamicBond : public Updater
         int seed;                                 //!< a seed for the random number generator
         int bond_type;
         Scalar m_r_cut;                           //!< cut off distance for computing bonds
+        Scalar m_r_true;
         Scalar m_delta_G;                         //!< sticker strength
         Scalar m_delta_t;
         std::vector<int> m_nloops;
         int n_polymer;                            //!< number of polymers per colloid
         int m_nK;                                   //!< kuhn steps per polymer
-
-    // private:
-    };
+    }
 
 //! Exports the DynamicBond class to python
 void export_DynamicBond(pybind11::module& m);
