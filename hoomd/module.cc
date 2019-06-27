@@ -82,15 +82,6 @@ using namespace std;
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
-/* numpy is terrible (see /opt/local/Library/Frameworks/Python.framework/Versions/2.7/
-lib/python2.7/site-packages/numpy/core/generate_numpy_array.py)
-The following #defines help get around this
-*/
-
-#if (PYBIND11_VERSION_MAJOR) != 2
-#error HOOMD-blue requires pybind11 2.x
-#endif
-
 //! Method for getting the current version of HOOMD
 /*! \returns Current HOOMD version identification string
 */

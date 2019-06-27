@@ -87,7 +87,7 @@ Install prerequisites
     8, 9, ``clang`` 5, 6, 7, 8)
   - Python >= 3.5
   - NumPy >= 1.7
-  - pybind11 >= 2.0
+  - pybind11 >= 2.2
   - Eigen >= 3.2
   - CMake >= 3.9
   - For MPI parallel execution (required when ``ENABLE_MPI=on``):
