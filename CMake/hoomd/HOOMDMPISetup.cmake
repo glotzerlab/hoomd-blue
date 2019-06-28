@@ -5,11 +5,13 @@ option (ENABLE_MPI "Enable the compilation of the MPI communication code" off)
 if (ENABLE_MPI)
     # the package is needed
     find_package(MPI REQUIRED)
-    find_package(cereal CONFIG REQUIRED)
+    find_package(cereal CONFIG)
     if (cereal_FOUND)
         find_package_message(cereal "Found cereal: ${cereal_DIR}" "[${cereal_DIR}]")
+    else()
+        add_library(cereal INTERFACE IMPORTED)
+        find_package_message(cereal "Could not find cereal, assuming it is on a default path" "[${cereal_DIR}]")
     endif()
-
 
     mark_as_advanced(MPI_EXTRA_LIBRARY)
     mark_as_advanced(MPI_LIBRARY)
