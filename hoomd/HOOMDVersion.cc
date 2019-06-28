@@ -13,6 +13,10 @@
 #include <cuda_runtime.h>
 #endif
 
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
+#endif
+
 using namespace std;
 
 /*! \file HOOMDVersion.cc
@@ -30,6 +34,13 @@ std::string hoomd_compile_flags()
     int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
 
     o << "CUDA (" << cudart_major << "." << cudart_minor << ") ";
+    #endif
+
+    #ifdef ENABLE_HIP
+    int hip_major = HIP_VERSION_MAJOR;
+    int hip_minor = HIP_VERSION_MINOR;
+
+    o << "HIP (" << hip_major << "." << hip_minor << ") ";
     #endif
 
     #ifdef SINGLE_PRECISION
@@ -107,10 +118,5 @@ string output_version_info()
     o << endl << "WARNING: This is a DEBUG build, expect slow performance." << endl;
 #endif
 
-#ifdef ENABLE_CUDA
-#ifdef _DEVICEEMU
-    o << endl << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
-#endif
-#endif
     return o.str();
     }

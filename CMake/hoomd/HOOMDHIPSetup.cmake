@@ -39,6 +39,19 @@ if(HIP_FOUND)
         set_target_properties(HIP::hip PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${HIP_INCLUDE_DIR}")
         target_compile_options(HIP::hip INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:${HIP_NVCC_FLAGS}>)
+        target_compile_definitions(HIP::hip INTERFACE ENABLE_HIP)
+
+        # the version is already defined on CUDA targets through HIP_NVCC_FLAGS
+        target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_MAJOR=${HIP_VERSION_MAJOR}>)
+        target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_MINOR=${HIP_VERSION_MINOR}>)
+        target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_PATCH=${HIP_VERSION_PATCH}>)
+
+        # branch upon HCC or NVCC target
+        if(ENABLE_CUDA)
+        target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_NVCC__>)
+        # elif(ENABLE_HCC)
+        # .. similar code for AMD here
+        endif()
     endif()
 
 endif()

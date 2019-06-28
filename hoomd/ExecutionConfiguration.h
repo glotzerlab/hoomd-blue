@@ -25,6 +25,10 @@
 #include <cuda_profiler_api.h>
 #endif
 
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
+#endif
+
 #ifdef ENABLE_TBB
 #include <tbb/tbb.h>
 #endif
@@ -219,6 +223,9 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     void handleCUDAError(cudaError_t err, const char *file, unsigned int line) const;
 #endif
 
+#ifdef ENABLE_HIP
+    void handleHIPError(hipError_t err, const char *file, unsigned int line) const;
+#endif
     /*
      * The following MPI related methods only wrap those of the MPIConfiguration object,
        which can obtained with getMPIConfig(), and are provided as a legacy API.
@@ -369,9 +376,11 @@ private:
     std::unique_ptr<MemoryTraceback> m_memory_traceback;    //!< Keeps track of allocations
     };
 
-// Macro for easy checking of CUDA errors - enabled all the time
-#ifdef ENABLE_CUDA
-#define CHECK_CUDA_ERROR() { \
+
+//meant to replace CHECK_CUDA_ERROR() and generalize for HIP and CUDA
+#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
+#define CHECK_DEVICE_ERROR() { \
     cudaError_t err_sync = cudaGetLastError(); \
     this->m_exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__); \
     auto gpu_map = this->m_exec_conf->getGPUIds(); \
@@ -382,10 +391,25 @@ private:
         this->m_exec_conf->handleCUDAError(err_async, __FILE__, __LINE__); \
         } \
     }
+#elif defined(ENABLE_HIP)
+#define CHECK_DEVICE_ERROR() { \
+    hipError_t err_sync = hipGetLastError(); \
+    this->m_exec_conf->handleHIPError(err_sync, __FILE__, __LINE__); \
+    auto gpu_map = this->m_exec_conf->getGPUIds(); \
+    for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev) \
+        { \
+        hipSetDevice(gpu_map[idev]); \
+        hipError_t err_async = hipDeviceSynchronize();  \
+        this->m_exec_conf->handleHIPError(err_async, __FILE__, __LINE__);  \
+        } \
+    }
+#endif
 #else
-#define CHECK_CUDA_ERROR()
+#define CHECK_DEVICE_ERROR()
 #endif
 
+// Macro for easy checking of CUDA errors - enabled all the time
+#define CHECK_CUDA_ERROR CHECK_DEVICE_ERROR
 //! Exports ExecutionConfiguration to python
 #ifndef NVCC
 void export_ExecutionConfiguration(pybind11::module& m);

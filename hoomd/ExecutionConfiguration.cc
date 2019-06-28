@@ -639,6 +639,26 @@ int ExecutionConfiguration::getNumCapableGPUs()
     }
 #endif
 
+#ifdef ENABLE_HIP
+void ExecutionConfiguration::handleHIPError(hipError_t err, const char *file, unsigned int line) const
+    {
+    // if there was an error
+    if (err != hipSuccess)
+        {
+        // remove HOOMD_SOURCE_DIR from the front of the file
+        if (strlen(file) > strlen(HOOMD_SOURCE_DIR))
+            file += strlen(HOOMD_SOURCE_DIR);
+
+        // print an error message
+        msg->error() << string(hipGetErrorString(err)) << " before "
+                     << file << ":" << line << endl;
+
+        // throw an error exception
+        throw(runtime_error("HIP Error"));
+        }
+    }
+#endif
+
 /*! Print out GPU stats if running on the GPU, otherwise determine and print out the CPU stats
 */
 void ExecutionConfiguration::setupStats()
