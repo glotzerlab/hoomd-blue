@@ -40,16 +40,17 @@ find_package({name} {version} CONFIG REQUIRED {find_package_options})
         env = copy.copy(os.environ)
         env['CMAKE_PREFIX_PATH'] = sys.prefix
 
-        cmake_out = subprocess.run(['cmake', '-S', tmpdirname, '-B', tmp_path / 'build'],
-                                    capture_output=True,
+        os.mkdir(tmp_path / 'build')
+        cmake_out = subprocess.run(['cmake', tmpdirname],
+                                    cwd = tmp_path / 'build',
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT,
                                     timeout=120,
                                     env=env,
                                     encoding='UTF-8'
                                     )
 
         log.debug(cmake_out.stdout.strip())
-        if len(cmake_out.stderr) > 0:
-            log.debug(cmake_out.stderr.strip())
 
         # if cmake completed correctly, the package was found
         if cmake_out.returncode == 0:
@@ -83,17 +84,17 @@ def install_cmake_package(url, cmake_options):
 
 
         log.info(f"Configuring {root}")
-        cmake_out = subprocess.run(['cmake', '-S', tmp_path / root, '-B', tmp_path / 'build',
-                                    f'-DCMAKE_INSTALL_PREFIX={sys.prefix}'] + cmake_options,
-                                    capture_output=True,
+        os.mkdir(tmp_path / 'build')
+        cmake_out = subprocess.run(['cmake', tmp_path / root, f'-DCMAKE_INSTALL_PREFIX={sys.prefix}'] + cmake_options,
+                                    cwd=tmp_path / 'build',
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT,
                                     timeout=120,
                                     env=env,
                                     encoding='UTF-8'
                                     )
 
         log.debug(cmake_out.stdout.strip())
-        if len(cmake_out.stderr) > 0:
-            log.debug(cmake_out.stderr.strip())
 
         if cmake_out.returncode != 0:
             log.error(f"Error configuring {root} (run with -v to see detailed error messages)")
@@ -101,15 +102,14 @@ def install_cmake_package(url, cmake_options):
 
         log.info(f"Installing {root}")
         cmake_out = subprocess.run(['cmake', '--build', tmp_path / 'build', '--', 'install'],
-                                    capture_output=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT,
                                     timeout=120,
                                     env=env,
                                     encoding='UTF-8'
                                     )
 
         log.debug(cmake_out.stdout.strip())
-        if len(cmake_out.stderr) > 0:
-            log.debug(cmake_out.stderr.strip())
 
         if cmake_out.returncode != 0:
             log.error(f"Error installing {root} (run with -v to see detailed error messages)")
