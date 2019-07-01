@@ -585,6 +585,10 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                             break;
                             }
                         }
+
+                    // Caching the W_k value for speed on the GPU.
+                    const vec3<Scalar> W_k = W[k];
+
                     bool complete = true;
                     for (unsigned int new_element = 0; new_element < max_num_points; new_element++)
                         {
@@ -593,21 +597,36 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                             {
                             // Generate the corresponding bit-based index for the new set.
                             unsigned int new_index = current_index | (1 << new_element);
+
+                            Scalar total = 0;
+
                             // The only sets for which we will not have cached data are
                             // sets that contain the element most recently added to W.
                             if ((added_index & current_index) || (added_element == new_element))
                                 {
-                                Scalar total = 0;
+                                // Caching the W_new value for speed on the GPU.
+                                const vec3<Scalar> W_new = W[new_element];
+
                                 // Use bitwise checks of all possible elements to find set members
                                 for (unsigned int possible_element = 0; possible_element < max_num_points; possible_element++)
                                     {
                                     if ((1 << possible_element) & current_index)
                                         {
-                                         total += deltas[current_index][possible_element]*(
-                                            dot(W[possible_element], W[k])-dot(W[possible_element], W[new_element]));
+                                         const vec3<Scalar> W_possible = W[possible_element];
+                                         const Scalar dot1 = dot(W_possible, W_k);
+                                         const Scalar dot2 = dot(W_possible, W_new);
+                                         total += deltas[current_index][possible_element]*(dot1 - dot2);
                                         }
                                     }
                                 deltas[new_index][new_element] = total;
+                                }
+                            else
+                                {
+                                // Avoid reading in the uncached case by using
+                                // total in the termination condition check
+                                // below and only assigning it here when it's
+                                // been previously cached.
+                                total = deltas[new_index][new_element];
                                 }
                             if (!comb_contains[new_index])
                                 {
@@ -619,7 +638,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                             // Part (ii) of termination condition: Delta_j(X U {y_j}) <= 0
                             // for all j not in current_subset
                             // Could add additional check beforehand using added_index
-                            if (deltas[new_index][new_element] > 0)
+                            if (total > 0)
                                 {
                                 complete = false;
                                 }
