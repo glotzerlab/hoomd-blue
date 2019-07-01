@@ -412,7 +412,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
 
     vec3<Scalar> W[max_num_points];
     Scalar lambdas[max_num_points] = {0};
-    bool W_used[max_num_points] = {false};
+    unsigned int W_used = 0;
     unsigned int indices1[max_num_points] = {0};
     unsigned int indices2[max_num_points] = {0};
 
@@ -500,10 +500,10 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                 {
                 // At least one of these must be empty, otherwise we have an
                 // overlap. 
-                if (!W_used[added_element])
+                if (!(W_used & (1 << added_element)))
                     {
                     W[added_element] = w;
-                    W_used[added_element] = true;
+                    W_used |= (1 << added_element);
                     indices1[added_element] = i1;
                     indices2[added_element] = i2;
                     break;
@@ -520,13 +520,13 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
             unsigned int num_used = 0;
             for (unsigned int i = 0; i < max_num_points; ++i)
                 {
-                num_used += W_used[i];
+                num_used += W_used & (1 << i);
                 }
             if (num_used == 1)
                 {
                 for (unsigned int i = 0; i < max_num_points; ++i)
                     {
-                    if (W_used[i])
+                    if (W_used & (1 << i))
                         {
                         deltas[1 << i][i] = 1;
                         lambdas[i] = 1.0;
@@ -553,7 +553,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
 
                 for (unsigned int i = 0; i < max_num_points; ++i)
                     {
-                    if (W_used[i])
+                    if (W_used & (1 << i))
                         {
                         unsigned int index_i(1 << i);
                         check_indexes[next_subset_slot] = index_i;
@@ -593,7 +593,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                     for (unsigned int new_element = 0; new_element < max_num_points; new_element++)
                         {
                         // Add new elements that are in use and not contained in the current set.
-                        if (W_used[new_element] && !(current_index & (1 << new_element)))
+                        if ((W_used & (1 << new_element)) && !(current_index & (1 << new_element)))
                             {
                             // Generate the corresponding bit-based index for the new set.
                             unsigned int new_index = current_index | (1 << new_element);
@@ -679,12 +679,12 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                         {
                         if ((1 << i) & desired_index)
                             {
-                            W_used[i] = true;
+                            W_used |= (1 << i);
                             lambdas[i] = deltas[desired_index][i]/total;
                             }
                         else
                             {
-                            W_used[i] = false;
+                            W_used &= ~(1 << i);
                             }
                         }
                     }
@@ -701,7 +701,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
             v = vec3<Scalar>();
             for (unsigned int i = 0; i < max_num_points; ++i)
                 {
-                if (W_used[i])
+                if (W_used & (1 << i))
                     {
                     v += lambdas[i]*W[i];
                     }
@@ -717,7 +717,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
     b = vec3<Scalar>();
     for (unsigned int i = 0; i < new_limit; ++i)
         {
-        if (W_used[i])
+        if (W_used & (1 << i))
             {
             a += lambdas[i]*rotate(qi, verts1[indices1[i]]);
             b += lambdas[i]*(rotate(qj, verts2[indices2[i]]) + Scalar(-1.0)*dr);
