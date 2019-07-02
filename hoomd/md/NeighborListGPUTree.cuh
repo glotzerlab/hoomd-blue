@@ -120,7 +120,6 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     const unsigned int ntypes,
                                     bool filter_body,
                                     bool diameter_shift,
-                                    const unsigned int compute_capability,
                                     const unsigned int block_size);
 
 //! Kernel driver to initialize counting for types and nodes

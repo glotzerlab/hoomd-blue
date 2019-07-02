@@ -895,6 +895,20 @@ class system_data(hoomd.meta._metadata):
         """
         hoomd.util.print_status_line();
 
+        if hoomd.comm.get_rank() == 0:
+            if snapshot.has_particle_data and len(snapshot.particles.types) != self.sysdef.getParticleData().getNTypes():
+                raise RuntimeError("Number of particle types must remain the same")
+            if snapshot.has_bond_data and len(snapshot.bonds.types) != self.sysdef.getBondData().getNTypes():
+                raise RuntimeError("Number of bond types must remain the same")
+            if snapshot.has_angle_data and len(snapshot.angles.types) != self.sysdef.getAngleData().getNTypes():
+                raise RuntimeError("Number of angle types must remain the same")
+            if snapshot.has_dihedral_data and len(snapshot.dihedrals.types) != self.sysdef.getDihedralData().getNTypes():
+                raise RuntimeError("Number of dihedral types must remain the same")
+            if snapshot.has_improper_data and len(snapshot.impropers.types) != self.sysdef.getImproperData().getNTypes():
+                raise RuntimeError("Number of dihedral types must remain the same")
+            if snapshot.has_pair_data and len(snapshot.pairs.types) != self.sysdef.getPairData().getNTypes():
+                raise RuntimeError("Number of pair types must remain the same")
+
         self.sysdef.initializeFromSnapshot(snapshot);
 
     ## \internal
@@ -2210,16 +2224,16 @@ def set_snapshot_box(snapshot, box):
 ## \internal
 # \brief Broadcast snapshot to all ranks
 def broadcast_snapshot(cpp_snapshot):
-    hoomd.util.print_status_line();
     hoomd.context._verify_init();
+    hoomd.util.print_status_line();
     # broadcast from rank 0
     cpp_snapshot._broadcast(0, hoomd.context.exec_conf);
 
 ## \internal
 # \brief Broadcast snapshot to all ranks
 def broadcast_snapshot_all(cpp_snapshot):
-    hoomd.util.print_status_line();
     hoomd.context._verify_init();
+    hoomd.util.print_status_line();
     # broadcast from rank 0
     cpp_snapshot._broadcast_all(0, hoomd.context.exec_conf);
 

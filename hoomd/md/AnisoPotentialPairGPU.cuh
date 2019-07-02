@@ -10,11 +10,9 @@
 #include "hoomd/TextureTools.h"
 #include "hoomd/GPUPartition.cuh"
 
-#ifdef WIN32
-#include <cassert>
-#else
-#include <assert.h>
-#endif
+#ifdef NVCC
+#include "hoomd/WarpTools.cuh"
+#endif // NVCC
 
 /*! \file AnisoPotentialPairGPU.cuh
     \brief Defines templated GPU kernel code for calculating the anisotropic ptl pair forces and torques
@@ -23,27 +21,8 @@
 #ifndef __ANISO_POTENTIAL_PAIR_GPU_CUH__
 #define __ANISO_POTENTIAL_PAIR_GPU_CUH__
 
-//! Maximum number of threads (width of a dpd_warp)
+//! Maximum number of threads (width of a warp)
 const unsigned int gpu_aniso_pair_force_max_tpp = 32;
-
-//! CTA reduce
-template<typename T>
-__device__ static T aniso_warp_reduce(unsigned int NT, int tid, T x, volatile T* shared)
-    {
-    shared[tid] = x;
-
-    for (int dest_count = NT/2; dest_count >= 1; dest_count /= 2)
-        {
-        if (tid < dest_count)
-           {
-            x += shared[dest_count + tid];
-            shared[tid] = x;
-            }
-         }
-    T total = shared[0];
-    return total;
-    }
-
 
 //! Wraps arguments to gpu_cgpf
 struct a_pair_args_t
@@ -118,17 +97,6 @@ struct a_pair_args_t
     };
 
 #ifdef NVCC
-//! Texture for reading particle positions
-scalar4_tex_t aniso_pdata_pos_tex;
-
-//! Texture for reading particle quaternions
-scalar4_tex_t aniso_pdata_quat_tex;
-
-//! Texture for reading particle diameters
-scalar_tex_t aniso_pdata_diam_tex;
-
-//! Texture for reading particle charges
-scalar_tex_t aniso_pdata_charge_tex;
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -168,7 +136,7 @@ scalar_tex_t aniso_pdata_charge_tex;
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator, unsigned int shift_mode, unsigned int compute_virial >
+template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, int tpp >
 __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                                                      Scalar4 *d_torque,
                                                      Scalar *d_virial,
@@ -185,7 +153,6 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                                                      const typename evaluator::param_type *d_params,
                                                      const Scalar *d_rcutsq,
                                                      const unsigned int ntypes,
-                                                     const unsigned int tpp,
                                                      const unsigned int offset)
     {
     Index2D typpair_idx(ntypes);
@@ -211,162 +178,152 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
     // start by identifying which particle we are to handle
     unsigned int idx;
     idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
-
+    bool active = true;
     if (idx >= N)
-        return;
+        {
+        // need to mask this thread, but still participate in warp-level reduction
+        active = false;
+        }
 
     // particle index
     idx += offset;
 
-    // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
-    unsigned int n_neigh = d_n_neigh[idx];
-
-    // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
-    // (MEM TRANSFER: 16 bytes)
-    Scalar4 postypei = texFetchScalar4(d_pos, aniso_pdata_pos_tex, idx);
-    Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
-    Scalar4 quati = texFetchScalar4(d_orientation,aniso_pdata_quat_tex, idx);
-
-    Scalar di;
-    if (evaluator::needsDiameter())
-        di = texFetchScalar(d_diameter, aniso_pdata_diam_tex, idx);
-    else
-        di += 1.0f; // shut up compiler warning
-    Scalar qi;
-    if (evaluator::needsCharge())
-        qi = texFetchScalar(d_charge, aniso_pdata_charge_tex, idx);
-    else
-        qi += 1.0f; // shut up compiler warning
-
     // initialize the force to 0
-    Scalar4 force = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
-    Scalar4 torque = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
-    Scalar virialxx = 0.0f;
-    Scalar virialxy = 0.0f;
-    Scalar virialxz = 0.0f;
-    Scalar virialyy = 0.0f;
-    Scalar virialyz = 0.0f;
-    Scalar virialzz = 0.0f;
+    Scalar4 force = make_scalar4(Scalar(0), Scalar(0), Scalar(0), Scalar(0));
+    Scalar4 torque = make_scalar4(Scalar(0), Scalar(0), Scalar(0), Scalar(0));
+    Scalar virialxx = Scalar(0);
+    Scalar virialxy = Scalar(0);
+    Scalar virialxz = Scalar(0);
+    Scalar virialyy = Scalar(0);
+    Scalar virialyz = Scalar(0);
+    Scalar virialzz = Scalar(0);
 
-    // prefetch neighbor index
-    unsigned int cur_j = 0;
-    const unsigned int myHead = d_head_list[idx];
-    unsigned int next_j = threadIdx.x%tpp < n_neigh ?
-        d_nlist[myHead + threadIdx.x%tpp] : 0;
-
-    // loop over neighbors
-    for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
+    if (active)
         {
+        // load in the length of the neighbor list
+        unsigned int n_neigh = d_n_neigh[idx];
+
+        // read in the position of our particle
+        Scalar4 postypei = __ldg(d_pos + idx);
+        Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
+        Scalar4 quati = __ldg(d_orientation + idx);
+
+        Scalar di = Scalar(0);
+        if (evaluator::needsDiameter())
+            di = __ldg(d_diameter + idx);
+
+        Scalar qi = Scalar(0);
+        if (evaluator::needsCharge())
+            qi = __ldg(d_charge + idx);
+
+        unsigned int my_head = d_head_list[idx];
+        unsigned int cur_j = 0;
+
+        unsigned int next_j(0);
+        next_j = threadIdx.x%tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x%tpp) : 0;
+
+        // loop over neighbors
+        for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
             {
-            // read the current neighbor index (MEM TRANSFER: 4 bytes)
-            // prefetch the next value and set the current one
-            cur_j = next_j;
-            if (neigh_idx+tpp < n_neigh)
-                next_j = d_nlist[myHead + neigh_idx + tpp];
-
-            // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            Scalar4 postypej = texFetchScalar4(d_pos, aniso_pdata_pos_tex, cur_j);
-            Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
-            Scalar4 quatj = texFetchScalar4(d_orientation, aniso_pdata_quat_tex, cur_j);
-
-            Scalar dj = 0.0f;
-            if (evaluator::needsDiameter())
-                dj = texFetchScalar(d_diameter, aniso_pdata_diam_tex, cur_j);
-            else
-                dj += 1.0f; // shut up compiler warning
-
-            Scalar qj = 0.0f;
-            if (evaluator::needsCharge())
-                qj = texFetchScalar(d_charge, aniso_pdata_charge_tex, cur_j);
-            else
-                qj += 1.0f; // shut up compiler warning
-
-            // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-            Scalar3 dx = posi - posj;
-
-            // apply periodic boundary conditions: (FLOPS 12)
-            dx = box.minImage(dx);
-
-            // calculate r squared (FLOPS: 5)
-            Scalar rsq = dot(dx, dx);
-
-            // access the per type pair parameters
-            unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
-            Scalar rcutsq = s_rcutsq[typpair];
-            const typename evaluator::param_type& param = s_params[typpair];
-
-            // design specifies that energies are shifted if
-            // 1) shift mode is set to shift
-            // or 2) shift mode is explor and ron > rcut
-            bool energy_shift = false;
-            if (shift_mode == 1)
-                energy_shift = true;
-
-            // evaluate the potential
-            Scalar3 jforce = { 0.0f, 0.0f, 0.0f };
-            Scalar3 torquei = { 0.0f, 0.0f, 0.0f };
-            Scalar3 torquej = { 0.0f, 0.0f, 0.0f };
-            Scalar pair_eng = 0.0f;
-
-            // constructor call
-            evaluator eval(dx, quati, quatj, rcutsq, param);
-            if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj);
-            if (evaluator::needsCharge())
-                eval.setCharge(qi, qj);
-
-            // call evaluator
-            eval.evaluate(jforce, pair_eng, energy_shift, torquei, torquej);
-
-            // calculate the virial (FLOPS: ?)
-            if (compute_virial)
                 {
-                Scalar3 jforce2 = Scalar(0.5)*jforce;
-                virialxx +=  dx.x * jforce2.x;
-                virialxy +=  dx.y * jforce2.x;
-                virialxz +=  dx.z * jforce2.x;
-                virialyy +=  dx.y * jforce2.y;
-                virialyz +=  dx.z * jforce2.y;
-                virialzz +=  dx.z * jforce2.z;
+                // read the current neighbor index
+                // prefetch the next value and set the current one
+                cur_j = next_j;
+                if (neigh_idx+tpp < n_neigh)
+                    {
+                    next_j = __ldg(d_nlist + my_head + neigh_idx+tpp);
+                    }
+
+                // get the neighbor's position
+                Scalar4 postypej = __ldg(d_pos + cur_j);
+                Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+                Scalar4 quatj = __ldg(d_orientation + cur_j);
+
+                Scalar dj = Scalar(0);
+                if (evaluator::needsDiameter())
+                    dj = __ldg(d_diameter + cur_j);
+
+                Scalar qj = Scalar(0);
+                if (evaluator::needsCharge())
+                    qj = __ldg(d_charge + cur_j);
+
+                // calculate dr (with periodic boundary conditions)
+                Scalar3 dx = posi - posj;
+
+                // apply periodic boundary conditions
+                dx = box.minImage(dx);
+
+                // calculate r squared
+                Scalar rsq = dot(dx, dx);
+
+                // access the per type pair parameters
+                unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
+                Scalar rcutsq = s_rcutsq[typpair];
+                const typename evaluator::param_type param = s_params[typpair];
+
+                // design specifies that energies are shifted if
+                // 1) shift mode is set to shift
+                bool energy_shift = false;
+                if (shift_mode == 1)
+                    energy_shift = true;
+
+                // evaluate the potential
+                Scalar3 jforce = { Scalar(0), Scalar(0), Scalar(0) };
+                Scalar3 torquei = { Scalar(0), Scalar(0), Scalar(0) };
+                Scalar3 torquej = { Scalar(0), Scalar(0), Scalar(0) };
+                Scalar pair_eng = Scalar(0);
+
+                // constructor call
+                evaluator eval(dx, quati, quatj, rcutsq, param);
+                if (evaluator::needsDiameter())
+                    eval.setDiameter(di, dj);
+                if (evaluator::needsCharge())
+                    eval.setCharge(qi, qj);
+
+                // call evaluator
+                eval.evaluate(jforce, pair_eng, energy_shift, torquei, torquej);
+
+                // calculate the virial
+                if (compute_virial)
+                    {
+                    Scalar3 jforce2 = Scalar(0.5)*jforce;
+                    virialxx +=  dx.x * jforce2.x;
+                    virialxy +=  dx.y * jforce2.x;
+                    virialxz +=  dx.z * jforce2.x;
+                    virialyy +=  dx.y * jforce2.y;
+                    virialyz +=  dx.z * jforce2.y;
+                    virialzz +=  dx.z * jforce2.z;
+                    }
+
+                // add up the force vector components
+                force.x += jforce.x;
+                force.y += jforce.y;
+                force.z += jforce.z;
+                torque.x += torquei.x;
+                torque.y += torquei.y;
+                torque.z += torquei.z;
+
+                force.w += pair_eng;
                 }
-
-
-            // add up the force vector components (FLOPS: 14)
-            force.x += jforce.x;
-            force.y += jforce.y;
-            force.z += jforce.z;
-            torque.x += torquei.x;
-            torque.y += torquei.y;
-            torque.z += torquei.z;
-
-            force.w += pair_eng;
             }
+
+        // potential energy per particle must be halved
+        force.w *= Scalar(0.5);
         }
 
-    // potential energy per particle must be halved
-    force.w *= 0.5f;
-
-    // we need to access a separate portion of shared memory to avoid race conditions
-    const unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
-        * num_typ_parameters;
-
-    // need to declare as volatile, because we are using warp-synchronous programming
-    volatile Scalar *sh = (Scalar *) &s_data[shared_bytes];
-
-    unsigned int cta_offs = (threadIdx.x/tpp)*tpp;
-
     // reduce force over threads in cta
-    force.x = aniso_warp_reduce(tpp, threadIdx.x % tpp, force.x, &sh[cta_offs]);
-    force.y = aniso_warp_reduce(tpp, threadIdx.x % tpp, force.y, &sh[cta_offs]);
-    force.z = aniso_warp_reduce(tpp, threadIdx.x % tpp, force.z, &sh[cta_offs]);
-    force.w = aniso_warp_reduce(tpp, threadIdx.x % tpp, force.w, &sh[cta_offs]);
+    hoomd::detail::WarpReduce<Scalar, tpp> reducer;
+    force.x = reducer.Sum(force.x);
+    force.y = reducer.Sum(force.y);
+    force.z = reducer.Sum(force.z);
+    force.w = reducer.Sum(force.w);
 
-    torque.x = aniso_warp_reduce(tpp, threadIdx.x % tpp, torque.x, &sh[cta_offs]);
-    torque.y = aniso_warp_reduce(tpp, threadIdx.x % tpp, torque.y, &sh[cta_offs]);
-    torque.z = aniso_warp_reduce(tpp, threadIdx.x % tpp, torque.z, &sh[cta_offs]);
+    torque.x = reducer.Sum(torque.x);
+    torque.y = reducer.Sum(torque.y);
+    torque.z = reducer.Sum(torque.z);
 
-    // now that the force calculation is complete, write out the result (MEM TRANSFER: ? bytes)
-    if (threadIdx.x % tpp == 0)
+    // now that the force calculation is complete, write out the result
+    if (active && threadIdx.x % tpp == 0)
         {
         d_force[idx] = force;
         d_torque[idx] = torque;
@@ -374,15 +331,15 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
 
     if (compute_virial)
         {
-        virialxx = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialxx, &sh[cta_offs]);
-        virialxy = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialxy, &sh[cta_offs]);
-        virialxz = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialxz, &sh[cta_offs]);
-        virialyy = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialyy, &sh[cta_offs]);
-        virialyz = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialyz, &sh[cta_offs]);
-        virialzz = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialzz, &sh[cta_offs]);
+        virialxx = reducer.Sum(virialxx);
+        virialxy = reducer.Sum(virialxy);
+        virialxz = reducer.Sum(virialxz);
+        virialyy = reducer.Sum(virialyy);
+        virialyz = reducer.Sum(virialyz);
+        virialzz = reducer.Sum(virialzz);
 
         // if we are the first thread in the cta, write out virial to global mem
-        if (threadIdx.x %tpp == 0)
+        if (active && threadIdx.x %tpp == 0)
             {
             d_virial[0*virial_pitch+idx] = virialxx;
             d_virial[1*virial_pitch+idx] = virialxy;
@@ -405,37 +362,86 @@ int aniso_get_max_block_size(T func)
     return max_threads;
     }
 
-template<typename T>
-int aniso_get_compute_capability(T func)
+//! Aniso pair force compute kernel launcher
+/*!
+ * \tparam evaluator EvaluatorPair class to evaluate V(r) and -delta V(r)/r
+ * \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut.
+ * \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
+ * \tparam tpp Number of threads to use per particle, must be power of 2 and smaller than warp size
+ *
+ * Partial function template specialization is not allowed in C++, so instead we have to wrap this with a struct that
+ * we are allowed to partially specialize.
+ */
+template<class evaluator, unsigned int shift_mode, unsigned int compute_virial, int tpp>
+struct AnisoPairForceComputeKernel
     {
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, func);
-    return attr.binaryVersion;
-    }
+    //! Launcher for the pair force kernel
+    /*!
+     * \param pair_args Other arguments to pass onto the kernel
+     * \param range Range of particle indices this GPU operates on
+     * \param d_params Parameters for the potential, stored per type pair
+     */
 
-void gpu_pair_aniso_force_bind_textures(const a_pair_args_t pair_args)
+    static void launch(const a_pair_args_t& pair_args,
+        std::pair<unsigned int, unsigned int> range,
+        const typename evaluator::param_type *d_params)
+        {
+        unsigned int N = range.second - range.first;
+        unsigned int offset = range.first;
+
+        if (tpp == pair_args.threads_per_particle)
+            {
+            unsigned int block_size = pair_args.block_size;
+
+            Index2D typpair_idx(pair_args.ntypes);
+            unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                        * typpair_idx.getNumElements();
+
+            static unsigned int max_block_size = UINT_MAX;
+            if (max_block_size == UINT_MAX)
+                max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>);
+
+            block_size = block_size < max_block_size ? block_size : max_block_size;
+            dim3 grid(N / (block_size/tpp) + 1, 1, 1);
+
+            gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>
+              <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
+                                                   pair_args.d_torque,
+                                                   pair_args.d_virial,
+                                                   pair_args.virial_pitch,
+                                                   N,
+                                                   pair_args.d_pos,
+                                                   pair_args.d_diameter,
+                                                   pair_args.d_charge,
+                                                   pair_args.d_orientation,
+                                                   pair_args.box,
+                                                   pair_args.d_n_neigh,
+                                                   pair_args.d_nlist,
+                                                   pair_args.d_head_list,
+                                                   d_params,
+                                                   pair_args.d_rcutsq,
+                                                   pair_args.ntypes,
+                                                   offset);
+            }
+        else
+            {
+            AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, tpp/2>::launch(pair_args, range, d_params);
+            }
+        }
+    };
+
+//! Template specialization to do nothing for the tpp = 0 case
+template<class evaluator, unsigned int shift_mode, unsigned int compute_virial>
+struct AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
     {
-    // bind the position texture
-    aniso_pdata_pos_tex.normalized = false;
-    aniso_pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, aniso_pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.n_max);
+    static void launch(const a_pair_args_t& pair_args, std::pair<unsigned int, unsigned int> range, const typename evaluator::param_type *d_params)
+        {
+        // do nothing
+        }
+    };
 
-    // bind the position texture
-    aniso_pdata_quat_tex.normalized = false;
-    aniso_pdata_quat_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, aniso_pdata_quat_tex, pair_args.d_orientation, sizeof(Scalar4)*pair_args.n_max);
 
-    // bind the diameter texture
-    aniso_pdata_diam_tex.normalized = false;
-    aniso_pdata_diam_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, aniso_pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) * pair_args.n_max);
-
-    aniso_pdata_charge_tex.normalized = false;
-    aniso_pdata_charge_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, aniso_pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.n_max);
-    }
-
-//! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
+//! Kernel driver that computes lj forces on the GPU for AnisoPotentialPairGPU
 /*! \param pair_args Other arguments to pass onto the kernel
     \param d_params Parameters for the potential, stored per type pair
 
@@ -449,18 +455,10 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
     assert(pair_args.d_rcutsq);
     assert(pair_args.ntypes > 0);
 
-    Index2D typpair_idx(pair_args.ntypes);
-    unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                * typpair_idx.getNumElements();
-
-    unsigned int block_size = pair_args.block_size;
-    unsigned int tpp = pair_args.threads_per_particle;
-
     // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
     for (int idev = pair_args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = pair_args.gpu_partition.getRangeAndSetGPU(idev);
-        unsigned int nwork = range.second - range.first;
 
         // run the kernel
         if (pair_args.compute_virial)
@@ -469,76 +467,12 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 {
                 case 0:
                     {
-                    static unsigned int max_block_size = UINT_MAX;
-                    static unsigned int sm = UINT_MAX;
-                    if (max_block_size == UINT_MAX)
-                        max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>);
-                    if (sm == UINT_MAX)
-                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>);
-
-                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
-
-                    block_size = block_size < max_block_size ? block_size : max_block_size;
-                    dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
-
-                    shared_bytes += sizeof(Scalar)*block_size;
-
-                    gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>
-                        <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
-                                                      pair_args.d_torque,
-                                                      pair_args.d_virial,
-                                                      pair_args.virial_pitch,
-                                                      nwork,
-                                                      pair_args.d_pos,
-                                                      pair_args.d_diameter,
-                                                      pair_args.d_charge,
-                                                      pair_args.d_orientation,
-                                                      pair_args.box,
-                                                      pair_args.d_n_neigh,
-                                                      pair_args.d_nlist,
-                                                      pair_args.d_head_list,
-                                                      d_params,
-                                                      pair_args.d_rcutsq,
-                                                      pair_args.ntypes,
-                                                      tpp,
-                                                      range.first);
+                    AnisoPairForceComputeKernel<evaluator, 0, 1, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params);
                     break;
                     }
                 case 1:
                     {
-                    static unsigned int max_block_size = UINT_MAX;
-                    static unsigned int sm = UINT_MAX;
-                    if (max_block_size == UINT_MAX)
-                        max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>);
-                    if (sm == UINT_MAX)
-                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>);
-
-                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
-
-                    block_size = block_size < max_block_size ? block_size : max_block_size;
-                    dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
-
-                    shared_bytes += sizeof(Scalar)*block_size;
-
-                    gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>
-                        <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
-                                                      pair_args.d_torque,
-                                                      pair_args.d_virial,
-                                                      pair_args.virial_pitch,
-                                                      nwork,
-                                                      pair_args.d_pos,
-                                                      pair_args.d_diameter,
-                                                      pair_args.d_charge,
-                                                      pair_args.d_orientation,
-                                                      pair_args.box,
-                                                      pair_args.d_n_neigh,
-                                                      pair_args.d_nlist,
-                                                      pair_args.d_head_list,
-                                                      d_params,
-                                                      pair_args.d_rcutsq,
-                                                      pair_args.ntypes,
-                                                      tpp,
-                                                      range.first);
+                    AnisoPairForceComputeKernel<evaluator, 1, 1, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params);
                     break;
                     }
                 default:
@@ -551,81 +485,12 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 {
                 case 0:
                     {
-                    static unsigned int max_block_size = UINT_MAX;
-                    static unsigned int sm = UINT_MAX;
-                    if (max_block_size == UINT_MAX)
-                        max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>);
-                    if (sm == UINT_MAX)
-                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>);
-
-                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
-
-                    block_size = block_size < max_block_size ? block_size : max_block_size;
-                    dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
-
-                    shared_bytes += sizeof(Scalar)*block_size;
-
-                    gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>
-                        <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
-                                                      pair_args.d_torque,
-                                                      pair_args.d_virial,
-                                                      pair_args.virial_pitch,
-                                                      nwork,
-                                                      pair_args.d_pos,
-                                                      pair_args.d_diameter,
-                                                      pair_args.d_charge,
-                                                      pair_args.d_orientation,
-                                                      pair_args.box,
-                                                      pair_args.d_n_neigh,
-                                                      pair_args.d_nlist,
-                                                      pair_args.d_head_list,
-                                                      d_params,
-                                                      pair_args.d_rcutsq,
-                                                      pair_args.ntypes,
-                                                      tpp,
-                                                      range.first);
+                    AnisoPairForceComputeKernel<evaluator, 0, 0, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params);
                     break;
                     }
                 case 1:
                     {
-                    static unsigned int max_block_size = UINT_MAX;
-                    static unsigned int sm = UINT_MAX;
-                    if (max_block_size == UINT_MAX)
-                        max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>);
-                    if (sm == UINT_MAX)
-                        sm = aniso_get_compute_capability(gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>);
-
-                    if (sm < 35) gpu_pair_aniso_force_bind_textures(pair_args);
-
-                    block_size = block_size < max_block_size ? block_size : max_block_size;
-                    dim3 grid(nwork / (block_size/tpp) + 1, 1, 1);
-                    if (sm < 30 && grid.x > 65535)
-                        {
-                        grid.y = grid.x/65535 + 1;
-                        grid.x = 65535;
-                        }
-
-                    shared_bytes += sizeof(Scalar)*block_size;
-
-                    gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>
-                        <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
-                                                      pair_args.d_torque,
-                                                      pair_args.d_virial,
-                                                      pair_args.virial_pitch,
-                                                      nwork,
-                                                      pair_args.d_pos,
-                                                      pair_args.d_diameter,
-                                                      pair_args.d_charge,
-                                                      pair_args.d_orientation,
-                                                      pair_args.box,
-                                                      pair_args.d_n_neigh,
-                                                      pair_args.d_nlist,
-                                                      pair_args.d_head_list,
-                                                      d_params,
-                                                      pair_args.d_rcutsq,
-                                                      pair_args.ntypes,
-                                                      tpp,
-                                                      range.first);
+                    AnisoPairForceComputeKernel<evaluator, 1, 0, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params);
                     break;
                     }
                 default:

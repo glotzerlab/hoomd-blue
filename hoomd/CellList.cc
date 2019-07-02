@@ -110,15 +110,15 @@ uint3 CellList::computeDimensions()
         {
         const Scalar3 cell_size = make_scalar3(L.x / Scalar(dim.x), L.y / Scalar(dim.y), L.z / Scalar(dim.z));
 
-        // add cells up to the next integer to cover the whole ghost width
+        // add cells up to the next integer to cover the whole ghost width on both sides
         if (!box.getPeriodic().x)
-            dim.x += static_cast<int>(ceil(m_ghost_width.x/cell_size.x));
+            dim.x += 2*static_cast<int>(ceil(m_ghost_width.x/cell_size.x));
 
         if (!box.getPeriodic().y)
-            dim.y += static_cast<int>(ceil(m_ghost_width.y/cell_size.y));
+            dim.y += 2*static_cast<int>(ceil(m_ghost_width.y/cell_size.y));
 
         if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
-            dim.z += static_cast<int>(ceil(m_ghost_width.z/cell_size.z));
+            dim.z += 2*static_cast<int>(ceil(m_ghost_width.z/cell_size.z));
         }
 #endif
 

@@ -122,6 +122,28 @@ void export_tersoff_params(py::module& m)
     m.def("make_tersoff_params", &make_tersoff_params);
 }
 
+//! Function to make the parameter type
+DEVICE inline pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
+    {
+    pair_fourier_params retval;
+    for (int i = 0; i < 3; ++i)
+        {
+        retval.a[i] = py::cast<Scalar>(a[i]);
+        retval.b[i] = py::cast<Scalar>(b[i]);
+        }
+    return retval;
+    }
+
+// ! Function to export the fourier parameter type to python
+void export_pair_fourier_params(py::module& m)
+{
+    py::class_<pair_fourier_params>(m, "pair_fourier_params")
+        .def(py::init<>())
+        ;
+
+    m.def("make_pair_fourier_params", &make_pair_fourier_params);
+}
+
 //! Helper function for converting python wall group structure to wall_type
 wall_type make_wall_field_params(py::object walls, std::shared_ptr<const ExecutionConfiguration> m_exec_conf)
     {
@@ -222,8 +244,10 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
+    export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_tersoff_params(m);
     export_shape_params(m);
+    export_pair_fourier_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairALJTable>(m, "AnisoPotentialPairALJTable");
     export_AnisoPotentialPair<AnisoPotentialPair2DALJ>(m, "AnisoPotentialPair2DALJ");
@@ -273,6 +297,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>(m, "PotentialPairYukawaGPU");
     export_PotentialPairGPU<PotentialPairReactionFieldGPU, PotentialPairReactionField>(m, "PotentialPairReactionFieldGPU");
     export_PotentialPairGPU<PotentialPairDLVOGPU, PotentialPairDLVO>(m, "PotentialPairDLVOGPU");
+    export_PotentialPairGPU<PotentialPairFourierGPU, PotentialPairFourier>(m, "PotentialPairFourierGPU");
     export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>(m, "PotentialPairEwaldGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>(m, "PotentialPairMorseGPU");
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD>(m, "PotentialPairDPDGPU");

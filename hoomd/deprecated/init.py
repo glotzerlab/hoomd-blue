@@ -50,9 +50,8 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
     coordinates will result in an error.
 
     """
-    hoomd.util.print_status_line();
-
     hoomd.context._verify_init();
+    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if hoomd.init.is_initialized():
@@ -116,9 +115,8 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1, dimen
     and/or change particle properties later in the script. See :py:mod:`hoomd.data` for more information.
 
     """
-    hoomd.util.print_status_line();
-
     hoomd.context._verify_init();
+    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if hoomd.init.is_initialized():
@@ -279,9 +277,8 @@ def create_random_polymers(box, polymers, separation, seed=1):
         bonds (bond.fene).
 
     """
-    hoomd.util.print_status_line();
-
     hoomd.context._verify_init();
+    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if hoomd.init.is_initialized():

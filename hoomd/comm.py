@@ -25,7 +25,7 @@ def get_num_ranks():
 
     hoomd.context._verify_init();
     if _hoomd.is_MPI_available():
-        return hoomd.context.exec_conf.getNRanks();
+        return hoomd.context.mpi_conf.getNRanks();
     else:
         return 1;
 
@@ -42,7 +42,7 @@ def get_rank():
     hoomd.context._verify_init();
 
     if _hoomd.is_MPI_available():
-        return hoomd.context.exec_conf.getRank()
+        return hoomd.context.mpi_conf.getRank()
     else:
         return 0;
 
@@ -58,7 +58,7 @@ def get_partition():
     hoomd.context._verify_init();
 
     if _hoomd.is_MPI_available():
-        return hoomd.context.exec_conf.getPartition()
+        return hoomd.context.mpi_conf.getPartition()
     else:
         return 0;
 
@@ -80,7 +80,7 @@ def barrier():
     hoomd.context._verify_init();
 
     if _hoomd.is_MPI_available():
-        hoomd.context.exec_conf.barrier()
+        hoomd.context.mpi_conf.barrier()
 
 class decomposition(object):
     """ Set the domain decomposition.
@@ -145,15 +145,14 @@ class decomposition(object):
     def __init__(self, x=None, y=None, z=None, nx=None, ny=None, nz=None):
         hoomd.util.print_status_line()
 
+        # check that the context has been initialized though
+        if hoomd.context.exec_conf is None:
+            raise RuntimeError("Cannot initialize decomposition without context.initialize() first")
+
         # check that system is not initialized
         if hoomd.context.current.system is not None:
             hoomd.context.msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
             raise RuntimeError("Cannot create decomposition after system is initialized. Call before init.*")
-
-        # check that the context has been initialized though
-        if hoomd.context.exec_conf is None:
-            hoomd.context.msg.error("comm.decomposition: call context.initialize() before decomposition can be set\n")
-            raise RuntimeError("Cannot initialize decomposition without context.initialize() first")
 
         # check that there are ranks available for decomposition
         if get_num_ranks() == 1:
@@ -183,7 +182,7 @@ class decomposition(object):
                 self.uniform_y = True
             if not self.z and self.nz == 0:
                 if hoomd.context.options.linear is True:
-                    self.nz = hoomd.context.exec_conf.getNRanks()
+                    self.nz = hoomd.context.mpi_conf.getNRanks()
                     self.uniform_z = True
                 elif hoomd.context.options.nz is not None:
                     self.nz = hoomd.context.options.nz

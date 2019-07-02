@@ -140,8 +140,7 @@ void PotentialSpecialPairGPU< evaluator, gpu_cgbf >::computeForces(unsigned int 
                              gpu_table_indexer,
                              d_gpu_n_bonds.data,
                              this->m_pair_data->getNTypes(),
-                             this->m_tuner->getParam(),
-                             this->m_exec_conf->getComputeCapability()),
+                             this->m_tuner->getParam()),
                  d_params.data,
                  d_flags.data);
         }

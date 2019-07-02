@@ -2898,3 +2898,82 @@ class alj_table(ai_pair):
         alpha = coeff['alpha'];
 
         return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, hoomd.context.exec_conf);
+
+class fourier(pair):
+    R""" Fourier pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+
+    :py:class:`fourier` specifies that a fourier series form potential.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{Fourier}}(r) = & \frac{1}{r^{12}} + \frac{1}{r^2}\sum_{n=1}^4 [a_n cos(\frac{n \pi r}{r_{cut}}) + b_n sin(\frac{n \pi r}{r_{cut}})] & r < r_{\mathrm{cut}}  \\
+                                = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+        where:
+        \begin{eqnarray*}
+        a_1 = \sum_{n=2}^4 (-1)^n a_n cos(\frac{n \pi r}{r_{cut}})
+        \end{eqnarray*}
+
+        \begin{eqnarray*}
+        b_1 = \sum_{n=2}^4 n (-1)^n b_n cos(\frac{n \pi r}{r_{cut}})
+        \end{eqnarray*}
+
+        is calculated to enforce close to zero value at r_cut.
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`a` - *a* (array of 3 values corresponding to a2, a3 and a4 in the Fourier series, unitless)
+    - :math:`a` - *b* (array of 3 values corresponding to b2, b3 and b4 in the Fourier series, unitless)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        nl = nlist.cell()
+        fourier = pair.fourier(r_cut=3.0, nlist=nl)
+        fourier.pair_coeff.set('A', 'A', a=[a2,a3,a4], b=[b2,b3,b4])
+    """
+
+    def __init__(self, r_cut, nlist, name=None):
+
+        hoomd.util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialPairFourier(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairFourier;
+        else:
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.cpp_force = _md.PotentialPairFourierGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairFourierGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+
+        self.required_coeffs = ['fourier_a','fourier_b'];
+        # self.pair_coeff.set_default_coeff('alpha', 1.0);
+
+    def process_coeff(self, coeff):
+        fourier_a = coeff['fourier_a'];
+        fourier_b = coeff['fourier_b'];
+
+        return _md.make_pair_fourier_params(fourier_a,fourier_b);

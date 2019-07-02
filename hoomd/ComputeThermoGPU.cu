@@ -28,6 +28,8 @@ extern __shared__ Scalar compute_ke_rot_sdata[];
     \param d_net_virial Net virial array from ParticleData
     \param virial_pitch pitch of 2D virial array
     \param d_velocity Particle velocity and mass array from ParticleData
+    \param d_body Particle body id
+    \param d_tag Particle tag
     \param d_group_members List of group members for which to sum properties
     \param work_size Number of particles in the group this GPU processes
     \param offset Offset of this GPU in list of group members
@@ -49,6 +51,8 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
                                                 Scalar *d_net_virial,
                                                 const unsigned int virial_pitch,
                                                 Scalar4 *d_velocity,
+                                                unsigned int *d_body,
+                                                unsigned int *d_tag,
                                                 unsigned int *d_group_members,
                                                 unsigned int work_size,
                                                 unsigned int offset,
@@ -58,30 +62,35 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     Scalar3 my_element; // element of scratch space read in
+
+    // non-participating thread: contribute 0 to the sum
+    my_element = make_scalar3(0, 0, 0);
+
     if (group_idx < work_size)
         {
         unsigned int idx = d_group_members[group_idx+offset];
 
-        // update positions to the next timestep and update velocities to the next half step
-        Scalar4 net_force = d_net_force[idx];
-        Scalar net_isotropic_virial;
-        // (1/3)*trace of virial tensor
-        net_isotropic_virial = Scalar(1.0/3.0)*
-                               (d_net_virial[0*virial_pitch+idx]   // xx
-                               +d_net_virial[3*virial_pitch+idx]   // yy
-                               +d_net_virial[5*virial_pitch+idx]); // zz
-        Scalar4 vel = d_velocity[idx];
-        Scalar mass = vel.w;
+        // ignore rigid body constituent particles in the sum
+        unsigned int body = d_body[idx];
+        unsigned int tag = d_tag[idx];
+        if (body >= MIN_FLOPPY || body == tag)
+            {
+            // update positions to the next timestep and update velocities to the next half step
+            Scalar4 net_force = d_net_force[idx];
+            Scalar net_isotropic_virial;
+            // (1/3)*trace of virial tensor
+            net_isotropic_virial = Scalar(1.0/3.0)*
+                                   (d_net_virial[0*virial_pitch+idx]   // xx
+                                   +d_net_virial[3*virial_pitch+idx]   // yy
+                                   +d_net_virial[5*virial_pitch+idx]); // zz
+            Scalar4 vel = d_velocity[idx];
+            Scalar mass = vel.w;
 
-        // compute our contribution to the sum
-        my_element.x = mass * (vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
-        my_element.y = net_force.w;
-        my_element.z = net_isotropic_virial;
-        }
-    else
-        {
-        // non-participating thread: contribute 0 to the sum
-        my_element = make_scalar3(0, 0, 0);
+            // compute our contribution to the sum
+            my_element.x = mass * (vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
+            my_element.y = net_force.w;
+            my_element.z = net_isotropic_virial;
+            }
         }
 
     compute_thermo_sdata[threadIdx.x] = my_element;
@@ -115,6 +124,8 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
     \param d_net_virial Net virial array from ParticleData
     \param virial_pitch pitch of 2D virial array
     \param d_velocity Particle velocity and mass array from ParticleData
+    \param d_body Particle body id
+    \param d_tag Particle tag
     \param d_group_members List of group members for which to sum properties
     \param work_size Number of particles in the group
     \param offset Offset of this GPU in the list of group members
@@ -132,6 +143,8 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
                                                 Scalar *d_net_virial,
                                                 const unsigned int virial_pitch,
                                                 Scalar4 *d_velocity,
+                                                unsigned int *d_body,
+                                                unsigned int *d_tag,
                                                 unsigned int *d_group_members,
                                                 unsigned int work_size,
                                                 unsigned int offset,
@@ -142,29 +155,34 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     Scalar my_element[6]; // element of scratch space read in
+
+    // non-participating threads: contribute 0 to the sum
+    my_element[0] = 0;
+    my_element[1] = 0;
+    my_element[2] = 0;
+    my_element[3] = 0;
+    my_element[4] = 0;
+    my_element[5] = 0;
+
     if (group_idx < work_size)
         {
         unsigned int idx = d_group_members[group_idx+offset];
 
-        // compute contribution to pressure tensor and store it in my_element
-        Scalar4 vel = d_velocity[idx];
-        Scalar mass = vel.w;
-        my_element[0] = mass*vel.x*vel.x + d_net_virial[0*virial_pitch+idx];   // xx
-        my_element[1] = mass*vel.x*vel.y + d_net_virial[1*virial_pitch+idx];   // xy
-        my_element[2] = mass*vel.x*vel.z + d_net_virial[2*virial_pitch+idx];   // xz
-        my_element[3] = mass*vel.y*vel.y + d_net_virial[3*virial_pitch+idx];   // yy
-        my_element[4] = mass*vel.y*vel.z + d_net_virial[4*virial_pitch+idx];   // yz
-        my_element[5] = mass*vel.z*vel.z + d_net_virial[5*virial_pitch+idx];   // zz
-        }
-    else
-        {
-        // non-participating thread: contribute 0 to the sum
-        my_element[0] = 0;
-        my_element[1] = 0;
-        my_element[2] = 0;
-        my_element[3] = 0;
-        my_element[4] = 0;
-        my_element[5] = 0;
+        // ignore rigid body constituent particles in the sum
+        unsigned int body = d_body[idx];
+        unsigned int tag = d_tag[idx];
+        if (body >= MIN_FLOPPY || body == tag)
+            {
+            // compute contribution to pressure tensor and store it in my_element
+            Scalar4 vel = d_velocity[idx];
+            Scalar mass = vel.w;
+            my_element[0] = mass*vel.x*vel.x + d_net_virial[0*virial_pitch+idx];   // xx
+            my_element[1] = mass*vel.x*vel.y + d_net_virial[1*virial_pitch+idx];   // xy
+            my_element[2] = mass*vel.x*vel.z + d_net_virial[2*virial_pitch+idx];   // xz
+            my_element[3] = mass*vel.y*vel.y + d_net_virial[3*virial_pitch+idx];   // yy
+            my_element[4] = mass*vel.y*vel.z + d_net_virial[4*virial_pitch+idx];   // yz
+            my_element[5] = mass*vel.z*vel.z + d_net_virial[5*virial_pitch+idx];   // zz
+            }
         }
 
     for (unsigned int i = 0; i < 6; i++)
@@ -198,6 +216,8 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
     \param d_orientation Orientation quaternions from ParticleData
     \param d_angmom Conjugate quaternions from ParticleData
     \param d_inertia Moments of inertia from ParticleData
+    \param d_body Particle body id
+    \param d_tag Particle tag
     \param d_group_members List of group members for which to sum properties
     \param work_size Number of particles in the group processed by this GPU
     \param offset Offset of this GPU in the list of group members
@@ -208,6 +228,8 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
                                                         const Scalar4 *d_orientation,
                                                         const Scalar4 *d_angmom,
                                                         const Scalar3 *d_inertia,
+                                                        unsigned int *d_body,
+                                                        unsigned int *d_tag,
                                                         unsigned int *d_group_members,
                                                         unsigned int work_size,
                                                         unsigned int offset,
@@ -217,38 +239,41 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     Scalar my_element; // element of scratch space read in
+    // non-participating thread: contribute 0 to the sum
+    my_element = Scalar(0.0);
+
     if (group_idx < work_size)
         {
         unsigned int idx = d_group_members[group_idx+offset];
 
-        // update positions to the next timestep and update velocities to the next half step
-        quat<Scalar> q(d_orientation[idx]);
-        quat<Scalar> p(d_angmom[idx]);
-        vec3<Scalar> I(d_inertia[idx]);
-        quat<Scalar> s(Scalar(0.5)*conj(q)*p);
-
-        Scalar ke_rot(0.0);
-
-        if (I.x >= EPSILON)
+        // ignore rigid body constituent particles in the sum
+        unsigned int body = d_body[idx];
+        unsigned int tag = d_tag[idx];
+        if (body >= MIN_FLOPPY || body == tag)
             {
-            ke_rot += s.v.x*s.v.x/I.x;
-            }
-        if (I.y >= EPSILON)
-            {
-            ke_rot += s.v.y*s.v.y/I.y;
-            }
-        if (I.z >= EPSILON)
-            {
-            ke_rot += s.v.z*s.v.z/I.z;
-            }
+            quat<Scalar> q(d_orientation[idx]);
+            quat<Scalar> p(d_angmom[idx]);
+            vec3<Scalar> I(d_inertia[idx]);
+            quat<Scalar> s(Scalar(0.5)*conj(q)*p);
 
-        // compute our contribution to the sum
-        my_element = ke_rot*Scalar(1.0/2.0);
-        }
-    else
-        {
-        // non-participating thread: contribute 0 to the sum
-        my_element = Scalar(0.0);
+            Scalar ke_rot(0.0);
+
+            if (I.x >= EPSILON)
+                {
+                ke_rot += s.v.x*s.v.x/I.x;
+                }
+            if (I.y >= EPSILON)
+                {
+                ke_rot += s.v.y*s.v.y/I.y;
+                }
+            if (I.z >= EPSILON)
+                {
+                ke_rot += s.v.z*s.v.z/I.z;
+                }
+
+            // compute our contribution to the sum
+            my_element = ke_rot*Scalar(1.0/2.0);
+            }
         }
 
     compute_ke_rot_sdata[threadIdx.x] = my_element;
@@ -473,6 +498,8 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
 //! Compute partial sums of thermodynamic properties of a group on the GPU,
 /*! \param d_properties Array to write computed properties
     \param d_vel particle velocities and masses on the GPU
+    \param d_body Particle body id
+    \param d_tag Particle tag
     \param d_group_members List of group members
     \param group_size Number of group members
     \param box Box the particles are in
@@ -486,6 +513,8 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
 
 cudaError_t gpu_compute_thermo_partial(Scalar *d_properties,
                                Scalar4 *d_vel,
+                               unsigned int *d_body,
+                               unsigned int *d_tag,
                                unsigned int *d_group_members,
                                unsigned int group_size,
                                const BoxDim& box,
@@ -521,6 +550,8 @@ cudaError_t gpu_compute_thermo_partial(Scalar *d_properties,
                                                                         args.d_net_virial,
                                                                         args.virial_pitch,
                                                                         d_vel,
+                                                                        d_body,
+                                                                        d_tag,
                                                                         d_group_members,
                                                                         nwork,
                                                                         range.first,
@@ -538,6 +569,8 @@ cudaError_t gpu_compute_thermo_partial(Scalar *d_properties,
                                                                                       args.d_net_virial,
                                                                                       args.virial_pitch,
                                                                                       d_vel,
+                                                                                      d_body,
+                                                                                      d_tag,
                                                                                       d_group_members,
                                                                                       nwork,
                                                                                       range.first,
@@ -556,6 +589,8 @@ cudaError_t gpu_compute_thermo_partial(Scalar *d_properties,
                                                    args.d_orientation,
                                                    args.d_angmom,
                                                    args.d_inertia,
+                                                   d_body,
+                                                   d_tag,
                                                    d_group_members,
                                                    nwork,
                                                    range.first,
@@ -573,6 +608,8 @@ cudaError_t gpu_compute_thermo_partial(Scalar *d_properties,
 //! Compute thermodynamic properties of a group on the GPU
 /*! \param d_properties Array to write computed properties
     \param d_vel particle velocities and masses on the GPU
+    \param d_body Particle body id
+    \param d_tag Particle tag
     \param d_group_members List of group members
     \param group_size Number of group members
     \param box Box the particles are in
@@ -586,6 +623,8 @@ cudaError_t gpu_compute_thermo_partial(Scalar *d_properties,
 
 cudaError_t gpu_compute_thermo_final(Scalar *d_properties,
                                Scalar4 *d_vel,
+                               unsigned int *d_body,
+                               unsigned int *d_tag,
                                unsigned int *d_group_members,
                                unsigned int group_size,
                                const BoxDim& box,
