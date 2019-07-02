@@ -114,22 +114,6 @@ class EvaluatorPairALJTable
             vec3<Scalar> f;
             vec3<Scalar> rvect;
 
-            // Create rotate structures
-            vec3<Scalar> vertsi[20];
-            vec3<Scalar> vertsj[20];
-
-            // Define internal shape_i
-            for (unsigned int i = 0; i < _params.Ni; ++i)
-              {
-              vertsi[i] = rotate(qi, _params.verts_i[i]);
-              }
-
-            // Define internal shape_j
-            for (unsigned int i = 0; i < _params.Nj; ++i)
-              {
-              vertsj[i] = rotate(qj, _params.verts_j[i]) + Scalar(-1.0)*dr;
-              }
-
             // Distance
             if ( (rsq/_params.ki_max/_params.ki_max < rcutsq) | (rsq/_params.kj_max/_params.kj_max < rcutsq) )
               {
