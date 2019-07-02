@@ -6,6 +6,8 @@ if (HOOMD_INCLUDE_DIR)
     list(APPEND CMAKE_MODULE_PATH ${HOOMD_INCLUDE_DIR}/hoomd/extern/pybind/tools)
 endif()
 
+set(PYBIND11_PYTHON_VERSION 3)
+
 # trick pybind11 tools to allow us to manage C++ flags
 # cmake ignores this in 2.8, but when pybind11 sees this
 # it will not override hoomd's cflags
