@@ -198,7 +198,7 @@ DEVICE inline unsigned int support(const ManagedArray<vec3<Scalar> > verts, cons
                 //// 0111. The current_subset is used to select the current index to check, and
                 //// next_subset_slot indicates the next open spot when a new set is found. To
                 //// efficiently determine whether a particular subset is new or has been
-                //// seen before, we maintain a separate boolean array comb_contained that is
+                //// seen before, we maintain a separate boolean array comb_contains that is
                 //// updated as new subsets are found. Note that comb_contains[0] is never
                 //// used since it corresponds to the empty set, but is left indexed this way
                 //// to simplify the access pattern using the bit-based indexing scheme.
@@ -385,6 +385,16 @@ DEVICE inline unsigned int support(const ManagedArray<vec3<Scalar> > verts, cons
     //}
 
 
+// Note: All of the bitwise indexing schemes could fail if ndim is too large.
+// However, this shouldn't be a concern for any realistic number of dimensions.
+// All bit flags are representing either arrays of size max_num_points, which
+// is ndim+1, or of size max_power_set_size, which is 2^(max_num_points).
+// Therefore, the largest possible bit indexer (which is currently
+// comb_contains, must be of size 2^(2^(ndim+1)). As long as these indexes are
+// declared of type unsigned long long int, they are guaranteed at least 64
+// bits, which means they support up to 5 dimensions 2^(5+1) = 2^6 = 64). If
+// more dimensions were ever needed, we could replace these bit indexes with
+// simple boolean arrays, but this slows down code substantially on the GPU.
 template <unsigned int ndim>
 DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned int &N1, const ManagedArray<vec3<Scalar> > verts2, const unsigned int &N2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr)
     {
@@ -412,7 +422,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
 
     vec3<Scalar> W[max_num_points];
     Scalar lambdas[max_num_points] = {0};
-    unsigned int W_used = 0;
+    unsigned int W_used = 0;  // To be used as a set of bitwise flags
     unsigned int indices1[max_num_points] = {0};
     unsigned int indices2[max_num_points] = {0};
 
@@ -439,7 +449,10 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
             }
         }
 
-    Scalar u(0), eps(1e-8), omega(1e-4); 
+    // The tolerances are compile-time constants.
+    constexpr Scalar eps(1e-8), omega(1e-4);
+
+    Scalar u(0);
     bool close_enough(false);
     unsigned int max_iterations = N1 + N2 + 1;
     unsigned int iteration = 0;
@@ -543,13 +556,13 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                 // 0111. The current_subset is used to select the current index to check, and
                 // next_subset_slot indicates the next open spot when a new set is found. To
                 // efficiently determine whether a particular subset is new or has been
-                // seen before, we maintain a separate boolean array comb_contained that is
+                // seen before, we maintain a separate boolean array comb_contains that is
                 // updated as new subsets are found. Note that comb_contains[0] is never
                 // used since it corresponds to the empty set, but is left indexed this way
                 // to simplify the access pattern using the bit-based indexing scheme.
                 unsigned int current_subset = 0, next_subset_slot = 0;
                 unsigned int check_indexes[max_power_set_size - 1] = {0};
-                bool comb_contains[max_power_set_size] = {false};
+                unsigned long long int comb_contains = 0;
 
                 for (unsigned int i = 0; i < max_num_points; ++i)
                     {
@@ -557,7 +570,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                         {
                         unsigned int index_i(1 << i);
                         check_indexes[next_subset_slot] = index_i;
-                        comb_contains[index_i] = true;
+                        comb_contains |= (1 << index_i);
                         next_subset_slot += 1;
 
                         // Base case for recursive algorithm is a set of size 1. While the distance
@@ -628,9 +641,9 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                                 // been previously cached.
                                 total = deltas[new_index][new_element];
                                 }
-                            if (!comb_contains[new_index])
+                            if (!(comb_contains & (1 << new_index)))
                                 {
-                                comb_contains[new_index] = true;
+                                comb_contains |= (1 << new_index);
                                 check_indexes[next_subset_slot] = new_index;
                                 next_subset_slot += 1;
                                 }
