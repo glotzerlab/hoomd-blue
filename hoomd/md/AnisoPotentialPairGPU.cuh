@@ -48,7 +48,10 @@ struct a_pair_args_t
               const unsigned int _shift_mode,
               const unsigned int _compute_virial,
               const unsigned int _threads_per_particle,
-              const GPUPartition& _gpu_partition)
+              const GPUPartition& _gpu_partition,
+              const cudaDeviceProp& _devprop,
+              bool _update_shape_param
+                  )
                 : d_force(_d_force),
                   d_torque(_d_torque),
                   d_virial(_d_virial),
@@ -69,7 +72,9 @@ struct a_pair_args_t
                   shift_mode(_shift_mode),
                   compute_virial(_compute_virial),
                   threads_per_particle(_threads_per_particle),
-                  gpu_partition(_gpu_partition)
+                  gpu_partition(_gpu_partition),
+                  devprop(_devprop),
+                  update_shape_param(_update_shape_param)
         {
         };
 
@@ -94,6 +99,8 @@ struct a_pair_args_t
     const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads to launch per particle
     const GPUPartition& gpu_partition;      //!< The load balancing partition of particles between GPUs
+    const cudaDeviceProp& devprop;    //!< CUDA device properties
+    bool update_shape_param;          //!< If true, update size of shape param and synchronize GPU execution stream
     };
 
 #ifdef NVCC
@@ -153,7 +160,8 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                                                      const typename evaluator::param_type *d_params,
                                                      const Scalar *d_rcutsq,
                                                      const unsigned int ntypes,
-                                                     const unsigned int offset)
+                                                     const unsigned int offset,
+                                                     unsigned int max_extra_bytes)
     {
     Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
@@ -174,6 +182,13 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
             }
         }
     __syncthreads();
+
+    // initialize extra shared mem
+    char *s_extra = (char *)(s_rcutsq + num_typ_parameters);
+
+    unsigned int available_bytes = max_extra_bytes;
+    for (unsigned int cur_pair = 0; cur_pair < typpair_idx.getNumElements(); ++cur_pair)
+        s_params[cur_pair].load_shared(s_extra, available_bytes);
 
     // start by identifying which particle we are to handle
     unsigned int idx;
@@ -354,12 +369,6 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
 template<typename T>
 int aniso_get_max_block_size(T func)
     {
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, func);
-    int max_threads = attr.maxThreadsPerBlock;
-    // number of threads has to be multiple of warp size
-    max_threads -= max_threads % gpu_aniso_pair_force_max_tpp;
-    return max_threads;
     }
 
 //! Aniso pair force compute kernel launcher
@@ -398,8 +407,37 @@ struct AnisoPairForceComputeKernel
                                         * typpair_idx.getNumElements();
 
             static unsigned int max_block_size = UINT_MAX;
+            cudaFuncAttributes attr;
             if (max_block_size == UINT_MAX)
-                max_block_size = aniso_get_max_block_size(gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>);
+                {
+                cudaFuncGetAttributes(&attr, func);
+                int max_threads = attr.maxThreadsPerBlock;
+                // number of threads has to be multiple of warp size
+                max_block_size -= max_threads % gpu_aniso_pair_force_max_tpp;
+                }
+
+            static unsigned int base_shared_bytes = UINT_MAX;
+            bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
+            base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+
+            unsigned int max_extra_bytes = pair_args.devprop.sharedMemPerBlock - base_shared_bytes;
+            static unsigned int extra_bytes = UINT_MAX;
+            if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
+                {
+                // required for memory coherency
+                cudaDeviceSynchronize();
+
+                // determine dynamically requested shared memory
+                char *ptr = (char *)nullptr;
+                unsigned int available_bytes = max_extra_bytes;
+                for (unsigned int i = 0; i < typpair_idx.getNumElements(); ++i)
+                    {
+                    d_params[i].load_shared(ptr, available_bytes);
+                    }
+                extra_bytes = max_extra_bytes - available_bytes;
+                }
+
+            shared_bytes += extra_bytes;
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1, 1, 1);
@@ -421,7 +459,8 @@ struct AnisoPairForceComputeKernel
                                                    d_params,
                                                    pair_args.d_rcutsq,
                                                    pair_args.ntypes,
-                                                   offset);
+                                                   offset,
+                                                   max_extra_bytes);
             }
         else
             {
