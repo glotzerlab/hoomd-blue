@@ -533,7 +533,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
             unsigned int num_used = 0;
             for (unsigned int i = 0; i < max_num_points; ++i)
                 {
-                num_used += W_used & (1 << i);
+                num_used += (W_used >> i) & (1);
                 }
             if (num_used == 1)
                 {
