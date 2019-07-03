@@ -139,7 +139,7 @@ class AnisoPotentialPair : public ForceCompute
             // reallocate parameter arrays
             GlobalArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
             m_rcutsq.swap(rcutsq);
-            GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
+            GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf, "my_params", true);
             m_params.swap(params);
 
             #ifdef ENABLE_CUDA
@@ -180,7 +180,7 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
 
     GlobalArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
-    GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
+    GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf, "my_params", true);
     m_params.swap(params);
 
     #ifdef ENABLE_CUDA

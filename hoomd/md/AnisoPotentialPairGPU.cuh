@@ -383,12 +383,12 @@ struct AnisoPairForceComputeKernel
     /*!
      * \param pair_args Other arguments to pass onto the kernel
      * \param range Range of particle indices this GPU operates on
-     * \param d_params Parameters for the potential, stored per type pair
+     * \param params Parameters for the potential, stored per type pair
      */
 
     static void launch(const a_pair_args_t& pair_args,
         std::pair<unsigned int, unsigned int> range,
-        const typename evaluator::param_type *d_params)
+        const typename evaluator::param_type *params)
         {
         unsigned int N = range.second - range.first;
         unsigned int offset = range.first;
@@ -408,7 +408,7 @@ struct AnisoPairForceComputeKernel
                 cudaFuncGetAttributes(&attr, gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>);
                 int max_threads = attr.maxThreadsPerBlock;
                 // number of threads has to be multiple of warp size
-                max_block_size -= max_threads % gpu_aniso_pair_force_max_tpp;
+                max_block_size = max_threads - max_threads % gpu_aniso_pair_force_max_tpp;;
                 }
 
             static unsigned int base_shared_bytes = UINT_MAX;
@@ -427,7 +427,7 @@ struct AnisoPairForceComputeKernel
                 unsigned int available_bytes = max_extra_bytes;
                 for (unsigned int i = 0; i < typpair_idx.getNumElements(); ++i)
                     {
-                    d_params[i].load_shared(ptr, available_bytes);
+                    params[i].load_shared(ptr, available_bytes);
                     }
                 extra_bytes = max_extra_bytes - available_bytes;
                 }
@@ -451,7 +451,7 @@ struct AnisoPairForceComputeKernel
                                                    pair_args.d_n_neigh,
                                                    pair_args.d_nlist,
                                                    pair_args.d_head_list,
-                                                   d_params,
+                                                   params,
                                                    pair_args.d_rcutsq,
                                                    pair_args.ntypes,
                                                    offset,
@@ -459,7 +459,7 @@ struct AnisoPairForceComputeKernel
             }
         else
             {
-            AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, tpp/2>::launch(pair_args, range, d_params);
+            AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, tpp/2>::launch(pair_args, range, params);
             }
         }
     };
