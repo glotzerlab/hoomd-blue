@@ -422,7 +422,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
 
     vec3<Scalar> W[max_num_points];
     Scalar lambdas[max_num_points] = {0};
-    unsigned int W_used = 0;  // To be used as a set of bitwise flags
+    unsigned int W_used = 0;  // To be used as a set of bit flags
     unsigned int indices1[max_num_points] = {0};
     unsigned int indices2[max_num_points] = {0};
 
@@ -636,10 +636,10 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                                 }
                             else
                                 {
-                                // Avoid reading in the uncached case by using
-                                // total in the termination condition check
-                                // below and only assigning it here when it's
-                                // been previously cached.
+                                // Minimize data reads by using delta_current
+                                // in the termination conditional below and
+                                // only reading from deltas when we are using a
+                                // cached value.
                                 delta_current = deltas[new_index][new_element];
                                 }
                             if (!(comb_contains & (1 << new_index)))
@@ -660,12 +660,15 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                         }
                     // Part (i) of termination condition: Delta_i(X) > 0 for all i in current_subset
                     // Could add additional check beforehand using added_index
-                    for (unsigned int i = 0; i < max_num_points; ++i)
+                    if (complete)
                         {
-                        if (((1 << i) & current_index) && (deltas[current_index][i] <= 0))
+                        for (unsigned int i = 0; i < max_num_points; ++i)
                             {
-                            complete = false;
-                            break;
+                            if (((1 << i) & current_index) && (deltas[current_index][i] <= 0))
+                                {
+                                complete = false;
+                                break;
+                                }
                             }
                         }
                     if (complete)
@@ -683,10 +686,10 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                 else
                     {
                     // The sum of relevant deltas is used to scale the lambdas.
-                    Scalar total(0);
+                    Scalar delta_total(0);
                     for (unsigned int i = 0; i < max_num_points; ++i)
                         {
-                        total += deltas[desired_index][i];
+                        delta_total += deltas[desired_index][i];
                         }
 
                     for (unsigned int i = 0; i < max_num_points; ++i)
@@ -694,7 +697,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                         if ((1 << i) & desired_index)
                             {
                             W_used |= (1 << i);
-                            lambdas[i] = deltas[desired_index][i]/total;
+                            lambdas[i] = deltas[desired_index][i]/delta_total;
                             }
                         else
                             {
