@@ -443,7 +443,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
     Scalar deltas[max_power_set_size][max_num_points];
     for (unsigned int i = 0; i < max_power_set_size; ++i)
         {
-        for (unsigned int j = 0; j < max_num_points; j++)
+        for (unsigned int j = 0; j < max_num_points; ++j)
             {
             deltas[i][j] = 0;
             }
@@ -509,7 +509,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
         if (!close_enough)
             {
             unsigned int added_element(0);
-            for (; added_element < max_num_points; added_element++)
+            for (; added_element < max_num_points; ++added_element)
                 {
                 // At least one of these must be empty, otherwise we have an
                 // overlap. 
@@ -588,10 +588,11 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                     {
                     unsigned int current_index = check_indexes[current_subset];
 
-                    // The vector k must be fixed, but can be chosen arbitrarily, but it. A
-                    // simple deterministic choice is the first used index use.
+                    // The vector k must be fixed, but can be chosen
+                    // arbitrarily. A simple deterministic choice is the first
+                    // used index use.
                     unsigned int k = 0;
-                    for (; k < max_num_points; k++)
+                    for (; k < max_num_points; ++k)
                         {
                         if ((1 << k) & current_index)
                             {
@@ -603,7 +604,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                     const vec3<Scalar> W_k = W[k];
 
                     bool complete = true;
-                    for (unsigned int new_element = 0; new_element < max_num_points; new_element++)
+                    for (unsigned int new_element = 0; new_element < max_num_points; ++new_element)
                         {
                         // Add new elements that are in use and not contained in the current set.
                         if ((W_used & (1 << new_element)) && !(current_index & (1 << new_element)))
@@ -611,7 +612,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                             // Generate the corresponding bit-based index for the new set.
                             unsigned int new_index = current_index | (1 << new_element);
 
-                            Scalar total = 0;
+                            Scalar delta_current = 0;
 
                             // The only sets for which we will not have cached data are
                             // sets that contain the element most recently added to W.
@@ -621,17 +622,17 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                                 const vec3<Scalar> W_new = W[new_element];
 
                                 // Use bitwise checks of all possible elements to find set members
-                                for (unsigned int possible_element = 0; possible_element < max_num_points; possible_element++)
+                                for (unsigned int possible_element = 0; possible_element < max_num_points; ++possible_element)
                                     {
                                     if ((1 << possible_element) & current_index)
                                         {
                                          const vec3<Scalar> W_possible = W[possible_element];
                                          const Scalar dot1 = dot(W_possible, W_k);
                                          const Scalar dot2 = dot(W_possible, W_new);
-                                         total += deltas[current_index][possible_element]*(dot1 - dot2);
+                                         delta_current += deltas[current_index][possible_element]*(dot1 - dot2);
                                         }
                                     }
-                                deltas[new_index][new_element] = total;
+                                deltas[new_index][new_element] = delta_current;
                                 }
                             else
                                 {
@@ -639,7 +640,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                                 // total in the termination condition check
                                 // below and only assigning it here when it's
                                 // been previously cached.
-                                total = deltas[new_index][new_element];
+                                delta_current = deltas[new_index][new_element];
                                 }
                             if (!(comb_contains & (1 << new_index)))
                                 {
@@ -651,7 +652,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                             // Part (ii) of termination condition: Delta_j(X U {y_j}) <= 0
                             // for all j not in current_subset
                             // Could add additional check beforehand using added_index
-                            if (total > 0)
+                            if (delta_current > 0)
                                 {
                                 complete = false;
                                 }
