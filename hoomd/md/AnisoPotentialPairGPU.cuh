@@ -366,11 +366,6 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
         }
     }
 
-template<typename T>
-int aniso_get_max_block_size(T func)
-    {
-    }
-
 //! Aniso pair force compute kernel launcher
 /*!
  * \tparam evaluator EvaluatorPair class to evaluate V(r) and -delta V(r)/r
@@ -410,7 +405,7 @@ struct AnisoPairForceComputeKernel
             cudaFuncAttributes attr;
             if (max_block_size == UINT_MAX)
                 {
-                cudaFuncGetAttributes(&attr, func);
+                cudaFuncGetAttributes(&attr, gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>);
                 int max_threads = attr.maxThreadsPerBlock;
                 // number of threads has to be multiple of warp size
                 max_block_size -= max_threads % gpu_aniso_pair_force_max_tpp;
@@ -422,7 +417,7 @@ struct AnisoPairForceComputeKernel
 
             unsigned int max_extra_bytes = pair_args.devprop.sharedMemPerBlock - base_shared_bytes;
             static unsigned int extra_bytes = UINT_MAX;
-            if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
+            if (extra_bytes == UINT_MAX || pair_args.update_shape_param || shared_bytes_changed)
                 {
                 // required for memory coherency
                 cudaDeviceSynchronize();

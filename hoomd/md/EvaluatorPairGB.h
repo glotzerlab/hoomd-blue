@@ -21,11 +21,11 @@
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-//! DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+//! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
-#define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
-#define DEVICE
+#define HOSTDEVICE
 #endif
 
 struct pair_gb_params
@@ -42,7 +42,7 @@ struct pair_gb_params
         {
         // No-op for this struct since it contains no arrays.
         }
-    }
+    };
 
 
 /*!
@@ -62,7 +62,7 @@ class EvaluatorPairGB
             \param _q_j Quaternion of j^th particle
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairGB(const Scalar3& _dr,
+        HOSTDEVICE EvaluatorPairGB(const Scalar3& _dr,
                                const Scalar4& _qi,
                                const Scalar4& _qj,
                                const Scalar _rcutsq,
@@ -73,7 +73,7 @@ class EvaluatorPairGB
             }
 
         //! uses diameter
-        DEVICE static bool needsDiameter()
+        HOSTDEVICE static bool needsDiameter()
             {
             return false;
             }
@@ -82,10 +82,10 @@ class EvaluatorPairGB
         /*! \param di Diameter of particle i
             \param dj Diameter of particle j
         */
-        DEVICE void setDiameter(Scalar di, Scalar dj){}
+        HOSTDEVICE void setDiameter(Scalar di, Scalar dj){}
 
         //! whether pair potential requires charges
-        DEVICE static bool needsCharge( )
+        HOSTDEVICE static bool needsCharge( )
             {
             return false;
             }
@@ -95,7 +95,7 @@ class EvaluatorPairGB
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
-        DEVICE void setCharge(Scalar qi, Scalar qj){}
+        HOSTDEVICE void setCharge(Scalar qi, Scalar qj){}
 
         //! Evaluate the force and energy
         /*! \param force Output parameter to write the computed force.
@@ -105,7 +105,7 @@ class EvaluatorPairGB
             \param torque_j The torque exerted on the j^th particle.
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
-        DEVICE  bool
+        HOSTDEVICE  bool
         evaluate(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
             {
             Scalar rsq = dot(dr,dr);
