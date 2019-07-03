@@ -21,11 +21,11 @@
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-//! DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+//! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
-#define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
-#define DEVICE
+#define HOSTDEVICE
 #endif
 
 // call different optimized sqrt functions on the host / device
@@ -68,7 +68,7 @@ struct pair_dipole_params
         {
         // No-op for this struct since it contains no arrays.
         }
-    }
+    };
 
 class EvaluatorPairDipole
     {
@@ -84,13 +84,13 @@ class EvaluatorPairDipole
             \param _kappa Inverse screening length
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairDipole(Scalar3& _dr, Scalar4& _quat_i, Scalar4& _quat_j, Scalar _rcutsq, const param_type& _params)
+        HOSTDEVICE EvaluatorPairDipole(Scalar3& _dr, Scalar4& _quat_i, Scalar4& _quat_j, Scalar _rcutsq, const param_type& _params)
             :dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), params(_params)
             {
             }
 
         //! uses diameter
-        DEVICE static bool needsDiameter()
+        HOSTDEVICE static bool needsDiameter()
             {
             return false;
             }
@@ -99,10 +99,10 @@ class EvaluatorPairDipole
         /*! \param di Diameter of particle i
             \param dj Diameter of particle j
         */
-        DEVICE void setDiameter(Scalar di, Scalar dj){}
+        HOSTDEVICE void setDiameter(Scalar di, Scalar dj){}
 
         //! whether pair potential requires charges
-        DEVICE static bool needsCharge()
+        HOSTDEVICE static bool needsCharge()
             {
             return true;
             }
@@ -112,7 +112,7 @@ class EvaluatorPairDipole
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
-        DEVICE void setCharge(Scalar qi, Scalar qj)
+        HOSTDEVICE void setCharge(Scalar qi, Scalar qj)
             {
             q_i = qi;
             q_j = qj;
@@ -126,7 +126,7 @@ class EvaluatorPairDipole
             \param torque_j The torque exerted on the j^th particle.
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
-        DEVICE  bool
+        HOSTDEVICE  bool
       evaluate(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
             {
             vec3<Scalar> rvec(dr);
