@@ -2778,32 +2778,37 @@ class lj1208(pair):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 8.0);
         return _hoomd.make_scalar2(lj1, lj2);
 
-class alj2D(ai_pair):
-    R""" 2D Ansitropic (analytical) LJ potential.
+class alj(ai_pair):
+    R"""Anistropic LJ potential.
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`alj2D` computes the 2D anisotropic LJ potential between anisotropic particles.
+    :py:class:`alj2D` computes the LJ potential between anisotropic particles.
 
     Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\n_i` - *number of vertices i^th particle*
-    - :math:`\n_j` - *number of vertices j^th particle*
+        alj.pair_coeff.set('A', 'A', epsilon=eps_att, sigma_i=sigma_particle, sigma_j=sigma_particle, alpha=alpha, shape_i=vertices, shape_j=vertices);
+
+
+    - *epsilon* - :math:`\varepsilon` (in energy units)
+    - *sigma_i* (in distance units) - the insphere radius of the first particle type.
+    - *sigma_j* (in distance units) - the insphere radius of the second particle type.
+    - *alpha* - boolean indicating whether or not to include attractive component (False gives a WCA potential).
+    - *shape_i* (in distance units) - the vertices of the first particle type
+    - *shape_j* (in distance units) - the vertices of the first particle type
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
     Example::
 
         nl = nlist.cell()
-        alj2D = pair.alj2D(r_cut=2.5, nlist=nl)
-        alj2D.pair_coeff.set('A', 'A', epsilon=1.0, n_i=2.0, n_j=2.0)
-        alj2D.pair_coeff.set('A', 'B', epsilon=2.0, n_i=2.0, n_j=2.0, r_cut=2**(1.0/6.0));
+        alj = pair.alj(r_cut=2.5, nlist=nl)
+        alj.pair_coeff.set('A', 'A', epsilon=1.0, sigma_i=2.0, sigma_j=2.0, alpha=0, shape_i=vertices_i, shape_j=vertices_j);
 
     """
     def __init__(self, r_cut, nlist, name=None):
@@ -2812,14 +2817,21 @@ class alj2D(ai_pair):
         # initialize the base class
         ai_pair.__init__(self, r_cut, nlist, name);
 
+        if hoomd.context.current.system_definition.getNDimensions() == 2:
+            cls = _md.AnisoPotentialPairALJ2D
+            cls_gpu = _md.AnisoPotentialPairALJ2DGPU
+        else:
+            cls = _md.AnisoPotentialPairALJ3D
+            cls_gpu = _md.AnisoPotentialPairALJ3DGPU
+
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.AnisoPotentialPair2DALJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.AnisoPotentialPair2DALJ;
+            self.cpp_force = cls(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = cls;
         else:
             self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.AnisoPotentialPair2DALJGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.AnisoPotentialPair2DALJGPU;
+            self.cpp_force = cls_gpu(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = cls_gpu;
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2834,68 +2846,13 @@ class alj2D(ai_pair):
         shape_j = coeff['shape_j'];
         alpha = coeff['alpha'];
 
-        shape_i = [[v[0], v[1], 0] for v in shape_i]
-        shape_j = [[v[0], v[1], 0] for v in shape_j]
+        # Ensure vertex list is always 3D, even for 2D shapes.
+        if hoomd.context.current.system_definition.getNDimensions() == 2:
+            shape_i = [[v[0], v[1], 0] for v in shape_i]
+            shape_j = [[v[0], v[1], 0] for v in shape_j]
+
         return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, list(shape_i), list(shape_j), hoomd.context.exec_conf);
 
-class alj_table(ai_pair):
-    R""" Ansitropic (table) LJ potential.
-
-    Args:
-        r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
-
-    :py:class:`alj_table` computes the anisotropic LJ potential between anisotropic particles using a tale lookup.
-
-    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
-
-    The following coefficients must be set per unique pair of particle types:
-
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\sigma_i` - *inscribed sphere radius for i^th particle*
-    - :math:`\sigma_j` - *inscribed sphere radius for j^th particle*
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-
-    Example::
-
-        nl = nlist.cell()
-        alj_table = pair.alj_table(r_cut=2.5, nlist=nl)
-        alj_table.pair_coeff.set('A', 'A', epsilon=1.0, kernel_i=table_i, kernel_i=table_j)
-        alj_table.pair_coeff.set('A', 'B', epsilon=2.0, kernel_i=table_i, kernel_i=table_j, r_cut=2**(1.0/6.0));
-
-    """
-    def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
-
-        # initialize the base class
-        ai_pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.AnisoPotentialPairALJTable(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.AnisoPotentialPairALJTable;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.AnisoPotentialPairALJTableGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.AnisoPotentialPairALJTableGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficent options
-        self.required_coeffs = ['epsilon', 'sigma_i', 'sigma_j', 'alpha', 'shape_i', 'shape_j'];
-        self.pair_coeff.set_default_coeff('alpha', 1.0);
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma_i = coeff['sigma_i'];
-        sigma_j = coeff['sigma_j'];
-        shape_i = coeff['shape_i'];
-        shape_j = coeff['shape_j'];
-        alpha = coeff['alpha'];
-
-        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, hoomd.context.exec_conf);
 
 class fourier(pair):
     R""" Fourier pair potential.

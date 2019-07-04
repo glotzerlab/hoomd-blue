@@ -4,8 +4,8 @@
 
 // Maintainer: thivo
 
-#ifndef __EVALUATOR_PAIR_ALJTABLE_H__
-#define __EVALUATOR_PAIR_ALJTABLE_H__
+#ifndef __EVALUATOR_PAIR_ALJ_H__
+#define __EVALUATOR_PAIR_ALJ_H__
 
 #ifndef NVCC
 #include <string>
@@ -13,12 +13,12 @@
 
 #include "hoomd/VectorMath.h"
 #include "hoomd/ManagedArray.h"
-#include "ALJTableData.h"
+#include "ALJData.h"
 #include "GJK.h"
 #include <iostream>
 
-/*! \file EvaluatorPairALJTABLE.h
-    \brief Defines a an evaluator class for the anisotropic LJ table potential
+/*! \file EvaluatorPairALJ.h
+    \brief Defines a an evaluator class for the anisotropic LJ table potential.
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -38,7 +38,7 @@
  */
 
 template <unsigned int ndim>
-class EvaluatorPairALJTable
+class EvaluatorPairALJ
     {
     public:
         typedef shape_table param_type;
@@ -50,11 +50,11 @@ class EvaluatorPairALJTable
             \param _q_j Quaterion of j^th particle
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairALJTable(Scalar3& _dr,
-                                     Scalar4& _qi,
-                                     Scalar4& _qj,
-                                     Scalar _rcutsq,
-                                     const param_type& _params)
+        DEVICE EvaluatorPairALJ(Scalar3& _dr,
+                                Scalar4& _qi,
+                                Scalar4& _qj,
+                                Scalar _rcutsq,
+                                const param_type& _params)
             : dr(_dr),rcutsq(_rcutsq),qi(_qi),qj(_qj), _params(_params)
             {
             }
@@ -259,4 +259,4 @@ class EvaluatorPairALJTable
     };
 
 
-#endif // __EVALUATOR_PAIR_ALJTable_H__
+#endif // __EVALUATOR_PAIR_ALJ_H__

@@ -272,8 +272,8 @@ PYBIND11_MODULE(_md, m)
     export_shape_params(m);
     export_pair_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
-    export_AnisoPotentialPair<AnisoPotentialPairALJTable>(m, "AnisoPotentialPairALJTable");
-    export_AnisoPotentialPair<AnisoPotentialPair2DALJ>(m, "AnisoPotentialPair2DALJ");
+    export_AnisoPotentialPair<AnisoPotentialPairALJ3D>(m, "AnisoPotentialPairALJ3D");
+    export_AnisoPotentialPair<AnisoPotentialPairALJ2D>(m, "AnisoPotentialPairALJ2D");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>(m, "PotentialPairDPDThermoDPD");
@@ -334,8 +334,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >(m, "PotentialPairDPDLJThermoDPDGPU");
     export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB>(m, "AnisoPotentialPairGBGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPair2DALJGPU, AnisoPotentialPair2DALJ>(m, "AnisoPotentialPair2DALJGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPairALJTableGPU, AnisoPotentialPairALJTable>(m, "AnisoPotentialPairALJTableGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ2DGPU, AnisoPotentialPairALJ2D>(m, "AnisoPotentialPairALJ2DGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ3DGPU, AnisoPotentialPairALJ3D>(m, "AnisoPotentialPairALJ3DGPU");
     export_AnisoPotentialPairGPU<AnisoPotentialPairDipoleGPU, AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipoleGPU");
     export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>(m, "PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");
