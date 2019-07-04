@@ -559,16 +559,19 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                 // seen before, we maintain a separate boolean array comb_contains that is
                 // updated as new subsets are found. Note that comb_contains[0] is never
                 // used since it corresponds to the empty set, but is left indexed this way
-                // to simplify the access pattern using the bit-based indexing scheme.
+                // to simplify the access pattern using the bit-based indexing
+                // scheme. For efficiency, comb_contains is not actually an
+                // array, but is instead an unsigned int whose digits are bit
+                // flags.
                 unsigned int current_subset = 0, next_subset_slot = 0;
                 unsigned int check_indexes[max_power_set_size - 1] = {0};
                 unsigned long long int comb_contains = 0;
 
                 for (unsigned int i = 0; i < max_num_points; ++i)
                     {
-                    if (W_used & (1 << i))
+                    unsigned int index_i(1 << i);
+                    if (W_used & index_i)
                         {
-                        unsigned int index_i(1 << i);
                         check_indexes[next_subset_slot] = index_i;
                         comb_contains |= (1 << index_i);
                         next_subset_slot += 1;
@@ -588,15 +591,20 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                     {
                     unsigned int current_index = check_indexes[current_subset];
 
+                    // Make a local copy of the deltas that will be used frequently
+                    // to hint to the GPU that these values should be cached.
+                    Scalar deltas_current[max_num_points] = {0};
+
                     // The vector k must be fixed, but can be chosen
-                    // arbitrarily. A simple deterministic choice is the first
-                    // used index use.
+                    // arbitrarily. A simple deterministic choice is the last
+                    // used index.
                     unsigned int k = 0;
-                    for (; k < max_num_points; ++k)
+                    for (unsigned int i = 0; i < max_num_points; ++i)
                         {
-                        if ((1 << k) & current_index)
+                        deltas_current[i] = deltas[current_index][i];
+                        if ((1 << i) & current_index)
                             {
-                            break;
+                            k = i;
                             }
                         }
 
@@ -613,7 +621,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                             // Generate the corresponding bit-based index for the new set.
                             unsigned int new_index = current_index | shifted_new_element;
 
-                            Scalar delta_current = 0;
+                            Scalar delta_new = 0;
 
                             // The only sets for which we will not have cached data are
                             // sets that contain the element most recently added to W.
@@ -630,10 +638,10 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                                          const vec3<Scalar> W_possible = W[possible_element];
                                          const Scalar dot1 = dot(W_possible, W_k);
                                          const Scalar dot2 = dot(W_possible, W_new);
-                                         delta_current += deltas[current_index][possible_element]*(dot1 - dot2);
+                                         delta_new += deltas_current[possible_element]*(dot1 - dot2);
                                         }
                                     }
-                                deltas[new_index][new_element] = delta_current;
+                                deltas[new_index][new_element] = delta_new;
                                 }
                             else
                                 {
@@ -641,7 +649,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                                 // in the termination conditional below and
                                 // only reading from deltas when we are using a
                                 // cached value.
-                                delta_current = deltas[new_index][new_element];
+                                delta_new = deltas[new_index][new_element];
                                 }
                             unsigned int shifted_new_index = 1 << new_index;
                             if (!(comb_contains & shifted_new_index))
@@ -654,7 +662,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                             // Part (ii) of termination condition: Delta_j(X U {y_j}) <= 0
                             // for all j not in current_subset
                             // Could add additional check beforehand using added_index
-                            if (delta_current > 0)
+                            if (delta_new > 0)
                                 {
                                 complete = false;
                                 }
@@ -666,7 +674,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                         {
                         for (unsigned int i = 0; i < max_num_points; ++i)
                             {
-                            if (((1 << i) & current_index) && (deltas[current_index][i] <= 0))
+                            if (((1 << i) & current_index) && (deltas_current[i] <= 0))
                                 {
                                 complete = false;
                                 break;
