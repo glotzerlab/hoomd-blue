@@ -606,11 +606,12 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                     bool complete = true;
                     for (unsigned int new_element = 0; new_element < max_num_points; ++new_element)
                         {
+                        unsigned int shifted_new_element = 1 << new_element;
                         // Add new elements that are in use and not contained in the current set.
-                        if ((W_used & (1 << new_element)) && !(current_index & (1 << new_element)))
+                        if ((W_used & shifted_new_element) && !(current_index & shifted_new_element))
                             {
                             // Generate the corresponding bit-based index for the new set.
-                            unsigned int new_index = current_index | (1 << new_element);
+                            unsigned int new_index = current_index | shifted_new_element;
 
                             Scalar delta_current = 0;
 
@@ -642,9 +643,10 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                                 // cached value.
                                 delta_current = deltas[new_index][new_element];
                                 }
-                            if (!(comb_contains & (1 << new_index)))
+                            unsigned int shifted_new_index = 1 << new_index;
+                            if (!(comb_contains & shifted_new_index))
                                 {
-                                comb_contains |= (1 << new_index);
+                                comb_contains |= shifted_new_index;
                                 check_indexes[next_subset_slot] = new_index;
                                 next_subset_slot += 1;
                                 }
@@ -679,6 +681,9 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                     current_subset += 1;
                     }
 
+                // If we didn't find a solution that fits the termination
+                // criterion, we just use the previous solution, because it's
+                // typically close enough.
                 if (desired_index == max_power_set_size)
                     {
                     use_last = true;
@@ -694,14 +699,15 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
 
                     for (unsigned int i = 0; i < max_num_points; ++i)
                         {
-                        if ((1 << i) & desired_index)
+                        unsigned int shifted_i = 1 << i;
+                        if (shifted_i & desired_index)
                             {
-                            W_used |= (1 << i);
+                            W_used |= shifted_i;
                             lambdas[i] = deltas[desired_index][i]/delta_total;
                             }
                         else
                             {
-                            W_used &= ~(1 << i);
+                            W_used &= ~shifted_i;
                             }
                         }
                     }
