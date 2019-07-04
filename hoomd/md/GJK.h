@@ -236,7 +236,13 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
 
                     // Make a local copy of the deltas that will be used frequently
                     // to hint to the GPU that these values should be cached.
-                    Scalar deltas_current[max_num_points] = {0};
+                    // To give the GPU a hint that we need to cache specific
+                    // delta values, we point to just the relevant subset for
+                    // the current index. Rather than making another local
+                    // array (which would require further memory allocation and
+                    // copying), we just access the relevant deltas by pointer,
+                    // which seems to be sufficient.
+                    Scalar *deltas_current = deltas[current_index];
 
                     // The vector k must be fixed, but can be chosen
                     // arbitrarily. A simple deterministic choice is the last
@@ -244,10 +250,10 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                     unsigned int k = 0;
                     for (unsigned int i = 0; i < max_num_points; ++i)
                         {
-                        deltas_current[i] = deltas[current_index][i];
                         if ((1 << i) & current_index)
                             {
                             k = i;
+                            break;
                             }
                         }
 
@@ -281,7 +287,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                                          const vec3<Scalar> W_possible = W[possible_element];
                                          const Scalar dot1 = dot(W_possible, W_k);
                                          const Scalar dot2 = dot(W_possible, W_new);
-                                         delta_new += deltas_current[possible_element]*(dot1 - dot2);
+                                         delta_new += *(deltas_current +possible_element)*(dot1 - dot2);
                                         }
                                     }
                                 deltas[new_index][new_element] = delta_new;
@@ -317,7 +323,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                         {
                         for (unsigned int i = 0; i < max_num_points; ++i)
                             {
-                            if (((1 << i) & current_index) && (deltas_current[i] <= 0))
+                            if (((1 << i) & current_index) && (*(deltas_current+i) <= 0))
                                 {
                                 complete = false;
                                 break;
