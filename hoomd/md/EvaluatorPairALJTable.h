@@ -14,7 +14,7 @@
 #include "hoomd/VectorMath.h"
 #include "hoomd/ManagedArray.h"
 #include "ALJTableData.h"
-#include "GJK_vyas.h"
+#include "GJK.h"
 #include <iostream>
 
 /*! \file EvaluatorPairALJTABLE.h

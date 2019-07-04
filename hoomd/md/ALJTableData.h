@@ -15,32 +15,60 @@
 #include <hoomd/extern/pybind/include/pybind11/stl.h>
 #endif
 
+#ifdef SINGLE_PRECISION
+//! Max floating point type (single precision)
+#define SCALAR_MAX FLT_MAX;
+#else
+//! Max floating point type (double precision)
+#define SCALAR_MAX DBL_MAX;
+#endif
+
 struct shape_table
     {
     DEVICE shape_table()
-        : alpha(0.0), epsilon(0.0), sigma_i(0.0), sigma_j(0.0), ki_max(0.0), kj_max(0.0), Ni(0), Nj(0)
+        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0.0), ki_max(0.0), kj_max(0.0), Ni(0), Nj(0)
         {}
 
     #ifndef NVCC
     //! Shape constructor
-    shape_table(pybind11::list shape_i, pybind11::list shape_j, bool use_device)
-        : alpha(0.0), epsilon(0.0), sigma_i(0.0), sigma_j(0.0), ki_max(0.0), kj_max(0.0), Ni(0), Nj(0)
+    shape_table(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _alpha, pybind11::list shape_i, pybind11::list shape_j, bool use_device)
+        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha), ki_max(0.0), kj_max(0.0), Ni(0), Nj(0)
         {
+        Scalar kmax = SCALAR_MAX;
+
         //! Construct table for particle i
-        unsigned int Ni = len(shape_i);
+        Ni = len(shape_i);
         verts_i = ManagedArray<vec3<Scalar> >(Ni, use_device);
         for (unsigned int i = 0; i < Ni; ++i)
             {
-            verts_i[i] = vec3<Scalar>();
+            pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_i[i]);
+            verts_i[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
+
+            Scalar ktest = dot(verts_i[i], verts_i[i]);
+            if (ktest < kmax)
+                {
+                kmax = ktest;
+                }
             }
+        ki_max = sqrt(kmax);
+
+        kmax = SCALAR_MAX;
 
         //! Construct table for particle j
-        unsigned int Nj = len(shape_j);
+        Nj = len(shape_j);
         verts_j = ManagedArray<vec3<Scalar> >(Nj, use_device);
         for (unsigned int i = 0; i < Nj; ++i)
             {
-            verts_j[i] = vec3<Scalar>();
+            pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_j[i]);
+            verts_j[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
+
+            Scalar ktest = dot(verts_j[i], verts_j[i]);
+            if (ktest < kmax)
+                {
+                kmax = ktest;
+                }
             }
+        kj_max = sqrt(kmax);
         }
 
     #endif
@@ -68,74 +96,22 @@ struct shape_table
     ManagedArray<vec3<Scalar> > verts_i;          //! Vertices of shape i.
     ManagedArray<vec3<Scalar> > verts_j;          //! Vertices of shape j.
     //! Potential parameters
-    Scalar alpha;                        //! toggle switch fo attractive branch of potential
     Scalar epsilon;                      //! interaction parameter
     Scalar sigma_i;                      //! size of i^th particle
     Scalar sigma_j;                      //! size of j^th particle
-    Scalar ki_max;
-    Scalar kj_max;
+    Scalar alpha;                        //! toggle switch fo attractive branch of potential
+    Scalar ki_max;                       //! largest kernel value for shape i
+    Scalar kj_max;                       //! largest kernel value for shape j
     unsigned int Ni;                           //! number of vertices i^th particle
     unsigned int Nj;                           //! number of vertices j^th particle
     };
+
 
 //! Helper function to build shape structure from python
 #ifndef NVCC
 shape_table make_shape_table(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Scalar alpha, pybind11::list shape_i, pybind11::list shape_j, std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
-    shape_table result(shape_i, shape_j, exec_conf->isCUDAEnabled());
-    result.epsilon = epsilon;
-    result.alpha = alpha;
-    result.sigma_i = sigma_i;
-    result.sigma_j = sigma_j;
-
-    ///////////////////////////////////////////
-    /// Define parameters for i^th particle ///
-    ///////////////////////////////////////////
-
-    //! Length of vertices list
-    unsigned int Ni = len(shape_i);
-    //! Extract omega from python list for i^th particle
-    Scalar kmax = 10000.0;
-    Scalar ktest = 100.0;  
-    for (unsigned int i = 0; i < Ni; i++)
-        {
-        pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_i[i]);
-        result.verts_i[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
-        // Calculate kmax on the fly
-        ktest = result.verts_i[i].x*result.verts_i[i].x + result.verts_i[i].y*result.verts_i[i].y + result.verts_i[i].z*result.verts_i[i].z;
-        if (ktest < kmax)
-            {
-            kmax = ktest;
-            }
-        }
-    result.Ni = len(shape_i);
-    result.ki_max = sqrt(kmax);
-
-    ///////////////////////////////////////////
-    /// Define parameters for j^th particle ///
-    ///////////////////////////////////////////
-
-    //! Length of vertices list
-    unsigned int Nj = len(shape_j);
-    //! Extract omega from python list for i^th particle
-    kmax = 10000.0;
-    ktest = 100.0;  
-    for (unsigned int i = 0; i < Nj; i++)
-        {
-        pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_j[i]);
-        result.verts_j[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
-        // Calculate kmax on the fly
-        ktest = result.verts_j[i].x*result.verts_j[i].x + result.verts_j[i].y*result.verts_j[i].y + result.verts_j[i].z*result.verts_j[i].z;
-        if (ktest < kmax)
-            {
-            kmax = ktest;
-            }
-        }
-    result.Nj = len(shape_j);
-    result.kj_max = sqrt(kmax);
-    ///////////////////////////////////////////
-    ///////////////////////////////////////////     
-
+    shape_table result(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, exec_conf->isCUDAEnabled());
     return result;
     }
 
