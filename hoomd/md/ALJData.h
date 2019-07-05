@@ -26,7 +26,7 @@
 struct shape_table
     {
     DEVICE shape_table()
-        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0.0), ki_max(0.0), kj_max(0.0), Ni(0), Nj(0)
+        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0.0), ki_max(0.0), kj_max(0.0)
         {}
 
     #ifndef NVCC
@@ -37,7 +37,7 @@ struct shape_table
         Scalar kmax = SCALAR_MAX;
 
         //! Construct table for particle i
-        Ni = len(shape_i);
+        unsigned int Ni = len(shape_i);
         verts_i = ManagedArray<vec3<Scalar> >(Ni, use_device);
         for (unsigned int i = 0; i < Ni; ++i)
             {
@@ -55,7 +55,7 @@ struct shape_table
         kmax = SCALAR_MAX;
 
         //! Construct table for particle j
-        Nj = len(shape_j);
+        unsigned int Nj = len(shape_j);
         verts_j = ManagedArray<vec3<Scalar> >(Nj, use_device);
         for (unsigned int i = 0; i < Nj; ++i)
             {
@@ -103,8 +103,6 @@ struct shape_table
     ManagedArray<vec3<Scalar> > verts_j;       //! Vertices of shape j.
     Scalar ki_max;                             //! largest kernel value for shape i.
     Scalar kj_max;                             //! largest kernel value for shape j.
-    unsigned int Ni;                           //! number of vertices i^th particle.
-    unsigned int Nj;                           //! number of vertices j^th particle.
     };
 
 
@@ -126,9 +124,7 @@ inline void export_shape_params(pybind11::module& m)
         .def_readwrite("sigma_i", &shape_table::sigma_i)
         .def_readwrite("sigma_j", &shape_table::sigma_j)
         .def_readwrite("ki_max", &shape_table::ki_max)
-        .def_readwrite("kj_max", &shape_table::kj_max)
-        .def_readwrite("Ni", &shape_table::Ni)
-        .def_readwrite("Nj", &shape_table::Nj);
+        .def_readwrite("kj_max", &shape_table::kj_max);
 
     m.def("make_shape_table", &make_shape_table);
 }

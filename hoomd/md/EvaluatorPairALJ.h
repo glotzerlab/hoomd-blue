@@ -121,7 +121,7 @@ class EvaluatorPairALJ
               // Call gjk
               vec3<Scalar> v = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
               bool success, overlap;
-              gjk<ndim>(_params.verts_i, _params.Ni, _params.verts_j, _params.Nj, v, a, b, success, overlap, qi, qj, dr);
+              gjk<ndim>(_params.verts_i, _params.verts_j, v, a, b, success, overlap, qi, qj, dr);
               if (ndim == 2)
                   {
                   v.z = 0;

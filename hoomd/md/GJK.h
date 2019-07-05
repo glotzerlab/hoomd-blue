@@ -10,12 +10,12 @@
 #include <stdexcept>
 #endif
 
-DEVICE inline unsigned int support(const ManagedArray<vec3<Scalar> > verts, const unsigned int &num_verts, const vec3<Scalar> &vector, const quat<Scalar> &q, const vec3<Scalar> shift)
+DEVICE inline unsigned int support(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const quat<Scalar> &q, const vec3<Scalar> shift)
     {
     unsigned int index = 0;
 
     Scalar max_dist = dot((rotate(q, verts[index]) + shift), vector);
-    for (unsigned int i = 1; i < num_verts; ++i)
+    for (unsigned int i = 1; i < verts.size(); ++i)
         {
         Scalar dist = dot((rotate(q, verts[i]) + shift), vector);
         if (dist > max_dist)
@@ -39,7 +39,7 @@ DEVICE inline unsigned int support(const ManagedArray<vec3<Scalar> > verts, cons
 // more dimensions were ever needed, we could replace these bit indexes with
 // simple boolean arrays, but this slows down code substantially on the GPU.
 template <unsigned int ndim>
-DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned int &N1, const ManagedArray<vec3<Scalar> > verts2, const unsigned int &N2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr)
+DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr)
     {
     // At any point only a subset of W is in use (identified by W_used), but
     // the total possible is capped at ndim+1 because that is the largest
@@ -51,16 +51,16 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
     // Start with guess as vector pointing from the centroid of verts1 to the
     // centroid of verts2.
     vec3<Scalar> mean1, mean2;
-    for(unsigned int i = 0; i < N1; ++i)
+    for(unsigned int i = 0; i < verts1.size(); ++i)
         {
         mean1 += rotate(qi, verts1[i]);
         }
-    for(unsigned int i = 0; i < N2; ++i)
+    for(unsigned int i = 0; i < verts2.size(); ++i)
         {
         mean2 += (rotate(qj, verts2[i]) + Scalar(-1.0)*dr);
         }
-    mean1 /= Scalar(N1);
-    mean2 /= Scalar(N2);
+    mean1 /= Scalar(verts1.size());
+    mean2 /= Scalar(verts2.size());
     v = mean1 - mean2; 
 
     vec3<Scalar> W[max_num_points];
@@ -92,12 +92,23 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
             }
         }
 
+    // Base case for recursive algorithm is a set of size 1. While the distance
+    // subalgorithm is recursive in computing sets of increasing size, the
+    // outer GJK algorithm is not. Therefore, there is no guarantee that all
+    // sets of size one will have been set by other calls to the Johnson
+    // algorithm before accessing them, so we need to establish the base case
+    // explicitly by setting these here.
+    for (unsigned int i = 0; i < max_num_points; ++i)
+        {
+        deltas[1 << i][i] = 1;
+        }
+
     // The tolerances are compile-time constants.
     constexpr Scalar eps(1e-8), omega(1e-4);
 
     Scalar u(0);
     bool close_enough(false);
-    unsigned int max_iterations = N1 + N2 + 1;
+    unsigned int max_iterations = verts1.size() + verts2.size() + 1;
     unsigned int iteration = 0;
     while (!close_enough)
         {
@@ -108,8 +119,8 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
             break;
             }
         // support_{A-B}(-v) = support(A, -v) - support(B, v)
-        unsigned int i1 = support(verts1, N1, -v, qi, vec3<Scalar>(0, 0, 0));
-        unsigned int i2 = support(verts2, N2, v, qj, Scalar(-1.0)*dr);
+        unsigned int i1 = support(verts1, -v, qi, vec3<Scalar>(0, 0, 0));
+        unsigned int i2 = support(verts2, v, qj, Scalar(-1.0)*dr);
         vec3<Scalar> w = rotate(qi, verts1[i1]) - (rotate(qj, verts2[i2]) + Scalar(-1.0)*dr);
 
         // Check termination conditions for degenerate cases:
@@ -184,7 +195,6 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                     {
                     if (W_used & (1 << i))
                         {
-                        deltas[1 << i][i] = 1;
                         lambdas[i] = 1.0;
                         }
                     }
@@ -218,14 +228,6 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                         check_indexes[next_subset_slot] = index_i;
                         comb_contains |= (1 << index_i);
                         next_subset_slot += 1;
-
-                        // Base case for recursive algorithm is a set of size 1. While the distance
-                        // subalgorithm is recursive in computing sets of increasing size, the
-                        // outer GJK algorithm is not. Therefore, there is no guarantee that all
-                        // sets of size one will have been set by other calls to the Johnson
-                        // algorithm before getting her, so we need to establish the base case
-                        // explicitly by setting these here.
-                        deltas[index_i][i] = 1;
                         }
                     }
 
@@ -277,17 +279,14 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > verts1, const unsigned 
                             if ((added_index & current_index) || (added_element == new_element))
                                 {
                                 // Caching the W_new value for speed on the GPU.
-                                const vec3<Scalar> W_new = W[new_element];
+                                const vec3<Scalar> W_diff = W_k - W[new_element];
 
                                 // Use bitwise checks of all possible elements to find set members
                                 for (unsigned int possible_element = 0; possible_element < max_num_points; ++possible_element)
                                     {
                                     if ((1 << possible_element) & current_index)
                                         {
-                                         const vec3<Scalar> W_possible = W[possible_element];
-                                         const Scalar dot1 = dot(W_possible, W_k);
-                                         const Scalar dot2 = dot(W_possible, W_new);
-                                         delta_new += *(deltas_current +possible_element)*(dot1 - dot2);
+                                        delta_new += *(deltas_current + possible_element)*dot(W[possible_element], W_diff);
                                         }
                                     }
                                 deltas[new_index][new_element] = delta_new;
