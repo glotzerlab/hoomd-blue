@@ -261,7 +261,7 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
     \param compute_capability Compute capability of the device (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
+    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
 
     \a d_params should include one Scalar4 element per improper type. The x component contains K the spring constant
     and the y component contains sign, and the z component the multiplicity.

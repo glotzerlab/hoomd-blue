@@ -39,7 +39,7 @@ extern "C" cudaError_t gpu_add_one(int *d_data, unsigned int num)
 
     gpu_add_one_kernel<<<grid, threads>>>(d_data, num);
 
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     return cudaGetLastError();
     }
 
@@ -72,6 +72,6 @@ extern "C" cudaError_t gpu_fill_test_pattern(int *d_data, unsigned int num)
 
     gpu_fill_test_pattern_kernel<<<grid, threads>>>(d_data, num);
 
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     return cudaGetLastError();
     }
