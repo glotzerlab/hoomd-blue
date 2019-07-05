@@ -226,12 +226,12 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             : m_exec_conf(exec_conf),
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             // explicit copy should be elided
-            m_fallback((exec_conf->allConcurrentManagedAccess() || force_managed) ?
+            m_fallback((exec_conf->allConcurrentManagedAccess() || (force_managed && exec_conf->isCUDAEnabled())) ?
                 GPUArray<T>() : GPUArray<T>(num_elements, exec_conf)),
             #endif
             m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_tag(tag),
             m_align_bytes(0),
-            m_is_managed(exec_conf->allConcurrentManagedAccess() || force_managed)
+            m_is_managed(exec_conf->allConcurrentManagedAccess() || (force_managed && exec_conf->isCUDAEnabled()))
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!(m_is_managed))
@@ -388,11 +388,11 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             : m_exec_conf(exec_conf),
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             // explicit copy should be elided
-            m_fallback((exec_conf->allConcurrentManagedAccess() || force_managed) ?
+            m_fallback((exec_conf->allConcurrentManagedAccess() || (force_managed && exec_conf->isCUDAEnabled())) ?
                 GPUArray<T>() : GPUArray<T>(width, height, exec_conf)),
             #endif
             m_height(height), m_acquired(false), m_align_bytes(0),
-            m_is_managed(exec_conf->allConcurrentManagedAccess() || force_managed)
+            m_is_managed(exec_conf->allConcurrentManagedAccess() || (force_managed && exec_conf->isCUDAEnabled()))
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!m_is_managed)
