@@ -178,7 +178,15 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
         if (cur_offset + threadIdx.x < num_typ_parameters)
             {
             s_rcutsq[cur_offset + threadIdx.x] = d_rcutsq[cur_offset + threadIdx.x];
-            s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
+            }
+        }
+
+    unsigned int param_size = num_typ_parameters*sizeof(typename evaluator::param_type) / sizeof(int);
+    for (unsigned int cur_offset = 0; cur_offset < param_size; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < param_size)
+            {
+            ((int *)s_params)[cur_offset + threadIdx.x] = ((int *)d_params)[cur_offset + threadIdx.x];
             }
         }
     __syncthreads();
