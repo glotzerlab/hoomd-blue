@@ -364,7 +364,7 @@ void MolecularForceCompute::initMolecules()
 
 void export_MolecularForceCompute(py::module& m)
     {
-    py::class_< MolecularForceCompute, std::shared_ptr<MolecularForceCompute> >(m, "MolecularForceCompute", py::base<ForceConstraint>())
+    py::class_< MolecularForceCompute, ForceConstraint, std::shared_ptr<MolecularForceCompute> >(m, "MolecularForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

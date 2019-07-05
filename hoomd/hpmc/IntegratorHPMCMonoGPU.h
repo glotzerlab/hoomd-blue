@@ -489,7 +489,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
 */
 template < class Shape > void export_IntegratorHPMCMonoGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<IntegratorHPMCMonoGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoGPU<Shape> > >(m, name.c_str(), pybind11::base< IntegratorHPMCMono<Shape> >())
+     pybind11::class_<IntegratorHPMCMonoGPU<Shape>, IntegratorHPMCMono<Shape>, std::shared_ptr< IntegratorHPMCMonoGPU<Shape> > >(m, name.c_str())
               .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
               ;
     }

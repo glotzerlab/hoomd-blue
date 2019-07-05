@@ -387,7 +387,7 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
 
 void export_ForceCompute(py::module& m)
     {
-    py::class_< ForceCompute, std::shared_ptr<ForceCompute> >(m,"ForceCompute",py::base<Compute>())
+    py::class_< ForceCompute, Compute, std::shared_ptr<ForceCompute> >(m,"ForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("getForce", &ForceCompute::getForce)
     .def("getTorque", &ForceCompute::getTorque)

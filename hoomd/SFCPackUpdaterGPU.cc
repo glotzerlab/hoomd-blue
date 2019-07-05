@@ -240,7 +240,7 @@ void SFCPackUpdaterGPU::applySortOrder()
 
 void export_SFCPackUpdaterGPU(py::module& m)
     {
-    py::class_<SFCPackUpdaterGPU, std::shared_ptr<SFCPackUpdaterGPU> >(m,"SFCPackUpdaterGPU",py::base<SFCPackUpdater>())
+    py::class_<SFCPackUpdaterGPU, SFCPackUpdater, std::shared_ptr<SFCPackUpdaterGPU> >(m,"SFCPackUpdaterGPU")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

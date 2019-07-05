@@ -1634,7 +1634,7 @@ void NeighborList::updateMemoryMapping()
 
 void export_NeighborList(py::module& m)
     {
-    py::class_<NeighborList, std::shared_ptr<NeighborList> > nlist(m, "NeighborList", py::base<Compute>());
+    py::class_<NeighborList, Compute, std::shared_ptr<NeighborList> > nlist(m, "NeighborList");
     nlist.def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
         .def("setRCut", &NeighborList::setRCut)
         .def("setRCutPair", &NeighborList::setRCutPair)

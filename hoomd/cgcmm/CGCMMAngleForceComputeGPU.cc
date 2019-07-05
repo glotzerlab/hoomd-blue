@@ -144,7 +144,7 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_CGCMMAngleForceComputeGPU(py::module& m)
     {
-    py::class_<CGCMMAngleForceComputeGPU, std::shared_ptr<CGCMMAngleForceComputeGPU> >(m, "CGCMMAngleForceComputeGPU", py::base<CGCMMAngleForceCompute>())
+    py::class_<CGCMMAngleForceComputeGPU, CGCMMAngleForceCompute, std::shared_ptr<CGCMMAngleForceComputeGPU> >(m, "CGCMMAngleForceComputeGPU")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

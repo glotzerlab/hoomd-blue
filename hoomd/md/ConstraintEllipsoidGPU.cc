@@ -78,7 +78,7 @@ void ConstraintEllipsoidGPU::update(unsigned int timestep)
 
 void export_ConstraintEllipsoidGPU(py::module& m)
     {
-    py::class_< ConstraintEllipsoidGPU, std::shared_ptr<ConstraintEllipsoidGPU> >(m, "ConstraintEllipsoidGPU", py::base<ConstraintEllipsoid>())
+    py::class_< ConstraintEllipsoidGPU, ConstraintEllipsoid, std::shared_ptr<ConstraintEllipsoidGPU> >(m, "ConstraintEllipsoidGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                              std::shared_ptr<ParticleGroup>,
                              Scalar3,

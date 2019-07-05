@@ -355,7 +355,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
 //! Exports the TableDihedralForceCompute class to python
 void export_TableDihedralForceCompute(py::module& m)
     {
-    py::class_<TableDihedralForceCompute, std::shared_ptr<TableDihedralForceCompute> >(m, "TableDihedralForceCompute", py::base<ForceCompute>())
+    py::class_<TableDihedralForceCompute, ForceCompute, std::shared_ptr<TableDihedralForceCompute> >(m, "TableDihedralForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
     .def("setTable", &TableDihedralForceCompute::setTable)
     .def("getEntry", &TableDihedralForceCompute::getEntry)

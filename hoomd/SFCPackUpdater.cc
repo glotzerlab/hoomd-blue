@@ -614,7 +614,7 @@ void SFCPackUpdater::writeTraversalOrder(const std::string& fname, const vector<
 
 void export_SFCPackUpdater(py::module& m)
     {
-    py::class_<SFCPackUpdater, std::shared_ptr<SFCPackUpdater> >(m,"SFCPackUpdater",py::base<Updater>())
+    py::class_<SFCPackUpdater, Updater, std::shared_ptr<SFCPackUpdater> >(m,"SFCPackUpdater")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setGrid", &SFCPackUpdater::setGrid)
     ;

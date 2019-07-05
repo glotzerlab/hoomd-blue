@@ -991,7 +991,7 @@ void export_sphere_proxy(pybind11::module& m, const std::string& class_name)
     std::string base_name=class_name+"_base";
 
     export_shape_param_proxy<ShapeType, AccessType>(m, base_name);
-    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    pybind11::class_<proxy_class, proxy_base, std::shared_ptr< proxy_class > >(m, class_name.c_str())
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
     .def_property_readonly("diameter", &proxy_class::getDiameter)
     .def_property_readonly("orientable", &proxy_class::getOrientable)
@@ -1009,7 +1009,7 @@ void export_ell_proxy(pybind11::module& m)
     std::string base_name=class_name+"_base";
 
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
-    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    pybind11::class_<proxy_class, proxy_base, std::shared_ptr< proxy_class > >(m, class_name.c_str())
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
     .def_property_readonly("a", &proxy_class::getX)
     .def_property_readonly("b", &proxy_class::getY)
@@ -1028,7 +1028,7 @@ void export_poly2d_proxy(pybind11::module& m, std::string class_name, bool sweep
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
     if (sweep_radius_valid)
         {
-        pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+        pybind11::class_<proxy_class, proxy_base, std::shared_ptr< proxy_class > >(m, class_name.c_str())
         .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
         .def_property_readonly("vertices", &proxy_class::getVerts)
         .def_property_readonly("sweep_radius", &proxy_class::getSweepRadius)
@@ -1036,7 +1036,7 @@ void export_poly2d_proxy(pybind11::module& m, std::string class_name, bool sweep
         }
     else
         {
-        pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+        pybind11::class_<proxy_class, proxy_base, std::shared_ptr< proxy_class > >(m, class_name.c_str())
         .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
         .def_property_readonly("vertices", &proxy_class::getVerts)
         ;
@@ -1055,7 +1055,7 @@ void export_poly3d_proxy(pybind11::module& m, std::string class_name, bool sweep
     export_shape_param_proxy<ShapeType, AccessType >(m, base_name);
     if (sweep_radius_valid)
         {
-        pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+        pybind11::class_<proxy_class, proxy_base, std::shared_ptr< proxy_class > >(m, class_name.c_str())
         .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
         .def_property_readonly("vertices", &proxy_class::getVerts)
         .def_property_readonly("sweep_radius", &proxy_class::getSweepRadius)
@@ -1063,7 +1063,7 @@ void export_poly3d_proxy(pybind11::module& m, std::string class_name, bool sweep
         }
     else
         {
-        pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+        pybind11::class_<proxy_class, proxy_base, std::shared_ptr< proxy_class > >(m, class_name.c_str())
         .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
         .def_property_readonly("vertices", &proxy_class::getVerts)
         ;
@@ -1080,7 +1080,7 @@ void export_polyhedron_proxy(pybind11::module& m, std::string class_name)
     std::string base_name=class_name+"_base";
 
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
-    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    pybind11::class_<proxy_class, proxy_base, std::shared_ptr< proxy_class > >(m, class_name.c_str())
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
     .def_property_readonly("vertices", &proxy_class::getVerts)
     .def_property_readonly("faces", &proxy_class::getFaces)
@@ -1103,7 +1103,7 @@ void export_faceted_ellipsoid_proxy(pybind11::module& m, std::string class_name)
     std::string base_name=class_name+"_base";
 
     export_shape_param_proxy<ShapeType, AccessType >(m, base_name);
-    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    pybind11::class_<proxy_class, proxy_base, std::shared_ptr< proxy_class > >(m, class_name.c_str())
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
     .def_property_readonly("vertices", &proxy_class::getVerts)
     .def_property_readonly("normals", &proxy_class::getNormals)
@@ -1127,7 +1127,7 @@ void export_sphinx_proxy(pybind11::module& m, std::string class_name)
     std::string base_name=class_name+"_base";
 
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
-    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    pybind11::class_<proxy_class, proxy_base, std::shared_ptr< proxy_class > >(m, class_name.c_str())
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
     .def_property_readonly("centers", &proxy_class::getCenters)
     .def_property_readonly("diameters", &proxy_class::getDiameters)
@@ -1150,7 +1150,7 @@ void export_shape_union_proxy(pybind11::module& m, std::string class_name, Expor
 
     export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
     export_member_proxy(m, member_name);
-    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    pybind11::class_<proxy_class, proxy_base, std::shared_ptr< proxy_class > >(m, class_name.c_str())
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
     .def_property_readonly("centers", &proxy_class::getPositions)
     .def_property_readonly("orientations", &proxy_class::getOrientations)

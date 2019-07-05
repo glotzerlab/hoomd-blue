@@ -2150,7 +2150,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
 template < class Shape> void export_UpdaterClusters(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< UpdaterClusters<Shape>, std::shared_ptr< UpdaterClusters<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+    pybind11::class_< UpdaterClusters<Shape>, Updater, std::shared_ptr< UpdaterClusters<Shape> > >(m, name.c_str())
           .def( pybind11::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr< IntegratorHPMCMono<Shape> >,
                          unsigned int >())

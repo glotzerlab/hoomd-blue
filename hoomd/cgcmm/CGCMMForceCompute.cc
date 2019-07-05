@@ -347,7 +347,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
 
 void export_CGCMMForceCompute(py::module& m)
     {
-    py::class_<CGCMMForceCompute, std::shared_ptr<CGCMMForceCompute> >(m, "CGCMMForceCompute", py::base<ForceCompute>())
+    py::class_<CGCMMForceCompute, ForceCompute, std::shared_ptr<CGCMMForceCompute> >(m, "CGCMMForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar >())
     .def("setParams", &CGCMMForceCompute::setParams)
     ;

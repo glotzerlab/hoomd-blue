@@ -446,7 +446,7 @@ void ComputeThermo::reduceProperties()
 
 void export_ComputeThermo(py::module& m)
     {
-    py::class_<ComputeThermo, std::shared_ptr<ComputeThermo> >(m,"ComputeThermo",py::base<Compute>())
+    py::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo> >(m,"ComputeThermo")
     .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const std::string& >())
     .def("setNDOF", &ComputeThermo::setNDOF)
     .def("setRotationalNDOF", &ComputeThermo::setRotationalNDOF)

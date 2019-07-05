@@ -188,7 +188,7 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepNVEGPU(py::module& m)
     {
-    py::class_<TwoStepNVEGPU, std::shared_ptr<TwoStepNVEGPU> >(m, "TwoStepNVEGPU", py::base<TwoStepNVE>())
+    py::class_<TwoStepNVEGPU, std::shared_ptr<TwoStepNVEGPU> >(m, "TwoStepNVEGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
         ;
     }

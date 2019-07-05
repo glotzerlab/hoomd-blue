@@ -69,7 +69,7 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
 template<class Shape>
 void export_ExternalFieldComposite(pybind11::module& m, std::string name)
 {
-   pybind11::class_<ExternalFieldMonoComposite<Shape>, std::shared_ptr< ExternalFieldMonoComposite<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+   pybind11::class_<ExternalFieldMonoComposite<Shape>, ExternalFieldMono<Shape>, std::shared_ptr< ExternalFieldMonoComposite<Shape> > >(m, name.c_str())
     .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
     .def("addExternal", &ExternalFieldMonoComposite<Shape>::addExternal)
     ;

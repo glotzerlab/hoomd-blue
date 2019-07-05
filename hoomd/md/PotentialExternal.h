@@ -246,7 +246,7 @@ void PotentialExternal<evaluator>::setField(field_type field)
 template < class T >
 void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<ForceCompute>())
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
                   .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setField", &T::setField)

@@ -273,7 +273,7 @@ void CosineSqAngleForceCompute::computeForces(unsigned int timestep)
 
 void export_CosineSqAngleForceCompute(py::module& m)
     {
-    py::class_<CosineSqAngleForceCompute, std::shared_ptr<CosineSqAngleForceCompute> >(m, "CosineSqAngleForceCompute", py::base<ForceCompute>())
+    py::class_<CosineSqAngleForceCompute, ForceCompute, std::shared_ptr<CosineSqAngleForceCompute> >(m, "CosineSqAngleForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &CosineSqAngleForceCompute::setParams)
     ;

@@ -197,7 +197,7 @@ void LogPlainTXT::setLoggedQuantities(const std::vector< std::string >& quantiti
 
 void export_LogPlainTXT(py::module& m)
     {
-    py::class_<LogPlainTXT, std::shared_ptr<LogPlainTXT> >(m,"LogPlainTXT", py::base<Logger>())
+    py::class_<LogPlainTXT, Logger, std::shared_ptr<LogPlainTXT> >(m,"LogPlainTXT")
     .def(py::init< std::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
     .def("setDelimiter", &LogPlainTXT::setDelimiter)
     ;

@@ -699,7 +699,7 @@ void CellList::printStats()
 
 void export_CellList(py::module& m)
     {
-    py::class_<CellList, std::shared_ptr<CellList> >(m,"CellList",py::base<Compute>())
+    py::class_<CellList, Compute, std::shared_ptr<CellList> >(m,"CellList")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)

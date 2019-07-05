@@ -103,7 +103,7 @@ void CosineSqAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_CosineSqAngleForceComputeGPU(py::module& m)
     {
-    py::class_<CosineSqAngleForceComputeGPU, std::shared_ptr<CosineSqAngleForceComputeGPU> >(m, "CosineSqAngleForceComputeGPU", py::base<CosineSqAngleForceCompute>())
+    py::class_<CosineSqAngleForceComputeGPU, CosineSqAngleForceCompute, std::shared_ptr<CosineSqAngleForceComputeGPU> >(m, "CosineSqAngleForceComputeGPU")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

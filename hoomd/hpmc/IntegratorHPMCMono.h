@@ -3005,7 +3005,7 @@ bool IntegratorHPMCMono<Shape>::attemptBoxResize(unsigned int timestep, const Bo
 */
 template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< IntegratorHPMCMono<Shape>, std::shared_ptr< IntegratorHPMCMono<Shape> > >(m, name.c_str(), pybind11::base<IntegratorHPMC>())
+    pybind11::class_< IntegratorHPMCMono<Shape>, IntegratorHPMC, std::shared_ptr< IntegratorHPMCMono<Shape> > >(m, name.c_str())
           .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)

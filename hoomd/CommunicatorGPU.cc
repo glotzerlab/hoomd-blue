@@ -3108,7 +3108,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
  //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU(py::module& m)
     {
-    py::class_<CommunicatorGPU, std::shared_ptr<CommunicatorGPU> >(m,"CommunicatorGPU",py::base<Communicator>())
+    py::class_<CommunicatorGPU, Communicator, std::shared_ptr<CommunicatorGPU> >(m,"CommunicatorGPU")
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
         .def("setMaxStages",&CommunicatorGPU::setMaxStages)
     ;

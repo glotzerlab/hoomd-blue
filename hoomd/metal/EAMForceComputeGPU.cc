@@ -114,6 +114,6 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_EAMForceComputeGPU(py::module &m)
     {
-    py::class_<EAMForceComputeGPU, std::shared_ptr<EAMForceComputeGPU>>(m, "EAMForceComputeGPU",
-            py::base<EAMForceCompute>()).def(py::init<std::shared_ptr<SystemDefinition>, char *, int>());
+    py::class_<EAMForceComputeGPU, EAMForceCompute, std::shared_ptr<EAMForceComputeGPU>>(m, "EAMForceComputeGPU")
+        .def(py::init<std::shared_ptr<SystemDefinition>, char *, int>());
     }

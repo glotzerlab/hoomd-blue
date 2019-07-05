@@ -879,7 +879,7 @@ hpmc_boxmc_counters_t UpdaterBoxMC::getCounters(unsigned int mode)
 
 void export_UpdaterBoxMC(py::module& m)
     {
-   py::class_< UpdaterBoxMC, std::shared_ptr< UpdaterBoxMC > >(m, "UpdaterBoxMC", py::base<Updater>())
+   py::class_< UpdaterBoxMC, Updater, std::shared_ptr< UpdaterBoxMC > >(m, "UpdaterBoxMC")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<IntegratorHPMC>,
                          std::shared_ptr<Variant>,

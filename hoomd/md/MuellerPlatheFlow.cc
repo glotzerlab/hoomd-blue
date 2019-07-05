@@ -443,8 +443,8 @@ void MuellerPlatheFlow::mpi_exchange_velocity(void)
 
 void export_MuellerPlatheFlow(py::module& m)
     {
-    py::class_< MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlow> >
-        flow (m,"MuellerPlatheFlow",py::base<Updater>());
+    py::class_< MuellerPlatheFlow, Updater, std::shared_ptr<MuellerPlatheFlow> >
+        flow (m,"MuellerPlatheFlow");
     flow.def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
              std::shared_ptr<Variant>, const flow_enum::Direction, const flow_enum::Direction,
              const unsigned int, const unsigned int, const unsigned int >() )

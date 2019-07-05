@@ -626,7 +626,7 @@ void export_RandomGenerator(py::module& m)
     // no methods exposed to python
     ;
 
-    py::class_< PolymerParticleGenerator, std::shared_ptr<PolymerParticleGenerator> >(m,"PolymerParticleGenerator",py::base<ParticleGenerator>())
+    py::class_< PolymerParticleGenerator, ParticleGenerator, std::shared_ptr<PolymerParticleGenerator> >(m,"PolymerParticleGenerator")
     .def(py::init< std::shared_ptr<const ExecutionConfiguration>, Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int, unsigned int >())
     // all methods are internal C++ methods
     ;

@@ -318,7 +318,7 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicImproperForceCompute(py::module& m)
     {
-    py::class_<HarmonicImproperForceCompute, std::shared_ptr<HarmonicImproperForceCompute> >(m, "HarmonicImproperForceCompute", py::base<ForceCompute>())
+    py::class_<HarmonicImproperForceCompute, ForceCompute, std::shared_ptr<HarmonicImproperForceCompute> >(m, "HarmonicImproperForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicImproperForceCompute::setParams)
     ;

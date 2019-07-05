@@ -918,7 +918,7 @@ void GSDDumpWriter::populateNonDefault()
 
 void export_GSDDumpWriter(py::module& m)
     {
-    py::class_<GSDDumpWriter, std::shared_ptr<GSDDumpWriter> >(m,"GSDDumpWriter",py::base<Analyzer>())
+    py::class_<GSDDumpWriter, Analyzer, std::shared_ptr<GSDDumpWriter> >(m,"GSDDumpWriter")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::string, std::shared_ptr<ParticleGroup>, bool, bool>())
         .def("setWriteAttribute", &GSDDumpWriter::setWriteAttribute)
         .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)

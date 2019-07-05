@@ -259,7 +259,7 @@ void NeighborListGPU::buildHeadList()
 
 void export_NeighborListGPU(py::module& m)
     {
-    py::class_<NeighborListGPU, std::shared_ptr<NeighborListGPU> >(m, "NeighborListGPU", py::base<NeighborList>())
+    py::class_<NeighborListGPU, NeighborList, std::shared_ptr<NeighborListGPU> >(m, "NeighborListGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
                      ;

@@ -215,7 +215,7 @@ py::array LogMatrix::getMatrixQuantity(const std::string &quantity, unsigned int
 
 void export_LogMatrix(py::module& m)
     {
-    py::class_<LogMatrix, std::shared_ptr<LogMatrix> >(m,"LogMatrix", py::base<Logger>())
+    py::class_<LogMatrix, Logger, std::shared_ptr<LogMatrix> >(m,"LogMatrix")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setLoggedMatrixQuantities", &LogMatrix::setLoggedMatrixQuantities)
     .def("getLoggedMatrixQuantities", &LogMatrix::getLoggedMatrixQuantities)

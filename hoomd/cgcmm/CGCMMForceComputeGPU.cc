@@ -178,7 +178,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_CGCMMForceComputeGPU(py::module& m)
     {
-    py::class_<CGCMMForceComputeGPU, std::shared_ptr<CGCMMForceComputeGPU> >(m, "CGCMMForceComputeGPU", py::base<CGCMMForceCompute>())
+    py::class_<CGCMMForceComputeGPU, CGCMMForceCompute, std::shared_ptr<CGCMMForceComputeGPU> >(m, "CGCMMForceComputeGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar >())
     .def("setBlockSize", &CGCMMForceComputeGPU::setBlockSize)
     ;

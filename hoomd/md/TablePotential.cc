@@ -389,7 +389,7 @@ void TablePotential::computeForces(unsigned int timestep)
 //! Exports the TablePotential class to python
 void export_TablePotential(py::module& m)
     {
-    py::class_<TablePotential, std::shared_ptr<TablePotential> >(m, "TablePotential", py::base<ForceCompute>())
+    py::class_<TablePotential, ForceCompute, std::shared_ptr<TablePotential> >(m, "TablePotential")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, unsigned int, const std::string& >())
     .def("setTable", &TablePotential::setTable)
     ;

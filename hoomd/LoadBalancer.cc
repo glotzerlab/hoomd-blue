@@ -571,7 +571,7 @@ void LoadBalancer::resetStats()
 
 void export_LoadBalancer(py::module& m)
     {
-    py::class_<LoadBalancer, std::shared_ptr<LoadBalancer> >(m,"LoadBalancer",py::base<Updater>())
+    py::class_<LoadBalancer, Updater, std::shared_ptr<LoadBalancer> >(m,"LoadBalancer")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
     .def("enableDimension", &LoadBalancer::enableDimension)
     .def("getTolerance", &LoadBalancer::getTolerance)

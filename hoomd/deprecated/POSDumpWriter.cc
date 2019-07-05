@@ -188,7 +188,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
 
 void export_POSDumpWriter(py::module& m)
     {
-    py::class_<POSDumpWriter, std::shared_ptr<POSDumpWriter> >(m,"POSDumpWriter",py::base<Analyzer>())
+    py::class_<POSDumpWriter, Analyzer, std::shared_ptr<POSDumpWriter> >(m,"POSDumpWriter")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::string >())
         .def("setDef", &POSDumpWriter::setDef)
         .def("setUnwrapRigid", &POSDumpWriter::setUnwrapRigid)
