@@ -34,7 +34,7 @@ struct shape_table
     shape_table(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _alpha, pybind11::list shape_i, pybind11::list shape_j, bool use_device)
         : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha), ki_max(0.0), kj_max(0.0)
         {
-        Scalar kmax = SCALAR_MAX;
+        Scalar kmax = 0;
 
         //! Construct table for particle i
         unsigned int Ni = len(shape_i);
@@ -45,14 +45,14 @@ struct shape_table
             verts_i[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
 
             Scalar ktest = dot(verts_i[i], verts_i[i]);
-            if (ktest < kmax)
+            if (ktest > kmax)
                 {
                 kmax = ktest;
                 }
             }
         ki_max = sqrt(kmax);
 
-        kmax = SCALAR_MAX;
+        kmax = 0;
 
         //! Construct table for particle j
         unsigned int Nj = len(shape_j);
@@ -63,7 +63,7 @@ struct shape_table
             verts_j[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
 
             Scalar ktest = dot(verts_j[i], verts_j[i]);
-            if (ktest < kmax)
+            if (ktest > kmax)
                 {
                 kmax = ktest;
                 }
