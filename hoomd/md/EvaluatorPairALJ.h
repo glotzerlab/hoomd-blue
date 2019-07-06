@@ -115,7 +115,7 @@ class EvaluatorPairALJ
             vec3<Scalar> rvect;
 
             // Distance
-            if ( (rsq/_params.ki_max/_params.ki_max < rcutsq) | (rsq/_params.kj_max/_params.kj_max < rcutsq) )
+            if ( (rsq/_params.ki_maxsq < rcutsq) | (rsq/_params.kj_maxsq < rcutsq) )
               {
 
               // Call gjk
@@ -191,7 +191,7 @@ class EvaluatorPairALJ
               // No overlap
               if (_params.alpha*0.0 < 1.0)
                 {
-                if (sqrt(rcheck)  < two_p_16 *(sub_sphere*sigma12))
+                if (1/rcheck_isq  < two_p_16 *(sub_sphere*sigma12))
                     {
                     // Contact force and energy
                     rho = sub_sphere * sigma12 * rcheck_isq;
@@ -226,8 +226,9 @@ class EvaluatorPairALJ
               force = vec_to_scalar3(f);
 
               // Torque
-              torque_i = vec_to_scalar3(cross(a-0.5*sub_sphere*sigma12*rvect+sqrt(rcheck)*rvect,Scalar(1.0)*f));
-              torque_j = vec_to_scalar3(cross(dr+a+0.5*sub_sphere*sigma12*rvect,Scalar(-1.0)*f));  
+              vec3<Scalar> lever = 0.5*sub_sphere*sigma12*rvect;
+              torque_i = vec_to_scalar3(cross(a - lever + rvect/rcheck_isq, f));
+              torque_j = vec_to_scalar3(cross(dr + a + lever, Scalar(-1.0)*f));
 
               return true;
               }

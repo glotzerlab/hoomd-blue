@@ -26,13 +26,13 @@
 struct shape_table
     {
     DEVICE shape_table()
-        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0.0), ki_max(0.0), kj_max(0.0)
+        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0.0), ki_maxsq(0.0), kj_maxsq(0.0)
         {}
 
     #ifndef NVCC
     //! Shape constructor
     shape_table(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _alpha, pybind11::list shape_i, pybind11::list shape_j, bool use_device)
-        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha), ki_max(0.0), kj_max(0.0)
+        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha), ki_maxsq(0.0), kj_maxsq(0.0)
         {
         Scalar kmax = 0;
 
@@ -50,7 +50,7 @@ struct shape_table
                 kmax = ktest;
                 }
             }
-        ki_max = sqrt(kmax);
+        ki_maxsq = kmax;
 
         kmax = 0;
 
@@ -68,7 +68,7 @@ struct shape_table
                 kmax = ktest;
                 }
             }
-        kj_max = sqrt(kmax);
+        kj_maxsq = kmax;
         }
 
     #endif
@@ -101,8 +101,8 @@ struct shape_table
     //! Shape parameters
     ManagedArray<vec3<Scalar> > verts_i;       //! Vertices of shape i.
     ManagedArray<vec3<Scalar> > verts_j;       //! Vertices of shape j.
-    Scalar ki_max;                             //! largest kernel value for shape i.
-    Scalar kj_max;                             //! largest kernel value for shape j.
+    Scalar ki_maxsq;                           //! largest kernel value for shape i.
+    Scalar kj_maxsq;                           //! largest kernel value for shape j.
     };
 
 
@@ -123,8 +123,8 @@ inline void export_shape_params(pybind11::module& m)
         .def_readwrite("epsilon", &shape_table::epsilon)
         .def_readwrite("sigma_i", &shape_table::sigma_i)
         .def_readwrite("sigma_j", &shape_table::sigma_j)
-        .def_readwrite("ki_max", &shape_table::ki_max)
-        .def_readwrite("kj_max", &shape_table::kj_max);
+        .def_readwrite("ki_maxsq", &shape_table::ki_maxsq)
+        .def_readwrite("kj_maxsq", &shape_table::kj_maxsq);
 
     m.def("make_shape_table", &make_shape_table);
 }
