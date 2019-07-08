@@ -211,6 +211,8 @@ void ComputeThermo::computeProperties()
 
     // access the particle data
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     // access the net force, pe, and virial
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -236,13 +238,17 @@ void ComputeThermo::computeProperties()
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
-            double mass = h_vel.data[j].w;
-            pressure_kinetic_xx += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].x );
-            pressure_kinetic_xy += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].y );
-            pressure_kinetic_xz += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].z );
-            pressure_kinetic_yy += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].y );
-            pressure_kinetic_yz += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].z );
-            pressure_kinetic_zz += mass*(  (double)h_vel.data[j].z * (double)h_vel.data[j].z );
+            // ignore rigid body constituent particles in the sum
+            if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
+                {
+                double mass = h_vel.data[j].w;
+                pressure_kinetic_xx += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].x );
+                pressure_kinetic_xy += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].y );
+                pressure_kinetic_xz += mass*(  (double)h_vel.data[j].x * (double)h_vel.data[j].z );
+                pressure_kinetic_yy += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].y );
+                pressure_kinetic_yz += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].z );
+                pressure_kinetic_zz += mass*(  (double)h_vel.data[j].z * (double)h_vel.data[j].z );
+                }
             }
         // kinetic energy = 1/2 trace of kinetic part of pressure tensor
         ke_trans_total = Scalar(0.5)*(pressure_kinetic_xx + pressure_kinetic_yy + pressure_kinetic_zz);
@@ -253,10 +259,13 @@ void ComputeThermo::computeProperties()
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
-            ke_trans_total += (double)h_vel.data[j].w*( (double)h_vel.data[j].x * (double)h_vel.data[j].x
-                                                + (double)h_vel.data[j].y * (double)h_vel.data[j].y
-                                                + (double)h_vel.data[j].z * (double)h_vel.data[j].z);
-
+            // ignore rigid body constituent particles in the sum
+            if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
+                {
+                ke_trans_total += (double)h_vel.data[j].w*( (double)h_vel.data[j].x * (double)h_vel.data[j].x
+                                                    + (double)h_vel.data[j].y * (double)h_vel.data[j].y
+                                                    + (double)h_vel.data[j].z * (double)h_vel.data[j].z);
+                }
             }
 
         ke_trans_total *= Scalar(0.5);
@@ -275,23 +284,27 @@ void ComputeThermo::computeProperties()
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
-            Scalar3 I = h_inertia.data[j];
-            quat<Scalar> q(h_orientation.data[j]);
-            quat<Scalar> p(h_angmom.data[j]);
-            quat<Scalar> s(Scalar(0.5)*conj(q)*p);
+            // ignore rigid body constituent particles in the sum
+            if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
+                {
+                Scalar3 I = h_inertia.data[j];
+                quat<Scalar> q(h_orientation.data[j]);
+                quat<Scalar> p(h_angmom.data[j]);
+                quat<Scalar> s(Scalar(0.5)*conj(q)*p);
 
-            // only if the moment of inertia along one principal axis is non-zero, that axis carries angular momentum
-            if (I.x >= EPSILON)
-                {
-                ke_rot_total += s.v.x*s.v.x/I.x;
-                }
-            if (I.y >= EPSILON)
-                {
-                ke_rot_total += s.v.y*s.v.y/I.y;
-                }
-            if (I.z >= EPSILON)
-                {
-                ke_rot_total += s.v.z*s.v.z/I.z;
+                // only if the moment of inertia along one principal axis is non-zero, that axis carries angular momentum
+                if (I.x >= EPSILON)
+                    {
+                    ke_rot_total += s.v.x*s.v.x/I.x;
+                    }
+                if (I.y >= EPSILON)
+                    {
+                    ke_rot_total += s.v.y*s.v.y/I.y;
+                    }
+                if (I.z >= EPSILON)
+                    {
+                    ke_rot_total += s.v.z*s.v.z/I.z;
+                    }
                 }
             }
 
@@ -305,7 +318,12 @@ void ComputeThermo::computeProperties()
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
-            pe_total += (double)h_net_force.data[j].w;
+
+            // ignore rigid body constituent particles in the sum
+            if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
+                {
+                pe_total += (double)h_net_force.data[j].w;
+                }
             }
 
         pe_total += m_pdata->getExternalEnergy();
@@ -326,12 +344,16 @@ void ComputeThermo::computeProperties()
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
-            virial_xx += (double)h_net_virial.data[j+0*virial_pitch];
-            virial_xy += (double)h_net_virial.data[j+1*virial_pitch];
-            virial_xz += (double)h_net_virial.data[j+2*virial_pitch];
-            virial_yy += (double)h_net_virial.data[j+3*virial_pitch];
-            virial_yz += (double)h_net_virial.data[j+4*virial_pitch];
-            virial_zz += (double)h_net_virial.data[j+5*virial_pitch];
+            // ignore rigid body constituent particles in the sum
+            if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
+                {
+                virial_xx += (double)h_net_virial.data[j+0*virial_pitch];
+                virial_xy += (double)h_net_virial.data[j+1*virial_pitch];
+                virial_xz += (double)h_net_virial.data[j+2*virial_pitch];
+                virial_yy += (double)h_net_virial.data[j+3*virial_pitch];
+                virial_yz += (double)h_net_virial.data[j+4*virial_pitch];
+                virial_zz += (double)h_net_virial.data[j+5*virial_pitch];
+                }
             }
 
         if (flags[pdata_flag::isotropic_virial])
@@ -347,9 +369,13 @@ void ComputeThermo::computeProperties()
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
-            W += Scalar(1./3.)* ((double)h_net_virial.data[j+0*virial_pitch] +
-                                 (double)h_net_virial.data[j+3*virial_pitch] +
-                                 (double)h_net_virial.data[j+5*virial_pitch] );
+            // ignore rigid body constituent particles in the sum
+            if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
+                {
+                W += Scalar(1./3.)* ((double)h_net_virial.data[j+0*virial_pitch] +
+                                     (double)h_net_virial.data[j+3*virial_pitch] +
+                                     (double)h_net_virial.data[j+5*virial_pitch] );
+                }
             }
         }
 

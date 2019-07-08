@@ -485,37 +485,20 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
     {
     // check the CUDA driver version
     int driverVersion = 0;
-    cudaDriverGetVersion(&driverVersion);
+    cudaError_t error = cudaDriverGetVersion(&driverVersion);
 
-    // first handle the situation where no driver is installed (or it is a CUDA 2.1 or earlier driver)
-    if (driverVersion == 0)
+    if (error != cudaSuccess)
         {
-        msg->notice(2) << "NVIDIA driver not installed or is too old, ignoring any GPUs in the system." << endl;
-        return;
-        }
-
-    // next, check to see if the driver is capable of running the version of CUDART that HOOMD was compiled against
-    if (driverVersion < CUDART_VERSION)
-        {
-        int driver_major = driverVersion / 1000;
-        int driver_minor = (driverVersion - driver_major * 1000) / 10;
-        int cudart_major = CUDART_VERSION / 1000;
-        int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
-
-        msg->notice(2) << "The NVIDIA driver only supports CUDA versions up to " << driver_major << "."
-             << driver_minor << ", but HOOMD was built against CUDA " << cudart_major << "." << cudart_minor << endl;
-        msg->notice(2) << "Ignoring any GPUs in the system." << endl;
+        msg->notice(1) << string(cudaGetErrorString(error)) << endl;
         return;
         }
 
     // determine the number of GPUs that CUDA thinks there is
     int dev_count;
-    cudaError_t error = cudaGetDeviceCount(&dev_count);
+    error = cudaGetDeviceCount(&dev_count);
     if (error != cudaSuccess)
         {
-        msg->notice(2) << "Error calling cudaGetDeviceCount(). No NVIDIA driver is present, or this user" << endl;
-        msg->notice(2) << "does not have readwrite permissions on /dev/nvidia*" << endl;
-        msg->notice(2) << "Ignoring any GPUs in the system." << endl;
+        msg->notice(1) << string(cudaGetErrorString(error)) << endl;
         return;
         }
 

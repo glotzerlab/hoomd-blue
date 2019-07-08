@@ -462,21 +462,21 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
     resetStats();
 
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // make sure we start off with a migration substep
+        m_comm->forceMigrate();
+
+        // communicate here, to run before the Logger
+        m_comm->communicate(m_cur_tstep);
+        }
+    #endif
+
     // Prepare the run
     if (!m_integrator)
         {
         m_exec_conf->msg->warning() << "You are running without an integrator" << endl;
-
-        #ifdef ENABLE_MPI
-        if (m_comm)
-            {
-            // make sure we start off with a migration substep nevertheless
-            m_comm->forceMigrate();
-
-            // communicate here, to run before the Logger
-            m_comm->communicate(m_cur_tstep);
-            }
-        #endif
         }
     else
         {
