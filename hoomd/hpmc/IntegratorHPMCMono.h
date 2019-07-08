@@ -776,6 +776,16 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
     // update the image list
     updateImageList();
 
+    bool has_depletants = false;
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        {
+        if (m_fugacity[i] != 0.0)
+            {
+            has_depletants = true;
+            break;
+            }
+        }
+
     // Combine the three seeds to generate RNG for poisson distribution
     #ifndef ENABLE_TBB
     hoomd::RandomGenerator rng_depletants(this->m_seed,
@@ -1083,7 +1093,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             bool accept = !overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff);
 
             // The trial move is valid, so check if it is invalidated by depletants
-            if (accept)
+            if (has_depletants && accept)
                 {
                 #ifndef ENABLE_TBB
                 accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_postype.data, h_orientation.data, h_overlaps.data, counters, h_implicit_counters.data, rng_depletants);
