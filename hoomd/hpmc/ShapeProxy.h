@@ -19,8 +19,8 @@
 #include "ShapeUnion.h"
 
 #ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/stl.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "hoomd/extern/quickhull/QuickHull.hpp"
 #endif

@@ -21,7 +21,7 @@
 #include <vector>
 #include <map>
 #include <fstream>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
 #ifndef __LOGGER_H__

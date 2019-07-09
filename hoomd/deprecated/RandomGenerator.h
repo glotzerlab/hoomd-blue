@@ -22,7 +22,7 @@
 
 #include <memory>
 #include <random>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __RANDOM_GENERATOR_H__
 #define __RANDOM_GENERATOR_H__

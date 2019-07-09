@@ -27,7 +27,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Sleep for for a time
 /*! \param msec Number of milliseconds to sleep for

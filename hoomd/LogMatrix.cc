@@ -10,7 +10,7 @@
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif
-#include <hoomd/extern/pybind/include/pybind11/numpy.h>
+#include <pybind11/numpy.h>
 
 namespace py = pybind11;
 

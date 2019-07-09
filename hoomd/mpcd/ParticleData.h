@@ -36,7 +36,7 @@
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 
 // pybind11
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {

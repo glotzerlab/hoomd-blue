@@ -6,7 +6,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/md/NeighborList.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
 #include "DEMEvaluator.h"

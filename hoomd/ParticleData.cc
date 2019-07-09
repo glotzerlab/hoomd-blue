@@ -19,7 +19,7 @@
 #include "GPUPartition.cuh"
 #endif
 
-#include "hoomd/extern/pybind/include/pybind11/numpy.h"
+#include <pybind11/numpy.h>
 
 #include <iostream>
 #include <cassert>

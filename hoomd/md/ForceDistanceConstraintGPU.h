@@ -30,7 +30,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ForceDistanceConstraintGPU_H__
 #define __ForceDistanceConstraintGPU_H__

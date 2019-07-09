@@ -16,7 +16,7 @@
 
 #include <memory>
 #include <vector>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ZEROMOMENTUMUPDATER_H__
 #define __ZEROMOMENTUMUPDATER_H__

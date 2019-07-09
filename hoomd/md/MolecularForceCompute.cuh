@@ -17,7 +17,9 @@
 const unsigned int NO_MOLECULE = (unsigned int)0xffffffff;
 #endif
 
-cudaError_t gpu_sort_by_molecule(unsigned int nptl,
+cudaError_t
+__attribute__((visibility("default")))
+gpu_sort_by_molecule(unsigned int nptl,
     const unsigned int *d_tag,
     const unsigned int *d_molecule_tag,
     unsigned int *d_local_molecule_tags,
@@ -38,7 +40,9 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     CachedAllocator& alloc,
     bool check_cuda);
 
-cudaError_t gpu_fill_molecule_table(
+cudaError_t
+__attribute__((visibility("default")))
+gpu_fill_molecule_table(
     unsigned int nptl,
     unsigned int n_local_ptls_in_molecules,
     Index2D molecule_idx,

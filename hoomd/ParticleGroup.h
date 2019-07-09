@@ -17,7 +17,7 @@
 #include <string>
 #include <memory>
 #include <vector>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #include "GlobalArray.h"
 

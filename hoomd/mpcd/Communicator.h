@@ -30,7 +30,7 @@
 #include <memory>
 #include <vector>
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 //! Forward declarations for some classes
 class SystemDefinition;

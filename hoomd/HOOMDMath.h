@@ -19,7 +19,7 @@
 #ifndef HOOMD_LLVMJIT_BUILD
 // include python.h first to silence _XOPEN_SOURCE redefinition warnings
 #include <Python.h>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #endif
 
 #include <cmath>

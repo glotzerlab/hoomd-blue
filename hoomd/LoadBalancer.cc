@@ -12,7 +12,7 @@
 #include "Communicator.h"
 
 #include "hoomd/extern/BVLSSolver.h"
-#include "hoomd/extern/Eigen/Eigen/Dense"
+#include <Eigen/Dense>
 
 #include <iostream>
 #include <stdexcept>

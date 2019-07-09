@@ -185,7 +185,6 @@ endif()
 
 if (ENABLE_CUDA)
 set(_cuda_sources ${_hoomd_cu_sources})
-set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
 #########################
@@ -199,16 +198,12 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # link the library to its dependencies
-target_link_libraries(_hoomd PUBLIC quickhull)
+target_link_libraries(_hoomd PUBLIC quickhull Eigen3::Eigen)
 
 # specify required include directories
 target_include_directories(_hoomd PUBLIC
                                   $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>
                                   $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include>)
-
-target_include_directories(_hoomd PUBLIC
-                                  $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}/hoomd/extern/cereal/include>
-                                  $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include/hoomd/extern/cereal/include>)
 
 target_include_directories(_hoomd PUBLIC
                                   $<BUILD_INTERFACE:${HOOMD_BINARY_DIR}/hoomd/include>)
@@ -224,6 +219,7 @@ endif(SINGLE_PRECISION)
 if (ENABLE_CUDA)
     target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     target_compile_definitions(_hoomd PUBLIC ENABLE_CUDA CUDA_ARCH=${_cuda_min_arch})
+    target_compile_definitions(_hoomd PUBLIC "$<$<COMPILE_LANGUAGE:CUDA>:NVCC>")
 
     if(ALWAYS_USE_MANAGED_MEMORY)
         target_compile_definitions(_hoomd PUBLIC ALWAYS_USE_MANAGED_MEMORY)
@@ -249,7 +245,7 @@ endif()
 # Libraries and compile definitions for MPI enabled builds
 if (ENABLE_MPI)
     target_compile_definitions(_hoomd PUBLIC ENABLE_MPI)
-    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX)
+    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal)
 
     if (ENABLE_MPI_CUDA)
           target_compile_definitions(_hoomd PUBLIC ENABLE_MPI_CUDA)

@@ -29,7 +29,7 @@
 #include <iostream>
 #include <cassert>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Allow score-p instrumentation
 #ifdef SCOREP_USER_ENABLE

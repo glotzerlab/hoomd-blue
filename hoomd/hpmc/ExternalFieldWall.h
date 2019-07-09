@@ -17,7 +17,7 @@
 #include <limits>
 
 #ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #endif
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
