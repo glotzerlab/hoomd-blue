@@ -236,30 +236,6 @@ class mode_hpmc(_integrator):
                 hoomd.context.msg.error("Particle type {} has not been set!\n".format(name));
                 raise RuntimeError("Error running integrator");
 
-        # backwards compatibility
-        if not hasattr(self,'has_printed_warning'):
-            self.has_printed_warning = False
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
-        first_warning = False
-        for (i,type_i) in enumerate(type_names):
-            if hasattr(self.shape_param[type_i],'ignore_overlaps') and self.shape_param[type_i].ignore_overlaps is not None:
-                if not self.has_printed_warning and not first_warning:
-                    hoomd.context.msg.warning("ignore_overlaps is deprecated. Use mc.overlap_checks.set() instead.\n")
-                    first_warning = True
-                for (j, type_j) in enumerate(type_names):
-                    if hasattr(self.shape_param[type_j],'ignore_overlaps') and self.shape_param[type_j].ignore_overlaps is not None:
-                        enable = not (self.shape_param[type_i].ignore_overlaps and self.shape_param[type_j].ignore_overlaps)
-                        if not self.has_printed_warning:
-                            hoomd.context.msg.warning("Setting overlap checks for type pair ({}, {}) to {}\n".format(type_i,type_j, enable))
-
-                        hoomd.util.quiet_status()
-                        self.overlap_checks.set(type_i, type_j, enable)
-                        hoomd.util.unquiet_status()
-
-        self.has_printed_warning = True
-
         # setup new interaction matrix elements to default
         for i in range(0,ntypes):
             type_name_i = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
@@ -652,10 +628,6 @@ class sphere(mode_hpmc):
     * *diameter* (**required**) - diameter of the sphere (distance units)
     * *orientable* (**default: False**) - set to True for spheres with orientation (added in version 2.3)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Examples::
 
@@ -761,10 +733,6 @@ class convex_polygon(mode_hpmc):
           don't put the origin right next to an edge).
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -851,10 +819,6 @@ class convex_spheropolygon(mode_hpmc):
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Useful cases:
 
@@ -950,10 +914,6 @@ class simple_polygon(mode_hpmc):
         * The origin centered circle that encloses all vertices should be of minimal size for optimal performance.
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1047,10 +1007,6 @@ class polyhedron(mode_hpmc):
     * *faces* (**required**) - a list of vertex indices for every face
     * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
 
@@ -1137,10 +1093,6 @@ class convex_polyhedron(mode_hpmc):
           don't put the origin right next to a face).
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1252,10 +1204,6 @@ class faceted_ellipsoid(mode_hpmc):
     * *vertices* (**required**) - list of vertices for intersection polyhedron
     * *origin* (**required**) - origin vector
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         Planes must not be coplanar.
@@ -1346,10 +1294,6 @@ class faceted_sphere(faceted_ellipsoid):
     * *vertices* (**required**) - list of vertices for intersection polyhedron
     * *origin* (**required**) - origin vector
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         Planes must not be coplanar.
@@ -1405,10 +1349,6 @@ class sphinx(mode_hpmc):
     * *diameters* - diameters of spheres (positive OR negative real numbers)
     * *centers* - centers of spheres in local coordinate frame
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Quick Example::
 
@@ -1480,10 +1420,6 @@ class convex_spheropolyhedron(mode_hpmc):
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1580,10 +1516,6 @@ class ellipsoid(mode_hpmc):
     * *b* (**required**) - principle axis b of the ellipsoid (radius in the y direction) (distance units)
     * *c* (**required**) - principle axis c of the ellipsoid (radius in the z direction) (distance units)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 
@@ -1641,8 +1573,6 @@ class sphere_union(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        max_members (int): Set the maximum number of members in the sphere union
-            * .. deprecated:: 2.2
         capacity (int): Set to the number of constituent spheres per leaf node. (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
@@ -1656,10 +1586,6 @@ class sphere_union(mode_hpmc):
         * .. versionadded:: 2.1
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
     * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
         * .. versionadded:: 2.2
 
@@ -1680,11 +1606,8 @@ class sphere_union(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, max_members=None, restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
         hoomd.util.print_status_line();
-
-        if max_members is not None:
-            hoomd.context.msg.warning("max_members is deprecated. Ignoring.\n")
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -1718,7 +1641,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        max_members (int): Set the maximum number of members in the convex polyhedron union
         capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
     .. versionadded:: 2.2
@@ -1734,10 +1656,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
         * .. versionadded:: 2.4
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 
@@ -1790,7 +1708,6 @@ class convex_polyhedron_union(convex_spheropolyhedron_union):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        max_members (int): Set the maximum number of members in the convex polyhedron union
         capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
     .. versionadded:: 2.2
@@ -1806,10 +1723,6 @@ class convex_polyhedron_union(convex_spheropolyhedron_union):
         * .. versionadded:: 2.4
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 
@@ -1839,7 +1752,6 @@ class faceted_ellipsoid_union(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        max_members (int): Set the maximum number of members in the convex polyhedron union
         capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
     .. versionadded:: 2.5
@@ -1855,10 +1767,6 @@ class faceted_ellipsoid_union(mode_hpmc):
     * *origin* (**required**) - list of origin vectors
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 

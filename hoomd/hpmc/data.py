@@ -108,13 +108,6 @@ class _param(object):
     def set(self, **params):
         self.is_set = True;
 
-        # backwards compatibility
-        if 'ignore_overlaps' in params:
-            # ugly workaround
-            super(_param,self).__setattr__('ignore_overlaps',params['ignore_overlaps'])
-            # do not pass to C++
-            params.pop('ignore_overlaps',None)
-
         self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params));
 
 class sphere_params(_hpmc.sphere_param_proxy, _param):
