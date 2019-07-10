@@ -503,7 +503,6 @@ class gsd(hoomd.analyze._analyzer):
         phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
         time_step (int): Time step to write to the file (only used when period is None)
         dynamic (list): A list of quantity categories to save every frame. (added in version 2.2)
-        static (list): A list of quantity categories save only in frame 0 (may not be set in conjunction with *dynamic*, deprecated in version 2.2).
 
     Write a simulation snapshot to the specified GSD file at regular intervals.
     GSD is capable of storing all particle and bond data fields in hoomd,
@@ -587,30 +586,11 @@ class gsd(hoomd.analyze._analyzer):
                  truncate=False,
                  phase=0,
                  time_step=None,
-                 static=None,
                  dynamic=None):
         hoomd.util.print_status_line();
 
-        if static is not None and dynamic is not None:
-            raise ValueError("Cannot specify both static and dynamic arguments");
-
         categories = ['attribute', 'property', 'momentum', 'topology'];
         dynamic_quantities = ['property']
-
-        # process inputs and build list of dynamic quantities
-        if static is not None:
-            hoomd.context.msg.warning("The static argument to hoomd.dump.gsd is deprecated, use dynamic instead.\n");
-
-            # notify they user of possible typos
-            for v in static:
-                if v not in categories:
-                    hoomd.context.msg.warning("dump.gsd: static quantity " + v + " is not recognized\n");
-
-            # invert the sense of the static arg
-            dynamic_quantities = []
-            for v in categories:
-                if v not in static:
-                    dynamic_quantities.append(v);
 
         if dynamic is not None:
             for v in dynamic:
