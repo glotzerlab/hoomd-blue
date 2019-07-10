@@ -297,50 +297,6 @@ class mode_hpmc(_integrator):
         for type in self.shape_param.keys():
             self.shape_param[type].is_set = True;
 
-    def setup_pos_writer(self, pos, colors={}):
-        R""" Set pos_writer definitions for specified shape parameters.
-
-        Args:
-            pos (:py:class:`hoomd.deprecated.dump.pos`): pos writer to setup
-            colors (dict): dictionary of type name to color mappings
-
-        :py:meth:`setup_pos_writer` uses the shape_param settings to specify the shape definitions (via set_def)
-        to the provided pos file writer. This overrides any previous values specified to
-        :py:meth:`hoomd.deprecated.dump.pos.set_def`.
-
-        *colors* allows you to set per-type colors for particles. Specify colors as strings in the injavis format. When
-        colors is not specified for a type, all colors default to ``005984FF``.
-
-        Examples::
-
-            mc = hpmc.integrate.shape(...);
-            mc.shape_param.set(....);
-            pos = pos_writer.dumpy.pos("dump.pos", period=100);
-            mc.setup_pos_writer(pos, colors=dict(A='005984FF'));
-        """
-        self.check_initialization();
-
-        # param_list = self.required_params;
-        # # check that the force parameters are valid
-        # if not self.shape_param.verify(param_list):
-        #    hoomd.context.msg.error("Not all shape parameters are set\n");
-        #    raise RuntimeError("Error setting up pos writer");
-
-        # set all the params
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
-
-        for i in range(0,ntypes):
-            # build a dict of the params to pass to proces_param
-            # param_dict = {};
-            # for name in param_list:
-            #     param_dict[name] = self.shape_param.get(type_list[i], name);
-
-            color = colors.setdefault(type_list[i], '005984FF');
-            shapedef = self.format_param_pos(self.shape_param[type_list[i]]);
-            pos.set_def(type_list[i], shapedef + ' ' + color)
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -747,12 +703,6 @@ class sphere(mode_hpmc):
         if restore_state:
             self.restore_state()
 
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        d = param.diameter;
-        return 'sphere {0}'.format(d);
-
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
@@ -854,19 +804,6 @@ class convex_polygon(mode_hpmc):
         if restore_state:
             self.restore_state()
 
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-        verts = param.vertices;
-        shape_def = 'poly3d {0} '.format(len(verts));
-
-        for v in verts:
-            shape_def += '{0} {1} 0 '.format(*v);
-
-        return shape_def
-
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
@@ -963,25 +900,6 @@ class convex_spheropolygon(mode_hpmc):
         if restore_state:
             self.restore_state()
 
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string
-        verts = param.vertices;
-        R = float(param.sweep_radius);
-
-        if len(verts) == 1:
-            shape_def = 'ellipsoid {0} {0} {0} '.format(R);
-
-        else:
-            shape_def = 'spoly3d {0} {1} '.format(R, len(verts));
-
-            for v in verts:
-                shape_def += '{0} {1} 0 '.format(*v);
-
-        return shape_def
-
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
@@ -1074,19 +992,6 @@ class simple_polygon(mode_hpmc):
 
         if restore_state:
             self.restore_state()
-
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-        verts = param.vertices;
-        shape_def = 'poly3d {0} '.format(len(verts));
-
-        for v in verts:
-            shape_def += '{0} {1} 0 '.format(*v);
-
-        return shape_def
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -1210,28 +1115,6 @@ class polyhedron(mode_hpmc):
         if restore_state:
             self.restore_state()
 
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-
-        verts = param.vertices;
-        # represent by convex hull, pos doesn't support non-convex shapes yet
-        shape_def = 'polyV {0} '.format(len(verts));
-
-        for v in verts:
-            shape_def += '{0} {1} {2} '.format(*v);
-
-        faces = param.faces;
-        shape_def += '{0} '.format(len(faces))
-        for f in faces:
-            shape_def += '{0} '.format(len(f));
-            for vi in f:
-                shape_def += '{0} '.format(vi)
-
-        return shape_def
-
 class convex_polyhedron(mode_hpmc):
     R""" HPMC integration for convex polyhedra (3D).
 
@@ -1307,18 +1190,6 @@ class convex_polyhedron(mode_hpmc):
 
         if restore_state:
             self.restore_state()
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-        verts = param.vertices;
-        shape_def = 'poly3d {0} '.format(len(verts));
-
-        for v in verts:
-            shape_def += '{0} {1} {2} '.format(*v);
-
-        return shape_def
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -1444,12 +1315,6 @@ class faceted_ellipsoid(mode_hpmc):
         if restore_state:
             self.restore_state()
 
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        raise RuntimeError("faceted_ellipsoid shape doesn't have a .pos representation")
-
 class faceted_sphere(faceted_ellipsoid):
     R""" HPMC integration for faceted spheres (3D).
 
@@ -1521,24 +1386,6 @@ class faceted_sphere(faceted_ellipsoid):
         super(faceted_sphere, self).__init__(seed=seed, d=d, a=a, move_ratio=move_ratio,
             nselect=nselect, restore_state=restore_state)
 
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        vertices = param.vertices;
-        d = param.diameter;
-        if vertices is not None:
-            # build up shape_def string in a loop
-            shape_def = 'polySphere {0} {1} '.format(d/2.0,len(vertices));
-
-            v = []
-            for v in vertices:
-                shape_def += '{0} {1} {2} '.format(*v)
-
-            return shape_def
-        else:
-            raise RuntimeError("No vertices supplied.")
-
-
 class sphinx(mode_hpmc):
     R""" HPMC integration for sphinx particles (3D).
 
@@ -1605,28 +1452,6 @@ class sphinx(mode_hpmc):
 
         if restore_state:
             self.restore_state()
-
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        centers = param.centers;
-        diameters = param.diameters;
-        circumsphere_d = param.diameter
-
-        colors = param.colors
-        if colors is None:
-            # default
-            colors = ["005984ff" for c in centers]
-
-        # build up shape_def string in a loop
-        shape_def = 'sphinx 0 {0} {1} '.format(circumsphere_d, len(centers));
-
-        # for every plane, construct four bounding vertices
-        for (d,c,col) in zip(diameters, centers, colors):
-            shape_def += '{0} {1} {2} {3} {4} '.format(d/2.0,c[0],c[1],c[2], col);
-
-        return shape_def
 
 class convex_spheropolyhedron(mode_hpmc):
     R""" HPMC integration for spheropolyhedra (3D).
@@ -1709,25 +1534,6 @@ class convex_spheropolyhedron(mode_hpmc):
 
         if restore_state:
             self.restore_state()
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        verts = param.vertices;
-        R = float(param.sweep_radius);
-        # Allow spheres to be represented for zero or one verts for maximum compatibility.
-        if len(verts) <= 1:
-            # draw spherocylinder to avoid having to handle orientation output differently
-            d = R * 2.0;
-            return 'cyl {0} 0'.format(d);
-        # else draw spheropolyhedron
-        # build up shape_def string in a loop
-        shape_def = 'spoly3d {0} {1} '.format(R, len(verts));
-
-        for v in verts:
-            shape_def += '{0} {1} {2} '.format(*v);
-
-        return shape_def
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -1821,12 +1627,6 @@ class ellipsoid(mode_hpmc):
         if restore_state:
             self.restore_state()
 
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        return 'ellipsoid {0} {1} {2}'.format(param.a, param.b, param.c);
-
 class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).
 
@@ -1909,29 +1709,6 @@ class sphere_union(mode_hpmc):
         if restore_state:
             self.restore_state()
 
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-        diameters = [m.diameter for m in param.members]
-        centers = param.centers
-        colors = param.colors
-        N = len(diameters);
-        shape_def = 'sphere_union {0} '.format(N);
-        if param.colors is None:
-            # default
-            colors = ["ff5984ff" for c in centers]
-
-
-        for d,p,c in zip(diameters, centers, colors):
-            shape_def += '{0} '.format(d);
-            shape_def += '{0} {1} {2} '.format(*p);
-            shape_def += '{0} '.format(c);
-            # No need to use stored value for member sphere orientations
-
-        return shape_def
-
 class convex_spheropolyhedron_union(mode_hpmc):
     R""" HPMC integration for unions of convex polyhedra (3D).
 
@@ -2000,59 +1777,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
 
         # meta data
         self.metadata_fields = ['capacity']
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-        vertices = [m.vertices for m in param.members]
-        orientations = param.orientations
-        centers = param.centers
-        colors = param.colors
-        sweep_radii = [m.sweep_radius for m in param.members]
-        if param.colors is None:
-            # default
-            colors = ["ff5984ff" for c in centers]
-        N = len(centers);
-
-        if N == 1:
-            verts = vertices[0]
-            R = sweep_radii[0]
-            if len(verts) == 1:
-                shape_def = 'sphere {0} {1}'.format(2*R,colors[0]);
-
-            else:
-                shape_def = 'spoly3d {0} {1}'.format(R, len(verts));
-
-                for v in verts:
-                    shape_def += ' {0} {1} {2}'.format(*v);
-
-                shape_def += ' {}'.format(colors[0])
-        else:
-            # two special cases
-            if all(v == [[0,0,0]] for v in vertices):
-                # all constituent particles are spheres
-                shape_def = 'sphere_union {0} '.format(N)
-                for r,p,c in zip(sweep_radii, centers, colors):
-                    shape_def += '{0} '.format(2*r);
-                    shape_def += '{0} {1} {2} '.format(*p);
-                    shape_def += '{0} '.format(c);
-                    # No need to use stored value for member sphere orientations
-            elif all(r == 0 for r in sweep_radii):
-                # all constituent particles are convex polyhedra
-                shape_def = 'poly3d_union {0} '.format(N);
-                for verts,q,p,c in zip(vertices, orientations, centers, colors):
-                    shape_def += '{0} '.format(len(verts));
-                    for v in verts:
-                        shape_def += '{0} {1} {2} '.format(*v);
-                    shape_def += '{0} {1} {2} '.format(*p);
-                    shape_def += '{0} {1} {2} {3} '.format(*q);
-                    shape_def += '{0} '.format(c);
-            else:
-                hoomd.context.msg.warning("Don't know how to export this spheropolyhedron union to .pos. Falling back on shpere.\n");
-                shape_def = 'sphere 1.0 ff5984ff'
-
-        return shape_def
 
 class convex_polyhedron_union(convex_spheropolyhedron_union):
     R""" HPMC integration for unions of convex polyhedra (3D).
@@ -2183,10 +1907,3 @@ class faceted_ellipsoid_union(mode_hpmc):
 
         # meta data
         self.metadata_fields = ['capacity']
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        raise RuntimeError('.pos output not supported.')
-
-

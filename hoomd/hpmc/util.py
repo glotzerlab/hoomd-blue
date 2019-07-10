@@ -511,7 +511,6 @@ class compress:
 
             #take a snapshot of the system
             snap = snapshot()
-            self.mc.setup_pos_writer(snap)
             self.snap_list.append(snap)
 
         self.mclog.disable()
@@ -519,10 +518,7 @@ class compress:
 
 
 ## snapshot is a python struct for now, will eventually be replaced with by the hoomd snapshot
-# For now, this will be used by the compressor. snapshots can be written to file to_pos method
-# In order to write out, the snapshot must be given particle data via the integrator's
-# setup_pos_writer() method or all particles will be output as spheres.
-# (requires numpy)
+# For now, this will be used by the compressor.
 #
 # \par Quick Example
 # \code
@@ -531,8 +527,6 @@ class compress:
 # mc.shape_param[name].set(...);
 # run(...);
 # mysnap = hpmc.util.snapshot();
-# mc.setup_pos_writer(mysnap, colors=dict(A='ff5984ff'));
-# mysnap.to_pos(filename);
 # \endcode
 class snapshot:
     ## constructor
@@ -557,50 +551,6 @@ class snapshot:
         self.type_list = []
         for i in range(0,self.ntypes):
             self.type_list.append(system.sysdef.getParticleData().getNameByType(i));
-
-        # set up default shape definitions in case set_def is not called
-        self.tdef = dict()
-        colors=[ 'ff'+''.join([str(c) for c in (256*np.array(cs.hsv_to_rgb(h,0.7,0.7)))]) for h in np.linspace(0.0,0.8,self.ntypes)]
-        for i in range(len(self.type_list)):
-            t = self.type_list[i]
-            # to avoid injavis errors due to presence of orientations, use spoly3d instead of sphere
-            self.tdef[t] = 'spoly3d 1 1 0 0 0 {}'.format(colors[i])
-
-    ## \internal Set up particle type definition strings for pos file output
-    # This method is intended only to be called by an integrator instance as a result of
-    # a call to the integrator's mc.setup_pos_writer() method.
-    # \param ptype particle type name (string)
-    # \param shapedef pos file particle macro for shape parameters through color
-    # \returns None
-    def set_def(self, ptype, shapedef):
-        self.tdef[ptype] = shapedef
-
-    ## write to a pos file
-    # \param filename string name of output file in injavis/incsim pos format
-    # \returns None
-    def to_pos(self,filename):
-        ofile = open(filename, 'w')
-        Lx, Ly, Lz, xy, xz, yz = self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz
-        bmatrix = [Lx, Ly*xy, Lz*xz, 0.0, Ly, Lz*yz, 0.0, 0.0, Lz]
-        bmstring = ('boxMatrix ' + 9*'{} ' + '\n').format(*bmatrix)
-        ofile.write(bmstring)
-
-        for p in self.tdef:
-            ofile.write('def ' + p + ' "' + self.tdef[p] + '"\n')
-
-        for r,q,t in zip(self.positions, self.orientations, self.ptypes):
-            outline = t + (3*' {}').format(*r) + (4*' {}').format(*q) + '\n'
-            ofile.write(outline)
-
-        ofile.write('eof\n')
-        ofile.close()
-
-    ## write to a zip file
-    # Not yet implemented
-    # \param filename string name of output file in injavis/incsim pos format
-    # \returns None
-    def to_zip(self,filename):
-        raise NotImplementedError("snapshot.to_zip not yet implemented.")
 
 class tune(object):
     R""" Tune mc parameters.

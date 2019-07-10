@@ -53,7 +53,7 @@ commands:
             export CC=<< parameters.cc >> CXX=<< parameters.cxx >>
             mkdir build
             cd build
-            << parameters.cmake-bin >>/cmake ../code -DPYTHON_EXECUTABLE=${PYTHON} -DENABLE_CUDA=<< parameters.enable-cuda >> -DENABLE_MPI=<< parameters.enable-mpi >> -DENABLE_TBB=<< parameters.enable-tbb >> -DBUILD_VALIDATION=<< parameters.build-validation >> -DBUILD_JIT=<< parameters.build-jit >> -DLLVM_DIR=/usr/lib/llvm-<< parameters.llvm-version >>/cmake -DBUILD_DEPRECATED=off -GNinja
+            << parameters.cmake-bin >>/cmake ../code -DPYTHON_EXECUTABLE=${PYTHON} -DENABLE_CUDA=<< parameters.enable-cuda >> -DENABLE_MPI=<< parameters.enable-mpi >> -DENABLE_TBB=<< parameters.enable-tbb >> -DBUILD_VALIDATION=<< parameters.build-validation >> -DBUILD_JIT=<< parameters.build-jit >> -DLLVM_DIR=/usr/lib/llvm-<< parameters.llvm-version >>/cmake -GNinja
       - run:
           name: Compile
           command: |
