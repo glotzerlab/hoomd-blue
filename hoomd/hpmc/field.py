@@ -103,7 +103,7 @@ class lattice_field(_external):
                 cls = _hpmc.ExternalFieldLatticeSphereUnion;
             elif isinstance(mc, integrate.faceted_ellipsoid_union):
                 cls = _hpmc.ExternalFieldlatticeFacetedEllipsoidUnion;
-            elif isinstance(mc, integrate.convex_polyhedron_union):
+            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
                 cls = _hpmc.ExternalFieldLatticeConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
@@ -272,7 +272,7 @@ class external_field_composite(_external):
                 cls = _hpmc.ExternalFieldCompositeSphereUnion;
             elif isinstance(mc, integrate.faceted_ellipsoid_union):
                 cls = _hpmc.ExternalFieldCompositeFacetedEllipsoidUnion;
-            elif isinstance(mc, integrate.convex_polyhedron_union):
+            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
                 cls = _hpmc.ExternalFieldCompositeConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
