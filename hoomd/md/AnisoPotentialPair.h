@@ -530,7 +530,7 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(unsigned 
 */
 template < class T > void export_AnisoPotentialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> > anisopotentialpair(m, name.c_str(), pybind11::base<ForceCompute>());
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T> > anisopotentialpair(m, name.c_str());
     anisopotentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
         .def("setParams", &T::setParams)
         .def("setRcut", &T::setRcut)

@@ -359,7 +359,7 @@ void MSDAnalyzer::writeRow(unsigned int timestep, const SnapshotParticleData<Sca
 
 void export_MSDAnalyzer(py::module& m)
     {
-    py::class_<MSDAnalyzer, std::shared_ptr<MSDAnalyzer> >(m,"MSDAnalyzer",py::base<Analyzer>())
+    py::class_<MSDAnalyzer, Analyzer, std::shared_ptr<MSDAnalyzer> >(m,"MSDAnalyzer")
     .def(py::init< std::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
     .def("setDelimiter", &MSDAnalyzer::setDelimiter)
     .def("addColumn", &MSDAnalyzer::addColumn)

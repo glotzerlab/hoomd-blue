@@ -375,7 +375,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepNPTMTKGPU(py::module& m)
     {
-    py::class_<TwoStepNPTMTKGPU, std::shared_ptr<TwoStepNPTMTKGPU> >(m, "TwoStepNPTMTKGPU", py::base<TwoStepNPTMTK>())
+    py::class_<TwoStepNPTMTKGPU, TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTKGPU> >(m, "TwoStepNPTMTKGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                        std::shared_ptr<ParticleGroup>,
                        std::shared_ptr<ComputeThermo>,

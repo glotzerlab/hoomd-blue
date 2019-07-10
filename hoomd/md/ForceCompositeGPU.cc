@@ -421,7 +421,7 @@ void ForceCompositeGPU::lazyInitMem()
 
 void export_ForceCompositeGPU(py::module& m)
     {
-    py::class_< ForceCompositeGPU, std::shared_ptr<ForceCompositeGPU> >(m, "ForceCompositeGPU", py::base<ForceComposite>())
+    py::class_< ForceCompositeGPU, ForceComposite, std::shared_ptr<ForceCompositeGPU> >(m, "ForceCompositeGPU")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

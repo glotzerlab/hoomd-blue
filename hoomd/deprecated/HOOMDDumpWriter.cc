@@ -641,7 +641,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 
 void export_HOOMDDumpWriter(py::module& m)
     {
-    py::class_<HOOMDDumpWriter, std::shared_ptr<HOOMDDumpWriter> >(m,"HOOMDDumpWriter",py::base<Analyzer>())
+    py::class_<HOOMDDumpWriter, Analyzer, std::shared_ptr<HOOMDDumpWriter> >(m,"HOOMDDumpWriter")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::string, std::shared_ptr<ParticleGroup>, bool >())
     .def("setOutputPosition", &HOOMDDumpWriter::setOutputPosition)
     .def("setOutputImage", &HOOMDDumpWriter::setOutputImage)

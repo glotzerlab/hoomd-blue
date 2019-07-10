@@ -467,7 +467,7 @@ int AnalyzerSDF<Shape>:: computeBin(const vec3<Scalar>& r_ij,
 */
 template < class Shape > void export_AnalyzerSDF(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< AnalyzerSDF<Shape>, std::shared_ptr< AnalyzerSDF<Shape> > >(m, name.c_str(), pybind11::base<Analyzer>())
+    pybind11::class_< AnalyzerSDF<Shape>, Analyzer, std::shared_ptr< AnalyzerSDF<Shape> > >(m, name.c_str())
           .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, double, double, unsigned int, const std::string&, bool>())
           ;
     }

@@ -99,7 +99,7 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_TableDihedralForceComputeGPU(py::module& m)
     {
-    py::class_<TableDihedralForceComputeGPU, std::shared_ptr<TableDihedralForceComputeGPU> >(m, "TableDihedralForceComputeGPU", py::base<TableDihedralForceCompute>())
+    py::class_<TableDihedralForceComputeGPU, TableDihedralForceCompute, std::shared_ptr<TableDihedralForceComputeGPU> >(m, "TableDihedralForceComputeGPU")
      .def(py::init< std::shared_ptr<SystemDefinition>,
                              unsigned int,
                              const std::string& >())

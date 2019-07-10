@@ -211,7 +211,7 @@ void mpcd::Integrator::addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> fi
 void mpcd::detail::export_Integrator(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::Integrator, std::shared_ptr<mpcd::Integrator> >(m, "Integrator", py::base<::IntegratorTwoStep>())
+    py::class_<mpcd::Integrator, ::IntegratorTwoStep, std::shared_ptr<mpcd::Integrator> >(m, "Integrator")
         .def(py::init<std::shared_ptr<mpcd::SystemData>, Scalar>())
         .def("setCollisionMethod", &mpcd::Integrator::setCollisionMethod)
         .def("removeCollisionMethod", &mpcd::Integrator::removeCollisionMethod)

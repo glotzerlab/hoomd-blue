@@ -481,7 +481,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
 
 void export_IMDInterface(py::module& m)
     {
-    py::class_<IMDInterface, std::shared_ptr<IMDInterface> >(m,"IMDInterface",py::base<Analyzer>())
+    py::class_<IMDInterface, Analyzer, std::shared_ptr<IMDInterface> >(m,"IMDInterface")
     .def(py::init< std::shared_ptr<SystemDefinition>, int, bool, unsigned int, std::shared_ptr<ConstForceCompute> >())
         ;
     }

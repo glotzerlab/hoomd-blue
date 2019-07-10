@@ -20,7 +20,7 @@ void export_NF_WCA_2D(py::module& m)
     typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar> > WCA;
     typedef DEM2DForceCompute<Scalar, Scalar4, WCA> WCA_DEM_2D;
 
-    py::class_<WCA_DEM_2D, std::shared_ptr<WCA_DEM_2D> >(m, "WCADEM2D", py::base<ForceCompute>())
+    py::class_<WCA_DEM_2D, ForceCompute, std::shared_ptr<WCA_DEM_2D> >(m, "WCADEM2D")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar, WCA>())
         .def("setParams", &WCA_DEM_2D::setParams)
         .def("setRcut", &WCA_DEM_2D::setRcut)
@@ -29,7 +29,7 @@ void export_NF_WCA_2D(py::module& m)
 #ifdef ENABLE_CUDA
     typedef DEM2DForceComputeGPU<Scalar, Scalar2, Scalar4, WCA> WCA_DEM_2D_GPU;
 
-    py::class_<WCA_DEM_2D_GPU, std::shared_ptr<WCA_DEM_2D_GPU> >(m, "WCADEM2DGPU", py::base<WCA_DEM_2D>())
+    py::class_<WCA_DEM_2D_GPU, WCA_DEM_2D, std::shared_ptr<WCA_DEM_2D_GPU> >(m, "WCADEM2DGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar, WCA>())
         .def("setParams", &WCA_DEM_2D_GPU::setParams)
         .def("setRcut", &WCA_DEM_2D_GPU::setRcut)

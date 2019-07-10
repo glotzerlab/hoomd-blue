@@ -120,7 +120,7 @@ void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
 
 void export_BerendsenGPU(py::module& m)
     {
-    py::class_<TwoStepBerendsenGPU, std::shared_ptr<TwoStepBerendsenGPU> >(m, "TwoStepBerendsenGPU", py::base<TwoStepBerendsen>())
+    py::class_<TwoStepBerendsenGPU, TwoStepBerendsen, std::shared_ptr<TwoStepBerendsenGPU> >(m, "TwoStepBerendsenGPU")
       .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,

@@ -105,7 +105,7 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_HarmonicAngleForceComputeGPU(py::module& m)
     {
-    py::class_<HarmonicAngleForceComputeGPU, std::shared_ptr<HarmonicAngleForceComputeGPU> >(m, "HarmonicAngleForceComputeGPU", py::base<HarmonicAngleForceCompute>())
+    py::class_<HarmonicAngleForceComputeGPU, HarmonicAngleForceCompute, std::shared_ptr<HarmonicAngleForceComputeGPU> >(m, "HarmonicAngleForceComputeGPU")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

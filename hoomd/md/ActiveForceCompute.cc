@@ -399,7 +399,7 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
 
 void export_ActiveForceCompute(py::module& m)
     {
-    py::class_< ActiveForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute", py::base<ForceCompute>())
+    py::class_< ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, py::list, py::list,  bool, bool, Scalar,
                     Scalar3, Scalar, Scalar, Scalar >())
     ;

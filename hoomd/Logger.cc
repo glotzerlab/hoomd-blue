@@ -218,7 +218,7 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
 
 void export_Logger(py::module& m)
     {
-    py::class_<Logger, std::shared_ptr<Logger> >(m,"Logger", py::base<Analyzer>())
+    py::class_<Logger, Analyzer, std::shared_ptr<Logger> >(m,"Logger")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("registerCompute", &Logger::registerCompute)
     .def("registerUpdater", &Logger::registerUpdater)

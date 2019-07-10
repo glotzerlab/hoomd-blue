@@ -385,7 +385,7 @@ double NeighborList::benchmark(unsigned int num_iters)
 #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -397,7 +397,7 @@ double NeighborList::benchmark(unsigned int num_iters)
 
 #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
@@ -1634,7 +1634,7 @@ void NeighborList::updateMemoryMapping()
 
 void export_NeighborList(py::module& m)
     {
-    py::class_<NeighborList, std::shared_ptr<NeighborList> > nlist(m, "NeighborList", py::base<Compute>());
+    py::class_<NeighborList, Compute, std::shared_ptr<NeighborList> > nlist(m, "NeighborList");
     nlist.def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
         .def("setRCut", &NeighborList::setRCut)
         .def("setRCutPair", &NeighborList::setRCutPair)

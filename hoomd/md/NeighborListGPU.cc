@@ -39,7 +39,7 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
 #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -51,7 +51,7 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
 
 #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
@@ -259,7 +259,7 @@ void NeighborListGPU::buildHeadList()
 
 void export_NeighborListGPU(py::module& m)
     {
-    py::class_<NeighborListGPU, std::shared_ptr<NeighborListGPU> >(m, "NeighborListGPU", py::base<NeighborList>())
+    py::class_<NeighborListGPU, NeighborList, std::shared_ptr<NeighborListGPU> >(m, "NeighborListGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
                      ;

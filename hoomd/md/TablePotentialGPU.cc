@@ -109,7 +109,7 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
 
 void export_TablePotentialGPU(py::module& m)
     {
-    py::class_<TablePotentialGPU, std::shared_ptr<TablePotentialGPU> >(m, "TablePotentialGPU", py::base<TablePotential>())
+    py::class_<TablePotentialGPU, TablePotential, std::shared_ptr<TablePotentialGPU> >(m, "TablePotentialGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                 std::shared_ptr<NeighborList>,
                                 unsigned int,

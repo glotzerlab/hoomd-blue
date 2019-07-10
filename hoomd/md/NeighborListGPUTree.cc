@@ -819,6 +819,6 @@ void NeighborListGPUTree::traverseTree()
 
 void export_NeighborListGPUTree(py::module& m)
     {
-    py::class_<NeighborListGPUTree, std::shared_ptr<NeighborListGPUTree> >(m, "NeighborListGPUTree", py::base<NeighborListGPU>())
+    py::class_<NeighborListGPUTree, NeighborListGPU, std::shared_ptr<NeighborListGPUTree> >(m, "NeighborListGPUTree")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >());
     }

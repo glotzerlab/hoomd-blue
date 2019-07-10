@@ -71,7 +71,7 @@ void gpu_compute_constraint_ellipsoid_constraint_kernel(const unsigned int *d_gr
     \param block_size Block size to execute on the GPU
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
+    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
 */
 cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_group_members,
                                                  unsigned int group_size,

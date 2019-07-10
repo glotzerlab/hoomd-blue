@@ -278,7 +278,7 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicAngleForceCompute(py::module& m)
     {
-    py::class_<HarmonicAngleForceCompute, std::shared_ptr<HarmonicAngleForceCompute> >(m, "HarmonicAngleForceCompute", py::base<ForceCompute>())
+    py::class_<HarmonicAngleForceCompute, ForceCompute, std::shared_ptr<HarmonicAngleForceCompute> >(m, "HarmonicAngleForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicAngleForceCompute::setParams)
     ;

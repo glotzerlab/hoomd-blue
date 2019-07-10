@@ -75,7 +75,7 @@ class ExternalFieldMono : public ExternalField
 template<class Shape>
 void export_ExternalFieldInterface(pybind11::module& m, std::string name)
     {
-   pybind11::class_< ExternalFieldMono<Shape>, std::shared_ptr< ExternalFieldMono<Shape> > >(m, (name + "Interface").c_str(), pybind11::base<Compute>())
+   pybind11::class_< ExternalFieldMono<Shape>, Compute, std::shared_ptr< ExternalFieldMono<Shape> > >(m, (name + "Interface").c_str())
     .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
     .def("compute", &ExternalFieldMono<Shape>::compute)
     .def("energydiff", &ExternalFieldMono<Shape>::energydiff)

@@ -578,7 +578,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
 template<class Shape>
 void export_LatticeField(pybind11::module& m, std::string name)
     {
-   pybind11::class_<ExternalFieldLattice<Shape>, std::shared_ptr< ExternalFieldLattice<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+   pybind11::class_<ExternalFieldLattice<Shape>, ExternalFieldMono<Shape>, std::shared_ptr< ExternalFieldLattice<Shape> > >(m, name.c_str())
     .def(pybind11::init< std::shared_ptr<SystemDefinition>, pybind11::list, Scalar, pybind11::list, Scalar, pybind11::list>())
     .def("setReferences", &ExternalFieldLattice<Shape>::setReferences)
     .def("setParams", &ExternalFieldLattice<Shape>::setParams)

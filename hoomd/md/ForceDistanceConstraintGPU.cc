@@ -612,7 +612,7 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
 void export_ForceDistanceConstraintGPU(py::module& m)
     {
-    py::class_< ForceDistanceConstraintGPU, std::shared_ptr<ForceDistanceConstraintGPU> >(m, "ForceDistanceConstraintGPU", py::base<ForceDistanceConstraint>())
+    py::class_< ForceDistanceConstraintGPU, ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraintGPU> >(m, "ForceDistanceConstraintGPU")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         ;
     }

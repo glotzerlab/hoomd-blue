@@ -272,7 +272,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
 #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -284,7 +284,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
 
 #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
@@ -387,7 +387,7 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
 
 void export_ForceCompute(py::module& m)
     {
-    py::class_< ForceCompute, std::shared_ptr<ForceCompute> >(m,"ForceCompute",py::base<Compute>())
+    py::class_< ForceCompute, Compute, std::shared_ptr<ForceCompute> >(m,"ForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("getForce", &ForceCompute::getForce)
     .def("getTorque", &ForceCompute::getTorque)

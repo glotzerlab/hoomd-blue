@@ -222,7 +222,7 @@ double CellList::benchmark(unsigned int num_iters)
 #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -234,7 +234,7 @@ double CellList::benchmark(unsigned int num_iters)
 
 #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
@@ -699,7 +699,7 @@ void CellList::printStats()
 
 void export_CellList(py::module& m)
     {
-    py::class_<CellList, std::shared_ptr<CellList> >(m,"CellList",py::base<Compute>())
+    py::class_<CellList, Compute, std::shared_ptr<CellList> >(m,"CellList")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)
