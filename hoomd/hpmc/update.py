@@ -744,31 +744,6 @@ class remove_drift(_updater):
                 raise RuntimeError("Error initializing update.remove_drift");
         else:
             raise RuntimeError("update.remove_drift: Error! GPU not implemented.");
-            # if isinstance(mc, integrate.sphere):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUSphere;
-            # elif isinstance(mc, integrate.convex_polygon):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUConvexPolygon;
-            # elif isinstance(mc, integrate.simple_polygon):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUSimplePolygon;
-            # elif isinstance(mc, integrate.convex_polyhedron):
-            #     cls = integrate._get_sized_entry('RemoveDriftUpdaterGPUConvexPolyhedron', mc.max_verts);
-            # elif isinstance(mc, integrate.convex_spheropolyhedron):
-            #     cls = integrate._get_sized_entry('RemoveDriftUpdaterGPUSpheropolyhedron',mc.max_verts);
-            # elif isinstance(mc, integrate.ellipsoid):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUEllipsoid;
-            # elif isinstance(mc, integrate.convex_spheropolygon):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSpheropolygon;
-            # elif isinstance(mc, integrate.faceted_sphere):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUFacetedEllipsoid;
-            # elif isinstance(mc, integrate.polyhedron):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUPolyhedron;
-            # elif isinstance(mc, integrate.sphinx):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSphinx;
-            # elif isinstance(mc, integrate.sphere_union):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSphereUnion;
-            # else:
-            #     hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
-            #     raise RuntimeError("Error initializing update.remove_drift");
 
         self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
         self.setupUpdater(period);
