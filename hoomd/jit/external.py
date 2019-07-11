@@ -117,7 +117,7 @@ class user(field._external):
                 cls =_jit.ExternalFieldJITSphinx;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _jit.ExternalFieldJITSphereUnion;
-            elif isinstance(mc, integrate.convex_polyhedron_union):
+            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
                 cls = _jit.ExternalFieldJITConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("jit.field.user: Unsupported integrator.\n");
