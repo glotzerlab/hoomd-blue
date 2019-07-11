@@ -22,7 +22,7 @@ Commands and features deprecated in v2.x will be removed in v3.0.
    * - ``context.initialize``
      - New context API (*under development*)
 
-:py:mod:`hoomd.deprecated`:
+``hoomd.deprecated``:
 
 .. list-table::
    :header-rows: 1
@@ -68,7 +68,17 @@ Commands and features deprecated in v2.x will be removed in v3.0.
    * - ``implicit`` boolean parameter
      - set ``fugacity`` non-zero
 
-:py:mod:`hoomd.cgcmm`:
+:py:mod:`hoomd.md`:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Feature
+     - Replace with
+   * - ``group`` parameter to :py:class:`integrate.mode_minimize_fire <hoomd.md.integrate.mode_minimize_fire>`
+     - Pass group to integration method.
+
+``hoomd.cgcmm``:
 
 .. list-table::
    :header-rows: 1

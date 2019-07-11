@@ -1299,11 +1299,6 @@ class mode_minimize_fire(_integrator):
     R""" Energy Minimizer (FIRE).
 
     Args:
-        group (:py:mod:`hoomd.group`): Particle group to apply minimization to.
-          Deprecated in version 2.2:
-          :py:class:`hoomd.md.integrate.mode_minimize_fire()` now accepts integration methods, such as :py:class:`hoomd.md.integrate.nve()`
-          and :py:class:`hoomd.md.integrate.nph()`. The functions operate on user-defined groups. If **group** is defined here,
-          automatically :py:class:`hoomd.md.integrate.nve()` will be used for integration
         dt (float): This is the maximum step size the minimizer is permitted to use.  Consider the stability of the system when setting. (in time units)
         Nmin (int): Number of steps energy change is negative before allowing :math:`\alpha` and :math:`\delta t` to adapt.
         finc (float): Factor to increase :math:`\delta t` by
@@ -1379,7 +1374,7 @@ class mode_minimize_fire(_integrator):
         :py:class:`mode_minimize_fire` does not function with MPI parallel simulations.
 
     """
-    def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, wtol=1e-1, Etol= 1e-5, min_steps=10, group=None, aniso=None):
+    def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, wtol=1e-1, Etol= 1e-5, min_steps=10, aniso=None):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -1394,10 +1389,6 @@ class mode_minimize_fire(_integrator):
         self.supports_methods = True;
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-
-        if group is not None:
-            hoomd.context.msg.warning("group is deprecated. Creating default integrate.nve().\n")
-            integrate_nve = nve(group=group)
 
         self.aniso = aniso
 

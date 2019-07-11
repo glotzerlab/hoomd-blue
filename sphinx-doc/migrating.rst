@@ -5,6 +5,11 @@ HOOMD v3 introduces a number of breaking changes for both users and developers i
 python interface, enable new functionalities, and move away from unsupported tools. This guide highlights
 those changes.
 
+Removed functionality
+---------------------
+
+HOOMD v3 removes old APIs and unused functionality. See :doc:`deprecated` for a full list.
+
 Compiling
 ---------
 
