@@ -136,7 +136,6 @@ set(_hoomd_headers
     Profiler.h
     RandomNumbers.h
     RNGIdentifiers.h
-    Saru.h
     SFCPackUpdaterGPU.cuh
     SFCPackUpdaterGPU.h
     SFCPackUpdater.h

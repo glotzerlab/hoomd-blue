@@ -470,7 +470,7 @@ class UniformIntDistribution
             }
 
         //! Draw a value from the distribution
-        /*! \param rng Saru RNG to utilize in the move
+        /*! \param rng RNG to utilize in the move
             \returns a random number 0 <= i <= m with uniform probability.
 
             **Method**
