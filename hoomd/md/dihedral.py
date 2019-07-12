@@ -113,7 +113,6 @@ class coeff:
             parameters as they were previously set.
 
         """
-        hoomd.util.print_status_line();
 
         # listify the input
         type = hoomd.util.listify(type)
@@ -230,7 +229,6 @@ class harmonic(force._force):
         harmonic.dihedral_coeff.set('psi-ang', k=100.0, d=1, n=4)
     """
     def __init__(self):
-        hoomd.util.print_status_line();
         # check that some dihedrals are defined
         if hoomd.context.current.system_definition.getDihedralData().getNGlobal() == 0:
             hoomd.context.msg.error("No dihedrals are defined.\n");
@@ -335,7 +333,6 @@ class table(force._force):
 
     """
     def __init__(self, width, name=None):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         force._force.__init__(self, name);
@@ -420,7 +417,6 @@ class table(force._force):
             directly into the grid points used to evaluate :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}}(\theta)`.
 
         """
-        hoomd.util.print_status_line();
 
         # open the file
         f = open(filename);
@@ -465,9 +461,7 @@ class table(force._force):
                 hoomd.context.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi\n");
                 hoomd.context.msg.error("row: " + str(i) + " expected: " + str(theta) + " got: " + str(theta_table[i]) + "\n");
 
-        hoomd.util.quiet_status();
         self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
-        hoomd.util.unquiet_status();
 
     ## \internal
     # \brief Get metadata
@@ -502,7 +496,6 @@ class opls(force._force):
 
     """
     def __init__(self):
-        hoomd.util.print_status_line();
         # check that some dihedrals are defined
         if hoomd.context.current.system_definition.getDihedralData().getNGlobal() == 0:
             hoomd.context.msg.error("No dihedrals are defined.\n");

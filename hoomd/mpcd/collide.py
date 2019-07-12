@@ -60,9 +60,7 @@ class _collision_method(hoomd.meta._metadata):
         self.enabled = True
         self._cpp = None
 
-        hoomd.util.quiet_status()
         self.enable()
-        hoomd.util.unquiet_status()
 
     def embed(self, group):
         """ Embed a particle group into the MPCD collision
@@ -89,7 +87,6 @@ class _collision_method(hoomd.meta._metadata):
             method.embed(polymer)
 
         """
-        hoomd.util.print_status_line()
 
         self.group = group
         self._cpp.setEmbeddedGroup(group.cpp_group)
@@ -107,7 +104,6 @@ class _collision_method(hoomd.meta._metadata):
         first before switching.
 
         """
-        hoomd.util.print_status_line()
 
         self.enabled = True
         hoomd.context.current.mpcd._collide = self
@@ -124,7 +120,6 @@ class _collision_method(hoomd.meta._metadata):
         use this method to remove the current collision method before adding another.
 
         """
-        hoomd.util.print_status_line()
 
         self.enabled = False
         hoomd.context.current.mpcd._collide = None
@@ -151,7 +146,6 @@ class _collision_method(hoomd.meta._metadata):
             hoomd.set_period(period=4)
 
         """
-        hoomd.util.print_status_line()
 
         cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
         if cur_tstep % self.period != 0 or cur_tstep % period != 0:
@@ -206,7 +200,6 @@ class at(_collision_method):
 
     """
     def __init__(self, seed, period, kT, group=None):
-        hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
         self.metadata_fields += ['kT']
@@ -234,10 +227,8 @@ class at(_collision_method):
                                   hoomd.context.current.mpcd._at_thermo,
                                   self.kT.cpp_variant)
 
-        hoomd.util.quiet_status()
         if group is not None:
             self.embed(group)
-        hoomd.util.unquiet_status()
 
     def set_params(self, shift=None, kT=None):
         """ Set parameters for the SRD collision method
@@ -254,7 +245,6 @@ class at(_collision_method):
             srd.set_params(kT=hoomd.data.variant.linear_interp([[0,1.0],[100,5.0]]))
 
         """
-        hoomd.util.print_status_line()
 
         if shift is not None:
             self.shift = shift
@@ -321,7 +311,6 @@ class srd(_collision_method):
 
     """
     def __init__(self, seed, period, angle, kT=False, group=None):
-        hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
         self.metadata_fields += ['angle','kT']
@@ -337,11 +326,9 @@ class srd(_collision_method):
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo)
 
-        hoomd.util.quiet_status()
         self.set_params(angle=angle, kT=kT)
         if group is not None:
             self.embed(group)
-        hoomd.util.unquiet_status()
 
     def set_params(self, angle=None, shift=None, kT=None):
         """ Set parameters for the SRD collision method
@@ -362,7 +349,6 @@ class srd(_collision_method):
             srd.set_params(kT=False)
 
         """
-        hoomd.util.print_status_line()
 
         if angle is not None:
             self.angle = angle

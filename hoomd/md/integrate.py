@@ -84,7 +84,6 @@ class mode_standard(_integrator):
     the method :py:method:reset_methods() can be use to re-initialize the variables.
     """
     def __init__(self, dt, aniso=None):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _integrator.__init__(self);
@@ -100,10 +99,8 @@ class mode_standard(_integrator):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
-        hoomd.util.quiet_status();
         if aniso is not None:
             self.set_params(aniso=aniso)
-        hoomd.util.unquiet_status();
 
     ## \internal
     #  \brief Cached set of anisotropic mode enums for ease of access
@@ -125,7 +122,6 @@ class mode_standard(_integrator):
             integrator_mode.set_params(dt=0.005, aniso=False)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -155,7 +151,6 @@ class mode_standard(_integrator):
             run(100)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
         self.cpp_integrator.initializeIntegrationMethods();
 
@@ -199,7 +194,6 @@ class nvt(_integration_method):
         integrator = integrate.nvt(group=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     """
     def __init__(self, group, kT, tau):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
@@ -213,10 +207,8 @@ class nvt(_integration_method):
         if group is hoomd.context.current.group_all:
             group_copy = copy.copy(group);
             group_copy.name = "__nvt_all";
-            hoomd.util.quiet_status();
             thermo = hoomd.compute.thermo(group_copy);
             thermo.cpp_compute.setLoggingEnabled(False);
-            hoomd.util.unquiet_status();
         else:
             thermo = hoomd.compute._get_unique_thermo(group=group);
 
@@ -249,7 +241,6 @@ class nvt(_integration_method):
             integrator.set_params(tau=0.7, kT=2.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -410,7 +401,6 @@ class npt(_integration_method):
         integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none", rescale_all=True)
     """
     def __init__(self, group, kT=None, tau=None, S=None, P=None, tauP=None, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, rescale_all=None, gamma=None):
-        hoomd.util.print_status_line();
 
         # check the input
         if (kT is None or tau is None):
@@ -450,10 +440,8 @@ class npt(_integration_method):
         if group is hoomd.context.current.group_all:
             group_copy = copy.copy(group);
             group_copy.name = "__npt_all";
-            hoomd.util.quiet_status();
             thermo_group = hoomd.compute.thermo(group_copy);
             thermo_group.cpp_compute.setLoggingEnabled(False);
-            hoomd.util.unquiet_status();
         else:
             thermo_group = hoomd.compute._get_unique_thermo(group=group);
 
@@ -578,7 +566,6 @@ class npt(_integration_method):
             integrator.set_params(dt=3e-3, kT=2.0, P=1.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -710,12 +697,9 @@ class nph(npt):
         nph = integrate.nph(group=all, P=0, tauP=1.0, gamma=0.1)
     """
     def __init__(self, **params):
-        hoomd.util.print_status_line();
 
         # initialize base class
-        hoomd.util.quiet_status();
         npt.__init__(self, nph=True, kT=1.0, **params);
-        hoomd.util.unquiet_status();
 
     def randomize_velocities(self, kT, seed):
         R""" Assign random velocities and angular momenta to particles in the
@@ -785,7 +769,6 @@ class nve(_integration_method):
 
     """
     def __init__(self, group, limit=None, zero_force=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
@@ -824,7 +807,6 @@ class nve(_integration_method):
             integrator.set_params(limit=0.01)
             integrator.set_params(limit=False)
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -938,7 +920,6 @@ class langevin(_integration_method):
 
     """
     def __init__(self, group, kT, seed, dscale=False, tally=False, noiseless_t=False, noiseless_r=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
@@ -1001,7 +982,6 @@ class langevin(_integration_method):
             integrator.set_params(tally=False)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -1033,7 +1013,6 @@ class langevin(_integration_method):
             bd.set_gamma('A', gamma=2.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
         a = str(a);
 
@@ -1065,7 +1044,6 @@ class langevin(_integration_method):
 
         """
 
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if not isinstance(gamma_r,tuple):
@@ -1162,7 +1140,6 @@ class brownian(_integration_method):
 
     """
     def __init__(self, group, kT, seed, dscale=False, noiseless_t=False, noiseless_r=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
@@ -1215,7 +1192,6 @@ class brownian(_integration_method):
             integrator.set_params(kT=2.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -1244,7 +1220,6 @@ class brownian(_integration_method):
             bd.set_gamma('A', gamma=2.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
         a = str(a);
 
@@ -1276,7 +1251,6 @@ class brownian(_integration_method):
 
         """
 
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if not isinstance(gamma_r,tuple):
@@ -1375,7 +1349,6 @@ class mode_minimize_fire(_integrator):
 
     """
     def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, wtol=1e-1, Etol= 1e-5, min_steps=10, aniso=None):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _integrator.__init__(self);
@@ -1392,10 +1365,8 @@ class mode_minimize_fire(_integrator):
 
         self.aniso = aniso
 
-        hoomd.util.quiet_status();
         if aniso is not None:
             self.set_params(aniso=aniso)
-        hoomd.util.unquiet_status();
 
         # change the set parameters if not None
         self.dt = dt
@@ -1447,7 +1418,6 @@ class mode_minimize_fire(_integrator):
     def get_energy(self):
         R""" Returns the energy after the last iteration of the minimizer
         """
-        hoomd.util.print_status_line()
         self.check_initialization();
         return self.cpp_integrator.getEnergy()
 
@@ -1462,7 +1432,6 @@ class mode_minimize_fire(_integrator):
             integrator_mode.set_params(aniso=False)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if aniso is not None:
@@ -1512,7 +1481,6 @@ class berendsen(_integration_method):
         :py:class:`berendsen` does not integrate rotational degrees of freedom.
     """
     def __init__(self, group, kT, tau):
-        hoomd.util.print_status_line();
 
         # Error out in MPI simulations
         if (_hoomd.is_MPI_available()):

@@ -90,7 +90,6 @@ class block(_force):
 
     """
     def __init__(self, F, H=None, w=None):
-        hoomd.util.print_status_line()
 
         # current box size
         Lz = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL().z
@@ -160,7 +159,6 @@ class constant(_force):
 
     """
     def __init__(self, F):
-        hoomd.util.print_status_line()
 
         try:
             if len(F) != 3:
@@ -216,7 +214,6 @@ class sine(_force):
 
     """
     def __init__(self, F, k):
-        hoomd.util.print_status_line()
 
         # initialize python level
         _force.__init__(self)

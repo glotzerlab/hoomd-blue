@@ -84,7 +84,6 @@ class interaction_matrix:
 
 
         """
-        hoomd.util.print_status_line();
 
         # listify the inputs
         a = hoomd.util.listify(a)
@@ -243,9 +242,7 @@ class mode_hpmc(_integrator):
                 type_name_j = hoomd.context.current.system_definition.getParticleData().getNameByType(j);
                 if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
                     # by default, perform overlap checks
-                    hoomd.util.quiet_status()
                     self.overlap_checks.set(str(type_name_i), str(type_name_j), True)
-                    hoomd.util.unquiet_status()
 
         # set overlap matrix on C++ side
         for (i,type_i) in enumerate(type_names):
@@ -304,9 +301,7 @@ class mode_hpmc(_integrator):
                 type_name_j = hoomd.context.current.system_definition.getParticleData().getNameByType(j);
                 if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
                     # by default, perform overlap checks
-                    hoomd.util.quiet_status()
                     self.overlap_checks.set(type_name_i, type_name_j, True)
-                    hoomd.util.unquiet_status()
 
     def set_params(self,
                    d=None,
@@ -331,7 +326,6 @@ class mode_hpmc(_integrator):
                   number of MPI ranks. Simulation output will not be identical if either of these is changed.
         """
 
-        hoomd.util.print_status_line();
         # check that proper initialization has occurred
         if self.cpp_integrator == None:
             hoomd.context.msg.error("Bug in hoomd: cpp_integrator not set, please report\n");
@@ -648,7 +642,6 @@ class sphere(mode_hpmc):
     """
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -747,7 +740,6 @@ class convex_polygon(mode_hpmc):
 
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -839,7 +831,6 @@ class convex_spheropolygon(mode_hpmc):
 
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -928,7 +919,6 @@ class simple_polygon(mode_hpmc):
 
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -1046,7 +1036,6 @@ class polyhedron(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self)
@@ -1113,7 +1102,6 @@ class convex_polyhedron(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -1234,7 +1222,6 @@ class faceted_ellipsoid(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -1321,7 +1308,6 @@ class faceted_sphere(faceted_ellipsoid):
         mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         super(faceted_sphere, self).__init__(seed=seed, d=d, a=a, move_ratio=move_ratio,
             nselect=nselect, restore_state=restore_state)
@@ -1362,7 +1348,6 @@ class sphinx(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self)
@@ -1437,7 +1422,6 @@ class convex_spheropolyhedron(mode_hpmc):
     """
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self)
@@ -1525,7 +1509,6 @@ class ellipsoid(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -1599,7 +1582,6 @@ class sphere_union(mode_hpmc):
     """
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -1663,7 +1645,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
     """
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self)
@@ -1736,7 +1717,6 @@ class faceted_ellipsoid_union(mode_hpmc):
     """
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);

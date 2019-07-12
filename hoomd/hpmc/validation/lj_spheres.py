@@ -94,7 +94,6 @@ class nvt_lj_sphere_energy(unittest.TestCase):
             run(100,quiet=True);
             d = mc.get_d();
             translate_acceptance = mc.get_translate_acceptance();
-            util.quiet_status();
             print('d: {:3.2f} accept: {:3.2f}'.format(d,translate_acceptance));
             mc_tune.update();
 

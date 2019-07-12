@@ -60,8 +60,6 @@ class eam(force._force):
                          feature = 'EAM')
         hoomd.cite._ensure_global_bib().add(c)
 
-        hoomd.util.print_status_line();
-
         # Error out in MPI simulations
         if (_hoomd.is_MPI_available()):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():

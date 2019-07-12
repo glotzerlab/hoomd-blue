@@ -666,7 +666,6 @@ class lj(wallpotential):
     .. image:: wall_extrap.png
     """
     def __init__(self, walls, r_cut=False, name=""):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -720,7 +719,6 @@ class gauss(wallpotential):
 
     """
     def __init__(self, walls, r_cut=False, name=""):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -772,7 +770,6 @@ class slj(wallpotential):
 
     """
     def __init__(self, walls, r_cut=False, d_max=None, name=""):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -832,7 +829,6 @@ class yukawa(wallpotential):
 
     """
     def __init__(self, walls, r_cut=False, name=""):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -880,7 +876,6 @@ class morse(wallpotential):
 
     """
     def __init__(self, walls, r_cut=False, name=""):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -931,7 +926,6 @@ class force_shifted_lj(wallpotential):
 
     """
     def __init__(self, walls, r_cut=False, name=""):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -985,7 +979,6 @@ class mie(wallpotential):
 
     """
     def __init__(self, walls, r_cut=False, name=""):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 

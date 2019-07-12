@@ -440,7 +440,6 @@ class compress:
 
             noverlaps = self.mc.count_overlaps()
             if noverlaps != 0:
-                hoomd.util.quiet_status()
                 hoomd.context.msg.warning("Tuner cannot run properly if overlaps exist in the system. Expanding box...\n")
                 while noverlaps != 0:
                     hoomd.context.msg.notice(5,"{} overlaps at step {}... ".format(noverlaps, hoomd.get_step()))
@@ -449,7 +448,6 @@ class compress:
                     Lz *= 1.0+Lscale
                     hoomd.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
                     noverlaps = self.mc.count_overlaps()
-                hoomd.util.unquiet_status()
 
             #randomize the initial configuration
             #initial box, no shear
@@ -629,8 +627,6 @@ class tune(object):
 
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
-        hoomd.util.quiet_status()
-
         # The *args and **kwargs parameters allow derived tuners to be sloppy
         # with forwarding initialization, but that is not a good excuse and
         # makes it harder to catch usage errors. They should probably be deprecated...
@@ -695,13 +691,9 @@ class tune(object):
             else:
                 raise ValueError( "Unknown tunable {0}".format(item))
 
-        hoomd.util.unquiet_status()
-
     def update(self):
         R""" Calculate and set tunable parameters using statistics from the run just completed.
         """
-        hoomd.util.quiet_status()
-
         # Note: we are not doing any checking on the quality of our retrieved statistics
         newquantities = dict()
         # For each of the tunables we are watching, compute the new value we're setting that tunable to
@@ -730,7 +722,6 @@ class tune(object):
                     newval = max_val
 
             self.tunables[tunable]['set'](float(newval))
-        hoomd.util.unquiet_status();
 
 class tune_npt(tune):
     R""" Tune the HPMC :py:class:`hoomd.hpmc.update.boxmc` using :py:class:`.tune`.
@@ -771,7 +762,6 @@ class tune_npt(tune):
 
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
-        hoomd.util.quiet_status()
         tunable_map = {
                     'dLx': {
                           'get': lambda: obj.length()['delta'][0],
@@ -822,5 +812,4 @@ class tune_npt(tune):
                           'set': lambda x: obj.shear(delta=(obj.shear()['delta'][0], obj.shear()['delta'][1], x))
                           },
                     }
-        hoomd.util.unquiet_status()
         super(tune_npt,self).__init__(obj, tunables, max_val, target, max_scale, gamma, type, tunable_map, *args, **kwargs)

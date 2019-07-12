@@ -51,7 +51,6 @@ class boxmc(_updater):
 
     """
     def __init__(self, mc, betaP, seed):
-        hoomd.util.print_status_line();
         # initialize base class
         _updater.__init__(self);
 
@@ -135,7 +134,6 @@ class boxmc(_updater):
             A :py:class:`dict` with the current values of *delta* and *weight*.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if weight is not None:
@@ -169,7 +167,6 @@ class boxmc(_updater):
             A :py:class:`dict` with the current values of *delta* and *weight*.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if weight is not None:
@@ -209,7 +206,6 @@ class boxmc(_updater):
             A :py:class:`dict` with the current values of *delta* and *weight*.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if weight is not None:
@@ -253,7 +249,6 @@ class boxmc(_updater):
             A :py:class:`dict` with the current values of *delta*, *weight*, and *reduce*.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if weight is not None:
@@ -296,7 +291,6 @@ class boxmc(_updater):
             A :py:class:`dict` with the current values of *delta*, and *weight*.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if weight is not None:
@@ -443,7 +437,6 @@ class wall(_updater):
 
     """
     def __init__(self, mc, walls, py_updater, move_ratio, seed, period=1):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
@@ -538,7 +531,6 @@ class muvt(_updater):
 
     """
     def __init__(self, mc, seed, period=1, transfer_types=None,ngibbs=1):
-        hoomd.util.print_status_line();
 
         if not isinstance(mc, integrate.mode_hpmc):
             hoomd.context.msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
@@ -634,7 +626,6 @@ class muvt(_updater):
             muvt.set_fugacity(type='A', fugacity=variant)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if self.gibbs:
@@ -671,7 +662,6 @@ class muvt(_updater):
             muvt.set_params(move_ratio=0.05)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if move_ratio is not None:
@@ -708,7 +698,6 @@ class remove_drift(_updater):
 
     """
     def __init__(self, mc, external_lattice, period=1):
-        hoomd.util.print_status_line();
         #initialize base class
         _updater.__init__(self);
         cls = None;
@@ -779,7 +768,6 @@ class clusters(_updater):
 
     """
     def __init__(self, mc, seed, period=1):
-        hoomd.util.print_status_line();
 
         if not isinstance(mc, integrate.mode_hpmc):
             hoomd.context.msg.warning("update.clusters: Must have a handle to an HPMC integrator.\n");
@@ -842,7 +830,6 @@ class clusters(_updater):
             clusters.set_params(swap_types=['A','B'], delta_mu = -0.001)
         """
 
-        hoomd.util.print_status_line();
 
         if move_ratio is not None:
             self.cpp_updater.setMoveRatio(float(move_ratio))

@@ -21,6 +21,8 @@ Commands and features deprecated in v2.x will be removed in v3.0.
      - Properties (*under development*)
    * - ``context.initialize``
      - New context API (*under development*)
+   * - ``util.quiet_status`` and ``util.unquiet_status``
+     - No longer needed.
 
 ``hoomd.deprecated``:
 

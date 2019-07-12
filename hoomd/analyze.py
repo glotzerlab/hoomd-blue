@@ -111,7 +111,6 @@ class _analyzer(hoomd.meta._metadata):
         analyzer during the simulation. A disabled analyzer can be re-enabled
         with :py:meth:`enable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
@@ -133,7 +132,6 @@ class _analyzer(hoomd.meta._metadata):
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
@@ -161,7 +159,6 @@ class _analyzer(hoomd.meta._metadata):
         is executed every *period* time steps. Changing the period does not change the phase set when the analyzer
         was first created.
         """
-        hoomd.util.print_status_line();
         self.period = period;
 
         if type(period) == type(1):
@@ -195,7 +192,6 @@ class _analyzer(hoomd.meta._metadata):
     def restore_state(self):
         """ Restore the state information from the file used to initialize the simulations
         """
-        hoomd.util.print_status_line();
         if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_analyzer, "restoreStateGSD"):
             self.cpp_analyzer.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
         else:
@@ -241,7 +237,6 @@ class imd(_analyzer):
         imd = analyze.imd(port=12345, rate=1000)
     """
     def __init__(self, port, period=1, rate=1, pause=False, force=None, force_scale=0.1, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);
@@ -427,7 +422,6 @@ class log(_analyzer):
     """
 
     def __init__(self, filename, quantities, period, header_prefix='', overwrite=False, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);
@@ -468,7 +462,6 @@ class log(_analyzer):
             logger.set_params(quantities=['bond_harmonic_energy'], delimiter=',');
         """
 
-        hoomd.util.print_status_line();
 
         if quantities is not None:
             # set the logged quantities
@@ -548,11 +541,8 @@ class log(_analyzer):
         logger during the simulation. A disabled logger can be re-enabled
         with :py:meth:`enable()`.
         """
-        hoomd.util.print_status_line()
 
-        hoomd.util.quiet_status()
         _analyzer.disable(self)
-        hoomd.util.unquiet_status()
 
         hoomd.context.current.loggers.remove(self)
 
@@ -565,11 +555,8 @@ class log(_analyzer):
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line()
 
-        hoomd.util.quiet_status()
         _analyzer.enable(self)
-        hoomd.util.unquiet_status()
 
         hoomd.context.current.loggers.append(self)
 
@@ -591,7 +578,6 @@ class callback(_analyzer):
         analyze.callback(callback = my_callback, period = 100)
     """
     def __init__(self, callback, period, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);

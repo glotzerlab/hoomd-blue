@@ -74,7 +74,6 @@ class sdf(_analyzer):
         analyze.sdf(mc=mc, filename='sdf.dat', xmax=0.002, dx=1e-5, navg=100, period=100)
     """
     def __init__(self, mc, filename, xmax, dx, navg, period, overwrite=False, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);

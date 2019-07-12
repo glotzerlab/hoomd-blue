@@ -180,7 +180,6 @@ class _integrator(hoomd.meta._metadata):
     def restore_state(self):
         """ Restore the state information from the file used to initialize the simulations
         """
-        hoomd.util.print_status_line();
         if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_integrator, "restoreStateGSD"):
             self.cpp_integrator.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
         else:
@@ -246,7 +245,6 @@ class _integration_method(hoomd.meta._metadata):
         not apply the integration method to the particles during the
         simulation. A disabled integration method can be re-enabled with :py:meth:`enable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization()
 
         # check if we are already disabled
@@ -267,7 +265,6 @@ class _integration_method(hoomd.meta._metadata):
         See Also:
             :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled

@@ -123,8 +123,6 @@ class user(field._external):
                 hoomd.context.msg.error("jit.field.user: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");
 
-        hoomd.util.print_status_line();
-
         # Find a clang executable if none is provided
         if clang_exec is not None:
             clang = clang_exec;

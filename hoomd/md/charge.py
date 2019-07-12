@@ -77,7 +77,6 @@ class pppm(force._force):
 
     """
     def __init__(self, group, nlist):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         force._force.__init__(self);
@@ -114,26 +113,18 @@ class pppm(force._force):
         self.params_set = False;
 
         # initialize the short range part of electrostatics
-        hoomd.util.quiet_status();
         self.ewald = pair.ewald(r_cut = False, nlist = self.nlist);
-        hoomd.util.unquiet_status();
 
     # override disable and enable to work with both of the forces
     def disable(self, log=False):
-        hoomd.util.print_status_line();
 
-        hoomd.util.quiet_status();
         force._force.disable(self, log);
         self.ewald.disable(log);
-        hoomd.util.unquiet_status();
 
     def enable(self):
-        hoomd.util.print_status_line();
 
-        hoomd.util.quiet_status();
         force._force.enable(self);
         self.ewald.enable();
-        hoomd.util.unquiet_status();
 
     def set_params(self, Nx, Ny, Nz, order, rcut, alpha = 0.0):
         """ Sets PPPM parameters.
@@ -153,7 +144,6 @@ class pppm(force._force):
 
         Note that the Fourier transforms are much faster for number of grid points of the form 2^N.
         """
-        hoomd.util.print_status_line();
 
         if hoomd.context.current.system_definition.getNDimensions() != 3:
             hoomd.context.msg.error("System must be 3 dimensional\n");
@@ -211,11 +201,9 @@ class pppm(force._force):
         for i in range(0,ntypes):
             type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
-        hoomd.util.quiet_status();
         for i in range(0,ntypes):
             for j in range(0,ntypes):
                 self.ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa, alpha = alpha, r_cut=rcut)
-        hoomd.util.unquiet_status();
 
         # set the parameters for the appropriate type
         self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha);

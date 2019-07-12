@@ -109,7 +109,6 @@ class _updater(hoomd.meta._metadata):
         updater during the simulation. A disabled updater can be re-enabled
         with :py:meth:`enable()`
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
@@ -133,7 +132,6 @@ class _updater(hoomd.meta._metadata):
             :py:meth:`disable()`
         """
 
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
@@ -161,7 +159,6 @@ class _updater(hoomd.meta._metadata):
         not change the phase set when the analyzer was first created.
         """
 
-        hoomd.util.print_status_line();
 
         if type(period) == type(1.0):
             period = int(period);
@@ -198,7 +195,6 @@ class _updater(hoomd.meta._metadata):
     def restore_state(self):
         """ Restore the state information from the file used to initialize the simulations
         """
-        hoomd.util.print_status_line();
         if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_updater, "restoreStateGSD"):
             self.cpp_updater.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
         else:
@@ -272,7 +268,6 @@ class sort(_updater):
             sorter.set_params(grid=128)
         """
 
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if grid is not None:
@@ -329,7 +324,6 @@ class box_resize(_updater):
     """
 
     def __init__(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None, period = 1, L = None, phase=0, scale_particles=True):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
@@ -443,7 +437,6 @@ class balance(_updater):
     Balancing is ignored if there is no domain decomposition available (MPI is not built or is running on a single rank).
     """
     def __init__(self, x=True, y=True, z=True, tolerance=1.02, maxiter=1, period=1000, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
@@ -467,9 +460,7 @@ class balance(_updater):
         self.phase = phase
 
         # configure the parameters
-        hoomd.util.quiet_status()
         self.set_params(x,y,z,tolerance, maxiter)
-        hoomd.util.unquiet_status()
 
     def set_params(self, x=None, y=None, z=None, tolerance=None, maxiter=None):
         R""" Change load balancing parameters.
@@ -487,7 +478,6 @@ class balance(_updater):
             balance.set_params(x=True, y=False)
             balance.set_params(tolerance=0.02, maxiter=5)
         """
-        hoomd.util.print_status_line()
         self.check_initialization()
 
         if x is not None:

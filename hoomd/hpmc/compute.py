@@ -40,7 +40,6 @@ class free_volume(_compute):
 
     """
     def __init__(self, mc, seed, suffix='', test_type=None, nsample=None):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _compute.__init__(self);

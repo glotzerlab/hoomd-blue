@@ -76,7 +76,6 @@ class _compute:
         A disabled compute can be re-enabled with :py:meth:`enable()`.
         """
 
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
@@ -96,7 +95,6 @@ class _compute:
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
@@ -121,7 +119,6 @@ class _compute:
     def restore_state(self):
         """ Restore the state information from the file used to initialize the simulations
         """
-        hoomd.util.print_status_line();
         if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_compute, "restoreStateGSD"):
             self.cpp_compute.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
         else:
@@ -200,7 +197,6 @@ class thermo(_compute):
     """
 
     def __init__(self, group):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _compute.__init__(self);
@@ -241,11 +237,8 @@ class thermo(_compute):
 
         A disabled thermo compute can be re-enabled with :py:meth:`enable()`.
         """
-        hoomd.util.print_status_line()
 
-        hoomd.util.quiet_status()
         _compute.disable(self)
-        hoomd.util.unquiet_status()
 
         hoomd.context.current.thermos.remove(self)
 
@@ -258,11 +251,8 @@ class thermo(_compute):
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line()
 
-        hoomd.util.quiet_status()
         _compute.enable(self)
-        hoomd.util.unquiet_status()
 
         hoomd.context.current.thermo.append(self)
 
@@ -278,7 +268,5 @@ def _get_unique_thermo(group):
             return t;
 
     # if we get here, there were no matches: create a new one
-    hoomd.util.quiet_status();
     res = thermo(group);
-    hoomd.util.unquiet_status();
     return res;

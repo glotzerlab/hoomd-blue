@@ -75,8 +75,6 @@ class param_dict(dict):
             then executing coeff.set('A', diameter=1.5) will fail one must call coeff.set('A', diameter=1.5, length=2.0)
 
         """
-        # hoomd.util.print_status_line();
-
         # listify the input
         types = hoomd.util.listify(types)
 

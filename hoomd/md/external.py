@@ -91,7 +91,6 @@ class coeff:
             were previously set.
 
         """
-        hoomd.util.print_status_line();
 
         # listify the input
         type = hoomd.util.listify(type)
@@ -281,7 +280,6 @@ class periodic(_external_force):
         periodic.force_coeff.set('B', A=-1.0, i=0, w=0.02, p=3)
     """
     def __init__(self, name=""):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         _external_force.__init__(self, name);
@@ -326,7 +324,6 @@ class e_field(_external_force):
         e_field = external.e_field((1,0,0))
     """
     def __init__(self, field, name=""):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         _external_force.__init__(self, name);
