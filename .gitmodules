@@ -25,3 +25,6 @@
 [submodule "hoomd/extern/random123"]
 	path = hoomd/extern/random123
 	url = https://github.com/glotzerlab/random123.git
+[submodule "correlator-hoomd-plugin"]
+	path = correlator-hoomd-plugin
+	url = https://github.com/atravitz/correlator-hoomd-plugin.git
