@@ -56,7 +56,6 @@ class PYBIND11_EXPORT DynamicBond : public Updater
         std::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
         int m_seed;                               //!< seed for random number generator
         int period;                               //!< period to create/destroy bonds
-        int seed;                                 //!< a seed for the random number generator
         int bond_type;                            //!< bond type to create and break
         Scalar m_r_cut;                           //!< cut off distance for computing bonds
         Scalar m_r_true;                          //!< the "true" radius, i.e. the sticker-colloid energy well minimum
