@@ -11,16 +11,8 @@
 #include <random>
 #include <cfloat>
 
-
-//#define FIND_THOSE_FAILING_STRUCTURES
-
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 /*! \file IntegratorHPMCMonoNEC.h
-    \brief Defines the template class for HPMC with implicit generated depletant solvent
+    \brief Defines the template class for HPMC with Newtonian event chains
     \note This header cannot be compiled by nvcc
 */
 
@@ -71,14 +63,6 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
             IntegratorHPMCMono<Shape>::resetStats();
             
             // WARN Reset stats happens BEFORE logging them!
-            
-//             count_events = 0;
-//             count_move_attempts = 0;
-//             count_moved_particles = 0;
-            
-            //reset pressure statistics (reset at every update step additionally)
-            //count_pressurevarial = 0.0;
-            //count_movelength     = 0.0;
             }
 
         //! Print statistics about the hpmc steps taken
@@ -214,7 +198,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
                              ArrayHandle<Scalar4>& h_postype,
                              ArrayHandle<Scalar4>& h_orientation,
                              hpmc_counters_t& counters,
-							 vec3<Scalar>& collisionPlaneVector
+                             vec3<Scalar>& collisionPlaneVector
                             );
         /*!
          This function measures the distance ConvexPolyhedron 'i' could move in
@@ -252,7 +236,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
                              ArrayHandle<Scalar4>& h_postype,
                              ArrayHandle<Scalar4>& h_orientation,
                              hpmc_counters_t& counters,
-							 vec3<Scalar>& collisionPlaneVector
+                             vec3<Scalar>& collisionPlaneVector
                             );
 
     protected:
@@ -728,7 +712,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                                     ArrayHandle<Scalar4>& h_postype,
                                                     ArrayHandle<Scalar4>& h_orientation,
                                                     hpmc_counters_t& counters,
-													vec3<Scalar>& collisionPlaneVector
+                                                    vec3<Scalar>& collisionPlaneVector
                                                    )
     {
     double sweepableDistance = maxSweep;
@@ -879,7 +863,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                                     ArrayHandle<Scalar4>& h_postype,
                                                     ArrayHandle<Scalar4>& h_orientation,
                                                     hpmc_counters_t& counters,
-													vec3<Scalar>& collisionPlaneVector
+                                                    vec3<Scalar>& collisionPlaneVector
                                                    )
     {
     double sweepableDistance = maxSweep;
@@ -890,7 +874,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
     
     detail::AABB aabb_i_test    = detail::merge( aabb_i_current, aabb_i_future );
 
-	vec3<Scalar> newCollisionPlaneVector;
+    vec3<Scalar> newCollisionPlaneVector;
 
     
     // All image boxes (including the primary)
@@ -900,7 +884,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
         vec3<Scalar> pos_i_image = pos_i + this->m_image_list[cur_image];
         detail::AABB aabb = aabb_i_test;
         aabb.translate(pos_i_image);
-	
+    
         // stackless search
         for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
             {
@@ -946,46 +930,46 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
 
                         counters.overlap_checks++;
                         
-						
+                        
                         if ( h_overlaps.data[this->m_overlap_idx(typ_i, typ_j)])
                             {
-							double maxR =   shape_i.getCircumsphereDiameter()
-										  + shape_j.getCircumsphereDiameter();
-							maxR /= 2;
-							maxR += sweepableDistance;//maxSweep;
-						
-							if( dot(r_ij,r_ij) < maxR*maxR )
-								{
-								double newDist = sweep_distance(r_ij, shape_i, shape_j, direction, counters.overlap_err_count, newCollisionPlaneVector);
-							
-								if( newDist >= 0 and newDist < sweepableDistance )
-									{
-									collisionPlaneVector = newCollisionPlaneVector;
-									sweepableDistance = newDist;
-									next = j;
-									}
-								else
-									{
-									if( newDist < -3.5 ) // resultOverlapping = -3.0;
-										{
-										
-										if( dot(r_ij,direction) > 0 )
-											{
-											collisionPlaneVector = newCollisionPlaneVector;
-											next = j;
-											sweepableDistance = 0.0;
-											}
-										}
-									
-										
-										
-									if( newDist == sweepableDistance )
-										{
-										this->m_exec_conf->msg->error() << "Two particles with the same distance\n";
-										}
-									}
-								}
-							}
+                            double maxR =   shape_i.getCircumsphereDiameter()
+                                          + shape_j.getCircumsphereDiameter();
+                            maxR /= 2;
+                            maxR += sweepableDistance;//maxSweep;
+                        
+                            if( dot(r_ij,r_ij) < maxR*maxR )
+                                {
+                                double newDist = sweep_distance(r_ij, shape_i, shape_j, direction, counters.overlap_err_count, newCollisionPlaneVector);
+                            
+                                if( newDist >= 0 and newDist < sweepableDistance )
+                                    {
+                                    collisionPlaneVector = newCollisionPlaneVector;
+                                    sweepableDistance = newDist;
+                                    next = j;
+                                    }
+                                else
+                                    {
+                                    if( newDist < -3.5 ) // resultOverlapping = -3.0;
+                                        {
+                                        
+                                        if( dot(r_ij,direction) > 0 )
+                                            {
+                                            collisionPlaneVector = newCollisionPlaneVector;
+                                            next = j;
+                                            sweepableDistance = 0.0;
+                                            }
+                                        }
+                                    
+                                        
+                                        
+                                    if( newDist == sweepableDistance )
+                                        {
+                                        this->m_exec_conf->msg->error() << "Two particles with the same distance\n";
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
