@@ -24,11 +24,6 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef ENABLE_MPI
-#error This integrator does not support MPI [IntegratorHPMCMonoNEC]
-#endif
-
-
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
