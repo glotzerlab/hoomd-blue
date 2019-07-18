@@ -4,13 +4,7 @@
 class sphere_param_proxy(object):
     pass
 
-class sphere_nec_param_proxy(object):
-    pass
-
 class convex_polyhedron_param_proxy(object):
-    pass
-
-class convex_polyhedron_nec_param_proxy(object):
     pass
 
 class convex_spheropolyhedron_param_proxy(object):

@@ -25,14 +25,6 @@
 #define DEVICE
 #endif
 
-// #ifdef SINGLE_PRECISION
-// #error maybe we should use doubles... [is: SINGLE_PRECISION]
-// #else
-// #ifdef ENABLE_HPMC_MIXED_PRECISION
-// #error maybe we should use doubles... [is: MIXED_PRECISION]
-// #endif
-// #endif
-
 namespace hpmc
 {
 
@@ -137,17 +129,6 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
             {
             err_count++;
             
-            #ifdef XENOERRORPUTS
-            printf("[EE] XenoSweep3D above max iterations in 2D-Iteration\n"
-                   "     ab_t      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                   "     direction = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                   "     q         = quat<OverlapReal>( %10f , vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
-                   ab_t.x, ab_t.y, ab_t.z,
-                   direction.x, direction.y, direction.z,
-                   q.s, q.v.x, q.v.y, q.v.z
-                   );
-            #endif
-            
             return resultNoForwardCollisionOrOverlapping;
             }
 
@@ -198,7 +179,6 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         // to find cases where edges and or vertices touch exactly.
         if (dot(v1, n) <= OverlapReal(0.0))
             {
-//             return (count==1?resultNoForwardCollisionOrOverlapping:resultOverlapping);
             collisionPlaneVector = n;
             return resultNoForwardCollisionOrOverlapping - count + 1;
             }
@@ -213,7 +193,6 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         const OverlapReal tol_multiplier = 10000;
         d = dot((v1 - v4) * tol_multiplier , n);
         OverlapReal tol = precision_tol * tol_multiplier * R * fast::sqrt(dot(n,n));
-        //OverlapReal tol = precision_tol * tol_multiplier * R * sqrt(dot(n,n));
 
         // First, check if v4 is on plane (v2,v1,v3) or "behind"
         if (d < tol)
@@ -222,56 +201,14 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
             return dot(n,v1) / dot(n,v0);
             }
 
-        #ifdef XENOERRORPUTS
-        printf("[II] New v4 with %e > %e\n"
-                "     v1      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                "     v2      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                "     v3      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                "     v4      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                "     n       = vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
-                d, tol,
-                v1.x, v1.y, v1.z,
-                v2.x, v2.y, v2.z,
-                v3.x, v3.y, v3.z,
-                v4.x, v4.y, v4.z,
-                 n.x,  n.y,  n.z
-                );
-        #endif
-
         
         if (count >= XENOCOLLIDE_3D_MAX_ITERATIONS)
             {
             err_count++;
 
-            #ifdef XENOERRORPUTS
-            printf("[EE] XenoSweep3D above max iterations!\n"
-                   "     ab_t      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                   "     direction = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                   "     q         = quat<OverlapReal>( %10f , vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
-                   ab_t.x, ab_t.y, ab_t.z,
-                   direction.x, direction.y, direction.z,
-                   q.s, q.v.x, q.v.y, q.v.z
-            );
-            printf("     Ended with %e > %e  Final Vectors:\n"
-                    "     v1      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                    "     v2      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                    "     v3      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                    "     v4      = vec3<OverlapReal>( %10f , %10f , %10f) ; \n"
-                    "     n       = vec3<OverlapReal>( %10f , %10f , %10f) ; \n",
-                    d, tol,
-                    v1.x, v1.y, v1.z,
-                    v2.x, v2.y, v2.z,
-                    v3.x, v3.y, v3.z,
-                    v4.x, v4.y, v4.z,
-                    n.x,  n.y,  n.z
-
-            );
-            #endif
-
             collisionPlaneVector = n;
             return dot(n,v1) / dot(n,v0);
             // Return current distance, as it should be a better estimate than ignoring each other.
-            //             return noForwardCollisionOrOverlapping;
             }
 
         x = cross(v4, v0);

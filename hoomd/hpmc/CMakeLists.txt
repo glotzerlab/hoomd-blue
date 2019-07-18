@@ -154,6 +154,7 @@ set(files   analyze.py
             data.py
             __init__.py
             integrate.py
+            integrate_nec.py
             update.py
             util.py
             field.py
