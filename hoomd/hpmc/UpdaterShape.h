@@ -146,8 +146,14 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
     m_ProvidedQuantities.push_back("shape_move_multi_phase_box");
     if (std::is_same<Shape, ShapeConvexPolyhedron>::value)
-        {
         m_ProvidedQuantities.push_back("shape_isoperimetric_quotient");
+        {
+        for(size_t type_idx = 0; type_idx < m_pdata->getNTypes(); type_idx++)
+            {
+            std::string ptype = m_pdata->getNameByType(type_idx);
+            std::string qname = "shape_isoperimetric_quotient-" + ptype;
+            m_ProvidedQuantities.push_back(qname);
+            }
         }
 
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
@@ -239,19 +245,21 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
             }
         return energy;
         }
-    else if(quantity == "shape_isoperimetric_quotient")
+    else if(quantity.compare(0, 28, "shape_isoperimetric_quotient") == 0)
         {
-        ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
+        unsigned int ptype = 0;
+        if(quantity.size() == 28)
+        {
+        ptype = 0;
+        }
+        else
+        {
+            std::string type_name = quantity.substr(29);
+            ptype = m_pdata->getTypeByName(type_name);
+        }
         auto params = m_mc->getParams();
-        Scalar volume = 0.0;
-        Scalar sa = 0.0;
-        for(size_t i = 0; i < 1; i++)  // only handles 1 shape for now
-            {
-            detail::mass_properties<Shape> mp(params[i]);
-            volume = mp.getVolume();//*Scalar(h_ntypes.data[i]);  // what is the data[i] term?
-            sa = mp.getSurfaceArea();
-            }
-        return 36 * M_PI * volume*volume / (sa*sa*sa);
+        detail::mass_properties<Shape> mp(params[ptype]);
+        return mp.getIsoperimetricQuotient();
         }
     else
 	    {
