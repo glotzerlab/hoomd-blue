@@ -46,7 +46,7 @@ template<class Shape>
 class mass_properties_base
 {
 public:
-    mass_properties_base() : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0)
+    mass_properties_base() : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0), m_isoperimetric_quotient(0.0)
         {
         for(unsigned int i = 0; i < 6; i++) m_inertia[i] = 0.0;
         }
@@ -54,6 +54,8 @@ public:
     Scalar getVolume() { return m_volume; }
 
     Scalar getSurfaceArea() { return m_surface_area; }
+
+    Scalar getIsoperimetricQuotient() { return m_isoperimetric_quotient; }
 
     const vec3<Scalar>& getCenterOfMass() { return m_center_of_mass; }
 
@@ -89,6 +91,7 @@ protected:
     Scalar m_volume;
     Scalar m_surface_area;
     vec3<Scalar> m_center_of_mass;
+    Scalar m_isoperimetric_quotient;
     Scalar m_inertia[6]; // xx, yy, zz, xy, yz, xz
 };   // end class mass_properties_base
 
@@ -750,6 +753,7 @@ protected:
     using mass_properties_base< ShapeConvexPolyhedron >::m_volume;
     using mass_properties_base< ShapeConvexPolyhedron >::m_surface_area;
     using mass_properties_base< ShapeConvexPolyhedron >::m_center_of_mass;
+    using mass_properties_base< ShapeConvexPolyhedron >::m_isoperimetric_quotient;
     using mass_properties_base< ShapeConvexPolyhedron >::m_inertia;
     std::vector< vec3<Scalar> > points;
     std::vector<std::vector<unsigned int> > faces;
@@ -805,6 +809,7 @@ protected:
 
         m_volume = intg[0];
         m_surface_area = surface_area;
+        m_isoperimetric_quotient = 36 * m_volume * m_volume / (m_surface_area * m_surface_area * m_surface_area);
 
         m_center_of_mass.x = intg[1];
         m_center_of_mass.y = intg[2];

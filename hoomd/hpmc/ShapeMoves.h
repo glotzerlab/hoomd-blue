@@ -56,6 +56,8 @@ public:
         return m_determinantInertiaTensor;
         }
 
+    // Get the
+
     //! Get the stepsize for \param type_id
     Scalar getStepSize(const unsigned int& type_id) const
         {

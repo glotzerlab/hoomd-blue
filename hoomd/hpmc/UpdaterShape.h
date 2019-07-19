@@ -103,6 +103,7 @@ private:
     std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function;
 
     GPUArray< Scalar >          m_determinant;
+    GPUArray< Scalar >          m_iq;
     GPUArray< unsigned int >    m_ntypes;
 
     std::vector< std::string >  m_ProvidedQuantities;
@@ -131,7 +132,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  Scalar alpha_iq)
     : Updater(sysdef), m_seed(seed), m_global_partition(0), m_nselect(nselect), m_nsweeps(nsweeps),
       m_move_ratio(move_ratio*65535), m_alpha_iq(alpha_iq), m_mc(mc),
-      m_determinant(m_pdata->getNTypes(), m_exec_conf),
+      m_determinant(m_pdata->getNTypes(), m_exec_conf), m_iq(m_pdata->getNType(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
       m_pretend(pretend),m_initialized(false), m_multi_phase(multiphase),
       m_num_phase(numphase), m_update_order(seed)
@@ -150,6 +151,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
         }
 
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_iq(m_iq, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
     m_ProvidedQuantities.push_back("shape_move_energy");
@@ -314,6 +316,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         if (this->m_prof)
             this->m_prof->push(this->m_exec_conf, "UpdaterShape move");
         GPUArray< Scalar > determinant_backup(m_determinant);
+        GPUArray< Scalar > iq_backup(m_iq);
         m_move_function->prepare(timestep);
 
         for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
@@ -336,12 +339,16 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             param = params[typ_i];
             ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_det_backup(determinant_backup, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_iq(m_iq, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_iq_backup(iq_backup, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
 
             hoomd::detail::Saru rng_i(m_seed + m_nselect + sweep + m_nsweeps, typ_i+1046527, timestep+7919);
             m_move_function->construct(timestep, typ_i, param, rng_i);
             h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
+            h_iq.data[typ_i] = shape_iq;  // TODO: figure out how to get this for the new shape
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
+            m_exec_conf->msg->notice(5) << " UpdaterShape IQ=" << h_iq.data[typ_i] << ", " << h_iq_backup.data[typ_i] << std::endl;
             // energy and moment of interia change.
             assert(h_det.data[typ_i] != 0 && h_det_backup.data[typ_i] != 0);
             log_boltz += (*m_log_boltz_function)(   timestep,
@@ -352,6 +359,9 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                                                     param_copy[cur_type],           // old shape parameter
                                                     h_det_backup.data[typ_i]        // old determinant
                                                 );
+
+            // add the bias for the isoperimetric quotient;
+            // useful for biasing away from spherical shapes
             log_boltz += this->getLogValue("shape_isoperimetric_quotient", timestep) * m_alpha_iq * -1.0;
             m_mc->setParam(typ_i, param, cur_type == (m_nselect-1));
             }
