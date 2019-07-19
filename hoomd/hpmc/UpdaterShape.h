@@ -132,7 +132,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  Scalar alpha_iq)
     : Updater(sysdef), m_seed(seed), m_global_partition(0), m_nselect(nselect), m_nsweeps(nsweeps),
       m_move_ratio(move_ratio*65535), m_alpha_iq(alpha_iq), m_mc(mc),
-      m_determinant(m_pdata->getNTypes(), m_exec_conf), m_iq(m_pdata->getNType(), m_exec_conf),
+      m_determinant(m_pdata->getNTypes(), m_exec_conf), m_iq(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
       m_pretend(pretend),m_initialized(false), m_multi_phase(multiphase),
       m_num_phase(numphase), m_update_order(seed)
@@ -346,7 +346,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             hoomd::detail::Saru rng_i(m_seed + m_nselect + sweep + m_nsweeps, typ_i+1046527, timestep+7919);
             m_move_function->construct(timestep, typ_i, param, rng_i);
             h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
-            h_iq.data[typ_i] = shape_iq;  // TODO: figure out how to get this for the new shape
+            h_iq.data[typ_i] = m_move_function->getIsoperimetricQuotient();
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
             m_exec_conf->msg->notice(5) << " UpdaterShape IQ=" << h_iq.data[typ_i] << ", " << h_iq_backup.data[typ_i] << std::endl;
             // energy and moment of interia change.
@@ -362,7 +362,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
 
             // add the bias for the isoperimetric quotient;
             // useful for biasing away from spherical shapes
-            log_boltz += this->getLogValue("shape_isoperimetric_quotient", timestep) * m_alpha_iq * -1.0;
+            log_boltz += -m_alpha_iq * (h_iq.data[typ_i] - h_iq_backup.data[typ_i]);
             m_mc->setParam(typ_i, param, cur_type == (m_nselect-1));
             }
         if (this->m_prof)
@@ -375,10 +375,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         Scalar p = rng.s(Scalar(0.0),Scalar(1.0)), Z = fast::exp(log_boltz);
         m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p
             << ", log_boltz=" << log_boltz
-            << ", z=" << Z
-            << ", alpha_iq=" << m_alpha_iq
-            << ", alpha_iq * I=" << this->getLogValue("shape_isoperimetric_quotient", timestep) * m_alpha_iq
-            << std::endl;
+            << ", z=" << Z << std::endl;
         
     if(m_multi_phase)
         {
@@ -452,6 +449,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             {
             m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
             m_determinant.swap(determinant_backup);
+            m_iq.swap(iq_backup);
             // m_mc->swapParams(param_copy);
             // ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
             for(size_t typ = 0; typ < m_nselect; typ++)
@@ -472,12 +470,14 @@ void UpdaterShape<Shape>::initialize()
     {
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_iq(m_iq, access_location::host, access_mode::readwrite);
     // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
     auto params = m_mc->getParams();
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
         {
         detail::mass_properties<Shape> mp(params[i]);
         h_det.data[i] = mp.getDeterminant();
+        h_iq.data[i] = mp.getIsoperimetricQuotient();
         }
     m_initialized = true;
     }
