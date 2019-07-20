@@ -809,7 +809,7 @@ protected:
 
         m_volume = intg[0];
         m_surface_area = surface_area;
-        m_isoperimetric_quotient = 36 * m_volume * m_volume / (m_surface_area * m_surface_area * m_surface_area);
+        m_isoperimetric_quotient = 36 * M_PI * m_volume * m_volume / (m_surface_area * m_surface_area * m_surface_area);
 
         m_center_of_mass.x = intg[1];
         m_center_of_mass.y = intg[2];
