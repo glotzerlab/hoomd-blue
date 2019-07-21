@@ -145,7 +145,6 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
     m_ProvidedQuantities.push_back("shape_move_multi_phase_box");
     if (std::is_same<Shape, ShapeConvexPolyhedron>::value)
-        m_exec_conf->msg->notice(5) << "Logger info: " << m_pdata->getNTypes() << std::endl;
         m_ProvidedQuantities.push_back("shape_isoperimetric_quotient");
         {
         for(unsigned int type_idx = 0; type_idx < m_pdata->getNTypes(); type_idx++)
@@ -153,15 +152,14 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
             const std::string ptype = m_pdata->getNameByType(type_idx);
             const std::string qname = "shape_isoperimetric_quotient-" + ptype;
             m_ProvidedQuantities.push_back(qname);
-            m_exec_conf->msg->notice(5) << "Logger info: " << type_idx << " " << ptype << " " << qname << std::endl;
             }
         }
 
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_iq(m_iq, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-    for(size_t i = 0; i < m_pdata->getNTypes(); i++)
     m_ProvidedQuantities.push_back("shape_move_energy");
+    //for(size_t i = 0; i < m_pdata->getNTypes(); i++)  // what is this doing?
         {
         ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
@@ -169,6 +167,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
             {
             h_det.data[i] = 0.0;
             h_ntypes.data[i] = 0;
+            h_iq.data[i] = 0.0;
             }
         }
     // TODO: connect to ntypes change/particle changes to resize arrays and count them up again.
@@ -248,21 +247,16 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         }
     else if(quantity.compare(0, 28, "shape_isoperimetric_quotient") == 0)
         {
-        std::string str_name; 
         unsigned int ptype = 0;
         if(quantity.size() == 28)
-        {
-        ptype = 0;
-        str_name = "none";
-        }
+            {
+            ptype = 0;
+            }
         else
-        {
-        const std::string type_name = quantity.substr(29);
-        ptype = m_pdata->getTypeByName(type_name);
-        str_name = type_name;
-        }
-        m_exec_conf->msg->notice(5) << "Logger info: " << quantity << " " 
-            << str_name << " " << ptype << " " << std::endl;
+            {
+            const std::string type_name = quantity.substr(29);
+            ptype = m_pdata->getTypeByName(type_name);
+            }
         auto params = m_mc->getParams();
         detail::mass_properties<Shape> mp(params[ptype]);
         return mp.getIsoperimetricQuotient();
