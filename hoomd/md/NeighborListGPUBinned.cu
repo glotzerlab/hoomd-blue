@@ -12,9 +12,6 @@
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU
 */
 
-//! Texture for reading d_cell_xyzf
-scalar4_tex_t cell_xyzf_1d_tex;
-
 //! Kernel call for generating neighbor list on the GPU (Kepler optimized version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
     \param d_nlist Neighbor list data structure to write
@@ -196,7 +193,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
             unsigned int j;
             Scalar4 postype_j;
             if (!use_index)
-                cur_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
+                cur_xyzf = __ldg(d_cell_xyzf + cli(cur_offset, neigh_cell));
             else
                 {
                 j = d_cell_idx[cli(cur_offset, neigh_cell)+igpu*cli.getNumElements()];
@@ -300,14 +297,6 @@ int get_max_block_size(T func)
     return max_threads;
     }
 
-void gpu_nlist_binned_bind_texture(const Scalar4 *d_cell_xyzf, unsigned int n_elements)
-    {
-    // bind the position texture
-    cell_xyzf_1d_tex.normalized = false;
-    cell_xyzf_1d_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, cell_xyzf_1d_tex, d_cell_xyzf, sizeof(Scalar4)*n_elements);
-    }
-
 //! recursive template to launch neighborlist with given template parameters
 /* \tparam cur_tpp Number of threads per particle (assumed to be power of two) */
 template<int cur_tpp>
@@ -359,7 +348,6 @@ inline void launcher(unsigned int *d_nlist,
                 static unsigned int max_block_size = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<0,0,cur_tpp>);
-                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
@@ -396,7 +384,6 @@ inline void launcher(unsigned int *d_nlist,
                 static unsigned int max_block_size = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<1,0,cur_tpp>);
-                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
@@ -433,7 +420,6 @@ inline void launcher(unsigned int *d_nlist,
                 static unsigned int max_block_size = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<2,0,cur_tpp>);
-                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
@@ -470,7 +456,6 @@ inline void launcher(unsigned int *d_nlist,
                 static unsigned int max_block_size = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<3,0,cur_tpp>);
-                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
@@ -510,7 +495,6 @@ inline void launcher(unsigned int *d_nlist,
                 static unsigned int max_block_size = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<0,1,cur_tpp>);
-                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
@@ -547,7 +531,6 @@ inline void launcher(unsigned int *d_nlist,
                 static unsigned int max_block_size = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<1,1,cur_tpp>);
-                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
@@ -584,7 +567,6 @@ inline void launcher(unsigned int *d_nlist,
                 static unsigned int max_block_size = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<2,1,cur_tpp>);
-                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
@@ -621,7 +603,6 @@ inline void launcher(unsigned int *d_nlist,
                 static unsigned int max_block_size = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<3,1,cur_tpp>);
-                if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);

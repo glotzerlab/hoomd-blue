@@ -250,7 +250,7 @@ void finalize_mpi()
 void abort_mpi(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     #ifdef ENABLE_MPI
-    if(exec_conf->getNRanksGlobal() > 1)
+    if(exec_conf->getMPIConfig()->getNRanksGlobal() > 1)
         {
         MPI_Abort(exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
         }
@@ -328,6 +328,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_BoxDim(m);
     export_ParticleData(m);
     export_SnapshotParticleData(m);
+    export_MPIConfiguration(m);
     export_ExecutionConfiguration(m);
     export_SystemDefinition(m);
     export_SnapshotSystemData(m);

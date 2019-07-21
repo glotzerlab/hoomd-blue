@@ -3,21 +3,21 @@ import jinja2
 env = jinja2.Environment(loader=jinja2.FileSystemLoader('.'))
 template = env.get_template('Jenkinsfile.jinja')
 
-ci_base = 'ci-2018.10'
+ci_base = 'ci-2019.05'
 
 unit_tests = []
 vldt_tests = []
-unit_tests.append(dict(name='gcc54-py27-cuda8',
+unit_tests.append(dict(name='gcc7-py36-cuda9',
                   agent='gpu-short',
                   CC = '/usr/bin/gcc',
                   CXX = '/usr/bin/g++',
-                  PYVER = '2.7',
+                  PYVER = '3.6',
                   CMAKE_BIN = '/usr/bin',
                   ENABLE_CUDA = 'ON',
                   ENABLE_MPI = 'OFF',
                   ENABLE_TBB = 'OFF',
                   ALWAYS_USE_MANAGED_MEMORY = 'OFF',
-                  CONTAINER = ci_base + '-cuda8.simg',
+                  CONTAINER = ci_base + '-cuda9.simg',
                   BUILD_JIT = 'OFF',
                   LLVM_VERSION = '',
                   OMP_NUM_THREADS = '1'))

@@ -201,10 +201,6 @@ class system(hoomd.meta._metadata):
                 self.comm = _mpcd.Communicator(self.data)
             else:
                 self.comm = _mpcd.CommunicatorGPU(self.data)
-
-            # ensure system data members get their communicators set now
-            # (why bother deferring until runtime?)
-            self.cell.setMPCDCommunicator(self.comm)
         else:
             self.comm = None
 
@@ -262,7 +258,7 @@ class system(hoomd.meta._metadata):
 
         """
         if cell is not None:
-            self.cell.setCellSize(cell)
+            self.cell.cell_size = cell
 
     def take_snapshot(self, particles=True):
         R""" Takes a snapshot of the current state of the MPCD system

@@ -11,33 +11,45 @@ set(_mpcd_sources
     CellList.cc
     CollisionMethod.cc
     Communicator.cc
+    ExternalField.cc
     Integrator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
+    SlitGeometryFiller.cc
     Sorter.cc
     SRDCollisionMethod.cc
+    StreamingGeometry.cc
     StreamingMethod.cc
     SystemData.cc
     SystemDataSnapshot.cc
+    VirtualParticleFiller.cc
     )
 
 set(_mpcd_headers
     ATCollisionMethod.h
+    BoundaryCondition.h
+    BulkGeometry.h
     CellCommunicator.h
     CellThermoCompute.h
     CellList.h
     CollisionMethod.h
+    ConfinedStreamingMethod.h
     Communicator.h
     CommunicatorUtilities.h
+    ExternalField.h
     Integrator.h
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
+    SlitGeometry.h
+    SlitGeometryFiller.h
     Sorter.h
     SRDCollisionMethod.h
+    StreamingGeometry.h
     StreamingMethod.h
     SystemData.h
     SystemDataSnapshot.h
+    VirtualParticleFiller.h
     )
 
 if (ENABLE_CUDA)
@@ -46,9 +58,9 @@ list(APPEND _mpcd_sources
     CellThermoComputeGPU.cc
     CellListGPU.cc
     CommunicatorGPU.cc
+    SlitGeometryFillerGPU.cc
     SorterGPU.cc
     SRDCollisionMethodGPU.cc
-    StreamingMethodGPU.cc
     )
 list(APPEND _mpcd_headers
     ATCollisionMethodGPU.cuh
@@ -60,13 +72,15 @@ list(APPEND _mpcd_headers
     CellListGPU.h
     CommunicatorGPU.cuh
     CommunicatorGPU.h
+    ConfinedStreamingMethodGPU.cuh
+    ConfinedStreamingMethodGPU.h
     ParticleData.cuh
+    SlitGeometryFillerGPU.cuh
+    SlitGeometryFillerGPU.h
     SorterGPU.cuh
     SorterGPU.h
     SRDCollisionMethodGPU.cuh
     SRDCollisionMethodGPU.h
-    StreamingMethodGPU.cuh
-    StreamingMethodGPU.h
     )
 endif()
 
@@ -74,18 +88,26 @@ set(_mpcd_cu_sources
     ATCollisionMethodGPU.cu
     CellThermoComputeGPU.cu
     CellListGPU.cu
+    ConfinedStreamingMethodGPU.cu
     CommunicatorGPU.cu
+    ExternalField.cu
     ParticleData.cu
+    SlitGeometryFillerGPU.cu
     SorterGPU.cu
     SRDCollisionMethodGPU.cu
-    StreamingMethodGPU.cu
     )
 
 if (ENABLE_CUDA)
-CUDA_COMPILE(_CUDA_GENERATED_FILES ${_mpcd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
+    # Separable compilation is needed to support ExternalField.cu polymorphism.
+    # This likely breaks plugin support though. :-(
+    set(CUDA_SEPARABLE_COMPILATION ON)
+    # seem to need to inject fPIC here. fortunately, all of HOOMD's compilers should take this option.
+    CUDA_COMPILE(_CUDA_GENERATED_FILES ${_mpcd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
+    CUDA_COMPUTE_SEPARABLE_COMPILATION_OBJECT_FILE_NAME(LINK_OBJ _mpcd ${_CUDA_GENERATED_FILES})
+    CUDA_LINK_SEPARABLE_COMPILATION_OBJECTS(${LINK_OBJ} _mpcd "${CUDA_ADDITIONAL_OPTIONS};--compiler-options=-fPIC" "${_CUDA_GENERATED_FILES}")
 endif (ENABLE_CUDA)
 
-pybind11_add_module(_mpcd SHARED ${_mpcd_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
+pybind11_add_module(_mpcd SHARED ${_mpcd_sources} ${LINK_OBJ} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
 if (APPLE)
 set_target_properties(_mpcd PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path/../md;@loader_path")
 else()
@@ -94,6 +116,9 @@ endif()
 
 # link the library to its dependencies
 target_link_libraries(_mpcd PRIVATE _md ${HOOMD_LIBRARIES})
+if (ENABLE_CUDA)
+    target_link_libraries(_mpcd PRIVATE ${CUDA_cudadevrt_LIBRARY})
+endif (ENABLE_CUDA)
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -130,6 +155,7 @@ set(files
     __init__.py
     collide.py
     data.py
+    force.py
     init.py
     stream.py
     update.py

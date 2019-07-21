@@ -34,17 +34,8 @@ mpcd::SRDCollisionMethod::~SRDCollisionMethod()
     m_thermo->getFlagsSignal().disconnect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(this);
     }
 
-void mpcd::SRDCollisionMethod::collide(unsigned int timestep)
+void mpcd::SRDCollisionMethod::rule(unsigned int timestep)
     {
-    if (!shouldCollide(timestep)) return;
-
-    if (m_prof) m_prof->push("MPCD collide");
-    // set random grid shift
-    drawGridShift(timestep);
-    if (m_prof) m_prof->pop();
-
-    // update cell list and thermo
-    m_cl->compute(timestep);
     m_thermo->compute(timestep);
 
     if (m_prof) m_prof->push(m_exec_conf, "MPCD collide");
@@ -132,7 +123,7 @@ void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
     {
     // acquire MPCD particle data
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
     // acquire additionally embedded particle data
     std::unique_ptr< ArrayHandle<unsigned int> > h_embed_cell_ids;
