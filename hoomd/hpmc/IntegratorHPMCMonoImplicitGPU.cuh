@@ -231,18 +231,6 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t &args, co
  * Definition of function templates and templated GPU kernels
  */
 
-//! Texture for reading postype
-scalar4_tex_t implicit_postype_tex;
-//! Texture for reading orientation
-scalar4_tex_t implicit_orientation_tex;
-//! Texture for reading postype
-scalar4_tex_t implicit_postype_old_tex;
-//! Texture for reading orientation
-scalar4_tex_t implicit_orientation_old_tex;
-
-//! Texture for reading cell index data
-texture<unsigned int, 1, cudaReadModeElementType> implicit_cell_idx_tex;
-
 //! HPMC implicit count overlaps kernel
 /*! \param d_postype Particle positions and types by index
     \param d_orientation Particle orientation
@@ -425,7 +413,7 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
     if (active)
         {
         // load updated particle position
-        postype_i = texFetchScalar4(d_postype, implicit_postype_tex, idx_i);
+        postype_i = __ldg(d_postype + idx_i);
         type_i = __scalar_as_int(postype_i.w);
         pos_i = vec3<Scalar>(postype_i);
         }
@@ -458,7 +446,7 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
     Shape shape_i(quat<Scalar>(orientation_i), s_params[__scalar_as_int(postype_i.w)]);
     if (shape_i.hasOrientation())
         {
-        orientation_i = texFetchScalar4(d_orientation, implicit_orientation_tex, idx_i);
+        orientation_i = __ldg(d_orientation + idx_i);
         shape_i.orientation = quat<Scalar>(orientation_i);
         }
 
@@ -528,18 +516,14 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
                     Scalar4 postype_j;
                     do {
                         // read in position, and orientation of neighboring particle
-                        #if (__CUDA_ARCH__ > 300)
                         j = __ldg(&d_excell_idx[excli(local_k, my_cell)]);
-                        #else
-                        j = d_excell_idx[excli(local_k, my_cell)];
-                        #endif
 
                         // check against neighbor
-                        postype_j = texFetchScalar4(d_postype_old, implicit_postype_old_tex, j);
+                        postype_j = __ldg(d_postype_old + j);
                         Shape shape_j(quat<Scalar>(), s_params[__scalar_as_int(postype_j.w)]);
                         if (shape_j.hasOrientation())
                             {
-                            shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation_old, implicit_orientation_old_tex, j));
+                            shape_j.orientation = quat<Scalar>(__ldg(d_orientation_old + j));
                             }
 
                         // test depletant in sphere around new particle position
@@ -565,7 +549,7 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
                         Shape shape_j(quat<Scalar>(), s_params[typ_j]);
                         if (shape_j.hasOrientation())
                             {
-                            shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation_old, implicit_orientation_old_tex, j));
+                            shape_j.orientation = quat<Scalar>(__ldg(d_orientation_old + j));
                             }
 
                         if (s_check_overlaps[overlap_idx(depletant_type, typ_j)]
@@ -833,12 +817,12 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
     if (active)
         {
         // load updated particle position
-        postype_i = texFetchScalar4(d_postype, implicit_postype_tex, idx_i);
+        postype_i = __ldg(d_postype + idx_i);
 
         Shape shape_i(quat<Scalar>(), s_params[__scalar_as_int(postype_i.w)]);
         if (shape_i.hasOrientation())
             {
-            orientation_i = texFetchScalar4(d_orientation, implicit_orientation_tex, idx_i);
+            orientation_i = __ldg(d_orientation + idx_i);
             }
         }
 
@@ -851,7 +835,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
     vec3<Scalar> pos_i_old;
     if (active)
         {
-        pos_i_old = vec3<Scalar>(texFetchScalar4(d_postype_old, implicit_postype_old_tex, idx_i));
+        pos_i_old = vec3<Scalar>(__ldg(d_postype_old + idx_i));
         }
 
     unsigned int excell_size;
@@ -984,7 +968,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
         vec3<Scalar> r_ij = pos_i_old - pos_test;
         if (shape_i.hasOrientation())
             {
-            shape_i.orientation = quat<Scalar>(texFetchScalar4(d_orientation_old, implicit_orientation_old_tex, idx_i));
+            shape_i.orientation = quat<Scalar>(__ldg(d_orientation_old + idx_i));
             }
 
         // if depletant can be inserted in excluded volume at old (new) position, success
@@ -1056,11 +1040,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
             unsigned int j, next_j = 0;
             if (k < excell_size)
                 {
-                #if (__CUDA_ARCH__ > 300)
                 next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
-                #else
-                next_j = d_excell_idx[excli(k, my_cell)];
-                #endif
                 }
 
             // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
@@ -1082,15 +1062,11 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
 
                     if (k < excell_size)
                         {
-                        #if (__CUDA_ARCH__ > 300)
                         next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
-                        #else
-                        next_j = d_excell_idx[excli(k, my_cell)];
-                        #endif
                         }
 
                     // read in position, and orientation of neighboring particle
-                    postype_j = texFetchScalar4(d_postype_old, implicit_postype_old_tex, j);
+                    postype_j = __ldg(d_postype_old + j);
                     Shape shape_j(quat<Scalar>(), s_params[__scalar_as_int(postype_j.w)]);
 
                     // put particle j into the coordinate system of depletant
@@ -1148,12 +1124,12 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
             Shape shape_i(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type]);
 
             // build shape j from global memory
-            postype_j = texFetchScalar4(d_postype_old, implicit_postype_old_tex, check_j);
+            postype_j = __ldg(d_postype_old + check_j);
             orientation_j = make_scalar4(1,0,0,0);
             unsigned int typ_j = __scalar_as_int(postype_j.w);
             Shape shape_j(quat<Scalar>(orientation_j), s_params[typ_j]);
             if (shape_j.hasOrientation())
-                shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation_old, implicit_orientation_old_tex, check_j));
+                shape_j.orientation = quat<Scalar>(__ldg(d_orientation_old + check_j));
 
             // put particle j into the coordinate system of particle i
             r_ij = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_i);
@@ -1408,40 +1384,6 @@ struct CountOverlapsKernelLauncher
                                                   args.d_state_cell);
                 n_active_cells = args.n_active_cells;
                 }
-
-            // bind the textures
-            implicit_postype_tex.normalized = false;
-            implicit_postype_tex.filterMode = cudaFilterModePoint;
-            cudaError_t error = cudaBindTexture(0, implicit_postype_tex, args.d_postype, sizeof(Scalar4)*args.max_n);
-            if (error != cudaSuccess)
-                return error;
-
-            implicit_postype_old_tex.normalized = false;
-            implicit_postype_old_tex.filterMode = cudaFilterModePoint;
-            error = cudaBindTexture(0, implicit_postype_old_tex, args.d_postype_old, sizeof(Scalar4)*args.max_n);
-            if (error != cudaSuccess)
-                return error;
-
-            if (args.has_orientation)
-                {
-                implicit_orientation_tex.normalized = false;
-                implicit_orientation_tex.filterMode = cudaFilterModePoint;
-                error = cudaBindTexture(0, implicit_orientation_tex, args.d_orientation, sizeof(Scalar4)*args.max_n);
-                if (error != cudaSuccess)
-                    return error;
-
-                implicit_orientation_old_tex.normalized = false;
-                implicit_orientation_old_tex.filterMode = cudaFilterModePoint;
-                error = cudaBindTexture(0, implicit_orientation_old_tex, args.d_orientation_old, sizeof(Scalar4)*args.max_n);
-                if (error != cudaSuccess)
-                    return error;
-                }
-
-            implicit_cell_idx_tex.normalized = false;
-            implicit_cell_idx_tex.filterMode = cudaFilterModePoint;
-            error = cudaBindTexture(0, implicit_cell_idx_tex, args.d_cell_idx, sizeof(unsigned int)*args.cli.getNumElements());
-            if (error != cudaSuccess)
-                return error;
 
             unsigned int shared_bytes = args.num_types * (sizeof(typename Shape::param_type))
                 + args.overlap_idx.getNumElements() * sizeof(unsigned int);

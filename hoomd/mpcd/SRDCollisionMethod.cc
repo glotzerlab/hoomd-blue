@@ -9,8 +9,8 @@
  */
 
 #include "SRDCollisionMethod.h"
-#include "RandomNumbers.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                              unsigned int cur_timestep,
@@ -34,17 +34,8 @@ mpcd::SRDCollisionMethod::~SRDCollisionMethod()
     m_thermo->getFlagsSignal().disconnect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(this);
     }
 
-void mpcd::SRDCollisionMethod::collide(unsigned int timestep)
+void mpcd::SRDCollisionMethod::rule(unsigned int timestep)
     {
-    if (!shouldCollide(timestep)) return;
-
-    if (m_prof) m_prof->push("MPCD collide");
-    // set random grid shift
-    drawGridShift(timestep);
-    if (m_prof) m_prof->pop();
-
-    // update cell list and thermo
-    m_cl->compute(timestep);
     m_thermo->compute(timestep);
 
     if (m_prof) m_prof->push(m_exec_conf, "MPCD collide");
@@ -93,12 +84,12 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                 const unsigned int idx = ci(i,j,k);
 
                 // Initialize the PRNG using the current cell index, timestep, and seed for the hash
-                hoomd::detail::Saru saru(global_idx, timestep, m_seed);
+                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SRDCollisionMethod, m_seed, global_idx, timestep);
 
                 // draw rotation vector off the surface of the sphere
                 double3 rotvec;
-                mpcd::detail::SpherePointGenerator<double> sphgen;
-                sphgen(saru, rotvec);
+                hoomd::SpherePointGenerator<double> sphgen;
+                sphgen(rng, rotvec);
                 h_rotvec.data[idx] = rotvec;
 
                 if (use_thermostat)
@@ -112,8 +103,8 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                         const double alpha = m_sysdef->getNDimensions()*(np-1)/(double)2.;
 
                         // draw a random kinetic energy for the cell at the set temperature
-                        mpcd::detail::GammaGenerator<double> gamma_gen(alpha,T_set);
-                        const double rand_ke = gamma_gen(saru);
+                        hoomd::GammaDistribution<double> gamma_gen(alpha,T_set);
+                        const double rand_ke = gamma_gen(rng);
 
                         // generate the scale factor from the current temperature
                         // (don't use the kinetic energy of this cell, since this
@@ -132,7 +123,7 @@ void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
     {
     // acquire MPCD particle data
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
     // acquire additionally embedded particle data
     std::unique_ptr< ArrayHandle<unsigned int> > h_embed_cell_ids;

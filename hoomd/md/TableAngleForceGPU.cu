@@ -16,10 +16,6 @@
     \brief Defines GPU kernel code for calculating the table angle forces. Used by TableAngleForceComputeGPU.
 */
 
-
-//! Texture for reading table values
-scalar2_tex_t tables_tex;
-
 /*!  This kernel is called to calculate the table angle forces on all triples this is defined or
 
     \param d_force Device memory to write computed forces
@@ -38,10 +34,6 @@ scalar2_tex_t tables_tex;
     \param delta_th angle delta of the table
 
     See TableAngleForceCompute for information on the memory layout.
-
-    \b Details:
-    * Table entries are read from tables_tex. Note that currently this is bound to a 1D memory region. Performance tests
-      at a later date may result in this changing.
 */
 __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
                                      Scalar* d_virial,
@@ -153,8 +145,8 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
 
         // compute index into the table and read in values
         unsigned int value_i = value_f;
-        Scalar2 VT0 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_angle_type));
-        Scalar2 VT1 = texFetchScalar2(d_tables, tables_tex, table_value(value_i+1, cur_angle_type));
+        Scalar2 VT0 = __ldg(d_tables + table_value(value_i, cur_angle_type));
+        Scalar2 VT1 = __ldg(d_tables + table_value(value_i+1, cur_angle_type));
         // unpack the data
         Scalar V0 = VT0.x;
         Scalar V1 = VT1.x;
@@ -257,8 +249,7 @@ cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
                                      const Scalar2 *d_tables,
                                      const unsigned int table_width,
                                      const Index2D &table_value,
-                                     const unsigned int block_size,
-                                     const unsigned int compute_capability)
+                                     const unsigned int block_size)
     {
     assert(d_tables);
     assert(table_width > 1);
@@ -279,16 +270,6 @@ cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
     // setup the grid to run the kernel
     dim3 grid( N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
-
-    // bind the tables texture on pre sm35 arches
-    if (compute_capability < 350)
-        {
-        tables_tex.normalized = false;
-        tables_tex.filterMode = cudaFilterModePoint;
-        cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_value.getNumElements());
-        if (error != cudaSuccess)
-            return error;
-        }
 
     Scalar delta_th = Scalar(M_PI)/(Scalar)(table_width - 1);
 

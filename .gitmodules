@@ -22,3 +22,6 @@
 [submodule "hoomd/extern/cub"]
 	path = hoomd/extern/cub
 	url = https://github.com/glotzerlab/cub.git
+[submodule "hoomd/extern/random123"]
+	path = hoomd/extern/random123
+	url = https://github.com/glotzerlab/random123.git

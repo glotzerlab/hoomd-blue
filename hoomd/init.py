@@ -60,9 +60,8 @@ def create_lattice(unitcell, n):
         hoomd.init.create_lattice(unitcell=hoomd.lattice.hex(a=1.0),
                                   n=[100,58]);
     """
-    hoomd.util.print_status_line();
-
     hoomd.context._verify_init();
+    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if is_initialized():
@@ -167,9 +166,8 @@ def read_getar(filename, modes={'any': 'any'}):
        "velocity", "float", "(N, 3)", "velocity of each particle in the system"
 
     """
-    hoomd.util.print_status_line();
-
     hoomd.context._verify_init();
+    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if is_initialized():
@@ -229,9 +227,8 @@ def read_snapshot(snapshot):
     See Also:
         :py:mod:`hoomd.data`
     """
-    hoomd.util.print_status_line();
-
     hoomd.context._verify_init();
+    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if is_initialized():
@@ -279,9 +276,8 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     See Also:
         :py:class:`hoomd.dump.gsd`
     """
-    hoomd.util.print_status_line();
-
     hoomd.context._verify_init();
+    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if is_initialized():

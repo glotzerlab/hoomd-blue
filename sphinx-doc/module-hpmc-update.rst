@@ -9,6 +9,7 @@ hpmc.update
     :nosignatures:
 
     hpmc.update.boxmc
+    hpmc.update.clusters
     hpmc.update.muvt
     hpmc.update.remove_drift
     hpmc.update.wall

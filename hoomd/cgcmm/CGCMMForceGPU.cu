@@ -13,11 +13,6 @@
     \brief Defines GPU kernel code for calculating the Lennard-Jones pair forces. Used by CGCMMForceComputeGPU.
 */
 
-//! Texture for reading particle positions
-scalar4_tex_t pdata_pos_tex;
-//! Texture for reading the neighbor list
-texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
-
 //! Kernel for calculating CG-CMM Lennard-Jones forces
 /*! This kernel is called to calculate the Lennard-Jones forces on all N particles for the CG-CMM model potential.
 
@@ -45,7 +40,6 @@ texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template<unsigned char use_gmem_nlist>
 __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
                                                 Scalar* d_virial,
                                                 const unsigned int virial_pitch,
@@ -80,7 +74,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+    Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
@@ -92,14 +86,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
     unsigned int next_neigh(0);
-    if (use_gmem_nlist)
-        {
-        next_neigh = d_nlist[head_idx];
-        }
-    else
-        {
-        next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx);
-        }
+    next_neigh = __ldg(d_nlist + head_idx);
 
     // loop over neighbors
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
@@ -107,17 +94,10 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
         // read the current neighbor index (MEM TRANSFER: 4 bytes)
         // prefetch the next value and set the current one
         cur_neigh = next_neigh;
-        if (use_gmem_nlist)
-            {
-            next_neigh = d_nlist[head_idx + neigh_idx + 1];
-            }
-        else
-            {
-            next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
-            }
+        next_neigh = __ldg(d_nlist + head_idx + neigh_idx+1);
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
+        Scalar4 neigh_postype = __ldg(d_pos + cur_neigh);
         Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions)
@@ -212,9 +192,7 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
                                      const unsigned int size_nlist,
                                      const unsigned int coeff_width,
                                      const Scalar r_cutsq,
-                                     const unsigned int block_size,
-                                     const unsigned int compute_capability,
-                                     const unsigned int max_tex1d_width)
+                                     const unsigned int block_size)
     {
     assert(d_coeffs);
     assert(coeff_width > 0);
@@ -223,56 +201,18 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
     dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    // bind the texture
-    if (compute_capability < 35)
-        {
-        pdata_pos_tex.normalized = false;
-        pdata_pos_tex.filterMode = cudaFilterModePoint;
-        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
-        if (error != cudaSuccess)
-            return error;
-
-        if (size_nlist <= max_tex1d_width)
-            {
-            nlist_tex.normalized = false;
-            nlist_tex.filterMode = cudaFilterModePoint;
-            error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
-            if (error != cudaSuccess)
-                return error;
-            }
-        }
-
-    // run the kernel
-    if (compute_capability < 35 && size_nlist > max_tex1d_width)
-        { // fall back to slow global loads when the neighbor list is too big for texture memory
-        gpu_compute_cgcmm_forces_kernel<1><<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>(d_force,
-                                                                                                      d_virial,
-                                                                                                      virial_pitch,
-                                                                                                      N,
-                                                                                                      d_pos,
-                                                                                                      box,
-                                                                                                      d_n_neigh,
-                                                                                                      d_nlist,
-                                                                                                      d_head_list,
-                                                                                                      d_coeffs,
-                                                                                                      coeff_width,
-                                                                                                      r_cutsq);
-        }
-    else
-        {
-        gpu_compute_cgcmm_forces_kernel<0><<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>(d_force,
-                                                                                                      d_virial,
-                                                                                                      virial_pitch,
-                                                                                                      N,
-                                                                                                      d_pos,
-                                                                                                      box,
-                                                                                                      d_n_neigh,
-                                                                                                      d_nlist,
-                                                                                                      d_head_list,
-                                                                                                      d_coeffs,
-                                                                                                      coeff_width,
-                                                                                                      r_cutsq);
-        }
+    gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>(d_force,
+                                                                                                  d_virial,
+                                                                                                  virial_pitch,
+                                                                                                  N,
+                                                                                                  d_pos,
+                                                                                                  box,
+                                                                                                  d_n_neigh,
+                                                                                                  d_nlist,
+                                                                                                  d_head_list,
+                                                                                                  d_coeffs,
+                                                                                                  coeff_width,
+                                                                                                  r_cutsq);
 
     return cudaSuccess;
     }

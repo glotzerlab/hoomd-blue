@@ -14,8 +14,10 @@
 /*!
  * \param sysdata MPCD system data
  */
-mpcd::SorterGPU::SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata)
-    : mpcd::Sorter(sysdata), m_tmp_storage(m_exec_conf), m_compact_flag(m_exec_conf)
+mpcd::SorterGPU::SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+                           unsigned int cur_timestep,
+                           unsigned int period)
+    : mpcd::Sorter(sysdata,cur_timestep,period)
     {
     m_sentinel_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_sort_sentinel", m_exec_conf));
     m_reverse_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_sort_reverse", m_exec_conf));
@@ -51,37 +53,19 @@ void mpcd::SorterGPU::computeOrder(unsigned int timestep)
         m_sentinel_tuner->end();
         }
 
-    // use CUB to select out the indexes of MPCD particles
+    // use thrust to select out the indexes of MPCD particles
         {
-        // size the required temporary storage for compaction
         ArrayHandle<unsigned int> d_cell_list(m_cl->getCellList(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_order(m_order, access_location::device, access_mode::overwrite);
-        void *d_tmp_storage = NULL;
-        size_t tmp_storage_bytes = 0;
-        mpcd::gpu::sort_cell_compact(d_order.data,
-                                     m_compact_flag.getDeviceFlags(),
-                                     d_tmp_storage,
-                                     tmp_storage_bytes,
-                                     d_cell_list.data,
-                                     m_cl->getCellListIndexer().getNumElements(),
-                                     m_mpcd_pdata->getN());
-
-        // resize temporary storage as requested
-        m_tmp_storage.resize(tmp_storage_bytes);
-
-        // perform the compaction
-        ArrayHandle<unsigned char> tmp_storage_handle(m_tmp_storage, access_location::device, access_mode::overwrite);
-        d_tmp_storage = static_cast<void*>(tmp_storage_handle.data);
-        mpcd::gpu::sort_cell_compact(d_order.data,
-                                     m_compact_flag.getDeviceFlags(),
-                                     d_tmp_storage,
-                                     tmp_storage_bytes,
-                                     d_cell_list.data,
-                                     m_cl->getCellListIndexer().getNumElements(),
-                                     m_mpcd_pdata->getN());
-
-        // in debug mode, the number of elements in the compaction should be exactly the number of MPCD particles
-        assert(m_compact_flag.readFlags() == m_mpcd_pdata->getN());
+        const unsigned int num_select = mpcd::gpu::sort_cell_compact(d_order.data,
+                                                                     d_cell_list.data,
+                                                                     m_cl->getCellListIndexer().getNumElements(),
+                                                                     m_mpcd_pdata->getN());
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if (num_select != m_mpcd_pdata->getN())
+            {
+            m_exec_conf->msg->error() << "Error compacting cell list for sorting, lost particles." << std::endl;
+            }
         }
 
     // fill out the reverse ordering map
@@ -130,6 +114,17 @@ void mpcd::SorterGPU::applyOrder() const
                               m_apply_tuner->getParam());
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         m_apply_tuner->end();
+
+        // copy virtual particle data if it exists
+        if (m_mpcd_pdata->getNVirtual() > 0)
+            {
+            const unsigned int N = m_mpcd_pdata->getN();
+            const unsigned int Nvirtual = m_mpcd_pdata->getNVirtual();
+            cudaMemcpyAsync(d_pos_alt.data + N, d_pos.data + N, Nvirtual*sizeof(Scalar4), cudaMemcpyDeviceToDevice);
+            cudaMemcpyAsync(d_vel_alt.data + N, d_vel.data + N, Nvirtual*sizeof(Scalar4), cudaMemcpyDeviceToDevice);
+            cudaMemcpyAsync(d_tag_alt.data + N, d_tag.data + N, Nvirtual*sizeof(unsigned int), cudaMemcpyDeviceToDevice);
+            cudaDeviceSynchronize();
+            }
         }
 
     // swap out sorted data
@@ -145,6 +140,6 @@ void mpcd::detail::export_SorterGPU(pybind11::module& m)
     {
     namespace py = pybind11;
     py::class_<mpcd::SorterGPU, std::shared_ptr<mpcd::SorterGPU> >(m, "SorterGPU", py::base<mpcd::Sorter>())
-        .def(py::init< std::shared_ptr<mpcd::SystemData> >())
+        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>())
         ;
     }

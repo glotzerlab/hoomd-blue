@@ -8,7 +8,8 @@
 #include "hoomd/VectorMath.h"
 #include "hoomd/HOOMDMath.h"
 
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 using namespace hoomd;
 
 #include <assert.h>
@@ -53,9 +54,6 @@ extern __shared__ Scalar3 s_gammas_r[];
     \param offset Offset of this GPU into group indices
 
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
-
-    Random number generation is done per thread with Saru's 3-seed constructor. The seeds are, the time step,
-    the particle tag, and the user-defined seed.
 
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
@@ -126,10 +124,11 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         unsigned int ptag = d_tag[idx];
 
         // compute the random force
-        detail::Saru saru(ptag, timestep, seed);
-        Scalar rx = saru.s<Scalar>(-1,1);
-        Scalar ry = saru.s<Scalar>(-1,1);
-        Scalar rz =  saru.s<Scalar>(-1,1);
+        RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, ptag, timestep);
+        UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
+        Scalar rx = uniform(rng);
+        Scalar ry = uniform(rng);
+        Scalar rz =  uniform(rng);
 
         // calculate the magnitude of the random force
         Scalar gamma;
@@ -168,10 +167,11 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         // draw a new random velocity for particle j
         Scalar mass = vel.w;
         Scalar sigma = fast::sqrt(T/mass);
-        vel.x = gaussian_rng(saru, sigma);
-        vel.y = gaussian_rng(saru, sigma);
+        NormalDistribution<Scalar> normal(sigma);
+        vel.x = normal(rng);
+        vel.y = normal(rng);
         if (D > 2)
-            vel.z = gaussian_rng(saru, sigma);
+            vel.z = normal(rng);
         else
             vel.z = 0;
 
@@ -207,9 +207,9 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 // original Gaussian random torque
                 // Gaussian random distribution is preferred in terms of preserving the exact math
                 vec3<Scalar> bf_torque;
-                bf_torque.x = gaussian_rng(saru, sigma_r.x);
-                bf_torque.y = gaussian_rng(saru, sigma_r.y);
-                bf_torque.z = gaussian_rng(saru, sigma_r.z);
+                bf_torque.x = NormalDistribution<Scalar>(sigma_r.x)(rng);
+                bf_torque.y = NormalDistribution<Scalar>(sigma_r.y)(rng);
+                bf_torque.z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
                 if (x_zero) bf_torque.x = 0;
                 if (y_zero) bf_torque.y = 0;
@@ -232,9 +232,9 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 d_orientation[idx] = quat_to_scalar4(q);
 
                 // draw a new random ang_mom for particle j in body frame
-                p_vec.x = gaussian_rng(saru, fast::sqrt(T * I.x));
-                p_vec.y = gaussian_rng(saru, fast::sqrt(T * I.y));
-                p_vec.z = gaussian_rng(saru, fast::sqrt(T * I.z));
+                p_vec.x = NormalDistribution<Scalar>(fast::sqrt(T * I.x))(rng);
+                p_vec.y = NormalDistribution<Scalar>(fast::sqrt(T * I.y))(rng);
+                p_vec.z = NormalDistribution<Scalar>(fast::sqrt(T * I.z))(rng);
                 if (x_zero) p_vec.x = 0;
                 if (y_zero) p_vec.y = 0;
                 if (z_zero) p_vec.z = 0;

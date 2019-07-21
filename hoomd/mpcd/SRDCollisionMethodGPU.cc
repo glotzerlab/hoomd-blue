@@ -72,7 +72,7 @@ void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
     {
     // acquire MPCD particle data
     ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // acquire cell velocities and rotation vectors

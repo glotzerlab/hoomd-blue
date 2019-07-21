@@ -14,10 +14,6 @@
     \brief Defines GPU kernel code for calculating the table bond forces. Used by BondTablePotentialGPU.
 */
 
-
-//! Texture for reading table values
-scalar2_tex_t tables_tex;
-
 /*!  This kernel is called to calculate the table pair forces on all N particles
 
     \param d_force Device memory to write computed forces
@@ -35,10 +31,6 @@ scalar2_tex_t tables_tex;
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be evaluated
 
     See BondTablePotential for information on the memory layout.
-
-    \b Details:
-    * Table entries are read from tables_tex. Note that currently this is bound to a 1D memory region. Performance tests
-      at a later date may result in this changing.
 */
 __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
                                      Scalar* d_virial,
@@ -124,8 +116,8 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
             // compute index into the table and read in values
             unsigned int value_i = floor(value_f);
 
-            Scalar2 VF0 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_bond_type));
-            Scalar2 VF1 = texFetchScalar2(d_tables, tables_tex, table_value(value_i+1, cur_bond_type));
+            Scalar2 VF0 = __ldg(d_tables + table_value(value_i, cur_bond_type));
+            Scalar2 VF1 = __ldg(d_tables + table_value(value_i+1, cur_bond_type));
             // unpack the data
             Scalar V0 = VF0.x;
             Scalar V1 = VF1.x;
@@ -190,7 +182,6 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
     \param d_flags flags on the device - a 1 will be written if evaluation
                    of forces failed for any bond
     \param block_size Block size at which to run the kernel
-    \param compute_capability Compute capability of the execution device (200, 3000, 350, ...)
 
     \note This is just a kernel driver. See gpu_compute_bondtable_forces_kernel for full documentation.
 */
@@ -209,8 +200,7 @@ cudaError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                      const unsigned int table_width,
                                      const Index2D &table_value,
                                      unsigned int *d_flags,
-                                     const unsigned int block_size,
-                                     const unsigned int compute_capability)
+                                     const unsigned int block_size)
     {
     assert(d_params);
     assert(d_tables);
@@ -230,16 +220,6 @@ cudaError_t gpu_compute_bondtable_forces(Scalar4* d_force,
     // setup the grid to run the kernel
     dim3 grid( N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
-
-    // bind the tables texture only on pre sm 35 arches
-    if (compute_capability < 350)
-        {
-        tables_tex.normalized = false;
-        tables_tex.filterMode = cudaFilterModePoint;
-        cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_value.getNumElements());
-        if (error != cudaSuccess)
-            return error;
-        }
 
     gpu_compute_bondtable_forces_kernel<<< grid, threads, sizeof(Scalar4)*n_bond_type >>>
             (d_force,

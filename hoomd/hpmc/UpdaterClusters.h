@@ -8,7 +8,8 @@
 
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/Updater.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #include <set>
 #include <list>
@@ -1065,11 +1066,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf,"Transform");
 
     // generate the move, select a pivot
-    hoomd::detail::Saru rng(timestep, this->m_seed, 0x09365bf5);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterClusters, timestep, this->m_seed);
     BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> pivot(0,0,0);
 
-    bool swap = m_ab_types.size() && (rng.template s<Scalar>() < m_swap_move_ratio);
+    bool swap = m_ab_types.size() && (hoomd::detail::generate_canonical<Scalar>(rng) <= m_swap_move_ratio);
 
     if (swap)
         {
@@ -1084,7 +1085,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         }
 
     // is this a line reflection?
-    bool line = !swap && (m_mc->hasOrientation() || (rng.template s<Scalar>() > m_move_ratio));
+    bool line = !swap && (m_mc->hasOrientation() || (hoomd::detail::generate_canonical<Scalar>(rng) > m_move_ratio));
 
     quat<Scalar> q;
 
@@ -1095,8 +1096,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         if (m_sysdef->getNDimensions() == 3)
             {
-            Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
-            Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
+            Scalar theta = hoomd::UniformDistribution<Scalar>(Scalar(0.0),Scalar(2.0*M_PI))(rng);
+            Scalar z = hoomd::UniformDistribution<Scalar>(Scalar(-1.0),Scalar(1.0))(rng);
             n = vec3<Scalar>(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
             }
         else
@@ -1111,11 +1112,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     else
         {
         Scalar3 f;
-        f.x = rng.template s<Scalar>();
-        f.y = rng.template s<Scalar>();
+        f.x = hoomd::detail::generate_canonical<Scalar>(rng);
+        f.y = hoomd::detail::generate_canonical<Scalar>(rng);
         if (m_sysdef->getNDimensions() == 3)
             {
-            f.z = rng.template s<Scalar>();
+            f.z = hoomd::detail::generate_canonical<Scalar>(rng);
             }
         else
             {
@@ -1635,10 +1636,10 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     unsigned int j = it->first.second;
 
                     // create a RNG specific to this particle pair
-                    hoomd::detail::Saru rng_ij(timestep+this->m_seed, std::min(i,j), std::max(i,j));
+                    hoomd::RandomGenerator rng_ij(hoomd::RNGIdentifier::UpdaterClustersPairwise, this->m_seed, timestep, std::min(i,j), std::max(i,j));
 
                     float pij = 1.0f-exp(-delU);
-                    if (rng_ij.f() <= pij) // GCA
+                    if (hoomd::detail::generate_canonical<float>(rng_ij) <= pij) // GCA
                         {
                         // add bond
                         m_G.addEdge(i,j);
@@ -1679,7 +1680,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     reject = true;
                 }
 
-            bool flip = rng.f() < m_flip_probability;
+            bool flip = hoomd::detail::generate_canonical<float>(rng) <= m_flip_probability;
 
             // count number of A and B particles in old and new config
             if (swap && m_ab_types.size())
@@ -1702,7 +1703,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
                 Scalar NdelMu = 0.5*(Scalar)(n_B_new-n_A_new-n_B_old+n_A_old)*m_delta_mu;
 
-                if (rng.f() > exp(NdelMu))
+                if (hoomd::detail::generate_canonical<float>(rng) > exp(NdelMu))
                     reject = true;
                 }
 
@@ -1800,11 +1801,12 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         Scalar3 shift = make_scalar3(0,0,0);
 
-        shift.x = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
-        shift.y = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
+        hoomd::UniformDistribution<Scalar> shift_gen(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
+        shift.x = shift_gen(rng);
+        shift.y = shift_gen(rng);
         if (this->m_sysdef->getNDimensions() == 3)
             {
-            shift.z = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
+            shift.z = shift_gen(rng);
             }
 
         for (unsigned int i = 0; i < m_pdata->getN(); i++)

@@ -10,7 +10,8 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#include "hoomd/Saru.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #include <curand_kernel.h>
 
@@ -50,6 +51,7 @@ struct hpmc_free_volume_args_t
                 const unsigned int _N,
                 const unsigned int _num_types,
                 const unsigned int _seed,
+                const unsigned int _rank,
                 unsigned int _select,
                 const unsigned int _timestep,
                 const unsigned int _dim,
@@ -80,6 +82,7 @@ struct hpmc_free_volume_args_t
                   N(_N),
                   num_types(_num_types),
                   seed(_seed),
+                  rank(_rank),
                   select(_select),
                   timestep(_timestep),
                   dim(_dim),
@@ -112,6 +115,7 @@ struct hpmc_free_volume_args_t
     const unsigned int N;             //!< Number of particles
     const unsigned int num_types;     //!< Number of particle types
     const unsigned int seed;          //!< RNG seed
+    const unsigned int rank;          //!< MPI rank
     unsigned int select;              //!< RNG select value
     const unsigned int timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions
@@ -132,10 +136,6 @@ template< class Shape >
 cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t &args, const typename Shape::param_type *d_params);
 
 #ifdef NVCC
-//! Texture for reading postype
-scalar4_tex_t free_volume_postype_tex;
-//! Texture for reading orientation
-scalar4_tex_t free_volume_orientation_tex;
 
 //! Compute the cell that a particle sits in
 __device__ inline unsigned int compute_cell_idx(const Scalar3 p,
@@ -202,6 +202,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                                      const unsigned int N,
                                      const unsigned int num_types,
                                      const unsigned int seed,
+                                     const unsigned int rank,
                                      const unsigned int select,
                                      const unsigned int timestep,
                                      const unsigned int dim,
@@ -284,7 +285,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         }
 
     // one RNG per particle
-    hoomd::detail::Saru rng(i, seed+select, timestep);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ComputeFreeVolume, seed, rank, i, timestep);
 
     unsigned int my_cell;
 
@@ -296,9 +297,9 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     if (active)
         {
         // select a random particle coordinate in the box
-        Scalar xrand = rng.template s<Scalar>();
-        Scalar yrand = rng.template s<Scalar>();
-        Scalar zrand = rng.template s<Scalar>();
+        Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng);
+        Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng);
+        Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng);
 
         Scalar3 f = make_scalar3(xrand, yrand, zrand);
         pos_i = vec3<Scalar>(box.makeCoordinates(f));
@@ -324,18 +325,14 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
             if (local_k < excell_size)
                 {
                 // read in position, and orientation of neighboring particle
-                #if ( __CUDA_ARCH__ > 300)
                 unsigned int j = __ldg(&d_excell_idx[excli(local_k, my_cell)]);
-                #else
-                unsigned int j = d_excell_idx[excli(local_k, my_cell)];
-                #endif
 
-                Scalar4 postype_j = texFetchScalar4(d_postype, free_volume_postype_tex, j);
+                Scalar4 postype_j = __ldg(d_postype + j);
                 Scalar4 orientation_j = make_scalar4(1,0,0,0);
                 unsigned int typ_j = __scalar_as_int(postype_j.w);
                 Shape shape_j(quat<Scalar>(orientation_j), s_params[typ_j]);
                 if (shape_j.hasOrientation())
-                    shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation, free_volume_orientation_tex, j));
+                    shape_j.orientation = quat<Scalar>(__ldg(d_orientation + j));
 
                 // put particle j into the coordinate system of particle i
                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i;
@@ -401,20 +398,6 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
     assert(args.group_size <= 32);  // note, really should be warp size of the device
     assert(args.block_size%(args.stride*args.group_size)==0);
 
-
-    // bind the textures
-    free_volume_postype_tex.normalized = false;
-    free_volume_postype_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, free_volume_postype_tex, args.d_postype, sizeof(Scalar4)*args.max_n);
-    if (error != cudaSuccess)
-        return error;
-
-    free_volume_orientation_tex.normalized = false;
-    free_volume_orientation_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, free_volume_orientation_tex, args.d_orientation, sizeof(Scalar4)*args.max_n);
-    if (error != cudaSuccess)
-        return error;
-
     // reset counters
     cudaMemsetAsync(args.d_n_overlap_all,0, sizeof(unsigned int), args.stream);
 
@@ -476,6 +459,7 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
                                                      args.N,
                                                      args.num_types,
                                                      args.seed,
+                                                     args.rank,
                                                      args.select,
                                                      args.timestep,
                                                      args.dim,
