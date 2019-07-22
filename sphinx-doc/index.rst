@@ -128,6 +128,7 @@ containers).
    :maxdepth: 3
    :caption: Reference
 
+   deprecated
    license
    credits
    indices

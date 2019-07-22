@@ -9,6 +9,10 @@ Coarse grained CGCMM potential.
 
 :py:mod:`hoomd.cgcmm` is **unstable**. When upgrading from version 2.x to 2.y (y > x),
 existing job scripts may need to be updated. **Maintainer needed!** This package is not maintained.
+
+.. deprecated:: 2.6
+   The cgcmm component has not been maintained in many years and will be removed.
+
 """
 
 from hoomd.cgcmm import angle
