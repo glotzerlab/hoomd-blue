@@ -892,7 +892,7 @@ class shape_update(_updater):
                     multi_phase=False,
                     num_phase=2,
                     gsdid = None,
-                    alpha_iq=0.0):
+                    kappa_iq=0.0):
         _updater.__init__(self);
 
         cls = None;
@@ -930,7 +930,7 @@ class shape_update(_updater):
                                 pretend,
                                 multi_phase,
                                 num_phase,
-                                alpha_iq);
+                                kappa_iq);
         self.move_cpp = None;
         self.boltzmann_function = None;
         self.seed = seed;
@@ -949,7 +949,7 @@ class shape_update(_updater):
             else:
                 pos.set_info(pos_callback);
         self.setupUpdater(period, phase);
-        self.alpha_iq = alpha_iq
+        self.kappa_iq = kappa_iq
 
     def python_shape_move(self, callback, params, stepsize, param_ratio):
         R"""Enable python shape move and set parameters. All python shape moves must
@@ -1042,7 +1042,7 @@ are only enabled for polyhedral and spherical particles.")
         self.move_cpp = move_cls(ntypes, callback, param_list, stepsize_list, float(param_ratio));
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
-    def vertex_shape_move(self, stepsize, param_ratio, volume=1.0, alpha_iq=0.0):
+    def vertex_shape_move(self, stepsize, param_ratio, volume=1.0, kappa_iq=0.0):
         R"""
         Enable vertex shape move and set parameters. Changes a particle shape by
         translating vertices and rescaling to have constant volume. The shape definition

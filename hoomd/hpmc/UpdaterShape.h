@@ -29,7 +29,7 @@ public:
                     bool pretend,
                     bool multiphase,
                     unsigned int numphase,
-                    Scalar alpha_iq);
+                    Scalar kappa_iq);
 
     ~UpdaterShape();
 
@@ -95,7 +95,7 @@ private:
     std::vector<unsigned int>   m_box_accepted;
     std::vector<unsigned int>   m_box_total;
     unsigned int                m_move_ratio;
-    Scalar                      m_alpha_iq;
+    Scalar                      m_kappa_iq;
 
     std::shared_ptr< shape_move_function<Shape, hoomd::RandomGenerator> >   m_move_function;
     std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
@@ -128,9 +128,9 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  bool pretend,
                                  bool multiphase,
                                  unsigned int numphase,
-                                 Scalar alpha_iq)
+                                 Scalar kappa_iq)
     : Updater(sysdef), m_seed(seed), m_global_partition(0), m_nselect(nselect), m_nsweeps(nsweeps),
-      m_move_ratio(move_ratio*65535), m_alpha_iq(alpha_iq), m_mc(mc),
+      m_move_ratio(move_ratio*65535), m_kappa_iq(kappa_iq), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf), m_iq(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
       m_pretend(pretend),m_initialized(false), m_multi_phase(multiphase),
@@ -371,7 +371,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
 
             // add the bias for the isoperimetric quotient;
             // useful for biasing away from spherical shapes
-            log_boltz += -m_alpha_iq * (h_iq.data[typ_i] - h_iq_backup.data[typ_i]);
+            log_boltz += -m_kappa_iq * (h_iq.data[typ_i] - h_iq_backup.data[typ_i]);
             m_mc->setParam(typ_i, param, cur_type == (m_nselect-1));
             }  // end loop over particle types
         if (this->m_prof)
