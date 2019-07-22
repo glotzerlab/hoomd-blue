@@ -182,6 +182,7 @@ class ManagedArray
             if (! ptr_align)
                 return false;
 
+            #ifdef __CUDA_ARCH__
             // only in GPU code
             unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
             unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
@@ -199,6 +200,7 @@ class ManagedArray
 
             // redirect data ptr
             data = (T *) ptr_align;
+            #endif
 
             return true;
             }
