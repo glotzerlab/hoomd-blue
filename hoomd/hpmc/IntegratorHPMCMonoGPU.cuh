@@ -604,11 +604,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
             unsigned int j, next_j = 0;
             if ((k >> 1) < excell_size)
                 {
-                #if (__CUDA_ARCH__ > 300)
                 next_j = __ldg(&d_excell_idx[excli(k >> 1, my_cell)]);
-                #else
-                next_j = d_excell_idx[excli(k >> 1, my_cell)];
-                #endif
                 }
 
             // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
@@ -629,11 +625,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                 k += group_size;
                 if ((k >> 1) < excell_size)
                     {
-                    #if (__CUDA_ARCH__ > 300)
                     next_j = __ldg(&d_excell_idx[excli(k >> 1, my_cell)]);
-                    #else
-                    next_j = d_excell_idx[excli(k >> 1, my_cell)];
-                    #endif
                     }
 
                 // check particle circumspheres
