@@ -319,6 +319,9 @@ William Zygmunt, Luis Rivera-Rivera, University of Michigan
  * Patchy interaction support in HPMC CPU integrators
  * GSD state bug fixes
 
+Tim Moore, University of Michigan
+ * Log isoperimetric quotient
+
 DEM developers
 --------------
 
