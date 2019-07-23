@@ -117,15 +117,15 @@ struct poly3d_data : param_base
         }
 
     #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Set CUDA memory hints
+    void set_memory_hint() const
         {
-        tree.attach_to_stream(stream);
-        convex_hull_verts.attach_to_stream(stream);
-        verts.attach_to_stream(stream);
-        face_offs.attach_to_stream(stream);
-        face_verts.attach_to_stream(stream);
-        face_overlap.attach_to_stream(stream);
+        tree.set_memory_hint();
+        convex_hull_verts.set_memory_hint();
+        verts.set_memory_hint();
+        face_offs.set_memory_hint();
+        face_verts.set_memory_hint();
+        face_overlap.set_memory_hint();
         }
     #endif
     } __attribute__((aligned(32)));

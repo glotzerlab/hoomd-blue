@@ -58,8 +58,8 @@ struct poly2d_verts : param_base
         }
 
     #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Set CUDA memory hint
+    void set_memory_hint() const
         {
         // default implementation does nothing
         }

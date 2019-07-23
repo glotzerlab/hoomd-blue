@@ -99,20 +99,19 @@ struct union_params : param_base
 
 
     #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Set CUDA memory hints
+    void set_memory_hint() const
         {
-        // attach managed memory arrays to stream
-        tree.attach_to_stream(stream);
+        tree.set_memory_hint();
 
-        mpos.attach_to_stream(stream);
-        morientation.attach_to_stream(stream);
-        mparams.attach_to_stream(stream);
-        moverlap.attach_to_stream(stream);
+        mpos.set_memory_hint();
+        morientation.set_memory_hint();
+        mparams.set_memory_hint();
+        moverlap.set_memory_hint();
 
         // attach member parameters
         for (unsigned int i = 0; i < mparams.size(); ++i)
-            mparams[i].attach_to_stream(stream);
+            mparams[i].set_memory_hint();
         }
     #endif
 

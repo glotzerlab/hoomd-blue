@@ -57,8 +57,8 @@ struct ell_params : param_base
                                         //   First bit is ignore overlaps, Second bit is ignore statistics
 
     #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Set CUDA memory hints
+    void set_memory_hint() const
         {
         // default implementation does nothing
         }

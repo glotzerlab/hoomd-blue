@@ -99,13 +99,13 @@ struct poly3d_verts : param_base
         }
 
     #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Set CUDA memory hints
+    void set_memory_hint() const
         {
-        x.attach_to_stream(stream);
-        y.attach_to_stream(stream);
-        z.attach_to_stream(stream);
-        hull_verts.attach_to_stream(stream);
+        x.set_memory_hint();
+        y.set_memory_hint();
+        z.set_memory_hint();
+        hull_verts.set_memory_hint();
         }
     #endif
 

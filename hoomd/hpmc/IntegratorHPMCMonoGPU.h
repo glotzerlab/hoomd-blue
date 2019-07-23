@@ -1085,28 +1085,15 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
     cudaMemAdvise(this->m_params.data(), this->m_params.size()*sizeof(typename Shape::param_type), cudaMemAdviseSetReadMostly, 0);
     CHECK_CUDA_ERROR();
 
-    #if 0
-    for (int idev = this->m_exec_conf->getNumActiveGPUs()-1; idev >= 0; idev--)
+    // sync up so we can access the parameters
+    cudaDeviceSynchronize();
+
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
         {
-        // switch to that device
-        cudaSetDevice(this->m_exec_conf->getGPUIds()[idev]);
-
-        // attach the parameters to the kernel stream so that they are visible
-        // when other kernels are called
-        cudaStreamAttachMemAsync(m_streams[idev], this->m_params.data(), 0, cudaMemAttachSingle);
+        // attach nested memory regions
+        this->m_params[i].set_memory_hint();
         CHECK_CUDA_ERROR();
-
-        // sync up so we can access the parameters
-        cudaDeviceSynchronize();
-
-        for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
-            {
-            // attach nested memory regions
-            this->m_params[i].attach_to_stream(m_streams[idev]);
-            CHECK_CUDA_ERROR();
-            }
         }
-    #endif
 
     // reinitialize poisson means array
     ArrayHandle<Scalar> h_lambda(m_lambda, access_location::host, access_mode::overwrite);

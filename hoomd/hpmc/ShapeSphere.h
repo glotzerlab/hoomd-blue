@@ -112,8 +112,8 @@ struct sph_params : param_base
                                         //!  for use with anisotropic/patchy pair potentials.
 
     #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Set CUDA memory hints
+    void set_memory_hint() const
         {
         // default implementation does nothing
         }

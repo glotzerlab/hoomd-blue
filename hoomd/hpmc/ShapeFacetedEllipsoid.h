@@ -99,13 +99,13 @@ struct faceted_ellipsoid_params : param_base
         }
 
     #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Set CUDA memory hints
+    void set_memory_hint() const
         {
-        n.attach_to_stream(stream);
-        offset.attach_to_stream(stream);
-        verts.attach_to_stream(stream);
-        additional_verts.attach_to_stream(stream);
+        n.set_memory_hint();
+        offset.set_memory_hint();
+        verts.set_memory_hint();
+        additional_verts.set_memory_hint();
         }
     #endif
     } __attribute__((aligned(32)));

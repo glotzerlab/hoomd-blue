@@ -132,11 +132,10 @@ class ManagedArray
 
         #ifdef ENABLE_CUDA
         //! Attach managed memory to CUDA stream
-        void attach_to_stream(cudaStream_t stream) const
+        void set_memory_hint() const
             {
             if (managed && ptr)
                 {
-                cudaStreamAttachMemAsync(stream, ptr, 0, cudaMemAttachSingle);
                 #if (CUDART_VERSION >= 8000)
                 cudaMemAdvise(ptr, sizeof(T)*N, cudaMemAdviseSetReadMostly, 0);
                 #endif
