@@ -233,15 +233,14 @@ class external_field_lattice(unittest.TestCase):
         print("****************************************")
 
         self.system = init.read_snapshot(self.snapshot3d)
-        v =  0.33*np.array([(-1,-1,-1),(-1,-1,1),(-1,1,-1),(-1,1,1),(1,-1,-1),(1,-1,1),(1,1,-1),(1,1,1)]);
-        offs = [-1]*6;
-        norms =[(-1,0,0), (1,0,0), (0,1,0,), (0,-1,0), (0,0,1), (0,0,-1)];
+        offs = [-.5]*2;
+        norms =[(-1,0,0), (1,0,0)];
         diam = 1.0;
         orig = (0,0,0);
         self.mc = hpmc.integrate.faceted_sphere(seed=10, d=0.0, a=0.0);
         self.mc.shape_param.set('A', normals=norms,
                                     offsets=offs,
-                                    vertices=v,
+                                    vertices = [],
                                     diameter=diam,
                                     origin=orig);
         self.run_test(latticep=lattice3d, latticeq=latticeq, k=k, kalt=kalt, q=k*10.0, qalt=kalt*10.0, uein=None, snapshot_s=self.snapshot3d_s, eng_check=(eng_check3d+eng_checkq));
