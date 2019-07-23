@@ -312,7 +312,8 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
 
     if (m_sysdef->getNDimensions() == 2)
         {
-        throw std::runtime_error("2D runs not supported with update.muvt().");
+        m_exec_conf->msg->notice(5) << "Constructing UpdaterMuVT for 2D system" << std::endl;
+        //throw std::runtime_error("2D runs not supported with update.muvt().");
         }
 
     // initialize list of tags per type
@@ -643,7 +644,14 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     Scalar3 f;
                     f.x = rng.template s<Scalar>();
                     f.y = rng.template s<Scalar>();
-                    f.z = rng.template s<Scalar>();
+                    if (m_sysdef->getNDimensions() == 2)
+                        {
+                        f.z = Scalar(0.0);
+                        }
+                    else
+                        {
+                        f.z = rng.template s<Scalar>();
+                        }
                     vec3<Scalar> pos_test = vec3<Scalar>(m_pdata->getGlobalBox().makeCoordinates(f));
 
                     Shape shape_test(quat<Scalar>(), param);
@@ -1179,7 +1187,16 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
         BoxDim global_box_new = m_pdata->getGlobalBox();
         Scalar3 L_old = global_box_new.getL();
         Scalar3 L_new = global_box_new.getL();
-        L_new = L_old * pow(V_new/V,Scalar(1.0/3.0));
+        Scalar power(0.0);
+        if (m_sysdef->getNDimensions() == 2)
+            {
+            power = Scalar(1.0/2.0);
+            }
+        else
+            {
+            power = Scalar(1.0/3.0);
+            }
+        L_new = L_old * pow(V_new/V,power);
         global_box_new.setL(L_new);
 
         m_postype_backup.resize(m_pdata->getN());
