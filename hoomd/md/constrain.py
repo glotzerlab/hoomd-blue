@@ -102,7 +102,6 @@ class _constraint_force(hoomd.meta._metadata):
         use the force during the simulation. A disabled force can be re-enabled
         with :py:meth:`enable()`
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
@@ -125,7 +124,6 @@ class _constraint_force(hoomd.meta._metadata):
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
@@ -176,7 +174,6 @@ class sphere(_constraint_force):
 
     """
     def __init__(self, group, P, r):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         _constraint_force.__init__(self);
@@ -225,7 +222,6 @@ class distance(_constraint_force):
 
     """
     def __init__(self):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         _constraint_force.__init__(self);
@@ -353,7 +349,6 @@ class rigid(_constraint_force):
 
     """
     def __init__(self):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         _constraint_force.__init__(self);
@@ -501,7 +496,6 @@ class oneD(_constraint_force):
 
         constraint_vector = _hoomd.make_scalar3(constraint_vector[0], constraint_vector[1], constraint_vector[2]);
 
-        hoomd.util.print_status_line();
 
         # initialize the base class
         _constraint_force.__init__(self);

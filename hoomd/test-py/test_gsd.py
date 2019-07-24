@@ -132,14 +132,6 @@ class gsd_write_tests (unittest.TestCase):
         if comm.get_rank() == 0:
             self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
 
-    # test all static quantities
-    def test_all_static(self):
-        dump.gsd(filename=self.tmp_file, group=group.all(), period=1, static=['attribute', 'property', 'momentum', 'topology'], overwrite=True);
-        run(1);
-        data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
-            self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
-
     def test_dynamic(self):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=1, dynamic=['momentum'], overwrite=True);
         run(1);

@@ -76,7 +76,6 @@ def dump_metadata(filename=None,user=None,indent=4):
     JSON file, together with a timestamp. The file is overwritten if
     it exists.
     """
-    hoomd.util.print_status_line();
 
     if not hoomd.init.is_initialized():
         hoomd.context.msg.error("Need to initialize system first.\n")

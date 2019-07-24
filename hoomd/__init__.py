@@ -162,8 +162,6 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     time step number is a multiple of ``callback_period``.
     """
 
-    if not quiet:
-        util.print_status_line();
     # check if initialization has occurred
     if not init.is_initialized():
         context.msg.error("Cannot run before initialization\n");
@@ -221,8 +219,7 @@ def run_upto(step, **keywords):
         run_upto(10000, profile=True)
         run_upto(1e9, limit_hours=11)
     """
-    if 'quiet' in keywords and not keywords['quiet']:
-        util.print_status_line();
+
     # check if initialization has occurred
     if not init.is_initialized():
         context.msg.error("Cannot run before initialization\n");
@@ -238,9 +235,7 @@ def run_upto(step, **keywords):
 
     n_steps = step - cur_step;
 
-    util.quiet_status();
     run(n_steps, **keywords);
-    util.unquiet_status();
 
 def get_step():
     """ Get the current simulation time step.

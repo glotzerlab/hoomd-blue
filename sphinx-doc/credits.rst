@@ -219,7 +219,7 @@ Peter Schwendeman, Jens Glaser, University of Michigan
 
 Alyssa Travitz, University of Michigan
   * `get_net_force` implementation
-  * bond bug fixes 
+  * bond bug fixes
 
 Mike Henry, Boise State University
   * Documentation improvements
@@ -449,22 +449,6 @@ Source code
     ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
     INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-**Saru** is used for random number generation - Used under the following license::
-
-    Copyright (c) 2008 Steve Worley < m a t h g e e k@(my last name).com >
-
-    Permission to use, copy, modify, and distribute this software for any
-    purpose with or without fee is hereby granted, provided that the above
-    copyright notice and this permission notice appear in all copies.
-
-    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 Some **CUDA API headers** are included in the HOOMD-blue source code for code compatibility in CPU only builds - Used under the following license::
 

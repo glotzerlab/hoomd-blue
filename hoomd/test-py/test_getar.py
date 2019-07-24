@@ -175,7 +175,6 @@ if gtar is not None:
         def _test_procedure(self, fname):
             random.seed();
             self.last_fname = fname;
-            hoomd.util.quiet_status();
 
             for _ in range(10):
                 with hoomd.context.initialize():

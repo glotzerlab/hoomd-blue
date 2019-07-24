@@ -18,7 +18,6 @@
 #include "hoomd/md/NeighborList.h"
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/Initializers.h"
-#include "hoomd/deprecated/RandomGenerator.h"
 #include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/AllAnisoPairPotentials.h"
 

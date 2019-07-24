@@ -49,8 +49,6 @@ def make_random(N, kT, seed):
         be reasonably recycled elsewhere.
 
     """
-    hoomd.util.print_status_line()
-
     if not hoomd.init.is_initialized():
         hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
         raise RuntimeError("HOOMD system not initialized")
@@ -99,7 +97,6 @@ def read_snapshot(snapshot):
         MPCD snapshot is not properly resized.
 
     """
-    hoomd.util.print_status_line();
 
     if not hoomd.init.is_initialized():
         hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")

@@ -58,9 +58,7 @@ class sphereEOS_test(unittest.TestCase):
 
             d = self.mc.get_d();
             translate_acceptance = self.mc.get_translate_acceptance();
-            util.quiet_status()
             v = boxmc.ln_volume()['delta']
-            util.unquiet_status()
             volume_acceptance = boxmc.get_ln_volume_acceptance();
             if comm.get_rank() == 0:
                 print('d: {:3.2f} accept: {:3.2f} / v: {:3.2f} accept: {:3.2f}'.format(d,translate_acceptance,v,volume_acceptance));

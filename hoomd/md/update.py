@@ -44,7 +44,6 @@ class rescale_temp(_updater):
 
     """
     def __init__(self, kT, period=1, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
@@ -75,7 +74,6 @@ class rescale_temp(_updater):
             rescaler.set_params(kT=2.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if kT is not None:
@@ -100,7 +98,6 @@ class zero_momentum(_updater):
 
     """
     def __init__(self, period=1, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
@@ -126,7 +123,6 @@ class enforce2d(_updater):
 
     """
     def __init__(self):
-        hoomd.util.print_status_line();
         period = 1;
 
         # initialize base class
@@ -171,7 +167,6 @@ class constraint_ellipsoid(_updater):
 
     """
     def __init__(self, group, r=None, rx=None, ry=None, rz=None, P=(0,0,0)):
-        hoomd.util.print_status_line();
         period = 1;
 
         # Error out in MPI simulations
@@ -253,7 +248,6 @@ class mueller_plathe_flow(_updater):
 
     """
     def __init__(self, group,flow_target,slab_direction,flow_direction,n_slabs,max_slab=-1,min_slab=-1):
-        hoomd.util.print_status_line();
         period=1 # This updater has to be applied every timestep
         assert (n_slabs > 0 ),"Invalid negative number of slabs."
         if min_slab < 0:
@@ -307,7 +301,6 @@ class mueller_plathe_flow(_updater):
            epsilon (float): New tolerance for the deviation of actual and achieved flow.
 
         """
-        hoomd.util.print_status_line();
         return self.cpp_updater.setFlowEpsilon(float(epsilon))
 
     def get_summed_exchanged_momentum(self):

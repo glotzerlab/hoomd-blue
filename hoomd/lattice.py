@@ -304,7 +304,6 @@ def sc(a, type_name='A'):
                              \end{array}\right)
         \end{eqnarray*}
     """
-    hoomd.util.print_status_line();
     return unitcell(N=1, type_name=[type_name], a1=[a,0,0], a2=[0,a,0], a3=[0,0,a], dimensions=3);
 
 def bcc(a, type_name='A'):
@@ -337,7 +336,6 @@ def bcc(a, type_name='A'):
                              \end{array}\right)
         \end{eqnarray*}
     """
-    hoomd.util.print_status_line();
     return unitcell(N=2,
                     type_name=[type_name, type_name],
                     position=[[0,0,0],[a/2,a/2,a/2]],
@@ -378,7 +376,6 @@ def fcc(a, type_name='A'):
                              \end{array}\right)
         \end{eqnarray*}
     """
-    hoomd.util.print_status_line();
     return unitcell(N=4,
                     type_name=[type_name]*4,
                     position=[[0,0,0],[0,a/2,a/2],[a/2,0,a/2],[a/2,a/2,0]],
@@ -415,7 +412,6 @@ def sq(a, type_name='A'):
                              \end{array}\right)
         \end{eqnarray*}
     """
-    hoomd.util.print_status_line();
     return unitcell(N=1, type_name=[type_name], a1=[a,0,0], a2=[0,a,0], a3=[0,0,1], dimensions=2);
 
 def hex(a, type_name='A'):
@@ -451,7 +447,6 @@ def hex(a, type_name='A'):
         \end{eqnarray*}
     """
 
-    hoomd.util.print_status_line();
     return unitcell(N=2,
                     type_name=[type_name, type_name],
                     position=[[0,0,0],[a/2,math.sqrt(3)*a/2,0]],

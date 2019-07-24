@@ -180,7 +180,6 @@ class WCA(hoomd.md.force._force, _DEMBase):
     """
 
     def __init__(self, nlist, radius=1.):
-        hoomd.util.print_status_line();
         friction = None;
 
         self.radius = radius;
@@ -295,7 +294,6 @@ class SWCA(hoomd.md.force._force, _DEMBase):
 
     """
     def __init__(self, nlist, radius=1., d_max=None):
-        hoomd.util.print_status_line();
         friction = None;
 
         self.radius = radius;

@@ -120,8 +120,6 @@ containers).
    :maxdepth: 3
    :caption: Additional Python packages
 
-   package-cgcmm
-   package-deprecated
    package-jit
    package-metal
 

@@ -48,7 +48,6 @@ class sort(hoomd.meta._metadata):
     """
 
     def __init__(self, system, period=50):
-        hoomd.util.print_status_line()
 
         # base class initialization
         hoomd.meta._metadata.__init__(self)
@@ -70,11 +69,9 @@ class sort(hoomd.meta._metadata):
         self.enabled = True
 
     def disable(self):
-        hoomd.util.print_status_line()
         self.enabled = False
 
     def enable(self):
-        hoomd.util.print_status_line()
         self.enabled = True
 
     def set_period(self, period):
@@ -93,7 +90,6 @@ class sort(hoomd.meta._metadata):
         not change the phase set when the analyzer was first created.
 
         """
-        hoomd.util.print_status_line()
 
         self.period = period
         self._cpp.setPeriod(hoomd.context.current.system.getCurrentTimeStep(), self.period)
@@ -135,10 +131,6 @@ class sort(hoomd.meta._metadata):
             sorter.tune(start=5, stop=50, step=5, tsteps=1000)
 
         """
-        hoomd.util.print_status_line()
-
-        # hide calls to set_period, etc.
-        hoomd.util.quiet_status()
 
         # scan through range of sorting periods and log TPS
         periods = range(start, stop+1, step)
@@ -158,9 +150,6 @@ class sort(hoomd.meta._metadata):
         fastest = tps.index(max(tps))
         opt_period = periods[fastest]
         self.set_period(period=opt_period)
-
-        # tuning is done, restore status lines
-        hoomd.util.unquiet_status()
 
         # output results
         hoomd.context.msg.notice(2, '--- sort.tune() statistics\n')

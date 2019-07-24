@@ -84,7 +84,6 @@ class interaction_matrix:
 
 
         """
-        hoomd.util.print_status_line();
 
         # listify the inputs
         a = hoomd.util.listify(a)
@@ -236,30 +235,6 @@ class mode_hpmc(_integrator):
                 hoomd.context.msg.error("Particle type {} has not been set!\n".format(name));
                 raise RuntimeError("Error running integrator");
 
-        # backwards compatibility
-        if not hasattr(self,'has_printed_warning'):
-            self.has_printed_warning = False
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
-        first_warning = False
-        for (i,type_i) in enumerate(type_names):
-            if hasattr(self.shape_param[type_i],'ignore_overlaps') and self.shape_param[type_i].ignore_overlaps is not None:
-                if not self.has_printed_warning and not first_warning:
-                    hoomd.context.msg.warning("ignore_overlaps is deprecated. Use mc.overlap_checks.set() instead.\n")
-                    first_warning = True
-                for (j, type_j) in enumerate(type_names):
-                    if hasattr(self.shape_param[type_j],'ignore_overlaps') and self.shape_param[type_j].ignore_overlaps is not None:
-                        enable = not (self.shape_param[type_i].ignore_overlaps and self.shape_param[type_j].ignore_overlaps)
-                        if not self.has_printed_warning:
-                            hoomd.context.msg.warning("Setting overlap checks for type pair ({}, {}) to {}\n".format(type_i,type_j, enable))
-
-                        hoomd.util.quiet_status()
-                        self.overlap_checks.set(type_i, type_j, enable)
-                        hoomd.util.unquiet_status()
-
-        self.has_printed_warning = True
-
         # setup new interaction matrix elements to default
         for i in range(0,ntypes):
             type_name_i = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
@@ -267,9 +242,7 @@ class mode_hpmc(_integrator):
                 type_name_j = hoomd.context.current.system_definition.getParticleData().getNameByType(j);
                 if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
                     # by default, perform overlap checks
-                    hoomd.util.quiet_status()
                     self.overlap_checks.set(str(type_name_i), str(type_name_j), True)
-                    hoomd.util.unquiet_status()
 
         # set overlap matrix on C++ side
         for (i,type_i) in enumerate(type_names):
@@ -297,50 +270,6 @@ class mode_hpmc(_integrator):
         for type in self.shape_param.keys():
             self.shape_param[type].is_set = True;
 
-    def setup_pos_writer(self, pos, colors={}):
-        R""" Set pos_writer definitions for specified shape parameters.
-
-        Args:
-            pos (:py:class:`hoomd.deprecated.dump.pos`): pos writer to setup
-            colors (dict): dictionary of type name to color mappings
-
-        :py:meth:`setup_pos_writer` uses the shape_param settings to specify the shape definitions (via set_def)
-        to the provided pos file writer. This overrides any previous values specified to
-        :py:meth:`hoomd.deprecated.dump.pos.set_def`.
-
-        *colors* allows you to set per-type colors for particles. Specify colors as strings in the injavis format. When
-        colors is not specified for a type, all colors default to ``005984FF``.
-
-        Examples::
-
-            mc = hpmc.integrate.shape(...);
-            mc.shape_param.set(....);
-            pos = pos_writer.dumpy.pos("dump.pos", period=100);
-            mc.setup_pos_writer(pos, colors=dict(A='005984FF'));
-        """
-        self.check_initialization();
-
-        # param_list = self.required_params;
-        # # check that the force parameters are valid
-        # if not self.shape_param.verify(param_list):
-        #    hoomd.context.msg.error("Not all shape parameters are set\n");
-        #    raise RuntimeError("Error setting up pos writer");
-
-        # set all the params
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
-
-        for i in range(0,ntypes):
-            # build a dict of the params to pass to proces_param
-            # param_dict = {};
-            # for name in param_list:
-            #     param_dict[name] = self.shape_param.get(type_list[i], name);
-
-            color = colors.setdefault(type_list[i], '005984FF');
-            shapedef = self.format_param_pos(self.shape_param[type_list[i]]);
-            pos.set_def(type_list[i], shapedef + ' ' + color)
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -372,9 +301,7 @@ class mode_hpmc(_integrator):
                 type_name_j = hoomd.context.current.system_definition.getParticleData().getNameByType(j);
                 if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
                     # by default, perform overlap checks
-                    hoomd.util.quiet_status()
                     self.overlap_checks.set(type_name_i, type_name_j, True)
-                    hoomd.util.unquiet_status()
 
     def set_params(self,
                    d=None,
@@ -399,7 +326,6 @@ class mode_hpmc(_integrator):
                   number of MPI ranks. Simulation output will not be identical if either of these is changed.
         """
 
-        hoomd.util.print_status_line();
         # check that proper initialization has occurred
         if self.cpp_integrator == None:
             hoomd.context.msg.error("Bug in hoomd: cpp_integrator not set, please report\n");
@@ -696,10 +622,6 @@ class sphere(mode_hpmc):
     * *diameter* (**required**) - diameter of the sphere (distance units)
     * *orientable* (**default: False**) - set to True for spheres with orientation (added in version 2.3)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Examples::
 
@@ -720,7 +642,6 @@ class sphere(mode_hpmc):
     """
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -746,12 +667,6 @@ class sphere(mode_hpmc):
 
         if restore_state:
             self.restore_state()
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        d = param.diameter;
-        return 'sphere {0}'.format(d);
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -811,10 +726,6 @@ class convex_polygon(mode_hpmc):
           don't put the origin right next to an edge).
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -829,7 +740,6 @@ class convex_polygon(mode_hpmc):
 
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -853,19 +763,6 @@ class convex_polygon(mode_hpmc):
         self.initialize_shape_params();
         if restore_state:
             self.restore_state()
-
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-        verts = param.vertices;
-        shape_def = 'poly3d {0} '.format(len(verts));
-
-        for v in verts:
-            shape_def += '{0} {1} 0 '.format(*v);
-
-        return shape_def
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -914,10 +811,6 @@ class convex_spheropolygon(mode_hpmc):
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Useful cases:
 
@@ -938,7 +831,6 @@ class convex_spheropolygon(mode_hpmc):
 
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -962,25 +854,6 @@ class convex_spheropolygon(mode_hpmc):
 
         if restore_state:
             self.restore_state()
-
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string
-        verts = param.vertices;
-        R = float(param.sweep_radius);
-
-        if len(verts) == 1:
-            shape_def = 'ellipsoid {0} {0} {0} '.format(R);
-
-        else:
-            shape_def = 'spoly3d {0} {1} '.format(R, len(verts));
-
-            for v in verts:
-                shape_def += '{0} {1} 0 '.format(*v);
-
-        return shape_def
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -1032,10 +905,6 @@ class simple_polygon(mode_hpmc):
         * The origin centered circle that encloses all vertices should be of minimal size for optimal performance.
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1050,7 +919,6 @@ class simple_polygon(mode_hpmc):
 
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -1074,19 +942,6 @@ class simple_polygon(mode_hpmc):
 
         if restore_state:
             self.restore_state()
-
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-        verts = param.vertices;
-        shape_def = 'poly3d {0} '.format(len(verts));
-
-        for v in verts:
-            shape_def += '{0} {1} 0 '.format(*v);
-
-        return shape_def
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -1142,10 +997,6 @@ class polyhedron(mode_hpmc):
     * *faces* (**required**) - a list of vertex indices for every face
     * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
 
@@ -1185,7 +1036,6 @@ class polyhedron(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self)
@@ -1210,28 +1060,6 @@ class polyhedron(mode_hpmc):
         if restore_state:
             self.restore_state()
 
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-
-        verts = param.vertices;
-        # represent by convex hull, pos doesn't support non-convex shapes yet
-        shape_def = 'polyV {0} '.format(len(verts));
-
-        for v in verts:
-            shape_def += '{0} {1} {2} '.format(*v);
-
-        faces = param.faces;
-        shape_def += '{0} '.format(len(faces))
-        for f in faces:
-            shape_def += '{0} '.format(len(f));
-            for vi in f:
-                shape_def += '{0} '.format(vi)
-
-        return shape_def
-
 class convex_polyhedron(mode_hpmc):
     R""" HPMC integration for convex polyhedra (3D).
 
@@ -1241,7 +1069,6 @@ class convex_polyhedron(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        max_verts (int): Set the maximum number of vertices in a polyhedron. (deprecated in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1254,10 +1081,6 @@ class convex_polyhedron(mode_hpmc):
           don't put the origin right next to a face).
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1278,11 +1101,7 @@ class convex_polyhedron(mode_hpmc):
         mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
         mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, max_verts=None, restore_state=False):
-        hoomd.util.print_status_line();
-
-        if max_verts is not None:
-            hoomd.context.msg.warning("max_verts is deprecated. Ignoring.\n")
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -1307,18 +1126,6 @@ class convex_polyhedron(mode_hpmc):
 
         if restore_state:
             self.restore_state()
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-        verts = param.vertices;
-        shape_def = 'poly3d {0} '.format(len(verts));
-
-        for v in verts:
-            shape_def += '{0} {1} {2} '.format(*v);
-
-        return shape_def
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -1381,10 +1188,6 @@ class faceted_ellipsoid(mode_hpmc):
     * *vertices* (**required**) - list of vertices for intersection polyhedron
     * *origin* (**required**) - origin vector
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         Planes must not be coplanar.
@@ -1419,7 +1222,6 @@ class faceted_ellipsoid(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -1443,12 +1245,6 @@ class faceted_ellipsoid(mode_hpmc):
 
         if restore_state:
             self.restore_state()
-
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        raise RuntimeError("faceted_ellipsoid shape doesn't have a .pos representation")
 
 class faceted_sphere(faceted_ellipsoid):
     R""" HPMC integration for faceted spheres (3D).
@@ -1481,10 +1277,6 @@ class faceted_sphere(faceted_ellipsoid):
     * *vertices* (**required**) - list of vertices for intersection polyhedron
     * *origin* (**required**) - origin vector
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         Planes must not be coplanar.
@@ -1516,28 +1308,9 @@ class faceted_sphere(faceted_ellipsoid):
         mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         super(faceted_sphere, self).__init__(seed=seed, d=d, a=a, move_ratio=move_ratio,
             nselect=nselect, restore_state=restore_state)
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        vertices = param.vertices;
-        d = param.diameter;
-        if vertices is not None:
-            # build up shape_def string in a loop
-            shape_def = 'polySphere {0} {1} '.format(d/2.0,len(vertices));
-
-            v = []
-            for v in vertices:
-                shape_def += '{0} {1} {2} '.format(*v)
-
-            return shape_def
-        else:
-            raise RuntimeError("No vertices supplied.")
-
 
 class sphinx(mode_hpmc):
     R""" HPMC integration for sphinx particles (3D).
@@ -1558,10 +1331,6 @@ class sphinx(mode_hpmc):
     * *diameters* - diameters of spheres (positive OR negative real numbers)
     * *centers* - centers of spheres in local coordinate frame
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Quick Example::
 
@@ -1579,7 +1348,6 @@ class sphinx(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self)
@@ -1606,28 +1374,6 @@ class sphinx(mode_hpmc):
         if restore_state:
             self.restore_state()
 
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        centers = param.centers;
-        diameters = param.diameters;
-        circumsphere_d = param.diameter
-
-        colors = param.colors
-        if colors is None:
-            # default
-            colors = ["005984ff" for c in centers]
-
-        # build up shape_def string in a loop
-        shape_def = 'sphinx 0 {0} {1} '.format(circumsphere_d, len(centers));
-
-        # for every plane, construct four bounding vertices
-        for (d,c,col) in zip(diameters, centers, colors):
-            shape_def += '{0} {1} {2} {3} {4} '.format(d/2.0,c[0],c[1],c[2], col);
-
-        return shape_def
-
 class convex_spheropolyhedron(mode_hpmc):
     R""" HPMC integration for spheropolyhedra (3D).
 
@@ -1637,7 +1383,6 @@ class convex_spheropolyhedron(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        max_verts (int): Set the maximum number of vertices in a polyhedron. (deprecated in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1655,10 +1400,6 @@ class convex_spheropolyhedron(mode_hpmc):
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1680,11 +1421,7 @@ class convex_spheropolyhedron(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, max_verts=None, restore_state=False):
-        hoomd.util.print_status_line();
-
-        if max_verts is not None:
-            hoomd.context.msg.warning("max_verts is deprecated. Ignoring.\n")
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
         mode_hpmc.__init__(self)
@@ -1709,25 +1446,6 @@ class convex_spheropolyhedron(mode_hpmc):
 
         if restore_state:
             self.restore_state()
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        verts = param.vertices;
-        R = float(param.sweep_radius);
-        # Allow spheres to be represented for zero or one verts for maximum compatibility.
-        if len(verts) <= 1:
-            # draw spherocylinder to avoid having to handle orientation output differently
-            d = R * 2.0;
-            return 'cyl {0} 0'.format(d);
-        # else draw spheropolyhedron
-        # build up shape_def string in a loop
-        shape_def = 'spoly3d {0} {1} '.format(R, len(verts));
-
-        for v in verts:
-            shape_def += '{0} {1} {2} '.format(*v);
-
-        return shape_def
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -1774,10 +1492,6 @@ class ellipsoid(mode_hpmc):
     * *b* (**required**) - principle axis b of the ellipsoid (radius in the y direction) (distance units)
     * *c* (**required**) - principle axis c of the ellipsoid (radius in the z direction) (distance units)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 
@@ -1795,7 +1509,6 @@ class ellipsoid(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -1821,12 +1534,6 @@ class ellipsoid(mode_hpmc):
         if restore_state:
             self.restore_state()
 
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        return 'ellipsoid {0} {1} {2}'.format(param.a, param.b, param.c);
-
 class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).
 
@@ -1841,8 +1548,6 @@ class sphere_union(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        max_members (int): Set the maximum number of members in the sphere union
-            * .. deprecated:: 2.2
         capacity (int): Set to the number of constituent spheres per leaf node. (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
@@ -1856,10 +1561,6 @@ class sphere_union(mode_hpmc):
         * .. versionadded:: 2.1
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
     * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
         * .. versionadded:: 2.2
 
@@ -1880,11 +1581,7 @@ class sphere_union(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, max_members=None, restore_state=False):
-        hoomd.util.print_status_line();
-
-        if max_members is not None:
-            hoomd.context.msg.warning("max_members is deprecated. Ignoring.\n")
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -1909,29 +1606,6 @@ class sphere_union(mode_hpmc):
         if restore_state:
             self.restore_state()
 
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-        diameters = [m.diameter for m in param.members]
-        centers = param.centers
-        colors = param.colors
-        N = len(diameters);
-        shape_def = 'sphere_union {0} '.format(N);
-        if param.colors is None:
-            # default
-            colors = ["ff5984ff" for c in centers]
-
-
-        for d,p,c in zip(diameters, centers, colors):
-            shape_def += '{0} '.format(d);
-            shape_def += '{0} {1} {2} '.format(*p);
-            shape_def += '{0} '.format(c);
-            # No need to use stored value for member sphere orientations
-
-        return shape_def
-
 class convex_spheropolyhedron_union(mode_hpmc):
     R""" HPMC integration for unions of convex polyhedra (3D).
 
@@ -1941,7 +1615,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        max_members (int): Set the maximum number of members in the convex polyhedron union
         capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
     .. versionadded:: 2.2
@@ -1957,10 +1630,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
         * .. versionadded:: 2.4
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 
@@ -1976,7 +1645,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
     """
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self)
@@ -2001,111 +1669,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
         # meta data
         self.metadata_fields = ['capacity']
 
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        # build up shape_def string in a loop
-        vertices = [m.vertices for m in param.members]
-        orientations = param.orientations
-        centers = param.centers
-        colors = param.colors
-        sweep_radii = [m.sweep_radius for m in param.members]
-        if param.colors is None:
-            # default
-            colors = ["ff5984ff" for c in centers]
-        N = len(centers);
-
-        if N == 1:
-            verts = vertices[0]
-            R = sweep_radii[0]
-            if len(verts) == 1:
-                shape_def = 'sphere {0} {1}'.format(2*R,colors[0]);
-
-            else:
-                shape_def = 'spoly3d {0} {1}'.format(R, len(verts));
-
-                for v in verts:
-                    shape_def += ' {0} {1} {2}'.format(*v);
-
-                shape_def += ' {}'.format(colors[0])
-        else:
-            # two special cases
-            if all(v == [[0,0,0]] for v in vertices):
-                # all constituent particles are spheres
-                shape_def = 'sphere_union {0} '.format(N)
-                for r,p,c in zip(sweep_radii, centers, colors):
-                    shape_def += '{0} '.format(2*r);
-                    shape_def += '{0} {1} {2} '.format(*p);
-                    shape_def += '{0} '.format(c);
-                    # No need to use stored value for member sphere orientations
-            elif all(r == 0 for r in sweep_radii):
-                # all constituent particles are convex polyhedra
-                shape_def = 'poly3d_union {0} '.format(N);
-                for verts,q,p,c in zip(vertices, orientations, centers, colors):
-                    shape_def += '{0} '.format(len(verts));
-                    for v in verts:
-                        shape_def += '{0} {1} {2} '.format(*v);
-                    shape_def += '{0} {1} {2} '.format(*p);
-                    shape_def += '{0} {1} {2} {3} '.format(*q);
-                    shape_def += '{0} '.format(c);
-            else:
-                hoomd.context.msg.warning("Don't know how to export this spheropolyhedron union to .pos. Falling back on shpere.\n");
-                shape_def = 'sphere 1.0 ff5984ff'
-
-        return shape_def
-
-class convex_polyhedron_union(convex_spheropolyhedron_union):
-    R""" HPMC integration for unions of convex polyhedra (3D).
-
-     .. deprecated:: 2.4
-        Replaced by :py:class:`convex_spheropolyhedron_union`. This class stays in place for compatibility with older scripts.
-
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        max_members (int): Set the maximum number of members in the convex polyhedron union
-        capacity (int): Set to the number of constituent convex polyhedra per leaf node
-
-    .. versionadded:: 2.2
-
-    Convex polyhedron union parameters:
-
-    * *vertices* (**required**) - list of vertex lists of the polyhedra in particle coordinates.
-    * *centers* (**required**) - list of centers of constituent polyhedra in particle coordinates.
-    * *orientations* (**required**) - list of orientations of constituent polyhedra.
-    * *overlap* (**default: 1 for all particles**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
-    * *sweep_radii* (**default: 0 for all particle**) - radii of spheres sweeping out each constituent polyhedron
-
-        * .. versionadded:: 2.4
-
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
-
-    Example::
-
-        mc = hpmc.integrate.convex_polyhedron_union(seed=27)
-        mc = hpmc.integrate.convex_polyhedron_union(seed=27, d=0.3, a=0.4)
-        cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
-                     [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
-        mc.shape_param.set('A', vertices=[cube_verts, cube_verts],
-                                centers=[[-1,0,0],[1,0,0]],orientations=[[1,0,0,0],[1,0,0,0]]);
-        print('vertices of the first cube = ', mc.shape_param['A'].members[0].vertices)
-        print('center of the first cube = ', mc.shape_param['A'].centers[0])
-        print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
-    """
-
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
-        hoomd.util.print_status_line();
-
-        # just fall back on base class
-        convex_spheropolyhedron_union.__init__(self,seed,d,a,move_ratio,nselect)
-
 class faceted_ellipsoid_union(mode_hpmc):
     R""" HPMC integration for unions of faceted ellipsoids (3D).
 
@@ -2115,7 +1678,6 @@ class faceted_ellipsoid_union(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        max_members (int): Set the maximum number of members in the convex polyhedron union
         capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
     .. versionadded:: 2.5
@@ -2131,10 +1693,6 @@ class faceted_ellipsoid_union(mode_hpmc):
     * *origin* (**required**) - list of origin vectors
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
-
-        * .. deprecated:: 2.1
-             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 
@@ -2159,7 +1717,6 @@ class faceted_ellipsoid_union(mode_hpmc):
     """
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
-        hoomd.util.print_status_line();
 
         # initialize base class
         mode_hpmc.__init__(self);
@@ -2183,10 +1740,3 @@ class faceted_ellipsoid_union(mode_hpmc):
 
         # meta data
         self.metadata_fields = ['capacity']
-
-    # \internal
-    # \brief Format shape parameters for pos file output
-    def format_param_pos(self, param):
-        raise RuntimeError('.pos output not supported.')
-
-

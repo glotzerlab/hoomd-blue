@@ -61,14 +61,11 @@ def create_lattice(unitcell, n):
                                   n=[100,58]);
     """
     hoomd.context._verify_init();
-    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if is_initialized():
         hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
-
-    hoomd.util.quiet_status();
 
     snap = unitcell.get_snapshot();
     try:
@@ -88,7 +85,6 @@ def create_lattice(unitcell, n):
 
     read_snapshot(snapshot=snap);
 
-    hoomd.util.unquiet_status();
     return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 def read_getar(filename, modes={'any': 'any'}):
@@ -167,7 +163,6 @@ def read_getar(filename, modes={'any': 'any'}):
 
     """
     hoomd.context._verify_init();
-    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if is_initialized():
@@ -228,7 +223,6 @@ def read_snapshot(snapshot):
         :py:mod:`hoomd.data`
     """
     hoomd.context._verify_init();
-    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if is_initialized():
@@ -277,7 +271,6 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
         :py:class:`hoomd.dump.gsd`
     """
     hoomd.context._verify_init();
-    hoomd.util.print_status_line();
 
     # check if initialization has already occurred
     if is_initialized():
@@ -323,7 +316,6 @@ def restore_getar(filename, modes={'any': 'any'}):
         filename (str): Name of the file to read from
         modes (dict): dictionary of {property: frame} values, as described in :py:func:`read_getar`
     """
-    hoomd.util.print_status_line();
 
     # the getar initializer opens the file on all ranks: need to broadcast the string from rank 0
     filename_bcast = _hoomd.mpi_bcast_str(filename, hoomd.context.exec_conf);
@@ -345,10 +337,8 @@ def _perform_common_init_tasks():
     hoomd.context.current.sorter = hoomd.update.sort();
 
     # create the default compute.thermo on the all group
-    hoomd.util.quiet_status();
     all = hoomd.group.all();
     hoomd.compute._get_unique_thermo(group=all);
-    hoomd.util.unquiet_status();
 
     # set up Communicator, and register it with the System
     if _hoomd.is_MPI_available():
@@ -377,9 +367,7 @@ def _create_domain_decomposition(box):
     # okay, we want a decomposition but one isn't set, so make a default one
     if hoomd.context.current.decomposition is None:
         # this is happening transparently to the user, so hush this up
-        hoomd.util.quiet_status()
         hoomd.context.current.decomposition = hoomd.comm.decomposition()
-        hoomd.util.unquiet_status()
 
     return hoomd.context.current.decomposition._make_cpp_decomposition(box)
 

@@ -160,8 +160,6 @@ def all():
         all = group.all()
     """
 
-    hoomd.util.print_status_line();
-
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
         hoomd.context.msg.error("Cannot create a group before initialization\n");
@@ -226,7 +224,6 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
         cube.force_update()
 
     """
-    hoomd.util.print_status_line();
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
@@ -278,7 +275,6 @@ def rigid_center():
         rigid = group.rigid_center()
 
     """
-    hoomd.util.print_status_line();
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
@@ -309,7 +305,6 @@ def nonrigid():
         nonrigid = group.nonrigid()
 
     """
-    hoomd.util.print_status_line();
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
@@ -338,7 +333,6 @@ def rigid():
         rigid = group.rigid()
 
     """
-    hoomd.util.print_status_line();
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
@@ -367,7 +361,6 @@ def nonfloppy():
         nonfloppy = group.nonfloppy()
 
     """
-    hoomd.util.print_status_line();
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
@@ -396,7 +389,6 @@ def floppy():
         floppy = group.floppy()
 
     """
-    hoomd.util.print_status_line();
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
@@ -425,7 +417,6 @@ def nonbody():
         nonbody = group.nonbody()
 
     """
-    hoomd.util.print_status_line();
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
@@ -454,7 +445,6 @@ def body():
         body = group.body()
 
     """
-    hoomd.util.print_status_line();
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
@@ -492,7 +482,6 @@ def tags(tag_min, tag_max=None, name=None, update=False):
         half2 = group.tags(name="second-half", tag_min=1000, tag_max=1999)
 
     """
-    hoomd.util.print_status_line();
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
@@ -536,7 +525,6 @@ def tag_list(name, tags):
         b = group.tag_list(name="b", tags = range(20,400))
 
     """
-    hoomd.util.print_status_line();
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
@@ -583,7 +571,6 @@ def type(type, name=None, update=False):
         groupB = group.type(name='b-particles', type='B',update=True)
 
     """
-    hoomd.util.print_status_line();
     type = str(type);
 
     # check if initialization has occurred
@@ -632,14 +619,11 @@ def charged(name='charged'):
         b = group.charged(name="cp")
 
     """
-    hoomd.util.print_status_line();
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
         hoomd.context.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
-
-    hoomd.util.quiet_status();
 
     # determine the group of particles that are charged
     charged_tags = [];
@@ -650,7 +634,6 @@ def charged(name='charged'):
             charged_tags.append(i);
 
     retval = tag_list(name, charged_tags);
-    hoomd.util.unquiet_status();
 
     return retval;
 

@@ -160,7 +160,6 @@ class coeff:
         (as documented in the respective pair command) is not set explicitly, the default will be used.
 
         """
-        hoomd.util.print_status_line();
 
         # listify the inputs
         a = hoomd.util.listify(a)
@@ -396,7 +395,6 @@ class pair(force._force):
             mypair.set_params(mode="xplor")
 
         """
-        hoomd.util.print_status_line();
 
         if mode is not None:
             if mode == "no_shift":
@@ -577,7 +575,6 @@ class lj(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -650,7 +647,6 @@ class gauss(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -742,7 +738,6 @@ class slj(pair):
 
     """
     def __init__(self, r_cut, nlist, d_max=None, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -792,7 +787,6 @@ class slj(pair):
             **xplor** is not a valid setting for :py:class:`slj`.
 
         """
-        hoomd.util.print_status_line();
 
         if mode == "xplor":
             hoomd.context.msg.error("XPLOR is smoothing is not supported with slj\n");
@@ -841,7 +835,6 @@ class yukawa(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -913,7 +906,6 @@ class ewald(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -1033,7 +1025,6 @@ class table(force._force):
 
     """
     def __init__(self, width, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         force._force.__init__(self, name);
@@ -1164,7 +1155,6 @@ class table(force._force):
         is treated as a comment. The *r* values must monotonically increase and be equally spaced. The table is read
         directly into the grid points used to evaluate :math:`F_{\mathrm{user}}(r)` and :math:`_{\mathrm{user}}(r)`.
         """
-        hoomd.util.print_status_line();
 
         # open the file
         f = open(filename);
@@ -1212,9 +1202,7 @@ class table(force._force):
                 hoomd.context.msg.error("pair.table: r must be monotonically increasing and evenly spaced\n");
                 raise RuntimeError("Error reading table file");
 
-        hoomd.util.quiet_status();
         self.pair_coeff.set(a, b, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
-        hoomd.util.unquiet_status();
 
 class morse(pair):
     R""" Morse pair potential.
@@ -1253,7 +1241,6 @@ class morse(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -1365,7 +1352,6 @@ class dpd(pair):
 
     """
     def __init__(self, r_cut, nlist, kT, seed, name=None):
-        hoomd.util.print_status_line();
 
         # register the citation
         c = hoomd.cite.article(cite_key='phillips2011',
@@ -1418,7 +1404,6 @@ class dpd(pair):
 
             dpd.set_params(kT=2.0)
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -1475,7 +1460,6 @@ class dpd_conservative(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # register the citation
         c = hoomd.cite.article(cite_key='phillips2011',
@@ -1605,7 +1589,6 @@ class dpdlj(pair):
     """
 
     def __init__(self, r_cut, nlist, kT, seed, name=None):
-        hoomd.util.print_status_line();
 
         # register the citation
         c = hoomd.cite.article(cite_key='phillips2011',
@@ -1663,7 +1646,6 @@ class dpdlj(pair):
             dpdlj.set_params(kT=2.0, mode="shift")
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -1740,7 +1722,6 @@ class force_shifted_lj(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -1812,7 +1793,6 @@ class moliere(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -1889,7 +1869,6 @@ class zbl(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -1953,7 +1932,6 @@ class tersoff(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -2060,7 +2038,6 @@ class mie(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -2146,7 +2123,6 @@ class ai_pair(pair):
             mypair.set_params(mode="no_shift")
 
         """
-        hoomd.util.print_status_line();
 
         if mode is not None:
             if mode == "no_shift":
@@ -2243,7 +2219,6 @@ class gb(ai_pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -2310,7 +2285,6 @@ class dipole(ai_pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         ## tell the base class how we operate
 
@@ -2410,7 +2384,6 @@ class reaction_field(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -2497,7 +2470,6 @@ class DLVO(pair):
         DLVO.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
     """
     def __init__(self, r_cut, nlist, d_max=None, name=None):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         pair.__init__(self, r_cut, nlist, name);
@@ -2583,7 +2555,6 @@ class square_density(pair):
     Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -2658,7 +2629,6 @@ class buckingham(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -2734,7 +2704,6 @@ class lj1208(pair):
 
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -2815,7 +2784,6 @@ class fourier(pair):
 
     def __init__(self, r_cut, nlist, name=None):
 
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 

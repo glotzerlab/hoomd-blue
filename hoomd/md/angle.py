@@ -98,7 +98,6 @@ class coeff:
             parameters as they were previously set.
 
         """
-        hoomd.util.print_status_line();
 
         # listify the input
         type = hoomd.util.listify(type)
@@ -216,7 +215,6 @@ class harmonic(force._force):
 
     """
     def __init__(self):
-        hoomd.util.print_status_line();
         # check that some angles are defined
         if hoomd.context.current.system_definition.getAngleData().getNGlobal() == 0:
             hoomd.context.msg.error("No angles are defined.\n");
@@ -306,7 +304,6 @@ class cosinesq(force._force):
 
     """
     def __init__(self):
-        hoomd.util.print_status_line();
         # check that some angles are defined
         if hoomd.context.current.system_definition.getAngleData().getNGlobal() == 0:
             hoomd.context.msg.error("No angles are defined.\n");
@@ -429,7 +426,6 @@ class table(force._force):
 
     """
     def __init__(self, width, name=None):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         force._force.__init__(self, name);
@@ -510,7 +506,6 @@ class table(force._force):
             directly into the grid points used to evaluate :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}}(\theta)`.
 
         """
-        hoomd.util.print_status_line();
 
         # open the file
         f = open(filename);
@@ -555,9 +550,7 @@ class table(force._force):
                 hoomd.context.msg.error("angle.table: theta must be monotonically increasing and evenly spaced\n");
                 raise RuntimeError("Error reading table file");
 
-        hoomd.util.quiet_status();
         self.angle_coeff.set(anglename, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
-        hoomd.util.unquiet_status();
 
     ## \internal
     # \brief Get metadata

@@ -102,7 +102,6 @@ class coeff:
             parameters as they were previously set.
 
         """
-        hoomd.util.print_status_line();
 
         # listify the input
         type = hoomd.util.listify(type)
@@ -298,7 +297,6 @@ class lj(_special_pair):
 
     """
     def __init__(self,name=None):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         _special_pair.__init__(self);
@@ -374,7 +372,6 @@ class coulomb(_special_pair):
 
     """
     def __init__(self, name=None):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         _special_pair.__init__(self);

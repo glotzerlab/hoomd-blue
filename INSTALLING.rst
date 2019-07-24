@@ -214,8 +214,6 @@ and specify these options on the command line:
 Other option changes take effect at any time. These can be set from within
 ``ccmake`` or on the command line:
 
-- ``BUILD_CGCMM`` - Enables building the ``hoomd.cgcmm`` module.
-- ``BUILD_DEPRECATED`` - Enables building the ``hoomd.deprecated`` module.
 - ``BUILD_HPMC`` - Enables building the ``hoomd.hpmc`` module.
 - ``BUILD_MD`` - Enables building the ``hoomd.md`` module.
 - ``BUILD_METAL`` - Enables building the ``hoomd.metal`` module.

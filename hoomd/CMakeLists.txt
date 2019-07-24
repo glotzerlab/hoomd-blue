@@ -136,7 +136,6 @@ set(_hoomd_headers
     Profiler.h
     RandomNumbers.h
     RNGIdentifiers.h
-    Saru.h
     SFCPackUpdaterGPU.cuh
     SFCPackUpdaterGPU.h
     SFCPackUpdater.h
@@ -340,14 +339,6 @@ if (NOT SINGLE_PRECISION AND BUILD_HPMC)
     add_subdirectory(hpmc)
 endif()
 
-if (BUILD_DEPRECATED)
-    add_subdirectory(deprecated)
-endif()
-
-if (BUILD_CGCMM AND BUILD_MD)
-    add_subdirectory(cgcmm)
-endif()
-
 if (BUILD_METAL AND BUILD_MD)
     add_subdirectory(metal)
 endif()
@@ -367,7 +358,7 @@ endif()
 file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
 
 # explicitly remove packages which are already explicitly dealt with
-list(REMOVE_ITEM _directory_contents test test-py extern md hpmc deprecated cgcmm metal dem mpcd jit)
+list(REMOVE_ITEM _directory_contents test test-py extern md hpmc metal dem mpcd jit)
 
 foreach(entry ${_directory_contents})
     if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})

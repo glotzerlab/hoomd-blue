@@ -75,8 +75,6 @@ class param_dict(dict):
             then executing coeff.set('A', diameter=1.5) will fail one must call coeff.set('A', diameter=1.5, length=2.0)
 
         """
-        # hoomd.util.print_status_line();
-
         # listify the input
         types = hoomd.util.listify(types)
 
@@ -107,13 +105,6 @@ class _param(object):
 
     def set(self, **params):
         self.is_set = True;
-
-        # backwards compatibility
-        if 'ignore_overlaps' in params:
-            # ugly workaround
-            super(_param,self).__setattr__('ignore_overlaps',params['ignore_overlaps'])
-            # do not pass to C++
-            params.pop('ignore_overlaps',None)
 
         self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params));
 
