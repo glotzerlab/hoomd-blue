@@ -658,7 +658,14 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     if (shape_test.hasOrientation())
                         {
                         // set particle orientation
+                        if (m_sysdef->getNDimensions() == 2)
+                        {
+                        shape_test.orientation = generateRandomOrientation2D(rng);
+                        }
+                        else
+                        {
                         shape_test.orientation = generateRandomOrientation(rng);
+                        }
                         }
 
                     if (m_gibbs)

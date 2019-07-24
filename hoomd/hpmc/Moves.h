@@ -140,6 +140,15 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
 
     }
 
+//! Generate a random rotation about the z-axis
+template<class RNG>
+DEVICE inline quat<Scalar> generateRandomOrientation2D(RNG& rng)
+    {
+    Scalar u1 = hoomd::detail::generate_canonical<Scalar>(rng);
+    return quat<Scalar>(fast::cos(Scalar(2.0*M_PI)*(u1-Scalar(0.5))/Scalar(2.0)),
+            vec3<Scalar>(0, 0, fast::sin(Scalar(2.0*M_PI)*(u1-Scalar(0.5))/Scalar(2.0))));
+    }
+
 /* Generate a uniformly distributed random position in a sphere
  * \param rng Saru RNG
  * \param pos_sphere Center of insertion sphere
