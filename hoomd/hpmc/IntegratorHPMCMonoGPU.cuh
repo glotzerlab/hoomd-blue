@@ -399,17 +399,20 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
     unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
     bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < move_ratio);
 
-    if (move_type_translate)
+    if (move_active)
         {
-        move_translate(pos_i, rng, s_d[typ_i], dim);
+        if (move_type_translate)
+            {
+            move_translate(pos_i, rng, s_d[typ_i], dim);
 
-        // need to reject any move that puts the particle in the inactive region
-        if (domain_decomposition && !isActive(vec_to_scalar3(pos_i), box, ghost_fraction))
-            move_active = false;
-        }
-    else
-        {
-        move_rotate(shape_i.orientation, rng, s_a[typ_i], dim);
+            // need to reject any move that puts the particle in the inactive region
+            if (domain_decomposition && !isActive(vec_to_scalar3(pos_i), box, ghost_fraction))
+                move_active = false;
+            }
+        else
+            {
+            move_rotate(shape_i.orientation, rng, s_a[typ_i], dim);
+            }
         }
 
     if (move_active)
@@ -455,7 +458,6 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                            const unsigned int N_new,
                            const unsigned int *d_check_overlaps,
                            const Index2D overlap_idx,
-                           const unsigned int *d_update_order_by_ptl,
                            const typename Shape::param_type *d_params,
                            unsigned int *d_overflow,
                            const unsigned int max_extra_bytes,
@@ -485,9 +487,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     unsigned int *s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
     unsigned int *s_type_group = (unsigned int*)(s_queue_gid + max_queue_size);
     unsigned int *s_idx_group = (unsigned int*)(s_type_group + n_groups);
-    unsigned int *s_update_order_group = (unsigned int *)(s_idx_group + n_groups);
-    unsigned int *s_early_exit_group = (unsigned int *)(s_update_order_group + n_groups);
-    unsigned int *s_nneigh_group = (unsigned int *)(s_early_exit_group + n_groups);
+    unsigned int *s_nneigh_group = (unsigned int *)(s_idx_group + n_groups);
 
        {
         // copy over parameters one int per thread for fast loads
@@ -535,9 +535,6 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
 
     if (master)
         {
-        // reset overlap flags
-        s_early_exit_group[group] = 0;
-
         // reset number of neighbors
         s_nneigh_group[group] = 0;
         }
@@ -555,8 +552,6 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
 
     if (active)
         {
-        unsigned int update_order_i = d_update_order_by_ptl[idx];
-
         // load particle i
         Scalar4 postype_i(d_trial_postype[idx]);
         vec3<Scalar> pos_i(postype_i);
@@ -571,7 +566,6 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
             s_pos_group[group] = make_scalar3(pos_i.x, pos_i.y, pos_i.z);
             s_type_group[group] = type_i;
             s_orientation_group[group] = d_trial_orientation[idx];
-            s_update_order_group[group] = update_order_i;
             s_idx_group[group] = idx;
             }
         }
@@ -611,7 +605,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
             // and as long as no overlaps have been found
 
             // every thread can add at most one element to the neighbor list
-            while (!s_early_exit_group[group] && s_queue_size < max_queue_size && (k >> 1) < excell_size)
+            while (s_queue_size < max_queue_size && (k >> 1) < excell_size)
                 {
                 // build some shapes, but we only need them to get diameters, so don't load orientations
                 // build shape i from shared memory
@@ -681,48 +675,35 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
             bool check_old = check_j_flag & 1;
             unsigned int check_j  = check_j_flag >> 1;
 
-            bool j_earlier_i = false;
-            if (check_j < N_new)
+            Scalar4 postype_j;
+            Scalar4 orientation_j;
+            vec3<Scalar> r_ij;
+
+            // build shape i from shared memory
+            Scalar3 pos_i = s_pos_group[check_group];
+            unsigned int type_i = s_type_group[check_group];
+            Shape shape_i(quat<Scalar>(s_orientation_group[check_group]), s_params[type_i]);
+
+            // build shape j from global memory
+            postype_j = check_old ? d_postype[check_j] : d_trial_postype[check_j];
+            orientation_j = make_scalar4(1,0,0,0);
+            unsigned int type_j = __scalar_as_int(postype_j.w);
+            Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
+            if (shape_j.hasOrientation())
+                shape_j.orientation = check_old ? quat<Scalar>(d_orientation[check_j]) : quat<Scalar>(d_trial_orientation[check_j]);
+
+            // put particle j into the coordinate system of particle i
+            r_ij = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_i);
+            r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
+
+            if (s_check_overlaps[overlap_idx(type_i, type_j)]
+                && test_overlap(r_ij, shape_i, shape_j, overlap_err_count))
                 {
-                unsigned int update_order_j = d_update_order_by_ptl[check_j];
-                j_earlier_i = update_order_j < s_update_order_group[check_group];
-                }
-
-            if (check_old || j_earlier_i)
-                {
-                Scalar4 postype_j;
-                Scalar4 orientation_j;
-                vec3<Scalar> r_ij;
-
-                // build shape i from shared memory
-                Scalar3 pos_i = s_pos_group[check_group];
-                unsigned int type_i = s_type_group[check_group];
-                Shape shape_i(quat<Scalar>(s_orientation_group[check_group]), s_params[type_i]);
-
-                // build shape j from global memory
-                postype_j = check_old ? d_postype[check_j] : d_trial_postype[check_j];
-                orientation_j = make_scalar4(1,0,0,0);
-                unsigned int type_j = __scalar_as_int(postype_j.w);
-                Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
-                if (shape_j.hasOrientation())
-                    shape_j.orientation = check_old ? quat<Scalar>(d_orientation[check_j]) : quat<Scalar>(d_trial_orientation[check_j]);
-
-                // put particle j into the coordinate system of particle i
-                r_ij = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_i);
-                r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
-
-                if (s_check_overlaps[overlap_idx(type_i, type_j)]
-                    && test_overlap(r_ij, shape_i, shape_j, overlap_err_count))
+                // write out to global memory
+                unsigned int n = atomicAdd(&s_nneigh_group[check_group], 1);
+                if (n < maxn)
                     {
-                    // write out to global memory
-                    unsigned int n = atomicAdd(&s_nneigh_group[check_group], 1);
-                    if (n < maxn)
-                        {
-                        d_nlist[n+maxn*s_idx_group[check_group]] = check_old ? check_j : (check_j + N_old);
-
-                        if (check_old && !j_earlier_i)
-                            atomicAdd(&s_early_exit_group[check_group], 1);
-                        }
+                    d_nlist[n+maxn*s_idx_group[check_group]] = check_old ? check_j : (check_j + N_old);
                     }
                 }
             }
@@ -732,7 +713,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
         if (master && group == 0)
             s_queue_size = 0;
 
-        if (active && !s_early_exit_group[group] && (k >> 1) < excell_size)
+        if (active && (k >> 1) < excell_size)
             atomicAdd(&s_still_searching, 1);
 
         __syncthreads();
@@ -792,7 +773,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const Index3D ci,
                                      const unsigned int N_old,
                                      const unsigned int N_new,
-                                     const unsigned int *d_update_order_by_ptl,
                                      const unsigned int num_types,
                                      const unsigned int seed,
                                      const unsigned int *d_check_overlaps,
@@ -843,7 +823,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     __shared__ unsigned int s_adding_depletants;
     __shared__ unsigned int s_depletant_queue_size;
 
-    __shared__ unsigned int s_reject;
     __shared__ unsigned int s_nneigh;
 
     // load the per type pair parameters into shared memory
@@ -895,7 +874,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         {
         s_overlap_checks = 0;
         s_overlap_err_count = 0;
-        s_reject = 0;
         }
 
     __syncthreads();
@@ -917,9 +895,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         }
 
     __syncthreads();
-
-    // get the update order of this particle
-    unsigned int update_order_i = d_update_order_by_ptl[i];
 
     // generate random number of depletants from Poisson distribution
     hoomd::RandomGenerator rng_poisson(hoomd::RNGIdentifier::HPMCDepletantNum, i, seed, timestep, select*num_types + depletant_type);
@@ -961,7 +936,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
     unsigned int i_dep = group_size*group+offset;
 
-    while (s_adding_depletants && !s_reject)
+    while (s_adding_depletants)
         {
         while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants)
             {
@@ -1078,7 +1053,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             // loop through particles in the excell list and add them to the queue if they pass the circumsphere check
 
             // active threads add to the queue
-            if (active && !s_reject)
+            if (active)
                 {
                 // prefetch j
                 unsigned int j, next_j = 0;
@@ -1177,13 +1152,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 bool check_old = check_j_flag & 1;
                 unsigned int check_j  = check_j_flag >> 1;
 
-                bool j_earlier_i = false;
-                if (check_j < N_new)
-                    {
-                    unsigned int update_order_j = d_update_order_by_ptl[check_j];
-                    j_earlier_i = update_order_j < update_order_i;
-                    }
-
                 Scalar4 postype_j;
                 Scalar4 orientation_j;
                 vec3<Scalar> r_jk;
@@ -1226,11 +1194,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                     if (n < maxn)
                         {
                         d_nlist[n+maxn*i] = check_old ? check_j : (check_j + N_old);
-
-                        if (check_old && !j_earlier_i)
-                            {
-                            s_reject = 1; // early exit
-                            }
                         }
                     }
                 } // end if (processing neighbor)
@@ -1239,7 +1202,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             __syncthreads();
             if (master && group == 0)
                 s_queue_size = 0;
-            if (active && !s_reject && (k>>1) < excell_size)
+            if (active && (k>>1) < excell_size)
                 atomicAdd(&s_still_searching, 1);
             __syncthreads();
 
@@ -1249,7 +1212,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         __syncthreads();
         if (master && group == 0)
             s_depletant_queue_size = 0;
-        if (!s_reject && i_dep < n_depletants)
+        if (i_dep < n_depletants)
             atomicAdd(&s_adding_depletants, 1);
         __syncthreads();
         } // end loop over depletants
@@ -1460,7 +1423,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
     const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type)
         + args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
-    unsigned int shared_bytes = n_groups * (5*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
+    unsigned int shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
         + max_queue_size * 2 * sizeof(unsigned int)
         + min_shared_bytes;
 
@@ -1477,7 +1440,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
         n_groups = run_block_size / tpp;
         max_queue_size = n_groups*tpp;
 
-        shared_bytes = n_groups * (5*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
+        shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
             + max_queue_size * 2 * sizeof(unsigned int)
             + min_shared_bytes;
         }
@@ -1521,7 +1484,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
             args.d_excell_idx, args.d_excell_size, args.excli,
             args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
             args.box, args.ghost_width, args.cell_dim, args.ci, args.N + args.N_ghost, args.N, args.d_check_overlaps,
-            args.overlap_idx, args.d_update_order_by_ptl, params,
+            args.overlap_idx, params,
             args.d_overflow, max_extra_bytes, max_queue_size, range.first, nwork);
         }
     }
@@ -1639,7 +1602,6 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
                                                                          args.ci,
                                                                          args.N + args.N_ghost,
                                                                          args.N,
-                                                                         args.d_update_order_by_ptl,
                                                                          args.num_types,
                                                                          args.seed,
                                                                          args.d_check_overlaps,
@@ -1758,7 +1720,6 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
                                                                          args.ci,
                                                                          args.N + args.N_ghost,
                                                                          args.N,
-                                                                         args.d_update_order_by_ptl,
                                                                          args.num_types,
                                                                          args.seed,
                                                                          args.d_check_overlaps,
