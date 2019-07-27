@@ -623,13 +623,11 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                 m_tuner_moves->end();
                 }
 
+            // make sure neighbor list size is sufficient before running the kernels
+            checkReallocate();
+
             do
                 {
-                    // make sure neighbor list size is sufficient before running the kernel
-                    reallocate = checkReallocate();
-                    if (reallocate)
-                        continue;
-
                     { // ArrayHandle scope
                     ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.getInverse(), access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
@@ -970,8 +968,14 @@ bool IntegratorHPMCMonoGPU< Shape >::checkReallocate()
     // read back overflow condition and resize as necessary
     ArrayHandle<unsigned int> h_overflow(m_overflow, access_location::host, access_mode::read);
     unsigned int req_maxn = *h_overflow.data;
+
+    bool maxn_changed = false;
     if (req_maxn > m_maxn)
+        {
         m_maxn = req_maxn;
+        maxn_changed = true;
+        }
+
     unsigned int req_size_nlist = m_maxn*this->m_pdata->getN();
 
     // resize
@@ -1003,7 +1007,7 @@ bool IntegratorHPMCMonoGPU< Shape >::checkReallocate()
                 }
             }
         }
-    return reallocate;
+    return reallocate || maxn_changed;
     }
 
 template< class Shape >

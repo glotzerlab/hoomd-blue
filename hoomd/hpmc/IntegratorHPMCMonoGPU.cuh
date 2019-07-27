@@ -415,7 +415,7 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
             }
         }
 
-    if (move_active)
+    if (move_active && move_type_translate)
         {
         // check if the particle remains in its cell
         Scalar3 xnew_i = make_scalar3(pos_i.x, pos_i.y, pos_i.z);
@@ -489,7 +489,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     unsigned int *s_idx_group = (unsigned int*)(s_type_group + n_groups);
     unsigned int *s_nneigh_group = (unsigned int *)(s_idx_group + n_groups);
 
-       {
+        {
         // copy over parameters one int per thread for fast loads
         unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
         unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
