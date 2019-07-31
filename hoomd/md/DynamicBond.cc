@@ -71,7 +71,7 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
     }
 
 
-/*! \param r_cut cut off distance for computing bonds
+/*! \param r_cut cut off distance for computing bonds'
     \param bond_type type of bond to be formed or broken
     \param delta_G sticker strength (kT)
 
@@ -154,6 +154,7 @@ void DynamicBond::update(unsigned int timestep)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
 
         // loop over all of the neighbors of this particle
+        // TODO: make sure all eligible bonding particles are within the search radius
         const unsigned int myHead = h_head_list.data[i];
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
