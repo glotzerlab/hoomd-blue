@@ -290,7 +290,7 @@ void DynamicBond::update(unsigned int timestep)
                             {
                             m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
                             // TODO alyssa: remove tags from multimap
-                            Scalar rnd5 = saru.s<Scalar>(0,1);
+                       oo     Scalar rnd5 = saru.s<Scalar>(0,1);
                             if (rnd5 <= 0.5)
                                 {
                                 m_nloops[i] += 1;
