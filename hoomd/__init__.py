@@ -69,6 +69,7 @@ from hoomd import update
 from hoomd import util
 from hoomd import variant
 from hoomd import lattice
+from hoomd import device
 
 from hoomd._hoomd import WalltimeLimitReached;
 

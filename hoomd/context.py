@@ -13,7 +13,6 @@ import os
 import hoomd
 from hoomd import _hoomd
 from hoomd import cite
-from hoomd import device
 
 
 # The following global variables keep track of the walltime and processing time since the import of hoomd
@@ -21,17 +20,11 @@ import time
 TIME_START = time.time()
 CLOCK_START = time.clock()
 
-## Global Messenger
-msg = None;
-
 ## Global bibliography
 bib = None;
 
 ## Global options
 options = None;
-
-## Global variable that holds the MPI configuration
-mpi_conf = None;
 
 ## Current simulation context
 current = None;
@@ -178,7 +171,7 @@ class SimulationContext(object):
 
         current = self.prev;
 
-def initialize(args=None, memory_traceback=False, mpi_comm=None):
+def initialize(args=None):
     R""" Initialize the execution context
 
     Args:
@@ -208,13 +201,7 @@ def initialize(args=None, memory_traceback=False, mpi_comm=None):
         hoomd.context.initialize(mpi_comm=comm)
 
     """
-    global mpi_conf, msg, options, current, _prev_args
-
-    if mpi_conf is not None:
-        if args != _prev_args:
-            msg.warning("Ignoring new options, cannot change execution mode after initialization.\n");
-        current = SimulationContext();
-        return current
+    global options, current, _prev_args
 
     _prev_args = args;
 
@@ -232,115 +219,17 @@ def initialize(args=None, memory_traceback=False, mpi_comm=None):
         print('exiting now to prevent many sequential jobs from starting');
         raise RuntimeError('Error launching hoomd')
 
-    # create the MPI configuration
-    mpi_conf = _create_mpi_conf(mpi_comm, options)
-
-    # set options on messenger object
-    msg = _create_messenger(mpi_conf, options)
-
-    # output the version info on initialization
-    msg.notice(1, _hoomd.output_version_info())
-
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()
 
     current = SimulationContext();
     return current
 
-## Initializes the MPI configuration
-#
-# \internal
-def _create_mpi_conf(mpi_comm, options):
-    global mpi_conf
-
-    # use a cached MPI configuration if available
-    if mpi_conf is not None:
-        return mpi_conf
-
-    mpi_available = _hoomd.is_MPI_available();
-
-    # create the specified configuration
-    if mpi_comm is None:
-        mpi_conf = _hoomd.MPIConfiguration();
-    else:
-        if not mpi_available:
-            raise RuntimeError("mpi_comm is not supported in serial builds");
-
-        handled = False;
-
-        # pass in pointer to MPI_Comm object provided by mpi4py
-        try:
-            import mpi4py
-            if isinstance(mpi_comm, mpi4py.MPI.Comm):
-                addr = mpi4py.MPI._addressof(mpi_comm);
-                mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(addr);
-                handled = True
-        except ImportError:
-            # silently ignore when mpi4py is missing
-            pass
-
-        # undocumented case: handle plain integers as pointers to MPI_Comm objects
-        if not handled and isinstance(mpi_comm, int):
-            mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(mpi_comm);
-            handled = True
-
-        if not handled:
-            raise RuntimeError("Invalid mpi_comm object: {}".format(mpi_comm));
-
-    if options.nrank is not None:
-        # check validity
-        nrank = options.nrank
-        if (mpi_conf.getNRanksGlobal() % nrank):
-            raise RuntimeError('Total number of ranks is not a multiple of --nrank');
-
-        # split the communicator into partitions
-        mpi_conf.splitPartitions(nrank)
-
-    return mpi_conf
-
-## Initializes the Messenger
-# \internal
-def _create_messenger(mpi_config, options):
-    global msg
-
-    # use a cached messenger if available
-    if msg is not None:
-        return msg
-
-    msg = _hoomd.Messenger(mpi_config)
-
-    # try to detect if we're running inside an MPI job
-    inside_mpi_job = mpi_config.getNRanksGlobal() > 1
-    if ('OMPI_COMM_WORLD_RANK' in os.environ or
-        'MV2_COMM_WORLD_LOCAL_RANK' in os.environ or
-        'PMI_RANK' in os.environ or
-        'ALPS_APP_PE' in os.environ):
-        inside_mpi_job = True
-
-    # only open python stdout/stderr in non-MPI runs
-    if not inside_mpi_job:
-        msg.openPython();
-
-    if options.notice_level is not None:
-        msg.setNoticeLevel(options.notice_level);
-
-    if options.msg_file is not None:
-        msg.openFile(options.msg_file);
-
-    if options.shared_msg_file is not None:
-        if not _hoomd.is_MPI_available():
-            hoomd.context.msg.error("Shared log files are only available in MPI builds.\n");
-            raise RuntimeError('Error setting option');
-        msg.setSharedFile(options.shared_msg_file);
-
-    return msg
-
 ## \internal
 # \brief Throw an error if the context is not initialized
 def _verify_init():
-    global mpi_conf, msg, current
 
-    if mpi_conf is None:
+    if options is None:
         raise RuntimeError("Call context.initialize() before any method")
 
 ## \internal
