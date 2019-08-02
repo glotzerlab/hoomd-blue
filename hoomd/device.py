@@ -34,12 +34,17 @@ class _device(hoomd.meta._metadata):
 
         # make sure context is initialized
         if hoomd.context.current.mpi_conf is None:
-            raise RuntimeError("Cannot create a device before calling hoomd.context.initialize()")
+            raise RuntimeError("Cannot assign a device before calling hoomd.context.initialize()")
 
-        # check nrank argument
+        # check nrank
         if nrank is not None:
             if not _hoomd.is_MPI_available():
                 raise RuntimeError("The nrank option is only available in MPI builds.\n");
+
+        # check shared_msg_file
+        if shared_msg_file is not None:
+            if not _hoomd.is_MPI_available():
+                raise RuntimeError("Shared log files are only available in MPI builds.\n");
 
         # c++ mpi configuration mirror class instance
         self.cpp_mpi_conf = _create_mpi_conf(mpi_comm, nrank)
@@ -219,10 +224,18 @@ def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
     return msg
 
 
+def _check_exec_conf_args(nthreads):
+
+    # check nthreads
+    if nthreads is not None:
+        if not _hoomd.is_TBB_available():
+            raise RuntimeError("The nthreads option is only available in TBB-enabled builds.\n");
+
+
 class gpu(_device):
 
     def __init__(self, memory_traceback=False, min_cpu=False, ignore_display=False, nthreads=None, gpu=None,
-                 gpu_error_checking=False, mpi_comm=None, nrank=None, notice_level=None, msg_file=None, shared_msg_file=None):
+                 gpu_error_checking=False, mpi_comm=None, nrank=None, notice_level=2, msg_file=None, shared_msg_file=None):
         """
 
         Args:
@@ -242,6 +255,9 @@ class gpu(_device):
         """
 
         _device.__init__(self, mpi_comm, nrank, notice_level, msg_file, shared_msg_file)
+
+        # check args
+        _check_exec_conf_args(nthreads)
 
         # convert None options to defaults
         if gpu is None:
@@ -270,7 +286,7 @@ class gpu(_device):
 class cpu(_device):
 
     def __init__(self, memory_traceback=False, min_cpu=False, ignore_display=False, nthreads=None, mpi_comm=None,
-                 nrank=None, notice_level=None, msg_file=None, shared_msg_file=None):
+                 nrank=None, notice_level=2, msg_file=None, shared_msg_file=None):
         """
 
         Args:
@@ -288,6 +304,8 @@ class cpu(_device):
         """
 
         _device.__init__(self, mpi_comm, nrank, notice_level, msg_file, shared_msg_file)
+
+        _check_exec_conf_args(nthreads)
 
         self.cpp_device = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.CPU,
                                                         _hoomd.std_vector_int(),
@@ -302,7 +320,7 @@ class cpu(_device):
 class auto(_device):
 
     def __init__(self, memory_traceback=False, min_cpu=False, ignore_display=False, nthreads=None, mpi_comm=None,
-                 nrank=None, notice_level=None, msg_file=None, shared_msg_file=None):
+                 nrank=None, notice_level=2, msg_file=None, shared_msg_file=None):
         """
 
         Args:
@@ -320,6 +338,8 @@ class auto(_device):
         """
 
         _device.__init__(self, mpi_comm, nrank, notice_level, msg_file, shared_msg_file)
+
+        _check_exec_conf_args(nthreads)
 
         self.cpp_device = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
                                                         _hoomd.std_vector_int(),
