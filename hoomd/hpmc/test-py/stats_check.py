@@ -154,7 +154,7 @@ class pair_accept_some(unittest.TestCase):
         #loop over ignored particle fractions, and expected accepted probs for the 'B' particles
         gpu_accept_probs = [0.023,0.023,0.025,0.075]
         cpu_accept_probs = [0.06,0.06,0.07,0.29]
-        if  context.exec_conf.isCUDAEnabled():
+        if  context.current.device.cpp_device.isCUDAEnabled():
             probs = gpu_accept_probs
         else:
             probs = cpu_accept_probs

@@ -187,7 +187,7 @@ class WCA(hoomd.md.force._force, _DEMBase):
         self.autotunerPeriod = 100000;
         self.vertices = {};
 
-        self.onGPU = hoomd.context.exec_conf.isCUDAEnabled();
+        self.onGPU = hoomd.context.current.device.cpp_device.isCUDAEnabled();
         cppForces = {(2, None, 'cpu'): _dem.WCADEM2D,
              (2, None, 'gpu'): (_dem.WCADEM2DGPU if self.onGPU else None),
              (3, None, 'cpu'): _dem.WCADEM3D,
@@ -301,7 +301,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         self.autotunerPeriod = 100000;
         self.vertices = {};
 
-        self.onGPU = hoomd.context.exec_conf.isCUDAEnabled();
+        self.onGPU = hoomd.context.current.device.cpp_device.isCUDAEnabled();
         cppForces = {(2, None, 'cpu'): _dem.SWCADEM2D,
              (2, None, 'gpu'): (_dem.SWCADEM2DGPU if self.onGPU else None),
              (3, None, 'cpu'): _dem.SWCADEM3D,

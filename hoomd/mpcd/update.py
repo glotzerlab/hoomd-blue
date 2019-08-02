@@ -58,7 +58,7 @@ class sort(hoomd.meta._metadata):
             raise RuntimeError('MPCD sorter already created')
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             cpp_class = _mpcd.Sorter
         else:
             cpp_class = _mpcd.SorterGPU

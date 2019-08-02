@@ -105,11 +105,11 @@ class user(object):
     def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, clang_exec=None):
 
         # check if initialization has occurred
-        if hoomd.context.exec_conf is None:
+        if hoomd.context.mpi_conf is None:
             raise RuntimeError('Error creating patch energy, call context.initialize() first');
 
         # raise an error if this run is on the GPU
-        if hoomd.context.exec_conf.isCUDAEnabled():
+        if hoomd.context.current.device.cpp_device.isCUDAEnabled():
             hoomd.context.msg.error("Patch energies are not supported on the GPU\n");
             raise RuntimeError("Error initializing patch energy");
 
@@ -127,7 +127,7 @@ class user(object):
                 llvm_ir = f.read()
 
         self.compute_name = "patch"
-        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir, r_cut);
+        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.current.device.cpp_device, llvm_ir, r_cut);
         mc.set_PatchEnergyEvaluator(self);
 
         self.mc = mc
@@ -272,7 +272,7 @@ class user_union(user):
         llvm_ir_file_iso=None, clang_exec=None):
 
         # check if initialization has occurred
-        if hoomd.context.exec_conf is None:
+        if hoomd.context.mpi_conf is None:
             raise RuntimeError('Error creating patch energy, call context.initialize() first');
 
         if clang_exec is not None:
@@ -302,7 +302,7 @@ class user_union(user):
             r_cut_iso = -1.0
 
         self.compute_name = "patch_union"
-        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf,
+        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_device,
             llvm_ir_iso, r_cut_iso, llvm_ir, r_cut);
         mc.set_PatchEnergyEvaluator(self);
 

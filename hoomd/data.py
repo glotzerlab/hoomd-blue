@@ -2219,14 +2219,14 @@ def set_snapshot_box(snapshot, box):
 def broadcast_snapshot(cpp_snapshot):
     hoomd.context._verify_init();
     # broadcast from rank 0
-    cpp_snapshot._broadcast(0, hoomd.context.exec_conf);
+    cpp_snapshot._broadcast(0, hoomd.context.current.device.cpp_device);
 
 ## \internal
 # \brief Broadcast snapshot to all ranks
 def broadcast_snapshot_all(cpp_snapshot):
     hoomd.context._verify_init();
     # broadcast from rank 0
-    cpp_snapshot._broadcast_all(0, hoomd.context.exec_conf);
+    cpp_snapshot._broadcast_all(0, hoomd.context.current.device.cpp_device);
 
 # Inject a box property into SnapshotSystemData that provides and accepts boxdim objects
 _hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
@@ -2309,7 +2309,7 @@ def gsd_snapshot(filename, frame=0):
     """
     hoomd.context._verify_init();
 
-    reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, abs(frame), frame < 0);
+    reader = _hoomd.GSDReader(hoomd.context.current.device.cpp_device, filename, abs(frame), frame < 0);
     return reader.getSnapshot();
 
 

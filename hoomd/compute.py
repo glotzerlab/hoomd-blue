@@ -213,7 +213,7 @@ class thermo(_compute):
                 hoomd.context.msg.warning("compute.thermo already specified for a group with name " + str(group.name) + "\n");
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.isCUDAEnabled():
             self.cpp_compute = _hoomd.ComputeThermo(hoomd.context.current.system_definition, group.cpp_group, suffix);
         else:
             self.cpp_compute = _hoomd.ComputeThermoGPU(hoomd.context.current.system_definition, group.cpp_group, suffix);

@@ -240,7 +240,7 @@ class harmonic(force._force):
         self.dihedral_coeff = coeff();
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.HarmonicDihedralForceCompute(hoomd.context.current.system_definition);
         else:
             self.cpp_force = _md.HarmonicDihedralForceComputeGPU(hoomd.context.current.system_definition);
@@ -339,7 +339,7 @@ class table(force._force):
 
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.TableDihedralForceCompute(hoomd.context.current.system_definition, int(width), self.name);
         else:
             self.cpp_force = _md.TableDihedralForceComputeGPU(hoomd.context.current.system_definition, int(width), self.name);
@@ -507,7 +507,7 @@ class opls(force._force):
         self.dihedral_coeff = coeff();
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.OPLSDihedralForceCompute(hoomd.context.current.system_definition);
         else:
             self.cpp_force = _md.OPLSDihedralForceComputeGPU(hoomd.context.current.system_definition);

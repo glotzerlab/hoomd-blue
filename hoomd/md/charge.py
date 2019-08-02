@@ -102,7 +102,7 @@ class pppm(force._force):
         self.nlist.subscribe(lambda : None)
         self.nlist.update_rcut()
 
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PPPMForceCompute(hoomd.context.current.system_definition, self.nlist.cpp_nlist, group.cpp_group);
         else:
             self.cpp_force = _md.PPPMForceComputeGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, group.cpp_group);

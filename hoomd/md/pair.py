@@ -582,7 +582,7 @@ class lj(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairLJ;
         else:
@@ -654,7 +654,7 @@ class gauss(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairGauss(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairGauss;
         else:
@@ -755,7 +755,7 @@ class slj(pair):
         self.nlist.cpp_nlist.setMaximumDiameter(d_max);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairSLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairSLJ;
         else:
@@ -842,7 +842,7 @@ class yukawa(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairYukawa(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairYukawa;
         else:
@@ -913,7 +913,7 @@ class ewald(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairEwald(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairEwald;
         else:
@@ -1037,7 +1037,7 @@ class table(force._force):
         self.nlist.update_rcut()
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.TablePotential(hoomd.context.current.system_definition, self.nlist.cpp_nlist, int(width), self.name);
         else:
             self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
@@ -1248,7 +1248,7 @@ class morse(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairMorse(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMorse;
         else:
@@ -1373,7 +1373,7 @@ class dpd(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairDPDThermoDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPDThermoDPD;
         else:
@@ -1481,7 +1481,7 @@ class dpd_conservative(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPD;
         else:
@@ -1610,7 +1610,7 @@ class dpdlj(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairDPDLJThermoDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPDLJThermoDPD;
         else:
@@ -1729,7 +1729,7 @@ class force_shifted_lj(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairForceShiftedLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairForceShiftedLJ;
         else:
@@ -1800,7 +1800,7 @@ class moliere(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairMoliere(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMoliere;
         else:
@@ -1876,7 +1876,7 @@ class zbl(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairZBL(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairZBL;
         else:
@@ -1942,7 +1942,7 @@ class tersoff(pair):
         self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialTersoff(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialTersoff;
         else:
@@ -2045,7 +2045,7 @@ class mie(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairMie(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMie;
         else:
@@ -2226,7 +2226,7 @@ class gb(ai_pair):
         ai_pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.AnisoPotentialPairGB(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairGB;
         else:
@@ -2292,7 +2292,7 @@ class dipole(ai_pair):
         ai_pair.__init__(self, r_cut, nlist, name);
 
         ## create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.AnisoPotentialPairDipole(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairDipole;
         else:
@@ -2391,7 +2391,7 @@ class reaction_field(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairReactionField(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairReactionField;
         else:
@@ -2485,7 +2485,7 @@ class DLVO(pair):
         self.nlist.cpp_nlist.setMaximumDiameter(d_max);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairDLVO(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDLVO;
         else:
@@ -2565,7 +2565,7 @@ class square_density(pair):
         self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialSquareDensity(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialSquareDensity;
         else:
@@ -2636,7 +2636,7 @@ class buckingham(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairBuckingham(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairBuckingham;
         else:
@@ -2711,7 +2711,7 @@ class lj1208(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairLJ1208(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairLJ1208;
         else:
@@ -2791,7 +2791,7 @@ class fourier(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairFourier(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairFourier;
         else:

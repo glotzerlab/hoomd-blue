@@ -307,7 +307,7 @@ class lj(_special_pair):
             raise RuntimeError("Error creating special pair forces");
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialSpecialPairLJ(hoomd.context.current.system_definition,self.name);
         else:
             self.cpp_force = _md.PotentialSpecialPairLJGPU(hoomd.context.current.system_definition,self.name);
@@ -382,7 +382,7 @@ class coulomb(_special_pair):
             raise RuntimeError("Error creating special pair forces");
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialSpecialPairCoulomb(hoomd.context.current.system_definition,self.name);
         else:
             self.cpp_force = _md.PotentialSpecialPairCoulombGPU(hoomd.context.current.system_definition,self.name);

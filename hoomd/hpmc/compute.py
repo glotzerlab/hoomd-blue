@@ -49,7 +49,7 @@ class free_volume(_compute):
         hoomd.context.current.system.addCompute(cl, "auto_cl3")
 
         cls = None;
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ComputeFreeVolumeSphere;
             elif isinstance(mc, integrate.convex_polygon):

@@ -79,8 +79,8 @@ _default_excepthook = sys.excepthook;
 def _hoomd_sys_excepthook(type, value, traceback):
     _default_excepthook(type, value, traceback);
     sys.stderr.flush();
-    if context.exec_conf is not None:
-        _hoomd.abort_mpi(context.exec_conf);
+    if context.current.device is not None:
+        _hoomd.abort_mpi(context.current.device);
 
 sys.excepthook = _hoomd_sys_excepthook
 

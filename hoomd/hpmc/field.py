@@ -77,7 +77,7 @@ class lattice_field(_external):
         import numpy
         _external.__init__(self);
         cls = None;
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ExternalFieldLatticeSphere;
             elif isinstance(mc, integrate.convex_polygon):
@@ -240,7 +240,7 @@ class external_field_composite(_external):
     def __init__(self, mc, fields = None):
         _external.__init__(self);
         cls = None;
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ExternalFieldCompositeSphere;
             elif isinstance(mc, integrate.convex_polygon):
@@ -351,7 +351,7 @@ class wall(_external):
         cls = None;
         self.compute_name = "wall-"+str(wall.index)
         wall.index+=1
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.WallSphere;
             elif isinstance(mc, integrate.convex_polyhedron):
@@ -927,7 +927,7 @@ class callback(_external):
     def __init__(self, mc, energy_function, composite=False):
         _external.__init__(self);
         cls = None;
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ExternalCallbackSphere;
             elif isinstance(mc, integrate.convex_polygon):

@@ -610,7 +610,7 @@ class wallpotential(external._external_force):
     ## \internal
     # \brief passes the wall field
     def process_field_coeff(self, coeff):
-        return _md.make_wall_field_params(coeff, hoomd.context.exec_conf);
+        return _md.make_wall_field_params(coeff, hoomd.context.current.device.cpp_device);
 
     ## \internal
     # \brief Return metadata for this wall potential
@@ -673,7 +673,7 @@ class lj(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.WallsPotentialLJ(hoomd.context.current.system_definition, self.name);
             self.cpp_class = _md.WallsPotentialLJ;
         else:
@@ -725,7 +725,7 @@ class gauss(wallpotential):
         # initialize the base class
         wallpotential.__init__(self, walls, r_cut, name);
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.WallsPotentialGauss(hoomd.context.current.system_definition, self.name);
             self.cpp_class = _md.WallsPotentialGauss;
         else:
@@ -783,7 +783,7 @@ class slj(wallpotential):
             hoomd.context.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.WallsPotentialSLJ(hoomd.context.current.system_definition, self.name);
             self.cpp_class = _md.WallsPotentialSLJ;
         else:
@@ -836,7 +836,7 @@ class yukawa(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.WallsPotentialYukawa(hoomd.context.current.system_definition, self.name);
             self.cpp_class = _md.WallsPotentialYukawa;
         else:
@@ -883,7 +883,7 @@ class morse(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.WallsPotentialMorse(hoomd.context.current.system_definition, self.name);
             self.cpp_class = _md.WallsPotentialMorse;
         else:
@@ -933,7 +933,7 @@ class force_shifted_lj(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.WallsPotentialForceShiftedLJ(hoomd.context.current.system_definition, self.name);
             self.cpp_class = _md.WallsPotentialForceShiftedLJ;
         else:
@@ -986,7 +986,7 @@ class mie(wallpotential):
         wallpotential.__init__(self, walls, r_cut, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.WallsPotentialMie(hoomd.context.current.system_definition, self.name);
             self.cpp_class = _md.WallsPotentialMie;
         else:

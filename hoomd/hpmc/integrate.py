@@ -647,7 +647,7 @@ class sphere(mode_hpmc):
         mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphere(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -745,7 +745,7 @@ class convex_polygon(mode_hpmc):
         mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -836,7 +836,7 @@ class convex_spheropolygon(mode_hpmc):
         mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -924,7 +924,7 @@ class simple_polygon(mode_hpmc):
         mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoSimplePolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -1041,7 +1041,7 @@ class polyhedron(mode_hpmc):
         mode_hpmc.__init__(self)
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoPolyhedron(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -1107,7 +1107,7 @@ class convex_polyhedron(mode_hpmc):
         mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -1227,7 +1227,7 @@ class faceted_ellipsoid(mode_hpmc):
         mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedEllipsoid(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -1353,7 +1353,7 @@ class sphinx(mode_hpmc):
         mode_hpmc.__init__(self)
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphinx(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -1427,7 +1427,7 @@ class convex_spheropolyhedron(mode_hpmc):
         mode_hpmc.__init__(self)
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -1514,7 +1514,7 @@ class ellipsoid(mode_hpmc):
         mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoEllipsoid(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -1587,7 +1587,7 @@ class sphere_union(mode_hpmc):
         mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -1650,7 +1650,7 @@ class convex_spheropolyhedron_union(mode_hpmc):
         mode_hpmc.__init__(self)
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
@@ -1722,7 +1722,7 @@ class faceted_ellipsoid_union(mode_hpmc):
         mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedEllipsoidUnion(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);

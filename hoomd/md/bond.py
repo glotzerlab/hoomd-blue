@@ -282,7 +282,7 @@ class harmonic(_bond):
 
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialBondHarmonic(hoomd.context.current.system_definition,self.name);
         else:
             self.cpp_force = _md.PotentialBondHarmonicGPU(hoomd.context.current.system_definition,self.name);
@@ -343,7 +343,7 @@ class fene(_bond):
         _bond.__init__(self, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.PotentialBondFENE(hoomd.context.current.system_definition,self.name);
         else:
             self.cpp_force = _md.PotentialBondFENEGPU(hoomd.context.current.system_definition,self.name);
@@ -450,7 +450,7 @@ class table(force._force):
 
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_force = _md.BondTablePotential(hoomd.context.current.system_definition, int(width), self.name);
         else:
             self.cpp_force = _md.BondTablePotentialGPU(hoomd.context.current.system_definition, int(width), self.name);

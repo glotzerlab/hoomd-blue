@@ -254,7 +254,7 @@ class bulk(_streaming_method):
         _streaming_method.__init__(self, period)
 
         # create the base streaming class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             stream_class = _mpcd.ConfinedStreamingMethodBulk
         else:
             stream_class = _mpcd.ConfinedStreamingMethodGPUBulk
@@ -303,7 +303,7 @@ class slit(_streaming_method):
         bc = self._process_boundary(boundary)
 
         # create the base streaming class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             stream_class = _mpcd.ConfinedStreamingMethodSlit
         else:
             stream_class = _mpcd.ConfinedStreamingMethodGPUSlit
@@ -345,7 +345,7 @@ class slit(_streaming_method):
         T = hoomd.variant._setup_variant_input(kT)
 
         if self._filler is None:
-            if not hoomd.context.exec_conf.isCUDAEnabled():
+            if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
                 fill_class = _mpcd.SlitGeometryFiller
             else:
                 fill_class = _mpcd.SlitGeometryFillerGPU

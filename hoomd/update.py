@@ -246,14 +246,14 @@ class sort(_updater):
         _updater.__init__(self);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_updater = _hoomd.SFCPackUpdater(hoomd.context.current.system_definition);
         else:
             self.cpp_updater = _hoomd.SFCPackUpdaterGPU(hoomd.context.current.system_definition);
 
         default_period = 300;
         # change default period to 100 on the CPU
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             default_period = 100;
 
         self.setupUpdater(default_period);
@@ -447,7 +447,7 @@ class balance(_updater):
             return
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
             self.cpp_updater = _hoomd.LoadBalancer(hoomd.context.current.system_definition, hoomd.context.current.decomposition.cpp_dd);
         else:
             self.cpp_updater = _hoomd.LoadBalancerGPU(hoomd.context.current.system_definition, hoomd.context.current.decomposition.cpp_dd);

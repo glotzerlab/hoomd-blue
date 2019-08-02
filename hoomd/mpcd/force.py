@@ -43,7 +43,7 @@ class _force(hoomd.meta._metadata):
             raise RuntimeError('MPCD system not initialized')
 
         hoomd.meta._metadata.__init__(self)
-        self._cpp = _mpcd.ExternalField(hoomd.context.exec_conf)
+        self._cpp = _mpcd.ExternalField(hoomd.context.current.device.cpp_device)
         self.metadata_fields = []
 
 class block(_force):

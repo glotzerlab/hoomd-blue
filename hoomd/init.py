@@ -171,11 +171,11 @@ def read_getar(filename, modes={'any': 'any'}):
 
     newModes = _parse_getar_modes(modes);
     # read in the data
-    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename);
+    initializer = _hoomd.GetarInitializer(hoomd.context.current.device.cpp_device, filename);
     snapshot = initializer.initialize(newModes);
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast_box(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.current.device.cpp_device);
 
     try:
         box = snapshot._global_box;
@@ -185,10 +185,10 @@ def read_getar(filename, modes={'any': 'any'}):
     my_domain_decomposition = _create_domain_decomposition(box);
     if my_domain_decomposition is not None:
         hoomd.context.current.system_definition = _hoomd.SystemDefinition(
-            snapshot, hoomd.context.exec_conf, my_domain_decomposition);
+            snapshot, hoomd.context.current.device.cpp_device, my_domain_decomposition);
     else:
         hoomd.context.current.system_definition = _hoomd.SystemDefinition(
-            snapshot, hoomd.context.exec_conf);
+            snapshot, hoomd.context.current.device.cpp_device);
 
     hoomd.context.current.system = _hoomd.System(
         hoomd.context.current.system_definition, initializer.getTimestep());
@@ -230,13 +230,13 @@ def read_snapshot(snapshot):
         raise RuntimeError("Error initializing");
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast_box(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.current.device.cpp_device);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:
-        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf, my_domain_decomposition);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.current.device.cpp_device, my_domain_decomposition);
     else:
-        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.current.device.cpp_device);
 
     # initialize the system
     hoomd.context.current.system = _hoomd.System(hoomd.context.current.system_definition, 0);
@@ -277,27 +277,27 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
         hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
-    filename = _hoomd.mpi_bcast_str(filename, hoomd.context.exec_conf);
-    restart = _hoomd.mpi_bcast_str(restart, hoomd.context.exec_conf);
+    filename = _hoomd.mpi_bcast_str(filename, hoomd.context.current.device.cpp_device);
+    restart = _hoomd.mpi_bcast_str(restart, hoomd.context.current.device.cpp_device);
 
     if restart is not None and os.path.exists(restart):
-        reader = _hoomd.GSDReader(hoomd.context.exec_conf, restart, abs(frame), frame < 0);
+        reader = _hoomd.GSDReader(hoomd.context.current.device.cpp_device, restart, abs(frame), frame < 0);
         time_step = reader.getTimeStep();
     else:
-        reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, abs(frame), frame < 0);
+        reader = _hoomd.GSDReader(hoomd.context.current.device.cpp_device, filename, abs(frame), frame < 0);
         if time_step is None:
             time_step = reader.getTimeStep();
 
     snapshot = reader.getSnapshot();
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast_box(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.current.device);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:
-        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf, my_domain_decomposition);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.current.device.cpp_device, my_domain_decomposition);
     else:
-        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.exec_conf);
+        hoomd.context.current.system_definition = _hoomd.SystemDefinition(snapshot, hoomd.context.current.device.cpp_device);
 
     # initialize the system
     hoomd.context.current.system = _hoomd.System(hoomd.context.current.system_definition, time_step);
@@ -318,8 +318,8 @@ def restore_getar(filename, modes={'any': 'any'}):
     """
 
     # the getar initializer opens the file on all ranks: need to broadcast the string from rank 0
-    filename_bcast = _hoomd.mpi_bcast_str(filename, hoomd.context.exec_conf);
-    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename_bcast);
+    filename_bcast = _hoomd.mpi_bcast_str(filename, hoomd.context.current.device.cpp_device);
+    initializer = _hoomd.GetarInitializer(hoomd.context.current.device.cpp_device, filename_bcast);
 
     newModes = _parse_getar_modes(modes);
 
@@ -345,7 +345,7 @@ def _perform_common_init_tasks():
         cpp_decomposition = hoomd.context.current.system_definition.getParticleData().getDomainDecomposition();
         if cpp_decomposition is not None:
             # create the c++ Communicator
-            if not hoomd.context.exec_conf.isCUDAEnabled():
+            if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
                 cpp_communicator = _hoomd.Communicator(hoomd.context.current.system_definition, cpp_decomposition)
             else:
                 cpp_communicator = _hoomd.CommunicatorGPU(hoomd.context.current.system_definition, cpp_decomposition)
@@ -361,7 +361,7 @@ def _create_domain_decomposition(box):
 
     # if we are only running on one processor, we use optimized code paths
     # for single-GPU execution
-    if hoomd.context.exec_conf.getNRanks() == 1:
+    if hoomd.context.current.device.cpp_device.getNRanks() == 1:
         return None
 
     # okay, we want a decomposition but one isn't set, so make a default one
