@@ -34,10 +34,6 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
         : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed), m_r_cut(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
-
-    // construct a vector to track # of eligible bonds (i.e. "loops" on each particle)
-    int n_particles = m_pdata->getN();
-    m_nloops.resize(n_particles);
     }
 
 
@@ -100,7 +96,6 @@ void DynamicBond::update(unsigned int timestep)
 
     // ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int>  h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     assert(h_pos);
     Scalar r_cut_sq = m_r_cut*m_r_cut;
@@ -178,17 +173,15 @@ void DynamicBond::update(unsigned int timestep)
                     Scalar rnd1 = saru.s<Scalar>(0,1);
                     Scalar rnd2 = saru.s<Scalar>(0,1);
                     Scalar rnd3 = saru.s<Scalar>(0,1);
-                    Scalar rnd4 = saru.s<Scalar>(0,1);
 
                 // check to see if a bond should be created between particles i and j
-                if (rnd1 < m_prob_form && m_nloops[i] >= 1.0)
+                if (rnd1 < m_prob_form)
                     {
                     m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
-                    m_nloops[i] -= 1;
                     }
 
                 // check to see if a bond should be broken between particles i and j
-                if (rnd3 < m_prob_break and n_bridges_ij >=1.0)
+                if (rnd3 < m_prob_break and nbridges_ij >=1.0)
                     {
                     // remove one bond between i and j
                     // for each of the bonds in the *system*
@@ -214,14 +207,6 @@ void DynamicBond::update(unsigned int timestep)
                             // TODO alyssa: remove tags from multimap
                             break;
                             }
-                        }
-                    if (rnd4 <= 0.5)
-                        {
-                        m_nloops[i] += 1;
-                        }
-                    else if (rnd4 > 0.5)
-                        {
-                        m_nloops[j] +=1;
                         }
                     }
                 }
