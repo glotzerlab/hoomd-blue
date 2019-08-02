@@ -23,8 +23,8 @@ using namespace std;
 // TODO alyssa: make this a table
 Scalar capfraction(Scalar x)
     {
-	Scalar frac;
-	Scalar a0= 0.0925721;
+    Scalar frac;
+    Scalar a0= 0.0925721;
     Scalar a1= -0.00699901;
     Scalar a2= 0.000378692;
     Scalar a3= -1.55671e-05;
@@ -290,7 +290,7 @@ void DynamicBond::update(unsigned int timestep)
                             {
                             m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
                             // TODO alyssa: remove tags from multimap
-                       oo     Scalar rnd5 = saru.s<Scalar>(0,1);
+                            Scalar rnd5 = saru.s<Scalar>(0,1);
                             if (rnd5 <= 0.5)
                                 {
                                 m_nloops[i] += 1;
