@@ -67,8 +67,7 @@ class _integrator(hoomd.meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("Cannot create integrator before initialization\n");
-            raise RuntimeError('Error creating integrator');
+            raise RuntimeError('Cannot create integrator before initialization\n');
 
         # by default, integrators do not support methods
         self.cpp_integrator = None;
@@ -206,8 +205,7 @@ class _integration_method(hoomd.meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("Cannot create an integration method before initialization\n");
-            raise RuntimeError('Error creating integration method');
+            raise RuntimeError('Cannot create an integration method before initialization\n');
 
         self.cpp_method = None;
 

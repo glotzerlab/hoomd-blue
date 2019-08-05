@@ -165,8 +165,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     # check if initialization has occurred
     if not init.is_initialized():
-        context.current.device.cpp_msg.error("Cannot run before initialization\n");
-        raise RuntimeError('Error running');
+        raise RuntimeError('Cannot run before initialization\n');
 
     if context.current.integrator is None:
         context.current.device.cpp_msg.warning("Starting a run without an integrator set");
@@ -223,8 +222,7 @@ def run_upto(step, **keywords):
 
     # check if initialization has occurred
     if not init.is_initialized():
-        context.current.device.cpp_msg.error("Cannot run before initialization\n");
-        raise RuntimeError('Error running');
+        raise RuntimeError('Cannot run before initialization\n');
 
     # determine the number of steps to run
     step = int(step);

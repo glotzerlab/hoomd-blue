@@ -162,8 +162,7 @@ def all():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     name = 'all';
 
@@ -227,8 +226,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     # handle the optional arguments
     box = hoomd.context.current.system_definition.getParticleData().getGlobalBox();
@@ -278,8 +276,7 @@ def rigid_center():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     # create the group
     name = 'rigid_center';
@@ -308,8 +305,7 @@ def nonrigid():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     # create the group
     name = 'nonrigid';
@@ -336,8 +332,7 @@ def rigid():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     # create the group
     name = 'rigid';
@@ -364,8 +359,7 @@ def nonfloppy():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     # create the group
     name = 'nonfloppy';
@@ -392,8 +386,7 @@ def floppy():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     # create the group
     name = 'floppy';
@@ -420,8 +413,7 @@ def nonbody():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     # create the group
     name = 'nonbody';
@@ -448,9 +440,7 @@ def body():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
-
+        raise RuntimeError('Cannot create a group before initialization\n');
     # create the group
     name = 'body';
     selector = _hoomd.ParticleSelectorBody(hoomd.context.current.system_definition,True);
@@ -485,8 +475,7 @@ def tags(tag_min, tag_max=None, name=None, update=False):
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     # handle the optional argument
     if tag_max is not None:
@@ -528,8 +517,7 @@ def tag_list(name, tags):
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     # build a vector of the tags
     cpp_list = _hoomd.std_vector_uint();
@@ -575,8 +563,7 @@ def type(type, name=None, update=False):
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     if name is None:
         name = 'type ' + type;
@@ -622,8 +609,7 @@ def charged(name='charged'):
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
-        raise RuntimeError('Error creating group');
+        raise RuntimeError('Cannot create a group before initialization\n');
 
     # determine the group of particles that are charged
     charged_tags = [];

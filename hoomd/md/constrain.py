@@ -44,8 +44,7 @@ class _constraint_force(hoomd.meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("Cannot create force before initialization\n");
-            raise RuntimeError('Error creating constraint force');
+            raise RuntimeError('Cannot create force before initialization\n');
 
         self.cpp_force = None;
 

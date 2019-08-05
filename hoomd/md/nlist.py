@@ -56,8 +56,7 @@ class nlist:
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("Cannot create neighbor list before initialization\n");
-            raise RuntimeError('Error creating neighbor list');
+            raise RuntimeError('Cannot create neighbor list before initialization\n');
 
         # default exclusions
         self.is_exclusion_overridden = False;
@@ -514,8 +513,7 @@ class rcut:
     def fill(self):
         # first, check that the system has been initialized
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("Cannot fill rcut(i,j) before initialization\n");
-            raise RuntimeError('Error filling nlist rcut(i,j)');
+            raise RuntimeError('Cannot fill rcut(i,j) before initialization\n');
 
         # get a list of types from the particle data
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();

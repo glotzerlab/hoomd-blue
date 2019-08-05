@@ -29,8 +29,7 @@ class _updater(hoomd.meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("Cannot create updater before initialization\n");
-            raise RuntimeError('Error creating updater');
+            raise RuntimeError('Cannot create updater before initialization\n');
 
         self.cpp_updater = None;
 

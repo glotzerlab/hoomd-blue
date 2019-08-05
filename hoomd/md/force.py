@@ -32,8 +32,7 @@ class _force(hoomd.meta._metadata):
     def __init__(self, name=None):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("Cannot create force before initialization\n");
-            raise RuntimeError('Error creating force');
+            raise RuntimeError('Cannot create force before initialization\n');
 
         # Allow force to store a name.  Used for discombobulation in the logger
         if name is None:

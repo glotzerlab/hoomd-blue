@@ -228,8 +228,9 @@ def initialize(args=None):
 ## \internal
 # \brief Throw an error if the context is not initialized
 def _verify_init():
+    global current
 
-    if options is None:
+    if current is None:
         raise RuntimeError("Call context.initialize() before any method")
 
 ## \internal

@@ -31,8 +31,7 @@ class _compute:
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("Cannot create compute before initialization\n");
-            raise RuntimeError('Error creating compute');
+            raise RuntimeError('Cannot create compute before initialization\n');
 
         self.cpp_compute = None;
 

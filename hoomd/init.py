@@ -64,8 +64,7 @@ def create_lattice(unitcell, n):
 
     # check if initialization has already occurred
     if is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot initialize more than once\n");
-        raise RuntimeError("Error initializing");
+        raise RuntimeError("Cannot initialize more than once\n");
 
     snap = unitcell.get_snapshot();
     try:
@@ -166,8 +165,7 @@ def read_getar(filename, modes={'any': 'any'}):
 
     # check if initialization has already occurred
     if is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot initialize more than once\n");
-        raise RuntimeError("Error initializing");
+        raise RuntimeError("Cannot initialize more than once\n");
 
     newModes = _parse_getar_modes(modes);
     # read in the data
@@ -226,8 +224,7 @@ def read_snapshot(snapshot):
 
     # check if initialization has already occurred
     if is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot initialize more than once\n");
-        raise RuntimeError("Error initializing");
+        raise RuntimeError("Cannot initialize more than once\n");
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
     snapshot._broadcast_box(hoomd.context.current.device.cpp_exec_conf);
@@ -274,8 +271,7 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
 
     # check if initialization has already occurred
     if is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot initialize more than once\n");
-        raise RuntimeError("Error initializing");
+        raise RuntimeError("Cannot initialize more than once\n");
 
     filename = _hoomd.mpi_bcast_str(filename, hoomd.context.current.device.cpp_exec_conf);
     restart = _hoomd.mpi_bcast_str(restart, hoomd.context.current.device.cpp_exec_conf);

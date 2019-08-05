@@ -34,8 +34,7 @@ class _force(hoomd.meta._metadata):
     def __init__(self):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("mpcd.force: system must be initialized before the external force.\n")
-            raise RuntimeError('System not initialized')
+            raise RuntimeError('mpcd.force: system must be initialized before the external force.\n')
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:

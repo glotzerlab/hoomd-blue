@@ -138,8 +138,7 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("Cannot verify bond coefficients before initialization\n");
-            raise RuntimeError('Error verifying force coefficients');
+            raise RuntimeError('Cannot verify bond coefficients before initialization\n');
 
         # get a list of types from the particle data
         ntypes = hoomd.context.current.system_definition.getBondData().getNTypes();

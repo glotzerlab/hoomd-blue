@@ -32,8 +32,7 @@ class _analyzer(hoomd.meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("Cannot create analyzer before initialization\n");
-            raise RuntimeError('Error creating analyzer');
+            raise RuntimeError('Cannot create analyzer before initialization\n');
 
         self.cpp_analyzer = None;
 

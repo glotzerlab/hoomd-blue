@@ -37,8 +37,7 @@ class _collision_method(hoomd.meta._metadata):
     def __init__(self, seed, period):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("mpcd.collide: system must be initialized before collision method\n")
-            raise RuntimeError('System not initialized')
+            raise RuntimeError('mpcd.collide: system must be initialized before collision method\n')
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:

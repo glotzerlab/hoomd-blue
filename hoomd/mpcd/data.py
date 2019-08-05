@@ -126,8 +126,7 @@ class snapshot(hoomd.meta._metadata):
         hoomd.meta._metadata.__init__(self)
 
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
-            raise RuntimeError("HOOMD system not initialized")
+            raise RuntimeError("mpcd: HOOMD system must be initialized before mpcd\n")
 
         self.sys_snap = sys_snap
 
@@ -289,8 +288,7 @@ def make_snapshot(N=0):
 
     """
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
-        raise RuntimeError("HOOMD system not initialized")
+        raise RuntimeError("mpcd: HOOMD system must be initialized before mpcd\n")
 
     snap = snapshot(_mpcd.SystemDataSnapshot(hoomd.context.current.system_definition))
     snap.particles.resize(N)

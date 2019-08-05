@@ -66,8 +66,7 @@ class _streaming_method(hoomd.meta._metadata):
     def __init__(self, period):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
-            hoomd.context.current.device.cpp_msg.error("mpcd.stream: system must be initialized before streaming method\n")
-            raise RuntimeError('System not initialized')
+            raise RuntimeError('mpcd.stream: system must be initialized before streaming method\n')
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
