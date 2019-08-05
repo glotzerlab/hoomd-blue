@@ -50,11 +50,11 @@ def make_random(N, kT, seed):
 
     """
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
+        hoomd.context.current.device.cpp_msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
         raise RuntimeError("HOOMD system not initialized")
 
     if hoomd.context.current.mpcd is not None:
-        hoomd.context.msg.error("mpcd: system is already initialized, cannot reinitialize\n")
+        hoomd.context.current.device.cpp_msg.error("mpcd: system is already initialized, cannot reinitialize\n")
         raise RuntimeError("mpcd system already initialized")
 
     # make particle data first
@@ -99,11 +99,11 @@ def read_snapshot(snapshot):
     """
 
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
+        hoomd.context.current.device.cpp_msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
         raise RuntimeError("HOOMD system not initialized")
 
     if hoomd.context.current.mpcd is not None:
-        hoomd.context.msg.error("mpcd: system is already initialized, cannot reinitialize\n")
+        hoomd.context.current.device.cpp_msg.error("mpcd: system is already initialized, cannot reinitialize\n")
         raise RuntimeError("mpcd system already initialized")
 
     hoomd.context.current.mpcd = data.system(_mpcd.SystemData(snapshot.sys_snap))

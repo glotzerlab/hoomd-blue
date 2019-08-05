@@ -22,7 +22,7 @@ rel_err_cs = 0.0015 # see for example Guang-Wen Wu and Richard J. Sadus, doi:10.
 import itertools
 params = list(P_list)
 
-context.msg.notice(1,"{} parameters\n".format(len(params)))
+context.current.device.cpp_msg.notice(1,"{} parameters\n".format(len(params)))
 
 p = int(option.get_user()[0])
 P = params[p]

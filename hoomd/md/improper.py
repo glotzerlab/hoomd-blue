@@ -106,7 +106,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.msg.error("No coefficients specified\n");
+            hoomd.context.current.device.cpp_msg.error("No coefficients specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -126,7 +126,7 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot verify improper coefficients before initialization\n");
+            hoomd.context.current.device.cpp_msg.error("Cannot verify improper coefficients before initialization\n");
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
@@ -141,7 +141,7 @@ class coeff:
             type = type_list[i];
 
             if type not in self.values.keys():
-                hoomd.context.msg.error("Improper type " +str(type) + " not found in improper coeff\n");
+                hoomd.context.current.device.cpp_msg.error("Improper type " +str(type) + " not found in improper coeff\n");
                 valid = False;
                 continue;
 
@@ -149,13 +149,13 @@ class coeff:
             count = 0;
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
-                    hoomd.context.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
+                    hoomd.context.current.device.cpp_msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
                           ", but is not used by the improper force\n");
                 else:
                     count += 1;
 
             if count != len(required_coeffs):
-                hoomd.context.msg.error("Improper type " + str(type) + " is missing required coefficients\n");
+                hoomd.context.current.device.cpp_msg.error("Improper type " + str(type) + " is missing required coefficients\n");
                 valid = False;
 
         return valid;
@@ -167,7 +167,7 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values.keys():
-            hoomd.context.msg.error("Bug detected in force.coeff. Please report\n");
+            hoomd.context.current.device.cpp_msg.error("Bug detected in force.coeff. Please report\n");
             raise RuntimeError("Error setting improper coeff");
 
         return self.values[type][coeff_name];
@@ -206,7 +206,7 @@ class harmonic(force._force):
     def __init__(self):
         # check that some impropers are defined
         if hoomd.context.current.system_definition.getImproperData().getNGlobal() == 0:
-            hoomd.context.msg.error("No impropers are defined.\n");
+            hoomd.context.current.device.cpp_msg.error("No impropers are defined.\n");
             raise RuntimeError("Error creating improper forces");
 
         # initialize the base class
@@ -230,7 +230,7 @@ class harmonic(force._force):
         coeff_list = self.required_coeffs;
         # check that the force coefficients are valid
         if not self.improper_coeff.verify(coeff_list):
-           hoomd.context.msg.error("Not all force coefficients are set\n");
+           hoomd.context.current.device.cpp_msg.error("Not all force coefficients are set\n");
            raise RuntimeError("Error updating force coefficients");
 
         # set all the params

@@ -67,16 +67,16 @@ class implicit_test_cube(unittest.TestCase):
 
                 update.box_resize(Lx=L, Ly=L, Lz=L, period=None);
                 overlaps = self.mc.count_overlaps();
-                context.msg.notice(1,"phi =%f: overlaps = %d " % (((N*self.V_cube) / (L*L*L)), overlaps));
+                context.current.device.cpp_msg.notice(1,"phi =%f: overlaps = %d " % (((N*self.V_cube) / (L*L*L)), overlaps));
 
                 # run until all overlaps are removed
                 while overlaps > 0:
                     mc_tune.update()
                     run(100, quiet=True);
                     overlaps = self.mc.count_overlaps();
-                    context.msg.notice(1,"%d\n" % overlaps)
+                    context.current.device.cpp_msg.notice(1,"%d\n" % overlaps)
 
-                context.msg.notice(1,"\n");
+                context.current.device.cpp_msg.notice(1,"\n");
 
             # set the target L (this expands to the final L if it is larger than the start)
             update.box_resize(Lx=L_target, Ly=L_target, Lz=L_target, period=None);
@@ -99,7 +99,7 @@ class implicit_test_cube(unittest.TestCase):
             avg_eta_p += eta_p/self.num_samples
 
         # check equation of state with very rough tolerance
-        context.msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
+        context.current.device.cpp_msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
         if self.long:
             self.assertAlmostEqual(avg_eta_p,0.4,delta=0.1)
 
@@ -157,7 +157,7 @@ class implicit_test_sphere_new (unittest.TestCase):
             eta_p = math.pi/6.0*free_vol/vol*self.nR
             avg_eta_p += eta_p/self.num_samples
 
-        context.msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
+        context.current.device.cpp_msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
 
     def tearDown(self):
         if comm.get_rank() == 0:

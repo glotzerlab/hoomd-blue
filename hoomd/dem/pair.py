@@ -312,7 +312,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         # Error out in MPI simulations
         if (hoomd._hoomd.is_MPI_available()):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("pair.SWCA is not supported in multi-processor simulations.\n\n");
+                hoomd.context.current.device.cpp_msg.error("pair.SWCA is not supported in multi-processor simulations.\n\n");
                 raise RuntimeError("Error setting up pair potential.");
 
         # initialize the base class
@@ -322,7 +322,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         if d_max is None :
             sysdef = hoomd.context.current.system_definition;
             self.d_max = max(x.diameter for x in hoomd.data.particle_data(sysdef.getParticleData()));
-            hoomd.context.msg.notice(2, "Notice: swca set d_max=" + str(self.d_max) + "\n");
+            hoomd.context.current.device.cpp_msg.notice(2, "Notice: swca set d_max=" + str(self.d_max) + "\n");
 
         # interparticle cutoff radius, will be updated as shapes are added
         self.r_cut = 2*2*self.radius*2**(1./6);

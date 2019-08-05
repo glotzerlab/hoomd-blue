@@ -109,7 +109,7 @@ class interaction_matrix:
             elif (b,a) in self.values:
                 cur_pair = (b,a);
             else:
-                hoomd.context.msg.error("Bug detected in integrate.interaction_matrix(). Please report\n");
+                hoomd.context.current.device.cpp_msg.error("Bug detected in integrate.interaction_matrix(). Please report\n");
                 raise RuntimeError("Error setting matrix elements");
 
             self.values[cur_pair] = bool(enable)
@@ -232,7 +232,7 @@ class mode_hpmc(_integrator):
         for name in type_names:
             # build a dict of the params to pass to proces_param
             if not self.shape_param[name].is_set:
-                hoomd.context.msg.error("Particle type {} has not been set!\n".format(name));
+                hoomd.context.current.device.cpp_msg.error("Particle type {} has not been set!\n".format(name));
                 raise RuntimeError("Error running integrator");
 
         # setup new interaction matrix elements to default
@@ -249,13 +249,13 @@ class mode_hpmc(_integrator):
             for (j,type_j) in enumerate(type_names):
                 check = self.overlap_checks.get(type_i, type_j)
                 if check is None:
-                    hoomd.context.msg.error("Interaction matrix element ({},{}) not set!\n".format(type_i, type_j))
+                    hoomd.context.current.device.cpp_msg.error("Interaction matrix element ({},{}) not set!\n".format(type_i, type_j))
                     raise RuntimeError("Error running integrator");
                 self.cpp_integrator.setOverlapChecks(i,j,check)
 
         # check that particle orientations are normalized
         if not self.cpp_integrator.checkParticleOrientations():
-           hoomd.context.msg.warning("Particle orientations are not normalized\n");
+           hoomd.context.current.device.cpp_msg.warning("Particle orientations are not normalized\n");
 
     # Declare the GSD state schema.
     @classmethod
@@ -328,7 +328,7 @@ class mode_hpmc(_integrator):
 
         # check that proper initialization has occurred
         if self.cpp_integrator == None:
-            hoomd.context.msg.error("Bug in hoomd: cpp_integrator not set, please report\n");
+            hoomd.context.current.device.cpp_msg.error("Bug in hoomd: cpp_integrator not set, please report\n");
             raise RuntimeError('Error updating forces');
 
         # change the parameters

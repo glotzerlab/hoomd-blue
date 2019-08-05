@@ -32,7 +32,7 @@ class _force(hoomd.meta._metadata):
     def __init__(self, name=None):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot create force before initialization\n");
+            hoomd.context.current.device.cpp_msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating force');
 
         # Allow force to store a name.  Used for discombobulation in the logger
@@ -72,7 +72,7 @@ class _force(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_force not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_force not set, please report\n');
             raise RuntimeError();
 
     def disable(self, log=False):
@@ -102,7 +102,7 @@ class _force(hoomd.meta._metadata):
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd.context.msg.warning("Ignoring command to disable a force that is already disabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to disable a force that is already disabled");
             return;
 
         self.enabled = False;
@@ -126,7 +126,7 @@ class _force(hoomd.meta._metadata):
 
         # check if we are already disabled
         if self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to enable a force that is already enabled");
             return;
 
         # add the compute back to the system if it was removed
@@ -250,7 +250,7 @@ class constant(_force):
             self.tvec = (0,0,0)
 
         if (self.fvec == (0,0,0)) and (self.tvec == (0,0,0) and callback is None):
-            hoomd.context.msg.warning("The constant force specified has no non-zero components\n");
+            hoomd.context.current.device.cpp_msg.warning("The constant force specified has no non-zero components\n");
 
         # initialize the base class
         _force.__init__(self);
@@ -321,7 +321,7 @@ class constant(_force):
             self.tvec = (0,0,0)
 
         if (fvec==(0,0,0)) and (tvec==(0,0,0)):
-            hoomd.contex.msg.warning("You are setting the constant force to have no non-zero components\n")
+            hoomd.context.current.device.cpp_msg.warning("You are setting the constant force to have no non-zero components\n")
 
         self.check_initialization();
         if (group is not None):

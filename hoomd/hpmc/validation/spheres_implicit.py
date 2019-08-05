@@ -21,7 +21,7 @@ import itertools
 params = []
 params = list(itertools.product(seed_list, phi_c_list, eta_p_r_list))
 
-context.msg.notice(1,"{} parameters\n".format(len(params)))
+context.current.device.cpp_msg.notice(1,"{} parameters\n".format(len(params)))
 
 # choose a random state point
 import random
@@ -31,7 +31,7 @@ p = int(option.get_user()[0])
 # are we using update.cluster?
 use_clusters = p//len(params)
 
-context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
+context.current.device.cpp_msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
 # test the equation of state of spheres with penetrable depletant spheres
 # see M. Dijkstra et al. Phys. Rev. E 73, p. 41404, 2006, Fig. 2 and
 # J. Glaser et al., JCP 143 18, p. 184110, 2015.

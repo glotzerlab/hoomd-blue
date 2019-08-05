@@ -171,13 +171,13 @@ class constraint_ellipsoid(_updater):
 
         # Error out in MPI simulations
         if (_hoomd.is_MPI_available()):
-            if context.current.system_definition.getParticleData().getDomainDecomposition():
-                context.msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
+            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
+                hoomd.context.current.device.cpp_msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error initializing updater.")
 
         # Error out if no radii are set
         if (r is None and rx is None and ry is None and rz is None):
-            context.msg.error("no radii were defined in update.constraint_ellipsoid.\n\n")
+            hoomd.context.current.device.cpp_msg.error("no radii were defined in update.constraint_ellipsoid.\n\n")
             raise RuntimeError("Error initializing updater.")
 
         # initialize the base class

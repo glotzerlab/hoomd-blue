@@ -102,7 +102,7 @@ class _citation(object):
     # \brief Get the citation in human readable format
     # \note Deriving classes \b must implement this method themselves.
     def __str__(self):
-        hoomd.context.msg.error('Bug in hoomd.cite: each deriving class must implement its own string method\n')
+        hoomd.context.current.device.cpp_msg.error('Bug in hoomd.cite: each deriving class must implement its own string method\n')
         raise RuntimeError('Citation does not implement string method')
 
     ## \internal
@@ -110,7 +110,7 @@ class _citation(object):
     def validate(self):
         for entry in self.required_entries:
             if getattr(self,entry) is None:
-                hoomd.context.msg.error('Bug in hoomd.cite: required field %s not set, please report\n' % entry)
+                hoomd.context.current.device.cpp_msg.error('Bug in hoomd.cite: required field %s not set, please report\n' % entry)
                 raise RuntimeError('Required citation field not set')
 
     ## \internal
@@ -139,7 +139,7 @@ class _citation(object):
     # If no note is set for the citation, a default note identifying the HOOMD feature used is generated.
     def bibtex(self):
         if self.bibtex_type is None:
-            hoomd.context.msg.error('Bug in hoomd.cite: BibTeX record type must be set, please report\n')
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd.cite: BibTeX record type must be set, please report\n')
             raise RuntimeError()
 
         lines = ['@%s{%s,' % (self.bibtex_type, self.cite_key)]
@@ -326,7 +326,7 @@ class bibliography(object):
                     cite_str += 'Please cite the following:\n'
                     cite_str += log_str
                     cite_str += '-'*5 + '\n'
-                    hoomd.context.msg.notice(1, cite_str)
+                    hoomd.context.current.device.cpp_msg.notice(1, cite_str)
 
         # print each feature set together
         for feature in citations:
@@ -334,7 +334,7 @@ class bibliography(object):
             cite_str += 'You are using %s. Please cite the following:\n' % feature
             cite_str += ''.join(citations[feature])
             cite_str += '-'*5 + '\n'
-            hoomd.context.msg.notice(1, cite_str)
+            hoomd.context.current.device.cpp_msg.notice(1, cite_str)
 
         # after adding, we need to update the file
         self.updated = True

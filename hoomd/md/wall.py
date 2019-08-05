@@ -217,7 +217,7 @@ class group(object):
                 try:
                     del(self.spheres[i]);
                 except IndexValueError:
-                    hoomd.context.msg.error("Specified index for deletion is not valid.\n");
+                    hoomd.context.current.device.cpp_msg.error("Specified index for deletion is not valid.\n");
                     raise RuntimeError("del_sphere failed")
 
     def del_cylinder(self, *indexs):
@@ -237,7 +237,7 @@ class group(object):
                 try:
                     del(self.cylinders[i]);
                 except IndexValueError:
-                    hoomd.context.msg.error("Specified index for deletion is not valid.\n");
+                    hoomd.context.current.device.cpp_msg.error("Specified index for deletion is not valid.\n");
                     raise RuntimeError("del_cylinder failed")
 
     def del_plane(self, *indexs):
@@ -257,7 +257,7 @@ class group(object):
                 try:
                     del(self.planes[i]);
                 except IndexValueError:
-                    hoomd.context.msg.error("Specified index for deletion is not valid.\n");
+                    hoomd.context.current.device.cpp_msg.error("Specified index for deletion is not valid.\n");
                     raise RuntimeError("del_plane failed")
 
     ## \internal
@@ -780,7 +780,7 @@ class slj(wallpotential):
         if d_max is None :
             sysdef = hoomd.context.current.system_definition;
             d_max = sysdef.getParticleData().getMaxDiameter()
-            hoomd.context.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
+            hoomd.context.current.device.cpp_msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():

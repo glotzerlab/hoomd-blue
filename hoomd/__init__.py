@@ -165,11 +165,11 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     # check if initialization has occurred
     if not init.is_initialized():
-        context.msg.error("Cannot run before initialization\n");
+        context.current.device.cpp_msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
 
     if context.current.integrator is None:
-        context.msg.warning("Starting a run without an integrator set");
+        context.current.device.cpp_msg.warning("Starting a run without an integrator set");
     else:
         context.current.integrator.update_forces();
         context.current.integrator.update_methods();
@@ -190,16 +190,16 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     # detect 0 hours remaining properly
     if limit_hours == 0.0:
-        context.msg.warning("Requesting a run() with a 0 time limit, doing nothing.\n");
+        context.current.device.cpp_msg.warning("Requesting a run() with a 0 time limit, doing nothing.\n");
         return;
     if limit_hours is None:
         limit_hours = 0.0
 
     if not quiet:
-        context.msg.notice(1, "** starting run **\n");
+        context.current.device.cpp_msg.notice(1, "** starting run **\n");
     context.current.system.run(int(tsteps), callback_period, callback, limit_hours, int(limit_multiple));
     if not quiet:
-        context.msg.notice(1, "** run complete **\n");
+        context.current.device.cpp_msg.notice(1, "** run complete **\n");
 
 def run_upto(step, **keywords):
     """Runs the simulation up to a given time step number.
@@ -223,7 +223,7 @@ def run_upto(step, **keywords):
 
     # check if initialization has occurred
     if not init.is_initialized():
-        context.msg.error("Cannot run before initialization\n");
+        context.current.device.cpp_msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
 
     # determine the number of steps to run
@@ -231,7 +231,7 @@ def run_upto(step, **keywords):
     cur_step = context.current.system.getCurrentTimeStep();
 
     if cur_step >= step:
-        context.msg.notice(2, "Requesting run up to a time step that has already passed, doing nothing\n");
+        context.current.device.cpp_msg.notice(2, "Requesting run up to a time step that has already passed, doing nothing\n");
         return;
 
     n_steps = step - cur_step;
@@ -251,7 +251,7 @@ def get_step():
 
     # check if initialization has occurred
     if not init.is_initialized():
-        context.msg.error("Cannot get step before initialization\n");
+        context.current.device.cpp_msg.error("Cannot get step before initialization\n");
         raise RuntimeError('Error getting step');
 
     return context.current.system.getCurrentTimeStep();

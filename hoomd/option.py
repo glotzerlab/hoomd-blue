@@ -131,10 +131,10 @@ def set_notice_level(notice_level):
     try:
         notice_level = int(notice_level);
     except ValueError:
-        hoomd.context.msg.error("notice-level must be an integer\n");
+        hoomd.context.current.device.cpp_msg.error("notice-level must be an integer\n");
         raise RuntimeError('Error setting option');
 
-    hoomd.context.msg.setNoticeLevel(notice_level);
+    hoomd.context.current.device.cpp_msg.setNoticeLevel(notice_level);
     hoomd.context.options.notice_level = notice_level;
 
 def set_msg_file(fname):
@@ -154,9 +154,9 @@ def set_msg_file(fname):
     _verify_init();
 
     if fname is not None:
-        hoomd.context.msg.openFile(fname);
+        hoomd.context.current.device.cpp_msg.openFile(fname);
     else:
-        hoomd.context.msg.openStd();
+        hoomd.context.current.device.cpp_msg.openStd();
 
     hoomd.context.options.msg_file = fname;
 
@@ -187,7 +187,7 @@ def set_num_threads(num_threads):
     """
 
     if not _hoomd.is_TBB_available():
-        msg.warning("HOOMD was compiled without thread support, ignoring request to set number of threads.\n");
+        hoomd.context.current.device.cpp_msg.warning("HOOMD was compiled without thread support, ignoring request to set number of threads.\n");
     else:
         hoomd.context.current.device.cpp_exec_conf.setNumThreads(int(num_threads));
 
@@ -196,5 +196,5 @@ def set_num_threads(num_threads):
 # \brief Throw an error if the context is not initialized
 def _verify_init():
     if hoomd.context.options is None:
-        hoomd.context.msg.error("call context.initialize() before any other method in _hoomd.")
+        hoomd.context.current.device.cpp_msg.error("call context.initialize() before any other method in _hoomd.")
         raise RuntimeError("hoomd execution context is not available")

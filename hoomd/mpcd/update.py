@@ -54,7 +54,7 @@ class sort(hoomd.meta._metadata):
 
         # check for mpcd initialization
         if system.sorter is not None:
-            hoomd.context.msg.error('mpcd.update: system already has a sorter created!\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.update: system already has a sorter created!\n')
             raise RuntimeError('MPCD sorter already created')
 
         # create the c++ mirror class
@@ -152,9 +152,9 @@ class sort(hoomd.meta._metadata):
         self.set_period(period=opt_period)
 
         # output results
-        hoomd.context.msg.notice(2, '--- sort.tune() statistics\n')
-        hoomd.context.msg.notice(2, 'Optimal period = {0}\n'.format(opt_period))
-        hoomd.context.msg.notice(2, '        period = ' + str(periods) + '\n')
-        hoomd.context.msg.notice(2, '          TPS  = ' + str(tps) + '\n')
+        hoomd.context.current.device.cpp_msg.notice(2, '--- sort.tune() statistics\n')
+        hoomd.context.current.device.cpp_msg.notice(2, 'Optimal period = {0}\n'.format(opt_period))
+        hoomd.context.current.device.cpp_msg.notice(2, '        period = ' + str(periods) + '\n')
+        hoomd.context.current.device.cpp_msg.notice(2, '          TPS  = ' + str(tps) + '\n')
 
         return opt_period

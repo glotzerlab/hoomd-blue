@@ -20,7 +20,7 @@ try:
 except ImportError as error:
     h5py_userwarning = "The current runtime does not support the h5py module."
     h5py_userwarning += " Using the log_hdf5 is not possible."
-    hoomd.context.msg.error(h5py_userwarning)
+    hoomd.context.current.device.cpp_msg.error(h5py_userwarning)
     raise error
 
 
@@ -91,7 +91,7 @@ class log(hoomd.analyze._analyzer):
 
     def __init__(self, h5file, period, quantities=list(), matrix_quantities=list(), phase=0):
         if not isinstance(h5file, hoomd.hdf5.File):
-            hoomd.context.msg.error("HDF5 file descriptor is no instance of h5py.File, which is the hoomd thin wrapper for hdf5 file descriptors.")
+            hoomd.context.current.device.cpp_msg.error("HDF5 file descriptor is no instance of h5py.File, which is the hoomd thin wrapper for hdf5 file descriptors.")
             raise RuntimeError("Error creating hoomd.hdf5.log")
         # store metadata
         self.metadata_fields = ['h5file', 'period']
@@ -265,7 +265,7 @@ class log(hoomd.analyze._analyzer):
             old_size = data_set.shape[0]
 
             if data_set.shape[1] != new_array.shape[0]:
-                hoomd.context.msg.error("The number of logged quantities does not match"
+                hoomd.context.current.device.cpp_msg.error("The number of logged quantities does not match"
                                         " with the number of quantities stored in the file.")
                 raise RuntimeError("Error write quantities with log_hdf5.")
 
@@ -283,21 +283,21 @@ class log(hoomd.analyze._analyzer):
                 # This is called on every rank, but only root rank returns "correct data"
                 new_matrix = self.cpp_analyzer.getMatrixQuantity(q, timestep)
             except:
-                hoomd.context.msg.error("For quantity " + q + " no python type obtainable.")
+                hoomd.context.current.device.cpp_msg.error("For quantity " + q + " no python type obtainable.")
                 raise RuntimeError("Error writing matrix quantity " + q)
 
             if f is not None:  # Only the root rank further process the received data
 
                 # Check the returned object
                 if not isinstance(new_matrix, numpy.ndarray):
-                    hoomd.context.msg.error("For quantity " + q + " no matrix obtainable.")
+                    hoomd.context.current.device.cpp_msg.error("For quantity " + q + " no matrix obtainable.")
                     raise RuntimeError("Error writing matrix quantity " + q)
                 zero_shape = True
                 for dim in new_matrix.shape:
                     if dim != 0:
                         zero_shape = False
                 if zero_shape:
-                    hoomd.context.msg.error("For quantity " + q + " matrix with zero shape obtained.")
+                    hoomd.context.current.device.cpp_msg.error("For quantity " + q + " matrix with zero shape obtained.")
                     raise RuntimeError("Error writing matrix quantity " + q)
 
                 if q not in f:
@@ -310,14 +310,14 @@ class log(hoomd.analyze._analyzer):
                     if len(new_matrix.shape) + 1 != len(data_set.shape):
                         msg = "Trying to log matrix " + q + ", but dimensions are incompatible with "
                         msg += "dimensions in file."
-                        hoomd.context.msg.error(msg)
+                        hoomd.context.current.device.cpp_msg.error(msg)
                         raise RuntimeError("Error writing matrix quantity " + q)
 
                     for i in range(len(new_matrix.shape)):
                         if data_set.shape[i + 1] != new_matrix.shape[i]:
                             msg = "Trying to log matrix " + q + ", but dimension " + str(i) + " is "
                             msg += "incompatible with  dimension in file."
-                            hoomd.context.msg.error(msg)
+                            hoomd.context.current.device.cpp_msg.error(msg)
                             raise RuntimeError("Error writing matrix quantity " + q)
 
                 old_size = data_set.shape[0]
@@ -339,7 +339,7 @@ class log(hoomd.analyze._analyzer):
                         for key in data_set.attrs.keys():
                             del data_set.attrs[key]
                     else:
-                        hoomd.context.msg.error("Changing the number of logged quantities is impossible"
+                        hoomd.context.current.device.cpp_msg.error("Changing the number of logged quantities is impossible"
                                                 " if there are already logged quantities.")
                         raise RuntimeError("Error updating quantities with log_hdf5.")
             else:
@@ -349,12 +349,12 @@ class log(hoomd.analyze._analyzer):
             for i in range(len(quantities)):
                 try:
                     if i != data_set.attrs[quantities[i]]:
-                        hoomd.context.msg.error("Quantity " + quantities[i] + " is not stored in the correct position."
+                        hoomd.context.current.device.cpp_msg.error("Quantity " + quantities[i] + " is not stored in the correct position."
                                                 " stored: " + str(data_set.attrs[quantities[i]]) + " new: " + str(i))
                         raise RuntimeError("Error updating quantities with log_hdf5.")
                 except KeyError:
                     for key in data_set.attrs.keys():
                         if data_set.attrs[key] == i:
-                            hoomd.context.msg.error("Quantity position is not vacant.")
+                            hoomd.context.current.device.cpp_msg.error("Quantity position is not vacant.")
                             raise RuntimeError("Error updating quantities with log_hdf5.")
                     data_set.attrs[quantities[i]] = i

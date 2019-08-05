@@ -216,7 +216,7 @@ def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
 
     if shared_msg_file is not None:
         if not _hoomd.is_MPI_available():
-            hoomd.context.msg.error("Shared log files are only available in MPI builds.\n");
+            msg.error("Shared log files are only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
         msg.setSharedFile(shared_msg_file);
 

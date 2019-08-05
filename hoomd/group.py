@@ -162,7 +162,7 @@ def all():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     name = 'all';
@@ -173,7 +173,7 @@ def all():
         expected_N = hoomd.context.current.system_definition.getParticleData().getNGlobal();
 
         if len(hoomd.context.current.group_all) != expected_N:
-            hoomd.context.msg.error("hoomd.context.current.group_all does not appear to be the group of all particles!\n");
+            hoomd.context.current.device.cpp_msg.error("hoomd.context.current.group_all does not appear to be the group of all particles!\n");
             raise RuntimeError('Error creating group');
         return hoomd.context.current.group_all;
 
@@ -182,7 +182,7 @@ def all():
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector, True);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
     # cache it and then return it in the wrapper class
     hoomd.context.current.group_all = group(name, cpp_group);
@@ -227,7 +227,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # handle the optional arguments
@@ -259,7 +259,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -287,9 +287,9 @@ def rigid_center():
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector, True);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
     if cpp_group.getNumMembersGlobal() == 0:
-        hoomd.context.msg.notice(2, 'It is OK if there are zero particles in this group. The group will be updated after run().\n');
+        hoomd.context.current.device.cpp_msg.notice(2, 'It is OK if there are zero particles in this group. The group will be updated after run().\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -308,7 +308,7 @@ def nonrigid():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # create the group
@@ -317,7 +317,7 @@ def nonrigid():
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -336,7 +336,7 @@ def rigid():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # create the group
@@ -345,7 +345,7 @@ def rigid():
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -364,7 +364,7 @@ def nonfloppy():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # create the group
@@ -373,7 +373,7 @@ def nonfloppy():
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -392,7 +392,7 @@ def floppy():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # create the group
@@ -401,7 +401,7 @@ def floppy():
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -420,7 +420,7 @@ def nonbody():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # create the group
@@ -429,7 +429,7 @@ def nonbody():
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -448,7 +448,7 @@ def body():
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # create the group
@@ -457,7 +457,7 @@ def body():
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -485,7 +485,7 @@ def tags(tag_min, tag_max=None, name=None, update=False):
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # handle the optional argument
@@ -504,7 +504,7 @@ def tags(tag_min, tag_max=None, name=None, update=False):
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector, update);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -528,7 +528,7 @@ def tag_list(name, tags):
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # build a vector of the tags
@@ -540,7 +540,7 @@ def tag_list(name, tags):
     cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, cpp_list);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -575,7 +575,7 @@ def type(type, name=None, update=False):
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     if name is None:
@@ -588,7 +588,7 @@ def type(type, name=None, update=False):
         type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
     if type not in type_list:
-        hoomd.context.msg.warning(str(type) + " does not exist in the system, creating an empty group\n");
+        hoomd.context.current.device.cpp_msg.warning(str(type) + " does not exist in the system, creating an empty group\n");
         cpp_list = _hoomd.std_vector_uint();
         cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, cpp_list);
     else:
@@ -597,7 +597,7 @@ def type(type, name=None, update=False):
         cpp_group = _hoomd.ParticleGroup(hoomd.context.current.system_definition, selector, update);
 
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
     # return it in the wrapper class
     return group(name, cpp_group);
@@ -622,7 +622,7 @@ def charged(name='charged'):
 
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot create a group before initialization\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
     # determine the group of particles that are charged
@@ -664,7 +664,7 @@ def difference(name, a, b):
 
     new_cpp_group = _hoomd.ParticleGroup.groupDifference(a.cpp_group, b.cpp_group);
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembersGlobal()) + ' particles\n');
     return group(name, new_cpp_group);
 
 def intersection(name, a, b):
@@ -692,7 +692,7 @@ def intersection(name, a, b):
 
     new_cpp_group = _hoomd.ParticleGroup.groupIntersection(a.cpp_group, b.cpp_group);
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembersGlobal()) + ' particles\n');
     return group(name, new_cpp_group);
 
 def union(name, a, b):
@@ -719,5 +719,5 @@ def union(name, a, b):
     """
     new_cpp_group = _hoomd.ParticleGroup.groupUnion(a.cpp_group, b.cpp_group);
     # notify the user of the created group
-    hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembersGlobal()) + ' particles\n');
+    hoomd.context.current.device.cpp_msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembersGlobal()) + ' particles\n');
     return group(name, new_cpp_group);

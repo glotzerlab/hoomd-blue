@@ -56,7 +56,7 @@ class nlist:
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot create neighbor list before initialization\n");
+            hoomd.context.current.device.cpp_msg.error("Cannot create neighbor list before initialization\n");
             raise RuntimeError('Error creating neighbor list');
 
         # default exclusions
@@ -174,7 +174,7 @@ class nlist:
         """
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         # update the parameters
@@ -235,7 +235,7 @@ class nlist:
         self.is_exclusion_overridden = True;
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
             raise RuntimeError('Error resetting exclusions');
 
         # clear all of the existing exclusions
@@ -290,7 +290,7 @@ class nlist:
 
         # if there are any items left in the exclusion list, we have an error.
         if len(exclusions) > 0:
-            hoomd.context.msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
+            hoomd.context.current.device.cpp_msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
             raise RuntimeError('Error resetting exclusions');
 
         # collect and print statistics about the number of exclusions.
@@ -309,7 +309,7 @@ class nlist:
         """
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error resetting exclusions');
 
         # store exclusions for later use
@@ -331,7 +331,7 @@ class nlist:
 
         """
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         return self.cpp_nlist.getSmallestRebuild()-1;
@@ -367,10 +367,10 @@ class nlist:
 
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
+            hoomd.context.current.device.cpp_msg.error("Cannot tune r_buff before initialization\n");
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n')
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
 
         # start off at a check_period of 1
@@ -413,10 +413,10 @@ class nlist:
         hoomd.run(warmup, quiet=quiet);
 
         # notify the user of the benchmark results
-        hoomd.context.msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
-        hoomd.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
-        hoomd.context.msg.notice(2, "Optimal r_buff: " + str(fastest_r_buff) + '\n');
-        hoomd.context.msg.notice(2, "Maximum check_period: " + str(self.query_update_period()) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "tps = " + str(tps_list) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "Optimal r_buff: " + str(fastest_r_buff) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "Maximum check_period: " + str(self.query_update_period()) + '\n');
 
         # set the found max check period
         if set_max_check_period:
@@ -456,7 +456,7 @@ class rcut:
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            hoomd.context.msg.error("Bug ensuring pair exists in nlist.r_cut.ensure_pair. Please report.\n");
+            hoomd.context.current.device.cpp_msg.error("Bug ensuring pair exists in nlist.r_cut.ensure_pair. Please report.\n");
             raise RuntimeError("Error fetching rcut(i,j) pair");
 
         return cur_pair;
@@ -514,7 +514,7 @@ class rcut:
     def fill(self):
         # first, check that the system has been initialized
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot fill rcut(i,j) before initialization\n");
+            hoomd.context.current.device.cpp_msg.error("Cannot fill rcut(i,j) before initialization\n");
             raise RuntimeError('Error filling nlist rcut(i,j)');
 
         # get a list of types from the particle data
@@ -726,10 +726,10 @@ class stencil(nlist):
 
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
+            hoomd.context.current.device.cpp_msg.error("Cannot tune r_buff before initialization\n");
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n')
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
 
         min_cell_width = min_width
@@ -775,9 +775,9 @@ class stencil(nlist):
         self.set_cell_width(cell_width=fastest_width)
 
         # notify the user of the benchmark results
-        hoomd.context.msg.notice(2, "cell width = " + str(width_list) + '\n');
-        hoomd.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
-        hoomd.context.msg.notice(2, "Optimal cell width: " + str(fastest_width) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "cell width = " + str(width_list) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "tps = " + str(tps_list) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "Optimal cell width: " + str(fastest_width) + '\n');
 
         # return the results to the script
         return fastest_width

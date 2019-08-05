@@ -78,14 +78,13 @@ def dump_metadata(filename=None,user=None,indent=4):
     """
 
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Need to initialize system first.\n")
-        raise RuntimeError("Error writing out metadata.")
+        raise RuntimeError("Need to initialize system first.")
 
     metadata = dict()
 
     if user is not None:
         if not isinstance(user, collections.Mapping):
-            hoomd.context.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
+            hoomd.context.current.device.cpp_msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
         else:
             metadata['user'] = _metadata_from_dict(user);
 

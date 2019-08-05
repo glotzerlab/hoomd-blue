@@ -64,7 +64,7 @@ def create_lattice(unitcell, n):
 
     # check if initialization has already occurred
     if is_initialized():
-        hoomd.context.msg.error("Cannot initialize more than once\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
     snap = unitcell.get_snapshot();
@@ -75,7 +75,7 @@ def create_lattice(unitcell, n):
         n = [n]*l;
 
     if l != snap.box.dimensions:
-        hoomd.context.msg.error("n must have length equal to the number of dimensions in the unit cell\n");
+        hoomd.context.current.device.cpp_msg.error("n must have length equal to the number of dimensions in the unit cell\n");
         raise RuntimeError("Error initializing");
 
     if snap.box.dimensions == 3:
@@ -166,7 +166,7 @@ def read_getar(filename, modes={'any': 'any'}):
 
     # check if initialization has already occurred
     if is_initialized():
-        hoomd.context.msg.error("Cannot initialize more than once\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
     newModes = _parse_getar_modes(modes);
@@ -226,7 +226,7 @@ def read_snapshot(snapshot):
 
     # check if initialization has already occurred
     if is_initialized():
-        hoomd.context.msg.error("Cannot initialize more than once\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
@@ -274,7 +274,7 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
 
     # check if initialization has already occurred
     if is_initialized():
-        hoomd.context.msg.error("Cannot initialize more than once\n");
+        hoomd.context.current.device.cpp_msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
     filename = _hoomd.mpi_bcast_str(filename, hoomd.context.current.device.cpp_exec_conf);

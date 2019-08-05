@@ -150,12 +150,12 @@ class decomposition(object):
 
         # check that system is not initialized
         if hoomd.context.current.system is not None:
-            hoomd.context.msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
+            hoomd.context.current.device.cpp_msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
             raise RuntimeError("Cannot create decomposition after system is initialized. Call before init.*")
 
         # check that there are ranks available for decomposition
         if get_num_ranks() == 1:
-            hoomd.context.msg.warning("Only 1 rank in system, ignoring decomposition to use optimized code pathways.\n")
+            hoomd.context.current.device.cpp_msg.warning("Only 1 rank in system, ignoring decomposition to use optimized code pathways.\n")
             return
         else:
             self.x = []
@@ -187,7 +187,7 @@ class decomposition(object):
 
             # set the global decomposition to this class
             if hoomd.context.current.decomposition is not None:
-                hoomd.context.msg.warning("comm.decomposition: overriding currently defined domain decomposition\n")
+                hoomd.context.current.device.cpp_msg.warning("comm.decomposition: overriding currently defined domain decomposition\n")
 
             hoomd.context.current.decomposition = self
 
@@ -209,7 +209,7 @@ class decomposition(object):
         """
 
         if (x is not None and nx is not None) or (y is not None and ny is not None) or (z is not None and nz is not None):
-            hoomd.context.msg.error("comm.decomposition: cannot set fractions and number of processors simultaneously\n")
+            hoomd.context.current.device.cpp_msg.error("comm.decomposition: cannot set fractions and number of processors simultaneously\n")
             raise RuntimeError("Cannot set fractions and number of processors simultaneously")
 
         # if x is set, use it. otherwise, if nx is set, compute x and set it
@@ -273,37 +273,37 @@ class decomposition(object):
             tol = 1.0e-5
             for i in self.x:
                 if i <= -tol or i >= 1.0 - tol:
-                    hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                    hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                     raise RuntimeError("Fractional decomposition must be between 0.0 and 1.0")
                 fxs.append(i)
                 sum_x += i
             if sum_x >= 1.0 - tol or sum_x <= -tol:
-                hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                 raise RuntimeError("Sum of decomposition in x must lie between 0.0 and 1.0")
 
             for i in self.y:
                 if i <= -tol or i >= 1.0 - tol:
-                    hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                    hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                     raise RuntimeError("Fractional decomposition must be between 0.0 and 1.0")
                 fys.append(i)
                 sum_y += i
             if sum_y >= 1.0 - tol or sum_y <= -tol:
-                hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                 raise RuntimeError("Sum of decomposition in y must lie between 0.0 and 1.0")
 
             for i in self.z:
                 if i <= -tol or i >= 1.0 - tol:
-                    hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                    hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                     raise RuntimeError("Fractional decomposition must be between 0.0 and 1.0")
                 fzs.append(i)
                 sum_z += i
             if sum_z >= 1.0 - tol or sum_z <= -tol:
-                hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                 raise RuntimeError("Sum of decomposition in z must lie between 0.0 and 1.0")
 
             self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.current.device.cpp_exec_conf, box.getL(), fxs, fys, fzs)
             return self.cpp_dd
 
         except TypeError as te:
-            hoomd.context.msg.error("Fractional cuts must be iterable (list, tuple, etc.)\n")
+            hoomd.context.current.device.cpp_msg.error("Fractional cuts must be iterable (list, tuple, etc.)\n")
             raise te

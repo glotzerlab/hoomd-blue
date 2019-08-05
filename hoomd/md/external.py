@@ -109,7 +109,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.msg.error("No coefficients specified\n");
+            hoomd.context.current.device.cpp_msg.error("No coefficients specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -129,7 +129,7 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot verify force coefficients before initialization\n");
+            hoomd.context.current.device.cpp_msg.error("Cannot verify force coefficients before initialization\n");
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
@@ -144,20 +144,20 @@ class coeff:
             type = type_list[i];
 
             if type not in self.values.keys() and len(required_coeffs):
-                hoomd.context.msg.error("Particle type " + type + " is missing required coefficients\n");
+                hoomd.context.current.device.cpp_msg.error("Particle type " + type + " is missing required coefficients\n");
                 return False
 
             # verify that all required values are set by counting the matches
             count = 0;
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
-                    hoomd.context.msg.notice(3, "Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) +\
+                    hoomd.context.current.device.cpp_msg.notice(3, "Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) +\
                           ", but is not used by the external force");
                 else:
                     count += 1;
 
             if count != len(required_coeffs):
-                hoomd.context.msg.error("Particle type " + type + " is missing required coefficients\n");
+                hoomd.context.current.device.cpp_msg.error("Particle type " + type + " is missing required coefficients\n");
                 valid = False;
         return valid;
 
@@ -168,7 +168,7 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values:
-            hoomd.context.msg.error("Bug detected in external.coeff. Please report\n");
+            hoomd.context.current.device.cpp_msg.error("Bug detected in external.coeff. Please report\n");
             raise RuntimeError("Error setting external coeff");
 
         return self.values[type][coeff_name];
@@ -222,7 +222,7 @@ class _external_force(force._force):
         if self.required_coeffs is not None:
             # check that the force coefficients are valid
             if not self.force_coeff.verify(coeff_list):
-               hoomd.context.msg.error("Not all force coefficients are set\n");
+               hoomd.context.current.device.cpp_msg.error("Not all force coefficients are set\n");
                raise RuntimeError("Error updating force coefficients");
 
             # set all the params

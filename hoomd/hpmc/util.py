@@ -420,12 +420,12 @@ class compress:
         #calculate initial packing fraction
         volume = Lx*Ly if dim==2 else Lx*Ly*Lz
         last_eta = tot_pvol / volume
-        hoomd.context.msg.notice(5,'Starting eta = {}. '.format(last_eta))
-        hoomd.context.msg.notice(5,'Starting volume = {}. '.format(volume))
-        hoomd.context.msg.notice(5,'overlaps={}.\n'.format(self.mc.count_overlaps()))
+        hoomd.context.current.device.cpp_msg.notice(5,'Starting eta = {}. '.format(last_eta))
+        hoomd.context.current.device.cpp_msg.notice(5,'Starting volume = {}. '.format(volume))
+        hoomd.context.current.device.cpp_msg.notice(5,'overlaps={}.\n'.format(self.mc.count_overlaps()))
 
         for i in range(num_comp_cycles):
-            hoomd.context.msg.notice(5,'Compressor sweep {}. '.format(i))
+            hoomd.context.current.device.cpp_msg.notice(5,'Compressor sweep {}. '.format(i))
 
             # if not first sweep, relax the system
             if i != 0:
@@ -440,9 +440,9 @@ class compress:
 
             noverlaps = self.mc.count_overlaps()
             if noverlaps != 0:
-                hoomd.context.msg.warning("Tuner cannot run properly if overlaps exist in the system. Expanding box...\n")
+                hoomd.context.current.device.cpp_msg.warning("Tuner cannot run properly if overlaps exist in the system. Expanding box...\n")
                 while noverlaps != 0:
-                    hoomd.context.msg.notice(5,"{} overlaps at step {}... ".format(noverlaps, hoomd.get_step()))
+                    hoomd.context.current.device.cpp_msg.notice(5,"{} overlaps at step {}... ".format(noverlaps, hoomd.get_step()))
                     Lx *= 1.0+Lscale
                     Ly *= 1.0+Lscale
                     Lz *= 1.0+Lscale
@@ -472,12 +472,12 @@ class compress:
                     tuner.update()
 
             #calculate packing fraction for zeroth iteration
-            hoomd.context.msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
+            hoomd.context.current.device.cpp_msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
             L = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL()
             volume = L.x * L.y if dim==2 else L.x*L.y*L.z
             eta = tot_pvol / volume
-            hoomd.context.msg.notice(5,'eta = {}, '.format(eta))
-            hoomd.context.msg.notice(5,"volume: {0}\n".format(volume))
+            hoomd.context.current.device.cpp_msg.notice(5,'eta = {}, '.format(eta))
+            hoomd.context.current.device.cpp_msg.notice(5,"volume: {0}\n".format(volume))
 
             step = hoomd.get_step()
             last_step = step
@@ -488,23 +488,23 @@ class compress:
             while (eta - last_eta) > pf_tol:
                 hoomd.run(refine_steps, quiet=quiet)
                 # check eta
-                hoomd.context.msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
+                hoomd.context.current.device.cpp_msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
                 #calculate the new packing fraction
                 L = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL()
                 volume = L.x * L.y if dim==2 else L.x*L.y*L.z
                 last_eta = eta
                 eta = tot_pvol / volume
-                hoomd.context.msg.notice(5,"eta: {0}, ".format(eta))
-                hoomd.context.msg.notice(5,"volume: {0}\n".format(volume))
+                hoomd.context.current.device.cpp_msg.notice(5,"eta: {0}, ".format(eta))
+                hoomd.context.current.device.cpp_msg.notice(5,"volume: {0}\n".format(volume))
                 last_step = step
                 step = hoomd.get_step()
                 # Check if we've gone too far
                 if j == max_eta_checks:
-                    hoomd.context.msg.notice(5,"Eta did not converge in {0} iterations. Continuing to next cycle anyway.\n".format(max_eta_checks))
+                    hoomd.context.current.device.cpp_msg.notice(5,"Eta did not converge in {0} iterations. Continuing to next cycle anyway.\n".format(max_eta_checks))
                 j += 1
 
-            hoomd.context.msg.notice(5,"Step: {step}, Packing fraction: {eta}, ".format(step=last_step, eta=last_eta))
-            hoomd.context.msg.notice(5,'overlaps={}\n'.format(self.mc.count_overlaps()))
+            hoomd.context.current.device.cpp_msg.notice(5,"Step: {step}, Packing fraction: {eta}, ".format(step=last_step, eta=last_eta))
+            hoomd.context.current.device.cpp_msg.notice(5,'overlaps={}\n'.format(self.mc.count_overlaps()))
             self.eta_list.append(last_eta)
 
             #take a snapshot of the system
@@ -712,7 +712,7 @@ class tune(object):
             # find new value
             if (oldval == 0):
                 newval = 1e-5
-                hoomd.context.msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(tunable, newval))
+                hoomd.context.current.device.cpp_msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(tunable, newval))
             else:
                 newval = float(scale * oldval)
                 # perform sanity checking on newval

@@ -839,11 +839,11 @@ class system_data(hoomd.meta._metadata):
         nz = int(nz)
 
         if nx == ny == nz == 1:
-            hoomd.context.msg.warning("All replication factors == 1. Not replicating system.\n")
+            hoomd.context.current.device.cpp_msg.warning("All replication factors == 1. Not replicating system.\n")
             return
 
         if nx <= 0 or ny <= 0 or nz <= 0:
-            hoomd.context.msg.error("Cannot replicate by zero or by a negative value along any direction.")
+            hoomd.context.current.device.cpp_msg.error("Cannot replicate by zero or by a negative value along any direction.")
             raise RuntimeError("nx, ny, nz need to be positive integers")
 
         # Take a snapshot
@@ -1028,7 +1028,7 @@ class pdata_types_proxy(object):
         ntypes = self.pdata.getNTypes();
         for i in range(0,ntypes):
             if self.pdata.getNameByType(i) == name:
-                hoomd.context.msg.warning("Type '"+name+"' already defined.\n");
+                hoomd.context.current.device.cpp_msg.warning("Type '"+name+"' already defined.\n");
                 return i
 
         typeid = self.pdata.addType(name);

@@ -63,7 +63,7 @@ class eam(force._force):
         # Error out in MPI simulations
         if (_hoomd.is_MPI_available()):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("pair.eam is not supported in multi-processor simulations.\n\n")
+                hoomd.context.current.device.cpp_msg.error("pair.eam is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up pair potential.")
 
         # initialize the base class
@@ -90,7 +90,7 @@ class eam(force._force):
         if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
 
-        hoomd.context.msg.notice(2, "Set r_cut = " + str(self.r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
+        hoomd.context.current.device.cpp_msg.notice(2, "Set r_cut = " + str(self.r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
         self.pair_coeff = hoomd.md.pair.coeff();

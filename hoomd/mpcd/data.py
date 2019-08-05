@@ -126,7 +126,7 @@ class snapshot(hoomd.meta._metadata):
         hoomd.meta._metadata.__init__(self)
 
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
+            hoomd.context.current.device.cpp_msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
             raise RuntimeError("HOOMD system not initialized")
 
         self.sys_snap = sys_snap
@@ -161,10 +161,10 @@ class snapshot(hoomd.meta._metadata):
         ny = int(ny)
         nz = int(nz)
         if nx == ny == nz == 1:
-            hoomd.context.msg.warning("mpcd: all replication factors are one, ignoring.\n")
+            hoomd.context.current.device.cpp_msg.warning("mpcd: all replication factors are one, ignoring.\n")
             return
         elif nx <= 0 or ny <=0 or nz <= 0:
-            hoomd.context.msg.error("mpcd: all replication factors must be positive.\n")
+            hoomd.context.current.device.cpp_msg.error("mpcd: all replication factors must be positive.\n")
             raise ValueError("Replication factors must be positive integers")
 
         self.sys_snap.replicate(nx, ny, nz)
@@ -289,7 +289,7 @@ def make_snapshot(N=0):
 
     """
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
+        hoomd.context.current.device.cpp_msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
         raise RuntimeError("HOOMD system not initialized")
 
     snap = snapshot(_mpcd.SystemDataSnapshot(hoomd.context.current.system_definition))

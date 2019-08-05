@@ -44,7 +44,7 @@ class _constraint_force(hoomd.meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot create force before initialization\n");
+            hoomd.context.current.device.cpp_msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating constraint force');
 
         self.cpp_force = None;
@@ -86,7 +86,7 @@ class _constraint_force(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_force not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_force not set, please report\n');
             raise RuntimeError();
 
     def disable(self):
@@ -106,7 +106,7 @@ class _constraint_force(hoomd.meta._metadata):
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd.context.msg.warning("Ignoring command to disable a force that is already disabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to disable a force that is already disabled");
             return;
 
         self.enabled = False;
@@ -128,7 +128,7 @@ class _constraint_force(hoomd.meta._metadata):
 
         # check if we are already disabled
         if self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to enable a force that is already enabled");
             return;
 
         # add the compute back to the system
@@ -393,19 +393,19 @@ class rigid(_constraint_force):
             type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         if type_name not in type_list:
-            hoomd.context.msg.error('Type ''{}'' not found.\n'.format(type_name))
+            hoomd.context.current.device.cpp_msg.error('Type ''{}'' not found.\n'.format(type_name))
             raise RuntimeError('Error setting up parameters for constrain.rigid()')
 
         type_id = type_list.index(type_name)
 
         if not isinstance(types, list):
-            hoomd.context.msg.error('Expecting list of particle types.\n')
+            hoomd.context.current.device.cpp_msg.error('Expecting list of particle types.\n')
             raise RuntimeError('Error setting up parameters for constrain.rigid()')
 
         type_vec = _hoomd.std_vector_uint()
         for t in types:
             if t not in type_list:
-                hoomd.context.msg.error('Type ''{}'' not found.\n'.format(t))
+                hoomd.context.current.device.cpp_msg.error('Type ''{}'' not found.\n'.format(t))
                 raise RuntimeError('Error setting up parameters for constrain.rigid()')
             constituent_type_id = type_list.index(t)
 
@@ -416,7 +416,7 @@ class rigid(_constraint_force):
         for p in positions_list:
             p = tuple(p)
             if len(p) != 3:
-                hoomd.context.msg.error('Particle position is not a coordinate triple.\n')
+                hoomd.context.current.device.cpp_msg.error('Particle position is not a coordinate triple.\n')
                 raise RuntimeError('Error setting up parameters for constrain.rigid()')
             pos_vec.append(_hoomd.make_scalar3(p[0],p[1],p[2]))
 
@@ -426,7 +426,7 @@ class rigid(_constraint_force):
             for o in orientations_list:
                 o = tuple(o)
                 if len(o) != 4:
-                    hoomd.context.msg.error('Particle orientation is not a 4-tuple.\n')
+                    hoomd.context.current.device.cpp_msg.error('Particle orientation is not a 4-tuple.\n')
                     raise RuntimeError('Error setting up parameters for constrain.rigid()')
                 orientation_vec.append(_hoomd.make_scalar4(o[0], o[1], o[2], o[3]))
         else:

@@ -124,7 +124,7 @@ class npt_wca_dimer_eos(unittest.TestCase):
         def accumulate_rho(timestep):
             rho = N/log.query('volume')
             rho_val.append(rho)
-            if (timestep % 1000 == 0): context.msg.notice(1,'rho_star = {:.5f}\n'.format(rho*d_eff**3.0))
+            if (timestep % 1000 == 0): context.current.device.cpp_msg.notice(1,'rho_star = {:.5f}\n'.format(rho*d_eff**3.0))
 
         for i in range(10):
             run(1000)
@@ -140,7 +140,7 @@ class npt_wca_dimer_eos(unittest.TestCase):
         rho_avg = np.mean(rho_val)
         i, rho_err = block.get_error_estimate()
 
-        context.msg.notice(1,'P_star = {:.3f} rho_star = {:.5f}+-{:.5f} (tgt: {:.5f})\n'.format(P_star,rho_avg*d_eff**3.0,rho_err*d_eff**3.0,rho_star_ref))
+        context.current.device.cpp_msg.notice(1,'P_star = {:.3f} rho_star = {:.5f}+-{:.5f} (tgt: {:.5f})\n'.format(P_star,rho_avg*d_eff**3.0,rho_err*d_eff**3.0,rho_star_ref))
 
         # max error 0.5 %
         self.assertLessEqual(rho_err/rho_avg,0.005)
