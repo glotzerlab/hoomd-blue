@@ -208,17 +208,6 @@ def initialize(args=None):
     options = hoomd.option.options();
     hoomd.option._parse_command_line(args);
 
-    # Check to see if we are built without MPI support and the user used mpirun
-    if (not _hoomd.is_MPI_available() and not options.single_mpi
-        and (    'OMPI_COMM_WORLD_RANK' in os.environ
-              or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ
-              or 'PMI_RANK' in os.environ
-              or 'ALPS_APP_PE' in os.environ)
-       ):
-        print('HOOMD-blue is built without MPI support, but seems to have been launched with mpirun');
-        print('exiting now to prevent many sequential jobs from starting');
-        raise RuntimeError('Error launching hoomd')
-
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()
 

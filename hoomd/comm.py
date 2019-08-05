@@ -13,6 +13,7 @@ import hoomd;
 
 import sys;
 
+
 def get_num_ranks():
     """ Get the number of ranks in this partition.
 
@@ -28,6 +29,7 @@ def get_num_ranks():
         return hoomd.context.current.device.cpp_mpi_conf.getNRanks();
     else:
         return 1;
+
 
 def get_rank():
     """ Get the current rank.
@@ -46,6 +48,7 @@ def get_rank():
     else:
         return 0;
 
+
 def get_partition():
     """ Get the current partition index.
 
@@ -62,6 +65,7 @@ def get_partition():
     else:
         return 0;
 
+
 def barrier_all():
     """ Perform a MPI barrier synchronization across the whole MPI run.
 
@@ -70,6 +74,7 @@ def barrier_all():
     """
     if _hoomd.is_MPI_available():
         _hoomd.mpi_barrier_world();
+
 
 def barrier():
     """ Perform a MPI barrier synchronization across all ranks in the partition.
@@ -82,6 +87,7 @@ def barrier():
     if _hoomd.is_MPI_available():
         hoomd.context.current.device.cpp_mpi_conf.barrier()
 
+
 class decomposition(object):
     """ Set the domain decomposition.
 
@@ -92,6 +98,8 @@ class decomposition(object):
         nx (int): Number of processors to uniformly space in x dimension (if *x* is None)
         ny (int): Number of processors to uniformly space in y dimension (if *y* is None)
         nz (int): Number of processors to uniformly space in z dimension (if *z* is None)
+        linear (bool): (MPI only) Force a slab (1D) decomposition along the z-direction
+        onelevel (bool): (MPI only) Disable node-local (two-level) domain decomposition
 
     A single domain decomposition is defined for the simulation.
     A standard domain decomposition divides the simulation box into equal volumes along the Cartesian axes while minimizing
@@ -142,16 +150,22 @@ class decomposition(object):
         raised if both are set.
     """
 
-    def __init__(self, x=None, y=None, z=None, nx=None, ny=None, nz=None):
+    def __init__(self, x=None, y=None, z=None, nx=None, ny=None, nz=None, linear=False, onelevel=False):
 
         # check that the context has been initialized though
-        if hoomd.context.current.device.cpp_mpi_conf is None:
+        if hoomd.context.current is None:
             raise RuntimeError("Cannot initialize decomposition without context.initialize() first")
 
         # check that system is not initialized
         if hoomd.context.current.system is not None:
             hoomd.context.current.device.cpp_msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
             raise RuntimeError("Cannot create decomposition after system is initialized. Call before init.*")
+
+        # make sure MPI is enabled if any arguments are not None
+        if (x or y or z or nx or ny or nz) and (not _hoomd.is_MPI_available()):
+            raise RuntimeError("the x, y, z, nx, ny, nz options are only available in MPI builds")
+
+        self._onelevel = onelevel  # cache this for later when we can make the cpp object
 
         # check that there are ranks available for decomposition
         if get_num_ranks() == 1:
@@ -178,7 +192,7 @@ class decomposition(object):
                 self.ny = hoomd.context.options.ny
                 self.uniform_y = True
             if not self.z and self.nz == 0:
-                if hoomd.context.options.linear is True:
+                if linear:
                     self.nz = hoomd.context.current.device.cpp_mpi_conf.getNRanks()
                     self.uniform_z = True
                 elif hoomd.context.options.nz is not None:
@@ -252,7 +266,7 @@ class decomposition(object):
     def _make_cpp_decomposition(self, box):
         # if the box is uniform in all directions, just use these values
         if self.uniform_x and self.uniform_y and self.uniform_z:
-            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.current.device.cpp_exec_conf, box.getL(), self.nx, self.ny, self.nz, not hoomd.context.options.onelevel)
+            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.current.device.cpp_exec_conf, box.getL(), self.nx, self.ny, self.nz, not self._onelevel)
             return self.cpp_dd
 
         # otherwise, make the fractional decomposition

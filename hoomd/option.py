@@ -24,23 +24,11 @@ import shlex;
 class options:
     def __init__(self):
         self.user = [];
-        self.nx = None;
-        self.ny = None;
-        self.nz = None;
-        self.linear = None;
-        self.onelevel = None;
         self.autotuner_enable = True;
         self.autotuner_period = 100000;
-        self.single_mpi = False;
 
     def __repr__(self):
-        tmp = dict(user=self.user,
-                   nx=self.nx,
-                   ny=self.ny,
-                   nz=self.nz,
-                   linear=self.linear,
-                   onelevel=self.onelevel,
-                   single_mpi=self.single_mpi)
+        tmp = dict(user=self.user)
         return str(tmp);
 
 ## Parses command line options
@@ -49,12 +37,6 @@ class options:
 # Parses all hoomd command line options into the module variable cmd_options
 def _parse_command_line(arg_string=None):
     parser = OptionParser();
-    parser.add_option("--nx", dest="nx", help="(MPI) Number of domains along the x-direction");
-    parser.add_option("--ny", dest="ny", help="(MPI) Number of domains along the y-direction");
-    parser.add_option("--nz", dest="nz", help="(MPI) Number of domains along the z-direction");
-    parser.add_option("--linear", dest="linear", action="store_true", default=False, help="(MPI only) Force a slab (1D) decomposition along the z-direction");
-    parser.add_option("--onelevel", dest="onelevel", action="store_true", default=False, help="(MPI only) Disable two-level (node-local) decomposition");
-    parser.add_option("--single-mpi", dest="single_mpi", action="store_true", help="Allow single-threaded HOOMD builds in MPI jobs");
     parser.add_option("--user", dest="user", help="User options");
 
     input_args = None;
@@ -62,44 +44,6 @@ def _parse_command_line(arg_string=None):
         input_args = shlex.split(arg_string);
 
     (cmd_options, args) = parser.parse_args(args=input_args);
-
-    # Convert nx to an integer
-    if cmd_options.nx is not None:
-        if not _hoomd.is_MPI_available():
-            parser.error("The --nx option is only available in MPI builds.\n");
-            raise RuntimeError('Error setting option');
-        try:
-            cmd_options.nx = int(cmd_options.nx);
-        except ValueError:
-            parser.error('--nx must be an integer')
-
-    # Convert ny to an integer
-    if cmd_options.ny is not None:
-        if not _hoomd.is_MPI_available():
-            parser.error("The --ny option is only available in MPI builds.\n");
-            raise RuntimeError('Error setting option');
-        try:
-            cmd_options.ny = int(cmd_options.ny);
-        except ValueError:
-            parser.error('--ny must be an integer')
-
-    # Convert nz to an integer
-    if cmd_options.nz is not None:
-       if not _hoomd.is_MPI_available():
-            parser.error("The --nz option is only available in MPI builds.\n");
-            raise RuntimeError('Error setting option');
-       try:
-            cmd_options.nz = int(cmd_options.nz);
-       except ValueError:
-            parser.error('--nz must be an integer')
-
-    # copy command line options over to global options
-    hoomd.context.options.nx = cmd_options.nx;
-    hoomd.context.options.ny = cmd_options.ny;
-    hoomd.context.options.nz = cmd_options.nz;
-    hoomd.context.options.linear = cmd_options.linear
-    hoomd.context.options.onelevel = cmd_options.onelevel
-    hoomd.context.options.single_mpi = cmd_options.single_mpi
 
     if cmd_options.user is not None:
         hoomd.context.options.user = shlex.split(cmd_options.user);
