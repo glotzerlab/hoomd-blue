@@ -92,7 +92,7 @@ class user(field._external):
         # raise an error if this run is on the GPU
         cls = None;
         if hoomd.context.current.device.cpp_device.isCUDAEnabled():
-            hoomd.context.msg.error("JIT forces are not supported on the GPU\n");
+            hoomd.context.current.device.cpp_msg.error("JIT forces are not supported on the GPU\n");
             raise RuntimeError("Error initializing force energy");
         else:
             if isinstance(mc, integrate.sphere):
@@ -120,7 +120,7 @@ class user(field._external):
             elif isinstance(mc, integrate.convex_spheropolyhedron_union):
                 cls = _jit.ExternalFieldJITConvexPolyhedronUnion;
             else:
-                hoomd.context.msg.error("jit.field.user: Unsupported integrator.\n");
+                hoomd.context.current.device.cpp_msg.error("jit.field.user: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");
 
         # Find a clang executable if none is provided
@@ -198,9 +198,9 @@ Scalar charge
         llvm_ir = output[0].decode()
 
         if p.returncode != 0:
-            hoomd.context.msg.error("Error compiling provided code\n");
-            hoomd.context.msg.error("Command "+' '.join(cmd)+"\n");
-            hoomd.context.msg.error(output[1].decode()+"\n");
+            hoomd.context.current.device.cpp_msg.error("Error compiling provided code\n");
+            hoomd.context.current.device.cpp_msg.error("Command "+' '.join(cmd)+"\n");
+            hoomd.context.current.device.cpp_msg.error(output[1].decode()+"\n");
             raise RuntimeError("Error initializing force.");
 
         return llvm_ir

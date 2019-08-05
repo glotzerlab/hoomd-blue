@@ -109,7 +109,7 @@ class user(object):
 
         # raise an error if this run is on the GPU
         if hoomd.context.current.device.cpp_device.isCUDAEnabled():
-            hoomd.context.msg.error("Patch energies are not supported on the GPU\n");
+            hoomd.context.current.device.cpp_msg.error("Patch energies are not supported on the GPU\n");
             raise RuntimeError("Error initializing patch energy");
 
         # Find a clang executable if none is provided
@@ -186,9 +186,9 @@ float eval(const vec3<float>& r_ij,
         llvm_ir = output[0].decode()
 
         if p.returncode != 0:
-            hoomd.context.msg.error("Error compiling provided code\n");
-            hoomd.context.msg.error("Command "+' '.join(cmd)+"\n");
-            hoomd.context.msg.error(output[1].decode()+"\n");
+            hoomd.context.current.device.cpp_msg.error("Error compiling provided code\n");
+            hoomd.context.current.device.cpp_msg.error("Command "+' '.join(cmd)+"\n");
+            hoomd.context.current.device.cpp_msg.error(output[1].decode()+"\n");
             raise RuntimeError("Error initializing patch energy");
 
         return llvm_ir
@@ -337,7 +337,7 @@ class user_union(user):
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
         if not type in type_names:
-            hoomd.context.msg.error("{} is not a valid particle type.\n".format(type));
+            hoomd.context.current.device.cpp_msg.error("{} is not a valid particle type.\n".format(type));
             raise RuntimeError("Error initializing patch energy.");
         typeid = type_names.index(type)
 
