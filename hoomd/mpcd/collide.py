@@ -205,7 +205,7 @@ class at(_collision_method):
         self.metadata_fields += ['kT']
         self.kT = hoomd.variant._setup_variant_input(kT)
 
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             collide_class = _mpcd.ATCollisionMethod
             thermo_class = _mpcd.CellThermoCompute
         else:
@@ -315,7 +315,7 @@ class srd(_collision_method):
         _collision_method.__init__(self, seed, period)
         self.metadata_fields += ['angle','kT']
 
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             collide_class = _mpcd.SRDCollisionMethod
         else:
             collide_class = _mpcd.SRDCollisionMethodGPU

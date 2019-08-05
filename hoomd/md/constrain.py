@@ -180,7 +180,7 @@ class sphere(_constraint_force):
 
         # create the c++ mirror class
         P = _hoomd.make_scalar3(P[0], P[1], P[2]);
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ConstraintSphere(hoomd.context.current.system_definition, group.cpp_group, P, r);
         else:
             self.cpp_force = _md.ConstraintSphereGPU(hoomd.context.current.system_definition, group.cpp_group, P, r);
@@ -227,7 +227,7 @@ class distance(_constraint_force):
         _constraint_force.__init__(self);
 
         # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ForceDistanceConstraint(hoomd.context.current.system_definition);
         else:
             self.cpp_force = _md.ForceDistanceConstraintGPU(hoomd.context.current.system_definition);
@@ -356,7 +356,7 @@ class rigid(_constraint_force):
         self.composite = True
 
         # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ForceComposite(hoomd.context.current.system_definition);
         else:
             self.cpp_force = _md.ForceCompositeGPU(hoomd.context.current.system_definition);
@@ -501,7 +501,7 @@ class oneD(_constraint_force):
         _constraint_force.__init__(self);
 
         # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.OneDConstraint(hoomd.context.current.system_definition, group.cpp_group, constraint_vector);
         else:
             self.cpp_force = _md.OneDConstraintGPU(hoomd.context.current.system_definition, group.cpp_group, constraint_vector);

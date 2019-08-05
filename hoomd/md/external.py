@@ -285,7 +285,7 @@ class periodic(_external_force):
         _external_force.__init__(self, name);
 
         # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialExternalPeriodic(hoomd.context.current.system_definition,self.name);
         else:
             self.cpp_force = _md.PotentialExternalPeriodicGPU(hoomd.context.current.system_definition,self.name);
@@ -329,7 +329,7 @@ class e_field(_external_force):
         _external_force.__init__(self, name);
 
         # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialExternalElectricField(hoomd.context.current.system_definition,self.name);
         else:
             self.cpp_force = _md.PotentialExternalElectricFieldGPU(hoomd.context.current.system_definition,self.name);

@@ -61,9 +61,9 @@ def make_random(N, kT, seed):
     sysdef = hoomd.context.current.system_definition
     box = sysdef.getParticleData().getBox()
     if hoomd.context.current.decomposition:
-        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.current.device.cpp_device, hoomd.context.current.decomposition.cpp_dd)
+        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.current.device.cpp_exec_conf, hoomd.context.current.decomposition.cpp_dd)
     else:
-        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.current.device.cpp_device)
+        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.current.device.cpp_exec_conf)
 
     # then make mpcd system
     hoomd.context.current.mpcd = data.system(_mpcd.SystemData(sysdef,pdata))

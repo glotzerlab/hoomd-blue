@@ -189,7 +189,7 @@ def set_num_threads(num_threads):
     if not _hoomd.is_TBB_available():
         msg.warning("HOOMD was compiled without thread support, ignoring request to set number of threads.\n");
     else:
-        hoomd.context.current.device.cpp_device.setNumThreads(int(num_threads));
+        hoomd.context.current.device.cpp_exec_conf.setNumThreads(int(num_threads));
 
 
 ## \internal

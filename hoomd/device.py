@@ -54,8 +54,8 @@ class _device(hoomd.meta._metadata):
         # output the version info on initialization
         self.cpp_msg.notice(1, _hoomd.output_version_info())
 
-        # c++ device mirror class
-        self.cpp_device = None
+        # c++ execution configuration mirror class
+        self.cpp_exec_conf = None
 
         # add to simulation context
         hoomd.context.current.device = self
@@ -68,13 +68,13 @@ class _device(hoomd.meta._metadata):
     # \brief Return the name of the GPU used in GPU mode.
     @property
     def gpu(self):
-        n_gpu = self.cpp_device.getNumActiveGPUs()
-        return [self.cpp_device.getGPUName(i) for i in range(n_gpu)]
+        n_gpu = self.cpp_exec_conf.getNumActiveGPUs()
+        return [self.cpp_exec_conf.getGPUName(i) for i in range(n_gpu)]
 
     # \brief Return the execution mode
     @property
     def mode(self):
-        if self.cpp_device.isCUDAEnabled():
+        if self.cpp_exec_conf.isCUDAEnabled():
             return 'gpu';
         else:
             return 'cpu';
@@ -126,21 +126,21 @@ class _device(hoomd.meta._metadata):
             self.cpp_msg.warning("HOOMD was compiled without thread support, returning None\n");
             return None
         else:
-            return self.cpp_device.getNumThreads();
+            return self.cpp_exec_conf.getNumThreads();
 
 
-def _setup_cpp_device(cpp_device, memory_traceback, nthreads):
+def _setup_cpp_exec_conf(cpp_exec_conf, memory_traceback, nthreads):
     """
-    Calls some functions on the cpp_device object, to set it up completely
+    Calls some functions on the cpp_exec_conf object, to set it up completely
     """
 
     if _hoomd.is_TBB_available():
         # set the number of TBB threads as necessary
         if nthreads != None:
-            cpp_device.setNumThreads(nthreads)
+            cpp_exec_conf.setNumThreads(nthreads)
 
     # set memory traceback
-    cpp_device.setMemoryTracing(memory_traceback)
+    cpp_exec_conf.setMemoryTracing(memory_traceback)
 
 
 ## Initializes the MPI configuration
@@ -268,7 +268,7 @@ class gpu(_device):
         for gpuid in gpu_id:
             gpu_vec.append(gpuid)
 
-        self.cpp_device = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.GPU,
+        self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.GPU,
                                                         gpu_vec,
                                                         min_cpu,
                                                         ignore_display,
@@ -277,9 +277,9 @@ class gpu(_device):
 
         # if gpu_error_checking is set, enable it on the GPU
         if gpu_error_checking:
-            self.cpp_device.setCUDAErrorChecking(True)
+            self.cpp_exec_conf.setCUDAErrorChecking(True)
 
-        _setup_cpp_device(self.cpp_device, memory_traceback, nthreads)
+        _setup_cpp_exec_conf(self.cpp_exec_conf, memory_traceback, nthreads)
 
 
 class cpu(_device):
@@ -306,14 +306,14 @@ class cpu(_device):
 
         _check_exec_conf_args(nthreads)
 
-        self.cpp_device = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.CPU,
+        self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.CPU,
                                                         _hoomd.std_vector_int(),
                                                         min_cpu,
                                                         ignore_display,
                                                         self.cpp_mpi_conf,
                                                         self.cpp_msg)
 
-        _setup_cpp_device(self.cpp_device, memory_traceback, nthreads)
+        _setup_cpp_exec_conf(self.cpp_exec_conf, memory_traceback, nthreads)
 
 
 class auto(_device):
@@ -340,11 +340,11 @@ class auto(_device):
 
         _check_exec_conf_args(nthreads)
 
-        self.cpp_device = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
+        self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
                                                         _hoomd.std_vector_int(),
                                                         min_cpu,
                                                         ignore_display,
                                                         self.cpp_mpi_conf,
                                                         self.cpp_msg)
 
-        _setup_cpp_device(self.cpp_device, memory_traceback, nthreads)
+        _setup_cpp_exec_conf(self.cpp_exec_conf, memory_traceback, nthreads)

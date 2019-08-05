@@ -91,7 +91,7 @@ class pair_ignore_overlaps_check(unittest.TestCase):
         self.assertEqual(rotate_acceptance_prob,1)
         #not all rots are accepted
         translate_acceptance_prob = self.mc.get_translate_acceptance()
-        if hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.assertLess(translate_acceptance_prob,0.95)
             self.assertGreater(translate_acceptance_prob,0.90)
         else:

@@ -252,7 +252,7 @@ class decomposition(object):
     def _make_cpp_decomposition(self, box):
         # if the box is uniform in all directions, just use these values
         if self.uniform_x and self.uniform_y and self.uniform_z:
-            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.current.device.cpp_device, box.getL(), self.nx, self.ny, self.nz, not hoomd.context.options.onelevel)
+            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.current.device.cpp_exec_conf, box.getL(), self.nx, self.ny, self.nz, not hoomd.context.options.onelevel)
             return self.cpp_dd
 
         # otherwise, make the fractional decomposition
@@ -301,7 +301,7 @@ class decomposition(object):
                 hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                 raise RuntimeError("Sum of decomposition in z must lie between 0.0 and 1.0")
 
-            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.current.device.cpp_device, box.getL(), fxs, fys, fzs)
+            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.current.device.cpp_exec_conf, box.getL(), fxs, fys, fzs)
             return self.cpp_dd
 
         except TypeError as te:

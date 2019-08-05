@@ -108,7 +108,7 @@ class user(object):
         hoomd.context._verify_init()
 
         # raise an error if this run is on the GPU
-        if hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             hoomd.context.current.device.cpp_msg.error("Patch energies are not supported on the GPU\n");
             raise RuntimeError("Error initializing patch energy");
 
@@ -126,7 +126,7 @@ class user(object):
                 llvm_ir = f.read()
 
         self.compute_name = "patch"
-        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.current.device.cpp_device, llvm_ir, r_cut);
+        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut);
         mc.set_PatchEnergyEvaluator(self);
 
         self.mc = mc
@@ -300,7 +300,7 @@ class user_union(user):
             r_cut_iso = -1.0
 
         self.compute_name = "patch_union"
-        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_device,
+        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
             llvm_ir_iso, r_cut_iso, llvm_ir, r_cut);
         mc.set_PatchEnergyEvaluator(self);
 

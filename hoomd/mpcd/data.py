@@ -186,7 +186,7 @@ class system(hoomd.meta._metadata):
         hoomd.context.current.system.addCompute(self.cell, "mpcd_cl")
 
         # create a cell thermo for the system for collision method and logger
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self._thermo = _mpcd.CellThermoCompute(self.data)
         else:
             self._thermo = _mpcd.CellThermoComputeGPU(self.data)
@@ -196,7 +196,7 @@ class system(hoomd.meta._metadata):
 
         # if MPI is enabled, automatically add a communicator to the system
         if hoomd.comm.get_num_ranks() > 1:
-            if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+            if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
                 self.comm = _mpcd.Communicator(self.data)
             else:
                 self.comm = _mpcd.CommunicatorGPU(self.data)

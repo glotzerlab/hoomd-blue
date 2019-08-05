@@ -158,7 +158,7 @@ class SimulationContext(object):
             True if this invocation of HOOMD-blue is executing on a GPU. False if it is on the CPU.
         """
 
-        return self.device.cpp_device.isCUDAEnabled()
+        return self.device.cpp_exec_conf.isCUDAEnabled()
 
     def __enter__(self):
         global current

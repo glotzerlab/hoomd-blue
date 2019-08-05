@@ -227,7 +227,7 @@ class harmonic(force._force):
         self.angle_coeff = coeff();
 
         # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.HarmonicAngleForceCompute(hoomd.context.current.system_definition);
         else:
             self.cpp_force = _md.HarmonicAngleForceComputeGPU(hoomd.context.current.system_definition);
@@ -316,7 +316,7 @@ class cosinesq(force._force):
         self.angle_coeff = coeff();
 
         # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.CosineSqAngleForceCompute(
                     hoomd.context.current.system_definition);
         else:
@@ -432,7 +432,7 @@ class table(force._force):
 
 
         # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.TableAngleForceCompute(hoomd.context.current.system_definition, int(width), self.name);
         else:
             self.cpp_force = _md.TableAngleForceComputeGPU(hoomd.context.current.system_definition, int(width), self.name);

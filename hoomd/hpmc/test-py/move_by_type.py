@@ -64,7 +64,7 @@ class pair_move_some(unittest.TestCase):
         #loop over ignored particle fractions, and expected accepted probs for the 'B' particles
         gpu_accept_probs = [1.0, 0.57,  0.14]
         cpu_accept_probs = [1.0,0.597, 0.147]
-        if hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             probs = gpu_accept_probs
         else:
             probs = cpu_accept_probs
@@ -142,7 +142,7 @@ class pair_rot_some(unittest.TestCase):
         #loop over ignored particle fractions, and expected accepted probs for the 'B' particles
         gpu_accept_probs = [1.0, 0.517, 0.031]
         cpu_accept_probs = [1.0, 0.517, 0.0299]
-        if hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             probs = gpu_accept_probs
         else:
             probs = cpu_accept_probs

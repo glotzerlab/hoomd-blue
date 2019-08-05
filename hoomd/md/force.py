@@ -439,7 +439,7 @@ class active(_force):
             rz = 0
 
         # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
                                                       orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz);
 

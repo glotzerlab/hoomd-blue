@@ -221,7 +221,7 @@ class nvt(_integration_method):
         # setup suffix
         suffix = '_' + group.name;
 
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_method = _md.TwoStepNVTMTK(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, kT.cpp_variant, suffix);
         else:
             self.cpp_method = _md.TwoStepNVTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, kT.cpp_variant, suffix);
@@ -500,7 +500,7 @@ class npt(_integration_method):
         if (yz or all) and not twod:
             flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_yz)
 
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_method = _md.TwoStepNPTMTK(hoomd.context.current.system_definition,
                                                 group.cpp_group,
                                                 thermo_group.cpp_compute,
@@ -777,7 +777,7 @@ class nve(_integration_method):
         hoomd.compute._get_unique_thermo(group=group);
 
         # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_method = _md.TwoStepNVE(hoomd.context.current.system_definition, group.cpp_group, False);
         else:
             self.cpp_method = _md.TwoStepNVEGPU(hoomd.context.current.system_definition, group.cpp_group);
@@ -939,7 +939,7 @@ class langevin(_integration_method):
             use_lambda = True;
 
         # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             my_class = _md.TwoStepLangevin;
         else:
             my_class = _md.TwoStepLangevinGPU;
@@ -1156,7 +1156,7 @@ class brownian(_integration_method):
             use_lambda = True;
 
         # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             my_class = _md.TwoStepBD;
         else:
             my_class = _md.TwoStepBDGPU;
@@ -1354,7 +1354,7 @@ class mode_minimize_fire(_integrator):
         _integrator.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_integrator = _md.FIREEnergyMinimizer(hoomd.context.current.system_definition, dt);
         else:
             self.cpp_integrator = _md.FIREEnergyMinimizerGPU(hoomd.context.current.system_definition, dt);
@@ -1498,7 +1498,7 @@ class berendsen(_integration_method):
         thermo = hoomd.compute._get_unique_thermo(group = group);
 
         # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_method = _md.TwoStepBerendsen(hoomd.context.current.system_definition,
                                                      group.cpp_group,
                                                      thermo.cpp_compute,

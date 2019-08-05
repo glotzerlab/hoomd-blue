@@ -578,7 +578,7 @@ class cell(nlist):
             self.name = name
 
         # create the C++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_cl = _hoomd.CellList(hoomd.context.current.system_definition)
             hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
             self.cpp_nlist = _md.NeighborListBinned(hoomd.context.current.system_definition, 0.0, r_buff, self.cpp_cl )
@@ -668,7 +668,7 @@ class stencil(nlist):
             self.name = name
 
         # create the C++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_cl = _hoomd.CellList(hoomd.context.current.system_definition)
             hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
             cls = _hoomd.CellListStencil(hoomd.context.current.system_definition, self.cpp_cl)
@@ -840,7 +840,7 @@ class tree(nlist):
         nlist.__init__(self)
 
         # create the C++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_nlist = _md.NeighborListTree(hoomd.context.current.system_definition, 0.0, r_buff)
         else:
             self.cpp_nlist = _md.NeighborListGPUTree(hoomd.context.current.system_definition, 0.0, r_buff)

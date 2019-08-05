@@ -59,8 +59,8 @@ def cuda_profile_start():
         hoomd.context.msg.error("Cannot start profiling before initialization\n");
         raise RuntimeError('Error starting profile');
 
-    if hoomd.context.current.device.cpp_device.isCUDAEnabled():
-        hoomd.context.current.device.cpp_device.cudaProfileStart();
+    if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+        hoomd.context.current.device.cpp_exec_conf.cudaProfileStart();
 
 def cuda_profile_stop():
     """ Stop CUDA profiling.
@@ -73,5 +73,5 @@ def cuda_profile_stop():
         hoomd.context.msg.error("Cannot stop profiling before initialization\n");
         raise RuntimeError('Error stopping profile');
 
-    if hoomd.context.current.device.cpp_device.isCUDAEnabled():
-        hoomd.context.current.device.cpp_device.cudaProfileStop();
+    if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+        hoomd.context.current.device.cpp_exec_conf.cudaProfileStop();

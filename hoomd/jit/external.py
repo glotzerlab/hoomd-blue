@@ -91,7 +91,7 @@ class user(field._external):
 
         # raise an error if this run is on the GPU
         cls = None;
-        if hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             hoomd.context.current.device.cpp_msg.error("JIT forces are not supported on the GPU\n");
             raise RuntimeError("Error initializing force energy");
         else:
@@ -138,7 +138,7 @@ class user(field._external):
 
         self.compute_name = "external_field_jit"
         self.cpp_compute = cls(hoomd.context.current.system_definition,
-            hoomd.context.current.device.cpp_device, llvm_ir);
+            hoomd.context.current.device.cpp_exec_conf, llvm_ir);
         hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
 
         self.mc = mc

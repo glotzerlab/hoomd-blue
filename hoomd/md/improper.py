@@ -215,7 +215,7 @@ class harmonic(force._force):
         self.improper_coeff = coeff();
 
         # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_device.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.HarmonicImproperForceCompute(hoomd.context.current.system_definition);
         else:
             self.cpp_force = _md.HarmonicImproperForceComputeGPU(hoomd.context.current.system_definition);
