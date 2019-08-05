@@ -25,7 +25,7 @@ def get_num_ranks():
 
     hoomd.context._verify_init();
     if _hoomd.is_MPI_available():
-        return hoomd.context.mpi_conf.getNRanks();
+        return hoomd.context.current.device.cpp_mpi_conf.getNRanks();
     else:
         return 1;
 
@@ -42,7 +42,7 @@ def get_rank():
     hoomd.context._verify_init();
 
     if _hoomd.is_MPI_available():
-        return hoomd.context.mpi_conf.getRank()
+        return hoomd.context.current.device.cpp_mpi_conf.getRank()
     else:
         return 0;
 
@@ -58,7 +58,7 @@ def get_partition():
     hoomd.context._verify_init();
 
     if _hoomd.is_MPI_available():
-        return hoomd.context.mpi_conf.getPartition()
+        return hoomd.context.current.device.cpp_mpi_conf.getPartition()
     else:
         return 0;
 
@@ -80,7 +80,7 @@ def barrier():
     hoomd.context._verify_init();
 
     if _hoomd.is_MPI_available():
-        hoomd.context.mpi_conf.barrier()
+        hoomd.context.current.device.cpp_mpi_conf.barrier()
 
 class decomposition(object):
     """ Set the domain decomposition.
@@ -145,7 +145,7 @@ class decomposition(object):
     def __init__(self, x=None, y=None, z=None, nx=None, ny=None, nz=None):
 
         # check that the context has been initialized though
-        if hoomd.context.mpi_conf is None:
+        if hoomd.context.current.device.cpp_mpi_conf is None:
             raise RuntimeError("Cannot initialize decomposition without context.initialize() first")
 
         # check that system is not initialized
@@ -179,7 +179,7 @@ class decomposition(object):
                 self.uniform_y = True
             if not self.z and self.nz == 0:
                 if hoomd.context.options.linear is True:
-                    self.nz = hoomd.context.mpi_conf.getNRanks()
+                    self.nz = hoomd.context.current.device.cpp_mpi_conf.getNRanks()
                     self.uniform_z = True
                 elif hoomd.context.options.nz is not None:
                     self.nz = hoomd.context.options.nz

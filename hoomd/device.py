@@ -33,8 +33,7 @@ class _device(hoomd.meta._metadata):
             self.metadata_fields.append('num_threads')
 
         # make sure context is initialized
-        if hoomd.context.current.mpi_conf is None:
-            raise RuntimeError("Cannot assign a device before calling hoomd.context.initialize()")
+        hoomd.context._verify_init()
 
         # check nrank
         if nrank is not None:

@@ -105,8 +105,7 @@ class user(object):
     def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, clang_exec=None):
 
         # check if initialization has occurred
-        if hoomd.context.mpi_conf is None:
-            raise RuntimeError('Error creating patch energy, call context.initialize() first');
+        hoomd.context._verify_init()
 
         # raise an error if this run is on the GPU
         if hoomd.context.current.device.cpp_device.isCUDAEnabled():
@@ -272,8 +271,7 @@ class user_union(user):
         llvm_ir_file_iso=None, clang_exec=None):
 
         # check if initialization has occurred
-        if hoomd.context.mpi_conf is None:
-            raise RuntimeError('Error creating patch energy, call context.initialize() first');
+        hoomd.context._verify_init()
 
         if clang_exec is not None:
             clang = clang_exec;
