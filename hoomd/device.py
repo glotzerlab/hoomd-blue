@@ -6,8 +6,8 @@
 r""" Devices available to run simulations
 
 A device object represents the hardware (whether CPU, GPU, or auto) the simulation will run on. Creating a device
-object will automatically add it to the simulation context. A device is chosen by default for the user, but they
-can chose a new one before starting the simulation
+object will automatically add it to the simulation context. A device in mode AUTO is chosen by default for the user,
+but they can chose a new one before starting the simulation
 """
 
 import os
@@ -38,12 +38,12 @@ class _device(hoomd.meta._metadata):
         # check nrank
         if nrank is not None:
             if not _hoomd.is_MPI_available():
-                raise RuntimeError("The nrank option is only available in MPI builds.\n");
+                raise RuntimeError("The nrank option is only available in MPI builds.\n")
 
         # check shared_msg_file
         if shared_msg_file is not None:
             if not _hoomd.is_MPI_available():
-                raise RuntimeError("Shared log files are only available in MPI builds.\n");
+                raise RuntimeError("Shared log files are only available in MPI builds.\n")
 
         # c++ mpi configuration mirror class instance
         self.cpp_mpi_conf = _create_mpi_conf(mpi_comm, nrank)
@@ -75,9 +75,9 @@ class _device(hoomd.meta._metadata):
     @property
     def mode(self):
         if self.cpp_exec_conf.isCUDAEnabled():
-            return 'gpu';
+            return 'gpu'
         else:
-            return 'cpu';
+            return 'cpu'
 
     # \brief Return the number of ranks.
     @property
@@ -103,30 +103,76 @@ class _device(hoomd.meta._metadata):
     @property
     def job_id(self):
         if 'PBS_JOBID' in os.environ:
-            return os.environ['PBS_JOBID'];
+            return os.environ['PBS_JOBID']
         elif 'SLURM_JOB_ID' in os.environ:
-            return os.environ['SLURM_JOB_ID'];
+            return os.environ['SLURM_JOB_ID']
         else:
-            return '';
+            return ''
 
     # \brief Return the job name
     @property
     def job_name(self):
         if 'PBS_JOBNAME' in os.environ:
-            return os.environ['PBS_JOBNAME'];
+            return os.environ['PBS_JOBNAME']
         elif 'SLURM_JOB_NAME' in os.environ:
-            return os.environ['SLURM_JOB_NAME'];
+            return os.environ['SLURM_JOB_NAME']
         else:
-            return '';
+            return ''
 
     # \brief Return the number of CPU threads
     @property
     def num_threads(self):
         if not _hoomd.is_TBB_available():
-            self.cpp_msg.warning("HOOMD was compiled without thread support, returning None\n");
+            self.cpp_msg.warning("HOOMD was compiled without thread support, returning None\n")
             return None
         else:
-            return self.cpp_exec_conf.getNumThreads();
+            return self.cpp_exec_conf.getNumThreads()
+
+    def set_notice_level(self, notice_level):
+        R""" Set the notice level.
+
+        Args:
+            notice_level (int). The maximum notice level to print.
+
+        The notice level may be changed before or after initialization, and may be changed
+        many times during a job script.
+
+        """
+
+        self.cpp_msg.setNoticeLevel(notice_level)
+
+    def set_msg_file(self, fname):
+        R""" Set the message file.
+
+        Args:
+            fname (str): Specifies the name of the file to write. The file will be overwritten.
+                         Set to None to direct messages back to stdout/stderr.
+
+        The message file may be changed before or after initialization, and may be changed many times during a job script.
+        Changing the message file will only affect messages sent after the change.
+
+        """
+
+        if fname is not None:
+            self.cpp_msg.openFile(fname)
+        else:
+            self.cpp_msg.openStd()
+
+    def set_num_threads(self, num_threads):
+        R""" Set the number of CPU (TBB) threads HOOMD uses
+
+        Args:
+            num_threads (int): The number of threads
+
+        Note:
+            Overrides ``--nthreads`` on the command line.
+
+        """
+
+        if not _hoomd.is_TBB_available():
+            self.cpp_msg.warning("HOOMD was compiled without thread support, ignoring request to set number of threads.\n")
+        else:
+            self.cpp_exec_conf.setNumThreads(int(num_threads))
 
 
 def _setup_cpp_exec_conf(cpp_exec_conf, memory_traceback, nthreads):

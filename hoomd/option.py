@@ -113,52 +113,6 @@ def get_user():
     _verify_init();
     return hoomd.context.options.user;
 
-def set_notice_level(notice_level):
-    R""" Set the notice level.
-
-    Args:
-        notice_level (int). The maximum notice level to print.
-
-    The notice level may be changed before or after initialization, and may be changed
-    many times during a job script.
-
-    Note:
-        Overrides ``--notice-level`` on the command line.
-
-    """
-    _verify_init();
-
-    try:
-        notice_level = int(notice_level);
-    except ValueError:
-        hoomd.context.current.device.cpp_msg.error("notice-level must be an integer\n");
-        raise RuntimeError('Error setting option');
-
-    hoomd.context.current.device.cpp_msg.setNoticeLevel(notice_level);
-    hoomd.context.options.notice_level = notice_level;
-
-def set_msg_file(fname):
-    R""" Set the message file.
-
-    Args:
-        fname (str): Specifies the name of the file to write. The file will be overwritten.
-                     Set to None to direct messages back to stdout/stderr.
-
-    The message file may be changed before or after initialization, and may be changed many times during a job script.
-    Changing the message file will only affect messages sent after the change.
-
-    Note:
-        Overrides ``--msg-file`` on the command line.
-
-    """
-    _verify_init();
-
-    if fname is not None:
-        hoomd.context.current.device.cpp_msg.openFile(fname);
-    else:
-        hoomd.context.current.device.cpp_msg.openStd();
-
-    hoomd.context.options.msg_file = fname;
 
 def set_autotuner_params(enable=True, period=100000):
     R""" Set autotuner parameters.
@@ -175,26 +129,9 @@ def set_autotuner_params(enable=True, period=100000):
     hoomd.context.options.autotuner_period = period;
     hoomd.context.options.autotuner_enable = enable;
 
-def set_num_threads(num_threads):
-    R""" Set the number of CPU (TBB) threads HOOMD uses
-
-    Args:
-        num_threads (int): The number of threads
-
-    Note:
-        Overrides ``--nthreads`` on the command line.
-
-    """
-
-    if not _hoomd.is_TBB_available():
-        hoomd.context.current.device.cpp_msg.warning("HOOMD was compiled without thread support, ignoring request to set number of threads.\n");
-    else:
-        hoomd.context.current.device.cpp_exec_conf.setNumThreads(int(num_threads));
-
 
 ## \internal
 # \brief Throw an error if the context is not initialized
 def _verify_init():
-    if hoomd.context.options is None:
-        hoomd.context.current.device.cpp_msg.error("call context.initialize() before any other method in _hoomd.")
-        raise RuntimeError("hoomd execution context is not available")
+    if hoomd.context.current is None:
+        raise RuntimeError("call context.initialize() before any other method in hoomd.")
