@@ -34,6 +34,7 @@ class update_dynamic_bond (unittest.TestCase):
         dybond = md.update.dynamic_bond(group.all(), nlist=self.nl, seed=1, period=1)
         dybond.set_params(r_cut=2.0, bond_type='harmonic', prob_form=1, prob_break=0)
 
+
     # tests breakage of a bond within a cutoff radius
     def test_breakage(self):
         dybond = md.update.dynamic_bond(group.all(), nlist=self.nl, seed=1, period=1)

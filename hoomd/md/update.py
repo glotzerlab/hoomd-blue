@@ -46,7 +46,7 @@ class dynamic_bond(_updater):
         self.check_initialization()
         self.cpp_updater.setParams(r_cut, bond_type, prob_form, prob_break);
         # store metadata
-        # metadata_fields = ['r_cut', 'bond_type', 'prob_form', 'prob_break']
+        metadata_fields = ['r_cut', 'bond_type', 'prob_form', 'prob_break']
 
 
 class rescale_temp(_updater):
