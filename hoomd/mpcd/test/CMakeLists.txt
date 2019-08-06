@@ -3,10 +3,13 @@
 ###################################
 ## Setup all of the test executables in a for loop
 if (BUILD_TESTING)
+
+# external_field test will not link properly due to separable compilation, disabling.
 set(TEST_LIST
     at_collision_method
     cell_list
     cell_thermo_compute
+    #external_field
     slit_geometry_filler
     sorter
     srd_collision_method
@@ -36,8 +39,16 @@ if(ENABLE_MPI)
 endif()
 
 macro(compile_test TEST_EXE TEST_SRC)
+    # check for extra cuda files
+    if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_EXE}.cu)
+        set(CUDA_SEPARABLE_COMPILATION OFF)
+        CUDA_COMPILE(_CUDA_GENERATED_FILES ${TEST_EXE}.cu OPTIONS ${CUDA_ADDITIONAL_OPTIONS})
+    else()
+        set(_CUDA_GENERATED_FILES "")
+    endif()
+
     # add and link the unit test executable
-    add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC})
+    add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC} ${_CUDA_GENERATED_FILES})
     add_dependencies(test_all ${TEST_EXE})
     target_link_libraries(${TEST_EXE} _mpcd _md ${HOOMD_LIBRARIES} ${PYTHON_LIBRARIES})
     fix_cudart_rpath(${TEST_EXE})

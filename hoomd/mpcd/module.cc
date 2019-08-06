@@ -132,6 +132,7 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_SlitGeometry(m);
 
     mpcd::detail::export_StreamingMethod(m);
+    mpcd::detail::export_ExternalFieldPolymorph(m);
     mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::BulkGeometry>(m);
     mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::SlitGeometry>(m);
     #ifdef ENABLE_CUDA

@@ -1,43 +1,92 @@
 Change Log
 ==========
 
-v2.6.0 (not yet released)
+v2.7.0 (not yet released)
 -------------------------
 
 *New features*
 
 - General:
 
-  - Enable HPMC plugins
-  - Fix plug-in builds when ENABLE_TBB or ALWAYS_USE_MANAGED_MEMORY CMake parameters are set
+  - Allow components to use ``Logger`` at the C++ level
+  - Drop support for python 2.7
 
 - MD:
 
-  - Exclude neighbors that belong to the same floppy molecule
+- HPMC:
+
+  - Add ``get_type_shapes`` to ``ellipsoid``
+
+- MPCD:
+
+*Bug fixes*
+
+- ``hoomd.hdf5.log.query`` works with matrix quantities
+- ``test_group_rigid.py`` is run out of the ``md`` module
+
+v2.6.0 (2019/05/28)
+-------------------
+
+*New features*
+
+- General:
+
+  - Enable ``HPMC`` plugins.
+  - Fix plug-in builds when ``ENABLE_TBB`` or ``ALWAYS_USE_MANAGED_MEMORY`` CMake parameters are set.
+  - Remove support for compute 3.0 GPUs.
+  - Report detailed CUDA errors on initialization.
+  - Document upcoming feature removals and API changes.
+
+- MD:
+
+  - Exclude neighbors that belong to the same floppy molecule.
+  - Add fourier potential.
 
 - HPMC:
 
-  - New shape class: ``hpmc.integrate.faceted_ellipsoid_union()``
+  - New shape class: ``hpmc.integrate.faceted_ellipsoid_union()``.
+  - Store the *orientable* shape state.
+
+- MPCD:
+
+  - ``mpcd.stream.slit`` allows for simulations in parallel-plate channels. Users can implement other geometries as a plugin.
+  - MPCD supports virtual particle filling in bounded geometries through the ``set_filler`` method of ``mpcd.stream`` classes.
+  - ``mpcd.stream`` includes an external ``mpcd.force`` acting on the MPCD particles. A block force, a constant force, and a sine force are implemented.
+
+*Bug fixes*
+
+- Fix compile errors with LLVM 8 and ``-DBUILD_JIT=on``.
+- Allow simulations with 0 bonds to specify bond potentials.
+- Fix a problem where HOOMD could not be imported in ``mpi4py`` jobs.
+- Validate snapshot input in ``restore_snapshot``.
+- Fix a bug where rigid body energy and pressure deviated on the first time step after ``run()``.
+- Fix a bug which could lead to invalid MPI simulations with ``nlist.cell()`` and ``nlist.stencil()``.
+
+*C++ API changes*
+
+- Refactor handling of ``MPI_Comm`` inside library
+- Use ``random123`` for random number generation
+- CMake version 2.8.10.1 is now a minimum requirement for compiling from source
 
 v2.5.2 (2019/04/30)
 -------------------
 
 *Bug fixes*
 
-- Support LLVM 9 in `jit`
-- Fix error when importing `jit` before `hpmc`
-- HPMC integrators raise errors when `restore_state=True` and state information is missing
-- Send messages to replaced `sys.stdout` and `sys.stderr` streams
-- Add `hpmc.update.clusters` to documentation index
+- Support LLVM 9 in ``jit``
+- Fix error when importing ``jit`` before ``hpmc``
+- HPMC integrators raise errors when ``restore_state=True`` and state information is missing
+- Send messages to replaced ``sys.stdout`` and ``sys.stderr`` streams
+- Add ``hpmc.update.clusters`` to documentation index
 - Fix a bug in the MPCD Gaussian random number generator that could lead to NaN values
-- Fix issue where an initially cubic box can become non-cubic with `integrate.npt()` and `randomize_velocities()`
-- Fix illegal memory access in NeighborListGPU with `-DALWAYS_USE_MANAGED_MEMORY=ON` on single GPUs
-- Improve `pair.table` performance with multi-GPU execution
-- Improve `charge.pppm` performance with multi-GPU execution
+- Fix issue where an initially cubic box can become non-cubic with ``integrate.npt()`` and ``randomize_velocities()``
+- Fix illegal memory access in NeighborListGPU with ``-DALWAYS_USE_MANAGED_MEMORY=ON`` on single GPUs
+- Improve ``pair.table`` performance with multi-GPU execution
+- Improve ``charge.pppm`` performance with multi-GPU execution
 - Improve rigid body performance with multi-GPU execution
-- Display correct cell list statistics with the `-DALWAYS_USE_MANAGED_MEMORY=ON` compile option
+- Display correct cell list statistics with the ``-DALWAYS_USE_MANAGED_MEMORY=ON`` compile option
 - Fix a sporadic data corruption / bus error issue when data structures are dynamically resized in simulations that use unified memory (multi-GPU, or with -DALWAYS_USE_MANAGED_MEMORY=ON compile time option)
-- Improve `integrate.nve` and `integrate.npt` performance with multi-GPU execution
+- Improve ``integrate.nve`` and ``integrate.npt`` performance with multi-GPU execution
 - Improve some angular degrees of freedom integrators with multi-GPU execution
 - Improve rigid body pressure calculation performance with multi-GPU execution
 

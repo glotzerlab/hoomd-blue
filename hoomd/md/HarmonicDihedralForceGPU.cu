@@ -22,9 +22,6 @@
     \brief Defines GPU kernel code for calculating the harmonic dihedral forces. Used by HarmonicDihedralForceComputeGPU.
 */
 
-//! Texture for reading dihedral parameters
-scalar4_tex_t dihedral_params_tex;
-
 //! Kernel for calculating harmonic dihedral forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -137,7 +134,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
         dcbm = box.minImage(dcbm);
 
         // get the dihedral parameters (MEM TRANSFER: 12 bytes)
-        Scalar4 params = texFetchScalar4(d_params, dihedral_params_tex, cur_dihedral_type);
+        Scalar4 params = __ldg(d_params + cur_dihedral_type);
         Scalar K = params.x;
         Scalar sign = params.y;
         Scalar multi = params.z;
@@ -319,8 +316,7 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                  const unsigned int *n_dihedrals_list,
                                                  Scalar4 *d_params,
                                                  unsigned int n_dihedral_types,
-                                                 int block_size,
-                                                 const unsigned int compute_capability)
+                                                 int block_size)
     {
     assert(d_params);
 
@@ -337,14 +333,6 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
     // setup the grid to run the kernel
     dim3 grid( N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
-
-    // bind the texture on pre sm35 devices
-    if (compute_capability < 350)
-        {
-        cudaError_t error = cudaBindTexture(0, dihedral_params_tex, d_params, sizeof(Scalar4) * n_dihedral_types);
-        if (error != cudaSuccess)
-            return error;
-        }
 
     // run the kernel
     gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);

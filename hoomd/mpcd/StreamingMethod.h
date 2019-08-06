@@ -15,7 +15,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "hoomd/GPUPolymorph.h"
+#include "ExternalField.h"
 #include "SystemData.h"
+
 #include "hoomd/extern/pybind/include/pybind11/pybind11.h"
 
 namespace mpcd
@@ -79,6 +82,18 @@ class PYBIND11_EXPORT StreamingMethod
             return m_mpcd_dt;
             }
 
+        //! Set the external field
+        void setField(std::shared_ptr<hoomd::GPUPolymorph<mpcd::ExternalField>> field)
+            {
+            m_field = field;
+            }
+
+        //! Remove the external field
+        void removeField()
+            {
+            m_field.reset();
+            }
+
         //! Set the period of the streaming method
         void setPeriod(unsigned int cur_timestep, unsigned int period);
 
@@ -93,6 +108,8 @@ class PYBIND11_EXPORT StreamingMethod
         Scalar m_mpcd_dt;               //!< Integration time step
         unsigned int m_period;          //!< Number of MD timesteps between streaming steps
         unsigned int m_next_timestep;   //!< Timestep next streaming step should be performed
+
+        std::shared_ptr<hoomd::GPUPolymorph<mpcd::ExternalField>> m_field;  //!< External field
 
         //! Check if streaming should occur
         virtual bool shouldStream(unsigned int timestep);

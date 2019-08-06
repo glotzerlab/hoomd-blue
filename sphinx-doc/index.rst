@@ -19,7 +19,7 @@ HOOMD-blue
         :target: https://anaconda.org/conda-forge/hoomd
     .. |conda-forge-Downloads| image:: https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat
         :target: https://anaconda.org/conda-forge/hoomd
-    .. |CircleCI| image:: https://img.shields.io/circleci/project/github/glotzerlab/hoomd-blue/master.svg
+    .. |CircleCI| image:: https://img.shields.io/circleci/project/github/glotzerlab/hoomd-blue/maint.svg
         :target: https://circleci.com/gh/glotzerlab/hoomd-blue
     .. |Read-the-Docs| image:: https://img.shields.io/readthedocs/hoomd-blue/stable.svg
         :target: https://hoomd-blue.readthedocs.io/en/stable/?badge=stable
@@ -128,6 +128,7 @@ containers).
    :maxdepth: 3
    :caption: Reference
 
+   deprecated
    license
    credits
    indices
