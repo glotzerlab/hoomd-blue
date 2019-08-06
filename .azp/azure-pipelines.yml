@@ -7,6 +7,16 @@ trigger:
 variables:
   image_root: glotzerlab/ci:2019.06
 
+  # default build parameters, will override as needed with job matrix values
+  enable_cuda: 'off'
+  enable_mpi: 'off'
+  enable_tbb: 'off'
+  build_validation: 'off'
+  build_jit: 'off'
+  omp_num_threads: '1'
+  llvm-version: '6.0'
+  build_testing: 'on'
+
 stages:
 - stage: build_test_cpu
   displayName: Unit test (CPU)
@@ -45,6 +55,7 @@ stages:
           container_image: ubuntu18.04
           cc: gcc-5
           cxx: g++-5
+          llvm-version: '100.0'
         # gcc48_py36:
         #   container_image: ubuntu18.04
         #   cc: gcc-4.8

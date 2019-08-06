@@ -1,31 +1,20 @@
-parameters:
-  enable_cuda: 'OFF'
-  enable_mpi: 'OFF'
-  enable_tbb: 'OFF'
-  build_validation: 'OFF'
-  build_jit: 'OFF'
-  threads: '1'
-  llvm-version: '6.0'
-  build_testing: 'ON'
-
 steps:
 - checkout: self
   submodules: true
+- script: set
 - task: CMake@1
   inputs:
-    cmakeArgs: $(Build.SourcesDirectory) -DENABLE_CUDA=${{ parameters.enable_cuda }} -DENABLE_MPI=${{ parameters.enable_mpi }} -DENABLE_TBB=${{ parameters.enable_tbb }} -DBUILD_VALIDATION=${{ parameters.build_validation }} -DBUILD_TESTING=${{ parameters.build_testing }} -DBUILD_JIT=${{ parameters.build_jit }} -DLLVM_DIR=/usr/lib/llvm-${{ parameters.llvm_version }}/cmake -DBUILD_DEPRECATED=off -GNinja
+    cmakeArgs: $(Build.SourcesDirectory) -DENABLE_CUDA=$(enable_cuda) -DENABLE_MPI=$(enable_mpi) -DENABLE_TBB=$(enable_tbb) -DBUILD_VALIDATION=$(build_validation) -DBUILD_TESTING=$(build_testing) -DBUILD_JIT=$(build_jit) -DLLVM_DIR=/usr/lib/llvm-$(llvm_version)/cmake -DBUILD_DEPRECATED=off -GNinja
     workingDirectory: $(Build.BinariesDirectory)
 - script: nice -n 19 ninja -j 4
   displayName: Compile
   workingDirectory: $(Build.BinariesDirectory)
 - script: |
-            export PATH=/usr/lib/llvm-<< parameters.llvm-version >>/bin:$PATH
+            export PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
             ctest --no-compress-output -T test --output-on-failure --test-output-size-failed 1048576 --test-output-size-passed 1048576
             cp build/Testing/**/Test.xml $(Common.TestResultsDirectory)
   displayName: Unit test
   workingDirectory: $(Build.BinariesDirectory)
-  env:
-    OMP_NUM_THREADS: ${{ parameters.threads }}
 - task: PublishTestResults@2
   inputs:
     testResultsFormat: 'cTest'
