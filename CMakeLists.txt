@@ -175,3 +175,6 @@ add_subdirectory (hoomd)
 if (ENABLE_DOXYGEN)
     add_subdirectory (doc)
 endif (ENABLE_DOXYGEN)
+
+# this magically makes the build name available to ctest
+include(CTest)
