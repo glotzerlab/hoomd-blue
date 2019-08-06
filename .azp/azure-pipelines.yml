@@ -1,0 +1,152 @@
+trigger:
+  batch: true
+  branches:
+    include:
+    - '*'
+
+variables:
+  image_root: glotzerlab/ci:2019.06
+
+stages:
+- stage: build_test_cpu
+  displayName: Unit test (CPU)
+  dependsOn: []
+
+  jobs:
+  - job: linux_cpu
+    displayName: Linux
+    strategy:
+      matrix:
+        # clang8_py37:
+        #   container_image: ubuntu19.04
+        #   cc: clang-8
+        #   cxx: clang++-8
+        # clang7_py37:
+        #   container_image: ubuntu19.04
+        #   cc: clang-7
+        #   cxx: clang++-7
+        # gcc9_py37:
+        #   container_image: ubuntu19.04
+        #   cc: gcc-9
+        #   cxx: g++-9
+        # gcc8_py36:
+        #   container_image: ubuntu18.04
+        #   cc: gcc-8
+        #   cxx: g++-8
+        # gcc7_py36:
+        #   container_image: ubuntu18.04
+        #   cc: gcc-7
+        #   cxx: g++-7
+        # gcc6_py36:
+        #   container_image: ubuntu18.04
+        #   cc: gcc-6
+        #   cxx: g++-6
+        gcc5_py36:
+          container_image: ubuntu18.04
+          cc: gcc-5
+          cxx: g++-5
+        # gcc48_py36:
+        #   container_image: ubuntu18.04
+        #   cc: gcc-4.8
+        #   cxx: g++-4.8
+        # clang6_py36:
+        #   container_image: ubuntu18.04
+        #   cc: clang-6.0
+        #   cxx: clang++-6.0
+        # clang5_py36:
+        #   container_image: ubuntu18.04
+        #   cc: clang-5.0
+        #   cxx: clang++-5.0
+
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    container:
+      image: $(image_root)-$(container_image)
+      options: -u 0
+
+    steps:
+    - template: templates/build_test.yml
+
+  # - job: mac_cpu
+  #   displayName: Mac
+
+  #   strategy:
+  #     matrix:
+  #       mac10_13:
+  #         mac_image: macOS-10.13
+  #       mac10_14:
+  #         mac_image: macOS-10.14
+
+  #   pool:
+  #     vmImage: '$(mac_image)'
+
+  #   steps:
+  #   - script: brew install python tbb embree cmake ninja pybind11 qhull numpy
+  #     displayName: Brew install prereqs
+  #   - script: python3 -m pip install pytest pillow
+  #     displayName: Pip install prereqs
+  #   - template: templates/build_test.yml
+
+# - stage: build_test_gpu
+#   displayName: Unit test (GPU)
+#   dependsOn: []
+
+#   jobs:
+#   - job: linux_gpu
+#     displayName: Linux
+#     strategy:
+#       matrix:
+#         cuda10_optix51:
+#           container_image: cuda10-optix51
+#           cc: gcc
+#           cxx: g++
+
+#         cuda9_optix51:
+#           container_image: cuda9-optix51
+#           cc: gcc
+#           cxx: g++
+
+#     pool:
+#       name: 'GPU'
+#       demands: short_jobs
+
+#     container:
+#        image: $(private_image_root)-$(container_image)
+#        options: -u 0 --gpus=all --cpus=4 --memory=8g -e CUDA_VISIBLE_DEVICES
+
+#     workspace:
+#       clean: all
+
+#     steps:
+#     - template: templates/build_test.yml
+#       parameters:
+#         enable_embree: OFF
+#         enable_optix: ON
+
+- stage: doc
+  displayName: Documentation
+  dependsOn: []
+
+  jobs:
+  - job: sphinx_doc
+    displayName: Sphinx
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    container:
+      image: $(image_root)-ubuntu18.04
+      options: -u 0
+
+    workspace:
+      clean: all
+
+    steps:
+    - checkout: self
+      submodules: true
+    - script: sphinx-build -b html -d _build/doctrees -W -n . _build/html
+      displayName: (HTML)
+      workingDirectory: sphinx-doc
+    - script: sphinx-build -b latex -d _build/doctrees -W -n . _build/latex
+      displayName: (LaTeX)
+      workingDirectory: sphinx-doc
