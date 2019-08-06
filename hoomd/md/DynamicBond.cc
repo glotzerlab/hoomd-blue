@@ -49,10 +49,6 @@ void DynamicBond::setParams(Scalar r_cut,
                             Scalar prob_form,
                             Scalar prob_break)
     {
-    if (m_r_cut < 0)
-        {
-        m_exec_conf->msg->error() << "r_cut cannot be less than 0.\n" << std::endl;
-        }
     m_r_cut = r_cut;
     m_prob_form = prob_form;
     m_prob_break = prob_break;

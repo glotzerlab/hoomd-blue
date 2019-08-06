@@ -31,7 +31,6 @@ HOOMD_UP_MAIN();
 
 
 
-
 //! Typedef'd LJForceCompute factory
 typedef std::function<std::shared_ptr<PotentialExternalPeriodic> (std::shared_ptr<SystemDefinition> sysdef)> periodicforce_creator;
 

@@ -2,8 +2,6 @@
 
 # Remove old build directory
 # rm -rf build
-
-# Make build directory
 # mkdir -p build
 
 cd build
