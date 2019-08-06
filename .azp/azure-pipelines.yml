@@ -14,7 +14,7 @@ variables:
   build_validation: 'off'
   build_jit: 'off'
   omp_num_threads: '1'
-  llvm-version: '6.0'
+  llvm_version: '6.0'
   build_testing: 'on'
 
 stages:

@@ -12,7 +12,7 @@ steps:
 - script: |
             export PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
             ctest --no-compress-output -T test --output-on-failure --test-output-size-failed 1048576 --test-output-size-passed 1048576
-            cp build/Testing/**/Test.xml $(Common.TestResultsDirectory)
+            cp $(Build.BinariesDirectory)/Testing/**/Test.xml $(Common.TestResultsDirectory)
   displayName: Unit test
   workingDirectory: $(Build.BinariesDirectory)
 - task: PublishTestResults@2
