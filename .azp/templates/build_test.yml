@@ -13,8 +13,8 @@ steps:
   displayName: Unit test
   workingDirectory: $(Build.BinariesDirectory)
   # allow openmpi to oversubscribe cores
-  # env:
-  #   OMPI_MCA_rmaps_base_oversubscribe: 1
+  env:
+    OMPI_MCA_rmaps_base_oversubscribe: 1
 - script: cp $(Build.BinariesDirectory)/Testing/**/Test.xml $(Common.TestResultsDirectory)
   displayName: Copy test results
 - task: PublishTestResults@2
