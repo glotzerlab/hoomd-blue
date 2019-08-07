@@ -27,6 +27,10 @@ class options:
         self.autotuner_enable = True;
         self.autotuner_period = 100000;
 
+        # band aid fields
+        self.mode = "auto"
+        self.gpu_error_checking = False
+
     def __repr__(self):
         tmp = dict(user=self.user)
         return str(tmp);
@@ -39,6 +43,11 @@ def _parse_command_line(arg_string=None):
     parser = OptionParser();
     parser.add_option("--user", dest="user", help="User options");
 
+    # these options are a temporary band-aid solution to make the unit tests work with the device objects
+    # while reworking the api, we will also rework the unit tests, and then these options can be removed
+    parser.add_option("--mode", dest="mode", default="auto")
+    parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False)
+
     input_args = None;
     if arg_string is not None:
         input_args = shlex.split(arg_string);
@@ -47,6 +56,10 @@ def _parse_command_line(arg_string=None):
 
     if cmd_options.user is not None:
         hoomd.context.options.user = shlex.split(cmd_options.user);
+
+    # copy band aid options to the global options variable
+    hoomd.context.options.mode = cmd_options.mode
+    hoomd.context.options.gpu_error_checking = cmd_options.gpu_error_checking
 
 def get_user():
     R""" Get user options.

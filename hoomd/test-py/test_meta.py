@@ -52,7 +52,7 @@ class metadata_tests(unittest.TestCase):
         import json, socket
         import socket
         metadata = meta.dump_metadata()
-        self.assertEqual(metadata['context']['hostname'], socket.gethostname())
+        self.assertEqual(metadata['device']['hostname'], socket.gethostname())
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

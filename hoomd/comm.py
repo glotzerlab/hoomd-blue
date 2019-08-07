@@ -184,6 +184,7 @@ class decomposition(object):
 
             self.set_params(x,y,z,nx,ny,nz)
 
+            """
             # do a one time update of the cuts to the global values if a global is set
             if not self.x and self.nx == 0 and hoomd.context.options.nx is not None:
                 self.nx = hoomd.context.options.nx
@@ -198,6 +199,7 @@ class decomposition(object):
                 elif hoomd.context.options.nz is not None:
                     self.nz = hoomd.context.options.nz
                     self.uniform_z = True
+            """
 
             # set the global decomposition to this class
             if hoomd.context.current.decomposition is not None:

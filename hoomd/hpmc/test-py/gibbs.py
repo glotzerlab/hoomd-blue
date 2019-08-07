@@ -9,7 +9,8 @@ import math
 # this script needs to be run on two ranks
 
 # initialize with one rank per partitions
-context.initialize(args="--nrank=1")
+context.initialize()
+device.cpu(nrank=1)
 
 class gibbs_ensemble_test(unittest.TestCase):
     def setUp(self):
@@ -23,11 +24,6 @@ class gibbs_ensemble_test(unittest.TestCase):
         self.system.particles.types.add('B')
         self.mc = hpmc.integrate.sphere(seed=123+p)
         self.mc.set_params(d=0.1)
-
-    def tearDown(self):
-        del self.mc
-        del self.system
-        context.initialize()
 
     def test_spheres(self):
         # within two-phase region of hard spheres phase diagram

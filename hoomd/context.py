@@ -29,6 +29,9 @@ options = None;
 ## Current simulation context
 current = None;
 
+## band-aid global device
+dev = None
+
 _prev_args = None;
 
 class SimulationContext(object):
@@ -142,7 +145,9 @@ class SimulationContext(object):
 
         ## Global variable tracking the device used for running the simulation
         ## by default, this is automatically set, unless the user assigns something different
-        self.device = hoomd.device.auto()
+        self.device = None#hoomd.device.auto()
+        if dev is not None:
+            self.device = dev
 
     def set_current(self):
         R""" Force this to be the current context
@@ -208,11 +213,31 @@ def initialize(args=None):
     options = hoomd.option.options();
     hoomd.option._parse_command_line(args);
 
+    current = SimulationContext()
+
+    # this is a temporary band-aid
+    # once we update api and remove unit tests, this can be updated
+    current.device = _create_device()
+
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()
 
-    current = SimulationContext();
+    #current = SimulationContext();
     return current
+
+# band-aid
+def _create_device():
+    global dev
+
+    if dev is None:
+        if options.mode == "gpu":
+            dev = hoomd.device.gpu(gpu_error_checking=options.gpu_error_checking)
+        elif options.mode == "cpu":
+            dev = hoomd.device.cpu()
+        else:
+            dev = hoomd.device.auto()
+
+    return dev
 
 ## \internal
 # \brief Throw an error if the context is not initialized

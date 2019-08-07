@@ -14,6 +14,7 @@
 #include <memory>
 
 #include "MPIConfiguration.h"
+#include "HOOMDMPI.h"
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
@@ -140,7 +141,13 @@ class PYBIND11_EXPORT Messenger
         */
         unsigned int getNoticeLevel() const
             {
-            return m_notice_level;
+            unsigned int level = m_notice_level;
+
+            #ifdef ENABLE_MPI
+            bcast(level, 0, m_mpi_config->getCommunicator());
+            #endif
+
+            return level;
             }
 
         //! Set the notice level

@@ -14,13 +14,11 @@ class option_tests (unittest.TestCase):
 
     # tests that mode settings work properly
     def test_notice_level(self):
-        option.set_notice_level(1);
-        self.assert_(hoomd.context.options.notice_level == 1);
+        hoomd.context.current.device.notice_level = 1;
+        self.assertTrue(hoomd.context.current.device.notice_level == 1);
 
-        option.set_notice_level(10);
-        self.assert_(hoomd.context.options.notice_level == 10);
-
-        self.assertRaises(RuntimeError, option.set_notice_level, 'foo');
+        hoomd.context.current.device.notice_level = 10
+        self.assertTrue(hoomd.context.current.device.notice_level == 10);
 
     def tearDown(self):
         pass;

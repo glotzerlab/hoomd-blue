@@ -287,7 +287,7 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     snapshot = reader.getSnapshot();
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast_box(hoomd.context.current.device);
+    snapshot._broadcast_box(hoomd.context.current.device.cpp_exec_conf);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:
