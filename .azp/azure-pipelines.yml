@@ -8,14 +8,14 @@ variables:
   image_root: glotzerlab/ci:2019.06
 
   # default build parameters, will override as needed with job matrix values
-  enable_cuda: 'off'
-  enable_mpi: 'off'
-  enable_tbb: 'off'
-  build_validation: 'off'
-  build_jit: 'off'
+  enable_cuda: off
+  enable_mpi: off
+  enable_tbb: off
+  build_validation: off
+  build_jit: off
   omp_num_threads: '2'
   llvm_version: '6.0'
-  build_testing: 'on'
+  build_testing: on
 
 stages:
 - stage: build_test_cpu
@@ -27,47 +27,91 @@ stages:
     displayName: Linux
     strategy:
       matrix:
-        # clang8_py37:
-        #   container_image: ubuntu19.04
-        #   cc: clang-8
-        #   cxx: clang++-8
-        # clang7_py37:
-        #   container_image: ubuntu19.04
-        #   cc: clang-7
-        #   cxx: clang++-7
-        # gcc9_py37:
-        #   container_image: ubuntu19.04
-        #   cc: gcc-9
-        #   cxx: g++-9
-        # gcc8_py36:
-        #   container_image: ubuntu18.04
-        #   cc: gcc-8
-        #   cxx: g++-8
-        # gcc7_py36:
-        #   container_image: ubuntu18.04
-        #   cc: gcc-7
-        #   cxx: g++-7
-        # gcc6_py36:
-        #   container_image: ubuntu18.04
-        #   cc: gcc-6
-        #   cxx: g++-6
+        clang8_py37_mpi_tbb_llvm8:
+          container_image: ubuntu19.04
+          cc: clang-8
+          cxx: clang++-8
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '8'
+
+        clang7_py37_mpi_tbb_llvm7:
+          container_image: ubuntu19.04
+          cc: clang-7
+          cxx: clang++-7
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '7'
+
+        gcc9_py37_mpi_tbb_llvm8:
+          container_image: ubuntu19.04
+          cc: gcc-9
+          cxx: g++-9
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '8'
+
+        gcc9_py37_mpi_tbb_llvm7:
+          container_image: ubuntu19.04
+          cc: gcc-9
+          cxx: g++-9
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '7'
+
+        gcc8_py36_mpi_tbb_llvm6:
+          container_image: ubuntu18.04
+          cc: gcc-8
+          cxx: g++-8
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '6.0'
+
+        gcc7_py36_tbb:
+          container_image: ubuntu18.04
+          cc: gcc-7
+          cxx: g++-7
+          enable_tbb: on
+
+        gcc6_py36_mpi:
+          container_image: ubuntu18.04
+          cc: gcc-6
+          cxx: g++-6
+          enable_mpi: on
+
+        clang6_py36_mpi_tbb_llvm6:
+          container_image: ubuntu18.04
+          cc: clang-6.0
+          cxx: clang++-6.0
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '6.0'
+
+        clang5_py36_tbb_llvm:
+          container_image: ubuntu18.04
+          cc: clang-5.0
+          cxx: clang++-5.0
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '5.0'
+
         gcc5_py36:
           container_image: ubuntu18.04
           cc: gcc-5
           cxx: g++-5
-          llvm_version: '100.0'
-        # gcc48_py36:
-        #   container_image: ubuntu18.04
-        #   cc: gcc-4.8
-        #   cxx: g++-4.8
-        # clang6_py36:
-        #   container_image: ubuntu18.04
-        #   cc: clang-6.0
-        #   cxx: clang++-6.0
-        # clang5_py36:
-        #   container_image: ubuntu18.04
-        #   cc: clang-5.0
-        #   cxx: clang++-5.0
+
+        gcc48_py36_mpi_tbb:
+          container_image: ubuntu18.04
+          cc: gcc-4.8
+          cxx: g++-4.8
+          enable_mpi: on
+          enable_tbb: on
 
     pool:
       vmImage: 'ubuntu-16.04'
@@ -86,12 +130,10 @@ stages:
       matrix:
         10_13:
           mac_image: macOS-10.13
-        10_14:
-          mac_image: macOS-10.14
         10_14_mpi_tbb:
           mac_image: macOS-10.14
-          enable_mpi: 'on'
-          enable_tbb: 'on'
+          enable_mpi: on
+          enable_tbb: on
 
     pool:
       vmImage: '$(mac_image)'

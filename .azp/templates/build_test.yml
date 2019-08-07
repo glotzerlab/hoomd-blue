@@ -9,12 +9,14 @@ steps:
 - script: nice -n 19 ninja -j 4
   displayName: Compile
   workingDirectory: $(Build.BinariesDirectory)
-- script: |
-            export PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
-            ctest --no-compress-output -T test --output-on-failure --test-output-size-failed 1048576 --test-output-size-passed 1048576
-            cp $(Build.BinariesDirectory)/Testing/**/Test.xml $(Common.TestResultsDirectory)
+- script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH ctest --no-compress-output -T test --output-on-failure --test-output-size-failed 1048576 --test-output-size-passed 1048576
   displayName: Unit test
   workingDirectory: $(Build.BinariesDirectory)
+  # allow openmpi to oversubscribe cores
+  # env:
+  #   OMPI_MCA_rmaps_base_oversubscribe: 1
+- script: cp $(Build.BinariesDirectory)/Testing/**/Test.xml $(Common.TestResultsDirectory)
+  displayName: Copy test results
 - task: PublishTestResults@2
   inputs:
     testResultsFormat: 'cTest'
