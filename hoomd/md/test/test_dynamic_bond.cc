@@ -35,8 +35,8 @@ typedef std::function<std::shared_ptr<DynamicBond>  (std::shared_ptr<SystemDefin
                                                      int period
                                                      )> dybond_creator;
 
-//! Test initialization
-void dynamic_bond_init_test(dybond_creator db_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
+//! Test bond creation
+void dynamic_bond_create_destroy_test(dybond_creator db_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with the simplest possible test: 2 particles in a box with only one bond type
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(100.0), 1, 1, 0, 0, 0,  exec_conf));
@@ -59,17 +59,21 @@ void dynamic_bond_init_test(dybond_creator db_creator, std::shared_ptr<Execution
     std::shared_ptr<DynamicBond> dybond = db_creator(sysdef, group_all, nlist, 0, 1);
     dybond->setParams(r_cut, "fene", 1, 0);
 
-    dybond->update(0);
-
     std::shared_ptr<BondData> bdata(sysdef->getBondData());
-
     // Access the GPU bond table for reading
-    const Index2D& gpu_table_indexer = bdata->getGPUTableIndexer();
     ArrayHandle<BondData::members_t> h_gpu_bondlist(bdata->getGPUTable(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int > h_gpu_n_bonds(bdata->getNGroupsArray(), access_location::host, access_mode::read);
 
+    dybond->update(0);
+
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 1);
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[1], 1);
+
+    dybond->setParams(r_cut, "fene", 0, 1);
+    dybond->update(1);
+
+    UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 0);
+    UP_ASSERT_EQUAL(h_gpu_n_bonds.data[1], 0);
     }
 
 
@@ -79,8 +83,10 @@ std::shared_ptr<DynamicBond> base_class_db_creator(std::shared_ptr<SystemDefinit
     return std::shared_ptr<DynamicBond>(new DynamicBond(sysdef, group, nlist, seed, period));
    }
 
-    UP_TEST(dybond_init)
-    {
-    dybond_creator db_creator_base = bind(base_class_db_creator, _1, _2, _3, _4, _5);
-    dynamic_bond_init_test(db_creator_base,  std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }
+
+UP_TEST(dybond_create_destroy)
+{
+dybond_creator db_creator_base = bind(base_class_db_creator, _1, _2, _3, _4, _5);
+dynamic_bond_create_destroy_test(db_creator_base,  std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+}
+
