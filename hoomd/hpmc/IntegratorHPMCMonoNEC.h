@@ -353,6 +353,13 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                 // take the particle's velocity as direction and normalize the direction vector
                 vec3<Scalar> direction = vec3<Scalar>(velocity_i);
                 Scalar       velocity  = sqrt( dot(direction,direction));
+            
+                if( velocity == 0.0 )
+                    {
+                    this->m_exec_conf->msg->error() << "Trying to start a chain with exactly zero velocity. Were velocities initialized propperly?\n";
+                    break;
+                    }
+                    
                 direction /= velocity;
                     
                 double chain_time = m_chain_time;
@@ -493,7 +500,15 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
 
                         velocity = sqrt( dot(vel_n,vel_n));
                         
-                        direction = vel_n / velocity;
+                        if( velocity == 0.0 )
+                            {
+                            this->m_exec_conf->msg->warning() << "Cannot continue a chain without moving.\n";
+                            next = -1;
+                            }
+                        else
+                            {
+                            direction = vel_n / velocity;
+                            }
                         }
                     } // end loop over totalDist.
 
