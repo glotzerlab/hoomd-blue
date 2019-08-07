@@ -86,6 +86,8 @@ stages:
       matrix:
         10_13:
           mac_image: macOS-10.13
+        10_14:
+          mac_image: macOS-10.14
         10_14_mpi_tbb:
           mac_image: macOS-10.14
           enable_mpi: 'on'
