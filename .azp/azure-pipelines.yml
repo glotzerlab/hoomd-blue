@@ -155,11 +155,12 @@ stages:
     # run only validation tests
     build_validation: on
     build_testing: off
-    timeoutInMinutes: 360
 
   jobs:
   - job: vld_linux_cpu
     displayName: Linux
+    timeoutInMinutes: 360
+
     strategy:
       matrix:
         gcc8_py36_mpi_tbb_llvm6:
@@ -250,11 +251,12 @@ stages:
     # run only validation tests
     build_validation: on
     build_testing: off
-    timeoutInMinutes: 360
 
   jobs:
   - job: vld_linux_gpu
     displayName: Linux
+    timeoutInMinutes: 360
+
     strategy:
       matrix:
         gcc7_py36_cuda10_mpi:
