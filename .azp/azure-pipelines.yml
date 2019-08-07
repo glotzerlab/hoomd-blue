@@ -13,7 +13,7 @@ variables:
   enable_tbb: 'off'
   build_validation: 'off'
   build_jit: 'off'
-  omp_num_threads: '1'
+  omp_num_threads: '2'
   llvm_version: '6.0'
   build_testing: 'on'
 
@@ -55,7 +55,7 @@ stages:
           container_image: ubuntu18.04
           cc: gcc-5
           cxx: g++-5
-          llvm-version: '100.0'
+          llvm_version: '100.0'
         # gcc48_py36:
         #   container_image: ubuntu18.04
         #   cc: gcc-4.8
@@ -80,20 +80,22 @@ stages:
     - template: templates/build_test.yml
 
   - job: mac_cpu
-    displayName: Mac
+    displayName: macOS
 
     strategy:
       matrix:
-        mac10_13:
+        10_13:
           mac_image: macOS-10.13
-        mac10_14:
+        10_14_mpi_tbb:
           mac_image: macOS-10.14
+          enable_mpi: 'on'
+          enable_tbb: 'on'
 
     pool:
       vmImage: '$(mac_image)'
 
     steps:
-    - script: brew install cereal cmake eigen ninja pybind11 python numpy tbb
+    - script: brew install cereal cmake eigen ninja open-mpi pybind11 python numpy tbb
       displayName: Brew install prereqs
     - script: python3 -m pip install pytest
       displayName: Pip install prereqs
