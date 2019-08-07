@@ -16,7 +16,7 @@ from hoomd.update import _updater
 import sys;
 
 class dynamic_bond(_updater):
-    r"""
+    r""" Forms or breaks a bond between particle pairs within a cutoff radius.
     Args:
         r_cut: cutoff radius (scalar)
         nlist: neighbor list object
@@ -25,6 +25,12 @@ class dynamic_bond(_updater):
         prob_form: probability that a bond will be formed
         prob_break: probability that a bond will be broken
         seed: rng seed
+
+
+    Examples::
+
+    dybond = md.update.dynamic_bond(group.all(), nlist=self.nl, seed=1, period=1)
+
     """
     def __init__(self, group, nlist, seed, period=1):
         hoomd.util.print_status_line();
@@ -34,15 +40,21 @@ class dynamic_bond(_updater):
 
         # create the c++ mirror class
         self.cpp_updater = _md.DynamicBond(hoomd.context.current.system_definition,
-                        group.cpp_group,
-                        nlist.cpp_nlist,
-                        seed,
-                        period);
+                                        group.cpp_group,
+                                        nlist.cpp_nlist,
+                                        seed,
+                                        period);
         phase = 0
         self.setupUpdater(period, phase);
 
 
     def set_params(self, r_cut, bond_type, prob_form, prob_break):
+        r"""
+        Examples::
+
+        dybond.set_params(r_cut=2.0, bond_type='harmonic', prob_form=1, prob_break=0)
+
+        """
         self.check_initialization()
         self.cpp_updater.setParams(r_cut, bond_type, prob_form, prob_break);
         # store metadata
