@@ -4,7 +4,7 @@ steps:
 - script: set
 - task: CMake@1
   inputs:
-    cmakeArgs: $(Build.SourcesDirectory) -DENABLE_CUDA=$(enable_cuda) -DENABLE_MPI=$(enable_mpi) -DENABLE_TBB=$(enable_tbb) -DBUILD_VALIDATION=$(build_validation) -DBUILD_TESTING=$(build_testing) -DBUILD_JIT=$(build_jit) -DLLVM_DIR=/usr/lib/llvm-$(llvm_version)/cmake -DBUILD_DEPRECATED=off -GNinja
+    cmakeArgs: $(Build.SourcesDirectory) -DENABLE_CUDA=$(enable_cuda) -DENABLE_MPI=$(enable_mpi) -DENABLE_TBB=$(enable_tbb) -DBUILD_VALIDATION=$(build_validation) -DBUILD_TESTING=$(build_testing) -DBUILD_JIT=$(build_jit) -DLLVM_DIR=/usr/lib/llvm-$(llvm_version)/cmake -DBUILD_DEPRECATED=off -DALWAYS_USE_MANAGED_MEMORY=$(always_used_managed_memory) -DTEST_CPU_IN_GPU_BUILDS=off -GNinja
     workingDirectory: $(Build.BinariesDirectory)
 - script: nice -n 19 ninja -j 4
   displayName: Compile
