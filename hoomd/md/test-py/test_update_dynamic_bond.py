@@ -13,7 +13,7 @@ r_colloid = 1
 class update_dynamic_bond (unittest.TestCase):
     def setUp(self):
         snap = data.make_snapshot(N=2, box=data.boxdim(Lx=80, Ly=80, Lz=80),
-                                      bond_types=['polymer'], particle_types=['colloid'])
+                                  bond_types=['polymer'], particle_types=['colloid'])
 
         if comm.get_rank() == 0:
             snap.particles.diameter[:] = [r_colloid*2]*2
@@ -33,7 +33,6 @@ class update_dynamic_bond (unittest.TestCase):
     def test_formation(self):
         dybond = md.update.dynamic_bond(group.all(), nlist=self.nl, seed=1, period=1)
         dybond.set_params(r_cut=2.0, bond_type='harmonic', prob_form=1, prob_break=0)
-
 
     # tests breakage of a bond within a cutoff radius
     def test_breakage(self):
