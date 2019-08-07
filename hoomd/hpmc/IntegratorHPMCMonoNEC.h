@@ -7,7 +7,6 @@
 
 #include "IntegratorHPMCMono.h"
 #include "hoomd/Autotuner.h"
-#include "hoomd/Saru.h"
 
 #include <random>
 #include <cfloat>
@@ -38,7 +37,8 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
     protected:
         Scalar m_chain_time;       //!< the length of a chain, given in units of time
         Scalar m_update_fraction;  //!< if we perform chains we update several particles as one 
-        
+        unsigned int m_seed;                       //!< Random number seed
+
         // statistics - event chain
         // These are used to evaluate how well the chain/the simulation is tuned to the system under investigation.
         unsigned long int count_moved_particles; // Counts translations that result in a collision (including the last particle)
@@ -268,6 +268,7 @@ IntegratorHPMCMonoNEC< Shape >::IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefi
     
     count_events          =   0;
     m_update_fraction         = 1.0;
+	m_seed = seed;
     }
 
 //! Destructor
@@ -293,10 +294,6 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     count_pressurevarial = 0.0;
     count_movelength = 0.0;
 
-    // Shuffle the order of particles for this step
-    this->m_update_order.resize(this->m_pdata->getN());
-    this->m_update_order.shuffle(timestep);
-
     // update the AABB Tree
     this->buildAABBTree();
     // limit m_d entries so that particles cannot possibly wander more than one box image in one time step
@@ -315,6 +312,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     ArrayHandle<unsigned int> h_overlaps(this->m_overlaps, access_location::host, access_mode::read);
     ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
+	// access particle data
     ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_velocities(this->m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
@@ -326,26 +324,16 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     // loop over local particles nselect times
     for (unsigned int i_nselect = 0; i_nselect < this->m_nselect; i_nselect++)
         {
-        // access particle data and system box
 
         // loop through N particles in a shuffled order
-        for (unsigned int cur_particle = 0; cur_particle < this->m_pdata->getN() * m_update_fraction; cur_particle++)
+        for (unsigned int cur_chain = 0; cur_chain < this->m_pdata->getN() * m_update_fraction; cur_chain++)
             {
-//             std::cout << "LOOP PARTICLE\n" ;
-            
-            unsigned int i = this->m_update_order[cur_particle];
-        
-            // Get the RNG for update i.
-            hoomd::detail::Saru rng_i(i, this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
+            // Get the RNG for chain cur_chain.
+            hoomd::RandomGenerator rng_chain_i(hoomd::RNGIdentifier::HPMCMonoTrialMove, m_seed, cur_chain, this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
 
             // this->m_update_order.shuffle(...) wants to update the particles in forward or reverse order.
             // For chains this is an invalid behavior. Instead we have to pick a starting particle randomly.
-            i = int( rng_i.d() * this->m_pdata->getN() ) ;
-            
-            if ( i >= this->m_pdata->getN() ) // i == N rarely happens, but does happen.
-                {                             // If there is a more suitable random function it should be used. but none was found by me --Ma.Klem.
-                i = 0;
-                }
+            unsigned int i = hoomd::UniformIntDistribution( this->m_pdata->getN()-1 )(rng_chain_i);
 
             Scalar4 postype_i     = h_postype.data[i];
             Scalar4 orientation_i = h_orientation.data[i];
@@ -353,7 +341,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
             int typ_i             = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), this->m_params[typ_i]);
   
-            unsigned int move_type_select = rng_i.u32() & 0xffff;
+            unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_chain_i);
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < this->m_move_ratio);
 
             if (move_type_translate)
@@ -515,6 +503,9 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                 }
             else
                 {
+                // Get the RNG for current particle
+                hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoTrialMove, m_seed, i, this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
+
                 bool overlap = false;
                 count_events++;
 
