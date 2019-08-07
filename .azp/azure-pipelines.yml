@@ -79,25 +79,25 @@ stages:
     steps:
     - template: templates/build_test.yml
 
-  # - job: mac_cpu
-  #   displayName: Mac
+   - job: mac_cpu
+     displayName: Mac
 
-  #   strategy:
-  #     matrix:
-  #       mac10_13:
-  #         mac_image: macOS-10.13
-  #       mac10_14:
-  #         mac_image: macOS-10.14
+     strategy:
+       matrix:
+         mac10_13:
+           mac_image: macOS-10.13
+         mac10_14:
+           mac_image: macOS-10.14
 
-  #   pool:
-  #     vmImage: '$(mac_image)'
+     pool:
+       vmImage: '$(mac_image)'
 
-  #   steps:
-  #   - script: brew install python tbb embree cmake ninja pybind11 qhull numpy
-  #     displayName: Brew install prereqs
-  #   - script: python3 -m pip install pytest pillow
-  #     displayName: Pip install prereqs
-  #   - template: templates/build_test.yml
+     steps:
+     - script: brew install cereal cmake eigen ninja pybind11 python numpy tbb
+       displayName: Brew install prereqs
+     - script: python3 -m pip install pytest
+       displayName: Pip install prereqs
+     - template: templates/build_test.yml
 
 # - stage: build_test_gpu
 #   displayName: Unit test (GPU)
