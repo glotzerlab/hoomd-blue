@@ -17,7 +17,6 @@ variables:
   llvm_version: '6.0'
   build_testing: on
   always_use_managed_memory: off
-  test_run_timeout: 30
 
 stages:
 - stage: build_test_cpu
@@ -156,7 +155,6 @@ stages:
     # run only validation tests
     build_validation: on
     build_testing: off
-    test_run_timeout: 360
     timeoutInMinutes: 360
 
   jobs:
@@ -252,7 +250,6 @@ stages:
     # run only validation tests
     build_validation: on
     build_testing: off
-    test_run_timeout: 360
     timeoutInMinutes: 360
 
   jobs:

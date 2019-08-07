@@ -8,11 +8,9 @@ steps:
 - script: nice -n 19 ninja -j 4
   displayName: Compile
   workingDirectory: $(Build.BinariesDirectory)
-  timeoutInMinutes: 45
 - script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH ctest --no-compress-output -T test --output-on-failure --test-output-size-failed 1048576 --test-output-size-passed 1048576
   displayName: Run tests
   workingDirectory: $(Build.BinariesDirectory)
-  timeoutInMinutes: $(test_run_timeout)
   # allow openmpi to oversubscribe cores
   env:
     OMPI_MCA_rmaps_base_oversubscribe: 1
