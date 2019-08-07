@@ -17,6 +17,7 @@ variables:
   llvm_version: '6.0'
   build_testing: on
   always_use_managed_memory: off
+  test_run_timeout: 30
 
 stages:
 - stage: build_test_cpu
@@ -26,6 +27,8 @@ stages:
   jobs:
   - job: linux_cpu
     displayName: Linux
+    timeoutInMinutes: 75
+
     strategy:
       matrix:
         clang8_py37_mpi_tbb_llvm8:
@@ -153,6 +156,8 @@ stages:
     # run only validation tests
     build_validation: on
     build_testing: off
+    test_run_timeout: 360
+    timeoutInMinutes: 360
 
   jobs:
   - job: vld_linux_cpu
@@ -247,6 +252,8 @@ stages:
     # run only validation tests
     build_validation: on
     build_testing: off
+    test_run_timeout: 360
+    timeoutInMinutes: 360
 
   jobs:
   - job: vld_linux_gpu
