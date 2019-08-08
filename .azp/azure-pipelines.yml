@@ -19,6 +19,7 @@ variables:
   always_use_managed_memory: off
   ctest_start: 1
   ctest_stride: 1
+  mpiexec_timeout: 300
 
 stages:
 - stage: build_test_cpu
@@ -159,6 +160,7 @@ stages:
     build_testing: off
     # split long tests into 3 groups
     ctest_stride: 3
+    mpiexec_timeout: 21600
 
   jobs:
   - job: vld_linux_cpu
@@ -314,6 +316,7 @@ stages:
     build_testing: off
     # split long tests into 3 groups
     ctest_stride: 3
+    mpiexec_timeout: 21600
 
   jobs:
   - job: vld_linux_gpu

@@ -14,6 +14,8 @@ steps:
   # allow openmpi to oversubscribe cores
   env:
     OMPI_MCA_rmaps_base_oversubscribe: 1
+    MPIEXEC_TIMEOUT: $(mpiexec_timeout)
+
 - script: cp $(Build.BinariesDirectory)/Testing/**/Test.xml $(Common.TestResultsDirectory)
   displayName: Copy test results
 - task: PublishTestResults@2
