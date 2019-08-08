@@ -37,6 +37,9 @@ _prev_args = None;
 class SimulationContext(object):
     R""" Simulation context
 
+    Args:
+        device (:py:mod:`hoomd.device`): the device to use for the simulation
+
     Store all of the context related to a single simulation, including the system state, forces, updaters, integration
     methods, and all other commands specified on this simulation. All such commands in hoomd apply to the currently
     active simulation context. You swap between simulation contexts by using this class as a context manager::
@@ -94,7 +97,9 @@ class SimulationContext(object):
         c.sorter.disable();
 
     """
-    def __init__(self):
+    def __init__(self, device=None):
+        global dev
+
         ## Global variable that holds the SystemDefinition shared by all parts of hoomd
         self.system_definition = None;
 
@@ -145,9 +150,12 @@ class SimulationContext(object):
 
         ## Global variable tracking the device used for running the simulation
         ## by default, this is automatically set, unless the user assigns something different
-        self.device = None#hoomd.device.auto()
-        if dev is not None:
-            self.device = dev
+        if device is None:
+            self.device = _create_device()
+        else:
+            self.device = device
+            dev = device
+
 
     def set_current(self):
         R""" Force this to be the current context
@@ -176,14 +184,12 @@ class SimulationContext(object):
 
         current = self.prev;
 
-def initialize(args=None):
+def initialize(args=None, device=None):
     R""" Initialize the execution context
 
     Args:
         args (str): Arguments to parse. When *None*, parse the arguments passed on the command line.
-        memory_traceback (bool): If true, enable memory allocation tracking (*only for debugging/profiling purposes*)
-        mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
-                  where you communicate between those simulations using your own mpi4py code.
+        dev (:py:mod:`hoomd.device`): device to use for running the simulations
 
     :py:func:`hoomd.context.initialize()` parses the command line arguments given, sets the options and initializes MPI and GPU execution
     (if any). By default, :py:func:`hoomd.context.initialize()` reads arguments given on the command line. Provide a string to :py:func:`hoomd.context.initialize()`
@@ -213,11 +219,7 @@ def initialize(args=None):
     options = hoomd.option.options();
     hoomd.option._parse_command_line(args);
 
-    current = SimulationContext()
-
-    # this is a temporary band-aid
-    # once we update api and remove unit tests, this can be updated
-    current.device = _create_device()
+    current = SimulationContext(device)
 
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()

@@ -9,8 +9,7 @@ import math
 # this script needs to be run on two ranks
 
 # initialize with one rank per partitions
-context.initialize()
-device.cpu(nrank=1)
+context.initialize(device=device.cpu(nrank=1))
 
 class gibbs_ensemble_test(unittest.TestCase):
     def setUp(self):

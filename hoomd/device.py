@@ -50,9 +50,6 @@ class _device(hoomd.meta._metadata):
         if _hoomd.is_TBB_available():
             self.metadata_fields.append('num_threads')
 
-        # make sure context is initialized
-        hoomd.context._verify_init()
-
         # check nrank
         if nrank is not None:
             if not _hoomd.is_MPI_available():
@@ -74,9 +71,6 @@ class _device(hoomd.meta._metadata):
 
         # c++ execution configuration mirror class
         self.cpp_exec_conf = None
-
-        # add to simulation context
-        hoomd.context.current.device = self
 
     # \brief Return the network hostname.
     @property
@@ -312,7 +306,7 @@ class gpu(_device):
         nthreads (int): number of TBB threads
         gpu (list(int)): GPU or comma-separated list of GPUs on which to execute
         gpu_error_checking (bool): Enable error checking on the GPU
-        mpi_comm (:py:mod:`mpi4py.MPI.Comm`): Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
+        mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
                 where you communicate between those simulations using your own mpi4py code.
         nrank (int): (MPI) Number of ranks to include in a partition
         notice_level (int): Minimum level of notice messages to print
@@ -361,7 +355,7 @@ class cpu(_device):
         min_cpu (bool): Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)
         ignore_display (bool): Attempt to avoid running on the display GPU
         nthreads (int): number of TBB threads
-        mpi_comm (:py:mod:`mpi4py.MPI.Comm`): Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
+        mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
                 where you communicate between those simulations using your own mpi4py code.
         nrank (int): (MPI) Number of ranks to include in a partition
         notice_level (int): Minimum level of notice messages to print
@@ -395,7 +389,7 @@ class auto(_device):
         min_cpu (bool): Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)
         ignore_display (bool): Attempt to avoid running on the display GPU
         nthreads (int): number of TBB threads
-        mpi_comm (:py:mod:`mpi4py.MPI.Comm`): Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
+        mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
                 where you communicate between those simulations using your own mpi4py code.
         nrank (int): (MPI) Number of ranks to include in a partition
         notice_level (int): Minimum level of notice messages to print
