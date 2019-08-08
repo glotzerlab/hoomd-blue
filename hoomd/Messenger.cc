@@ -69,7 +69,7 @@ Messenger::Messenger(std::shared_ptr<MPIConfiguration> mpi_config)
     m_notice_stream = &cout;
 
     m_nullstream = std::shared_ptr<nullstream>(new nullstream());
-    m_notice_level = 2;
+    m_notice_level = 10;
     m_err_prefix     = "**ERROR**";
     m_warning_prefix = "*Warning*";
     m_notice_prefix  = "notice";
