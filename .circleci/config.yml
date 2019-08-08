@@ -20,7 +20,7 @@ jobs:
     steps:
       - run:
           name: No-op
-          command: echo "Testing now performed by azure pipelines: https://dev.azure.com/glotzerlab/hoomd-blue"
+          command: 'echo "Testing now performed by azure pipelines: https://dev.azure.com/glotzerlab/hoomd-blue"'
 
 workflows:
   test:
