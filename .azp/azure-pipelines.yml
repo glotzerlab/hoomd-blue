@@ -17,6 +17,8 @@ variables:
   llvm_version: '6.0'
   build_testing: on
   always_use_managed_memory: off
+  ctest_start: 1
+  ctest_stride: 1
 
 stages:
 - stage: build_test_cpu
@@ -30,79 +32,79 @@ stages:
 
     strategy:
       matrix:
-        clang8_py37_mpi_tbb_llvm8:
-          container_image: ubuntu19.04
-          cc: clang-8
-          cxx: clang++-8
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '8'
+        # clang8_py37_mpi_tbb_llvm8:
+        #   container_image: ubuntu19.04
+        #   cc: clang-8
+        #   cxx: clang++-8
+        #   enable_mpi: on
+        #   enable_tbb: on
+        #   build_jit: on
+        #   llvm_version: '8'
 
-        clang7_py37_mpi_tbb_llvm7:
-          container_image: ubuntu19.04
-          cc: clang-7
-          cxx: clang++-7
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '7'
+        # clang7_py37_mpi_tbb_llvm7:
+        #   container_image: ubuntu19.04
+        #   cc: clang-7
+        #   cxx: clang++-7
+        #   enable_mpi: on
+        #   enable_tbb: on
+        #   build_jit: on
+        #   llvm_version: '7'
 
-        gcc9_py37_mpi_tbb_llvm8:
-          container_image: ubuntu19.04
-          cc: gcc-9
-          cxx: g++-9
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '8'
+        # gcc9_py37_mpi_tbb_llvm8:
+        #   container_image: ubuntu19.04
+        #   cc: gcc-9
+        #   cxx: g++-9
+        #   enable_mpi: on
+        #   enable_tbb: on
+        #   build_jit: on
+        #   llvm_version: '8'
 
-        gcc9_py37_mpi_tbb_llvm7:
-          container_image: ubuntu19.04
-          cc: gcc-9
-          cxx: g++-9
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '7'
+        # gcc9_py37_mpi_tbb_llvm7:
+        #   container_image: ubuntu19.04
+        #   cc: gcc-9
+        #   cxx: g++-9
+        #   enable_mpi: on
+        #   enable_tbb: on
+        #   build_jit: on
+        #   llvm_version: '7'
 
-        gcc8_py36_mpi_tbb_llvm6:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '6.0'
+        # gcc8_py36_mpi_tbb_llvm6:
+        #   container_image: ubuntu18.04
+        #   cc: gcc-8
+        #   cxx: g++-8
+        #   enable_mpi: on
+        #   enable_tbb: on
+        #   build_jit: on
+        #   llvm_version: '6.0'
 
-        gcc7_py36_tbb:
-          container_image: ubuntu18.04
-          cc: gcc-7
-          cxx: g++-7
-          enable_tbb: on
+        # gcc7_py36_tbb:
+        #   container_image: ubuntu18.04
+        #   cc: gcc-7
+        #   cxx: g++-7
+        #   enable_tbb: on
 
-        gcc6_py36_mpi:
-          container_image: ubuntu18.04
-          cc: gcc-6
-          cxx: g++-6
-          enable_mpi: on
+        # gcc6_py36_mpi:
+        #   container_image: ubuntu18.04
+        #   cc: gcc-6
+        #   cxx: g++-6
+        #   enable_mpi: on
 
-        clang6_py36_mpi_tbb_llvm6:
-          container_image: ubuntu18.04
-          cc: clang-6.0
-          cxx: clang++-6.0
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '6.0'
+        # clang6_py36_mpi_tbb_llvm6:
+        #   container_image: ubuntu18.04
+        #   cc: clang-6.0
+        #   cxx: clang++-6.0
+        #   enable_mpi: on
+        #   enable_tbb: on
+        #   build_jit: on
+        #   llvm_version: '6.0'
 
-        clang5_py36_tbb_llvm:
-          container_image: ubuntu18.04
-          cc: clang-5.0
-          cxx: clang++-5.0
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '5.0'
+        # clang5_py36_tbb_llvm5:
+        #   container_image: ubuntu18.04
+        #   cc: clang-5.0
+        #   cxx: clang++-5.0
+        #   enable_tbb: on
+        #   build_jit: on
+        #   llvm_version: '5.0'
 
         gcc5_py36:
           container_image: ubuntu18.04
@@ -155,15 +157,17 @@ stages:
     # run only validation tests
     build_validation: on
     build_testing: off
+    # split long tests into 3 groups
+    ctest_stride: 3
 
   jobs:
   - job: vld_linux_cpu
     displayName: Linux
-    timeoutInMinutes: 360
+    timeoutInMinutes: 350
 
     strategy:
       matrix:
-        gcc8_py36_mpi_tbb_llvm6:
+        gcc8_py36_mpi_tbb2_llvm6_1:
           container_image: ubuntu18.04
           cc: gcc-8
           cxx: g++-8
@@ -171,8 +175,27 @@ stages:
           enable_tbb: on
           build_jit: on
           llvm_version: '6.0'
+          ctest_start: 1
+        gcc8_py36_mpi_tbb2_llvm6_2:
+          container_image: ubuntu18.04
+          cc: gcc-8
+          cxx: g++-8
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '6.0'
+          ctest_start: 2
+        gcc8_py36_mpi_tbb2_llvm6_3:
+          container_image: ubuntu18.04
+          cc: gcc-8
+          cxx: g++-8
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '6.0'
+          ctest_start: 3
 
-        gcc8_py36_mpi_tbb1_llvm6:
+        gcc8_py36_mpi_tbb1_llvm6_1:
           container_image: ubuntu18.04
           cc: gcc-8
           cxx: g++-8
@@ -181,14 +204,52 @@ stages:
           build_jit: on
           llvm_version: '6.0'
           omp_num_threads: '1'
+          ctest_start: 1
+        gcc8_py36_mpi_tbb1_llvm6_2:
+          container_image: ubuntu18.04
+          cc: gcc-8
+          cxx: g++-8
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '6.0'
+          omp_num_threads: '1'
+          ctest_start: 2
+        gcc8_py36_mpi_tbb1_llvm6_3:
+          container_image: ubuntu18.04
+          cc: gcc-8
+          cxx: g++-8
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '6.0'
+          omp_num_threads: '1'
+          ctest_start: 3
 
-        gcc8_py36_mpi_llvm6:
+        gcc8_py36_mpi_llvm6_1:
           container_image: ubuntu18.04
           cc: gcc-8
           cxx: g++-8
           enable_mpi: on
           build_jit: on
           llvm_version: '6.0'
+          ctest_start: 1
+        gcc8_py36_mpi_llvm6_2:
+          container_image: ubuntu18.04
+          cc: gcc-8
+          cxx: g++-8
+          enable_mpi: on
+          build_jit: on
+          llvm_version: '6.0'
+          ctest_start: 2
+        gcc8_py36_mpi_llvm6_3:
+          container_image: ubuntu18.04
+          cc: gcc-8
+          cxx: g++-8
+          enable_mpi: on
+          build_jit: on
+          llvm_version: '6.0'
+          ctest_start: 3
 
     pool:
       vmImage: 'ubuntu-16.04'
@@ -211,18 +272,18 @@ stages:
     displayName: Linux
     strategy:
       matrix:
-        gcc7_py36_cuda10_mng_mpi:
-          cc: gcc
-          cxx: g++
-          container_image: cuda10
-          always_use_managed_memory: on
-          enable_mpi: on
+        # gcc7_py36_cuda10_mng_mpi:
+        #   cc: gcc
+        #   cxx: g++
+        #   container_image: cuda10
+        #   always_use_managed_memory: on
+        #   enable_mpi: on
 
-        gcc7_py36_cuda9_mpi:
-          cc: gcc
-          cxx: g++
-          container_image: cuda9
-          enable_mpi: on
+        # gcc7_py36_cuda9_mpi:
+        #   cc: gcc
+        #   cxx: g++
+        #   container_image: cuda9
+        #   enable_mpi: on
 
         gcc7_py36_cuda9:
           cc: gcc
@@ -251,6 +312,8 @@ stages:
     # run only validation tests
     build_validation: on
     build_testing: off
+    # split long tests into 3 groups
+    ctest_stride: 3
 
   jobs:
   - job: vld_linux_gpu
@@ -259,11 +322,24 @@ stages:
 
     strategy:
       matrix:
-        gcc7_py36_cuda10_mpi:
+        gcc7_py36_cuda10_mpi_1:
           cc: gcc
           cxx: g++
           container_image: cuda10
           enable_mpi: on
+          ctest_start: 1
+        gcc7_py36_cuda10_mpi_2:
+          cc: gcc
+          cxx: g++
+          container_image: cuda10
+          enable_mpi: on
+          ctest_start: 2
+        gcc7_py36_cuda10_mpi_3:
+          cc: gcc
+          cxx: g++
+          container_image: cuda10
+          enable_mpi: on
+          ctest_start: 3
 
     pool:
       name: 'GPU'
