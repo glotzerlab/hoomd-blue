@@ -18,7 +18,7 @@ except ImportError:
     gtar = None;
 
 def get_tmp(suffix):
-    if hoomd.comm.get_rank() == 0:
+    if hoomd.context.current.device.comm.get_rank() == 0:
         tmp = tempfile.mkstemp(suffix);
         return tmp[1];
     else:
@@ -180,7 +180,7 @@ if gtar is not None:
                 with hoomd.context.initialize():
                     seed = random.randint(1, 2**32 - 1);
                     sys1 = RandomSystem(seed);
-                    if hoomd.comm.get_rank() == 0:
+                    if hoomd.context.current.device.comm.get_rank() == 0:
                         sys1.writeGetar(fname);
 
                     sys2 = RandomSystem(0);
@@ -190,14 +190,14 @@ if gtar is not None:
                     sys2.readSystem(system);
                     del system;
 
-                    if hoomd.comm.get_rank() == 0:
+                    if hoomd.context.current.device.comm.get_rank() == 0:
                         self.assertEqual(sys1, sys2);
 
         def setUp(self):
             hoomd.context.initialize();
 
         def tearDown(self):
-            if hoomd.comm.get_rank() == 0:
+            if hoomd.context.current.device.comm.get_rank() == 0:
                 os.remove(self.last_fname);
             hoomd.comm.barrier_all();
 
@@ -206,7 +206,7 @@ class test_basic_io(unittest.TestCase):
         N = 10;
         box = hoomd.data.boxdim(20*N, 40*N, 60*N);
         snap = hoomd.data.make_snapshot(N, box);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
         hoomd.init.read_snapshot(snap);
 
@@ -227,7 +227,7 @@ class test_basic_io(unittest.TestCase):
         N = 10;
         box = hoomd.data.boxdim(20*N, 40*N, 60*N);
         snap = hoomd.data.make_snapshot(N, box);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
         hoomd.init.read_snapshot(snap);
 
@@ -248,7 +248,7 @@ class test_basic_io(unittest.TestCase):
         N = 10;
         box = hoomd.data.boxdim(20*N, 40*N, 60*N);
         snap = hoomd.data.make_snapshot(N, box);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
         hoomd.init.read_snapshot(snap);
 
@@ -269,7 +269,7 @@ class test_basic_io(unittest.TestCase):
         N = 10;
         box = hoomd.data.boxdim(20*N, 40*N, 60*N);
         snap = hoomd.data.make_snapshot(N, box);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
         hoomd.init.read_snapshot(snap);
 
@@ -284,7 +284,7 @@ class test_basic_io(unittest.TestCase):
 
             hoomd.run(1);
 
-            dump.writeJSON('test.json', dict(testQuantity=hoomd.comm.get_rank()), True)
+            dump.writeJSON('test.json', dict(testQuantity=hoomd.context.current.device.comm.get_rank()), True)
 
             dump.close();
             dump.disable();
@@ -292,7 +292,7 @@ class test_basic_io(unittest.TestCase):
 
             hoomd.init.restore_getar(tmp_file);
 
-            if hoomd.comm.get_rank() == 0:
+            if hoomd.context.current.device.comm.get_rank() == 0:
                 if suffix == 'zip':
                     traj = zipfile.ZipFile(tmp_file, 'r')
                     json_result = traj.read('frames/1/test.json').decode()

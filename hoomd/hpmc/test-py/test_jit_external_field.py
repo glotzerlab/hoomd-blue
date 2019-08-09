@@ -37,7 +37,7 @@ class jit_external_field(unittest.TestCase):
         comp = hpmc.field.external_field_composite(mc, [wall, gravity_field])
 
         snapshot = system.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             old_avg_z = np.mean(snapshot.particles.position[:, 2])
 
         log = hoomd.analyze.log(filename=None, quantities=['external_field_jit'], period=None);
@@ -47,10 +47,10 @@ class jit_external_field(unittest.TestCase):
         hoomd.run(1e3)
 
         snapshot = system.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             self.assertLess(np.mean(snapshot.particles.position[:, 2]), old_avg_z)
 
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             self.assertLess(log.query('external_field_jit'), original_energy)
 
 

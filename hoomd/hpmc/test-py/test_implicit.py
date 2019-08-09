@@ -104,7 +104,7 @@ class implicit_test_cube(unittest.TestCase):
             self.assertAlmostEqual(avg_eta_p,0.4,delta=0.1)
 
     def tearDown(self):
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             os.remove(self.tmp_file);
 
         del self.free_volume
@@ -160,7 +160,7 @@ class implicit_test_sphere_new (unittest.TestCase):
         context.current.device.cpp_msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
 
     def tearDown(self):
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             os.remove(self.tmp_file);
 
         del self.free_volume

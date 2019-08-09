@@ -259,7 +259,7 @@ def test_self_interaction(system,nlist):
 class test_constrain_rigid_self_interactions(unittest.TestCase):
     def setUp(self):
         snap = data.make_snapshot(N=1, particle_types=['A'], box=data.boxdim(L=10))
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             snap.particles.position[0] = (0,0,0)
             snap.particles.orientation[0] = (1,0,0,0)
         self.system = init.read_snapshot(snap)

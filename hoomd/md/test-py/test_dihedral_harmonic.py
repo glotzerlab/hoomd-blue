@@ -20,7 +20,7 @@ class dihedral_harmonic_tests (unittest.TestCase):
                                   dihedral_types = ['dihedralA'],
                                   improper_types = [])
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             snap.dihedrals.resize(10);
             for i in range(10):
                 x = numpy.array([i, 0, 0], dtype=numpy.float32)

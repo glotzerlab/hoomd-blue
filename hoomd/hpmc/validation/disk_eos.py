@@ -36,7 +36,7 @@ class diskEOS_test(unittest.TestCase):
         def log_callback(timestep):
             v = self.log.query('phi_p');
             phi_p_measure.append(v)
-            if comm.get_rank() == 0:
+            if context.current.device.comm.get_rank() == 0:
                 print('phi_p =', v);
 
         run(10e3,callback=log_callback, callback_period=50)
@@ -45,7 +45,7 @@ class diskEOS_test(unittest.TestCase):
         phi_p_avg = np.mean(np.array(phi_p_measure))
         i, phi_p_err = block.get_error_estimate()
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             (n, num, err, err_err) = block.get_hierarchical_errors()
 
             print('Hierarchical error analysis:')
@@ -58,7 +58,7 @@ class diskEOS_test(unittest.TestCase):
         # confidence interval, 0.95 quantile of the normal distribution
         ci = 1.96
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             print('avg {:.6f} +- {:.6f}'.format(phi_p_avg, phi_p_err))
 
         # check against reference value within reference error + measurement error

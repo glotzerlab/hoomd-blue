@@ -18,7 +18,7 @@ class special_pair_lj_tests (unittest.TestCase):
                                   dihedral_types = [],
                                   improper_types = [])
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             snap.pairs.resize(2);
             snap.particles.position[0] = (0,0,0)
             snap.particles.position[1] = (0,0,1.5)

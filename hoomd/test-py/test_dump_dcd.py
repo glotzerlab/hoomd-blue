@@ -16,7 +16,7 @@ class dmp_dcd_tests (unittest.TestCase):
 
         context.current.sorter.set_params(grid=8)
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.dcd');
             self.tmp_file = tmp[1]+'.tmp';
         else:
@@ -26,28 +26,28 @@ class dmp_dcd_tests (unittest.TestCase):
     def test(self):
         dump.dcd(filename=self.tmp_file, period=100);
         run(100)
-        if (comm.get_rank() == 0):
+        if (context.current.device.comm.get_rank() == 0):
             os.remove(self.tmp_file)
 
     # tests with phase
     def test_phase(self):
         dump.dcd(filename=self.tmp_file, period=100, phase=0);
         run(100)
-        if (comm.get_rank() == 0):
+        if (context.current.device.comm.get_rank() == 0):
             os.remove(self.tmp_file)
 
     # tests unwrap_full option
     def test_unwrap_full(self):
         dump.dcd(filename=self.tmp_file, period=100, unwrap_full=True);
         run(100)
-        if (comm.get_rank() == 0):
+        if (context.current.device.comm.get_rank() == 0):
             os.remove(self.tmp_file)
 
     # tests unwrap_rigid option
     def test_unwrap_rigid(self):
         dump.dcd(filename=self.tmp_file, period=100, unwrap_rigid=True);
         run(100)
-        if (comm.get_rank() == 0):
+        if (context.current.device.comm.get_rank() == 0):
             os.remove(self.tmp_file)
 
     # tests group option
@@ -55,14 +55,14 @@ class dmp_dcd_tests (unittest.TestCase):
         typeA = group.type('A');
         dump.dcd(filename=self.tmp_file, group=typeA, period=100);
         run(100)
-        if (comm.get_rank() == 0):
+        if (context.current.device.comm.get_rank() == 0):
             os.remove(self.tmp_file)
 
     # tests variable periods
     def test_variable(self):
         dump.dcd(filename=self.tmp_file, period=lambda n: n*100);
         run(100)
-        if (comm.get_rank() == 0):
+        if (context.current.device.comm.get_rank() == 0):
             os.remove(self.tmp_file)
 
     # test disable/enable

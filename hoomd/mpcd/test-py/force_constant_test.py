@@ -61,7 +61,7 @@ class mpcd_force_constant_test(unittest.TestCase):
         bulk.set_force(f)
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], (1.1, -2.0, 2.9))
             np.testing.assert_array_almost_equal(snap.particles.position[0], (0.105, -1.2, 1.295))
 
@@ -69,7 +69,7 @@ class mpcd_force_constant_test(unittest.TestCase):
         bulk.remove_force()
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], (1.1, -2.0, 2.9))
             np.testing.assert_array_almost_equal(snap.particles.position[0], (0.215, -1.4, 1.585))
 

@@ -15,7 +15,7 @@ class minimize_rigid_test(unittest.TestCase):
         context.initialize()
 
         snapshot = data.make_snapshot(N=2,particle_types=['A','B'],box=data.boxdim(L=25))
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             snapshot.particles.typeid[0] = 0
             snapshot.particles.typeid[1] = 1
             snapshot.particles.position[0] = (0,0,0)

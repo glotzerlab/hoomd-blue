@@ -19,7 +19,7 @@ import numpy
 class test_bcast_float (unittest.TestCase):
     def setUp(self):
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             # particles
             self.snapshot.particles.position[0] = [0,1,2];
             self.snapshot.particles.position[1] = [1,2,3];
@@ -171,7 +171,7 @@ class test_bcast_float (unittest.TestCase):
 class test_bcast_double (unittest.TestCase):
     def setUp(self):
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='double');
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             # particles
             self.snapshot.particles.position[0] = [0,1,2];
             self.snapshot.particles.position[1] = [1,2,3];

@@ -20,7 +20,7 @@ class angle_harmonic_tests (unittest.TestCase):
                                   dihedral_types = [],
                                   improper_types = [])
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.get_rank() == 0:
             snap.angles.resize(10);
             for i in range(10):
                 x = numpy.array([i, 0, 0], dtype=numpy.float32)

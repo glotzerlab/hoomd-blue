@@ -63,7 +63,7 @@ class mpcd_force_block_test(unittest.TestCase):
         bulk.set_force(f)
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             np.testing.assert_array_almost_equal(snap.particles.velocity, ((0.2,0,0),(-0.2,0,0),(0.2,0,0)))
             snap.particles.velocity[:] = 0.
         self.s.restore_snapshot(snap)
@@ -74,7 +74,7 @@ class mpcd_force_block_test(unittest.TestCase):
         bulk.set_force(f)
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             np.testing.assert_array_almost_equal(snap.particles.velocity, ((0.2,0,0),(-0.2,0,0),(0,0,0)))
             snap.particles.velocity[:] = 0.
         self.s.restore_snapshot(snap)
@@ -83,7 +83,7 @@ class mpcd_force_block_test(unittest.TestCase):
         bulk.remove_force()
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             np.testing.assert_array_almost_equal(snap.particles.velocity, ((0,0,0),(0,0,0),(0,0,0)))
 
     def tearDown(self):

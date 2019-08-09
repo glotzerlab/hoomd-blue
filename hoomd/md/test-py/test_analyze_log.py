@@ -17,7 +17,7 @@ class analyze_log_tests (unittest.TestCase):
 
         hoomd.context.current.sorter.set_params(grid=8)
 
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.log');
             self.tmp_file = tmp[1];
         else:
@@ -60,7 +60,7 @@ class analyze_log_tests (unittest.TestCase):
 
     def tearDown(self):
         hoomd.context.initialize();
-        if (hoomd.comm.get_rank()==0):
+        if (hoomd.context.current.device.comm.get_rank()==0):
             os.remove(self.tmp_file);
 
 
@@ -98,7 +98,7 @@ class analyze_log_query_tests (unittest.TestCase):
 
     # tests basic creation of the analyzer
     def test_with_file(self):
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.log');
             self.tmp_file = tmp[1];
         else:
@@ -153,7 +153,7 @@ class analyze_log_hdf5_query_tests (unittest.TestCase):
 
     # tests basic creation of the analyzer
     def test_with_file(self):
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.h5');
             self.tmp_file = tmp[1];
         else:
@@ -181,7 +181,7 @@ class analyze_log_hdf5_query_tests (unittest.TestCase):
     def tearDown(self):
         self.pair = None;
         hoomd.context.initialize();
-        if (hoomd.comm.get_rank()==0):
+        if (hoomd.context.current.device.comm.get_rank()==0):
             os.remove(self.tmp_file);
 
 # unit tests for analyze.log_hdf5
@@ -192,7 +192,7 @@ class analyze_log_hdf5_tests (unittest.TestCase):
 
         hoomd.context.current.sorter.set_params(grid=8)
 
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.log');
             self.tmp_file = tmp[1];
         else:
@@ -260,7 +260,7 @@ class analyze_log_hdf5_tests (unittest.TestCase):
 
     def tearDown(self):
         hoomd.context.initialize();
-        if (hoomd.comm.get_rank()==0):
+        if (hoomd.context.current.device.comm.get_rank()==0):
             os.remove(self.tmp_file);
 
 if __name__ == '__main__':

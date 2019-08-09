@@ -31,7 +31,7 @@ class mpcd_snapshot(unittest.TestCase):
         hoomd.init.read_snapshot(hoomd.data.make_snapshot(N=0, box=hoomd.data.boxdim(L=20.)))
         snap = mpcd.data.make_snapshot()
 
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             # mpcd should be empty in a snapshot by default
             self.assertEqual(snap.particles.N, 0)
             self.assertEqual(len(snap.particles.position), 0)
@@ -69,7 +69,7 @@ class mpcd_snapshot(unittest.TestCase):
         self.assertEqual(pdata.N_global, 3)
         if hoomd.context.current.device.comm.get_num_ranks() > 1:
             # mpi test by rank
-            if hoomd.comm.get_rank() == 0:
+            if hoomd.context.current.device.comm.get_rank() == 0:
                 self.assertEqual(pdata.N, 1)
             else:
                 self.assertEqual(pdata.N, 2)
@@ -88,7 +88,7 @@ class mpcd_snapshot(unittest.TestCase):
 
         # now we do a per-processor check
         if hoomd.context.current.device.comm.get_num_ranks() > 1:
-            if hoomd.comm.get_rank() == 0:
+            if hoomd.context.current.device.comm.get_rank() == 0:
                 self.assertEqual(dat[0,0], 1)
                 np.testing.assert_allclose(dat[0,1:4], self.positions[1])
                 np.testing.assert_allclose(dat[0,4:7], self.velocities[1])
@@ -130,7 +130,7 @@ class mpcd_snapshot(unittest.TestCase):
 
         # take a snapshot and validate that the data matches what we fed in
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             self.assertEqual(snap.particles.N, 3)
             np.testing.assert_allclose(snap.particles.position, self.positions)
             np.testing.assert_allclose(snap.particles.velocity, self.velocities)
@@ -145,7 +145,7 @@ class mpcd_snapshot(unittest.TestCase):
         targets['typeid'] = np.roll(self.typeids, 1, axis=0)
         targets['types'] = ['R','L','GH']
         targets['mass'] = 0.9
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             snap.particles.position[:] = targets['position']
             snap.particles.velocity[:] = targets['velocity']
             snap.particles.typeid[:] = targets['typeid']
@@ -158,7 +158,7 @@ class mpcd_snapshot(unittest.TestCase):
         self.assertEqual(pdata.N_global, 3)
         if hoomd.context.current.device.comm.get_num_ranks() > 1:
             # mpi test by rank
-            if hoomd.comm.get_rank() == 0:
+            if hoomd.context.current.device.comm.get_rank() == 0:
                 self.assertEqual(pdata.N, 1)
             else:
                 self.assertEqual(pdata.N, 2)
@@ -177,7 +177,7 @@ class mpcd_snapshot(unittest.TestCase):
 
         # now we do a per-processor check
         if hoomd.context.current.device.comm.get_num_ranks() > 1:
-            if hoomd.comm.get_rank() == 0:
+            if hoomd.context.current.device.comm.get_rank() == 0:
                 self.assertEqual(dat[0,0], 2)
                 np.testing.assert_allclose(dat[0,1:4], targets['position'][2])
                 np.testing.assert_allclose(dat[0,4:7], targets['velocity'][2])
@@ -281,7 +281,7 @@ class mpcd_snapshot(unittest.TestCase):
 
         scale = nx*ny*nz
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.get_rank() == 0:
             self.assertEqual(snap.particles.N, len(pos0)*scale)
             # python is borking the rounding (c++ is good), and everything is at
             # least 0.5 away so we can just use a very loose tolerance here

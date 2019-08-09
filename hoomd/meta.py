@@ -135,7 +135,7 @@ def dump_metadata(filename=None,user=None,indent=4):
         metadata, default=default_handler,indent=indent, sort_keys=True)
 
     # only write files on rank 0
-    if filename is not None and hoomd.comm.get_rank() == 0:
+    if filename is not None and hoomd.context.current.device.comm.get_rank() == 0:
         with open(filename, 'w') as file:
             file.write(meta_str)
     return json.loads(meta_str)
