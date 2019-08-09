@@ -299,7 +299,7 @@ class decomposition_tests (unittest.TestCase):
 ## Test for MPI barriers
 class barrier_tests(unittest.TestCase):
     def test_barrier(self):
-        comm.barrier();
+        context.current.device.comm.barrier();
 
     def test_barrier_all(self):
         context.current.device.comm.barrier_all();

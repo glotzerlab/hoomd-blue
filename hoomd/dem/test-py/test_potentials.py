@@ -59,7 +59,7 @@ class sphere_sphere(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier();
+        hoomd.context.current.device.comm.barrier();
 
 class spherocylinder_sphere(unittest.TestCase):
 
@@ -116,7 +116,7 @@ class spherocylinder_sphere(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier();
+        hoomd.context.current.device.comm.barrier();
 
 class shape_sphere(unittest.TestCase):
 
@@ -173,7 +173,7 @@ class shape_sphere(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier();
+        hoomd.context.current.device.comm.barrier();
 
 class shape_shape(unittest.TestCase):
 
@@ -241,7 +241,7 @@ class shape_shape(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier();
+        hoomd.context.current.device.comm.barrier();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test_potentials.py', '-v']);

@@ -103,7 +103,7 @@ class basic(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier();
+        hoomd.context.current.device.comm.barrier();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test_basic.py', '-v']);
