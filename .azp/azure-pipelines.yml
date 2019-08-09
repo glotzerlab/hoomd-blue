@@ -131,6 +131,7 @@ stages:
 
   - job: mac_cpu
     displayName: macOS
+    timeoutInMinutes: 75
 
     strategy:
       matrix:
@@ -272,6 +273,8 @@ stages:
   jobs:
   - job: linux_gpu
     displayName: Linux
+    timeoutInMinutes: 75
+
     strategy:
       matrix:
         gcc7_py36_cuda10_mng_mpi:
