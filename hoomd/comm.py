@@ -14,80 +14,6 @@ import hoomd;
 import sys;
 
 
-def get_num_ranks():
-    """ Get the number of ranks in this partition.
-
-    Returns:
-        The number of MPI ranks in this partition.
-
-    Note:
-        Returns 1 in non-mpi builds.
-    """
-
-    hoomd.context._verify_init();
-    if _hoomd.is_MPI_available():
-        return hoomd.context.current.device.cpp_mpi_conf.getNRanks();
-    else:
-        return 1;
-
-
-def get_rank():
-    """ Get the current rank.
-
-    Returns:
-        Index of the current rank in this partition.
-
-    Note:
-        Always returns 0 in non-mpi builds.
-    """
-
-    hoomd.context._verify_init();
-
-    if _hoomd.is_MPI_available():
-        return hoomd.context.current.device.cpp_mpi_conf.getRank()
-    else:
-        return 0;
-
-
-def get_partition():
-    """ Get the current partition index.
-
-    Returns:
-        Index of the current partition.
-
-    Note:
-        Always returns 0 in non-mpi builds.
-    """
-    hoomd.context._verify_init();
-
-    if _hoomd.is_MPI_available():
-        return hoomd.context.current.device.cpp_mpi_conf.getPartition()
-    else:
-        return 0;
-
-
-def barrier_all():
-    """ Perform a MPI barrier synchronization across the whole MPI run.
-
-    Note:
-        Does nothing in in non-MPI builds.
-    """
-    if _hoomd.is_MPI_available():
-        _hoomd.mpi_barrier_world();
-
-
-def barrier():
-    """ Perform a MPI barrier synchronization across all ranks in the partition.
-
-    Note:
-        Does nothing in in non-MPI builds.
-    """
-    hoomd.context._verify_init();
-
-    if _hoomd.is_MPI_available():
-        hoomd.context.current.device.cpp_mpi_conf.barrier()
-
-
 class decomposition(object):
     """ Set the domain decomposition.
 
@@ -168,7 +94,7 @@ class decomposition(object):
         self._onelevel = onelevel  # cache this for later when we can make the cpp object
 
         # check that there are ranks available for decomposition
-        if get_num_ranks() == 1:
+        if hoomd.context.current.device.comm.cpp_mpi_conf == 1:
             hoomd.context.current.device.cpp_msg.warning("Only 1 rank in system, ignoring decomposition to use optimized code pathways.\n")
             return
         else:
@@ -323,3 +249,130 @@ class decomposition(object):
         except TypeError as te:
             hoomd.context.current.device.cpp_msg.error("Fractional cuts must be iterable (list, tuple, etc.)\n")
             raise te
+
+class communicator(object):
+    """
+    MPI communicator
+
+    Args:
+        mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
+                where you communicate between those simulations using your own mpi4py code.
+        nrank (int): (MPI) Number of ranks to include in a partition
+    """
+
+    def __init__(self, mpi_comm=None, nrank=None):
+
+        # check nrank
+        if nrank is not None:
+            if not _hoomd.is_MPI_available():
+                raise RuntimeError("The nrank option is only available in MPI builds.\n")
+
+        mpi_available = _hoomd.is_MPI_available();
+
+        self.cpp_mpi_conf = None
+
+        # create the specified configuration
+        if mpi_comm is None:
+            self.cpp_mpi_conf = _hoomd.MPIConfiguration();
+        else:
+            if not mpi_available:
+                raise RuntimeError("mpi_comm is not supported in serial builds");
+
+            handled = False;
+
+            # pass in pointer to MPI_Comm object provided by mpi4py
+            try:
+                import mpi4py
+                if isinstance(mpi_comm, mpi4py.MPI.Comm):
+                    addr = mpi4py.MPI._addressof(mpi_comm);
+                    self.cpp_mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(addr);
+                    handled = True
+            except ImportError:
+                # silently ignore when mpi4py is missing
+                pass
+
+            # undocumented case: handle plain integers as pointers to MPI_Comm objects
+            if not handled and isinstance(mpi_comm, int):
+                self.cpp_mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(mpi_comm);
+                handled = True
+
+            if not handled:
+                raise RuntimeError("Invalid mpi_comm object: {}".format(mpi_comm));
+
+        if nrank is not None:
+            # check validity
+            if (self.cpp_mpi_conf.getNRanksGlobal() % nrank):
+                raise RuntimeError('Total number of ranks is not a multiple of --nrank');
+
+            # split the communicator into partitions
+            self.cpp_mpi_conf.splitPartitions(nrank)
+
+    def get_num_ranks(self):
+        """ Get the number of ranks in this partition.
+
+        Returns:
+            The number of MPI ranks in this partition.
+
+        Note:
+            Returns 1 in non-mpi builds.
+        """
+
+        hoomd.context._verify_init();
+        if _hoomd.is_MPI_available():
+            return self.cpp_mpi_conf.getNRanks();
+        else:
+            return 1;
+
+    def get_rank(self):
+        """ Get the current rank.
+
+        Returns:
+            Index of the current rank in this partition.
+
+        Note:
+            Always returns 0 in non-mpi builds.
+        """
+
+        hoomd.context._verify_init();
+
+        if _hoomd.is_MPI_available():
+            return self.cpp_mpi_conf.getRank()
+        else:
+            return 0;
+
+    def get_partition(self):
+        """ Get the current partition index.
+
+        Returns:
+            Index of the current partition.
+
+        Note:
+            Always returns 0 in non-mpi builds.
+        """
+        hoomd.context._verify_init();
+
+        if _hoomd.is_MPI_available():
+            return self.cpp_mpi_conf.getPartition()
+        else:
+            return 0;
+
+    def barrier_all(self):
+        """ Perform a MPI barrier synchronization across the whole MPI run.
+
+        Note:
+            Does nothing in in non-MPI builds.
+        """
+        if _hoomd.is_MPI_available():
+            _hoomd.mpi_barrier_world();
+
+    def barrier(self):
+        """ Perform a MPI barrier synchronization across all ranks in the partition.
+
+        Note:
+            Does nothing in in non-MPI builds.
+        """
+        hoomd.context._verify_init();
+
+        if _hoomd.is_MPI_available():
+            self.cpp_mpi_conf.barrier()
+

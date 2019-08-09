@@ -50,7 +50,7 @@ def _destroy_messengers():
 
 class _device(hoomd.meta._metadata):
 
-    def __init__(self, mpi_comm, nrank, notice_level, msg_file, shared_msg_file):
+    def __init__(self, communicator, notice_level, msg_file, shared_msg_file):
 
         # metadata stuff
         hoomd.meta._metadata.__init__(self)
@@ -62,21 +62,19 @@ class _device(hoomd.meta._metadata):
         if _hoomd.is_TBB_available():
             self.metadata_fields.append('num_threads')
 
-        # check nrank
-        if nrank is not None:
-            if not _hoomd.is_MPI_available():
-                raise RuntimeError("The nrank option is only available in MPI builds.\n")
-
         # check shared_msg_file
         if shared_msg_file is not None:
             if not _hoomd.is_MPI_available():
                 raise RuntimeError("Shared log files are only available in MPI builds.\n")
 
-        # c++ mpi configuration mirror class instance
-        self.cpp_mpi_conf = _create_mpi_conf(mpi_comm, nrank)
+        # MPI communicator
+        if communicator is None:
+            self.comm = hoomd.comm.communicator()
+        else:
+            self.comm = communicator
 
         # c++ messenger object
-        self.cpp_msg = _create_messenger(self.cpp_mpi_conf, notice_level, msg_file, shared_msg_file)
+        self.cpp_msg = _create_messenger(self.comm.cpp_mpi_conf, notice_level, msg_file, shared_msg_file)
 
         # output the version info on initialization
         self.cpp_msg.notice(1, _hoomd.output_version_info())
@@ -106,7 +104,7 @@ class _device(hoomd.meta._metadata):
     # \brief Return the number of ranks.
     @property
     def num_ranks(self):
-        return hoomd.comm.get_num_ranks()
+        return self.comm.get_num_ranks()
 
     # \brief Return the username.
     @property
@@ -219,53 +217,6 @@ def _setup_cpp_exec_conf(cpp_exec_conf, memory_traceback, nthreads):
     cpp_exec_conf.setMemoryTracing(memory_traceback)
 
 
-## Initializes the MPI configuration
-# \internal
-def _create_mpi_conf(mpi_comm, nrank):
-
-    mpi_available = _hoomd.is_MPI_available();
-
-    mpi_conf = None
-
-    # create the specified configuration
-    if mpi_comm is None:
-        mpi_conf = _hoomd.MPIConfiguration();
-    else:
-        if not mpi_available:
-            raise RuntimeError("mpi_comm is not supported in serial builds");
-
-        handled = False;
-
-        # pass in pointer to MPI_Comm object provided by mpi4py
-        try:
-            import mpi4py
-            if isinstance(mpi_comm, mpi4py.MPI.Comm):
-                addr = mpi4py.MPI._addressof(mpi_comm);
-                mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(addr);
-                handled = True
-        except ImportError:
-            # silently ignore when mpi4py is missing
-            pass
-
-        # undocumented case: handle plain integers as pointers to MPI_Comm objects
-        if not handled and isinstance(mpi_comm, int):
-            mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(mpi_comm);
-            handled = True
-
-        if not handled:
-            raise RuntimeError("Invalid mpi_comm object: {}".format(mpi_comm));
-
-    if nrank is not None:
-        # check validity
-        if (mpi_conf.getNRanksGlobal() % nrank):
-            raise RuntimeError('Total number of ranks is not a multiple of --nrank');
-
-        # split the communicator into partitions
-        mpi_conf.splitPartitions(nrank)
-
-    return mpi_conf
-
-
 ## Initializes the Messenger
 # \internal
 def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
@@ -322,18 +273,16 @@ class gpu(_device):
         nthreads (int): number of TBB threads
         gpu (list(int)): GPU or comma-separated list of GPUs on which to execute
         gpu_error_checking (bool): Enable error checking on the GPU
-        mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
-                where you communicate between those simulations using your own mpi4py code.
-        nrank (int): (MPI) Number of ranks to include in a partition
-        notice_level (int): Minimum level of notice messages to print
+        communicator (:py:mod:`hoomd.comm.communicator`): MPI communicator object. Can be left None if using a
+            default MPI communicator
         msg_file (str): Name of file to write messages to
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
     """
 
     def __init__(self, memory_traceback=False, min_cpu=False, ignore_display=False, nthreads=None, gpu=None,
-                 gpu_error_checking=False, mpi_comm=None, nrank=None, notice_level=2, msg_file=None, shared_msg_file=None):
+                 gpu_error_checking=False, communicator=None, notice_level=2, msg_file=None, shared_msg_file=None):
 
-        _device.__init__(self, mpi_comm, nrank, notice_level, msg_file, shared_msg_file)
+        _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
 
         # check args
         _check_exec_conf_args(nthreads)
@@ -352,7 +301,7 @@ class gpu(_device):
                                                         gpu_vec,
                                                         min_cpu,
                                                         ignore_display,
-                                                        self.cpp_mpi_conf,
+                                                        self.comm.cpp_mpi_conf,
                                                         self.cpp_msg)
 
         # if gpu_error_checking is set, enable it on the GPU
@@ -371,18 +320,17 @@ class cpu(_device):
         min_cpu (bool): Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)
         ignore_display (bool): Attempt to avoid running on the display GPU
         nthreads (int): number of TBB threads
-        mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
-                where you communicate between those simulations using your own mpi4py code.
-        nrank (int): (MPI) Number of ranks to include in a partition
+        communicator (:py:mod:`hoomd.comm.communicator`): MPI communicator object. Can be left None if using a
+            default MPI communicator
         notice_level (int): Minimum level of notice messages to print
         msg_file (str): Name of file to write messages to
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
     """
 
-    def __init__(self, memory_traceback=False, min_cpu=False, ignore_display=False, nthreads=None, mpi_comm=None,
-                 nrank=None, notice_level=2, msg_file=None, shared_msg_file=None):
+    def __init__(self, memory_traceback=False, min_cpu=False, ignore_display=False, nthreads=None, communicator=None,
+                 notice_level=2, msg_file=None, shared_msg_file=None):
 
-        _device.__init__(self, mpi_comm, nrank, notice_level, msg_file, shared_msg_file)
+        _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
 
         _check_exec_conf_args(nthreads)
 
@@ -390,7 +338,7 @@ class cpu(_device):
                                                         _hoomd.std_vector_int(),
                                                         min_cpu,
                                                         ignore_display,
-                                                        self.cpp_mpi_conf,
+                                                        self.comm.cpp_mpi_conf,
                                                         self.cpp_msg)
 
         _setup_cpp_exec_conf(self.cpp_exec_conf, memory_traceback, nthreads)
@@ -405,17 +353,17 @@ class auto(_device):
         min_cpu (bool): Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)
         ignore_display (bool): Attempt to avoid running on the display GPU
         nthreads (int): number of TBB threads
-        mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
-                where you communicate between those simulations using your own mpi4py code.
-        nrank (int): (MPI) Number of ranks to include in a partition
+        communicator (:py:mod:`hoomd.comm.communicator`): MPI communicator object. Can be left None if using a
+            default MPI communicator
         notice_level (int): Minimum level of notice messages to print
         msg_file (str): Name of file to write messages to
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
     """
-    def __init__(self, memory_traceback=False, min_cpu=False, ignore_display=False, nthreads=None, mpi_comm=None,
-                 nrank=None, notice_level=2, msg_file=None, shared_msg_file=None):
 
-        _device.__init__(self, mpi_comm, nrank, notice_level, msg_file, shared_msg_file)
+    def __init__(self, memory_traceback=False, min_cpu=False, ignore_display=False, nthreads=None, communicator=None,
+                 notice_level=2, msg_file=None, shared_msg_file=None):
+
+        _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
 
         _check_exec_conf_args(nthreads)
 
@@ -423,7 +371,7 @@ class auto(_device):
                                                         _hoomd.std_vector_int(),
                                                         min_cpu,
                                                         ignore_display,
-                                                        self.cpp_mpi_conf,
+                                                        self.comm.cpp_mpi_conf,
                                                         self.cpp_msg)
 
         _setup_cpp_exec_conf(self.cpp_exec_conf, memory_traceback, nthreads)
