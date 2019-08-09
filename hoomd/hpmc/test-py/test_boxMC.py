@@ -307,7 +307,7 @@ class boxMC_test_methods (unittest.TestCase):
 
 if __name__ == '__main__':
     # this test works on the CPU only and only on a single rank
-    if comm.get_num_ranks() > 1:
+    if context.current.device.comm.get_num_ranks() > 1:
         raise RuntimeError("This test only works on 1 rank");
 
     unittest.main(argv = ['test.py', '-v'])

@@ -95,7 +95,6 @@ class SimulationContext(object):
 
     """
     def __init__(self, device=None):
-        global dev
 
         ## Global variable that holds the SystemDefinition shared by all parts of hoomd
         self.system_definition = None;
@@ -185,7 +184,7 @@ def initialize(args=None, device=None):
 
     Args:
         args (str): Arguments to parse. When *None*, parse the arguments passed on the command line.
-        dev (:py:mod:`hoomd.device`): device to use for running the simulations
+        device (:py:mod:`hoomd.device`): device to use for running the simulations
 
     :py:func:`hoomd.context.initialize()` parses the command line arguments given, sets the options and initializes MPI and GPU execution
     (if any). By default, :py:func:`hoomd.context.initialize()` reads arguments given on the command line. Provide a string to :py:func:`hoomd.context.initialize()`

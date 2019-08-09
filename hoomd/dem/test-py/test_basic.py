@@ -10,7 +10,7 @@ import unittest;
 def not_on_mpi(f):
     def noop(*args, **kwargs):
         return;
-    if hoomd.comm.get_num_ranks() > 1:
+    if hoomd.context.current.device.comm.get_num_ranks() > 1:
         return noop;
     else:
         return f;

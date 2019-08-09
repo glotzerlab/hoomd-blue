@@ -15,7 +15,7 @@ class mpcd_snapshot(unittest.TestCase):
         hoomd.context.initialize()
 
         # set the decomposition in z for mpi builds
-        if hoomd.comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.get_num_ranks() > 1:
             hoomd.comm.decomposition(nz=2)
 
         # default testing configuration
@@ -67,7 +67,7 @@ class mpcd_snapshot(unittest.TestCase):
         # check on the initialization
         pdata = self.s.particles
         self.assertEqual(pdata.N_global, 3)
-        if hoomd.comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.get_num_ranks() > 1:
             # mpi test by rank
             if hoomd.comm.get_rank() == 0:
                 self.assertEqual(pdata.N, 1)
@@ -87,7 +87,7 @@ class mpcd_snapshot(unittest.TestCase):
         dat = np.array( sorted(dat, key=lambda p : p[0]) )
 
         # now we do a per-processor check
-        if hoomd.comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.get_num_ranks() > 1:
             if hoomd.comm.get_rank() == 0:
                 self.assertEqual(dat[0,0], 1)
                 np.testing.assert_allclose(dat[0,1:4], self.positions[1])
@@ -156,7 +156,7 @@ class mpcd_snapshot(unittest.TestCase):
         # check the particle data as it was reinitialized matches what we set
         pdata = self.s.particles
         self.assertEqual(pdata.N_global, 3)
-        if hoomd.comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.get_num_ranks() > 1:
             # mpi test by rank
             if hoomd.comm.get_rank() == 0:
                 self.assertEqual(pdata.N, 1)
@@ -176,7 +176,7 @@ class mpcd_snapshot(unittest.TestCase):
         dat = np.array( sorted(dat, key=lambda p : p[0]) )
 
         # now we do a per-processor check
-        if hoomd.comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.get_num_ranks() > 1:
             if hoomd.comm.get_rank() == 0:
                 self.assertEqual(dat[0,0], 2)
                 np.testing.assert_allclose(dat[0,1:4], targets['position'][2])

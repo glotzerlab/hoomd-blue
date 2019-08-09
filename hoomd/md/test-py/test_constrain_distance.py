@@ -92,7 +92,7 @@ class constrain_distance_tests (unittest.TestCase):
         md.integrate.nve(all);
         # remove a particle
         del(self.system.particles[0])
-        if comm.get_num_ranks() == 1:
+        if context.current.device.comm.get_num_ranks() == 1:
             self.assertRaises(RuntimeError, run, 100);
         else:
             # in MPI simulations, we cannot check for an assertion during a simulation
@@ -120,7 +120,7 @@ class constrain_distance_tests (unittest.TestCase):
         distance = md.constrain.distance();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.nve(group.all());
-        if comm.get_num_ranks() > 1:
+        if context.current.device.comm.get_num_ranks() > 1:
             # unfortunately, we cannot catch an MPI_Abort
             #self.assertRaises(RuntimeError, run, 1)
             pass

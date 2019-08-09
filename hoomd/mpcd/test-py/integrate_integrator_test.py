@@ -16,7 +16,7 @@ class mpcd_integrator_test(unittest.TestCase):
         hoomd.context.initialize()
 
         # set the decomposition in z for mpi builds
-        if hoomd.comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.get_num_ranks() > 1:
             hoomd.comm.decomposition(nz=2)
 
         # default testing configuration

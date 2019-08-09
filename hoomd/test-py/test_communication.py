@@ -11,7 +11,7 @@ import unittest
 class decomposition_tests (unittest.TestCase):
     ## Test that no errors are raised if a uniform decomposition should be done
     def test_uniform(self):
-        if comm.get_num_ranks() > 1:
+        if context.current.device.comm.get_num_ranks() > 1:
             box = data.boxdim(L=10)
             boxdim = box._getBoxDim()
 
@@ -120,10 +120,10 @@ class decomposition_tests (unittest.TestCase):
 
     ## Test the fractions are set correctly
     def test_basic_balance(self):
-        if comm.get_num_ranks() == 1:
+        if context.current.device.comm.get_num_ranks() == 1:
             comm.decomposition(x=0.5)
             self.assertEqual(hoomd.context.current.decomposition, None)
-        elif comm.get_num_ranks() > 1:
+        elif context.current.device.comm.get_num_ranks() > 1:
             box = data.boxdim(L=10)
             boxdim = box._getBoxDim()
             comm.decomposition(z=0.2)
@@ -173,7 +173,7 @@ class decomposition_tests (unittest.TestCase):
 
     ## Test that errors are raised if fractional divisions exceed 1.0
     def test_bad_fractions(self):
-        if comm.get_num_ranks() > 1:
+        if context.current.device.comm.get_num_ranks() > 1:
             box = data.boxdim(L=10)
             boxdim = box._getBoxDim()
             with self.assertRaises(RuntimeError):
@@ -226,7 +226,7 @@ class decomposition_tests (unittest.TestCase):
 
     ## Test that parameters are set correctly
     def test_set_params(self):
-        if comm.get_num_ranks() > 1:
+        if context.current.device.comm.get_num_ranks() > 1:
             dd = comm.decomposition(x=[0.3],y=[0.4],z=[0.6])
 
             # check that the grid was set correctly in the constructor (via set_params)

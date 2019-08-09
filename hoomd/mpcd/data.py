@@ -194,7 +194,7 @@ class system(hoomd.meta._metadata):
         self._at_thermo = None
 
         # if MPI is enabled, automatically add a communicator to the system
-        if hoomd.comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.get_num_ranks() > 1:
             if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
                 self.comm = _mpcd.Communicator(self.data)
             else:
