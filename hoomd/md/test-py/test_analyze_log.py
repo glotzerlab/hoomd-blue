@@ -13,7 +13,7 @@ import numpy
 # unit tests for analyze.log
 class analyze_log_tests (unittest.TestCase):
     def setUp(self):
-        init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]);
+        self.system = init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]);
 
         hoomd.context.current.sorter.set_params(grid=8)
 
@@ -57,6 +57,10 @@ class analyze_log_tests (unittest.TestCase):
 
         self.assertRaises(RuntimeError, ana.enable);
         self.assertRaises(RuntimeError, ana.disable);
+
+    def test_callback(self):
+        ana = hoomd.analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
+        ana.register_callback('phi_p', lambda timestep: len(self.system.particles)/self.system.box.get_volume() * math.pi / 4.0)
 
     def tearDown(self):
         hoomd.context.initialize();

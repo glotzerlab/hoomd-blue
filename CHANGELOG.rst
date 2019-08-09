@@ -1,6 +1,29 @@
 Change Log
 ==========
 
+v2.7.0 (not yet released)
+-------------------------
+
+*New features*
+
+- General:
+
+  - Allow components to use ``Logger`` at the C++ level
+  - Drop support for python 2.7
+
+- MD:
+
+- HPMC:
+
+  - Add ``get_type_shapes`` to ``ellipsoid``
+
+- MPCD:
+
+*Bug fixes*
+
+- ``hoomd.hdf5.log.query`` works with matrix quantities
+- ``test_group_rigid.py`` is run out of the ``md`` module
+
 v2.6.0 (2019/05/28)
 -------------------
 
