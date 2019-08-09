@@ -1,13 +1,16 @@
 steps:
 - checkout: self
   submodules: true
+
 - task: CMake@1
   inputs:
     cmakeArgs: $(Build.SourcesDirectory) -DENABLE_CUDA=$(enable_cuda) -DENABLE_MPI=$(enable_mpi) -DENABLE_TBB=$(enable_tbb) -DBUILD_VALIDATION=$(build_validation) -DBUILD_TESTING=$(build_testing) -DBUILD_JIT=$(build_jit) -DLLVM_DIR=/usr/lib/llvm-$(llvm_version)/cmake -DBUILD_DEPRECATED=off -DALWAYS_USE_MANAGED_MEMORY=$(always_use_managed_memory) -DTEST_CPU_IN_GPU_BUILDS=off -GNinja
     workingDirectory: $(Build.BinariesDirectory)
+
 - script: nice -n 19 ninja -j 4
   displayName: Compile
   workingDirectory: $(Build.BinariesDirectory)
+
 - script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH ctest -I $(ctest_start),,$(ctest_stride) --no-compress-output -T test --output-on-failure --test-output-size-failed 1048576 --test-output-size-passed 1048576
   displayName: Run tests
   workingDirectory: $(Build.BinariesDirectory)
@@ -18,7 +21,10 @@ steps:
 
 - script: cp $(Build.BinariesDirectory)/Testing/**/Test.xml $(Common.TestResultsDirectory)
   displayName: Copy test results
+  condition: always()
+
 - task: PublishTestResults@2
+  condition: always()
   inputs:
     testResultsFormat: 'cTest'
     testResultsFiles: '$(Common.TestResultsDirectory)/*.xml'
