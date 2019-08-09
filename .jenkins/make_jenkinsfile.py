@@ -3,7 +3,7 @@ import jinja2
 env = jinja2.Environment(loader=jinja2.FileSystemLoader('.'))
 template = env.get_template('Jenkinsfile.jinja')
 
-ci_base = 'ci-2019.06'
+ci_base = 'ci-2019.08'
 
 unit_tests = []
 vldt_tests = []
