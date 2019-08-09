@@ -151,14 +151,10 @@ Messenger& Messenger::operator=(Messenger& msg)
 
 Messenger::~Messenger()
     {
-    // set pointers to NULL
-    m_err_stream = NULL;
-    m_warning_stream = NULL;
-    m_notice_stream = NULL;
-
-    #ifdef ENABLE_MPI
-    releaseSharedMem();
-    #endif
+    if (! m_is_closed)
+        {
+        close();
+        }
     }
 
 /*! \returns The error stream for use in printing error messages
@@ -462,6 +458,20 @@ void Messenger::releaseSharedMem()
     MPI_Free_mem(m_error_flag);
     }
 
+void Messenger::close()
+    {
+    // set pointers to NULL
+    m_err_stream = NULL;
+    m_warning_stream = NULL;
+    m_notice_stream = NULL;
+
+    #ifdef ENABLE_MPI
+    releaseSharedMem();
+    #endif
+
+    m_is_closed = true;
+    }
+
 #endif
 
 void export_Messenger(py::module& m)
@@ -481,6 +491,7 @@ void export_Messenger(py::module& m)
         .def("setWarningPrefix", &Messenger::setWarningPrefix)
         .def("openFile", &Messenger::openFile)
         .def("openPython", &Messenger::openPython)
+        .def("close", &Messenger::close)
 #ifdef ENABLE_MPI
         .def("setSharedFile", &Messenger::setSharedFile)
 #endif

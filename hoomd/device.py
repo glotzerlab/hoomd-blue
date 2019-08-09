@@ -31,9 +31,21 @@ Attributes:
 import os
 import time
 import socket
+import atexit
 import getpass
 import hoomd
 from hoomd import _hoomd
+
+# Global list of messengers for proper messenger destruction
+_cpp_msgs = []
+
+# this function destroys all the messenger objects that have been created throughout the execution of a script
+@atexit.register
+def _destroy_messengers():
+    global _cpp_msgs
+
+    for msg in _cpp_msgs:
+        msg.close()
 
 
 class _device(hoomd.meta._metadata):
@@ -257,6 +269,7 @@ def _create_mpi_conf(mpi_comm, nrank):
 ## Initializes the Messenger
 # \internal
 def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
+    global _cpp_msgs
 
     msg = _hoomd.Messenger(mpi_config)
 
@@ -283,6 +296,9 @@ def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
             msg.error("Shared log files are only available in MPI builds.\n");
             raise RuntimeError('Error setting option');
         msg.setSharedFile(shared_msg_file);
+
+    # add this messenger to the global list of messengers
+    _cpp_msgs.append(msg)
 
     return msg
 

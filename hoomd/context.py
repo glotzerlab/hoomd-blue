@@ -29,9 +29,6 @@ options = None;
 ## Current simulation context
 current = None;
 
-## band-aid global device
-dev = None
-
 _prev_args = None;
 
 class SimulationContext(object):
@@ -154,7 +151,6 @@ class SimulationContext(object):
             self.device = _create_device()
         else:
             self.device = device
-            dev = device
 
 
     def set_current(self):
@@ -229,15 +225,13 @@ def initialize(args=None, device=None):
 
 # band-aid
 def _create_device():
-    global dev
 
-    if dev is None:
-        if options.mode == "gpu":
-            dev = hoomd.device.gpu(gpu_error_checking=options.gpu_error_checking)
-        elif options.mode == "cpu":
-            dev = hoomd.device.cpu()
-        else:
-            dev = hoomd.device.auto()
+    if options.mode == "gpu":
+        dev = hoomd.device.gpu(gpu_error_checking=options.gpu_error_checking)
+    elif options.mode == "cpu":
+        dev = hoomd.device.cpu()
+    else:
+        dev = hoomd.device.auto()
 
     return dev
 

@@ -283,6 +283,8 @@ class PYBIND11_EXPORT Messenger
         //! Open stdout and stderr again, closing any open file
         void openStd();
 
+        void close();
+
     private:
         std::shared_ptr<MPIConfiguration> m_mpi_config; //!< The MPI configuration
 
@@ -303,6 +305,7 @@ class PYBIND11_EXPORT Messenger
         unsigned int m_notice_level;    //!< Notice level
 
         bool m_python_open=false;       //!< True when the python output stream is open
+        bool m_is_closed=false;
         pybind11::module m_sys;         //!< sys module
         pybind11::object m_pystdout;    //!< Currently bound python sys.stdout
         pybind11::object m_pystderr;    //!< Currently bound python sys.stderr
