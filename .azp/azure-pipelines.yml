@@ -5,7 +5,7 @@ trigger:
     - '*'
 
 variables:
-  image_root: glotzerlab/ci:2019.06
+  image_root: glotzerlab/ci:2019.08
 
   # default build parameters, will override as needed with job matrix values
   enable_cuda: off
