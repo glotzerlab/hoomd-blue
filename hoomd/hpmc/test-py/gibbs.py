@@ -9,11 +9,13 @@ import math
 # this script needs to be run on two ranks
 
 # initialize with one rank per partitions
-context.initialize(device=device.cpu(nrank=1))
+comm = comm.communicator(nrank=1)
+d = device.cpu(communicator=comm)
+context.initialize(d)
 
 class gibbs_ensemble_test(unittest.TestCase):
     def setUp(self):
-        p = comm.get_partition()
+        p = context.current.device.comm.get_partition()
         phi=0.2
         a = (1/6*math.pi / phi)**(1/3)
 
@@ -29,7 +31,7 @@ class gibbs_ensemble_test(unittest.TestCase):
         q=0.8
         etap=0.7
         ntrial = 20
-        p = comm.get_partition()
+        p = context.current.device.comm.get_partition()
 
         nR = etap/(math.pi/6.0*math.pow(q,3.0))
         self.mc.set_fugacity('B',nR)

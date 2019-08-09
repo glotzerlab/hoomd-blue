@@ -184,7 +184,7 @@ class gsd_write_tests (unittest.TestCase):
         if (hoomd.context.current.device.comm.get_rank()==0):
             os.remove(self.tmp_file);
 
-        comm.barrier_all();
+        context.current.device.comm.barrier_all();
 
 # unit tests for dump.gsd
 class gsd_read_tests (unittest.TestCase):
@@ -403,7 +403,7 @@ class gsd_read_tests (unittest.TestCase):
     def tearDown(self):
         if context.current.device.comm.get_rank() == 0:
             os.remove(self.tmp_file);
-        comm.barrier_all();
+        context.current.device.comm.barrier_all();
 
 # unit tests for dump.gsd with default type
 class gsd_default_type (unittest.TestCase):
@@ -450,7 +450,7 @@ class gsd_default_type (unittest.TestCase):
     def tearDown(self):
         if context.current.device.comm.get_rank() == 0:
             os.remove(self.tmp_file);
-        comm.barrier_all();
+        context.current.device.comm.barrier_all();
 
 class gsd_default_type (unittest.TestCase):
     def setUp(self):
@@ -632,7 +632,7 @@ class gsd_default_type (unittest.TestCase):
     def tearDown(self):
         if context.current.device.comm.get_rank() == 0:
             os.remove(self.tmp_file);
-        comm.barrier_all();
+        context.current.device.comm.barrier_all();
 
 
 if __name__ == '__main__':

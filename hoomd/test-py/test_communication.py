@@ -302,7 +302,7 @@ class barrier_tests(unittest.TestCase):
         comm.barrier();
 
     def test_barrier_all(self):
-        comm.barrier_all();
+        context.current.device.comm.barrier_all();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

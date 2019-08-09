@@ -184,7 +184,7 @@ if gtar is not None:
                         sys1.writeGetar(fname);
 
                     sys2 = RandomSystem(0);
-                    hoomd.comm.barrier_all();
+                    hoomd.context.current.device.comm.barrier_all();
                     system = hoomd.init.read_getar(fname,
                                                    {'any': 'any'});
                     sys2.readSystem(system);
@@ -199,7 +199,7 @@ if gtar is not None:
         def tearDown(self):
             if hoomd.context.current.device.comm.get_rank() == 0:
                 os.remove(self.last_fname);
-            hoomd.comm.barrier_all();
+            hoomd.context.current.device.comm.barrier_all();
 
 class test_basic_io(unittest.TestCase):
     def test_basic(self):
@@ -219,7 +219,7 @@ class test_basic_io(unittest.TestCase):
             hoomd.dump.getar.immediate(tmp_file, static=['type'],
                                        dynamic=['position', vel_prop]);
 
-            hoomd.comm.barrier_all();
+            hoomd.context.current.device.comm.barrier_all();
 
             hoomd.init.restore_getar(tmp_file);
 
@@ -240,7 +240,7 @@ class test_basic_io(unittest.TestCase):
             hoomd.run(1);
             dump.close();
             dump.disable();
-            hoomd.comm.barrier_all();
+            hoomd.context.current.device.comm.barrier_all();
 
             hoomd.init.restore_getar(tmp_file);
 
@@ -261,7 +261,7 @@ class test_basic_io(unittest.TestCase):
             hoomd.run(1);
             dump.close();
             dump.disable();
-            hoomd.comm.barrier_all();
+            hoomd.context.current.device.comm.barrier_all();
 
             hoomd.init.restore_getar(tmp_file);
 
@@ -288,7 +288,7 @@ class test_basic_io(unittest.TestCase):
 
             dump.close();
             dump.disable();
-            hoomd.comm.barrier_all();
+            hoomd.context.current.device.comm.barrier_all();
 
             hoomd.init.restore_getar(tmp_file);
 
@@ -303,7 +303,7 @@ class test_basic_io(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier_all();
+        hoomd.context.current.device.comm.barrier_all();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v']);
