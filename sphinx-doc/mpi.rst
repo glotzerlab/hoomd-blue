@@ -140,8 +140,9 @@ the total number of ranks **N** into **p = N/n** replicas, where **n** is the
 number of GPUs per replica, invoke HOOMD-blue with the **--nrank=n**
 command line option (see :ref:`command-line-options`).
 
-Inside the command script, the current partition can be queried using
-:py:func:`hoomd.comm.get_partition()`.
+Inside the command script, the current partition can be queried by calling
+:py:func:`hoomd.comm.communicator.get_partition()` from the communicator of the 
+device attached to the current simulation context.
 
 Dynamic load balancing
 ----------------------
