@@ -50,6 +50,21 @@ mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata
     #endif // ENABLE_MPI
     }
 
+void mpcd::CollisionMethod::collide(unsigned int timestep)
+    {
+    if (!shouldCollide(timestep)) return;
+
+    if (m_prof) m_prof->push("MPCD collide");
+    // set random grid shift
+    drawGridShift(timestep);
+    if (m_prof) m_prof->pop();
+
+    // update cell list
+    m_cl->compute(timestep);
+
+    rule(timestep);
+    }
+
 /*!
  * \param timestep Current timestep
  * \returns True when \a timestep is a \a m_period multiple of the the next timestep the collision should occur

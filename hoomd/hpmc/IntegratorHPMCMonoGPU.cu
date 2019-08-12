@@ -59,7 +59,7 @@ __global__ void gpu_hpmc_excell_kernel(unsigned int *d_excell_idx,
         for (unsigned int k = 0; k < neigh_cell_size; k++)
             {
             // read in the index of the new particle to add to our cell
-            unsigned int new_idx = tex1Dfetch(cell_idx_tex, cli(k, neigh_cell));
+            unsigned int new_idx = __ldg(d_cell_idx + cli(k, neigh_cell));
             d_excell_idx[excli(my_cell_size, my_cell)] = new_idx;
             my_cell_size++;
             }
@@ -99,13 +99,6 @@ cudaError_t gpu_hpmc_excell(unsigned int *d_excell_idx,
     // setup the grid to run the kernel
     dim3 threads(min(block_size, (unsigned int)max_block_size), 1, 1);
     dim3 grid(ci.getNumElements() / block_size + 1, 1, 1);
-
-    // bind the textures
-    cell_idx_tex.normalized = false;
-    cell_idx_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, cell_idx_tex, d_cell_idx, sizeof(unsigned int)*cli.getNumElements());
-    if (error != cudaSuccess)
-        return error;
 
     gpu_hpmc_excell_kernel<<<grid, threads>>>(d_excell_idx,
                                               d_excell_size,

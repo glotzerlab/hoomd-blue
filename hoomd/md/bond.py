@@ -282,10 +282,6 @@ class harmonic(_bond):
         # initialize the base class
         _bond.__init__(self);
 
-        # check that some bonds are defined
-        if hoomd.context.current.system_definition.getBondData().getNGlobal() == 0:
-            hoomd.context.msg.error("No bonds are defined.\n");
-            raise RuntimeError("Error creating bond forces");
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -345,10 +341,6 @@ class fene(_bond):
     def __init__(self, name=None):
         hoomd.util.print_status_line();
 
-        # check that some bonds are defined
-        if hoomd.context.current.system_definition.getBondData().getNGlobal() == 0:
-            hoomd.context.msg.error("No bonds are defined.\n");
-            raise RuntimeError("Error creating bond forces");
 
         # initialize the base class
         _bond.__init__(self, name);
@@ -591,5 +583,3 @@ class table(force._force):
         hoomd.util.quiet_status();
         self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
         hoomd.util.unquiet_status();
-
-

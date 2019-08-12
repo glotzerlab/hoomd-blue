@@ -19,7 +19,6 @@ namespace py = pybind11;
 */
 
 using namespace std;
-
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
     \param group Group of particles on which to apply this constraint
     \param nlist Neighborlist to use
@@ -34,6 +33,10 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
         : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed), m_r_cut(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
+
+    // construct a vector to track # of eligible bonds (i.e. "loops" on each particle)
+    int n_particles = m_pdata->getN();
+    m_nloops.resize(n_particles);
     }
 
 
@@ -49,6 +52,10 @@ void DynamicBond::setParams(Scalar r_cut,
                             Scalar prob_form,
                             Scalar prob_break)
     {
+    if (m_r_cut < 0)
+        {
+        m_exec_conf->msg->error() << "r_cut cannot be less than 0.\n" << std::endl;
+        }
     m_r_cut = r_cut;
     m_prob_form = prob_form;
     m_prob_break = prob_break;

@@ -30,7 +30,7 @@ void gpu_reduce_meshes(const unsigned int mesh_elements,
     cufftComplex *d_mesh,
     const unsigned int ngpu,
     const unsigned int block_size);
- 
+
 void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
                              cufftComplex *d_fourier_mesh,
                              Scalar *d_inf_f,
@@ -111,8 +111,7 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
                            Scalar alpha,
                            unsigned int *d_group_members,
                            unsigned int group_size,
-                           int block_size,
-                           const unsigned int compute_capability);
+                           int block_size);
 
 void gpu_initialize_coeff(
     Scalar *CPU_rho_coeff,

@@ -88,6 +88,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
+                EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
                 EvaluatorPairSLJ.h
                 EvaluatorPairYukawa.h
@@ -213,6 +214,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       MieDriverPotentialPairGPU.cu
                       MoliereDriverPotentialPairGPU.cu
                       MorseDriverPotentialPairGPU.cu
+                      FourierDriverPotentialPairGPU.cu
                       PairLJ1208DriverPotentialPairGPU.cu
                       ReactionFieldDriverPotentialPairGPU.cu
                       SLJDriverPotentialPairGPU.cu

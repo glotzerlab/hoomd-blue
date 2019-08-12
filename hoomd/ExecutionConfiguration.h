@@ -13,6 +13,8 @@
 #include <mpi.h>
 #endif
 
+#include "MPIConfiguration.h"
+
 #include <vector>
 #include <string>
 #include <memory>
@@ -80,38 +82,40 @@ struct PYBIND11_EXPORT ExecutionConfiguration
                            std::vector<int> gpu_id = std::vector<int>(),
                            bool min_cpu=false,
                            bool ignore_display=false,
-                           std::shared_ptr<Messenger> _msg=std::shared_ptr<Messenger>(),
-                           unsigned int n_ranks = 0
-                           #ifdef ENABLE_MPI
-                           , MPI_Comm hoomd_world=MPI_COMM_WORLD
-                           #endif
+                           std::shared_ptr<MPIConfiguration> mpi_config=std::shared_ptr<MPIConfiguration>(),
+                           std::shared_ptr<Messenger> _msg=std::shared_ptr<Messenger>()
                            );
 
     ~ExecutionConfiguration();
+
+    //! Returns the MPI Configuration
+    std::shared_ptr<MPIConfiguration> getMPIConfig() const
+        {
+        assert(m_mpi_config);
+        return m_mpi_config;
+        }
 
 #ifdef ENABLE_MPI
     //! Returns the MPI communicator
     MPI_Comm getMPICommunicator() const
         {
-        return m_mpi_comm;
+        assert(m_mpi_config);
+        return m_mpi_config->getCommunicator();
         }
+
     //! Returns the HOOMD World MPI communicator
     MPI_Comm getHOOMDWorldMPICommunicator() const
         {
-        return m_hoomd_world;
+        assert(m_mpi_config);
+        return m_mpi_config->getHOOMDWorldCommunicator();
         }
 #endif
-
-    //! Guess local rank of this processor, used for GPU initialization
-    /*! \returns Local rank guessed from common environment variables
-                 or falls back to the global rank if no information is available
-        \param found [output] True if a local rank was found, false otherwise
-     */
-    int guessLocalRank(bool &found);
 
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
     bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
+
+    std::shared_ptr<MPIConfiguration> m_mpi_config; //!< The MPI object holding the MPI communicator
     std::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
 
     //! Returns true if CUDA is enabled
@@ -215,74 +219,45 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     void handleCUDAError(cudaError_t err, const char *file, unsigned int line) const;
 #endif
 
+    /*
+     * The following MPI related methods only wrap those of the MPIConfiguration object,
+       which can obtained with getMPIConfig(), and are provided as a legacy API.
+    */
+
     //! Return the rank of this processor in the partition
     unsigned int getRank() const
         {
-        return m_rank;
-        }
-
-    #ifdef ENABLE_MPI
-    //! Return the global rank of this processor
-    static unsigned int getRankGlobal()
-        {
-        int rank;
-        // get rank on world communicator
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        return rank;
-        }
-
-    //! Return the global communicator size
-    static unsigned int getNRanksGlobal()
-        {
-        int size;
-        MPI_Comm_size(MPI_COMM_WORLD, &size);
-        return size;
+        assert(m_mpi_config);
+        return m_mpi_config->getRank();
         }
 
     //! Returns the partition number of this processor
     unsigned int getPartition() const
         {
-        return m_n_rank ? getRankGlobal()/m_n_rank : 0;
+        assert(m_mpi_config);
+        return m_mpi_config->getPartition();
         }
 
     //! Returns the number of partitions
     unsigned int getNPartitions() const
         {
-        return m_n_rank ? getNRanksGlobal()/m_n_rank : 1;
+        assert(m_mpi_config);
+        return m_mpi_config->getNPartitions();
         }
 
     //! Return the number of ranks in this partition
-    unsigned int getNRanks() const;
+    unsigned int getNRanks() const
+        {
+        assert(m_mpi_config);
+        return m_mpi_config->getNRanks();
+        }
 
     //! Returns true if this is the root processor
     bool isRoot() const
         {
-        return getRank() == 0;
+        assert(m_mpi_config);
+        return m_mpi_config->isRoot();
         }
-
-    //! Set the MPI communicator
-    void setMPICommunicator(const MPI_Comm mpi_comm)
-        {
-        m_mpi_comm = mpi_comm;
-        }
-
-    //! Set the HOOMD world MPI communicator
-    void setHOOMDWorldMPICommunicator(const MPI_Comm mpi_comm)
-        {
-        m_hoomd_world = mpi_comm;
-        }
-
-    //! Perform a job-wide MPI barrier
-    void barrier()
-        {
-        MPI_Barrier(m_mpi_comm);
-        }
-    #else
-    bool isRoot() const
-        {
-        return true;
-        }
-    #endif
 
     #ifdef ENABLE_TBB
     //! set number of TBB threads
@@ -340,6 +315,13 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         }
 
 private:
+    //! Guess local rank of this processor, used for GPU initialization
+    /*! \returns Local rank guessed from common environment variables
+                 or falls back to the global rank if no information is available
+        \param found [output] True if a local rank was found, false otherwise
+     */
+    int guessLocalRank(bool &found);
+
 #ifdef ENABLE_CUDA
     //! Initialize the GPU with the given id
     void initializeGPU(int gpu_id, bool min_cpu);
@@ -370,16 +352,6 @@ private:
     bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 
     mutable bool m_in_multigpu_block;       //!< Tracks whether we are in a multi-GPU block
-
-#ifdef ENABLE_MPI
-    void splitPartitions(const MPI_Comm mpi_comm); //!< Create partitioned communicators
-
-    MPI_Comm m_mpi_comm;                   //!< The MPI communicator
-    MPI_Comm m_hoomd_world;                //!< The HOOMD world communicator
-    unsigned int m_n_rank;                 //!< Ranks per partition
-#endif
-
-    unsigned int m_rank;                   //!< Rank of this processor (0 if running in single-processor mode)
 
     #ifdef ENABLE_CUDA
     std::unique_ptr<CachedAllocator> m_cached_alloc;       //!< Cached allocator for temporary allocations

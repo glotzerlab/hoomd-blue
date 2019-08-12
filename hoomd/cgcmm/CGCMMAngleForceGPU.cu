@@ -16,15 +16,6 @@
     \brief Defines GPU kernel code for calculating the CGCMM angle forces. Used by CGCMMAngleForceComputeGPU.
 */
 
-//! Texture for reading angle parameters
-scalar2_tex_t angle_params_tex;
-
-//! Texture for reading angle CGCMM S-R parameters
-scalar2_tex_t angle_CGCMMsr_tex; // MISSING EPSILON!!! sigma=.x, rcut=.y
-
-//! Texture for reading angle CGCMM Epsilon-pow/pref parameters
-scalar4_tex_t angle_CGCMMepow_tex; // now with EPSILON=.x, pow1=.y, pow2=.z, pref=.w
-
 //! Kernel for calculating CGCMM angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -124,7 +115,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
         dac = box.minImage(dac);
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
-        Scalar2 params = texFetchScalar2(d_params, angle_params_tex, cur_angle_type);
+        Scalar2 params = __ldg(d_params + cur_angle_type);
         Scalar K = params.x;
         Scalar t_0 = params.y;
 
@@ -154,14 +145,14 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
             vac[i] = Scalar(0.0);
 
         // get the angle E-S-R parameters (MEM TRANSFER: 12 bytes)
-        const Scalar2 cgSR = texFetchScalar2(d_CGCMMsr, angle_CGCMMsr_tex, cur_angle_type);
+        const Scalar2 cgSR = __ldg(d_CGCMMsr + cur_angle_type);
 
         Scalar cgsigma = cgSR.x;
         Scalar cgrcut = cgSR.y;
 
         if (rac < cgrcut)
             {
-            const Scalar4 cgEPOW = texFetchScalar4(d_CGCMMepow, angle_CGCMMepow_tex, cur_angle_type);
+            const Scalar4 cgEPOW = __ldg(d_CGCMMepow + cur_angle_type);
 
             // get the angle pow/pref parameters (MEM TRANSFER: 12 bytes)
             Scalar cgeps = cgEPOW.x;
@@ -282,8 +273,7 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
                                            Scalar2 *d_CGCMMsr,
                                            Scalar4 *d_CGCMMepow,
                                            unsigned int n_angle_types,
-                                           int block_size,
-                                           const unsigned int compute_capability)
+                                           int block_size)
     {
     assert(d_params);
     assert(d_CGCMMsr);
@@ -305,22 +295,6 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
     dim3 threads(run_block_size, 1, 1);
-
-    // bind the textures on pre sm 35 arches
-    if (compute_capability < 350)
-        {
-        cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaBindTexture(0, angle_CGCMMsr_tex, d_CGCMMsr, sizeof(Scalar2) * n_angle_types);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaBindTexture(0, angle_CGCMMepow_tex, d_CGCMMepow, sizeof(Scalar4) * n_angle_types);
-        if (error != cudaSuccess)
-            return error;
-        }
 
     // run the kernel
     gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force,
