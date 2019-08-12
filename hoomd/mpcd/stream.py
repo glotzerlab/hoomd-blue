@@ -419,3 +419,146 @@ class slit(_streaming_method):
         self._cpp.geometry = _mpcd.SlitGeometry(self.H,self.V,bc)
         if self._filler is not None:
             self._filler.setGeometry(self._cpp.geometry)
+
+class slit_pore(_streaming_method):
+    r""" Parallel plate (slit) pore streaming geometry.
+
+    Args:
+        H (float): channel half-width
+        L (float): pore half-length
+        boundary (str): boundary condition at wall ("slip" or "no_slip"")
+        period (int): Number of integration steps between collisions
+
+    The slit pore geometry represents a fluid confined between two parallel
+    plates that have finite length in *x*. The slit pore is centered around
+    the origin, and the walls are placed at :math:`z=-H` and :math:`z=+H`,
+    so the total channel width is *2H*. They extend from :math:`x=-L` to
+    :math:`x=+L` (total length *2L*), where they have an additional solid
+    walls with normals in *x*. The plates are infinite in *y*. Outside
+    the pore, the simulation box has full periodic boundaries.
+
+    The "inside" of the :py:class:`slit_pore` is the space where
+    :math:`|z| < H` for :math:`|x| < L`, and the entire space where
+    :math:`|x| \ge L`.
+
+    Examples::
+
+        stream.slit_pore(period=10, H=30., L=10.)
+        stream.slit_pore(period=1, H=25., L=25.)
+
+    .. versionadded:: 2.7
+
+    """
+    def __init__(self, H, L, boundary="no_slip", period=1):
+        hoomd.util.print_status_line()
+
+        _streaming_method.__init__(self, period)
+
+        self.metadata_fields += ['H','L','boundary']
+        self.H = H
+        self.L = L
+        self.boundary = boundary
+
+        bc = self._process_boundary(boundary)
+
+        # create the base streaming class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            stream_class = _mpcd.ConfinedStreamingMethodSlitPore
+        else:
+            stream_class = _mpcd.ConfinedStreamingMethodGPUSlitPore
+        self._cpp = stream_class(hoomd.context.current.mpcd.data,
+                                 hoomd.context.current.system.getCurrentTimeStep(),
+                                 self.period,
+                                 0,
+                                 _mpcd.SlitPoreGeometry(H,L,bc))
+
+    def set_filler(self, density, kT, seed, type='A'):
+        r""" Add virtual particles to slit channel.
+
+        Args:
+            density (float): Density of virtual particles.
+            kT (float): Temperature of virtual particles.
+            seed (int): Seed to pseudo-random number generator for virtual particles.
+            type (str): Type of the MPCD particles to fill with.
+
+        The virtual particle filler draws particles within the volume *outside* the
+        slit pore boundaries that could be overlapped by any cell that is partially *inside*
+        the slit pore. The particles are drawn from the velocity distribution consistent
+        with *kT* and with the given *density*. The mean of the distribution is zero in
+        *x*, *y*, and *z*. Typically, the virtual particle density and temperature are set
+        to the same conditions as the solvent.
+
+        The virtual particles will act as a weak thermostat on the fluid, and so energy
+        is no longer conserved. Momentum will also be sunk into the walls.
+
+        Example::
+
+            slit_pore.set_filler(density=5.0, kT=1.0, seed=42)
+
+        """
+        hoomd.util.print_status_line()
+
+        type_id = hoomd.context.current.mpcd.particles.getTypeByName(type)
+        T = hoomd.variant._setup_variant_input(kT)
+
+        if self._filler is None:
+            if not hoomd.context.exec_conf.isCUDAEnabled():
+                fill_class = _mpcd.SlitPoreGeometryFiller
+            else:
+                fill_class = _mpcd.SlitPoreGeometryFillerGPU
+            self._filler = fill_class(hoomd.context.current.mpcd.data,
+                                      density,
+                                      type_id,
+                                      T.cpp_variant,
+                                      seed,
+                                      self._cpp.geometry)
+        else:
+            self._filler.setDensity(density)
+            self._filler.setType(type_id)
+            self._filler.setTemperature(T.cpp_variant)
+            self._filler.setSeed(seed)
+
+    def remove_filler(self):
+        """ Remove the virtual particle filler.
+
+        Example::
+
+            slit_pore.remove_filler()
+
+        """
+        hoomd.util.print_status_line()
+
+        self._filler = None
+
+    def set_params(self, H=None, L=None, boundary=None):
+        """ Set parameters for the slit geometry.
+
+        Args:
+            H (float): channel half-width
+            L (float): pore half-length
+            boundary (str): boundary condition at wall ("slip" or "no_slip"")
+
+        Changing any of these parameters will require the geometry to be
+        constructed and validated, so do not change these too often.
+
+        Examples::
+
+            slit_pore.set_params(H=15.0)
+            slit_pore.set_params(L=10.0, boundary="no_slip")
+
+        """
+        hoomd.util.print_status_line()
+
+        if H is not None:
+            self.H = H
+
+        if L is not None:
+            self.L = L
+
+        if boundary is not None:
+            self.boundary = boundary
+
+        bc = self._process_boundary(self.boundary)
+        self._cpp.geometry = _mpcd.SlitPoreGeometry(self.H,self.L,bc)
+        if self._filler is not None:
+            self._filler.setGeometry(self._cpp.geometry)

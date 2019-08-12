@@ -40,5 +40,15 @@ void export_SlitGeometry(pybind11::module& m)
         .def("getBoundaryCondition", &SlitGeometry::getBoundaryCondition);
     }
 
+void export_SlitPoreGeometry(pybind11::module& m)
+    {
+    namespace py = pybind11;
+    py::class_<SlitPoreGeometry, std::shared_ptr<SlitPoreGeometry> >(m, "SlitPoreGeometry")
+        .def(py::init<Scalar, Scalar, boundary>())
+        .def("getH", &SlitPoreGeometry::getH)
+        .def("getL", &SlitPoreGeometry::getL)
+        .def("getBoundaryCondition", &SlitPoreGeometry::getBoundaryCondition);
+    }
+
 } // end namespace detail
 } // end namespace mpcd
