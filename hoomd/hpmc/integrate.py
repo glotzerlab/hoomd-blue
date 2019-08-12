@@ -1534,6 +1534,27 @@ class ellipsoid(mode_hpmc):
         if restore_state:
             self.restore_state()
 
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+
+            >>> mc.get_type_shapes()
+            [{'type': 'Ellipsoid', 'a': 1.0, 'b': 1.5, 'c': 1}]
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        result = []
+
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+
+        for i in range(ntypes):
+            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
+            shape = self.shape_param.get(typename)
+            result.append(dict(type='Ellipsoid', a=shape.a, b=shape.b, c=shape.c));
+        return result
+
 class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).
 

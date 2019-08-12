@@ -2130,6 +2130,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
     bool accept = true;
 
     const unsigned int n_images = this->m_image_list.size();
+    unsigned int ndim = this->m_sysdef->getNDimensions();
 
     Shape shape_old(quat<Scalar>(h_orientation[i]), this->m_params[typ_i]);
     detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
@@ -2297,8 +2298,10 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                 detail::AABB aabb_intersect(intersect_lower, intersect_upper);
 
-                // intersectionAABB volume
-                Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y)*(intersect_upper.z-intersect_lower.z);
+                // intersection AABB volume
+                Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
+                if(ndim == 3)
+                    V *= intersect_upper.z-intersect_lower.z;
 
                 // chooose the number of depletants in the intersection volume
                 hoomd::PoissonDistribution<Scalar> poisson(m_fugacity[type]*V);
@@ -2333,11 +2336,11 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     implicit_counters[type].insert_count++;
                     #endif
 
-                    vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect);
+                    vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect, ndim);
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
                     if (shape_test.hasOrientation())
                         {
-                        shape_test.orientation = generateRandomOrientation(my_rng);
+                        shape_test.orientation = generateRandomOrientation(my_rng, ndim);
                         }
 
                     // check if depletant falls in other intersection volumes
@@ -2704,7 +2707,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                 detail::AABB aabb_intersect(intersect_lower, intersect_upper);
 
                 // intersection AABB volume
-                Scalar V = (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y)*(intersect_upper.z-intersect_lower.z);
+                Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
+                if(ndim == 3)
+                    V *= intersect_upper.z-intersect_lower.z;
 
                 // chooose the number of depletants in the intersection volume
                 hoomd::PoissonDistribution<Scalar> poisson(-m_fugacity[type]*V);
@@ -2739,11 +2744,11 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     implicit_counters[type].insert_count++;
                     #endif
 
-                    vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect);
+                    vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect, ndim);
                     Shape shape_test(quat<Scalar>(), this->m_params[type]);
                     if (shape_test.hasOrientation())
                         {
-                        shape_test.orientation = generateRandomOrientation(my_rng);
+                        shape_test.orientation = generateRandomOrientation(my_rng, ndim);
                         }
 
                     // check if depletant falls in other intersection volumes (new)

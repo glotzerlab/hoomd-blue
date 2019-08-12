@@ -132,16 +132,25 @@ DEVICE inline bool isActive(Scalar3 pos, const BoxDim& box, Scalar3 ghost_fracti
 // see Shoemake, Uniform random rotations, Graphics Gems III, p.142-132
 // and http://math.stackexchange.com/questions/131336/uniform-random-quaternion-in-a-restricted-angle-range
 template<class RNG>
-DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
+DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng, unsigned int ndim)
     {
-    Scalar u1 = hoomd::detail::generate_canonical<Scalar>(rng);
-    Scalar u2 = hoomd::detail::generate_canonical<Scalar>(rng);
-    Scalar u3 = hoomd::detail::generate_canonical<Scalar>(rng);
-    return quat<Scalar>(fast::sqrt(u1)*fast::cos(Scalar(2.0*M_PI)*u3),
-        vec3<Scalar>(fast::sqrt(Scalar(1.0)-u1)*fast::sin(Scalar(2.0*M_PI)*u2),
-            fast::sqrt(Scalar(1.0-u1))*fast::cos(Scalar(2.0*M_PI)*u2),
-            fast::sqrt(u1)*fast::sin(Scalar(2.0*M_PI)*u3)));
-
+    // 2D just needs a random rotation in the plane
+    if (ndim==2)
+        {
+        Scalar angle = hoomd::UniformDistribution<Scalar>(-M_PI, M_PI)(rng);
+        vec3<Scalar> axis(Scalar(0), Scalar(0), Scalar(1));
+        return quat<Scalar>::fromAxisAngle(axis, angle);
+        }
+    else
+        {
+        Scalar u1 = hoomd::detail::generate_canonical<Scalar>(rng);
+        Scalar u2 = hoomd::detail::generate_canonical<Scalar>(rng);
+        Scalar u3 = hoomd::detail::generate_canonical<Scalar>(rng);
+        return quat<Scalar>(fast::sqrt(u1)*fast::cos(Scalar(2.0*M_PI)*u3),
+            vec3<Scalar>(fast::sqrt(Scalar(1.0)-u1)*fast::sin(Scalar(2.0*M_PI)*u2),
+                fast::sqrt(Scalar(1.0-u1))*fast::cos(Scalar(2.0*M_PI)*u2),
+                fast::sqrt(u1)*fast::sin(Scalar(2.0*M_PI)*u3)));
+        }
     }
 
 /* Generate a uniformly distributed random position in a sphere
@@ -223,7 +232,7 @@ inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>&
  * \param aabb The AABB to sample in
  */
 template<class RNG>
-DEVICE inline vec3<Scalar> generatePositionInAABB(RNG& rng, const detail::AABB& aabb)
+DEVICE inline vec3<Scalar> generatePositionInAABB(RNG& rng, const detail::AABB& aabb, unsigned int ndim)
     {
     vec3<Scalar> p;
     vec3<Scalar> lower = aabb.getLower();
@@ -231,7 +240,10 @@ DEVICE inline vec3<Scalar> generatePositionInAABB(RNG& rng, const detail::AABB& 
 
     p.x = hoomd::UniformDistribution<Scalar>(lower.x, upper.x)(rng);
     p.y = hoomd::UniformDistribution<Scalar>(lower.y, upper.y)(rng);
-    p.z = hoomd::UniformDistribution<Scalar>(lower.z, upper.z)(rng);
+    if (ndim == 3)
+        p.z = hoomd::UniformDistribution<Scalar>(lower.z, upper.z)(rng);
+    else
+        p.z = Scalar(0);
 
     return p;
     }
