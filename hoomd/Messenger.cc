@@ -458,6 +458,8 @@ void Messenger::releaseSharedMem()
     MPI_Free_mem(m_error_flag);
     }
 
+#endif
+
 void Messenger::close()
     {
     // set pointers to NULL
@@ -470,9 +472,9 @@ void Messenger::close()
     #endif
 
     m_is_closed = true;
-    }
 
-#endif
+    openStd();
+    }
 
 void export_Messenger(py::module& m)
     {

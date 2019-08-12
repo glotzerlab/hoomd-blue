@@ -11,7 +11,7 @@ import math
 # initialize with one rank per partitions
 comm = comm.communicator(nrank=1)
 d = device.cpu(communicator=comm)
-context.initialize(d)
+context.initialize(device=d)
 
 class gibbs_ensemble_test(unittest.TestCase):
     def setUp(self):
