@@ -155,6 +155,7 @@ stages:
 - stage: build_validate_cpu
   displayName: Validate (CPU)
   dependsOn: build_test_cpu
+  condition: contains(variables['Build.SourceVersionMessage'], '[ci validate]')
   variables:
     # run only validation tests
     build_validation: on
@@ -312,6 +313,7 @@ stages:
 - stage: build_validate_gpu
   displayName: Validate (GPU)
   dependsOn: build_test_gpu
+  condition: contains(variables['Build.SourceVersionMessage'], '[ci validate]')
   variables:
     enable_cuda: on
     # run only validation tests
