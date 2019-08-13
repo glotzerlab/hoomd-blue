@@ -186,7 +186,6 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
             hoomd.run(1)
 
     # test that virtual particle filler can be attached, removed, and updated
-    @unittest.expectedFailure
     def test_filler(self):
         # initialization of a filler
         slit_pore = mpcd.stream.slit_pore(H=4.,L=3.)
