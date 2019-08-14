@@ -37,7 +37,7 @@ stages:
       vmImage: 'ubuntu-16.04'
 
     container:
-      image: $(image_root)-$(container_image)
+      image: $(image_root)-ubuntu18.04
       options: -u 0
 
     steps:
