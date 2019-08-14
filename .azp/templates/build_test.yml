@@ -31,4 +31,4 @@ steps:
   inputs:
     testResultsFormat: 'cTest'
     testResultsFiles: '$(Common.TestResultsDirectory)/*.xml'
-    testRunTitle: $(Agent.JobName)
+    testRunTitle: $(suite_name)

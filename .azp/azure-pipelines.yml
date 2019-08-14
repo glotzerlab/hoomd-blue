@@ -20,6 +20,7 @@ variables:
   ctest_start: 1
   ctest_stride: 1
   mpiexec_timeout: 300
+  suite_name: $(Agent.JobName)
 
 stages:
 - stage: build_test_cpu
