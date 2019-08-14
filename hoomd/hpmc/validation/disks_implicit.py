@@ -19,7 +19,7 @@ import itertools
 params = []
 params = list(itertools.product(seed_list, phi_c_list, eta_p_r_list))
 
-context.msg.notice(1,"{} parameters\n".format(len(params)))
+context.device.cpp_msg.notice(1,"{} parameters\n".format(len(params)))
 
 # choose a random state point
 import random
@@ -29,7 +29,7 @@ p = int(option.get_user()[0])
 # are we using update.cluster?
 use_clusters = p//len(params)
 
-context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
+context.device.cpp_msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
 # test the equation of state of spheres with penetrable depletant disks
 # the reference values have been generated in HPMC, as we are not aware of published EOS on 2d penetrable disks
 

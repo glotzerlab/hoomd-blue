@@ -146,7 +146,6 @@ class SimulationContext(object):
 
         ## Global variable tracking the device used for running the simulation
         ## by default, this is automatically set, unless the user assigns something different
-        print("DEVICE:", device)
         if device is None:
             self.device = _create_device()
         else:
@@ -216,7 +215,7 @@ def initialize(args=None, device=None):
     hoomd.option._parse_command_line(args);
 
     current = SimulationContext(device)
-    print("Made Simulation Context Object")
+    
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()
 
@@ -225,7 +224,7 @@ def initialize(args=None, device=None):
 
 # band-aid
 def _create_device():
-    print("Entered create_device()")
+    
     if options.mode == "gpu":
         dev = hoomd.device.gpu(gpu_error_checking=options.gpu_error_checking)
     elif options.mode == "cpu":
