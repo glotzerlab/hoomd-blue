@@ -31,7 +31,7 @@ variables:
 stages:
 - stage: build_validate_cpu
   displayName: Validate (CPU)
-  condition: or(equals(variables['Build.Reason'],'PullRequest'), contains(variables['Build.SourceVersionMessage'], '[ci validate]')
+  condition: or(eq(variables['Build.Reason'],'PullRequest'), contains(variables['Build.SourceVersionMessage'], '[ci validate]')
 
   jobs:
   - job: vld_linux_cpu
@@ -175,7 +175,7 @@ stages:
 
 - stage: build_validate_gpu
   displayName: Validate (GPU)
-  condition: or(equals(variables['Build.Reason'],'PullRequest'), contains(variables['Build.SourceVersionMessage'], '[ci validate]')
+  condition: or(eq(variables['Build.Reason'],'PullRequest'), contains(variables['Build.SourceVersionMessage'], '[ci validate]')
 
   jobs:
   - job: vld_linux_gpu
