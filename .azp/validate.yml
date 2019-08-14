@@ -25,21 +25,6 @@ variables:
   mpiexec_timeout: 21600
 
 stages:
-- stage: tmp
-  jobs:
-  - job: tmp
-
-    pool:
-      vmImage: 'ubuntu-16.04'
-
-    container:
-      image: $(image_root)-ubuntu18.04
-      options: -u 0
-
-    steps:
-    - script: set
-
-
 - stage: build_validate_cpu
   displayName: Validate (CPU)
 
@@ -185,6 +170,7 @@ stages:
 
 - stage: build_validate_gpu
   displayName: Validate (GPU)
+  dependsOn: []
 
   jobs:
   - job: vld_linux_gpu
