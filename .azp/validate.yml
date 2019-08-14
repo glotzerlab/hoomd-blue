@@ -1,12 +1,8 @@
 # developers must opt in to the long validation test runs
-# on a branch: include '[ci validate]' in the commit message
+# on a branch: manually trigger the build at: https://dev.azure.com/glotzerlab/hoomd-blue/_build?definitionId=3&_a=summary
 # on a PR: add a comment to the PR on GitHub '/azp run validate'
 
-trigger:
-  batch: true
-  branches:
-    include:
-    - '*'
+trigger: none
 
 pr: none
 
@@ -46,7 +42,6 @@ stages:
 
 - stage: build_validate_cpu
   displayName: Validate (CPU)
-  condition: or(eq(variables['Build.Reason'],'PullRequest'), contains(variables['Build.SourceVersionMessage'], 'ci validate'))
 
   jobs:
   - job: vld_linux_cpu
@@ -190,7 +185,6 @@ stages:
 
 - stage: build_validate_gpu
   displayName: Validate (GPU)
-  condition: or(eq(variables['Build.Reason'],'PullRequest'), contains(variables['Build.SourceVersionMessage'], 'ci validate'))
 
   jobs:
   - job: vld_linux_gpu
