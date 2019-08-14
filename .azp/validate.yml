@@ -29,6 +29,21 @@ variables:
   mpiexec_timeout: 21600
 
 stages:
+- stage: tmp
+  jobs:
+  - job: tmp
+
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    container:
+      image: $(image_root)-$(container_image)
+      options: -u 0
+
+    steps:
+    - script: set
+
+
 - stage: build_validate_cpu
   displayName: Validate (CPU)
   condition: or(eq(variables['Build.Reason'],'PullRequest'), contains(variables['Build.SourceVersionMessage'], '[ci validate]'))
