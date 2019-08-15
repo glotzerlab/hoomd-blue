@@ -429,13 +429,17 @@ class slit_pore(_streaming_method):
         boundary (str): boundary condition at wall ("slip" or "no_slip"")
         period (int): Number of integration steps between collisions
 
-    The slit pore geometry represents a fluid confined between two parallel
-    plates that have finite length in *x*. The slit pore is centered around
-    the origin, and the walls are placed at :math:`z=-H` and :math:`z=+H`,
-    so the total channel width is *2H*. They extend from :math:`x=-L` to
-    :math:`x=+L` (total length *2L*), where they have an additional solid
-    walls with normals in *x*. The plates are infinite in *y*. Outside
-    the pore, the simulation box has full periodic boundaries.
+    The slit pore geometry represents a fluid partially confined between two
+    parallel plates that have finite length in *x*. The slit pore is centered
+    around the origin, and the walls are placed at :math:`z=-H` and
+    :math:`z=+H`, so the total channel width is *2H*. They extend from
+    :math:`x=-L` to :math:`x=+L` (total length *2L*), where additional solid walls
+    with normals in *x* prevent penetration into the regions above / below the
+    plates. The plates are infinite in *y*. Outside the pore, the simulation box
+    has full periodic boundaries; it is not confined by any walls. This model
+    hence mimics a narrow pore in, e.g., a membrane.
+
+    .. image:: mpcd_slit_pore.png
 
     The "inside" of the :py:class:`slit_pore` is the space where
     :math:`|z| < H` for :math:`|x| < L`, and the entire space where
@@ -473,7 +477,7 @@ class slit_pore(_streaming_method):
                                  _mpcd.SlitPoreGeometry(H,L,bc))
 
     def set_filler(self, density, kT, seed, type='A'):
-        r""" Add virtual particles to slit channel.
+        r""" Add virtual particles to slit pore.
 
         Args:
             density (float): Density of virtual particles.
