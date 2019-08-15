@@ -158,8 +158,8 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
          * \param box Global simulation box
          * \param cell_size Size of MPCD cell
          *
-         * The box is large enough for the slit if it is padded along the z direction so that
-         * the cells just outside the slit would not interact with each other through the boundary.
+         * The box is large enough for the pore if it is padded along the x and z direction so that
+         * the cells just outside the pore would not interact with each other through the boundary.
          */
         HOSTDEVICE bool validateBox(const BoxDim& box, Scalar cell_size) const
             {

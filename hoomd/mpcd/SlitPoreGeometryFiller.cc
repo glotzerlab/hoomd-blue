@@ -21,21 +21,39 @@ mpcd::SlitPoreGeometryFiller::SlitPoreGeometryFiller(std::shared_ptr<mpcd::Syste
                                              unsigned int seed,
                                              std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom)
     : mpcd::VirtualParticleFiller(sysdata, density, type, T, seed),
-      m_geom(geom), m_num_boxes(0), m_boxes(MAX_BOXES, m_exec_conf), m_ranges(MAX_BOXES, m_exec_conf)
+      m_num_boxes(0), m_boxes(MAX_BOXES, m_exec_conf), m_ranges(MAX_BOXES, m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SlitPoreGeometryFiller" << std::endl;
+
+    setGeometry(geom);
+
+    // unphysical values in cache to always force recompute
+    m_needs_recompute = true;
+    m_last_cell_size = make_scalar2(-1,-1);
+    m_pdata->getBoxChangeSignal().connect<mpcd::SlitPoreGeometryFiller, &mpcd::SlitPoreGeometryFiller::notifyRecompute>(this);
     }
 
 mpcd::SlitPoreGeometryFiller::~SlitPoreGeometryFiller()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD SlitPoreGeometryFiller" << std::endl;
+    m_pdata->getBoxChangeSignal().disconnect<mpcd::SlitPoreGeometryFiller, &mpcd::SlitPoreGeometryFiller::notifyRecompute>(this);
     }
 
 void mpcd::SlitPoreGeometryFiller::computeNumFill()
     {
+    const Scalar cell_size = m_cl->getCellSize();
+    const Scalar max_shift = m_cl->getMaxGridShift();
+
+    // only recompute if requested or cell sizing has changed
+    if (!m_needs_recompute &&
+        m_last_cell_size.x == cell_size &&
+        m_last_cell_size.y == max_shift)
+        {
+        return;
+        }
+
     // as a precaution, validate the global box with the current cell list
     const BoxDim& global_box = m_pdata->getGlobalBox();
-    const Scalar cell_size = m_cl->getCellSize();
     if (!m_geom->validateBox(global_box, cell_size))
         {
         m_exec_conf->msg->error() << "Invalid slit pore geometry for global box, cannot fill virtual particles." << std::endl;
@@ -55,7 +73,6 @@ void mpcd::SlitPoreGeometryFiller::computeNumFill()
      * This is done by round the walls onto the cell grid toward/away from zero, and then including the
      * max shift of this cell edge.
      */
-    const Scalar max_shift = m_cl->getMaxGridShift();
     const Scalar3 global_lo = global_box.getLo();
     const Scalar3 global_hi = global_box.getHi();
     Scalar2 x_bounds, z_bounds;
@@ -111,6 +128,10 @@ void mpcd::SlitPoreGeometryFiller::computeNumFill()
                 }
             }
         }
+
+    // size is now updated, cache the cell dimensions used
+    m_needs_recompute = false;
+    m_last_cell_size = make_scalar2(cell_size, max_shift);
     }
 
 /*!
