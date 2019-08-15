@@ -96,7 +96,7 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
                 }
             else
                 {
-                // signal no collision for special case of not moving normal to pore
+                // no collision
                 dts.x = Scalar(-1);
                 }
             if (vel.z != Scalar(0))
@@ -109,13 +109,28 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
                 dts.y = Scalar(-1);
                 }
 
-            // determine colliding surface and its normal
+            // determine if collisions happend with the x or z walls.
+            // if both occur, use the one that happened first (leaves the most time)
+            // this neglects coming through the corner exactly, but that's OK to an approx.
+            uchar2 hits = make_uchar2(dts.x > 0 && dts.x < dt, dts.y > 0 && dts.y < dt);
+            if (hits.x && hits.y)
+                {
+                if (dts.x < dts.y)
+                    {
+                    hits.x = 0;
+                    }
+                else
+                    {
+                    hits.y = 0;
+                    }
+                }
+
+            // set integration time and normal based on the collision
             Scalar3 n = make_scalar3(0,0,0);
-            const uchar2 hits = make_uchar2(dts.x > 0 && dts.x < dt, dts.y > 0 && dts.y < dt);
             if (hits.x && !hits.y)
                 {
                 dt = dts.x;
-                // 1 if v.x < 0 (upper pore wall), +1 if v.x > 0 (lower pore wall)
+                // 1 if v.x < 0 (right pore wall), -1 if v.x > 0 (left pore wall)
                 n.x = (vel.x < 0) - (vel.x > 0);
                 }
             else if (!hits.x && hits.y)
@@ -125,7 +140,6 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
                 }
             else
                 {
-                // could be spurious or just no hit, ignoring.
                 dt = Scalar(0);
                 return false;
                 }

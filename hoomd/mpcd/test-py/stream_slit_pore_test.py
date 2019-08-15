@@ -23,19 +23,23 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
         hoomd.init.read_snapshot(hoomd.data.make_snapshot(N=0, box=hoomd.data.boxdim(L=10.)))
 
         # initialize the system from the starting snapshot
-        snap = mpcd.data.make_snapshot(N=6)
+        snap = mpcd.data.make_snapshot(N=8)
         snap.particles.position[:] = [[-3.05,-4,-4.11],
                                       [ 3.05, 4, 4.11],
                                       [-3.05,-2, 4.11],
                                       [ 3.05, 2,-4.11],
                                       [ 0   , 0, 3.95],
-                                      [ 0   , 0,-3.95]]
+                                      [ 0   , 0,-3.95],
+                                      [ 3.03, 0, -3.98],
+                                      [ 3.02, 0, -3.97]]
         snap.particles.velocity[:] = [[ 1.,-1., 1.],
                                       [-1., 1.,-1.],
                                       [ 1., 0.,-1.],
                                       [-1., 0., 1.],
                                       [ 0., 0., 1.],
-                                      [ 0., 0.,-1.]]
+                                      [ 0., 0.,-1.],
+                                      [-1., 0.,-1.],
+                                      [-1., 0.,-1.]]
         self.s = mpcd.init.read_snapshot(snap)
 
         mpcd.integrator(dt=0.1)
@@ -102,6 +106,12 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
             np.testing.assert_array_almost_equal(snap.particles.velocity[4], [ 0, 0, -1.])
             np.testing.assert_array_almost_equal(snap.particles.position[5], [ 0, 0,-3.95])
             np.testing.assert_array_almost_equal(snap.particles.velocity[5], [ 0, 0, 1.])
+            # hits z = -4 after 0.02, then reverses. x is 3.01, so reverses to 3.09
+            np.testing.assert_array_almost_equal(snap.particles.position[6], [ 3.09, 0,-3.92])
+            np.testing.assert_array_almost_equal(snap.particles.velocity[6], [ 1, 0, 1])
+            # hits x = 3 after 0.02, then reverses. z is -3.99, so reverses to -3.91
+            np.testing.assert_array_almost_equal(snap.particles.position[7], [ 3.08, 0,-3.91])
+            np.testing.assert_array_almost_equal(snap.particles.velocity[7], [ 1, 0, 1])
 
         # take another step where nothing hits now
         hoomd.run(1)
@@ -113,6 +123,8 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
             np.testing.assert_array_almost_equal(snap.particles.position[3], [ 3.15, 2,-4.21])
             np.testing.assert_array_almost_equal(snap.particles.position[4], [ 0, 0, 3.85])
             np.testing.assert_array_almost_equal(snap.particles.position[5], [ 0, 0,-3.85])
+            np.testing.assert_array_almost_equal(snap.particles.position[6], [ 3.19, 0,-3.82])
+            np.testing.assert_array_almost_equal(snap.particles.position[7], [ 3.18, 0,-3.81])
 
     # test basic stepping behavior with slip boundary conditions
     def test_step_slip(self):
@@ -134,6 +146,12 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
             np.testing.assert_array_almost_equal(snap.particles.velocity[4], [ 0, 0, -1.])
             np.testing.assert_array_almost_equal(snap.particles.position[5], [ 0, 0,-3.95])
             np.testing.assert_array_almost_equal(snap.particles.velocity[5], [ 0, 0, 1.])
+            # hits z = -4 after 0.02, then reverses. x is not touched because slip
+            np.testing.assert_array_almost_equal(snap.particles.position[6], [ 2.93, 0,-3.92])
+            np.testing.assert_array_almost_equal(snap.particles.velocity[6], [-1, 0, 1])
+            # hits x = 3 after 0.02, then reverses. z is not touched because slip
+            np.testing.assert_array_almost_equal(snap.particles.position[7], [ 3.08, 0,-4.07])
+            np.testing.assert_array_almost_equal(snap.particles.velocity[7], [ 1, 0,-1])
 
         # take another step where nothing hits now
         hoomd.run(1)
@@ -145,6 +163,8 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
             np.testing.assert_array_almost_equal(snap.particles.position[3], [ 3.15, 2,-3.91])
             np.testing.assert_array_almost_equal(snap.particles.position[4], [ 0, 0, 3.85])
             np.testing.assert_array_almost_equal(snap.particles.position[5], [ 0, 0,-3.85])
+            np.testing.assert_array_almost_equal(snap.particles.position[6], [ 2.83, 0,-3.82])
+            np.testing.assert_array_almost_equal(snap.particles.position[7], [ 3.18, 0,-4.17])
 
     # test that setting the slit size too large raises an error
     def test_validate_box(self):
