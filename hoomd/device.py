@@ -145,8 +145,7 @@ class _device(hoomd.meta._metadata):
     @property
     def num_threads(self):
         if not _hoomd.is_TBB_available():
-            self.cpp_msg.warning("HOOMD was compiled without thread support, returning None\n")
-            return None
+            return 1
         else:
             return self.cpp_exec_conf.getNumThreads()
 
@@ -185,6 +184,14 @@ class _device(hoomd.meta._metadata):
 
         self.cpp_msg.setNoticeLevel(notice_level)
 
+    @property
+    def memory_traceback():
+        return self.cpp_exec_conf.getMemoryTracer() is not None
+        
+    @memory_traceback.setter
+    def memory_traceback(self, mem_traceback):
+        self.cpp_exec_conf.setMemoryTracing(mem_traceback)
+
     def set_msg_file(self, fname):
         R""" Set the message file.
 
@@ -201,20 +208,6 @@ class _device(hoomd.meta._metadata):
             self.cpp_msg.openFile(fname)
         else:
             self.cpp_msg.openStd()
-
-
-def _setup_cpp_exec_conf(cpp_exec_conf, memory_traceback, nthreads):
-    """
-    Calls some functions on the cpp_exec_conf object, to set it up completely
-    """
-
-    if _hoomd.is_TBB_available():
-        # set the number of TBB threads as necessary
-        if nthreads != None:
-            cpp_exec_conf.setNumThreads(nthreads)
-
-    # set memory traceback
-    cpp_exec_conf.setMemoryTracing(memory_traceback)
 
 
 ## Initializes the Messenger
@@ -254,12 +247,13 @@ def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
     return msg
 
 
-def _check_exec_conf_args(nthreads):
-
-    # check nthreads
+def _init_nthreads(nthreads):
+    """
+    initializes the number of threads
+    """
+    
     if nthreads is not None:
-        if not _hoomd.is_TBB_available():
-            raise RuntimeError("The nthreads option is only available in TBB-enabled builds.\n");
+        self.num_threads = nthreads
 
 
 class gpu(_device):
@@ -279,13 +273,9 @@ class gpu(_device):
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
     """
 
-    def __init__(self, memory_traceback=False, min_cpu=False, ignore_display=False, nthreads=None, gpu=None,
-                 gpu_error_checking=False, communicator=None, notice_level=2, msg_file=None, shared_msg_file=None):
+    def __init__(self, gpu=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
 
         _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
-
-        # check args
-        _check_exec_conf_args(nthreads)
 
         # convert None options to defaults
         if gpu is None:
@@ -298,18 +288,19 @@ class gpu(_device):
             gpu_vec.append(gpuid)
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.GPU,
-                                                        gpu_vec,
-                                                        min_cpu,
-                                                        ignore_display,
-                                                        self.comm.cpp_mpi_conf,
-                                                        self.cpp_msg)
+                                                           gpu_vec,
+                                                           False, 
+                                                           False, 
+                                                           self.comm.cpp_mpi_conf,
+                                                           self.cpp_msg)
 
-        # if gpu_error_checking is set, enable it on the GPU
-        if gpu_error_checking:
-            self.cpp_exec_conf.setCUDAErrorChecking(True)
-
-        _setup_cpp_exec_conf(self.cpp_exec_conf, memory_traceback, nthreads)
-
+    @property
+    def gpu_error_checking(self):
+        return self.cpp_exec_conf.isCUDAErrorCheckingEnabled()
+    
+    @gpu_error_checking.setter
+    def gpu_error_checking(self, new_bool):
+        self.cpp_exec_conf.setCUDAErrorChecking(new_bool)
 
 class cpu(_device):
     """
@@ -327,21 +318,18 @@ class cpu(_device):
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
     """
 
-    def __init__(self, memory_traceback=False, min_cpu=False, ignore_display=False, nthreads=None, communicator=None,
-                 notice_level=2, msg_file=None, shared_msg_file=None):
+    def __init__(self, nthreads=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
 
         _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
 
-        _check_exec_conf_args(nthreads)
+        _init_nthreads(nthreads)
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.CPU,
-                                                        _hoomd.std_vector_int(),
-                                                        min_cpu,
-                                                        ignore_display,
-                                                        self.comm.cpp_mpi_conf,
-                                                        self.cpp_msg)
-
-        _setup_cpp_exec_conf(self.cpp_exec_conf, memory_traceback, nthreads)
+                                                           _hoomd.std_vector_int(), 
+                                                           False, 
+                                                           False, 
+                                                           self.comm.cpp_mpi_conf,
+                                                           self.cpp_msg)
 
 
 class auto(_device):
@@ -360,18 +348,15 @@ class auto(_device):
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
     """
 
-    def __init__(self, memory_traceback=False, min_cpu=False, ignore_display=False, nthreads=None, communicator=None,
-                 notice_level=2, msg_file=None, shared_msg_file=None):
+    def __init__(self, nthreads=None, communicator=None, notice_level=2, msg_file=None, shared_msg_file=None):
 
         _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
 
-        _check_exec_conf_args(nthreads)
+        _init_nthreads(nthreads)
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
-                                                        _hoomd.std_vector_int(),
-                                                        min_cpu,
-                                                        ignore_display,
-                                                        self.comm.cpp_mpi_conf,
-                                                        self.cpp_msg)
-
-        _setup_cpp_exec_conf(self.cpp_exec_conf, memory_traceback, nthreads)
+                                                           _hoomd.std_vector_int(), 
+                                                           False, 
+                                                           False, 
+                                                           self.comm.cpp_mpi_conf, 
+                                                           self.cpp_msg)

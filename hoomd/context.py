@@ -226,7 +226,8 @@ def initialize(args=None, device=None):
 def _create_device():
     
     if options.mode == "gpu":
-        dev = hoomd.device.gpu(gpu_error_checking=options.gpu_error_checking)
+        dev = hoomd.device.gpu()
+        dev.gpu_error_checking = options.gpu_error_checking
     elif options.mode == "cpu":
         dev = hoomd.device.cpu()
     else:
