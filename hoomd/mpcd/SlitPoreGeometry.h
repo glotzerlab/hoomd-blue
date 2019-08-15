@@ -61,13 +61,16 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
         /*!
          * \param pos Proposed particle position
          * \param vel Proposed particle velocity
-         * \param dt Integration time remaining
+         * \param dt Integration time remaining (inout).
          *
          * \returns True if a collision occurred, and false otherwise
          *
          * \post The particle position \a pos is moved to the point of reflection, the velocity \a vel is updated
          *       according to the appropriate bounce back rule, and the integration time \a dt is decreased to the
          *       amount of time remaining.
+         *
+         * The passed value of \a dt must be the time taken to arrive at pos. The returned value of \a dt will be
+         * less than this time.
          */
         HOSTDEVICE bool detectCollision(Scalar3& pos, Scalar3& vel, Scalar& dt) const
             {
@@ -108,13 +111,14 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
 
             // determine colliding surface and its normal
             Scalar3 n = make_scalar3(0,0,0);
-            if (dts.x > 0 && dts.y <= 0)
+            const uchar2 hits = make_uchar2(dts.x > 0 && dts.x < dt, dts.y > 0 && dts.y < dt);
+            if (hits.x && !hits.y)
                 {
                 dt = dts.x;
                 // 1 if v.x < 0 (upper pore wall), +1 if v.x > 0 (lower pore wall)
                 n.x = (vel.x < 0) - (vel.x > 0);
                 }
-            else if (dts.x <= 0 && dts.y > 0)
+            else if (!hits.x && hits.y)
                 {
                 dt = dts.y;
                 n.z = -sign.y;
