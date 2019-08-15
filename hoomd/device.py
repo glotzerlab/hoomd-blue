@@ -26,6 +26,7 @@ Attributes:
     job_name (str): the job name
     notice_level (int): minimum level of notice messages to print, settable
     hostname (str): the network hostname
+    memory_tracback (bool): If true, enable memory allocation tracking (*only for debugging/profiling purposes*)
 """
 
 import os
@@ -261,16 +262,12 @@ class gpu(_device):
     Run simulations on a GPU
 
     Args:
-        memory_tracback (bool): If true, enable memory allocation tracking (*only for debugging/profiling purposes*)
-        min_cpu (bool): Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)
-        ignore_display (bool): Attempt to avoid running on the display GPU
-        nthreads (int): number of TBB threads
         gpu (list(int)): GPU or comma-separated list of GPUs on which to execute
-        gpu_error_checking (bool): Enable error checking on the GPU
         communicator (:py:mod:`hoomd.comm.communicator`): MPI communicator object. Can be left None if using a
             default MPI communicator
         msg_file (str): Name of file to write messages to
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
+        notice_level (int): Minimum level of notice messages to print
     """
 
     def __init__(self, gpu=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
@@ -296,6 +293,10 @@ class gpu(_device):
 
     @property
     def gpu_error_checking(self):
+        """
+        (bool) Whether or not CUDA error checking is enabled, settable.
+        """
+        
         return self.cpp_exec_conf.isCUDAErrorCheckingEnabled()
     
     @gpu_error_checking.setter
@@ -307,15 +308,12 @@ class cpu(_device):
     Run simulations on a CPU
 
     Args:
-        memory_tracback (bool): If true, enable memory allocation tracking (*only for debugging/profiling purposes*)
-        min_cpu (bool): Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)
-        ignore_display (bool): Attempt to avoid running on the display GPU
         nthreads (int): number of TBB threads
         communicator (:py:mod:`hoomd.comm.communicator`): MPI communicator object. Can be left None if using a
             default MPI communicator
-        notice_level (int): Minimum level of notice messages to print
         msg_file (str): Name of file to write messages to
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
+        notice_level (int): Minimum level of notice messages to print
     """
 
     def __init__(self, nthreads=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
@@ -337,18 +335,15 @@ class auto(_device):
     Allow simulation hardware to be chosen automatically by HOOMD-blue
 
     Args:
-        memory_tracback (bool): If true, enable memory allocation tracking (*only for debugging/profiling purposes*)
-        min_cpu (bool): Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)
-        ignore_display (bool): Attempt to avoid running on the display GPU
         nthreads (int): number of TBB threads
         communicator (:py:mod:`hoomd.comm.communicator`): MPI communicator object. Can be left None if using a
             default MPI communicator
-        notice_level (int): Minimum level of notice messages to print
         msg_file (str): Name of file to write messages to
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
+        notice_level (int): Minimum level of notice messages to print
     """
 
-    def __init__(self, nthreads=None, communicator=None, notice_level=2, msg_file=None, shared_msg_file=None):
+    def __init__(self, nthreads=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
 
         _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
 
