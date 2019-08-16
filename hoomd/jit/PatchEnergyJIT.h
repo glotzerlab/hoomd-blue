@@ -97,7 +97,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
             }
 
         //! Set alpha array by index
-        void setAlpha(unsigned int index, float alpha)
+        void setAlpha(float alpha, unsigned int index)
             {
             m_alpha[index] = alpha;
             }

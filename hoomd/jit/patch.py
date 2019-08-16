@@ -154,7 +154,7 @@ class user(object):
 float alpha[{}];
 
 extern "C"
-{
+{{
 float eval(const vec3<float>& r_ij,
     unsigned int type_i,
     const quat<float>& q_i,
@@ -164,7 +164,7 @@ float eval(const vec3<float>& r_ij,
     const quat<float>& q_j,
     float d_j,
     float charge_j)
-    {
+    {{
 """.format(array_size);
         cpp_function += code
         cpp_function += """
@@ -208,15 +208,15 @@ float eval(const vec3<float>& r_ij,
         if isinstance(alpha,list) or isinstance(alpha,np.ndarray):
             if len(alpha)==self.cpp_evaluator.getAlphaSize():
                 for i, a in enumerate(alpha):
-                    self.cpp_evaluator.setAlpha(a, i);
+                    self.cpp_evaluator.setAlpha(float(a), i);
             else:
                 raise ValueError("alpha array must have {} elements.".format(self.cpp_evaluator.getAlphaSize()));
         else:
             if index is None:
                 for i in range(self.cpp_evaluator.getAlphaSize()):
-                    self.cpp_evaluator.setAlpha(alpha, i);
+                    self.cpp_evaluator.setAlpha(float(alpha), i);
             else:
-                self.cpp_evaluator.setAlpha(alpha, index);
+                self.cpp_evaluator.setAlpha(float(alpha), index);
 
     def get_alpha(self, index=None):
         R'''Get the elements of the alpha array (alchemical parameters)
@@ -320,14 +320,14 @@ class user_union(user):
             clang = 'clang'
 
         if code is not None:
-            llvm_ir = self.compile_user(code,clang)
+            llvm_ir = self.compile_user(array_size, code,clang)
         else:
             # IR is a text file
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
         if code_iso is not None:
-            llvm_ir_iso = self.compile_user(code_iso,clang)
+            llvm_ir_iso = self.compile_user(array_size, code_iso,clang)
         else:
             if llvm_ir_file_iso is not None:
                 # IR is a text file
@@ -335,7 +335,7 @@ class user_union(user):
                     llvm_ir_iso = f.read()
             else:
                 # provide a dummy function
-                llvm_ir_iso = self.compile_user('return 0;',clang)
+                llvm_ir_iso = self.compile_user(array_size, 'return 0;',clang)
 
         if r_cut_iso is None:
             r_cut_iso = -1.0
