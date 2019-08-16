@@ -10,7 +10,7 @@ import math
 
 # initialize with one rank per partitions
 comm = comm.communicator(nrank=1)
-d = device.cpu(communicator=comm)
+d = device.Cpu(communicator=comm)
 context.initialize(device=d)
 
 class gibbs_ensemble_test(unittest.TestCase):

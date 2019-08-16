@@ -27,6 +27,7 @@ Attributes:
     notice_level (int): minimum level of notice messages to print, settable
     hostname (str): the network hostname
     memory_tracback (bool): If true, enable memory allocation tracking (*only for debugging/profiling purposes*)
+    gpu_error_checking (bool): Whether or not CUDA error checking is enabled, settable.
 """
 
 import os
@@ -86,17 +87,20 @@ class _device(hoomd.meta._metadata):
     # \brief Return the network hostname.
     @property
     def hostname(self):
+        
         return socket.gethostname()
 
     # \brief Return the name of the GPU used in GPU mode.
     @property
     def gpu(self):
+        
         n_gpu = self.cpp_exec_conf.getNumActiveGPUs()
         return [self.cpp_exec_conf.getGPUName(i) for i in range(n_gpu)]
 
     # \brief Return the execution mode
     @property
     def mode(self):
+        
         if self.cpp_exec_conf.isCUDAEnabled():
             return 'gpu'
         else:
@@ -105,21 +109,25 @@ class _device(hoomd.meta._metadata):
     # \brief Return the number of ranks.
     @property
     def num_ranks(self):
+        
         return self.comm.get_num_ranks()
 
     # \brief Return the username.
     @property
     def username(self):
+        
         return getpass.getuser()
 
     # \brief Return the wallclock time since the import of hoomd
     @property
     def wallclocktime(self):
+        
         return time.time() - hoomd.context.TIME_START
 
     # \brief Return the CPU clock time since the import of hoomd
     @property
     def cputime(self):
+        
         return time.clock() - hoomd.context.CLOCK_START
 
     # \brief Return the job id
@@ -169,6 +177,7 @@ class _device(hoomd.meta._metadata):
 
     @property
     def notice_level(self):
+        
         return self.cpp_msg.getNoticeLevel()
 
     @notice_level.setter
@@ -187,11 +196,30 @@ class _device(hoomd.meta._metadata):
 
     @property
     def memory_traceback():
+        
         return self.cpp_exec_conf.getMemoryTracer() is not None
         
     @memory_traceback.setter
     def memory_traceback(self, mem_traceback):
+        
         self.cpp_exec_conf.setMemoryTracing(mem_traceback)
+
+    @property
+    def gpu_error_checking(self):
+        
+        if self.mode == 'gpu':
+            return self.cpp_exec_conf.isCUDAErrorCheckingEnabled()
+        else:
+            self.cpp_msg.warning("Attempting to access gpu_error_checking while HOOMD is in CPU mode, returning False.\n")
+            return False
+    
+    @gpu_error_checking.setter
+    def gpu_error_checking(self, new_bool):
+        
+        if self.mode == 'gpu':
+            self.cpp_exec_conf.setCUDAErrorChecking(new_bool)
+        else:
+            self.cpp_msg.warning("HOOMD is in CPU mode, ignoring request to set gpu_error_checking.\n")
 
     def set_msg_file(self, fname):
         R""" Set the message file.
@@ -257,7 +285,7 @@ def _init_nthreads(nthreads):
         self.num_threads = nthreads
 
 
-class gpu(_device):
+class Gpu(_device):
     """
     Run simulations on a GPU
 
@@ -291,19 +319,7 @@ class gpu(_device):
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)
 
-    @property
-    def gpu_error_checking(self):
-        """
-        (bool) Whether or not CUDA error checking is enabled, settable.
-        """
-        
-        return self.cpp_exec_conf.isCUDAErrorCheckingEnabled()
-    
-    @gpu_error_checking.setter
-    def gpu_error_checking(self, new_bool):
-        self.cpp_exec_conf.setCUDAErrorChecking(new_bool)
-
-class cpu(_device):
+class Cpu(_device):
     """
     Run simulations on a CPU
 
@@ -329,8 +345,7 @@ class cpu(_device):
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)
 
-
-class auto(_device):
+class Auto(_device):
     """
     Allow simulation hardware to be chosen automatically by HOOMD-blue
 

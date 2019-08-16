@@ -6,9 +6,9 @@ hoomd.device
 .. autosummary::
     :nosignatures:
 
-    hoomd.device.cpu
-    hoomd.device.gpu
-    hoomd.device.auto
+    hoomd.device.Cpu
+    hoomd.device.Gpu
+    hoomd.device.Auto
 
 .. rubric:: Details
 

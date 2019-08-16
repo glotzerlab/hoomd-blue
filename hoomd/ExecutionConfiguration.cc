@@ -243,9 +243,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         cudaEventCreateWithFlags(&m_events[idev],cudaEventDisableTiming);
         }
     #endif
-        
-    // set memory tracing to false by default
-    setMemoryTracing(false);
     
     }
 
