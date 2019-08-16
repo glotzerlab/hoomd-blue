@@ -14,8 +14,9 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
          */
         PatchEnergyJITUnion(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ExecutionConfiguration> exec_conf,
             const std::string& llvm_ir_iso, Scalar r_cut_iso,
-            const std::string& llvm_ir_union, Scalar r_cut_union)
-            : PatchEnergyJIT(exec_conf, llvm_ir_iso, r_cut_iso), m_sysdef(sysdef), m_rcut_union(r_cut_union)
+            const std::string& llvm_ir_union, Scalar r_cut_union,
+            const unsigned int array_size)
+            : PatchEnergyJIT(exec_conf, llvm_ir_iso, r_cut_iso, array_size), m_sysdef(sysdef), m_rcut_union(r_cut_union)
             {
             // build the JIT.
             m_factory_union = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir_union));

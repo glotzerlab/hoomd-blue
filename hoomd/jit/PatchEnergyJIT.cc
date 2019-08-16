@@ -43,6 +43,6 @@ void export_PatchEnergyJIT(pybind11::module &m)
             .def("energy", &PatchEnergyJIT::energy)
             .def("setAlpha",&PatchEnergyJIT::setAlpha)
             .def("getAlpha",&PatchEnergyJIT::getAlpha)
-            .def("getAlphaSize",&PatchEnergyJIT::getN)
+            .def("getAlphaSize",&PatchEnergyJIT::getAlphaSize)
             ;
     }
