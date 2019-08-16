@@ -202,17 +202,15 @@ float eval(const vec3<float>& r_ij,
         R'''Set the elements of the alpha array
         Args:
             alpha (float/list): value/s to set the alpha array
-            index (int,**optional**): Index of alpha array.
+            index (int,**optional**): Index of alpha array. Ignored if provided
+                                      alpha is array-like.
         '''
         if isinstance(alpha,list) or isinstance(alpha,np.ndarray):
-            if index is None:
-                if len(alpha)==self.cpp_evaluator.getAlphaSize():
-                    for i, a in enumerate(alpha):
-                        self.cpp_evaluator.setAlpha(a, i);
-                else:
-                    raise ValueError("alpha array must have {} elements.".format(self.cpp_evaluator.getAlphaSize()));
+            if len(alpha)==self.cpp_evaluator.getAlphaSize():
+                for i, a in enumerate(alpha):
+                    self.cpp_evaluator.setAlpha(a, i);
             else:
-                raise ValueError("Cannot provide index if argument alpha is array-like");
+                raise ValueError("alpha array must have {} elements.".format(self.cpp_evaluator.getAlphaSize()));
         else:
             if index is None:
                 for i in range(self.cpp_evaluator.getAlphaSize()):
