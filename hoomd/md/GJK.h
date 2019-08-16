@@ -164,7 +164,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedA
         }
 
     // The tolerances are compile-time constants.
-    constexpr Scalar eps(1e-12), omega(1e-6);
+    constexpr Scalar eps(1e-8), omega(1e-4);
 
     Scalar u(0);
     bool close_enough(false);

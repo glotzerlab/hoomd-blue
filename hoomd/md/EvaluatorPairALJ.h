@@ -107,10 +107,14 @@ class EvaluatorPairALJ
             // Interaction cutoff is scaled by the max kernel value scaled by
             // the insphere radius, which is the max vertex distance
             // k[ij]_maxsq.
-            if ( (rsq/_params.ki_maxsq < rcutsq) | (rsq/_params.kj_maxsq < rcutsq) )
+            if ( (rsq/_params.ki_maxsq < rcutsq) || (rsq/_params.kj_maxsq < rcutsq) )
                 {
-                // Call gjk
-                bool success, overlap;
+                // Call GJK. In order to ensure that Newton's third law is
+                // obeyed, we must avoid any imbalance caused by numerical
+                // errors leading to GJK(i, j) returning different results from
+                // GJK(j, i). To prevent any such problems, we simply always
+                // call GJK twice, once in each direction, and choose the
+                // result corresponding to the smaller distance.
                 vec3<Scalar> v = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
                     {
                     vec3<Scalar> v1 = vec3<Scalar>(), a1 = vec3<Scalar>(), b1 = vec3<Scalar>();
@@ -123,19 +127,15 @@ class EvaluatorPairALJ
 
                     if (dot(v1, v1) < dot(v2, v2))
                         {
-                            v = v1;
-                            a = a1;
-                            b = b1;
-                            success = success1;
-                            overlap = overlap1;
+                        v = v1;
+                        a = a1;
+                        b = b1;
                         }
                     else
                         {
                         v = -v2;
-                        a = b2;
-                        b = a2;
-                        success = success2;
-                        overlap = overlap2;
+                        a = b2 - dr;
+                        b = a2 - dr;
                         }
                     }
                 if (ndim == 2)
