@@ -198,6 +198,39 @@ float eval(const vec3<float>& r_ij,
 
         return llvm_ir
 
+    def set_alpha(self, alpha, index=None):
+        R'''Set the elements of the alpha array
+        Args:
+            alpha (float/list): value/s to set the alpha array
+            index (int,**optional**): Index of alpha array.
+        '''
+        if isinstance(alpha,list) or isinstance(alpha,np.ndarray):
+            if index is None:
+                if len(alpha)==self.cpp_evaluator.getAlphaSize():
+                    for i, a in enumerate(alpha):
+                        self.cpp_evaluator.setAlpha(a, i);
+                else:
+                    raise ValueError("alpha array must have {} elements.".format(self.cpp_evaluator.getAlphaSize()));
+            else:
+                raise ValueError("Cannot provide index if argument alpha is array-like");
+        else:
+            if index is None:
+                for i in range(self.cpp_evaluator.getAlphaSize()):
+                    self.cpp_evaluator.setAlpha(alpha, i);
+            else:
+                self.cpp_evaluator.setAlpha(alpha, index);
+
+    def get_alpha(self, index=None):
+        R'''Get the elements of the alpha array (alchemical parameters)
+        Args:
+            index (int,**optional**): Index of alpha array. If no index is provided,
+                                      returns the whole array as a list.
+        '''
+        if index is not None:
+            return self.cpp_evaluator.getAlpha(index);
+        else:
+            return [ self.cpp_evaluator.getAlpha(i) for i in range(self.cpp_evaluator.getAlphaSize()) ]
+
     R''' Disable the patch energy and optionally enable it only for logging
 
     Args:
