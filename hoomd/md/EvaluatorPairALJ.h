@@ -104,138 +104,130 @@ class EvaluatorPairALJ
             Scalar r = sqrt(rsq);
             vec3<Scalar> unitr = dr/r;
 
-            Scalar rho = 0.0;
-            Scalar invr_rsq = 0.0;
-            Scalar invr_6 = 0.0; 
-            Scalar invr_12 = 0.0; 
-            Scalar sub_sphere = 0.15;
-            const Scalar two_p_16 = 1.12246204831;  // 2^(1/6)
-            
-            vec3<Scalar> f;
-            vec3<Scalar> rvect;
-
-            // Distance
+            // Interaction cutoff is scaled by the max kernel value scaled by
+            // the insphere radius, which is the max vertex distance
+            // k[ij]_maxsq.
             if ( (rsq/_params.ki_maxsq < rcutsq) | (rsq/_params.kj_maxsq < rcutsq) )
-              {
-
-              // Call gjk
-              vec3<Scalar> v = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
-              bool success, overlap;
-              gjk<ndim>(_params.verts_i, _params.verts_j, v, a, b, success, overlap, qi, qj, dr);
-              if (ndim == 2)
-                  {
-                  v.z = 0;
-                  a.z = 0;
-                  b.z = 0;
-                  }
-              
-              // Get kernel
-              Scalar sigma12 = (_params.sigma_i + _params.sigma_j)*Scalar(0.5);     
-
-              rho = sigma12 /r;
-              invr_rsq = rho*rho;
-              invr_6 = invr_rsq*invr_rsq*invr_rsq;
-              Scalar denom = (invr_6*invr_6 - invr_6);
-              Scalar k1 = sqrt(dot(a,a));
-              Scalar k2 = sqrt(dot(b,b));
-              rho = sigma12 / (r - Scalar(0.5)*(k1/_params.sigma_i - 1.0) - Scalar(0.5)*(k2/_params.sigma_j - 1.0));
-              invr_rsq = rho*rho;
-              invr_6 = invr_rsq*invr_rsq*invr_rsq;
-              Scalar numer = (invr_6*invr_6 - invr_6);
-              Scalar epsilon = _params.epsilon*(numer/denom);
-
-              // Define relevant vectors
-              rvect = Scalar(-1.0)*v;
-              Scalar rcheck = dot(v,v);
-              Scalar rcheck_isq = fast::rsqrt(rcheck);
-              rvect = rvect*rcheck_isq;
-              Scalar f_scalar = 0;
-              Scalar f_scalar_contact = 0;
-
-              // Check repulsion vs attraction for center particle
-              if (_params.alpha < 1.0)
-                  {
-                  if (r < two_p_16 *sigma12)
-                      {
-                      // Center force and energy
-                      rho = sigma12 /r;
-                      invr_rsq = rho*rho;
-                      invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                      invr_12 = invr_6*invr_6;
-                      pair_eng = Scalar(4.0) * epsilon * (invr_12 - invr_6); 
-                      f_scalar = Scalar(4.0) * epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) / (r);
-
-                      // Shift energy
-                      rho = 1.0 / two_p_16;
-                      invr_rsq = rho*rho;
-                      invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                      pair_eng -= Scalar(4.0) * epsilon * (invr_6*invr_6 - invr_6);
-                      }
-                  else
-                      {
-                      pair_eng = 0.0;
-                      }
-                  }
-              else
-                  {
-                  // Center force and energy
-                  rho = sigma12 /r;
-                  invr_rsq = rho*rho;
-                  invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                  pair_eng = Scalar(4.0) * epsilon * (invr_6*invr_6 - invr_6); 
-                  f_scalar = Scalar(4.0) * epsilon * ( Scalar(12.0)*invr_6*invr_6 - Scalar(6.0)*invr_6 ) / (r);
-                  }
-
-              // Check repulsion attraction for contact point
-              epsilon = _params.epsilon;
-              // No overlap
-              if (_params.alpha*0.0 < 1.0)
                 {
-                if (1/rcheck_isq  < two_p_16 *(sub_sphere*sigma12))
+                // Call gjk
+                vec3<Scalar> v = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
+                bool success, overlap;
+                gjk<ndim>(_params.verts_i, _params.verts_j, v, a, b, success, overlap, qi, qj, dr);
+                if (ndim == 2)
+                    {
+                    v.z = 0;
+                    a.z = 0;
+                    b.z = 0;
+                    }
+                
+                // Get kernel
+                Scalar sigma12 = (_params.sigma_i + _params.sigma_j)*Scalar(0.5);     
+  
+                Scalar sub_sphere = 0.15;
+                const Scalar two_p_16 = 1.12246204831;  // 2^(1/6)
+                
+                vec3<Scalar> f;
+                vec3<Scalar> rvect;
+
+                Scalar k1 = sqrt(dot(a,a));
+                Scalar k2 = sqrt(dot(b,b));
+                Scalar rho = sigma12 / (r - Scalar(0.5)*(k1/_params.sigma_i - 1.0) - Scalar(0.5)*(k2/_params.sigma_j - 1.0));
+                Scalar invr_rsq = rho*rho;
+                Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
+                Scalar numer = (invr_6*invr_6 - invr_6);
+
+                invr_rsq = sigma12*sigma12/rsq;
+                invr_6 = invr_rsq*invr_rsq*invr_rsq;
+                Scalar invr_12 = invr_6*invr_6;
+                Scalar denom = invr_12 - invr_6;
+
+                Scalar epsilon = _params.epsilon;
+                Scalar scaled_epsilon = epsilon*(numer/denom);
+  
+                // Define relevant vectors
+                rvect = Scalar(-1.0)*v;
+                Scalar vsq = dot(v,v);
+                Scalar rcheck_isq = fast::rsqrt(vsq);
+                rvect = rvect*rcheck_isq;
+                Scalar f_scalar = 0;
+                Scalar f_scalar_contact = 0;
+  
+                // Check repulsion vs attraction for center particle
+                if (_params.alpha < 1.0)
+                    {
+                    if (r < two_p_16*sigma12)
+                        {
+                        // Center force and energy
+                        pair_eng = Scalar(4.0) * scaled_epsilon * (invr_12 - invr_6); 
+                        f_scalar = Scalar(4.0) * scaled_epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) / (r);
+  
+                        // Shift energy
+                        rho = 1.0 / two_p_16;
+                        invr_rsq = rho*rho;
+                        invr_6 = invr_rsq*invr_rsq*invr_rsq;
+                        pair_eng -= Scalar(4.0) * scaled_epsilon * (invr_6*invr_6 - invr_6);
+                        }
+                    else
+                        {
+                        pair_eng = 0.0;
+                        }
+                    }
+                else
+                    {
+                    // Center force and energy
+                    pair_eng = Scalar(4.0) * scaled_epsilon * (invr_12 - invr_6); 
+                    f_scalar = Scalar(4.0) * scaled_epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) / r;
+                    }
+  
+                // Check repulsion attraction for contact point
+                // No overlap
+                if (_params.alpha*0.0 < 1.0)
+                    {
+                    if (1/rcheck_isq  < two_p_16 *sub_sphere*sigma12)
+                        {
+                        // Contact force and energy
+                        rho = sub_sphere * sigma12 * rcheck_isq;
+                        invr_rsq = rho*rho;
+                        invr_6 = invr_rsq*invr_rsq*invr_rsq;
+                        pair_eng += Scalar(4.0) * epsilon * (invr_6*invr_6 - Scalar(1.0)*invr_6);
+                        f_scalar_contact = Scalar(4.0) * (epsilon) *  ( Scalar(12.0)*invr_6*invr_6 - Scalar(6.0)*invr_6 ) * rcheck_isq;
+    
+                        // Shift energy
+                        rho = 1.0 / two_p_16;
+                        invr_rsq = rho*rho;
+                        invr_6 = invr_rsq*invr_rsq*invr_rsq;
+                        pair_eng -= Scalar(4.0) * epsilon * (invr_6*invr_6 - Scalar(1.0)*invr_6);
+                        }
+                    }
+                else
                     {
                     // Contact force and energy
                     rho = sub_sphere * sigma12 * rcheck_isq;
                     invr_rsq = rho*rho;
                     invr_6 = invr_rsq*invr_rsq*invr_rsq;
                     pair_eng += Scalar(4.0) * epsilon * (invr_6*invr_6 - Scalar(1.0)*invr_6);
-                    f_scalar_contact = Scalar(4.0) * (epsilon) *  ( Scalar(12.0)*invr_6*invr_6 - Scalar(6.0)*invr_6 ) * rcheck_isq;
-
-                    // Shift energy
-                    rho = 1.0 / two_p_16;
-                    invr_rsq = rho*rho;
-                    invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                    pair_eng -= Scalar(4.0) * epsilon * (invr_6*invr_6 - Scalar(1.0)*invr_6);
+                    f_scalar_contact = Scalar(4.0) * (epsilon) *  ( Scalar(12.0)*invr_6*invr_6 - Scalar(6.0)*invr_6 ) * rcheck_isq;                
                     }
+  
+                // Net force
+                f = f_scalar * unitr - f_scalar_contact * rvect;              
+                if (ndim == 2)
+                    {
+                    f.z = 0;
+                    }
+                force = vec_to_scalar3(f);
+  
+                // Torque
+                vec3<Scalar> lever = 0.5*sub_sphere*sigma12*rvect;
+                torque_i = vec_to_scalar3(cross(a - lever + rvect/rcheck_isq, f));
+                torque_j = vec_to_scalar3(cross(dr + a + lever, Scalar(-1.0)*f));
+  
+                return true;
                 }
               else
-                  {
-                  // Contact force and energy
-                  rho = sub_sphere * sigma12 * rcheck_isq;
-                  invr_rsq = rho*rho;
-                  invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                  pair_eng += Scalar(4.0) * epsilon * (invr_6*invr_6 - Scalar(1.0)*invr_6);
-                  f_scalar_contact = Scalar(4.0) * (epsilon) *  ( Scalar(12.0)*invr_6*invr_6 - Scalar(6.0)*invr_6 ) * rcheck_isq;                
-                  }
-
-              // Net force
-              f = f_scalar * unitr - f_scalar_contact * rvect;              
-              if (ndim == 2)
-                  {
-                  f.z = 0;
-                  }
-              force = vec_to_scalar3(f);
-
-              // Torque
-              vec3<Scalar> lever = 0.5*sub_sphere*sigma12*rvect;
-              torque_i = vec_to_scalar3(cross(a - lever + rvect/rcheck_isq, f));
-              torque_j = vec_to_scalar3(cross(dr + a + lever, Scalar(-1.0)*f));
-
-              return true;
-              }
-            else
-              {              
-              return false; 
-              }
+                {              
+                return false; 
+                }
             }
 
         #ifndef NVCC
