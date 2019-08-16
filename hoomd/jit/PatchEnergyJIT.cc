@@ -38,7 +38,8 @@ void export_PatchEnergyJIT(pybind11::module &m)
     pybind11::class_<PatchEnergyJIT, std::shared_ptr<PatchEnergyJIT> >(m, "PatchEnergyJIT", pybind11::base< hpmc::PatchEnergy >())
             .def(pybind11::init< std::shared_ptr<ExecutionConfiguration>,
                                  const std::string&,
-                                 Scalar >())
+                                 Scalar,
+                                 const unsigned int >())
             .def("getRCut", &PatchEnergyJIT::getRCut)
             .def("energy", &PatchEnergyJIT::energy)
             .def("setAlpha",&PatchEnergyJIT::setAlpha)

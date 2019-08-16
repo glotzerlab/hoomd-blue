@@ -240,7 +240,8 @@ void export_PatchEnergyJITUnion(pybind11::module &m)
             .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                                  std::shared_ptr<ExecutionConfiguration>,
                                  const std::string&, Scalar,
-                                 const std::string&, Scalar>())
+                                 const std::string&, Scalar,
+                                 const unsigned int >())
             .def("setParam",&PatchEnergyJITUnion::setParam)
             ;
     }
