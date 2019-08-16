@@ -201,13 +201,14 @@ class enthalpic_dipole_interaction(unittest.TestCase):
 # These tests check the methods for functionality
 class patch_test_alpha_methods(unittest.TestCase):
 
-    def test_set_get_alpha(self):
-        dummy_potential = """ return 0;
-                          """
+    def setUp(self):
+        self.dummy_potential = """ return 0;
+                               """
         system = init.create_lattice(unitcell=lattice.sc(a=2), n=2);
-        mc = hpmc.integrate.sphere(seed=1,d=0.1);
-        mc.shape_param.set('A',diameter=0);
-        patch = jit.patch.user(mc=mc,r_cut=2.5,array_size=3,code=dummy_potential);
+        self.mc = hpmc.integrate.sphere(seed=1,d=0.1);
+        self.mc.shape_param.set('A',diameter=0);
+
+    def assert_patch(self, patch):
 
         # check individual alphas are set properly
         patch.set_alpha(1.0, 0)
@@ -228,6 +229,19 @@ class patch_test_alpha_methods(unittest.TestCase):
         # raise error is list is larger than allocated memory
         with self.assertRaises(ValueError):
             patch.set_alpha([1]*10)
+
+    def test_set_get_alpha_user(self):
+        patch = jit.patch.user(mc=self.mc,r_cut=2.5,array_size=3,code=self.dummy_potential);
+        self.assert_patch(patch)
+
+    def test_set_get_alpha_user_union(self):
+        patch = jit.patch.user_union(mc=self.mc,r_cut=2.5,array_size=3,code=self.dummy_potential);
+        self.assert_patch(patch)
+
+    def tearDown(self):
+        del self.dummy_potential
+        del self.mc
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
