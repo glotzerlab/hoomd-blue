@@ -37,7 +37,8 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
     {
     public:
         //! Constructor
-        PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut);
+        PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut,
+                       const unsigned int array_size);
 
         //! Get the maximum r_ij radius beyond which energies are always 0
         virtual Scalar getRCut()
@@ -77,12 +78,38 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
             return m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
             }
 
+        //! Get size of alpha array
+        unsigned int getAlphaSize()
+            {
+            return m_alpha_size;
+            }
+
+        //! Get the alpha array by index
+        float getAlpha(unsigned int index)
+            {
+            return m_alpha[index];
+            }
+
+        //! Get pointer to the first element of alpha array
+        float * getAlphaArray()
+            {
+            return m_alpha;
+            }
+
+        //! Set alpha array by index
+        void setAlpha(unsigned int index, float alpha)
+            {
+            m_alpha[index] = alpha;
+            }
+
     protected:
         //! function pointer signature
         typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, float, float, unsigned int type_j, const quat<float>& q_j, float, float);
         Scalar m_r_cut;                             //!< Cutoff radius
         std::shared_ptr<EvalFactory> m_factory;       //!< The factory for the evaluator function
         EvalFactory::EvalFnPtr m_eval;                //!< Pointer to evaluator function inside the JIT module
+        float * m_alpha;                            //!< Array containing adjustable elements
+        unsigned int m_alpha_size;                  //!< Size of array
     };
 
 //! Exports the PatchEnergyJIT class to python

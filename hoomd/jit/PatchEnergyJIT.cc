@@ -11,7 +11,8 @@
 
     After construction, the LLVM IR is loaded, compiled, and the energy() method is ready to be called.
 */
-PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut) : m_r_cut(r_cut)
+PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut,
+                const unsigned int array_size) : m_r_cut(r_cut), m_alpha_size(array_size)
     {
     // build the JIT.
     m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir));
@@ -24,6 +25,9 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf
         exec_conf->msg->error() << m_factory->getError() << std::endl;
         throw std::runtime_error("Error compiling JIT code.");
         }
+
+    m_alpha = m_factory->getAlphaArray();
+
     }
 
 
@@ -36,5 +40,9 @@ void export_PatchEnergyJIT(pybind11::module &m)
                                  const std::string&,
                                  Scalar >())
             .def("getRCut", &PatchEnergyJIT::getRCut)
-            .def("energy", &PatchEnergyJIT::energy);
+            .def("energy", &PatchEnergyJIT::energy)
+            .def("setAlpha",&PatchEnergyJIT::setAlpha)
+            .def("getAlpha",&PatchEnergyJIT::getAlpha)
+            .def("getAlphaSize",&PatchEnergyJIT::getN)
+            ;
     }
