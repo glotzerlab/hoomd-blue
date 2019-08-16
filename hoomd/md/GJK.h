@@ -38,6 +38,66 @@ DEVICE inline unsigned int support(const ManagedArray<vec3<Scalar> > &verts, con
 // bits, which means they support up to 5 dimensions 2^(5+1) = 2^6 = 64). If
 // more dimensions were ever needed, we could replace these bit indexes with
 // simple boolean arrays, but this slows down code substantially on the GPU.
+
+//! Apply the GJK algorithm to find the vector between the closest points on two sets of shapes.
+/*! This function implements the GJK algorithm as described in
+ *  Gino Van den Bergen (1999) A Fast and Robust GJK Implementation for
+ *  Collision Detection of Convex Objects, Journal of Graphics Tools, 4:2, 7-25,
+ *  DOI: 10.1080/10867651.1999.10487502.
+ *
+ *  The standard GJK algorithm takes the Minkowski difference (more precisely,
+ *  the Minkowski sum A-B) of two convex shapes and performs a search to see if
+ *  the origin is contained in the difference (this difference is also known as
+ *  the translational configuration space obstacle, or TCSO, in this context).
+ *  If the origin is contained in the TCSO, the same point is encompassed by
+ *  both shapes, so they must be overlapping. In order to determine whether the
+ *  origin is contained in the TCSO, the algorithm iteratively constructs
+ *  simplices that are composed of points on the TCSO until one is found that
+ *  contains the origin. In the case of nonoverlapping shapes, the algorithm
+ *  ultimately constructs a simplex of the TCSO containing the closest point to
+ *  the origin. The termination condition in this case relies on maintaining a
+ *  lower bound of this distance that is based on the distance from the origin
+ *  to the closest hyperplane. For efficiency in overlap checks, it is notable
+ *  that this lower bound provides an immediate indication if two shapes are
+ *  nonoverlapping if at any point a separating axis is found (i.e. a
+ *  hyperplane with positive distance). To actually find the distance between
+ *  two shapes, the algorithm proceeds until the vector distance between the
+ *  two shapes is within some tolerance of the estimated lower bound.
+ *
+ *  There are two important components of the algorithm worthy of special note.
+ *  One critical component of this algorithm is the actual construction of the
+ *  simplex at each step in the iteration. This construction is performed using
+ *  the Johnson subalgorithm, which essentially uses Cramer's rule to solve a
+ *  system of linear equations. Although normally inadvisable, in this case
+ *  Cramer's rule is optimal because at each iteration only one new vertex is
+ *  added to the simplex, so most of the minors computed in Cramer's rule are
+ *  already known. The second crucial component is the use of support mappings,
+ *  which provide a way to find the furthest point from the center of a given
+ *  convex shape in a specified direction. These support mappings can be
+ *  implemented for any general convex shape, and their usage makes this
+ *  algorithm both general and efficient since it eschews any need for any
+ *  other explicit mathematical description of the shape.
+ *
+ *  The implementation discussed in the above paper offers multiple
+ *  optimizations on the original, including the separating hyperplane check
+ *  noted previously. The algorithm is accelerated by caching all support
+ *  function evaluations and the cofactors required for Cramer's rule. To
+ *  improve robustness, we apply the improved termination conditions suggested
+ *  by van den Bergen as well. Additionally, we omit the use of the classical
+ *  backup procedure provided in the original paper, which in practice provides
+ *  very minimal improvement on the solution at significant computational cost.
+ *
+ *  \param verts1 The vertices of the first body.
+ *  \param verts2 The vertices of the second body.
+ *  \param v Reference to vec3 that will be overwritten with the vector joining the closest intersecting points on the two bodies (CRITICAL NOTE: The direction of the vector is from verts2 to verts1).
+ *  \param a Reference to vec3 that will be overwritten with the vector from the origin (in the frame defined by verts1) to the point on the body represented by verts1 that is closest to verts2.
+ *  \param b Reference to vec3 that will be overwritten with the vector from the origin (in the frame defined by verts2) to the point on the body represented by verts2 that is closest to verts1.
+ *  \param success Reference to bool that will be overwritten with whether or not the algorithm terminated in the maximum number of allowed iterations (verts1.size + verts2.size + 1).
+ *  \param overlap Reference to bool that will be overwritten with whether or not an overlap was detected.
+ *  \param qi The orientation of the first shape (will be applied to verts1).
+ *  \param qj The orientation of the first shape (will be applied to verts2).
+ *  \param dr The vector pointing from the position of particle 2 to the position of particle 1 (note the sign; this is reversed throughout most of the calculations below).
+ */
 template <unsigned int ndim>
 DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr)
     {
@@ -61,7 +121,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedA
         }
     mean1 /= Scalar(verts1.size());
     mean2 /= Scalar(verts2.size());
-    v = mean1 - mean2; 
+    v = mean1 - mean2;
 
     vec3<Scalar> W[max_num_points];
     Scalar lambdas[max_num_points] = {0};
@@ -104,7 +164,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedA
         }
 
     // The tolerances are compile-time constants.
-    constexpr Scalar eps(1e-8), omega(1e-4);
+    constexpr Scalar eps(1e-12), omega(1e-6);
 
     Scalar u(0);
     bool close_enough(false);
@@ -166,7 +226,7 @@ DEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedA
             for (; added_element < max_num_points; ++added_element)
                 {
                 // At least one of these must be empty, otherwise we have an
-                // overlap. 
+                // overlap.
                 if (!(W_used & (1 << added_element)))
                     {
                     W[added_element] = w;
