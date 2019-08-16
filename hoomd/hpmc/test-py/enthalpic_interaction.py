@@ -198,5 +198,36 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             del self.log;
             context.initialize();
 
+# These tests check the methods for functionality
+class patch_test_alpha_methods(unittest.TestCase):
+
+    def test_set_get_alpha(self):
+        dummy_potential = """ return 0;
+                          """
+        system = init.create_lattice(unitcell=lattice.sc(a=2), n=2);
+        mc = hpmc.integrate.sphere(seed=1,d=0.1);
+        mc.shape_param.set('A',diameter=0);
+        patch = jit.patch.user(mc=self.mc,r_cut=2.5,N=3,code=dummy_potential);
+
+        # check individual alphas are set properly
+        patch.set_alpha(1.0, 0)
+        patch.set_alpha(-3.8, 1)
+        patch.set_alpha(5, 2)
+        self.assertAlmostEqual(self.patch.get_alpha(0), 1.0)
+        self.assertAlmostEqual(self.patch.get_alpha(1), -3.8)
+        self.assertAlmostEqual(self.patch.get_alpha(2), 5)
+
+        # check alpha list is set properly
+        self.patch.set_alpha([-1., 2.7, 10])
+        self.assertAlmostEqual(self.patch.get_alpha(), [-1., 2.7, 10])
+
+        # When one value is passed with no index, set all alphas to that value
+        self.patch.set_alpha(11.3)
+        self.assertAlmostEqual(self.patch.get_alpha(), [11.3]*3)
+
+        # raise error is list is larger than allocated memory
+        with self.assertRaises(ValueError):
+            self.patch.set_alpha([1]*10)
+
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
