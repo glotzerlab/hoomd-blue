@@ -102,7 +102,7 @@ class user(object):
 
     .. versionadded:: 2.3
     '''
-    def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, clang_exec=None):
+    def __init__(self, mc, r_cut, array_size=1, code=None, llvm_ir_file=None, clang_exec=None):
         hoomd.util.print_status_line();
 
         # check if initialization has occurred
@@ -121,26 +121,27 @@ class user(object):
             clang = 'clang'
 
         if code is not None:
-            llvm_ir = self.compile_user(code, clang)
+            llvm_ir = self.compile_user(array_size, code, clang)
         else:
             # IR is a text file
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
         self.compute_name = "patch"
-        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir, r_cut);
+        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir, r_cut, array_size);
         mc.set_PatchEnergyEvaluator(self);
 
         self.mc = mc
         self.enabled = True
         self.log = False
 
-    def compile_user(self, code, clang_exec, fn=None):
+    def compile_user(self, array_size, code, clang_exec, fn=None):
         R'''Helper function to compile the provided code into an executable
 
         Args:
             code (str): C++ code to compile
             clang_exec (str): The Clang executable to use
+            array_size (int): Size of array with adjustable elements.
             fn (str): If provided, the code will be written to a file.
 
 
@@ -149,6 +150,8 @@ class user(object):
         cpp_function = """
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
+
+float alpha[{}];
 
 extern "C"
 {
@@ -162,7 +165,7 @@ float eval(const vec3<float>& r_ij,
     float d_j,
     float charge_j)
     {
-"""
+""".format(array_size);
         cpp_function += code
         cpp_function += """
     }
@@ -232,6 +235,7 @@ class user_union(user):
         code_iso (str, **optional**): C++ code for isotropic part
         llvm_ir_fname (str): File name of the llvm IR file to load.
         llvm_ir_fname_iso (str, **optional**): File name of the llvm IR file to load for isotropic interaction
+        array_size (int): Size of array with adjustable elements.
 
     Example:
 
@@ -271,7 +275,7 @@ class user_union(user):
 
     .. versionadded:: 2.3
     '''
-    def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
+    def __init__(self, mc, r_cut,  array_size=1, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
         llvm_ir_file_iso=None, clang_exec=None):
         hoomd.util.print_status_line();
 
@@ -307,7 +311,7 @@ class user_union(user):
 
         self.compute_name = "patch_union"
         self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf,
-            llvm_ir_iso, r_cut_iso, llvm_ir, r_cut);
+            llvm_ir_iso, r_cut_iso, llvm_ir, r_cut,  array_size);
         mc.set_PatchEnergyEvaluator(self);
 
         self.mc = mc
