@@ -200,10 +200,11 @@ float eval(const vec3<float>& r_ij,
 
     def set_alpha(self, alpha, index=None):
         R'''Set the elements of the alpha array
+
         Args:
-            alpha (float/list): value/s to set the alpha array
-            index (int,**optional**): Index of alpha array. Ignored if provided
-                                      alpha is array-like.
+            alpha (float, list): value/s to set the alpha array
+            index (int, **optional**): Index of element in array. Ignored if provided ``alpha`` is array-like.
+
         '''
         if isinstance(alpha,list) or isinstance(alpha,np.ndarray):
             if len(alpha)==self.cpp_evaluator.getAlphaSize():
@@ -219,10 +220,11 @@ float eval(const vec3<float>& r_ij,
                 self.cpp_evaluator.setAlpha(float(alpha), index);
 
     def get_alpha(self, index=None):
-        R'''Get the elements of the alpha array (alchemical parameters)
+        R'''Get the elements of the alpha array
+
         Args:
-            index (int,**optional**): Index of alpha array. If no index is provided,
-                                      returns the whole array as a list.
+            index (int, **optional**): Index of alpha array. If no index is provided, returns the whole array as a list.
+
         '''
         if index is not None:
             return self.cpp_evaluator.getAlpha(index);
