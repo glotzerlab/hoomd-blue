@@ -210,25 +210,21 @@ class patch_test_alpha_methods(unittest.TestCase):
 
     def assert_patch(self, patch):
 
-        # check individual alphas are set properly
-        patch.set_alpha(1.0, 0)
-        patch.set_alpha(-3.8, 1)
-        patch.set_alpha(5, 2)
-        self.assertAlmostEqual(patch.get_alpha(0), 1.0)
-        self.assertAlmostEqual(patch.get_alpha(1), -3.8)
-        self.assertAlmostEqual(patch.get_alpha(2), 5)
-
         # check alpha list is set properly
-        patch.set_alpha([-1., 2.7, 10])
-        np.testing.assert_almost_equal([-1., 2.7, 10], patch.get_alpha(), decimal=6)
+        patch.alpha = [-1., 2.7, 10]
+        np.testing.assert_almost_equal([-1., 2.7, 10], patch.alpha, decimal=6)
 
-        # When one value is passed with no index, set all alphas to that value
-        patch.set_alpha(11.3)
-        np.testing.assert_almost_equal(3*[11.3], patch.get_alpha(), decimal=6)
+        # # When one value is passed with no index, set all alphas to that value
+        # patch.set_alpha(11.3)
+        # np.testing.assert_almost_equal(3*[11.3], patch.get_alpha(), decimal=6)
 
         # raise error is list is larger than allocated memory
         with self.assertRaises(ValueError):
-            patch.set_alpha([1]*10)
+            patch.alpha = [1]*10
+
+        # raise error is list is larger than allocated memory
+        with self.assertRaises(TypeError):
+            patch.alpha = -10
 
     def test_set_get_alpha_user(self):
         patch = jit.patch.user(mc=self.mc,r_cut=2.5,array_size=3,code=self.dummy_potential);

@@ -134,6 +134,7 @@ class user(object):
         self.mc = mc
         self.enabled = True
         self.log = False
+        self._alpha = [0]*array_size
 
     def compile_user(self, array_size, code, clang_exec, fn=None):
         R'''Helper function to compile the provided code into an executable
@@ -197,38 +198,21 @@ float eval(const vec3<float>& r_ij,
 
         return llvm_ir
 
-    def set_alpha(self, alpha, index=None):
-        R'''Set the elements of the alpha array
+    @property
+    def alpha(self):
+        return self._alpha;
 
-        Args:
-            alpha (float, list): value/s to set the alpha array
-            index (int, **optional**): Index of element in array. Ignored if provided ``alpha`` is array-like.
-
-        '''
+    @alpha.setter
+    def alpha(self, alpha):
         if isinstance(alpha,list) or isinstance(alpha,np.ndarray):
-            if len(alpha)==self.cpp_evaluator.getAlphaSize():
-                for i, a in enumerate(alpha):
-                    self.cpp_evaluator.setAlpha(float(a), i);
+            if len(alpha) == self.cpp_evaluator.getAlphaSize():
+                self._alpha = alpha.copy()
+                for i, a in enumerate(self._alpha):
+                    self.cpp_evaluator.setAlpha(float(a), i)
             else:
                 raise ValueError("alpha array must have {} elements.".format(self.cpp_evaluator.getAlphaSize()));
         else:
-            if index is None:
-                for i in range(self.cpp_evaluator.getAlphaSize()):
-                    self.cpp_evaluator.setAlpha(float(alpha), i);
-            else:
-                self.cpp_evaluator.setAlpha(float(alpha), index);
-
-    def get_alpha(self, index=None):
-        R'''Get the elements of the alpha array
-
-        Args:
-            index (int, **optional**): Index of alpha array. If no index is provided, returns the whole array as a list.
-
-        '''
-        if index is not None:
-            return self.cpp_evaluator.getAlpha(index);
-        else:
-            return [ self.cpp_evaluator.getAlpha(i) for i in range(self.cpp_evaluator.getAlphaSize()) ]
+            raise TypeError("Only lists and numpy array are supported")
 
     R''' Disable the patch energy and optionally enable it only for logging
 
