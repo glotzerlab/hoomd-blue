@@ -318,7 +318,10 @@ class IntegratorHPMCMono : public IntegratorHPMC
         int slotWriteGSD(gsd_handle&, std::string name) const;
 
         //! Method that is called to connect to the gsd write state signal
-        void connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+        void connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+
+        //! Method that is called to connect to the gsd write state signal
+        void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer, std::string name);
 
         //! Method that is called to connect to the gsd write state signal
         bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
@@ -1666,7 +1669,7 @@ pybind11::list IntegratorHPMCMono<Shape>::PyMapOverlaps()
     }
 
 template <class Shape>
-void IntegratorHPMCMono<Shape>::connectGSDSignal(
+void IntegratorHPMCMono<Shape>::connectGSDStateSignal(
                                                     std::shared_ptr<GSDDumpWriter> writer,
                                                     std::string name)
     {
@@ -1800,7 +1803,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
-          .def("connectGSDSignal", &IntegratorHPMCMono<Shape>::connectGSDSignal)
+          .def("connectGSDStateSignal", &IntegratorHPMCMono<Shape>::connectGSDStateSignal)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
           .def("py_test_overlap", &IntegratorHPMCMono<Shape>::py_test_overlap)
           ;

@@ -113,8 +113,8 @@ class _compute:
 
     def _connect_gsd(self, gsd):
         # This is an internal method, and should not be called directly. See gsd.dump_state() instead
-        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_compute, "connectGSDSignal"):
-            self.cpp_compute.connectGSDSignal(gsd.cpp_analyzer, self._gsd_state_name());
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_compute, "connectGSDStateSignal"):
+            self.cpp_compute.connectGSDStateSignal(gsd.cpp_analyzer, self._gsd_state_name());
         else:
             raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 
