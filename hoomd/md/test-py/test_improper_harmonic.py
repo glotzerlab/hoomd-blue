@@ -20,7 +20,7 @@ class improper_harmonic_tests (unittest.TestCase):
                                   dihedral_types = [],
                                   improper_types = ['improperA'])
 
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snap.impropers.resize(10);
 
             for i in range(10):

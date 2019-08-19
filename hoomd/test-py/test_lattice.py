@@ -16,7 +16,7 @@ class lattice_sq_test (unittest.TestCase):
                                      n=[1,2]);
 
         snap = sysdef.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.box.dimensions, 2);
             numpy.testing.assert_allclose(snap.box.Lx, 2.0);
             numpy.testing.assert_allclose(snap.box.Ly, 4.0);
@@ -28,7 +28,7 @@ class lattice_sq_test (unittest.TestCase):
                                      n=1);
 
         snap = sysdef.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.particles.types, ['B']);
 
     def tearDown(self):
@@ -41,7 +41,7 @@ class lattice_hex_test (unittest.TestCase):
                                      n=[1,2]);
 
         snap = sysdef.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.box.dimensions, 2);
             numpy.testing.assert_allclose(snap.box.Lx, 2.0);
             numpy.testing.assert_allclose(snap.box.Ly, 4.0*math.sqrt(3));
@@ -58,7 +58,7 @@ class lattice_hex_test (unittest.TestCase):
                                      n=1);
 
         snap = sysdef.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.particles.types, ['B']);
 
     def tearDown(self):
@@ -71,7 +71,7 @@ class lattice_sc_test (unittest.TestCase):
                                      n=[2,2,1]);
 
         snap = sysdef.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.box.dimensions, 3);
             numpy.testing.assert_allclose(snap.box.Lx, 4.0);
             numpy.testing.assert_allclose(snap.box.Ly, 4.0);
@@ -87,7 +87,7 @@ class lattice_sc_test (unittest.TestCase):
                                      n=1);
 
         snap = sysdef.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.particles.types, ['B']);
 
     def tearDown(self):
@@ -100,7 +100,7 @@ class lattice_bcc_test (unittest.TestCase):
                                      n=1);
 
         snap = sysdef.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.box.dimensions, 3);
             numpy.testing.assert_allclose(snap.box.Lx, 2.0);
             numpy.testing.assert_allclose(snap.box.Ly, 2.0);
@@ -114,7 +114,7 @@ class lattice_bcc_test (unittest.TestCase):
                                      n=1);
 
         snap = sysdef.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.particles.types, ['B']);
 
     def tearDown(self):
@@ -127,7 +127,7 @@ class lattice_fcc_test (unittest.TestCase):
                                      n=1);
 
         snap = sysdef.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.box.dimensions, 3);
             numpy.testing.assert_allclose(snap.box.Lx, 2.0);
             numpy.testing.assert_allclose(snap.box.Ly, 2.0);
@@ -143,7 +143,7 @@ class lattice_fcc_test (unittest.TestCase):
                                      n=1);
 
         snap = sysdef.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.particles.types, ['B']);
 
     def tearDown(self):

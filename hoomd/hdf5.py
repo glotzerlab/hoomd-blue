@@ -36,11 +36,11 @@ class File(h5py.File):
     """
 
     def __init__(self, *args, **kwargs):
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             super(File, self).__init__(*args, **kwargs)
 
     def __exit__(self, *args, **kwargs):
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             return super(File, self).__exit__(*args, **kwargs)
 
 
@@ -241,13 +241,13 @@ class log(hoomd.analyze._analyzer):
     def _write_hdf5(self, timestep):
 
         f = None
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             f = self.h5file
 
         self._write_quantities(f, timestep)
         self._write_matrix_values(f, timestep)
 
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             # Flush the file after each write to maximize integrity of written data
             f.flush()
 

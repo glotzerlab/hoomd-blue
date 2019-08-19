@@ -307,7 +307,8 @@ class communicator(object):
             # split the communicator into partitions
             self.cpp_mpi_conf.splitPartitions(nrank)
 
-    def get_num_ranks(self):
+    @property
+    def num_ranks(self):
         """ Get the number of ranks in this partition.
 
         Returns:
@@ -323,7 +324,8 @@ class communicator(object):
         else:
             return 1;
 
-    def get_rank(self):
+    @property
+    def rank(self):
         """ Get the current rank.
 
         Returns:
@@ -340,7 +342,8 @@ class communicator(object):
         else:
             return 0;
 
-    def get_partition(self):
+    @property
+    def partition(self):
         """ Get the current partition index.
 
         Returns:

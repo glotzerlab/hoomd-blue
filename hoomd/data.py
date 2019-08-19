@@ -44,13 +44,13 @@ restore_snapshot are collective calls, and need to be called on all ranks. But o
 in the snapshot::
 
     snapshot = system.take_snapshot(all=True)
-    if context.current.device.comm.get_rank() == 0:
+    if context.current.device.comm.rank == 0:
         s = init.create_random(N=100, phi_p=0.05);numpy.mean(snapshot.particles.velocity))
         snapshot.particles.position[0] = [1,2,3];
 
     system.restore_snapshot(snapshot);
     snapshot = data.make_snapshot(N=10, box=data.boxdim(L=10))
-    if context.current.device.comm.get_rank() == 0:
+    if context.current.device.comm.rank == 0:
         snapshot.particles.position[:] = ....
     init.read_snapshot(snapshot)
 
@@ -849,7 +849,7 @@ class system_data(hoomd.meta._metadata):
         # Take a snapshot
         cpp_snapshot = self.take_snapshot(all=True)
 
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             # replicate
             cpp_snapshot.replicate(nx, ny, nz)
 
@@ -888,7 +888,7 @@ class system_data(hoomd.meta._metadata):
 
         """
 
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             if snapshot.has_particle_data and len(snapshot.particles.types) != self.sysdef.getParticleData().getNTypes():
                 raise RuntimeError("Number of particle types must remain the same")
             if snapshot.has_bond_data and len(snapshot.bonds.types) != self.sysdef.getBondData().getNTypes():
@@ -2286,7 +2286,7 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
         raise ValueError("dtype must be either float or double");
 
     snapshot.box = box;
-    if hoomd.context.current.device.comm.get_rank() == 0:
+    if hoomd.context.current.device.comm.rank == 0:
         snapshot.particles.resize(N);
 
     snapshot.particles.types = particle_types;

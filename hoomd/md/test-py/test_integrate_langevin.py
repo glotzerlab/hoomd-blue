@@ -111,7 +111,7 @@ class integrate_langevin_diffusion (unittest.TestCase):
         run(steps);
 
         snap = self.s.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             msd = numpy.mean(snap.particles.position[:,0] * snap.particles.position[:,0] +
                              snap.particles.position[:,1] * snap.particles.position[:,1] +
                              snap.particles.position[:,2] * snap.particles.position[:,2])
@@ -140,7 +140,7 @@ class integrate_langevin_diffusion (unittest.TestCase):
         run(steps);
 
         snap = self.s.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             msd = numpy.mean(snap.particles.position[:,0] * snap.particles.position[:,0] +
                              snap.particles.position[:,1] * snap.particles.position[:,1] +
                              snap.particles.position[:,2] * snap.particles.position[:,2])
@@ -169,7 +169,7 @@ class integrate_langevin_diffusion (unittest.TestCase):
         run(steps);
 
         snap = self.s.take_snapshot();
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             msd = numpy.mean(snap.particles.position[:,0] * snap.particles.position[:,0] +
                              snap.particles.position[:,1] * snap.particles.position[:,1] +
                              snap.particles.position[:,2] * snap.particles.position[:,2])

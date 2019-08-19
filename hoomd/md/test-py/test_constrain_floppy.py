@@ -30,7 +30,7 @@ class test_floppy_bodies(unittest.TestCase):
 
         box = hoomd.data.boxdim(L=10)  # Avoid self-interaction
         snapshot = hoomd.data.make_snapshot(N=points.shape[0]+1, box=box, particle_types=['center', 'constituent'], bond_types=['test_bond'])
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snapshot.particles.position[0] = [0, 0, 0]
             snapshot.particles.position[1:] = points
             snapshot.particles.typeid[0] = 0
@@ -79,7 +79,7 @@ class test_floppy_bodies(unittest.TestCase):
         # should not have moved. However, there will be a nonzero bond energy
         hoomd.run(100)
         current_snapshot = system.take_snapshot()
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             self.assertTrue(np.allclose(current_snapshot.particles.position, all_points))
             self.assertEqual(log.query('bond_harmonic_energy'), original_bond_energy)
             self.assertEqual(log.query('pair_yukawa_energy'), 0)
@@ -102,7 +102,7 @@ class test_floppy_bodies(unittest.TestCase):
         # Now there should be a different bond energy because particles should
         # have moved, but still no pair potential.
         current_snapshot = system.take_snapshot()
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             self.assertTrue(not np.allclose(current_snapshot.particles.position, points))
             self.assertNotEqual(log.query('bond_harmonic_energy'), 0)
             self.assertNotEqual(log.query('bond_harmonic_energy'), original_bond_energy)
@@ -116,7 +116,7 @@ class test_floppy_bodies(unittest.TestCase):
 
         # Now there should be a both bond and pair potential energy
         current_snapshot = system.take_snapshot()
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             self.assertTrue(np.all(current_snapshot.particles.position != points))
             self.assertNotEqual(log.query('bond_harmonic_energy'), 0)
             self.assertNotEqual(log.query('bond_harmonic_energy'), original_bond_energy)

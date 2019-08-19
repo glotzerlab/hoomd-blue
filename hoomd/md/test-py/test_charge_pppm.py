@@ -61,7 +61,7 @@ class charge_pppm_twoparticle_tests (unittest.TestCase):
         # initialize a two particle system in a triclinic box
         snap = data.make_snapshot(N=2, particle_types=[u'A1'], box = data.boxdim(xy=0.5,xz=0.5,yz=0.5,L=10))
 
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snap.particles.position[0] = (0,0,0)
             snap.particles.position[1] = (3,3,3)
             snap.particles.charge[0] = 1
@@ -146,7 +146,7 @@ class charge_pppm_screening_test(unittest.TestCase):
         # initialize a two particle system in a triclinic box
         snap = data.make_snapshot(N=2, particle_types=[u'A1'], box = data.boxdim(L=10))
 
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snap.particles.position[0] = (0,0,0)
             snap.particles.position[1] = (0,0,1.2)
             snap.particles.charge[0] = -1
@@ -197,7 +197,7 @@ class charge_pppm_rigid_body_test(unittest.TestCase):
     def setUp(self):
         # initialize a two particle system in a cubic box
         snap = data.make_snapshot(N=1, particle_types=[u'A'], box = data.boxdim(L=15))
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snap.particles.position[0] = (0,0,0)
             snap.particles.orientation[0] = (1,0,0,0)
             snap.particles.charge[0] = 0

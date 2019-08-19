@@ -376,7 +376,7 @@ class bibliography(object):
     # \brief Determines if the current rank should save the bibliography file
     def should_save(self):
         # only the root rank should save the bibliography
-        if len(self.entries) == 0 or hoomd.context.current.device.comm.get_rank() != 0:
+        if len(self.entries) == 0 or hoomd.context.current.device.comm.rank != 0:
             return False
 
         # otherwise, check if the bibliography has been updated since last save

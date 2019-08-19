@@ -15,7 +15,7 @@ context.initialize(device=d)
 
 class gibbs_ensemble_test(unittest.TestCase):
     def setUp(self):
-        p = context.current.device.comm.get_partition()
+        p = context.current.device.comm.partition
         phi=0.2
         a = (1/6*math.pi / phi)**(1/3)
 
@@ -31,7 +31,7 @@ class gibbs_ensemble_test(unittest.TestCase):
         q=0.8
         etap=0.7
         ntrial = 20
-        p = context.current.device.comm.get_partition()
+        p = context.current.device.comm.partition
 
         nR = etap/(math.pi/6.0*math.pow(q,3.0))
         self.mc.set_fugacity('B',nR)

@@ -11,7 +11,7 @@ class body_group_tests(unittest.TestCase):
     def test_rigid(self):
         with hoomd.context.SimulationContext():
             snap = hoomd.data.make_snapshot(N=2, box=hoomd.data.boxdim(L=5), particle_types=['A'])
-            if hoomd.context.current.device.comm.get_rank() == 0:
+            if hoomd.context.current.device.comm.rank == 0:
                 snap.particles.position[:] = [[1, 0, 0], [2, 0, 0]]
 
             system = hoomd.init.read_snapshot(snap)
@@ -28,7 +28,7 @@ class body_group_tests(unittest.TestCase):
 
     def test_floppy(self):
         snap = hoomd.data.make_snapshot(N=8, box=hoomd.data.boxdim(L=2), particle_types=['A'])
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[:] = [[x/10.0, 0, 0] for x in range(8)]
             snap.particles.body[:] = [-2]*4 + [-1]*4
 
@@ -37,7 +37,7 @@ class body_group_tests(unittest.TestCase):
 
     def test_mixed(self):
         snap = hoomd.data.make_snapshot(N=9, box=hoomd.data.boxdim(L=5), particle_types=['A', 'B'])
-        if hoomd.context.current.device.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.typeid[:] = [0]*4 + [1]*5
             snap.particles.position[:] = [[x/10.0, 0, 0] for x in range(9)]
 

@@ -368,7 +368,7 @@ class getar(hoomd.analyze._analyzer):
 
         for val in set(self._static):
             prop = self._getStatic(val);
-            if hoomd.context.current.device.comm.get_num_ranks() > 1 and prop.name in self.bad_mpi_properties:
+            if hoomd.context.current.device.comm.num_ranks > 1 and prop.name in self.bad_mpi_properties:
                 raise RuntimeError(('dump.getar: Can\'t dump property {} '
                                     'with MPI!').format(prop.name));
             else:
@@ -379,7 +379,7 @@ class getar(hoomd.analyze._analyzer):
 
         for prop in self._dynamic:
             try:
-                if hoomd.context.current.device.comm.get_num_ranks() > 1 and prop.name in self.bad_mpi_properties:
+                if hoomd.context.current.device.comm.num_ranks > 1 and prop.name in self.bad_mpi_properties:
                     raise RuntimeError(('dump.getar: Can\'t dump property {} '
                                         'with MPI!').format(prop.name));
                 else:
@@ -390,7 +390,7 @@ class getar(hoomd.analyze._analyzer):
                                                     prop.highPrecision, prop.compression,
                                                     int(period));
             except TypeError: # We got a single value, not an iterable
-                if hoomd.context.current.device.comm.get_num_ranks() > 1 and prop.name in self.bad_mpi_properties:
+                if hoomd.context.current.device.comm.num_ranks > 1 and prop.name in self.bad_mpi_properties:
                     raise RuntimeError(('dump.getar: Can\'t dump property {} '
                                         'with MPI!').format(prop.name));
                 else:

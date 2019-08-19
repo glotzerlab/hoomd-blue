@@ -58,7 +58,7 @@ class _device(hoomd.meta._metadata):
         # metadata stuff
         hoomd.meta._metadata.__init__(self)
         self.metadata_fields = [
-            'hostname', 'gpu', 'mode', 'num_ranks',
+            'hostname', 'gpu_ids', 'mode', 'num_ranks',
             'username', 'wallclocktime', 'cputime',
             'job_id', 'job_name'
         ]
@@ -72,9 +72,9 @@ class _device(hoomd.meta._metadata):
 
         # MPI communicator
         if communicator is None:
-            self.comm = hoomd.comm.communicator()
+            self._comm = hoomd.comm.communicator()
         else:
-            self.comm = communicator
+            self._comm = communicator
 
         # c++ messenger object
         self.cpp_msg = _create_messenger(self.comm.cpp_mpi_conf, notice_level, msg_file, shared_msg_file)
@@ -84,6 +84,14 @@ class _device(hoomd.meta._metadata):
 
         # c++ execution configuration mirror class
         self.cpp_exec_conf = None
+
+    @property
+    def comm(self):
+        """
+        Get the MPI Communicator
+        """
+        
+        return self._comm
 
     # \brief Return the network hostname.
     @property
@@ -111,7 +119,7 @@ class _device(hoomd.meta._metadata):
     @property
     def num_ranks(self):
         
-        return self.comm.get_num_ranks()
+        return self.comm.num_ranks
 
     # \brief Return the username.
     @property
@@ -291,7 +299,7 @@ class GPU(_device):
     Run simulations on a GPU
 
     Args:
-        gpu (list(int)): GPU or comma-separated list of GPUs on which to execute
+        gpu_ids (list(int)): GPU or comma-separated list of GPUs on which to execute
         communicator (:py:mod:`hoomd.comm.communicator`): MPI communicator object. Can be left None if using a
             default MPI communicator
         msg_file (str): Name of file to write messages to
@@ -299,15 +307,15 @@ class GPU(_device):
         notice_level (int): Minimum level of notice messages to print
     """
 
-    def __init__(self, gpu=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
+    def __init__(self, gpu_ids=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
 
         _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
 
         # convert None options to defaults
-        if gpu is None:
+        if gpu_ids is None:
             gpu_id = []
         else:
-            gpu_id = gpu
+            gpu_id = gpu_ids
 
         gpu_vec = _hoomd.std_vector_int()
         for gpuid in gpu_id:

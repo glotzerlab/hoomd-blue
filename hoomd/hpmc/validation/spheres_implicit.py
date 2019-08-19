@@ -140,7 +140,7 @@ class implicit_test (unittest.TestCase):
             eta_p_measure.append(v)
             self.assertEqual(log.query('hpmc_overlap_count'),0)
 
-            if context.current.device.comm.get_rank() == 0:
+            if context.current.device.comm.rank == 0:
                print('eta_p =', v);
 
         if use_clusters:
@@ -153,7 +153,7 @@ class implicit_test (unittest.TestCase):
         eta_p_avg = np.mean(np.array(eta_p_measure))
         i, eta_p_err = block.get_error_estimate()
 
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print(i)
             (n, num, err, err_err) = block.get_hierarchical_errors()
 
@@ -161,7 +161,7 @@ class implicit_test (unittest.TestCase):
             for (i, num_samples, e, ee) in zip(n, num, err, err_err):
                 print('{0} {1} {2} {3}'.format(i,num_samples,e,ee))
 
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print('avg: {:.6f} +- {:.6f}'.format(eta_p_avg, eta_p_err))
             print('tgt: {:.6f} +- {:.6f}'.format(eta_p_ref[(phi_c,eta_p_r)][0], eta_p_ref[(phi_c,eta_p_r)][1]))
 
@@ -207,7 +207,7 @@ class implicit_test (unittest.TestCase):
         def log_callback(timestep):
             v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity_B')
             eta_p_measure.append(v)
-#            if context.current.device.comm.get_rank() == 0:
+#            if context.current.device.comm.rank == 0:
 #                print('eta_p =', v);
 
         if use_clusters:
@@ -224,7 +224,7 @@ class implicit_test (unittest.TestCase):
         eta_p_avg = np.mean(np.array(eta_p_measure))
         i, eta_p_err = block.get_error_estimate()
 
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print(i)
             (n, num, err, err_err) = block.get_hierarchical_errors()
 
@@ -232,7 +232,7 @@ class implicit_test (unittest.TestCase):
             for (i, num_samples, e, ee) in zip(n, num, err, err_err):
                 print('{0} {1} {2} {3}'.format(i,num_samples,e,ee))
 
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print('avg: {:.6f} +- {:.6f}'.format(eta_p_avg, eta_p_err))
             print('tgt: {:.6f} +- {:.6f}'.format(eta_p_ref[(phi_c,eta_p_r)][0], eta_p_ref[(phi_c,eta_p_r)][1]))
 

@@ -68,7 +68,7 @@ class test_devices(unittest.TestCase):
             # test the non-default args
             assertEquals(cpu.notice_level, 8)
             assertEquals(cpu.num_threads, 2)
-            assertEquals(gpu.comm.get_num_ranks(), 4)
+            assertEquals(gpu.comm.num_ranks, 4)
         
             # test that the new file exists and is nonempty
             assertTrue(os.isPath(filepath))

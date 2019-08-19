@@ -143,7 +143,7 @@ class sdf_test1 (unittest.TestCase):
         self.mc.set_params(deterministic=True)
         self.mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
 
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             tmp = tempfile.mkstemp(suffix='.hpmc-test-sdf');
             self.tmp_file = tmp[1];
         else:
@@ -159,7 +159,7 @@ class sdf_test1 (unittest.TestCase):
         run(6000);
 
         # read in the output file and check it
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             r = numpy.loadtxt(self.tmp_file);
             self.assertEqual(r.shape[0], 3);
             self.assertEqual(r.shape[1]-1, avg.size);
@@ -175,7 +175,7 @@ class sdf_test1 (unittest.TestCase):
         del self.system
         context.initialize();
 
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             os.remove(self.tmp_file);
 
 if __name__ == '__main__':

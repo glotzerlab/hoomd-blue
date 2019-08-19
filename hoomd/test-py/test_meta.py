@@ -39,7 +39,7 @@ class metadata_tests(unittest.TestCase):
         metadata = meta.dump_metadata(filename = tmp.name, user = user)
         self.assertEqual(metadata['user']['my_extra_field'], 123)
 
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             with tmp:
                 metadata_check = json.loads(tmp.read().decode())
             self.assertEqual(len(metadata), len(metadata_check))

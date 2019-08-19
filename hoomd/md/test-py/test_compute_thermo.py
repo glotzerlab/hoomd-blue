@@ -21,7 +21,7 @@ class compute_thermo_tests (unittest.TestCase):
         self.v = (numpy.random.rand(self.N,3)-0.5)*10
         self.m = (numpy.random.rand(self.N)+1)
 
-        if context.current.device.comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.snap.particles.velocity[:] = self.v
             self.snap.particles.mass[:] = self.m
 

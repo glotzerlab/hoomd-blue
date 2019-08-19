@@ -105,7 +105,7 @@ class velocity_randomization_tests (unittest.TestCase):
         self.check_quantities()
 
     def test_berendsen(self):
-        if context.current.device.comm.get_num_ranks() == 1:
+        if context.current.device.comm.num_ranks == 1:
             self.kT = 1.0
             integrator = md.integrate.berendsen(group=self.all, kT=self.kT, tau=0.5)
             integrator.randomize_velocities(seed=42)
