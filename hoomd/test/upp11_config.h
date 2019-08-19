@@ -12,6 +12,7 @@
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/HOOMDMPI.h"
+#include "hoomd/ExecutionConfiguration.h"
 #include <cmath>
 #include "hoomd/extern/upp11/upp11.h"
 
@@ -64,18 +65,26 @@ const Scalar tol = Scalar(1e-2);
 //! Loose tolerance to be used with randomly generated and unpredictable comparisons
 Scalar loose_tol = Scalar(10);
 
+std::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
+std::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
+
 #ifdef ENABLE_MPI
 #define HOOMD_UP_MAIN() \
 int main(int argc, char **argv) \
     { \
     MPI_Init(&argc, &argv); \
     int val = upp11::TestMain().main(argc, argv); \
+    exec_conf_cpu.reset(); \
+    exec_conf_gpu.reset(); \
     MPI_Finalize(); \
     return val; \
     }
 #else
 #define HOOMD_UP_MAIN() \
 int main(int argc, char **argv) { \
-    return upp11::TestMain().main(argc, argv); \
+    int val = upp11::TestMain().main(argc, argv); \
+    exec_conf_cpu.reset(); \
+    exec_conf_gpu.reset(); \
+    return val; \
 }
 #endif

@@ -191,78 +191,63 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
 //! dimension test case for MPCD CellList class
 UP_TEST( mpcd_cell_communicator )
     {
+    if (!exec_conf_cpu)
+        exec_conf_cpu = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+
     // mpi in 1d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
-        exec_conf->getMPIConfig()->splitPartitions(2);
-        cell_communicator_reduce_test(exec_conf, true, false, false);
-        cell_communicator_reduce_test(exec_conf, false, true, false);
-        cell_communicator_reduce_test(exec_conf, false, false, true);
+        exec_conf_cpu->getMPIConfig()->splitPartitions(2);
+        cell_communicator_reduce_test(exec_conf_cpu, true, false, false);
+        cell_communicator_reduce_test(exec_conf_cpu, false, true, false);
+        cell_communicator_reduce_test(exec_conf_cpu, false, false, true);
         }
     // mpi in 2d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
-        exec_conf->getMPIConfig()->splitPartitions(4);
-        cell_communicator_reduce_test(exec_conf, true, true, false);
-        cell_communicator_reduce_test(exec_conf, true, false, true);
-        cell_communicator_reduce_test(exec_conf, false, true, true);
+        exec_conf_cpu->getMPIConfig()->splitPartitions(4);
+        cell_communicator_reduce_test(exec_conf_cpu, true, true, false);
+        cell_communicator_reduce_test(exec_conf_cpu, true, false, true);
+        cell_communicator_reduce_test(exec_conf_cpu, false, true, true);
         }
     // mpi in 3d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>()));
-        exec_conf->getMPIConfig()->splitPartitions(8);
-        cell_communicator_reduce_test(exec_conf, true, true, true);
+        exec_conf_cpu->getMPIConfig()->splitPartitions(8);
+        cell_communicator_reduce_test(exec_conf_cpu, true, true, true);
         }
     }
 
 //! error handling test for overdecomposed boxes
 UP_TEST( mpcd_cell_communicator_overdecompose )
     {
-    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-    cell_communicator_overdecompose_test(exec_conf);
+    if (!exec_conf_cpu)
+        exec_conf_cpu = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    cell_communicator_overdecompose_test(exec_conf_cpu);
     }
 
 #ifdef ENABLE_CUDA
 //! dimension test case for MPCD CellList class
 UP_TEST( mpcd_cell_communicator_gpu )
     {
+    if (!exec_conf_gpu)
+        exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     // mpi in 1d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
-        exec_conf->getMPIConfig()->splitPartitions(2);
-        cell_communicator_reduce_test(exec_conf, true, false, false);
-        cell_communicator_reduce_test(exec_conf, false, true, false);
-        cell_communicator_reduce_test(exec_conf, false, false, true);
+        exec_conf_gpu->getMPIConfig()->splitPartitions(2);
+        cell_communicator_reduce_test(exec_conf_gpu, true, false, false);
+        cell_communicator_reduce_test(exec_conf_gpu, false, true, false);
+        cell_communicator_reduce_test(exec_conf_gpu, false, false, true);
         }
     // mpi in 2d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
-        exec_conf->getMPIConfig()->splitPartitions(4);
-        cell_communicator_reduce_test(exec_conf, true, true, false);
-        cell_communicator_reduce_test(exec_conf, true, false, true);
-        cell_communicator_reduce_test(exec_conf, false, true, true);
+        exec_conf_gpu->getMPIConfig()->splitPartitions(4);
+        cell_communicator_reduce_test(exec_conf_gpu, true, true, false);
+        cell_communicator_reduce_test(exec_conf_gpu, true, false, true);
+        cell_communicator_reduce_test(exec_conf_gpu, false, true, true);
         }
     // mpi in 3d
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
-        exec_conf->getMPIConfig()->splitPartitions(8);
-        cell_communicator_reduce_test(exec_conf, true, true, true);
+        exec_conf_gpu->getMPIConfig()->splitPartitions(8);
+        cell_communicator_reduce_test(exec_conf_gpu, true, true, true);
         }
     }
 #endif // ENABLE_CUDA
