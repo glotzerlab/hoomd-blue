@@ -185,11 +185,11 @@ struct ShapeSphere
         return detail::AABB(pos, params.radius);
         }
 
-    DEVICE std::ostringstream getShapeSpec() const
+    DEVICE std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
         shapedef << "{'type': 'Sphere', 'diameter': " << OverlapReal(2.0)*params.radius << "}";
-        return shapedef;
+        return shapedef.str();
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
