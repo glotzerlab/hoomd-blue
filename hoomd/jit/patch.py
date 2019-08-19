@@ -200,6 +200,16 @@ float eval(const vec3<float>& r_ij,
 
     @property
     def alpha(self):
+        R""" Get alpha array.
+
+        Returns:
+            A :py:class:`list` of the alpha values
+
+        Note:
+            Elements of the list **cannot** be set by indexing. Instead, the entire
+            list must be set in a single step.
+
+        """
         return self._alpha;
 
     @alpha.setter
