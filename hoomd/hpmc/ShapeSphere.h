@@ -7,6 +7,7 @@
 #include "hoomd/VectorMath.h"
 #include "Moves.h"
 #include "hoomd/AABB.h"
+#include <sstream>
 
 #include <stdexcept>
 
@@ -182,6 +183,13 @@ struct ShapeSphere
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return detail::AABB(pos, params.radius);
+        }
+
+    DEVICE std::ostringstream getShapeSpec() const
+        {
+        std::ostringstream shapedef;
+        shapedef << "{'type': 'Sphere', 'diameter': " << OverlapReal(2.0)*params.radius << "}";
+        return shapedef;
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
