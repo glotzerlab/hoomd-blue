@@ -5,10 +5,10 @@
 
 r""" Devices available to run simulations
 
-A device object represents the hardware (whether CPU, GPU, or AUTO) the simulation will run on. Creating a device
-object will automatically add it to the simulation context. A device in mode AUTO is chosen by default for the user,
-but they can chose a new one before starting the simulation. Devices in mode AUTO will choose GPU at runtime if available,
-otherwise simulations will run on the CPU
+A device object represents the hardware (whether CPU, GPU, or Auto) the simulation will run on. Creating a device
+object will automatically add it to the simulation context. A device in mode Auto is chosen by default for the user,
+but they can chose a new one before starting the simulation. Devices in mode Auto will choose GPU at runtime if available,
+otherwise simulations will run on the CPU.
 
 Note:
     Device objects have the following properties:
@@ -16,8 +16,9 @@ Note:
 
 Attributes:
     mode (str): gpu or cpu
+    comm (:py:mod:`hoomd.comm.communicator`): communicator object held by this device
     num_threads (int): the number of CPU threads to be used in simulation, settable
-    gpu (list(int)): list of names of the gpus, if in gpu mode
+    gpu_ids (list(int)): list of names of the gpus, if in gpu mode
     num_ranks (int): the number of ranks
     username (str): the username
     wallclocktime (float): elapsed time since the hoomd script first started execution
@@ -92,7 +93,7 @@ class _device(hoomd.meta._metadata):
 
     # \brief Return the name of the GPU used in GPU mode.
     @property
-    def gpu(self):
+    def gpu_ids(self):
         
         n_gpu = self.cpp_exec_conf.getNumActiveGPUs()
         return [self.cpp_exec_conf.getGPUName(i) for i in range(n_gpu)]
@@ -285,7 +286,7 @@ def _init_nthreads(nthreads):
         self.num_threads = nthreads
 
 
-class Gpu(_device):
+class GPU(_device):
     """
     Run simulations on a GPU
 
@@ -319,7 +320,7 @@ class Gpu(_device):
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)
 
-class Cpu(_device):
+class CPU(_device):
     """
     Run simulations on a CPU
 

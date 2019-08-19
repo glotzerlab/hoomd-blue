@@ -13,7 +13,7 @@ class test_devices(unittest.TestCase):
     def test_gpu(self):
         
         if hoomd.options.mode == 'cpu':
-            assertEquals(hoomd.context.current.device.gpu, [])
+            assertEquals(hoomd.context.current.device.gpu_ids, [])
         
     def test_mode(self):
         
@@ -60,7 +60,7 @@ class test_devices(unittest.TestCase):
             filepath = d + "/" + msg_file_name
         
             # use all the optional arguments       
-            cpu = device.Cpu(nthreads=2, 
+            cpu = device.CPU(nthreads=2, 
                              communicator=comm.communicator(nrank=4), 
                              msg_file=filepath, 
                              notice_level=8)
