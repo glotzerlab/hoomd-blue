@@ -141,9 +141,8 @@ class user(object):
         Args:
             code (str): C++ code to compile
             clang_exec (str): The Clang executable to use
-            array_size (int): Size of array with adjustable elements.
             fn (str): If provided, the code will be written to a file.
-
+            array_size (int): Size of array with adjustable elements. (added in version 2.7)
 
         .. versionadded:: 2.3
         '''
@@ -268,7 +267,7 @@ class user_union(user):
         code_iso (str, **optional**): C++ code for isotropic part
         llvm_ir_fname (str): File name of the llvm IR file to load.
         llvm_ir_fname_iso (str, **optional**): File name of the llvm IR file to load for isotropic interaction
-        array_size (int): Size of array with adjustable elements.
+        array_size (int): Size of array with adjustable elements. (added in version 2.7)
 
     Example:
 
