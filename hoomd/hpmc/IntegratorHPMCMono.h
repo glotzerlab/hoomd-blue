@@ -315,7 +315,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         void invalidateAABBTree(){ m_aabb_tree_invalid = true; }
 
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
-        int slotWriteGSDStateState(gsd_handle&, std::string name) const;
+        int slotWriteGSDState(gsd_handle&, std::string name) const;
 
         //! Method that is called to connect to the gsd write state signal
         void connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
@@ -1674,13 +1674,13 @@ void IntegratorHPMCMono<Shape>::connectGSDStateSignal(
                                                     std::string name)
     {
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSDStateState, this, std::placeholders::_1, name);
+    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSDState, this, std::placeholders::_1, name);
     std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
 
 template <class Shape>
-int IntegratorHPMCMono<Shape>::slotWriteGSDStateState( gsd_handle& handle, std::string name ) const
+int IntegratorHPMCMono<Shape>::slotWriteGSDState( gsd_handle& handle, std::string name ) const
     {
     m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: "<< name << std::endl;
     int retval = 0;
