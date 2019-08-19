@@ -317,6 +317,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
         int slotWriteGSDState(gsd_handle&, std::string name) const;
 
+        //! Method that is called whenever the GSD file is written if connected to a GSD file.
+        int slotWriteGSDShapeSpec(gsd_handle&, std::string name) const;
+
         //! Method that is called to connect to the gsd write state signal
         void connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
 
@@ -1690,6 +1693,65 @@ int IntegratorHPMCMono<Shape>::slotWriteGSDState( gsd_handle& handle, std::strin
     #else
     bool mpi=false;
     #endif
+    gsd_schema_hpmc schema(m_exec_conf, mpi);
+    gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, mpi);
+
+    // access parameters
+    ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::read);
+    schema.write(handle, "state/hpmc/integrate/d", m_pdata->getNTypes(), h_d.data, GSD_TYPE_DOUBLE);
+    if(m_hasOrientation)
+        {
+        schema.write(handle, "state/hpmc/integrate/a", m_pdata->getNTypes(), h_a.data, GSD_TYPE_DOUBLE);
+        }
+    retval |= schema_shape.write(handle, name, m_pdata->getNTypes(), m_params);
+
+    return retval;
+    }
+
+
+template <class Shape>
+int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec( gsd_handle& handle, std::string name ) const
+    {
+    m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: "<< name << std::endl;
+    int retval = 0;
+    // create schema helpers
+    #ifdef ENABLE_MPI
+    bool mpi=(bool)m_pdata->getDomainDecomposition();
+    #else
+    bool mpi=false;
+    #endif
+
+    std::string chunk = "particles/type_shapes";
+    std::vector< std::string > type_shape_mapping(m_pdata->getNTypes());
+
+    int max_len = 0;
+    for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+        {
+        type_shape_mapping[i] = Shape.getShapeSpec();
+        max_len = std::max(max_len, (int)type_shape_mapping[i].size());
+        }
+    max_len += 1;  // for null
+
+        {
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing " << chunk << endl;
+        std::vector<char> types(max_len * type_shape_mapping.size());
+        for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+            strncpy(&types[max_len*i], type_shape_mapping[i].c_str(), max_len);
+        int retval = gsd_write_chunk(&m_handle, chunk, GSD_TYPE_UINT8, type_shape_mapping.size(), max_len, 0, (void *)&types[0]);
+        if (retval == -1)
+            {
+            m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
+            throw runtime_error("Error writing GSD file");
+            }
+        else if (retval != 0)
+            {
+            m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << retval << " writing: " << m_fname << endl;
+            throw runtime_error("Error writing GSD file");
+            }
+        }
+
+
     gsd_schema_hpmc schema(m_exec_conf, mpi);
     gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, mpi);
 
