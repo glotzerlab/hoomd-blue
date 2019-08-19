@@ -214,10 +214,6 @@ class patch_test_alpha_methods(unittest.TestCase):
         patch.alpha = [-1., 2.7, 10]
         np.testing.assert_almost_equal([-1., 2.7, 10], patch.alpha, decimal=6)
 
-        # # When one value is passed with no index, set all alphas to that value
-        # patch.set_alpha(11.3)
-        # np.testing.assert_almost_equal(3*[11.3], patch.get_alpha(), decimal=6)
-
         # raise error is list is larger than allocated memory
         with self.assertRaises(ValueError):
             patch.alpha = [1]*10
