@@ -44,7 +44,7 @@ void MPIConfiguration::splitPartitions(unsigned int nrank)
     {
 #ifdef ENABLE_MPI
     int num_total_ranks;
-    MPI_Comm_size(m_mpi_comm, &num_total_ranks);
+    MPI_Comm_size(m_hoomd_world, &num_total_ranks);
 
     unsigned int partition = 0;
     m_n_rank = nrank;
@@ -53,7 +53,7 @@ void MPIConfiguration::splitPartitions(unsigned int nrank)
         throw std::runtime_error("--nrank setting has to be > 0");
 
     int rank;
-    MPI_Comm_rank(m_mpi_comm, &rank);
+    MPI_Comm_rank(m_hoomd_world, &rank);
 
     if (num_total_ranks % m_n_rank != 0)
         throw std::runtime_error("Invalid setting --nrank.");
@@ -62,7 +62,7 @@ void MPIConfiguration::splitPartitions(unsigned int nrank)
 
     // Split the communicator
     MPI_Comm new_comm;
-    MPI_Comm_split(m_mpi_comm, partition, rank, &new_comm);
+    MPI_Comm_split(m_hoomd_world, partition, rank, &new_comm);
 
     // update communicator
     m_mpi_comm = new_comm;
