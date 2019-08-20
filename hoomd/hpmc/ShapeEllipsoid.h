@@ -104,7 +104,6 @@ struct ShapeEllipsoid
                     " 'c': " << axes.x <<
                     "}";
         return shapedef.str();
-        return " ";
         }
     //! Support function of the shape (in local coordinates), used in getAABB
     /*! \param n Vector to query support function (must be normalized)
