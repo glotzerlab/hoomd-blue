@@ -666,3 +666,17 @@ class gsd(hoomd.analyze._analyzer):
             obj._connect_gsd(self);
         else:
             hoomd.context.msg.warning("GSD is not currently support for {name}".format(obj.__name__));
+
+
+    def dump_shape(self, obj):
+        """Write shape information for a hoomd object.
+
+        Call :py:meth:`dump_shape` if you want to write the shape of a hoomd object
+        to the gsd file.
+
+        .. versionadded:: 2.7
+        """
+        if hasattr(obj, '_connect_gsd_shape_spec') and type(getattr(obj, '_connect_gsd_shape_spec')) == types.MethodType:
+            obj._connect_gsd_shape_spec(self);
+        else:
+            hoomd.context.msg.warning("GSD is not currently support for {name}".format(obj.__name__));

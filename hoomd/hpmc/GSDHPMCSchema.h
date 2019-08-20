@@ -435,7 +435,7 @@ struct gsd_shape_spec: public gsd_schema_hpmc_base
     {
     gsd_shape_spec(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) : gsd_schema_hpmc_base(exec_conf, mpi) {}
 
-    int write(gsd_handle& handle, const std::string& name, std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > params)
+    int write(gsd_handle& handle, const std::string& name, const param_array<typename Shape::param_type > &params)
         {
         if(!m_exec_conf->isRoot())
             return 0;
