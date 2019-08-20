@@ -29,7 +29,7 @@ mpcd::SlitPoreGeometryFiller::SlitPoreGeometryFiller(std::shared_ptr<mpcd::Syste
 
     // unphysical values in cache to always force recompute
     m_needs_recompute = true;
-    m_last_cell_size = make_scalar2(-1,-1);
+    m_recompute_cache = make_scalar3(-1,-1,-1);
     m_pdata->getBoxChangeSignal().connect<mpcd::SlitPoreGeometryFiller, &mpcd::SlitPoreGeometryFiller::notifyRecompute>(this);
     }
 
@@ -44,13 +44,13 @@ void mpcd::SlitPoreGeometryFiller::computeNumFill()
     const Scalar cell_size = m_cl->getCellSize();
     const Scalar max_shift = m_cl->getMaxGridShift();
 
-    // only recompute if requested or cell sizing has changed
-    if (!m_needs_recompute &&
-        m_last_cell_size.x == cell_size &&
-        m_last_cell_size.y == max_shift)
-        {
-        return;
-        }
+    // check if fill-relevant variables have changed (can't use signal because cell list build may not have triggered yet)
+    m_needs_recompute |= (m_recompute_cache.x != cell_size ||
+                          m_recompute_cache.y != max_shift ||
+                          m_recompute_cache.z != m_density);
+
+    // only recompute if needed
+    if (!m_needs_recompute) return;
 
     // as a precaution, validate the global box with the current cell list
     const BoxDim& global_box = m_pdata->getGlobalBox();
@@ -131,7 +131,7 @@ void mpcd::SlitPoreGeometryFiller::computeNumFill()
 
     // size is now updated, cache the cell dimensions used
     m_needs_recompute = false;
-    m_last_cell_size = make_scalar2(cell_size, max_shift);
+    m_recompute_cache = make_scalar3(cell_size, max_shift, m_density);
     }
 
 /*!

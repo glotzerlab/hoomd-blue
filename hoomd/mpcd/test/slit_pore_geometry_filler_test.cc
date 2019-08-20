@@ -86,10 +86,11 @@ void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf
         }
 
     /*
-     * Fill the volume again, which should double the number of virtual particles
+     * Fill the volume again with double the density, which should triple the number of virtual particles
      */
+    filler->setDensity(4.0);
     filler->fill(1);
-    UP_ASSERT_EQUAL(pdata->getNVirtual(), 4*2*(1*3+2*16+1*3)*20);
+    UP_ASSERT_EQUAL(pdata->getNVirtual(), 6*2*(1*3+2*16+1*3)*20);
     // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
@@ -111,8 +112,8 @@ void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf
                     ++N_hi;
                 }
             }
-        UP_ASSERT_EQUAL(N_lo, 4*(1*3+2*16+1*3)*20);
-        UP_ASSERT_EQUAL(N_hi, 4*(1*3+2*16+1*3)*20);
+        UP_ASSERT_EQUAL(N_lo, 6*(1*3+2*16+1*3)*20);
+        UP_ASSERT_EQUAL(N_hi, 6*(1*3+2*16+1*3)*20);
         }
 
     /*
@@ -123,7 +124,7 @@ void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf
     pdata->removeVirtualParticles();
     mpcd_sys->getCellList()->setCellSize(1.0);
     filler->fill(2);
-    UP_ASSERT_EQUAL(pdata->getNVirtual(), (unsigned int)(2*2*(0.5*4.5+0.5*16+0.5*4.5)*20));
+    UP_ASSERT_EQUAL(pdata->getNVirtual(), (unsigned int)(4*2*(0.5*4.5+0.5*16+0.5*4.5)*20));
     // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
@@ -139,13 +140,14 @@ void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf
                     ++N_hi;
                 }
             }
-        UP_ASSERT_EQUAL(N_lo, (unsigned int)(2*(8+4.5)*20));
-        UP_ASSERT_EQUAL(N_hi, (unsigned int)(2*(8+4.5)*20));
+        UP_ASSERT_EQUAL(N_lo, (unsigned int)(4*(8+4.5)*20));
+        UP_ASSERT_EQUAL(N_hi, (unsigned int)(4*(8+4.5)*20));
         }
 
     /*
      * Test the average fill properties of the virtual particles.
      */
+    filler->setDensity(2.0);
     mpcd_sys->getCellList()->setCellSize(2.0);
     unsigned int N_avg(0);
     Scalar3 v_avg = make_scalar3(0,0,0);

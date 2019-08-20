@@ -62,7 +62,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFiller : public mpcd::VirtualParticleFille
 
     private:
         bool m_needs_recompute;
-        Scalar2 m_last_cell_size;
+        Scalar3 m_recompute_cache;
         void notifyRecompute()
             {
             m_needs_recompute = true;
