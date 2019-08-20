@@ -98,8 +98,12 @@ struct ShapeEllipsoid
 
     DEVICE std::string getShapeSpec() const
         {
-        // std::ostringstream shapedef;
-
+        std::ostringstream shapedef;
+        shapedef << "{'type': 'Ellipsoid', 'a': " << axes.x <<
+                    " 'b': " << axes.y <<
+                    " 'c': " << axes.x <<
+                    "}";
+        return shapedef.str();
         return " ";
         }
     //! Support function of the shape (in local coordinates), used in getAABB
