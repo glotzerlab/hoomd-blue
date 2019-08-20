@@ -435,16 +435,19 @@ struct gsd_shape_spec: public gsd_schema_hpmc_base
     {
     gsd_shape_spec(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) : gsd_schema_hpmc_base(exec_conf, mpi) {}
 
-    int write(gsd_handle& handle, const std::string& name, unsigned int Ntypes)
+    int write(gsd_handle& handle, const std::string& name, std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > params)
         {
         if(!m_exec_conf->isRoot())
             return 0;
 
-        std::vector< std::string > type_shape_mapping(Ntypes);
-        Shape shape;
+        std::vector< std::string > type_shape_mapping(params.size());
+        quat<Scalar> q(make_scalar4(1,0,0,0));
+        // typename Shape::param_type params;
+
         int max_len = 0;
         for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
             {
+            Shape shape(q, params[i]);
             type_shape_mapping[i] = shape.getShapeSpec();
             max_len = std::max(max_len, (int)type_shape_mapping[i].size());
             }

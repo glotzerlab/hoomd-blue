@@ -66,6 +66,13 @@ struct ShapeSimplePolygon
         // not implemented
         return Scalar(0.0);
         }
+        
+    DEVICE std::string getShapeSpec() const
+        {
+        // std::ostringstream shapedef;
+
+        return " ";
+        }
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const

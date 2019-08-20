@@ -1684,6 +1684,17 @@ void IntegratorHPMCMono<Shape>::connectGSDStateSignal(
     }
 
 template <class Shape>
+void IntegratorHPMCMono<Shape>::connectGSDShapeSpec(
+                                                    std::shared_ptr<GSDDumpWriter> writer,
+                                                    std::string name)
+    {
+    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec, this, std::placeholders::_1, name);
+    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    addSlot(pslot);
+    }
+
+template <class Shape>
 int IntegratorHPMCMono<Shape>::slotWriteGSDState( gsd_handle& handle, std::string name ) const
     {
     m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: "<< name << std::endl;
@@ -1724,7 +1735,7 @@ int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec( gsd_handle& handle, std::s
     #endif
 
     gsd_shape_spec<Shape> schema(m_exec_conf, mpi);
-    schema.write(handle, name, m_pdata->getNTypes());
+    schema.write(handle, name, this->m_params);
 
 
     // Shape shape;

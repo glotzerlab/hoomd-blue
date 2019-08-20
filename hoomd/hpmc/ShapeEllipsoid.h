@@ -96,6 +96,12 @@ struct ShapeEllipsoid
         return OverlapReal(0.0);
         }
 
+    DEVICE std::string getShapeSpec() const
+        {
+        // std::ostringstream shapedef;
+
+        return " ";
+        }
     //! Support function of the shape (in local coordinates), used in getAABB
     /*! \param n Vector to query support function (must be normalized)
     */

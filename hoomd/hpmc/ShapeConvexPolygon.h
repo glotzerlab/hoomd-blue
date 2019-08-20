@@ -300,6 +300,13 @@ struct ShapeConvexPolygon
         return OverlapReal(0.0);
         }
 
+    DEVICE std::string getShapeSpec() const
+        {
+        // std::ostringstream shapedef;
+
+        return " ";
+        }
+
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
@@ -327,6 +334,7 @@ struct ShapeConvexPolygon
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
+
 
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
