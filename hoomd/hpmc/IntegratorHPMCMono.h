@@ -1726,7 +1726,7 @@ template <class Shape>
 int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec( gsd_handle& handle, std::string name ) const
     {
     m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: "<< name << std::endl;
-    // int retval = 0;
+
     // create schema helpers
     #ifdef ENABLE_MPI
     bool mpi=(bool)m_pdata->getDomainDecomposition();
@@ -1736,40 +1736,6 @@ int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec( gsd_handle& handle, std::s
 
     gsd_shape_spec<Shape> schema(m_exec_conf, mpi);
     schema.write(handle, name, this->m_params);
-
-
-    // Shape shape;
-    // std::string chunk = "particles/type_shapes";
-    // std::vector< std::string > type_shape_mapping(m_pdata->getNTypes());
-    // for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
-    //     {
-    //     type_shape_mapping[i] = shape.getShapeSpec();
-    //     }
-    //
-    // int max_len = 0;
-    // for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
-    //     {
-    //     type_shape_mapping[i] = shape.getShapeSpec();
-    //     max_len = std::max(max_len, (int)type_shape_mapping[i].size());
-    //     }
-    // max_len += 1;  // for null
-    //
-    //     {
-    //     m_exec_conf->msg->notice(10) << "dump.gsd: writing " << chunk << std::endl;
-    //     std::vector<char> types(max_len * type_shape_mapping.size());
-    //     for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
-    //         strncpy(&types[max_len*i], type_shape_mapping[i].c_str(), max_len);
-    //     int retval = gsd_write_chunk(&handle, chunk, GSD_TYPE_UINT8, type_shape_mapping.size(), max_len, 0, (void *)&types[0]);
-        // if (retval == -1)
-        //     {
-        //     m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
-        //     throw runtime_error("Error writing GSD file");
-        //     }
-        // else if (retval != 0)
-        //     {
-        //     m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << retval << " writing: " << m_fname << endl;
-        //     throw runtime_error("Error writing GSD file");
-        //     }
 
     }
 
