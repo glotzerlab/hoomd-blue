@@ -442,7 +442,6 @@ struct gsd_shape_spec: public gsd_schema_hpmc_base
 
         std::vector< std::string > type_shape_mapping(params.size());
         quat<Scalar> q(make_scalar4(1,0,0,0));
-        // typename Shape::param_type params;
 
         int max_len = 0;
         for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
@@ -459,16 +458,16 @@ struct gsd_shape_spec: public gsd_schema_hpmc_base
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
                 strncpy(&types[max_len*i], type_shape_mapping[i].c_str(), max_len);
             int retval = gsd_write_chunk(&handle, name.c_str(), GSD_TYPE_UINT8, type_shape_mapping.size(), max_len, 0, (void *)&types[0]);
-        // int retval = 0;
-        // std::string path = name + "radius";
-        // std::string path_o = name + "orientable";
-        // std::vector<float> data(Ntypes);
-        // std::vector<uint8_t> orientableflag(Ntypes);
-        // std::transform(shape.begin(), shape.end(), data.begin(), [](const hpmc::sph_params& s)->float{return s.radius;});
-        // retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
-        // std::transform(shape.begin(), shape.end(), orientableflag.begin(), [](const hpmc::sph_params& s)->uint32_t{return s.isOriented;});
-        // retval |= gsd_write_chunk(&handle, path_o.c_str(), GSD_TYPE_UINT8, Ntypes, 1, 0, (void *)&orientableflag[0]);
-        // return retval;
+            if (retval == -1)
+                {
+                m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << std::endl;
+                throw runtime_error("Error writing GSD file");
+                }
+            else if (retval != 0)
+                {
+                m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << retval << std::endl;
+                throw runtime_error("Error writing GSD file");
+                }
            }
         }
     };
