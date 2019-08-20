@@ -430,4 +430,43 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
         }
     };
 
+template < class Shape >
+struct gsd_shape_spec: public gsd_schema_hpmc_base
+    {
+    gsd_shape_spec(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) : gsd_schema_hpmc_base(exec_conf, mpi) {}
+
+    int write(gsd_handle& handle, const std::string& name, unsigned int Ntypes)
+        {
+        if(!m_exec_conf->isRoot())
+            return 0;
+
+        std::vector< std::string > type_shape_mapping(Ntypes);
+        Shape shape;
+        int max_len = 0;
+        for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+            {
+            type_shape_mapping[i] = shape.getShapeSpec();
+            max_len = std::max(max_len, (int)type_shape_mapping[i].size());
+            }
+        max_len += 1;  // for null
+
+            {
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing " << name << std::endl;
+            std::vector<char> types(max_len * type_shape_mapping.size());
+            for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+                strncpy(&types[max_len*i], type_shape_mapping[i].c_str(), max_len);
+            int retval = gsd_write_chunk(&handle, name.c_str(), GSD_TYPE_UINT8, type_shape_mapping.size(), max_len, 0, (void *)&types[0]);
+        // int retval = 0;
+        // std::string path = name + "radius";
+        // std::string path_o = name + "orientable";
+        // std::vector<float> data(Ntypes);
+        // std::vector<uint8_t> orientableflag(Ntypes);
+        // std::transform(shape.begin(), shape.end(), data.begin(), [](const hpmc::sph_params& s)->float{return s.radius;});
+        // retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
+        // std::transform(shape.begin(), shape.end(), orientableflag.begin(), [](const hpmc::sph_params& s)->uint32_t{return s.isOriented;});
+        // retval |= gsd_write_chunk(&handle, path_o.c_str(), GSD_TYPE_UINT8, Ntypes, 1, 0, (void *)&orientableflag[0]);
+        // return retval;
+           }
+        }
+    };
 #endif
