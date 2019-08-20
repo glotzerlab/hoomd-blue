@@ -1735,8 +1735,8 @@ int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec( gsd_handle& handle, std::s
     #endif
 
     gsd_shape_spec<Shape> schema(m_exec_conf, mpi);
-    schema.write(handle, name, this->m_params);
-
+    int retval = schema.write(handle, name, this->m_params);
+    return retval;
     }
 
 template <class Shape>
