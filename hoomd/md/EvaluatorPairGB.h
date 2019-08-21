@@ -177,6 +177,16 @@ class EvaluatorPairGB
             }
         #endif
 
+    HOSTDEVICE std::string getShapeSpec() const
+        {
+        std::ostringstream shapedef;
+        shapedef << "{'type': 'Ellipsoid', 'a': " << lpar <<
+                    ", 'b': " << lperp <<
+                    ", 'c': " << lperp <<
+                    "}";
+        return shapedef.str();
+        }
+
     protected:
         vec3<Scalar> dr;   //!< Stored dr from the constructor
         Scalar rcutsq;     //!< Stored rcutsq from the constructor
