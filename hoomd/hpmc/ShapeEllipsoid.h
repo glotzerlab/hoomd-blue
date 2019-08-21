@@ -100,8 +100,8 @@ struct ShapeEllipsoid
         {
         std::ostringstream shapedef;
         shapedef << "{'type': 'Ellipsoid', 'a': " << axes.x <<
-                    " 'b': " << axes.y <<
-                    " 'c': " << axes.x <<
+                    ", 'b': " << axes.y <<
+                    ", 'c': " << axes.x <<
                     "}";
         return shapedef.str();
         }

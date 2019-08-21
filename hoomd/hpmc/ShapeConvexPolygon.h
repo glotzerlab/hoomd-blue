@@ -304,11 +304,11 @@ struct ShapeConvexPolygon
         {
         std::ostringstream shapedef;
         shapedef << "{'type': 'Polygon', 'rounding_radius': " << getInsphereRadius() << ", 'vertices': [ ";
-        for (unsigned int i = 0; i < verts.N; i++)
+        for (unsigned int i = 0; i < verts.N-1; i++)
             {
-            shapedef << "[ " << verts.x[i] << ", " << verts.y[i] << "]";
+            shapedef << "[ " << verts.x[i] << ", " << verts.y[i] << "], ";
             }
-        shapedef << " ]";
+        shapedef << "[ " << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]" << " ]" << "}";
         return shapedef.str();
         }
 

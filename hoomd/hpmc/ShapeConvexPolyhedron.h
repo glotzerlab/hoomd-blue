@@ -341,10 +341,15 @@ struct ShapeConvexPolyhedron
 
     DEVICE std::string getShapeSpec() const
         {
-        // std::ostringstream shapedef;
-
-        return " ";
+        std::ostringstream shapedef;
+        shapedef << "{'type': 'ConvexPolyhedron', 'rounding_radius': " << getInsphereRadius() << ", 'vertices': [ ";
+        for (unsigned int i = 0; i < verts.N-1; i++)
+            {
+            shapedef << "[ " << verts.x[i] << ", " << verts.y[i] << ", " << verts.z[i] << "], ";
             }
+        shapedef << "[ " << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << ", " << verts.z[verts.N-1] << "]" << " ]" << "}";
+        return shapedef.str();
+        }
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
