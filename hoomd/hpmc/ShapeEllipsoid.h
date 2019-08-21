@@ -96,7 +96,7 @@ struct ShapeEllipsoid
         return OverlapReal(0.0);
         }
 
-    DEVICE std::string getShapeSpec() const
+    HOSTDEVICE std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
         shapedef << "{'type': 'Ellipsoid', 'a': " << axes.x <<

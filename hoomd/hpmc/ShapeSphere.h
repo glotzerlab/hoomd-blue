@@ -185,7 +185,7 @@ struct ShapeSphere
         return detail::AABB(pos, params.radius);
         }
 
-    DEVICE std::string getShapeSpec() const
+    HOSTDEVICE std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
         shapedef << "{'type': 'Sphere', 'diameter': " << getCircumsphereDiameter() << "}";

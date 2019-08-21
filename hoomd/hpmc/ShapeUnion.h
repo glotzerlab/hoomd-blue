@@ -156,7 +156,7 @@ struct ShapeUnion
         return OverlapReal(0.0);
         }
 
-    DEVICE std::string getShapeSpec() const
+    HOSTDEVICE std::string getShapeSpec() const
         {
         return "{}";
         }
