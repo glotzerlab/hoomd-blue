@@ -277,9 +277,7 @@ struct ShapeFacetedEllipsoid
 
     DEVICE std::string getShapeSpec() const
         {
-        // std::ostringstream shapedef;
-
-        return " ";
+        return "{}";
         }
 
     //! Return the bounding box of the shape in world coordinates
