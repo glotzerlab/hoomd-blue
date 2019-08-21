@@ -302,9 +302,14 @@ struct ShapeConvexPolygon
 
     DEVICE std::string getShapeSpec() const
         {
-        // std::ostringstream shapedef;
-
-        return " ";
+        std::ostringstream shapedef;
+        shapedef << "{'type': 'Polygon', 'rounding_radius': " << getInsphereRadius() << ", 'vertices': [ ";
+        for (unsigned int i = 0; i < verts.N; i++)
+            {
+            shapedef << "[ " << verts.x[i], << ", " << verts.y[i] << "]"
+            }
+        shapedef << " ]"
+        return shapedef.str();
         }
 
     //! Return the bounding box of the shape in world coordinates
