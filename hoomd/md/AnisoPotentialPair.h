@@ -82,6 +82,12 @@ class AnisoPotentialPair : public ForceCompute
         //! Set the rcut for a single type pair
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
 
+        //! Method that is called whenever the GSD file is written if connected to a GSD file.
+        int slotWriteGSDShapeSpec(gsd_handle&, std::string name) const;
+
+        //! Method that is called to connect to the gsd write state signal
+        void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
@@ -163,6 +169,34 @@ class AnisoPotentialPair : public ForceCompute
 
             }
     };
+
+template <class aniso_evaluator>
+void AnisoPotentialPair<aniso_evaluator>::connectGSDShapeSpec(
+                                                    std::shared_ptr<GSDDumpWriter> writer,
+                                                    std::string name)
+    {
+    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    auto func = std::bind(&AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec, this, std::placeholders::_1, name);
+    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    addSlot(pslot);
+    }
+
+template <class aniso_evaluator>
+int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec( gsd_handle& handle, std::string name ) const
+    {
+    m_exec_conf->msg->notice(10) << "AnisoPotentialPair writing to GSD File to name: "<< name << std::endl;
+
+    // create schema helpers
+    #ifdef ENABLE_MPI
+    bool mpi=(bool)m_pdata->getDomainDecomposition();
+    #else
+    bool mpi=false;
+    #endif
+
+    gsd_shape_spec<aniso_evaluator> schema(m_exec_conf, mpi);
+    int retval = schema.write(handle, name, this->m_params);
+    return retval;
+    }
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
