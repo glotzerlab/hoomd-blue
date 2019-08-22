@@ -177,7 +177,7 @@ class EvaluatorPairGB
             }
         #endif
 
-    HOSTDEVICE std::string getShapeSpec() const
+    DEVICE std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
         shapedef << "{'type': 'Ellipsoid', 'a': " << lpar <<

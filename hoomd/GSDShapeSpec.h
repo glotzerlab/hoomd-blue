@@ -2,6 +2,8 @@
 #include "GSDDumpWriter.h"
 #include "GSDReader.h"
 #include "HOOMDMPI.h"
+#include "GlobalArray.h"
+// #include "hoomd/md/"
 
 #include <string>
 #include <memory>
@@ -13,19 +15,14 @@
 #define _GSD_SHAPE_SPEC_H_
 
 template<class T>
-using param_array = typename GlobalArray<T>;
-
-struct gsd_schema_hpmc_base
-    {
-    gsd_schema_hpmc_base(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) : m_exec_conf(exec_conf), m_mpi(mpi) {}
-    const std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
-    bool m_mpi;
-    };
+using param_array = GlobalArray<T>;
 
 template < class Evaluator >
 struct gsd_shape_spec
     {
-    gsd_shape_spec(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) : gsd_schema_hpmc_base(exec_conf, mpi) {}
+    gsd_shape_spec(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) :  m_exec_conf(exec_conf), m_mpi(mpi) {}
+    const std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
+    bool m_mpi;
 
     int write(gsd_handle& handle, const std::string& name, const param_array<typename Evaluator::param_type > &params)
         {

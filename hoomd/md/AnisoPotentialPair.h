@@ -10,6 +10,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
+#include <sstream>
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -17,6 +18,7 @@
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
+#include "hoomd/GSDShapeSpec.h"
 
 /*! \file AnisoPotentialPair.h
     \brief Defines the template class for anisotropic pair potentials
