@@ -533,6 +533,13 @@ class pair(force._force):
         # future versions could use np functions to test the assumptions above and raise an error if they occur.
         return self.cpp_force.computeEnergyBetweenSets(tags1, tags2);
 
+    def _connect_gsd_shape_spec(self, gsd):
+        # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_force, "connectGSDShapeSpec"):
+            self.cpp_force.connectGSDShapeSpec(gsd.cpp_analyzer, "particles/type_shapes");
+        else:
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+
 class lj(pair):
     R""" Lennard-Jones pair potential.
 
