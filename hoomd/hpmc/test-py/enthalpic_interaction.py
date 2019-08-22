@@ -212,13 +212,13 @@ class patch_test_alpha_methods(unittest.TestCase):
 
         # check alpha list is set properly
         patch.alpha = [-1., 2.7, 10]
-        np.testing.assert_almost_equal([-1., 2.7, 10], patch.alpha, decimal=6)
+        np.testing.assert_allclose(patch.alpha, [-1., 2.7, 10])
 
         # raise error is list is larger than allocated memory
         with self.assertRaises(ValueError):
             patch.alpha = [1]*10
 
-        # raise error is list is larger than allocated memory
+        # raise error non-list is provided
         with self.assertRaises(TypeError):
             patch.alpha = -10
 
