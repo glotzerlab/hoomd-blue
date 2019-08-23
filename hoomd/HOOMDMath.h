@@ -437,7 +437,7 @@ inline HOSTDEVICE double cos(double x)
     }
 
 //! Compute both of sin of x and cos of x with float precision
-inline HOSTDEVICE void sincos(float x, float& s, float& c)
+inline DEVICE void sincos(float x, float& s, float& c)
     {
     #if  defined(__CUDA_ARCH__) || defined(__APPLE__)
     __sincosf(x, &s, &c);

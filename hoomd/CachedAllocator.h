@@ -15,6 +15,8 @@
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
+#include <stdexcept>
+#include <string>
 
 #include <map>
 #include <cassert>
