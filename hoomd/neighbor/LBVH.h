@@ -54,7 +54,7 @@ namespace neighbor
  * construct such an object due to the multitude of different access modes that are possible
  * for the GPU data.
  */
-class LBVH
+class PYBIND11_EXPORT LBVH
     {
     public:
         //! Setup an unallocated LBVH
