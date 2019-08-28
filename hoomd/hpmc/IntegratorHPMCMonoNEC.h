@@ -329,7 +329,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
         for (unsigned int cur_chain = 0; cur_chain < this->m_pdata->getN() * m_update_fraction; cur_chain++)
             {
             // Get the RNG for chain cur_chain.
-            hoomd::RandomGenerator rng_chain_i(hoomd::RNGIdentifier::HPMCMonoTrialMove, m_seed, cur_chain, this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
+            hoomd::RandomGenerator rng_chain_i(hoomd::RNGIdentifier::HPMCMonoChainMove, m_seed, cur_chain, this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
 
             // this->m_update_order.shuffle(...) wants to update the particles in forward or reverse order.
             // For chains this is an invalid behavior. Instead we have to pick a starting particle randomly.
