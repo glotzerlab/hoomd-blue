@@ -828,12 +828,10 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
-    Scalar4 *s_orientation_group = (Scalar4*)(s_params + num_types);
-    Scalar3 *s_pos_group = (Scalar3*)(s_orientation_group + n_groups);
-    unsigned int *s_check_overlaps = (unsigned int *) (s_pos_group + n_groups);
+    unsigned int *s_check_overlaps = (unsigned int *) (s_params + num_types);
     unsigned int *s_queue_j = (unsigned int*)(s_check_overlaps + overlap_idx.getNumElements());
-    unsigned int *s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
-    unsigned int *s_queue_didx = (unsigned int *)(s_queue_gid + max_queue_size);
+    unsigned int *s_queue_didx_narrow = (unsigned int*)(s_queue_j + max_queue_size);
+    unsigned int *s_queue_didx = (unsigned int *)(s_queue_didx_narrow + max_queue_size);
 
     // copy over parameters one int per thread for fast loads
         {
@@ -1006,45 +1004,18 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
         __syncthreads();
 
-        // is this group processing work from the first queue?
-        bool active = group < min(s_depletant_queue_size, max_depletant_queue_size);
+        // actual size of queue
+        unsigned int depletant_queue_size = min(s_depletant_queue_size, max_depletant_queue_size);
 
-        if (active)
-            {
-            // regenerate depletant using seed from queue, this costs a few flops but is probably
-            // better than storing one Scalar4 and a Scalar3 per thread in shared mem
-            unsigned int i_dep_queue = s_queue_didx[group];
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed+i, i_dep_queue, select*num_types + depletant_type, timestep);
-
-            // depletant position and orientation
-            vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
-            Shape shape_test(quat<Scalar>(), s_params[depletant_type]);
-            if (shape_test.hasOrientation())
-                {
-                shape_test.orientation = generateRandomOrientation(rng,dim);
-                }
-
-            // store them per group
-            if (master)
-                {
-                s_pos_group[group] = vec_to_scalar3(pos_test);
-                s_orientation_group[group] = quat_to_scalar4(shape_test.orientation);
-                }
-            }
-
-        __syncthreads();
+        // starting offset in depletant queue for this thread
+        unsigned int q = group;
 
         // counters to track progress through the loop over potential neighbors
-        unsigned int excell_size;
+        unsigned int excell_size = d_excell_size[my_cell];
         unsigned int k = offset;
 
-        if (active)
-            {
-            excell_size = d_excell_size[my_cell];
-
-            if (master)
-                overlap_checks += 2*excell_size;
-            }
+        if (master)
+            overlap_checks += 2*excell_size;
 
         // loop while still searching
         while (s_still_searching)
@@ -1052,42 +1023,46 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             // fill the neighbor queue
             // loop through particles in the excell list and add them to the queue if they pass the circumsphere check
 
-            // active threads add to the queue
-            if (active)
+            // prefetch j
+            unsigned int j, next_j = 0;
+            if ((k>>1) < excell_size)
+                next_j = __ldg(&d_excell_idx[excli(k>>1, my_cell)]);
+
+            // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
+            // and as long as no overlaps have been found
+            while (s_queue_size < max_queue_size && (k>>1) < excell_size)
                 {
-                // prefetch j
-                unsigned int j, next_j = 0;
-                if ((k>>1) < excell_size)
+                // which configuration are we handling?
+                bool old = k & 1;
+
+                Scalar4 postype_j;
+                Scalar4 orientation_j = make_scalar4(1,0,0,0);
+                vec3<Scalar> r_jk;
+
+                // build some shapes, but we only need them to get diameters, so don't load orientations
+
+                // prefetch next j
+                k += group_size;
+                j = next_j;
+
+                if ((k >> 1) < excell_size)
                     next_j = __ldg(&d_excell_idx[excli(k>>1, my_cell)]);
 
-                // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
-                // and as long as no overlaps have been found
-                while (s_queue_size < max_queue_size && (k>>1) < excell_size)
+                // read in position of neighboring particle, do not need it's orientation for circumsphere check
+                postype_j = old ? d_postype[j] : d_trial_postype[j];
+                unsigned int type_j = __scalar_as_int(postype_j.w);
+                Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
+
+                for (; q < depletant_queue_size; q += n_groups)
                     {
-                    // which configuration are we handling?
-                    bool old = k & 1;
+                    // regenerate depletant using seed from queue, this costs a few flops but is probably
+                    // better than storing one Scalar4 and a Scalar3 per depletant in shared mem
+                    unsigned int i_dep_queue = s_queue_didx[q];
+                    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed+i, i_dep_queue, select*num_types + depletant_type, timestep);
 
-                    Scalar4 postype_j;
-                    Scalar4 orientation_j = make_scalar4(1,0,0,0);
-                    vec3<Scalar> r_jk;
-
-                    // build some shapes, but we only need them to get diameters, so don't load orientations
-
-                    // prefetch next j
-                    k += group_size;
-                    j = next_j;
-
-                    if ((k >> 1) < excell_size)
-                        next_j = __ldg(&d_excell_idx[excli(k>>1, my_cell)]);
-
-                    // read in position of neighboring particle, do not need it's orientation for circumsphere check
-                    postype_j = old ? d_postype[j] : d_trial_postype[j];
-                    unsigned int type_j = __scalar_as_int(postype_j.w);
-                    Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
-
-                    // load test particle configuration from shared mem
-                    vec3<Scalar> pos_test(s_pos_group[group]);
-                    Shape shape_test(quat<Scalar>(s_orientation_group[group]), s_params[depletant_type]);
+                    // depletant position and orientation
+                    vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
+                    Shape shape_test(quat<Scalar>(), s_params[depletant_type]);
 
                     // put particle j into the coordinate system of particle i
                     r_jk = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
@@ -1119,7 +1094,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
                         if (insert_point < max_queue_size)
                             {
-                            s_queue_gid[insert_point] = group;
+                            s_queue_didx_narrow[insert_point] = i_dep_queue;
                             s_queue_j[insert_point] = (j << 1) | (old ? 1 : 0);
                             }
                         else
@@ -1127,10 +1102,14 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                             // or back up if the queue is already full
                             // we will recheck and insert this on the next time through
                             k -= group_size;
+                            break;
                             }
-                        } // end if k < excell_size
-                    } // end while (s_queue_size < max_queue_size && k < excell_size)
-                } // end if active
+                        } // end if (insert_in_queue)
+                    } // end loop over depletants in queue
+
+                if (q >= depletant_queue_size)
+                    q = group; // start over
+                } // end while (s_queue_size < max_queue_size && k < excell_size)
 
             // sync to make sure all threads in the block are caught up
             __syncthreads();
@@ -1147,7 +1126,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             if (tidx_1d < min(s_queue_size, max_queue_size))
                 {
                 // need to extract the overlap check to perform out of the shared mem queue
-                unsigned int check_group = s_queue_gid[tidx_1d];
+                unsigned int check_didx = s_queue_didx_narrow[tidx_1d];
                 unsigned int check_j_flag = s_queue_j[tidx_1d];
                 bool check_old = check_j_flag & 1;
                 unsigned int check_j  = check_j_flag >> 1;
@@ -1156,9 +1135,14 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 Scalar4 orientation_j;
                 vec3<Scalar> r_jk;
 
-                // build depletant shape from shared memory
-                Scalar3 pos_test = s_pos_group[check_group];
-                Shape shape_test(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type]);
+                // regenerate depletant using seed from queue
+                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed+i, check_didx, select*num_types + depletant_type, timestep);
+                vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
+                Shape shape_test(quat<Scalar>(), s_params[depletant_type]);
+                if (shape_test.hasOrientation())
+                    {
+                    shape_test.orientation = generateRandomOrientation(rng,dim);
+                    }
 
                 // build shape j from global memory
                 postype_j = check_old ? d_postype[check_j] : d_trial_postype[check_j];
@@ -1202,10 +1186,9 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             __syncthreads();
             if (master && group == 0)
                 s_queue_size = 0;
-            if (active && (k>>1) < excell_size)
+            if ((k>>1) < excell_size)
                 atomicAdd(&s_still_searching, 1);
             __syncthreads();
-
             } // end while (s_still_searching)
 
         // do we still need to process depletants?
@@ -1526,13 +1509,12 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
         unsigned int tpp = min(args.tpp,block_size);
         unsigned int n_groups = block_size / tpp;
         unsigned int max_queue_size = n_groups*tpp;
-        unsigned int max_depletant_queue_size = n_groups;
+        unsigned int max_depletant_queue_size = max_queue_size;
 
         const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
                    args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
-        unsigned int shared_bytes = n_groups *(sizeof(Scalar4) + sizeof(Scalar3)) +
-                                    max_queue_size*2*sizeof(unsigned int) +
+        unsigned int shared_bytes = max_queue_size*2*sizeof(unsigned int) +
                                     max_depletant_queue_size*sizeof(unsigned int) +
                                     min_shared_bytes;
 
@@ -1547,10 +1529,9 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             tpp = min(tpp, block_size);
             n_groups = block_size / tpp;
             max_queue_size = n_groups*tpp;
-            max_depletant_queue_size = n_groups;
+            max_depletant_queue_size = max_queue_size;
 
-            shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3)) +
-                           max_queue_size*2*sizeof(unsigned int) +
+            shared_bytes = max_queue_size*2*sizeof(unsigned int) +
                            max_depletant_queue_size*sizeof(unsigned int) +
                            min_shared_bytes;
             }
@@ -1649,8 +1630,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
         const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
                    args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
-        unsigned int shared_bytes = n_groups *(sizeof(Scalar4) + sizeof(Scalar3)) +
-                                    max_queue_size*2*sizeof(unsigned int) +
+        unsigned int shared_bytes = max_queue_size*2*sizeof(unsigned int) +
                                     max_depletant_queue_size*sizeof(unsigned int) +
                                     min_shared_bytes;
 
@@ -1667,8 +1647,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             max_queue_size = n_groups*tpp;
             max_depletant_queue_size = n_groups;
 
-            shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3)) +
-                           max_queue_size*2*sizeof(unsigned int) +
+            shared_bytes = max_queue_size*2*sizeof(unsigned int) +
                            max_depletant_queue_size*sizeof(unsigned int) +
                            min_shared_bytes;
             }
