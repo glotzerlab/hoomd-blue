@@ -11,122 +11,87 @@
     \brief Declares GPU kernel code for neighbor list tree traversal on the GPU
 */
 
-#define NLIST_GPU_PARTICLES_PER_LEAF 4      //!< Max number of particles in a leaf node
-#define NLIST_GPU_INVALID_NODE 0xffffffff   //!< Sentinel for an invalid node
-
 #include <cuda_runtime.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 
-// include fixed width integer types uint32_t and uint64_t
-#include <stdint.h>
+#include "hoomd/neighbor/InsertOps.h"
+
+#ifdef NVCC
+#define DEVICE __device__ __forceinline__
+#define HOSTDEVICE __host__ __device__ __forceinline__
+#else
+#define DEVICE
+#define HOSTDEVICE
+#endif
+
+struct NullOp
+    {
+    #ifdef NVCC
+    DEVICE neighbor::BoundingBox get(const unsigned int idx) const
+        {
+        const Scalar3 p = make_scalar3(0,0,0);
+        return neighbor::BoundingBox(p,p);
+        }
+    #endif
+
+    HOSTDEVICE unsigned int size() const
+        {
+        return 0;
+        }
+    };
+
+struct PointMapInsertOp : public neighbor::PointInsertOp
+    {
+    PointMapInsertOp(const Scalar4 *points_, const unsigned int *map_, unsigned int N_)
+        : neighbor::PointInsertOp(points_, N_), map(map_)
+        {}
+
+    #ifdef NVCC
+    DEVICE neighbor::BoundingBox get(const unsigned int idx) const
+        {
+        const Scalar4 point = points[map[idx]];
+        const Scalar3 p = make_scalar3(point.x, point.y, point.z);
+
+        // construct the bounding box for a point
+        return neighbor::BoundingBox(p,p);
+        }
+    #endif
+
+    const unsigned int *map;
+    };
+
+const unsigned int NeigborListTypeSentinel = 0xffffffff;
 
 //! Kernel driver to generate morton code-type keys for particles and reorder by type
-cudaError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
-                                   unsigned int *d_map_tree_pid,
-                                   int *d_morton_conditions,
-                                   const Scalar4 *d_pos,
-                                   const unsigned int N,
-                                   const unsigned int nghosts,
-                                   const BoxDim& box,
-                                   const Scalar3 ghost_width,
-                                   const unsigned int block_size);
-
-//! Wrapper to CUB sort for morton codes
-cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
-                                  uint64_t *d_morton_types_alt,
-                                  unsigned int *d_map_tree_pid,
-                                  unsigned int *d_map_tree_pid_alt,
-                                  void *d_tmp_storage,
-                                  size_t &tmp_storage_bytes,
-                                  bool &swap_morton,
-                                  bool &swap_map,
-                                  const unsigned int Ntot,
-                                  const unsigned int n_type_bits);
-
-//! Kernel driver to merge the bottom layers of particles into leaf nodes
-cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
-                                      uint32_t *d_morton_codes_red,
-                                      uint2 *d_tree_parent_sib,
-                                      const uint64_t *d_morton_types,
-                                      const Scalar4 *d_pos,
-                                      const unsigned int *d_num_per_type,
-                                      const unsigned int ntypes,
-                                      const unsigned int *d_map_tree_pid,
-                                      const unsigned int *d_leaf_offset,
-                                      const unsigned int *d_type_head,
-                                      const unsigned int N,
-                                      const unsigned int nleafs,
-                                      const unsigned int block_size);
-
-//! Kernel driver to generate the AABB tree hierarchy from morton codes
-cudaError_t gpu_nlist_gen_hierarchy(uint2 *d_tree_parent_sib,
-                                    const uint32_t *d_morton_codes,
-                                    const unsigned int *d_num_per_type,
-                                    const unsigned int ntypes,
-                                    const unsigned int nleafs,
-                                    const unsigned int ninternal,
-                                    const unsigned int block_size);
-
-//! Kernel driver to form conservative AABBs for internal nodes
-cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
-                                   Scalar4 *d_tree_aabbs,
-                                   const uint2 *d_tree_parent_sib,
-                                   const unsigned int ntypes,
-                                   const unsigned int nleafs,
-                                   const unsigned int ninternal,
-                                   const unsigned int block_size);
-
-//! Kernel driver to rearrange particle data into leaf order
-cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
-                                     Scalar2 *d_leaf_db,
-                                     const Scalar4 *d_pos,
-                                     const Scalar *d_diameter,
-                                     const unsigned int *d_body,
-                                     const unsigned int *d_map_tree_pid,
-                                     const unsigned int N,
-                                     const unsigned int block_size);
-
-//! Kernel driver to traverse tree and generate neighbor list
-cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
-                                    unsigned int *d_n_neigh,
-                                    Scalar4 *d_last_updated_pos,
-                                    unsigned int *d_conditions,
-                                    const unsigned int *d_Nmax,
-                                    const unsigned int *d_head_list,
-                                    const unsigned int N,
-                                    const unsigned int nghosts,
-                                    // tree data
-                                    const unsigned int *d_map_tree_pid,
-                                    const unsigned int *d_leaf_offset,
-                                    const unsigned int *d_tree_roots,
-                                    const Scalar4 *d_tree_aabbs,
-                                    const unsigned int nleafs,
-                                    const unsigned int ninternal,
-                                    const unsigned int nnodes,
-                                    const Scalar4 *d_leaf_xyzf,
-                                    const Scalar2 *d_leaf_db,
-                                    // particle data
-                                    const Scalar4 *d_pos,
-                                    // images
-                                    const Scalar3 *d_image_list,
-                                    const unsigned int nimages,
-                                    // neighbor list cutoffs
-                                    const Scalar *d_r_cut,
-                                    const Scalar r_buff,
-                                    const Scalar max_diam,
-                                    const unsigned int ntypes,
-                                    bool filter_body,
-                                    bool diameter_shift,
-                                    const unsigned int block_size);
-
-//! Kernel driver to initialize counting for types and nodes
-cudaError_t gpu_nlist_init_count(unsigned int *d_type_head,
+cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
+                                 unsigned int *d_indexes,
+                                 unsigned int *d_lbvh_errors,
                                  const Scalar4 *d_pos,
-                                 const unsigned int *d_map_tree_pid,
                                  const unsigned int N,
-                                 const unsigned int ntypes,
+                                 const unsigned int nghosts,
+                                 const BoxDim& box,
+                                 const Scalar3 ghost_width,
                                  const unsigned int block_size);
+
+uchar2 gpu_nlist_sort_types(void *d_tmp,
+                            size_t &tmp_bytes,
+                            unsigned int *d_types,
+                            unsigned int *d_sorted_types,
+                            unsigned int *d_indexes,
+                            unsigned int *d_sorted_indexes,
+                            const unsigned int N);
+
+cudaError_t gpu_nlist_count_types(unsigned int *d_first,
+                                  unsigned int *d_last,
+                                  const unsigned int *d_types,
+                                  const unsigned int ntypes,
+                                  const unsigned int N,
+                                  const unsigned int block_size);
+
+#undef DEVICE
+#undef HOSTDEVICE
+
 #endif //__NEIGHBORLISTGPUTREE_CUH__
