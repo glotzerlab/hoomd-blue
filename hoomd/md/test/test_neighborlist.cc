@@ -909,29 +909,32 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
     ArrayHandle<unsigned int> h_nlist2(nlist2->getNListArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_head_list2(nlist2->getHeadList(), access_location::host, access_mode::read);
 
-    // temporary vectors for holding the lists: they will be sorted for comparison
-    std::vector<unsigned int> tmp_list1;
+    // temporary vectors for holding the lists: they will be sorted for compariso
     std::vector<unsigned int> tmp_list2;
 
     // check to make sure that every neighbor matches
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        UP_ASSERT_EQUAL(h_head_list1.data[i], h_head_list2.data[i]);
-        UP_ASSERT_EQUAL(h_n_neigh1.data[i], h_n_neigh2.data[i]);
+        UP_ASSERT(h_n_neigh2.data[i] >= h_n_neigh1.data[i]);
 
-        tmp_list1.resize(h_n_neigh1.data[i]);
-        tmp_list2.resize(h_n_neigh1.data[i]);
-
-        for (unsigned int j = 0; j < h_n_neigh1.data[i]; j++)
+        // test list
+        std::vector<unsigned int> test_list(h_n_neigh2.data[i]);
+        for (unsigned int j=0; j < h_n_neigh2.data[i]; ++j)
             {
-            tmp_list1[j] = h_nlist1.data[h_head_list1.data[i] + j];
-            tmp_list2[j] = h_nlist2.data[h_head_list2.data[i] + j];
+            test_list[j] = h_nlist2.data[h_head_list2.data[i] + j];
             }
 
-        sort(tmp_list1.begin(), tmp_list1.end());
-        sort(tmp_list2.begin(), tmp_list2.end());
-
-        UP_ASSERT_EQUAL(tmp_list1,tmp_list2);
+        // check all elements from ref list are in the test list
+        for (unsigned int j = 0; j < h_n_neigh1.data[i]; ++j)
+            {
+            const unsigned int ref_idx = h_nlist1.data[h_head_list1.data[i] + j];
+            bool found = std::find(test_list.begin(), test_list.end(), ref_idx) != test_list.end();
+            if (!found)
+                {
+                std::cout << "Neighbor " << ref_idx << " from reference list not found in test list for particle " << i << "." << std::endl;
+                UP_ASSERT(false);
+                }
+            }
         }
     }
 

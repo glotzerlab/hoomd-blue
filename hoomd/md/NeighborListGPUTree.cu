@@ -6,9 +6,11 @@
 #include "NeighborListGPUTree.cuh"
 
 #include "hoomd/neighbor/LBVH.cuh"
+#include "hoomd/neighbor/LBVHTraverser.cuh"
 
 #include <thrust/execution_policy.h>
 #include <thrust/fill.h>
+#include <thrust/remove.h>
 #include "hoomd/extern/cub/cub/cub.cuh"
 
 __global__ void gpu_nlist_mark_types_kernel(unsigned int *d_types,
@@ -175,6 +177,63 @@ cudaError_t gpu_nlist_count_types(unsigned int *d_first,
     return cudaSuccess;
     }
 
+__global__ void gpu_nlist_copy_primitives_kernel(unsigned int *d_traverse_order,
+                                                 const unsigned int *d_indexes,
+                                                 const unsigned int *d_primitives,
+                                                 const unsigned int N)
+    {
+    // one thread per particle
+    const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx >= N)
+        return;
+
+    const unsigned int primitive = d_primitives[idx];
+    d_traverse_order[idx] = __ldg(d_indexes + primitive);
+    }
+
+cudaError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
+                                      const unsigned int *d_indexes,
+                                      const unsigned int *d_primitives,
+                                      const unsigned int N,
+                                      const unsigned int block_size)
+    {
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_copy_primitives_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    int run_block_size = min(block_size,max_block_size);
+    gpu_nlist_copy_primitives_kernel<<<N/run_block_size + 1, run_block_size>>>(d_traverse_order,
+                                                                               d_indexes,
+                                                                               d_primitives,
+                                                                               N);
+    return cudaSuccess;
+    }
+
+struct IsGhost
+    {
+    IsGhost(unsigned int N_) : N(N_) {}
+
+    __host__ __device__
+    bool operator()(const unsigned int idx)
+        {
+        return (idx >= N);
+        }
+
+    unsigned int N;
+    };
+
+unsigned int gpu_nlist_remove_ghosts(unsigned int *d_traverse_order,
+                                     const unsigned int N,
+                                     const unsigned int N_own)
+    {
+    unsigned int *end = thrust::remove_if(thrust::device, d_traverse_order, d_traverse_order+N, IsGhost(N_own));
+    return (end - d_traverse_order);
+    }
+
 // explicit templates for neighbor::LBVH with PointMapInsertOp and NullOp
 template void neighbor::gpu::lbvh_gen_codes(unsigned int *, unsigned int *, const PointMapInsertOp&,
     const Scalar3, const Scalar3, const unsigned int, const unsigned int, cudaStream_t);
@@ -184,6 +243,9 @@ template void neighbor::gpu::lbvh_gen_codes(unsigned int *, unsigned int *, cons
     const Scalar3, const Scalar3, const unsigned int, const unsigned int, cudaStream_t);
 template void neighbor::gpu::lbvh_bubble_aabbs(const neighbor::gpu::LBVHData, const NullOp&,
     unsigned int *, const unsigned int, const unsigned int, cudaStream_t);
+
+template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
+    const ParticleQueryOp&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
 
 #if 0
 //! Kernel for traversing tree to generate neighbor list

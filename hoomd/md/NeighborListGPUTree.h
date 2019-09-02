@@ -9,6 +9,7 @@
 
 #include "hoomd/Autotuner.h"
 #include "hoomd/neighbor/LBVH.h"
+#include "hoomd/neighbor/LBVHTraverser.h"
 
 /*! \file NeighborListGPUTree.h
     \brief Declares the NeighborListGPUTree class
@@ -64,9 +65,12 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
 
         GPUFlags<unsigned int> m_lbvh_errors;
         std::vector< std::unique_ptr<neighbor::LBVH> > m_lbvhs;
+        std::vector< std::unique_ptr<neighbor::LBVHTraverser> > m_traversers;
 
-        GPUArray<Scalar3> m_image_list; //!< List of translation vectors
+        GlobalVector<Scalar3> m_image_list; //!< List of translation vectors
         unsigned int m_n_images;        //!< Number of translation vectors
+
+        GPUArray<unsigned int> m_traverse_order;
 
         void buildTree();
 

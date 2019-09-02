@@ -198,7 +198,7 @@ void LBVH::build(const InsertOpT& insert, const Scalar3 lo, const Scalar3 hi)
 
     if (N < 2)
         {
-        m_exec_conf->msg->error() << "Small LBVHs (N=0,1,2) are currently not implemented." << std::endl;
+        m_exec_conf->msg->error() << "Small LBVHs (N=0,1) are currently not implemented." << std::endl;
         throw std::runtime_error("Small LBVHs are not implemented.");
         }
     // resize memory for the tree

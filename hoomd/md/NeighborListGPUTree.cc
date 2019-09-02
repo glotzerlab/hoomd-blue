@@ -57,6 +57,9 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
         GPUArray<unsigned int> sorted_indexes(m_pdata->getMaxN(), m_exec_conf);
         m_sorted_indexes.swap(sorted_indexes);
 
+        GPUArray<unsigned int> traverse_order(m_pdata->getMaxN(), m_exec_conf);
+        m_traverse_order.swap(traverse_order);
+
         // all done with the particle data reallocation
         m_max_num_changed = false;
         }
@@ -73,9 +76,11 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
             m_type_last.swap(type_last);
 
             m_lbvhs.resize(m_pdata->getNTypes());
+            m_traversers.resize(m_pdata->getNTypes());
             for (unsigned int i=m_max_types; i < m_pdata->getNTypes(); ++i)
                 {
                 m_lbvhs[i].reset(new neighbor::LBVH(m_exec_conf));
+                m_traversers[i].reset(new neighbor::LBVHTraverser(m_exec_conf));
                 }
 
             m_max_types = m_pdata->getNTypes();
@@ -85,11 +90,25 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
         m_type_changed = false;
         }
 
+    // update properties that depend on the box
+    if (m_box_changed)
+        {
+        updateImageVectors();
+        m_box_changed = false;
+        }
+
     // build the tree
     buildTree();
 
     // walk with the tree
     traverseTree();
+
+    // memcpy the current positions of local particles
+        {
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_last_updated_pos(m_last_pos, access_location::device, access_mode::overwrite);
+        cudaMemcpy(d_last_updated_pos.data, d_pos.data, sizeof(Scalar4)*m_pdata->getN(), cudaMemcpyDeviceToDevice);
+        }
     }
 
 void NeighborListGPUTree::buildTree()
@@ -221,17 +240,88 @@ void NeighborListGPUTree::buildTree()
                 }
             }
         }
+
+    // put particles in primitive order for traversal, filtering out ghosts
+        {
+        ArrayHandle<unsigned int> h_type_first(m_type_first, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> d_traverse_order(m_traverse_order, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_sorted_indexes(m_sorted_indexes, access_location::device, access_mode::read);
+
+        unsigned int Ntotal = 0;
+        for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+            {
+            const unsigned int Ni = m_lbvhs[i]->getN();
+            if (Ni)
+                {
+                const unsigned int first = h_type_first.data[i];
+                ArrayHandle<unsigned int> d_primitives(m_lbvhs[i]->getPrimitives(), access_location::device, access_mode::read);
+                gpu_nlist_copy_primitives(d_traverse_order.data + first,
+                                          d_sorted_indexes.data + first,
+                                          d_primitives.data,
+                                          Ni,
+                                          128);
+                Ntotal += Ni;
+                }
+            }
+
+        #if ENABLE_MPI
+        // stream compact to get rid of ghosts
+        if (m_pdata->getNGhosts() > 0)
+            {
+            Ntotal = gpu_nlist_remove_ghosts(d_traverse_order.data, Ntotal, m_pdata->getN());
+            }
+        #endif // ENABLE_MPI
+
+        // check that all primitives are going to be traversed
+        if (Ntotal != m_pdata->getN())
+            {
+            m_exec_conf->msg->error() << "Wrong number of particles in nlist.tree() arrays!" << std::endl;
+            throw std::runtime_error("Wrong number of particles in nlist.tree() arrays!");
+            }
+        }
     }
 
 void NeighborListGPUTree::traverseTree()
     {
-    if (m_box_changed)
-        {
-        updateImageVectors();
-        m_box_changed = false;
-        }
+    ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
+    NeighborListOp nlist_op(d_nlist.data, d_n_neigh.data, d_conditions.data, d_head_list.data, d_Nmax.data);
 
-    // TODO: implement traversal with LBVH
+    ArrayHandle<unsigned int> h_type_first(m_type_first, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> d_sorted_indexes(m_sorted_indexes, access_location::device, access_mode::read);
+
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diam(m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_traverse_order(m_traverse_order, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
+
+    Scalar rpad = (m_diameter_shift) ? m_d_max - Scalar(1.0) : Scalar(0.0);
+
+    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+        {
+        if (m_lbvhs[i]->getN())
+            {
+            const unsigned int first = h_type_first.data[i];
+            neighbor::MapTransformOp map(d_sorted_indexes.data + first);
+
+            ParticleQueryOp query_op(d_pos.data,
+                                     (m_filter_body) ? d_body.data : NULL,
+                                     (m_diameter_shift) ? d_diam.data : NULL,
+                                     d_traverse_order.data,
+                                     m_pdata->getN(),
+                                     d_r_cut.data,
+                                     m_r_buff,
+                                     rpad,
+                                     m_typpair_idx,
+                                     i);
+
+            m_traversers[i]->traverse(nlist_op, query_op, map, *m_lbvhs[i], m_image_list);
+            }
+        }
     }
 
 /*!
@@ -278,11 +368,12 @@ void NeighborListGPUTree::updateImageVectors()
         {
         m_n_images *= 3;
         }
+    m_n_images -= 1; // remove the self image
 
     // reallocate memory if necessary
-    if (m_n_images > m_image_list.getPitch())
+    if (m_n_images > m_image_list.getNumElements())
         {
-        GPUArray<Scalar3> image_list(m_n_images, m_exec_conf);
+        GlobalVector<Scalar3> image_list(m_n_images, m_exec_conf);
         m_image_list.swap(image_list);
         }
 
@@ -291,11 +382,8 @@ void NeighborListGPUTree::updateImageVectors()
     Scalar3 latt_b = box.getLatticeVector(1);
     Scalar3 latt_c = box.getLatticeVector(2);
 
-    // there is always at least 1 image, which we put as our first thing to look at
-    h_image_list.data[0] = make_scalar3(0.0, 0.0, 0.0);
-
     // iterate over all other combinations of images, skipping those that are
-    unsigned int n_images = 1;
+    unsigned int n_images = 0;
     for (int i=-1; i <= 1 && n_images < m_n_images; ++i)
         {
         for (int j=-1; j <= 1 && n_images < m_n_images; ++j)

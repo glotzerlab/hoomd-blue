@@ -200,7 +200,6 @@ __global__ void lbvh_traverse_ropes(OutputOpT out,
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
     if (idx >= query.size())
         return;
-    typename OutputOpT::ThreadData result = out.setup(idx);
 
     // load tree compression sizes into shared memory
     __shared__ BoundingBox tree_box;
@@ -214,6 +213,7 @@ __global__ void lbvh_traverse_ropes(OutputOpT out,
 
     // query thread data
     const typename QueryOpT::ThreadData qdata = query.setup(idx);
+    typename OutputOpT::ThreadData result = out.setup(idx, qdata);
 
     // find image flags against root before divergence
     unsigned int flags = 0;
