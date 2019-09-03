@@ -31,11 +31,13 @@ Relevant methods:
 
 Examples::
 
+    import hoomd
+    system = hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=2.0), n=5);
     snapshot = system.take_snapshot()
     system.restore_snapshot(snapshot)
-    snapshot = data.make_snapshot(N=100, particle_types=['A', 'B'], box=data.boxdim(L=10))
+    snapshot = hoomd.data.make_snapshot(N=100, particle_types=['A', 'B'], box=data.boxdim(L=10))
     # ... populate snapshot with data ...
-    init.read_snapshot(snapshot)
+    hoomd.init.read_snapshot(snapshot)
 
 .. rubric:: Snapshot and MPI
 
@@ -43,16 +45,18 @@ In MPI simulations, the snapshot is only valid on rank 0 by default. make_snapsh
 restore_snapshot are collective calls, and need to be called on all ranks. But only rank 0 can access data
 in the snapshot::
 
+    import hoomd
+    system = hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=2.0), n=5);
     snapshot = system.take_snapshot(all=True)
     if comm.get_rank() == 0:
-        s = init.create_random(N=100, phi_p=0.05);numpy.mean(snapshot.particles.velocity))
+        s = hoomd.init.create_random(N=100, phi_p=0.05);numpy.mean(snapshot.particles.velocity))
         snapshot.particles.position[0] = [1,2,3];
 
     system.restore_snapshot(snapshot);
-    snapshot = data.make_snapshot(N=10, box=data.boxdim(L=10))
+    snapshot = hoomd.data.make_snapshot(N=10, box=data.boxdim(L=10))
     if comm.get_rank() == 0:
         snapshot.particles.position[:] = ....
-    init.read_snapshot(snapshot)
+    hoomd.init.read_snapshot(snapshot)
 
 You can explicitly broadcast the information contained in the snapshot to all other ranks, using **broadcast**.
 
@@ -782,7 +786,9 @@ class system_data(hoomd.meta._metadata):
         in the snapshot
 
         Examples::
-
+            
+            import hoomd
+            system = hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=2.0), n=5);
             snapshot = system.take_snapshot()
             snapshot = system.take_snapshot()
             snapshot = system.take_snapshot(bonds=true)
@@ -824,7 +830,8 @@ class system_data(hoomd.meta._metadata):
 
         Examples::
 
-            system = init.read_xml("some_file.xml")
+            import hoomd
+            system = hoomd.init.read_xml("some_file.xml")
             system.replicate(nx=2,ny=2,nz=2)
 
 
@@ -2264,11 +2271,13 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
 
     Examples::
 
-        snapshot = data.make_snapshot(N=1000, box=data.boxdim(L=10))
-        snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), particle_types=['A', 'B'])
-        snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=20), bond_types=['polymer'], dihedral_types=['dihedralA', 'dihedralB'], improper_types=['improperA', 'improperB', 'improperC'])
+        import hoomd
+        
+        snapshot = hoomd.data.make_snapshot(N=1000, box=data.boxdim(L=10))
+        snapshot = hoomd.data.make_snapshot(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), particle_types=['A', 'B'])
+        snapshot = hoomd.data.make_snapshot(N=64000, box=data.boxdim(L=20), bond_types=['polymer'], dihedral_types=['dihedralA', 'dihedralB'], improper_types=['improperA', 'improperB', 'improperC'])
         ... set properties in snapshot ...
-        init.read_snapshot(snapshot);
+        hoomd.init.read_snapshot(snapshot);
 
     :py:func:`hoomd.data.make_snapshot()` creates all particles with **default properties**. You must set reasonable
     values for particle properties before initializing the system with :py:func:`hoomd.init.read_snapshot()`.
