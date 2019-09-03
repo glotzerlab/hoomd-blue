@@ -77,7 +77,7 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
     #else
     m_eval = (EvalFnPtr) eval.getAddress();
     #endif
-    
+
     auto alpha = m_jit->findSymbol("alpha");
 
     if (!alpha)
@@ -87,7 +87,7 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         }
 
     #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
-    m_alpha = (float *)(long unsigned int)(cantFail(alpha.getAddress()));
+    m_alpha = (float *)(cantFail(alpha.getAddress()));
     #else
     m_alpha = (float *) alpha.getAddress();
     #endif
