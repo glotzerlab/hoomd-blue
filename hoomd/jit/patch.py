@@ -303,6 +303,8 @@ class user_union(user):
     '''
     def __init__(self, mc, r_cut,  array_size=1, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
         llvm_ir_file_iso=None, clang_exec=None):
+
+        super(user_union, self).__init__(mc=mc, r_cut=r_cut, array_size=array_size, code=code, llvm_ir_file=llvm_ir_file, clang_exec=clang_exec);
         hoomd.util.print_status_line();
 
         # check if initialization has occurred
