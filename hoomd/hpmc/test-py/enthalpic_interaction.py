@@ -2,7 +2,7 @@ from __future__ import division
 from __future__ import print_function
 
 import hoomd
-from hoomd import context, data, init, analyze, lattice
+from hoomd import context, data, init, analyze, lattice, analyze
 from hoomd import hpmc, jit
 
 import unittest
@@ -202,37 +202,77 @@ class enthalpic_dipole_interaction(unittest.TestCase):
 class patch_test_alpha_methods(unittest.TestCase):
 
     def setUp(self):
-        self.dummy_potential = """ return 0;
-                               """
-        system = init.create_lattice(unitcell=lattice.sc(a=2), n=2);
-        self.mc = hpmc.integrate.sphere(seed=1,d=0.1);
+        self.lennard_jones = """
+                             float rsq = dot(r_ij, r_ij);
+                             float rcut  = alpha[0];
+                             if (rsq <= rcut*rcut)
+                                {{
+                                float sigma = alpha[1];
+                                float eps   = alpha[2];
+                                float sigmasq = sigma*sigma;
+                                float rsqinv = sigmasq / rsq;
+                                float r6inv = rsqinv*rsqinv*rsqinv;
+                                return 4.0f*eps*r6inv*(r6inv-1.0f);
+                                }}
+                             else
+                                {{
+                                return 0.0f;
+                                }}
+                             """
+        self.dist = 2.0; # distance between test particles
+        snapshot = data.make_snapshot(N=2, box=data.boxdim(L=10, dimensions=3), particle_types=['A']);
+        snapshot.particles.position[0,:] = (0,0,0);
+        snapshot.particles.position[1,:] = (self.dist,0,0);
+        system = init.read_snapshot(snapshot);
+        self.mc = hpmc.integrate.sphere(seed=1,d=0);
         self.mc.shape_param.set('A',diameter=0);
 
-    def assert_patch(self, patch):
+    def assert_patch(self, patch, array_size):
+
+        logger = analyze.log(filename=None, quantities=["hpmc_patch_energy"], period=1);
 
         # check alpha list is set properly
-        patch.alpha = [-1., 2.7, 10]
-        np.testing.assert_allclose(patch.alpha, [-1., 2.7, 10])
+        patch.alpha = [-1., 2.7, 10];
+        np.testing.assert_allclose(patch.alpha, [-1., 2.7, 10]);
 
         # raise error is list is larger than allocated memory
         with self.assertRaises(ValueError):
-            patch.alpha = [1]*10
+            patch.alpha = [1]*(array_size+1);
 
         # raise error non-list is provided
         with self.assertRaises(TypeError):
-            patch.alpha = -10
+            patch.alpha = -10;
+
+        # set alpha to sensible LJ values: [rcut, sigma, epsilon]
+        patch.alpha = [2.5, 1.2, 1];
+        hoomd.run(1);
+        # get energy for previus LJ params
+        energy_old = logger.query("hpmc_patch_energy");
+        # make sure energies are calculated properly when using alpha
+        sigma_r_6 = (patch.alpha[1] / self.dist)**6;
+        energy_actual = 4.0*patch.alpha[-1]*sigma_r_6*(sigma_r_6-1.0);
+        self.assertAlmostEqual(energy_old, energy_actual);
+        # double epsilon
+        patch.alpha = [2.5, 1.2, 2];
+        hoomd.run(1);
+        # make sure energy is doubled
+        energy_new = logger.query("hpmc_patch_energy");
+        self.assertAlmostEqual(energy_new, 2.0*energy_old);
 
     def test_set_get_alpha_user(self):
-        patch = jit.patch.user(mc=self.mc,r_cut=2.5,array_size=3,code=self.dummy_potential);
-        self.assert_patch(patch)
+        patch = jit.patch.user(mc=self.mc, r_cut=2.5, array_size=3, code=self.lennard_jones);
+        self.assert_patch(patch, len(patch.alpha))
 
     def test_set_get_alpha_user_union(self):
-        patch = jit.patch.user_union(mc=self.mc,r_cut=2.5,array_size=3,code=self.dummy_potential);
-        self.assert_patch(patch)
+        patch = jit.patch.user_union(mc=self.mc, r_cut=2.5, r_cut_iso=2.5, array_size=3, \
+                                     code="return 0;", code_iso=self.lennard_jones);
+        patch.set_params('A', positions=[[0,0,0]], typeids=[0])
+        self.assert_patch(patch, len(patch.alpha))
 
     def tearDown(self):
-        del self.dummy_potential
+        del self.lennard_jones
         del self.mc
+        del self.dist
         context.initialize();
 
 if __name__ == '__main__':
