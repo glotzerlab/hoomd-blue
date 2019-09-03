@@ -196,13 +196,34 @@ void LBVH::build(const InsertOpT& insert, const Scalar3 lo, const Scalar3 hi)
     {
     const unsigned int N = insert.size();
 
-    if (N < 2)
-        {
-        m_exec_conf->msg->error() << "Small LBVHs (N=0,1) are currently not implemented." << std::endl;
-        throw std::runtime_error("Small LBVHs are not implemented.");
-        }
     // resize memory for the tree
     allocate(N);
+
+    // if N = 0, don't do anything and quit, since this is an empty lbvh
+    if (N == 0) return;
+
+    // single-particle just needs a small amount of data
+    if (N == 1)
+        {
+        ArrayHandle<int> d_parent(m_parent, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_sorted_indexes(m_sorted_indexes, access_location::device, access_mode::overwrite);
+        ArrayHandle<float3> d_lo(m_lo, access_location::device, access_mode::overwrite);
+        ArrayHandle<float3> d_hi(m_hi, access_location::device, access_mode::overwrite);
+
+        neighbor::gpu::LBVHData tree;
+        tree.parent = d_parent.data;
+        tree.left = NULL;
+        tree.right = NULL;
+        tree.primitive = d_sorted_indexes.data;
+        tree.lo = d_lo.data;
+        tree.hi = d_hi.data;
+        tree.root = m_root;
+
+        neighbor::gpu::lbvh_one_primitive(tree, insert, m_stream);
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+
+        return;
+        }
 
     // calculate morton codes
         {
@@ -227,13 +248,13 @@ void LBVH::build(const InsertOpT& insert, const Scalar3 lo, const Scalar3 hi)
             void *d_tmp = NULL;
             size_t tmp_bytes = 0;
             neighbor::gpu::lbvh_sort_codes(d_tmp,
-                                 tmp_bytes,
-                                 d_codes.data,
-                                 d_sorted_codes.data,
-                                 d_indexes.data,
-                                 d_sorted_indexes.data,
-                                 m_N,
-                                 m_stream);
+                                           tmp_bytes,
+                                           d_codes.data,
+                                           d_sorted_codes.data,
+                                           d_indexes.data,
+                                           d_sorted_indexes.data,
+                                           m_N,
+                                           m_stream);
 
             // make requested temporary allocation (1 char = 1B)
             size_t alloc_size = (tmp_bytes > 0) ? tmp_bytes : 4;
@@ -241,13 +262,13 @@ void LBVH::build(const InsertOpT& insert, const Scalar3 lo, const Scalar3 hi)
             d_tmp = (void *)d_alloc();
 
             swap = neighbor::gpu::lbvh_sort_codes(d_tmp,
-                                        tmp_bytes,
-                                        d_codes.data,
-                                        d_sorted_codes.data,
-                                        d_indexes.data,
-                                        d_sorted_indexes.data,
-                                        m_N,
-                                        m_stream);
+                                                  tmp_bytes,
+                                                  d_codes.data,
+                                                  d_sorted_codes.data,
+                                                  d_indexes.data,
+                                                  d_sorted_indexes.data,
+                                                  m_N,
+                                                  m_stream);
             }
         if (swap.x) m_sorted_codes.swap(m_codes);
         if (swap.y) m_sorted_indexes.swap(m_indexes);

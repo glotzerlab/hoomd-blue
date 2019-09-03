@@ -165,6 +165,9 @@ void LBVHTraverser::traverse(OutputOpT& out,
                              const LBVH& lbvh,
                              const GlobalArray<Scalar3>& images)
     {
+    // don't traverse with empty lbvh
+    if (lbvh.getN() == 0) return;
+
     // kernel uses int32 bitflags for the images, so limit to 32 images
     const unsigned int Nimages = images.getNumElements();
     if (Nimages > 32)

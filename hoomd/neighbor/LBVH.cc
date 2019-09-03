@@ -53,49 +53,52 @@ LBVH::~LBVH()
  */
 void LBVH::allocate(unsigned int N)
     {
-    // don't do anything if already allocated
-    if (N == m_N)
-        {
-        m_root = 0;
-        return;
-        }
-
     m_root = 0;
     m_N = N;
     m_N_internal = (m_N > 0) ? m_N - 1 : 0;
     m_N_nodes = m_N + m_N_internal;
 
-    // tree node memory
-    GlobalArray<int> parent(m_N_nodes, m_exec_conf);
-    m_parent.swap(parent);
+    if (m_N_nodes > m_parent.getNumElements())
+        {
+        GlobalArray<int> parent(m_N_nodes, m_exec_conf);
+        m_parent.swap(parent);
+        }
 
-    GlobalArray<int> left(m_N_internal, m_exec_conf);
-    m_left.swap(left);
+    if (m_N_internal > m_left.getNumElements())
+        {
+        GlobalArray<int> left(m_N_internal, m_exec_conf);
+        m_left.swap(left);
 
-    GlobalArray<int> right(m_N_internal, m_exec_conf);
-    m_right.swap(right);
+        GlobalArray<int> right(m_N_internal, m_exec_conf);
+        m_right.swap(right);
 
-    GlobalArray<float3> lo(m_N_nodes, m_exec_conf);
-    m_lo.swap(lo);
+        GlobalArray<unsigned int> locks(m_N_internal, m_exec_conf);
+        m_locks.swap(locks);
+        }
 
-    GlobalArray<float3> hi(m_N_nodes, m_exec_conf);
-    m_hi.swap(hi);
+    if (m_N_nodes > m_lo.getNumElements())
+        {
+        GlobalArray<float3> lo(m_N_nodes, m_exec_conf);
+        m_lo.swap(lo);
 
-    // morton code generation / sorting memory
-    GlobalArray<unsigned int> codes(m_N, m_exec_conf);
-    m_codes.swap(codes);
+        GlobalArray<float3> hi(m_N_nodes, m_exec_conf);
+        m_hi.swap(hi);
+        }
 
-    GlobalArray<unsigned int> indexes(m_N, m_exec_conf);
-    m_indexes.swap(indexes);
+    if (m_N > m_codes.getNumElements())
+        {
+        GlobalArray<unsigned int> codes(m_N, m_exec_conf);
+        m_codes.swap(codes);
 
-    GlobalArray<unsigned int> sorted_codes(m_N, m_exec_conf);
-    m_sorted_codes.swap(sorted_codes);
+        GlobalArray<unsigned int> indexes(m_N, m_exec_conf);
+        m_indexes.swap(indexes);
 
-    GlobalArray<unsigned int> sorted_indexes(m_N, m_exec_conf);
-    m_sorted_indexes.swap(sorted_indexes);
+        GlobalArray<unsigned int> sorted_codes(m_N, m_exec_conf);
+        m_sorted_codes.swap(sorted_codes);
 
-    GlobalArray<unsigned int> locks(m_N_internal, m_exec_conf);
-    m_locks.swap(locks);
+        GlobalArray<unsigned int> sorted_indexes(m_N, m_exec_conf);
+        m_sorted_indexes.swap(sorted_indexes);
+        }
     }
 
 } // end namespace neighbor

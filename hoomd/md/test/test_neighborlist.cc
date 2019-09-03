@@ -344,20 +344,11 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_nlist(nlist_18->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_18->getHeadList(), access_location::host, access_mode::read);
 
-        // 6x16 + 12x8 = 192
-        UP_ASSERT(nlist_18->getNListArray().getPitch() >= 192);
-        CHECK_EQUAL_UINT(h_head_list.data[17],176);
-
         for (unsigned int i=0; i < 18; ++i)
             {
             if (i < 3)
                 {
                 CHECK_EQUAL_UINT(h_n_neigh.data[i], 14);
-                for (unsigned int j=0; j < 14; ++j)
-                    {
-                    // not the ones far away
-                    UP_ASSERT(h_nlist.data[j] != 3 && h_nlist.data[j] != 16 && h_nlist.data[j] != 17);
-                    }
                 }
             else if (i == 3 || i >= 16)
                 {
@@ -385,10 +376,6 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_n_neigh(nlist_18->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_18->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_18->getHeadList(), access_location::host, access_mode::read);
-
-        // 6x24 + 12x8 = 240
-        UP_ASSERT(nlist_18->getNListArray().getPitch() >= 240);
-        CHECK_EQUAL_UINT(h_head_list.data[17],216);
 
         for (unsigned int i=0; i < 18; ++i)
             {
@@ -418,10 +405,6 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         ArrayHandle<unsigned int> h_n_neigh(nlist_18->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_18->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_18->getHeadList(), access_location::host, access_mode::read);
-
-        // 18x24 = 432
-        UP_ASSERT(nlist_18->getNListArray().getPitch() >= 432);
-        CHECK_EQUAL_UINT(h_head_list.data[17],408);
 
         for (unsigned int i=0; i < 18; ++i)
             {

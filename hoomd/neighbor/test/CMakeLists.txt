@@ -35,7 +35,7 @@ endmacro(compile_test)
 foreach(CUR_TEST ${TEST_LIST})
     set(CUR_TEST_SRC ${CUR_TEST}_test.cc)
     set(CUR_TEST_EXE ${CUR_TEST}_test)
-    set(CUR_TEST_NAME ${COMPONENT_NAME}-core-${CUR_TEST})
+    set(CUR_TEST_NAME neighbor-core-${CUR_TEST})
 
     compile_test(${CUR_TEST_EXE} ${CUR_TEST_SRC})
     if(ENABLE_MPI)

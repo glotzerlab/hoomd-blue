@@ -239,11 +239,7 @@ template void neighbor::gpu::lbvh_gen_codes(unsigned int *, unsigned int *, cons
     const Scalar3, const Scalar3, const unsigned int, const unsigned int, cudaStream_t);
 template void neighbor::gpu::lbvh_bubble_aabbs(const neighbor::gpu::LBVHData, const PointMapInsertOp&,
     unsigned int *, const unsigned int, const unsigned int, cudaStream_t);
-template void neighbor::gpu::lbvh_gen_codes(unsigned int *, unsigned int *, const NullOp&,
-    const Scalar3, const Scalar3, const unsigned int, const unsigned int, cudaStream_t);
-template void neighbor::gpu::lbvh_bubble_aabbs(const neighbor::gpu::LBVHData, const NullOp&,
-    unsigned int *, const unsigned int, const unsigned int, cudaStream_t);
-
+template void neighbor::gpu::lbvh_one_primitive(const neighbor::gpu::LBVHData, const PointMapInsertOp&, cudaStream_t);
 template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
     const ParticleQueryOp&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
 

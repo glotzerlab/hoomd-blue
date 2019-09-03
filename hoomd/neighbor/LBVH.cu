@@ -266,5 +266,12 @@ template void lbvh_bubble_aabbs(const LBVHData tree,
                                 const unsigned int block_size,
                                 cudaStream_t stream);
 
+template void lbvh_one_primitive(const LBVHData tree,
+                                 const PointInsertOp& insert,
+                                 cudaStream_t stream);
+template void lbvh_one_primitive(const LBVHData tree,
+                                 const SphereInsertOp& insert,
+                                 cudaStream_t stream);
+
 } // end namespace gpu
 } // end namespace neighbor

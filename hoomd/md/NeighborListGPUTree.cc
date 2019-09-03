@@ -235,8 +235,8 @@ void NeighborListGPUTree::buildTree()
                 }
             else
                 {
-                // destroy the tree
-                m_lbvhs[i]->build(NullOp(), lbvh_box.getLo(), lbvh_box.getHi());
+                // effectively destroy the lbvh
+                m_lbvhs[i]->build(PointMapInsertOp(d_pos.data, NULL, 0), lbvh_box.getLo(), lbvh_box.getHi());
                 }
             }
         }
@@ -300,6 +300,9 @@ void NeighborListGPUTree::traverseTree()
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
 
     Scalar rpad = (m_diameter_shift) ? m_d_max - Scalar(1.0) : Scalar(0.0);
+
+    // clear the neighbor counts
+    cudaMemset(d_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
 
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
         {

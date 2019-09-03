@@ -56,22 +56,6 @@ struct SkippableBoundingSphere : public neighbor::BoundingSphere
     bool skip;
     };
 
-struct NullOp
-    {
-    #ifdef NVCC
-    DEVICE neighbor::BoundingBox get(const unsigned int idx) const
-        {
-        const Scalar3 p = make_scalar3(0,0,0);
-        return neighbor::BoundingBox(p,p);
-        }
-    #endif
-
-    HOSTDEVICE unsigned int size() const
-        {
-        return 0;
-        }
-    };
-
 struct PointMapInsertOp : public neighbor::PointInsertOp
     {
     PointMapInsertOp(const Scalar4 *points_, const unsigned int *map_, unsigned int N_)
@@ -233,8 +217,11 @@ struct NeighborListOp
     //! Thread-local data
     struct ThreadData
         {
-        HOSTDEVICE ThreadData(const unsigned int idx_, const unsigned int first_, const unsigned int max_neigh_)
-            : idx(idx_), first(first_), num_neigh(0), max_neigh(max_neigh_)
+        HOSTDEVICE ThreadData(const unsigned int idx_,
+                              const unsigned int first_,
+                              const unsigned int num_neigh_,
+                              const unsigned int max_neigh_)
+            : idx(idx_), first(first_), num_neigh(num_neigh_), max_neigh(max_neigh_)
             {}
 
         unsigned int idx;       //!< Index of primitive
@@ -246,7 +233,7 @@ struct NeighborListOp
     template<class QueryDataT>
     HOSTDEVICE ThreadData setup(const unsigned int idx, const QueryDataT& q) const
         {
-        return ThreadData(q.idx, first_neigh[q.idx], max_neigh[q.type]);
+        return ThreadData(q.idx, first_neigh[q.idx], nneigh[q.idx], max_neigh[q.type]);
         }
 
     HOSTDEVICE void process(ThreadData& t, const int primitive) const

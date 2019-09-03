@@ -32,7 +32,6 @@ UP_TEST( lbvh_test )
     cudaStreamCreate(&streams[0]); // different stream
     streams[1] = 0; // default stream
 
-
     // points for tree
     GlobalArray<Scalar4> points(3, exec_conf);
         {
@@ -517,5 +516,92 @@ UP_TEST( lbvh_validate )
                 }
             UP_ASSERT_GREATER_EQUAL(h_hits.data[i], h_ref_hits.data[i]);
             }
+        }
+    }
+
+// Test of basic LBVH build and traverse functionalities
+UP_TEST( lbvh_small_test )
+    {
+    auto exec_conf = std::make_shared<const ExecutionConfiguration>(ExecutionConfiguration::GPU);
+    std::shared_ptr<neighbor::LBVH> lbvh;
+
+    // one point for tree
+    GlobalArray<Scalar4> points(1, exec_conf);
+        {
+        ArrayHandle<Scalar4> h_points(points, access_location::host, access_mode::overwrite);
+        h_points.data[0] = make_scalar4(2.5, 0., 0., 0.);
+        }
+    // query spheres for tree
+    GlobalArray<Scalar4> spheres(2, exec_conf);
+        {
+        ArrayHandle<Scalar4> h_spheres(spheres, access_location::host, access_mode::overwrite);
+        // p0
+        h_spheres.data[0] = make_scalar4(2.5, 0., 0., 0.5);
+        // miss
+        h_spheres.data[1] = make_scalar4(-0.5, 0., 0., 0.5);
+        }
+
+    exec_conf->msg->notice(0) << "Testing small LBVH build..." << std::endl;
+    const Scalar3 max = make_scalar3(1024, 1024, 1024);
+    const Scalar3 min = make_scalar3(0, 0, 0);
+        {
+        lbvh = std::make_shared<neighbor::LBVH>(exec_conf);
+            {
+            ArrayHandle<Scalar4> d_points(points, access_location::device, access_mode::read);
+            lbvh->build(neighbor::PointInsertOp(d_points.data, 1), min, max);
+            }
+
+        UP_ASSERT_EQUAL(lbvh->getN(), 1);
+        UP_ASSERT_EQUAL(lbvh->getRoot(), 0);
+
+        // parents of each node
+        UP_ASSERT_EQUAL(lbvh->getParents().getNumElements(), 1);
+        ArrayHandle<int> h_parent(lbvh->getParents(), access_location::host, access_mode::read);
+        UP_ASSERT_EQUAL(h_parent.data[0], neighbor::gpu::LBVHSentinel);
+
+        UP_ASSERT_EQUAL(lbvh->getLeftChildren().getNumElements(), 0);
+        UP_ASSERT_EQUAL(lbvh->getRightChildren().getNumElements(), 0);
+
+        UP_ASSERT_EQUAL(lbvh->getPrimitives().getNumElements(), 1);
+        ArrayHandle<unsigned int> h_data(lbvh->getPrimitives(), access_location::host, access_mode::read);
+        UP_ASSERT_EQUAL(h_data.data[0], 0);
+
+        UP_ASSERT_EQUAL(lbvh->getLowerBounds().getNumElements(), 1);
+        UP_ASSERT_EQUAL(lbvh->getUpperBounds().getNumElements(), 1);
+        ArrayHandle<float3> h_lo(lbvh->getLowerBounds(), access_location::host, access_mode::read);
+        ArrayHandle<float3> h_hi(lbvh->getUpperBounds(), access_location::host, access_mode::read);
+
+        // check leafs first
+        UP_ASSERT_CLOSE(h_lo.data[0].x, 2.5f, 1.e-6f);
+        UP_ASSERT_CLOSE(h_hi.data[0].x, 2.5f, 1.e-6f);
+        }
+
+    // test traverser
+    exec_conf->msg->notice(0) << "Testing small traverser..." << std::endl;
+        {
+        neighbor::LBVHTraverser traverser(exec_conf);
+        GlobalArray<unsigned int> hits(spheres.getNumElements(), exec_conf);
+            {
+            ArrayHandle<unsigned int> d_hits(hits, access_location::device, access_mode::overwrite);
+            neighbor::CountNeighborsOp count(d_hits.data);
+
+            ArrayHandle<Scalar4> d_spheres(spheres, access_location::device, access_mode::read);
+            neighbor::SphereQueryOp query(d_spheres.data, spheres.getNumElements());
+
+            traverser.traverse(count, query, *lbvh);
+            }
+
+        ArrayHandle<int4> h_data(traverser.getData(), access_location::host, access_mode::read);
+        // only one node, just check its index contents
+            {
+            int4 node = h_data.data[0];
+            UP_ASSERT_EQUAL(node.z, ~0);
+            UP_ASSERT_EQUAL(node.w, neighbor::gpu::LBVHSentinel);
+            }
+
+        // each node should have the correct number of hits
+        ArrayHandle<unsigned int> h_hits(hits, access_location::host, access_mode::read);
+        UP_ASSERT_EQUAL(h_hits.data[0], 1);
+        UP_ASSERT_EQUAL(h_hits.data[1], 0);
         }
     }
