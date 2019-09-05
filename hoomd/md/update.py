@@ -26,7 +26,11 @@ class dynamic_bond(_updater):
         prob_break: probability that a bond will be broken
         seed: rng seed
     """
+<<<<<<< HEAD
     def __init__(self, group, nlist, seed, integrator, period=1):
+=======
+    def __init__(self, group, nlist, seed, period=1):
+>>>>>>> 6689f9eaeb358c78631b72a460726c98b0a8d7b8
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -37,12 +41,16 @@ class dynamic_bond(_updater):
                         group.cpp_group,
                         nlist.cpp_nlist,
                         seed,
+<<<<<<< HEAD
                         integrator.dt,
+=======
+>>>>>>> 6689f9eaeb358c78631b72a460726c98b0a8d7b8
                         period);
         phase = 0
         self.setupUpdater(period, phase);
 
 
+<<<<<<< HEAD
     def set_params(self, r_cut, r_true, bond_type, delta_G, n_polymer, nK):
         self.check_initialization()
         self.cpp_updater.setParams(r_cut, r_true, bond_type, delta_G, n_polymer, nK);
@@ -50,6 +58,14 @@ class dynamic_bond(_updater):
         # metadata_fields = ['r_cut', 'bond_type', 'prob_form', 'prob_break']
 
 
+=======
+    def set_params(self, r_cut, bond_type, prob_form, prob_break):
+        self.check_initialization()
+        self.cpp_updater.setParams(r_cut, bond_type, prob_form, prob_break);
+        # store metadata
+        # metadata_fields = ['r_cut', 'bond_type', 'prob_form', 'prob_break']
+
+>>>>>>> 6689f9eaeb358c78631b72a460726c98b0a8d7b8
 class rescale_temp(_updater):
     r""" Rescales particle velocities.
 
