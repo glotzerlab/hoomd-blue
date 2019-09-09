@@ -98,17 +98,14 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
         }
 
     // build the tree
+    if (m_prof) m_prof->push(m_exec_conf, "build");
     buildTree();
+    if (m_prof) m_prof->pop(m_exec_conf);
 
     // walk with the tree
+    if (m_prof) m_prof->push(m_exec_conf, "traverse");
     traverseTree();
-
-    // memcpy the current positions of local particles
-        {
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_last_updated_pos(m_last_pos, access_location::device, access_mode::overwrite);
-        cudaMemcpy(d_last_updated_pos.data, d_pos.data, sizeof(Scalar4)*m_pdata->getN(), cudaMemcpyDeviceToDevice);
-        }
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void NeighborListGPUTree::buildTree()
@@ -129,11 +126,13 @@ void NeighborListGPUTree::buildTree()
             ArrayHandle<unsigned int> d_types(m_types, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_indexes(m_indexes, access_location::device, access_mode::overwrite);
             m_lbvh_errors.resetFlags(0);
+            ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
             gpu_nlist_mark_types(d_types.data,
                                  d_indexes.data,
                                  m_lbvh_errors.getDeviceFlags(),
+                                 d_last_pos.data,
                                  d_pos.data,
                                  m_pdata->getN(),
                                  m_pdata->getNGhosts(),
@@ -161,6 +160,8 @@ void NeighborListGPUTree::buildTree()
         }
 
     // sort the particles by type, pushing out-of-bounds ghosts to the ends
+    // TODO: sort fewer bits based on # of types
+    if (m_pdata->getNTypes() > 1 || m_pdata->getNGhosts() > 0)
         {
         uchar2 swap;
             {
@@ -195,6 +196,11 @@ void NeighborListGPUTree::buildTree()
             }
         if (swap.x) m_sorted_types.swap(m_types);
         if (swap.y) m_sorted_indexes.swap(m_indexes);
+        }
+    else
+        {
+        m_sorted_types.swap(m_types);
+        m_sorted_indexes.swap(m_indexes);
         }
 
     // count the number of each type

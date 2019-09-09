@@ -267,6 +267,7 @@ const unsigned int NeigborListTypeSentinel = 0xffffffff;
 cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
                                  unsigned int *d_indexes,
                                  unsigned int *d_lbvh_errors,
+                                 Scalar4 *d_last_pos,
                                  const Scalar4 *d_pos,
                                  const unsigned int N,
                                  const unsigned int nghosts,

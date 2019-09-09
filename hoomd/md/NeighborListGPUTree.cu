@@ -16,6 +16,7 @@
 __global__ void gpu_nlist_mark_types_kernel(unsigned int *d_types,
                                             unsigned int *d_indexes,
                                             unsigned int *d_lbvh_errors,
+                                            Scalar4 *d_last_pos,
                                             const Scalar4 *d_pos,
                                             const unsigned int N,
                                             const unsigned int nghosts,
@@ -60,11 +61,17 @@ __global__ void gpu_nlist_mark_types_kernel(unsigned int *d_types,
 
     d_types[idx] = type;
     d_indexes[idx] = idx;
+    // record as "last" position of owned particles
+    if (idx < N)
+        {
+        d_last_pos[idx] = postype;
+        }
     }
 
 cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
                                  unsigned int *d_indexes,
                                  unsigned int *d_lbvh_errors,
+                                 Scalar4 *d_last_pos,
                                  const Scalar4 *d_pos,
                                  const unsigned int N,
                                  const unsigned int nghosts,
@@ -85,6 +92,7 @@ cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
     gpu_nlist_mark_types_kernel<<<num_blocks, run_block_size>>>(d_types,
                                                                 d_indexes,
                                                                 d_lbvh_errors,
+                                                                d_last_pos,
                                                                 d_pos,
                                                                 N,
                                                                 nghosts,
