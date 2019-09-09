@@ -38,7 +38,7 @@
   \ingroup computes
 */
 template<typename Real, typename Real4, typename Potential>
-class DEM2DForceCompute : public ForceCompute, public DEMGSDShapeSpec<vec2>
+class DEM2DForceCompute : public ForceCompute, public DEMGSDShapeSpec<vec2, Potential>
     {
     public:
         //! Constructs the compute
