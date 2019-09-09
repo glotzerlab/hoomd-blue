@@ -16,6 +16,7 @@ set(_mpcd_sources
     ParticleData.cc
     ParticleDataSnapshot.cc
     SlitGeometryFiller.cc
+    SlitPoreGeometryFiller.cc
     Sorter.cc
     SRDCollisionMethod.cc
     StreamingGeometry.cc
@@ -43,6 +44,8 @@ set(_mpcd_headers
     ParticleDataUtilities.h
     SlitGeometry.h
     SlitGeometryFiller.h
+    SlitPoreGeometry.h
+    SlitPoreGeometryFiller.h
     Sorter.h
     SRDCollisionMethod.h
     StreamingGeometry.h
@@ -59,6 +62,7 @@ list(APPEND _mpcd_sources
     CellListGPU.cc
     CommunicatorGPU.cc
     SlitGeometryFillerGPU.cc
+    SlitPoreGeometryFillerGPU.cc
     SorterGPU.cc
     SRDCollisionMethodGPU.cc
     )
@@ -77,6 +81,8 @@ list(APPEND _mpcd_headers
     ParticleData.cuh
     SlitGeometryFillerGPU.cuh
     SlitGeometryFillerGPU.h
+    SlitPoreGeometryFillerGPU.cuh
+    SlitPoreGeometryFillerGPU.h
     SorterGPU.cuh
     SorterGPU.h
     SRDCollisionMethodGPU.cuh
@@ -93,6 +99,7 @@ set(_mpcd_cu_sources
     ExternalField.cu
     ParticleData.cu
     SlitGeometryFillerGPU.cu
+    SlitPoreGeometryFillerGPU.cu
     SorterGPU.cu
     SRDCollisionMethodGPU.cu
     )

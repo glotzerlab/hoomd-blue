@@ -338,6 +338,7 @@ Michael P. Howard, Princeton University & University of Texas at Austin - **Lead
  * Particle and cell communication
  * Basic streaming method
  * Slit streaming method
+ * Slit pore streaming method
  * SRD and AT collision rules
  * Virtual particle filling framework
  * External force framework and block, constant, and sine forces
