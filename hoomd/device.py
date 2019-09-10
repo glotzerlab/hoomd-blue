@@ -72,7 +72,7 @@ class _device(hoomd.meta._metadata):
 
         # MPI communicator
         if communicator is None:
-            self._comm = hoomd.comm.communicator()
+            self._comm = hoomd.comm.Communicator()
         else:
             self._comm = communicator
 
@@ -300,7 +300,7 @@ class GPU(_device):
 
     Args:
         gpu_ids (list(int)): GPU or comma-separated list of GPUs on which to execute
-        communicator (:py:mod:`hoomd.comm.communicator`): MPI communicator object. Can be left None if using a
+        communicator (:py:mod:`hoomd.comm.Communicator`): MPI communicator object. Can be left None if using a
             default MPI communicator
         msg_file (str): Name of file to write messages to
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
@@ -334,7 +334,7 @@ class CPU(_device):
 
     Args:
         nthreads (int): number of TBB threads
-        communicator (:py:mod:`hoomd.comm.communicator`): MPI communicator object. Can be left None if using a
+        communicator (:py:mod:`hoomd.comm.Communicator`): MPI communicator object. Can be left None if using a
             default MPI communicator
         msg_file (str): Name of file to write messages to
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
@@ -360,7 +360,7 @@ class Auto(_device):
 
     Args:
         nthreads (int): number of TBB threads
-        communicator (:py:mod:`hoomd.comm.communicator`): MPI communicator object. Can be left None if using a
+        communicator (:py:mod:`hoomd.comm.Communicator`): MPI communicator object. Can be left None if using a
             default MPI communicator
         msg_file (str): Name of file to write messages to
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)

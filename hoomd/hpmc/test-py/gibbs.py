@@ -9,7 +9,7 @@ import math
 # this script needs to be run on two ranks
 
 # initialize with one rank per partitions
-comm = comm.communicator(nrank=1)
+comm = comm.Communicator(nrank=1)
 d = device.CPU(communicator=comm)
 context.initialize(device=d)
 

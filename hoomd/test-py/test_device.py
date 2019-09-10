@@ -61,7 +61,7 @@ class test_devices(unittest.TestCase):
         
             # use all the optional arguments       
             cpu = device.CPU(nthreads=2, 
-                             communicator=comm.communicator(nrank=4), 
+                             communicator=comm.Communicator(nrank=4), 
                              msg_file=filepath, 
                              notice_level=8)
         

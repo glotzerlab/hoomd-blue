@@ -250,7 +250,7 @@ class decomposition(object):
             hoomd.context.current.device.cpp_msg.error("Fractional cuts must be iterable (list, tuple, etc.)\n")
             raise te
 
-class communicator(object):
+class Communicator(object):
     """
     MPI communicator
 
