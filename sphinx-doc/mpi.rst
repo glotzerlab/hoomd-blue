@@ -141,7 +141,7 @@ number of GPUs per replica, invoke HOOMD-blue with the **--nrank=n**
 command line option (see :ref:`command-line-options`).
 
 Inside the command script, the current partition can be queried by accessing the
-:py:attr:`hoomd.comm.communicator.partition` property from the communicator of the 
+:py:attr:`hoomd.comm.Communicator.partition` property from the communicator of the 
 device attached to the current simulation context.
 
 Dynamic load balancing

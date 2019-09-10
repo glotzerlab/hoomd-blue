@@ -16,7 +16,7 @@ Note:
 
 Attributes:
     mode (str): gpu or cpu
-    comm (:py:mod:`hoomd.comm.communicator`): communicator object held by this device
+    comm (:py:mod:`hoomd.comm.Communicator`): communicator object held by this device
     num_threads (int): the number of CPU threads to be used in simulation, settable
     gpu_ids (list(int)): list of names of the gpus, if in gpu mode
     num_ranks (int): the number of ranks

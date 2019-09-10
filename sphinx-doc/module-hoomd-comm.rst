@@ -6,7 +6,7 @@ hoomd.comm
 .. autosummary::
     :nosignatures:
 
-    hoomd.comm.communicator
+    hoomd.comm.Communicator
     hoomd.comm.decomposition
 
 .. rubric:: Details
