@@ -318,7 +318,8 @@ uchar2 gpu_nlist_sort_types(void *d_tmp,
                             unsigned int *d_sorted_types,
                             unsigned int *d_indexes,
                             unsigned int *d_sorted_indexes,
-                            const unsigned int N);
+                            const unsigned int N,
+                            const unsigned int num_bits);
 
 cudaError_t gpu_nlist_count_types(unsigned int *d_first,
                                   unsigned int *d_last,

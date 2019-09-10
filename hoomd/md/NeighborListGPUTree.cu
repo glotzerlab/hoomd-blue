@@ -107,12 +107,14 @@ uchar2 gpu_nlist_sort_types(void *d_tmp,
                             unsigned int *d_sorted_types,
                             unsigned int *d_indexes,
                             unsigned int *d_sorted_indexes,
-                            const unsigned int N)
+                            const unsigned int N,
+                            const unsigned int num_bits)
     {
     cub::DoubleBuffer<unsigned int> d_keys(d_types, d_sorted_types);
     cub::DoubleBuffer<unsigned int> d_vals(d_indexes, d_sorted_indexes);
 
-    cub::DeviceRadixSort::SortPairs(d_tmp, tmp_bytes, d_keys, d_vals, N);
+    // we counted number of bits to sort, so the range of bit indexes is [0,num_bits)
+    cub::DeviceRadixSort::SortPairs(d_tmp, tmp_bytes, d_keys, d_vals, N, 0, num_bits);
 
     uchar2 swap = make_uchar2(0,0);
     if (d_tmp != NULL)

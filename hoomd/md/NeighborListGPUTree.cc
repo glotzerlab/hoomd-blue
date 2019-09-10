@@ -20,7 +20,7 @@ namespace py = pybind11;
 NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_lbvh_errors(m_exec_conf),
+    : NeighborListGPU(sysdef, r_cut, r_buff), m_type_bits(1), m_lbvh_errors(m_exec_conf),
       m_n_images(0),
       m_type_changed(true), m_box_changed(true), m_max_num_changed(true), m_max_types(0)
     {
@@ -85,6 +85,19 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
 
             m_max_types = m_pdata->getNTypes();
             }
+
+        /*
+         * Compute the number of bits to sort, which is the number of bits needed to represent the largest type
+         * index, plus 1 to account for the ghost sentinel. So, it is the number of bits to represent the number of types.
+         */
+        m_type_bits = 0;
+        // count bit shifts to zero, then round up to get the right counts
+        unsigned int tmp = m_pdata->getNTypes()+1;
+        while (tmp >>= 1)
+            {
+            ++m_type_bits;
+            }
+        ++m_type_bits;
 
         // all done with the type reallocation
         m_type_changed = false;
@@ -160,7 +173,6 @@ void NeighborListGPUTree::buildTree()
         }
 
     // sort the particles by type, pushing out-of-bounds ghosts to the ends
-    // TODO: sort fewer bits based on # of types
     if (m_pdata->getNTypes() > 1 || m_pdata->getNGhosts() > 0)
         {
         uchar2 swap;
@@ -178,7 +190,8 @@ void NeighborListGPUTree::buildTree()
                                  d_sorted_types.data,
                                  d_indexes.data,
                                  d_sorted_indexes.data,
-                                 m_pdata->getN() + m_pdata->getNGhosts());
+                                 m_pdata->getN() + m_pdata->getNGhosts(),
+                                 m_type_bits);
 
             // make requested temporary allocation (1 char = 1B)
             size_t alloc_size = (tmp_bytes > 0) ? tmp_bytes : 4;
@@ -192,7 +205,8 @@ void NeighborListGPUTree::buildTree()
                                         d_sorted_types.data,
                                         d_indexes.data,
                                         d_sorted_indexes.data,
-                                        m_pdata->getN() + m_pdata->getNGhosts());
+                                        m_pdata->getN() + m_pdata->getNGhosts(),
+                                        m_type_bits);
             }
         if (swap.x) m_sorted_types.swap(m_types);
         if (swap.y) m_sorted_indexes.swap(m_indexes);

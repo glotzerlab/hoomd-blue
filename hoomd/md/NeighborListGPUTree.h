@@ -60,6 +60,7 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         GPUArray<unsigned int> m_indexes;
         GPUArray<unsigned int> m_sorted_indexes;
 
+        unsigned int m_type_bits;
         GPUArray<unsigned int> m_type_first;
         GPUArray<unsigned int> m_type_last;
 

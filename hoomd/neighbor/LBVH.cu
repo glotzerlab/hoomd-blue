@@ -191,7 +191,7 @@ uchar2 lbvh_sort_codes(void *d_tmp,
     cub::DoubleBuffer<unsigned int> d_keys(d_codes, d_sorted_codes);
     cub::DoubleBuffer<unsigned int> d_vals(d_indexes, d_sorted_indexes);
 
-    cub::DeviceRadixSort::SortPairs(d_tmp, tmp_bytes, d_keys, d_vals, N, 0, sizeof(unsigned int)*8, stream);
+    cub::DeviceRadixSort::SortPairs(d_tmp, tmp_bytes, d_keys, d_vals, N, 0, 30, stream);
 
     uchar2 swap = make_uchar2(0,0);
     if (d_tmp != NULL)
