@@ -53,19 +53,14 @@ int DEMGSDShapeSpec<Vector,Potential>::slotWriteDEMGSDShapeSpec( gsd_handle& han
 template <typename Potential>
 std::string DEMGSDShapeSpec<vec2, Potential>::getShapeType(std::vector<vec2<Real> > &verts, Potential &potential)
     {
-    std::string shapetype;
     std::ostringstream shapedef;
-    unsigned int nverts = verts.size();
-
     if (nverts == 1)
         {
-        shapetype = "'Disk'";
-        shapedef =  "{'type': " << shapetype << ", 'diameter': " << 2*potential.getRadius() << "}";
+        shapedef =  "{'type': 'Disk'" << ", 'diameter': " << 2*potential.getRadius() << "}";
         }
     else
         {
-        shapetype = "'Polygon'";
-        shapedef =  "{'type': " << shapetype << ", 'rounding_radius': " << potential.getRadius() <<
+        shapedef =  "{'type': 'Polygon'" << ", 'rounding_radius': " << potential.getRadius() <<
                     ", 'vertices': "  << parseVertices<vec2,Potential>(potential.getVerts()) << "}";
         }
     return shapedef.str();
@@ -74,19 +69,14 @@ std::string DEMGSDShapeSpec<vec2, Potential>::getShapeType(std::vector<vec2<Real
 template <typename Potential>
 std::string DEMGSDShapeSpec<vec3, Potential>::getShapeType(std::vector<vec3<Real> > &verts, Potential &potential)
     {
-    std::string shapetype;
     std::ostringstream shapedef;
-    unsigned int nverts = verts.size();
-
     if (nverts == 1)
         {
-        shapetype = "'Sphere'";
-        shapedef =  "{'type': " << shapetype << ", 'diameter': " << 2*potential.getRadius() << "}";
+        shapedef =  "{'type': 'Sphere'" << shapetype << ", 'diameter': " << 2*potential.getRadius() << "}";
         }
     else
         {
-        shapetype = "'ConvexPolyhedron'";
-        shapedef =  "{'type': " << shapetype << ", 'rounding_radius': " << potential.getRadius() <<
+        shapedef =  "{'type': 'ConvexPolyhedron'" << shapetype << ", 'rounding_radius': " << potential.getRadius() <<
                     ", 'vertices': "  << parseVertices<vec3,Potential>(potential.getVerts()) << "}";
         }
     return shapedef.str();
