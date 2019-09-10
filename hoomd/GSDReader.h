@@ -17,7 +17,7 @@
 #include "hoomd/extern/gsd.h"
 
 #ifdef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #endif
 
 #ifndef __GSD_INITIALIZER_H__

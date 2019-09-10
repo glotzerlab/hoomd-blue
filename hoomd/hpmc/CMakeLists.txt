@@ -5,11 +5,6 @@ if (ENABLE_HPMC_SPHINX_GPU)
     add_definitions(-DENABLE_SPHINX_GPU)
 endif()
 
-option(ENABLE_HPMC_REINSERT "Enable ntrial>0 with depletant_mode='circumsphere' on the GPU" OFF)
-if (ENABLE_HPMC_REINSERT)
-    add_definitions(-DENABLE_HPMC_REINSERT)
-endif()
-
 set(_hpmc_sources   module.cc
                     module_external_field.cc
                     module_sphere.cc
@@ -96,10 +91,13 @@ set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      )
 
 if (ENABLE_CUDA)
-CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hpmc_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
+set(_cuda_sources ${_hpmc_cu_sources})
 endif (ENABLE_CUDA)
 
-pybind11_add_module (_hpmc SHARED ${_hpmc_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
+pybind11_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} NO_EXTRAS)
+# alias into the HOOMD namespace so that plugins and symlinked components both work
+add_library(HOOMD::_hpmc ALIAS _hpmc)
+
 if (APPLE)
 set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()
@@ -107,24 +105,13 @@ set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
 endif()
 
 # link the library to its dependencies
-target_link_libraries(_hpmc PRIVATE ${HOOMD_LIBRARIES})
-
-# if we are compiling with MPI support built in, set appropriate
-# compiler/linker flags
-if (ENABLE_MPI)
-   if(MPI_COMPILE_FLAGS)
-       set_target_properties(_hpmc PROPERTIES COMPILE_FLAGS "${MPI_CXX_COMPILE_FLAGS}")
-   endif(MPI_COMPILE_FLAGS)
-   if(MPI_LINK_FLAGS)
-       set_target_properties(_hpmc PROPERTIES LINK_FLAGS "${MPI_CXX_LINK_FLAGS}")
-   endif(MPI_LINK_FLAGS)
-endif(ENABLE_MPI)
+target_link_libraries(_hpmc PUBLIC _hoomd)
 
 fix_cudart_rpath(_hpmc)
 
 # install the library
-install(TARGETS _hpmc
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/hpmc
+install(TARGETS _hpmc EXPORT HOOMDTargets
+        LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
         )
 
 ################ Python only modules
@@ -151,7 +138,7 @@ set(files   analyze.py
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/hpmc
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
        )
 
 foreach(file ${files})
@@ -160,30 +147,10 @@ endforeach()
 
 add_custom_target(copy_hpmc ALL DEPENDS ${files})
 
-# copy python modules to the build directory to make it a working python package
-MACRO(copy_header file)
-    add_custom_command (
-        OUTPUT ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/../include/hoomd/hpmc/${file}
-        COMMENT    "Copy hoomd/include/hoomd/hpmc/${file}"
-    )
-ENDMACRO(copy_header)
-
 # install headers in installation target
 install(FILES ${_hpmc_headers}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/hpmc
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/hpmc
        )
-
-if (COPY_HEADERS)
-# copy headers into build directory
-foreach(file ${_hpmc_headers})
-    copy_header(${file})
-endforeach()
-
-add_custom_target(copy_hpmc_headers ALL DEPENDS ${_hpmc_headers})
-endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)

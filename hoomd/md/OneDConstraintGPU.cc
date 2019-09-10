@@ -91,7 +91,7 @@ void OneDConstraintGPU::computeForces(unsigned int timestep)
 
 void export_OneDConstraintGPU(py::module& m)
     {
-    py::class_< OneDConstraintGPU, std::shared_ptr<OneDConstraintGPU> >(m, "OneDConstraintGPU", py::base<ForceConstraint>())
+    py::class_< OneDConstraintGPU, ForceConstraint, std::shared_ptr<OneDConstraintGPU> >(m, "OneDConstraintGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                    std::shared_ptr<ParticleGroup>,
                    Scalar3 >())

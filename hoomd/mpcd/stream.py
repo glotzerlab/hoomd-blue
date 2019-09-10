@@ -89,9 +89,7 @@ class _streaming_method(hoomd.meta._metadata):
         self._filler = None
 
         # attach the streaming method to the system
-        hoomd.util.quiet_status()
         self.enable()
-        hoomd.util.unquiet_status()
 
     def enable(self):
         """ Enable the streaming method
@@ -107,7 +105,6 @@ class _streaming_method(hoomd.meta._metadata):
         multiple of *period*.
 
         """
-        hoomd.util.print_status_line()
 
         self.enabled = True
         hoomd.context.current.mpcd._stream = self
@@ -124,7 +121,6 @@ class _streaming_method(hoomd.meta._metadata):
         use this method to remove the current streaming method before adding another.
 
         """
-        hoomd.util.print_status_line()
 
         self.enabled = False
         hoomd.context.current.mpcd._stream = None
@@ -151,7 +147,6 @@ class _streaming_method(hoomd.meta._metadata):
             hoomd.set_period(period=4)
 
         """
-        hoomd.util.print_status_line()
 
         cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
         if cur_tstep % self.period != 0 or cur_tstep % period != 0:
@@ -183,7 +178,6 @@ class _streaming_method(hoomd.meta._metadata):
             streamer.set_force(f)
 
         """
-        hoomd.util.print_status_line()
         self.force = force
         self._cpp.setField(self.force._cpp)
 
@@ -199,7 +193,6 @@ class _streaming_method(hoomd.meta._metadata):
             streamer.remove_force()
 
         """
-        hoomd.util.print_status_line()
         self.force = None
         self._cpp.removeField()
 
@@ -257,7 +250,6 @@ class bulk(_streaming_method):
 
     """
     def __init__(self, period=1):
-        hoomd.util.print_status_line()
 
         _streaming_method.__init__(self, period)
 
@@ -300,7 +292,6 @@ class slit(_streaming_method):
 
     """
     def __init__(self, H, V=0.0, boundary="no_slip", period=1):
-        hoomd.util.print_status_line()
 
         _streaming_method.__init__(self, period)
 
@@ -349,7 +340,6 @@ class slit(_streaming_method):
         .. versionadded:: 2.6
 
         """
-        hoomd.util.print_status_line()
 
         type_id = hoomd.context.current.mpcd.particles.getTypeByName(type)
         T = hoomd.variant._setup_variant_input(kT)
@@ -381,7 +371,6 @@ class slit(_streaming_method):
         .. versionadded:: 2.6
 
         """
-        hoomd.util.print_status_line()
 
         self._filler = None
 
@@ -404,7 +393,6 @@ class slit(_streaming_method):
         .. versionadded:: 2.6
 
         """
-        hoomd.util.print_status_line()
 
         if H is not None:
             self.H = H

@@ -157,7 +157,7 @@ void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar3 gamma_r)
 
 void export_TwoStepLangevinBase(py::module& m)
     {
-    py::class_<TwoStepLangevinBase, std::shared_ptr<TwoStepLangevinBase> >(m, "TwoStepLangevinBase", py::base<IntegrationMethodTwoStep>())
+    py::class_<TwoStepLangevinBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepLangevinBase> >(m, "TwoStepLangevinBase")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                 std::shared_ptr<ParticleGroup>,
                                 std::shared_ptr<Variant>,

@@ -24,7 +24,7 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <vector>
 #include <utility>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __SFCPACK_UPDATER_GPU_H__
 #define __SFCPACK_UPDATER_GPU_H__

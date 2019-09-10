@@ -88,7 +88,6 @@ class coeff:
             parameters as they were previously set.
 
         """
-        hoomd.util.print_status_line();
 
         # listify the input
         type = hoomd.util.listify(type)
@@ -205,7 +204,6 @@ class harmonic(force._force):
 
     """
     def __init__(self):
-        hoomd.util.print_status_line();
         # check that some impropers are defined
         if hoomd.context.current.system_definition.getImproperData().getNGlobal() == 0:
             hoomd.context.msg.error("No impropers are defined.\n");

@@ -28,7 +28,7 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 #ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #endif
 
 #include "Autotuner.h"

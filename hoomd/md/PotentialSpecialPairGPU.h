@@ -170,7 +170,7 @@ void PotentialSpecialPairGPU< evaluator, gpu_cgbf >::computeForces(unsigned int 
 */
 template < class T, class Base > void export_PotentialSpecialPairGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
+     pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
             .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
             ;
     }

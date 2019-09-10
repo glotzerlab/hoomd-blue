@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <hoomd/extern/pybind/include/pybind11/iostream.h>
+#include <pybind11/iostream.h>
 #include <sstream>
 #include <assert.h>
 using namespace std;

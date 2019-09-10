@@ -101,7 +101,7 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_HarmonicImproperForceComputeGPU(py::module& m)
     {
-    py::class_<HarmonicImproperForceComputeGPU, std::shared_ptr<HarmonicImproperForceComputeGPU> >(m, "HarmonicImproperForceComputeGPU", py::base<HarmonicImproperForceCompute>())
+    py::class_<HarmonicImproperForceComputeGPU, HarmonicImproperForceCompute, std::shared_ptr<HarmonicImproperForceComputeGPU> >(m, "HarmonicImproperForceComputeGPU")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

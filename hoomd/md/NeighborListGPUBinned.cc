@@ -232,7 +232,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
 void export_NeighborListGPUBinned(py::module& m)
     {
-    py::class_<NeighborListGPUBinned, std::shared_ptr<NeighborListGPUBinned> >(m, "NeighborListGPUBinned", py::base<NeighborListGPU>())
+    py::class_<NeighborListGPUBinned, NeighborListGPU, std::shared_ptr<NeighborListGPUBinned> >(m, "NeighborListGPUBinned")
                     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
                     .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
                      ;

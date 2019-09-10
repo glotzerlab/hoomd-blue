@@ -25,11 +25,9 @@ See `J. Glaser et. al. 2015 <http://dx.doi.org/10.1016/j.cpc.2015.02.028>`_ for 
 Compilation
 -----------
 
-For detailed compilation instructions, see :ref:`compile-hoomd`.
-
 Compilation flags pertinent to MPI simulations are:
 
-- **ENABLE_MPI** (to enable multi-GPU simulations, must be set to \b ON)
+- **ENABLE_MPI** (to enable multi-GPU simulations, must be set to **ON**)
 - **ENABLE_MPI_CUDA** (optional, enables CUDA-aware MPI library support, see below)
 
 Usage

@@ -1,10 +1,17 @@
-# Maintainer: jglaser
+option (ENABLE_MPI "Enable the compilation of the MPI communication code" off)
 
 ##################################
 ## Find MPI
 if (ENABLE_MPI)
     # the package is needed
     find_package(MPI REQUIRED)
+    find_package(cereal CONFIG)
+    if (cereal_FOUND)
+        find_package_message(cereal "Found cereal: ${cereal_DIR}" "[${cereal_DIR}]")
+    else()
+        add_library(cereal INTERFACE IMPORTED)
+        find_package_message(cereal "Could not find cereal, assuming it is on a default path" "[${cereal_DIR}]")
+    endif()
 
     mark_as_advanced(MPI_EXTRA_LIBRARY)
     mark_as_advanced(MPI_LIBRARY)
@@ -51,9 +58,20 @@ if (ENABLE_MPI)
         endif(MPI_CUDA)
     endif (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
 
-    if (ENABLE_MPI)
-        # add include directories
-        include_directories(${MPI_C_INCLUDE_PATH})
-    endif()
+# backport CMake FindMPI fix from 3.12 to earlier versions
+# https://gitlab.kitware.com/cmake/cmake/merge_requests/2529/diffs
+
+if (CMAKE_VERSION VERSION_LESS 3.12.0 AND ENABLE_CUDA)
+    string(REPLACE "-pthread" "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler>;-pthread"
+      _MPI_C_COMPILE_OPTIONS "${MPI_C_COMPILE_OPTIONS}")
+    set_property(TARGET MPI::MPI_C PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_C_COMPILE_OPTIONS}")
+    unset(_MPI_C_COMPILE_OPTIONS)
+
+    string(REPLACE "-pthread" "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler>;-pthread"
+      _MPI_CXX_COMPILE_OPTIONS "${MPI_CXX_COMPILE_OPTIONS}")
+    set_property(TARGET MPI::MPI_CXX PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_CXX_COMPILE_OPTIONS}")
+    message(STATUS "_MPI_CXX_COMPILE_OPTIONS: ${_MPI_CXX_COMPILE_OPTIONS}")
+    unset(_MPI_CXX_COMPILE_OPTIONS)
+endif()
 
 endif (ENABLE_MPI)

@@ -9,7 +9,7 @@
  */
 
 #include "SnapshotSystemData.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 namespace py = pybind11;
 
 template <class Real>

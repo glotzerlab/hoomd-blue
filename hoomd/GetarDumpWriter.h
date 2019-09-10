@@ -16,7 +16,7 @@
 #include <vector>
 
 #ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #endif
 
 namespace getardump{

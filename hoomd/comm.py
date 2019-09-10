@@ -143,7 +143,6 @@ class decomposition(object):
     """
 
     def __init__(self, x=None, y=None, z=None, nx=None, ny=None, nz=None):
-        hoomd.util.print_status_line()
 
         # check that the context has been initialized though
         if hoomd.context.exec_conf is None:
@@ -169,9 +168,7 @@ class decomposition(object):
             self.uniform_y = True
             self.uniform_z = True
 
-            hoomd.util.quiet_status()
             self.set_params(x,y,z,nx,ny,nz)
-            hoomd.util.unquiet_status()
 
             # do a one time update of the cuts to the global values if a global is set
             if not self.x and self.nx == 0 and hoomd.context.options.nx is not None:
@@ -210,7 +207,6 @@ class decomposition(object):
             decomposition.set_params(x=[0.2])
             decomposition.set_params(nx=1, y=[0.3,0.4], nz=2)
         """
-        hoomd.util.print_status_line()
 
         if (x is not None and nx is not None) or (y is not None and ny is not None) or (z is not None and nz is not None):
             hoomd.context.msg.error("comm.decomposition: cannot set fractions and number of processors simultaneously\n")

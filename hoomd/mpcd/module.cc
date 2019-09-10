@@ -56,7 +56,7 @@
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 //! MPCD component
 /*!

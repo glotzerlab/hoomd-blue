@@ -696,7 +696,7 @@ void PPPMForceComputeGPU::fixExclusions()
 
 void export_PPPMForceComputeGPU(py::module& m)
     {
-    py::class_<PPPMForceComputeGPU, std::shared_ptr<PPPMForceComputeGPU> >(m, "PPPMForceComputeGPU", py::base<PPPMForceCompute>())
+    py::class_<PPPMForceComputeGPU, PPPMForceCompute, std::shared_ptr<PPPMForceComputeGPU> >(m, "PPPMForceComputeGPU")
                 .def(py::init< std::shared_ptr<SystemDefinition>,
                                       std::shared_ptr<NeighborList>,
                                       std::shared_ptr<ParticleGroup> >());

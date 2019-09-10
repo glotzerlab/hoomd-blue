@@ -17,7 +17,7 @@
 
 #include "SystemData.h"
 #include "hoomd/Variant.h"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {

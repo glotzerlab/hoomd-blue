@@ -90,7 +90,6 @@ class log(hoomd.analyze._analyzer):
     """
 
     def __init__(self, h5file, period, quantities=list(), matrix_quantities=list(), phase=0):
-        hoomd.util.print_status_line()
         if not isinstance(h5file, hoomd.hdf5.File):
             hoomd.context.msg.error("HDF5 file descriptor is no instance of h5py.File, which is the hoomd thin wrapper for hdf5 file descriptors.")
             raise RuntimeError("Error creating hoomd.hdf5.log")
@@ -107,9 +106,7 @@ class log(hoomd.analyze._analyzer):
         self.setupAnalyzer(period, phase)
 
         # set the logged quantities
-        hoomd.util.quiet_status()
         self.set_params(quantities=quantities, matrix_quantities=matrix_quantities)
-        hoomd.util.unquiet_status()
 
         # add the logger to the list of loggers
         hoomd.context.current.loggers.append(self)
@@ -120,7 +117,6 @@ class log(hoomd.analyze._analyzer):
         Warning:
            Do not change the number or order of logged non-matrix quantities compared to values stored in the file.
         """
-        hoomd.util.print_status_line()
 
         if quantities is not None:
             # set the logged quantities
@@ -166,7 +162,7 @@ class log(hoomd.analyze._analyzer):
         if not matrix:
             return self.cpp_analyzer.getQuantity(quantity, timestep, use_cache)
         else:
-            return self.cpp_analyzer.getMatrixQuantity(quantity, timestep, use_cache)
+            return self.cpp_analyzer.getMatrixQuantity(quantity, timestep)
 
     def register_callback(self, name, callback, matrix=False):
         R""" Register a callback to produce a logged quantity.
@@ -222,9 +218,7 @@ class log(hoomd.analyze._analyzer):
         logger during the simulation. A disabled logger can be re-enabled
         with :py:meth:`enable()`.
         """
-        hoomd.util.quiet_status()
         _analyzer.disable(self)
-        hoomd.util.unquiet_status()
 
         hoomd.context.current.loggers.remove(self)
 
@@ -238,9 +232,7 @@ class log(hoomd.analyze._analyzer):
         See :py:meth:`disable()`.
         """
 
-        hoomd.util.quiet_status()
         _analyzer.enable(self)
-        hoomd.util.unquiet_status()
 
         hoomd.context.current.loggers.append(self)
 

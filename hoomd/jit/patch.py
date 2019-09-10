@@ -103,7 +103,6 @@ class user(object):
     .. versionadded:: 2.3
     '''
     def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, clang_exec=None):
-        hoomd.util.print_status_line();
 
         # check if initialization has occurred
         if hoomd.context.exec_conf is None:
@@ -202,7 +201,6 @@ float eval(const vec3<float>& r_ij,
 
     '''
     def disable(self,log=None):
-        hoomd.util.print_status_line();
 
         if log:
             # enable only for logging purposes
@@ -219,7 +217,6 @@ float eval(const vec3<float>& r_ij,
 
     '''
     def enable(self):
-        hoomd.util.print_status_line()
         self.mc.cpp_integrator.setPatchEnergy(self.cpp_evaluator);
 
 class user_union(user):
@@ -273,7 +270,6 @@ class user_union(user):
     '''
     def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
         llvm_ir_file_iso=None, clang_exec=None):
-        hoomd.util.print_status_line();
 
         # check if initialization has occurred
         if hoomd.context.exec_conf is None:

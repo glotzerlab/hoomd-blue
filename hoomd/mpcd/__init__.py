@@ -179,9 +179,7 @@ class integrator(hoomd.integrate._integrator):
         hoomd.context.current.system.setIntegrator(self.cpp_integrator)
 
         if self.aniso is not None:
-            hoomd.util.quiet_status()
             self.set_params(aniso=aniso)
-            hoomd.util.unquiet_status()
 
     _aniso_modes = {
         None: _md.IntegratorAnisotropicMode.Automatic,
@@ -201,7 +199,6 @@ class integrator(hoomd.integrate._integrator):
             integrator.set_params(dt=0.005, aniso=False)
 
         """
-        hoomd.util.print_status_line()
         self.check_initialization()
 
         # change the parameters

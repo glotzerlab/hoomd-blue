@@ -325,7 +325,7 @@ void NeighborListGPUStencil::buildNlist(unsigned int timestep)
 
 void export_NeighborListGPUStencil(py::module& m)
     {
-    py::class_<NeighborListGPUStencil, std::shared_ptr<NeighborListGPUStencil> >(m, "NeighborListGPUStencil", py::base<NeighborListGPU>())
+    py::class_<NeighborListGPUStencil, NeighborListGPU, std::shared_ptr<NeighborListGPUStencil> >(m, "NeighborListGPUStencil")
         .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
         .def("setCellWidth", &NeighborListGPUStencil::setCellWidth);
     }

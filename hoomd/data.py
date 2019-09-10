@@ -788,7 +788,6 @@ class system_data(hoomd.meta._metadata):
             snapshot = system.take_snapshot(bonds=true)
 
         """
-        hoomd.util.print_status_line();
 
         if all is True:
                 particles=True
@@ -834,7 +833,6 @@ class system_data(hoomd.meta._metadata):
             if the processor grid was optimal for the original box dimensions, but not for the new ones.
 
         """
-        hoomd.util.print_status_line()
 
         nx = int(nx)
         ny = int(ny)
@@ -849,18 +847,14 @@ class system_data(hoomd.meta._metadata):
             raise RuntimeError("nx, ny, nz need to be positive integers")
 
         # Take a snapshot
-        hoomd.util.quiet_status()
         cpp_snapshot = self.take_snapshot(all=True)
-        hoomd.util.unquiet_status()
 
         if hoomd.comm.get_rank() == 0:
             # replicate
             cpp_snapshot.replicate(nx, ny, nz)
 
         # restore from snapshot
-        hoomd.util.quiet_status()
         self.restore_snapshot(cpp_snapshot)
-        hoomd.util.unquiet_status()
 
     def restore_snapshot(self, snapshot):
         R""" Re-initializes the system from a snapshot.
@@ -893,7 +887,6 @@ class system_data(hoomd.meta._metadata):
                 restore_snapshot() between run() commands to ensure that all per type coefficients are updated properly.
 
         """
-        hoomd.util.print_status_line();
 
         if hoomd.comm.get_rank() == 0:
             if snapshot.has_particle_data and len(snapshot.particles.types) != self.sysdef.getParticleData().getNTypes():
@@ -2225,7 +2218,6 @@ def set_snapshot_box(snapshot, box):
 # \brief Broadcast snapshot to all ranks
 def broadcast_snapshot(cpp_snapshot):
     hoomd.context._verify_init();
-    hoomd.util.print_status_line();
     # broadcast from rank 0
     cpp_snapshot._broadcast(0, hoomd.context.exec_conf);
 
@@ -2233,7 +2225,6 @@ def broadcast_snapshot(cpp_snapshot):
 # \brief Broadcast snapshot to all ranks
 def broadcast_snapshot_all(cpp_snapshot):
     hoomd.context._verify_init();
-    hoomd.util.print_status_line();
     # broadcast from rank 0
     cpp_snapshot._broadcast_all(0, hoomd.context.exec_conf);
 

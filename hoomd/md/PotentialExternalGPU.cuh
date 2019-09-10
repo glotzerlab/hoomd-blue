@@ -60,7 +60,9 @@ struct external_potential_args_t
  * \tparam Evaluator functor
  */
 template< class evaluator >
-cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
+cudaError_t
+__attribute__((visibility("default")))
+gpu_cpef(const external_potential_args_t& external_potential_args,
                      const typename evaluator::param_type *d_params,
                      const typename evaluator::field_type *d_field);
 

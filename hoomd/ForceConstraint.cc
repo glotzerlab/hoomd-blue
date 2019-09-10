@@ -32,7 +32,7 @@ void ForceConstraint::computeForces(unsigned int timestep)
 
 void export_ForceConstraint(py::module& m)
     {
-    py::class_< ForceConstraint, std::shared_ptr<ForceConstraint> >(m,"ForceConstraint",py::base<ForceCompute>())
+    py::class_< ForceConstraint, ForceCompute, std::shared_ptr<ForceConstraint> >(m,"ForceConstraint")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

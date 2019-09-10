@@ -28,7 +28,7 @@ using namespace std;
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 namespace hpmc
 {
@@ -313,7 +313,7 @@ void ComputeFreeVolumeGPU< Shape >::initializeExcellMem()
 */
 template < class Shape > void export_ComputeFreeVolumeGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<ComputeFreeVolumeGPU<Shape>, std::shared_ptr< ComputeFreeVolumeGPU<Shape> > >(m, name.c_str(), pybind11::base< ComputeFreeVolume<Shape> >())
+     pybind11::class_<ComputeFreeVolumeGPU<Shape>, ComputeFreeVolume<Shape>, std::shared_ptr< ComputeFreeVolumeGPU<Shape> > >(m, name.c_str())
               .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
                 std::shared_ptr<CellList>,

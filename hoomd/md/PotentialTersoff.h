@@ -27,7 +27,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Template class for computing three-body potentials
 /*! <b>Overview:</b>
@@ -697,7 +697,7 @@ CommFlags PotentialTersoff< evaluator >::getRequestedCommFlags(unsigned int time
 */
 template < class T > void export_PotentialTersoff(pybind11::module& m, const std::string& name)
     {
-        pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<ForceCompute>())
+        pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
             .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
             .def("setParams", &T::setParams)
             .def("setRcut", &T::setRcut)

@@ -42,26 +42,18 @@ macro(compile_test TEST_EXE TEST_SRC)
     # check for extra cuda files
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_EXE}.cu)
         set(CUDA_SEPARABLE_COMPILATION OFF)
-        CUDA_COMPILE(_CUDA_GENERATED_FILES ${TEST_EXE}.cu OPTIONS ${CUDA_ADDITIONAL_OPTIONS})
+        set(_cuda_sources ${TEST_EXE}.cu)
     else()
-        set(_CUDA_GENERATED_FILES "")
+        set(_cuda_sources "")
     endif()
 
     # add and link the unit test executable
-    add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC} ${_CUDA_GENERATED_FILES})
+    add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC} ${_cuda_sources})
+    target_include_directories(${TEST_EXE} PRIVATE ${PYTHON_INCLUDE_DIR})
     add_dependencies(test_all ${TEST_EXE})
-    target_link_libraries(${TEST_EXE} _mpcd _md ${HOOMD_LIBRARIES} ${PYTHON_LIBRARIES})
+    target_link_libraries(${TEST_EXE} _mpcd ${PYTHON_LIBRARIES})
     fix_cudart_rpath(${TEST_EXE})
 
-    if (ENABLE_MPI)
-        # set appropriate compiler/linker flags
-        if(MPI_COMPILE_FLAGS)
-            set_target_properties(${TEST_EXE} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-        endif(MPI_COMPILE_FLAGS)
-        if(MPI_LINK_FLAGS)
-            set_target_properties(${TEST_EXE} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
-        endif(MPI_LINK_FLAGS)
-    endif (ENABLE_MPI)
 endmacro(compile_test)
 
 # add non-MPI tests to test list first

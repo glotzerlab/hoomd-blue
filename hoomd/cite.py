@@ -452,8 +452,6 @@ def save(file='hoomd.bib'):
         cite.save(file='cite.bib')
     """
 
-    hoomd.util.print_status_line()
-
     # force a bibliography to exist
     bib = _ensure_global_bib()
 

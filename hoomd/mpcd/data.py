@@ -156,7 +156,6 @@ class snapshot(hoomd.meta._metadata):
         otherwise.
 
         """
-        hoomd.util.print_status_line()
 
         nx = int(nx)
         ny = int(ny)
@@ -205,9 +204,7 @@ class system(hoomd.meta._metadata):
             self.comm = None
 
         self.sorter = None
-        hoomd.util.quiet_status()
         self.sorter = update.sort(self)
-        hoomd.util.unquiet_status()
 
         # no stream rule by default
         self._stream = None
@@ -238,7 +235,6 @@ class system(hoomd.meta._metadata):
             mpcd_sys.restore_snapshot(snap)
 
         """
-        hoomd.util.print_status_line()
 
         self.data.initializeFromSnapshot(snapshot.sys_snap)
 
@@ -271,7 +267,6 @@ class system(hoomd.meta._metadata):
             snap = mpcd_sys.take_snapshot()
 
         """
-        hoomd.util.print_status_line()
         return snapshot(self.data.takeSnapshot(particles))
 
 def make_snapshot(N=0):

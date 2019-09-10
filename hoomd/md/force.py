@@ -98,7 +98,6 @@ class _force(hoomd.meta._metadata):
         available for logging.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
@@ -123,7 +122,6 @@ class _force(hoomd.meta._metadata):
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
@@ -238,7 +236,6 @@ class constant(_force):
         const = force.constant(callback=update_forces)
     """
     def __init__(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None, callback=None):
-        hoomd.util.print_status_line();
 
         if (fx is not None) and (fy is not None) and (fz is not None):
             self.fvec = (fx,fy,fz)
@@ -400,7 +397,6 @@ class active(_force):
         force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
     """
     def __init__(self, seed, group, f_lst=None, t_lst=None, orientation_link=True, orientation_reverse_link=False, rotation_diff=0, constraint=None):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         _force.__init__(self);
@@ -482,7 +478,6 @@ class dipole(_force):
         const_ext_f_dipole = force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
     """
     def __init__(self, field_x,field_y,field_z,p):
-        hoomd.util.print_status_line()
 
         # initialize the base class
         _force.__init__(self)

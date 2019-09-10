@@ -22,7 +22,7 @@
 #include "IntegratorHPMCMono.h"
 
 #ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #endif
 
 namespace hpmc {
@@ -105,7 +105,7 @@ template <class Shape>
 void export_RemoveDriftUpdater(pybind11::module& m, std::string name)
     {
     using pybind11::class_;
-   pybind11::class_<RemoveDriftUpdater<Shape>, std::shared_ptr<RemoveDriftUpdater<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+   pybind11::class_<RemoveDriftUpdater<Shape>, Updater, std::shared_ptr<RemoveDriftUpdater<Shape> > >(m, name.c_str())
    .def(pybind11::init<     std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ExternalFieldLattice<Shape> >,
                             std::shared_ptr<IntegratorHPMCMono<Shape> > >())

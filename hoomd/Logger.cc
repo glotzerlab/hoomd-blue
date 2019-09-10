@@ -32,6 +32,12 @@ Logger::Logger(std::shared_ptr<SystemDefinition> sysdef)
 Logger::~Logger()
     {
     m_exec_conf->msg->notice(5) << "Destroying Logger" << endl;
+
+    // decrease the reference count on all held callbacks
+    for(auto i : m_callback_quantities)
+        {
+        pybind11::handle(i.second).dec_ref();
+        }
     }
 
 /*! \param compute The Compute to register
@@ -88,7 +94,7 @@ void Logger::registerUpdater(std::shared_ptr<Updater> updater)
     After the callback is registered \a name is available as a logger quantity. The callback must return a scalar
     value and accept the time step as an argument.
 */
-void Logger::registerCallback(std::string name, py::object callback)
+void Logger::registerCallback(std::string name, pybind11::handle callback)
     {
     // first check if this quantity is already set, printing a warning if so
     if (   m_compute_quantities.count(name)
@@ -97,7 +103,9 @@ void Logger::registerCallback(std::string name, py::object callback)
         )
     m_exec_conf->msg->warning() << "analyze.log: The log quantity " << name <<
                          " has been registered more than once. Only the most recent registration takes effect" << endl;
-    m_callback_quantities[name] = callback;
+
+    pybind11::handle(callback).inc_ref(); // increase the reference count on this handle while we hold it
+    m_callback_quantities[name] = callback.ptr();
     }
 
 /*! After calling removeAll(), no quantities are registered for logging
@@ -199,7 +207,7 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
         // get a quantity from a callback
         try
             {
-            py::object rv = m_callback_quantities[quantity](timestep);
+            py::object rv = pybind11::reinterpret_borrow<py::object>(m_callback_quantities[quantity])(timestep);
             Scalar extracted_rv = rv.cast<Scalar>();
             return extracted_rv;
             }
@@ -218,7 +226,7 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
 
 void export_Logger(py::module& m)
     {
-    py::class_<Logger, std::shared_ptr<Logger> >(m,"Logger", py::base<Analyzer>())
+    py::class_<Logger, Analyzer, std::shared_ptr<Logger> >(m,"Logger")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("registerCompute", &Logger::registerCompute)
     .def("registerUpdater", &Logger::registerUpdater)

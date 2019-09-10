@@ -98,7 +98,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
 
 void export_ZeroMomentumUpdater(py::module& m)
     {
-    py::class_<ZeroMomentumUpdater, std::shared_ptr<ZeroMomentumUpdater> >(m, "ZeroMomentumUpdater", py::base<Updater>())
+    py::class_<ZeroMomentumUpdater, Updater, std::shared_ptr<ZeroMomentumUpdater> >(m, "ZeroMomentumUpdater")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

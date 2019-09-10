@@ -63,15 +63,6 @@ endmacro(add_hoomd_script_test_mpi)
 # macro for adding hoomd script tests (with cuda-memcheck)
 if(ENABLE_CUDA)
 
-# cuda-memcheck executable
-find_program(CUDA_MEMCHECK_EXECUTABLE
-  NAMES cuda-memcheck
-  PATHS "${CUDA_TOOLKIT_ROOT_DIR}/bin"
-        "${CUDA_TOOLKIT_ROOT_DIR}/bin64"
-  ENV CUDA_BIN_PATH
-  NO_DEFAULT_PATH
-  )
-
 macro(add_hoomd_script_test_cuda_memcheck test_py)
 # name the test
 get_filename_component(_test_name ${test_py} NAME_WE)
@@ -115,6 +106,7 @@ SET(EXCLUDE_FROM_MPI
     test_meta_md
     test_minimize_fire
     test_constrain_floppy
+    test_pppm_pressure
     )
 
 if (ENABLE_MPI)

@@ -103,7 +103,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_HarmonicDihedralForceComputeGPU(py::module& m)
     {
-    py::class_<HarmonicDihedralForceComputeGPU, std::shared_ptr<HarmonicDihedralForceComputeGPU> >(m, "HarmonicDihedralForceComputeGPU", py::base<HarmonicDihedralForceCompute>())
+    py::class_<HarmonicDihedralForceComputeGPU, HarmonicDihedralForceCompute, std::shared_ptr<HarmonicDihedralForceComputeGPU> >(m, "HarmonicDihedralForceComputeGPU")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

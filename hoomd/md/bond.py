@@ -100,7 +100,6 @@ class coeff:
             parameters as they were previously set.
 
         """
-        hoomd.util.print_status_line();
 
         # listify the input
         type = hoomd.util.listify(type)
@@ -277,7 +276,6 @@ class harmonic(_bond):
 
     """
     def __init__(self,name=None):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         _bond.__init__(self);
@@ -339,7 +337,6 @@ class fene(_bond):
 
     """
     def __init__(self, name=None):
-        hoomd.util.print_status_line();
 
 
         # initialize the base class
@@ -447,7 +444,6 @@ class table(force._force):
         be thrown if a bond distance is outside than this range.
     """
     def __init__(self, width, name=None):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         force._force.__init__(self, name);
@@ -532,7 +528,6 @@ class table(force._force):
         is treated as a comment. The ``r`` values must monotonically increase and be equally spaced. The table is read
         directly into the grid points used to evaluate :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)`.
         """
-        hoomd.util.print_status_line();
 
         # open the file
         f = open(filename);
@@ -580,6 +575,4 @@ class table(force._force):
                 hoomd.context.msg.error("bond.table: r must be monotonically increasing and evenly spaced\n");
                 raise RuntimeError("Error reading table file");
 
-        hoomd.util.quiet_status();
         self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
-        hoomd.util.unquiet_status();

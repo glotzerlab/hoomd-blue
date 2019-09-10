@@ -79,7 +79,7 @@ void OPLSDihedralForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_OPLSDihedralForceComputeGPU(py::module& m)
     {
-    py::class_<OPLSDihedralForceComputeGPU, std::shared_ptr<OPLSDihedralForceComputeGPU> >(m, "OPLSDihedralForceComputeGPU", py::base<OPLSDihedralForceCompute>())
+    py::class_<OPLSDihedralForceComputeGPU, OPLSDihedralForceCompute, std::shared_ptr<OPLSDihedralForceComputeGPU> >(m, "OPLSDihedralForceComputeGPU")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

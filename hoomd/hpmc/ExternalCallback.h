@@ -15,7 +15,7 @@
 #include "ExternalField.h"
 
 #ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #endif
 
 namespace hpmc
@@ -125,7 +125,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
         double getEnergy(std::shared_ptr<SnapshotSystemData<Scalar> > snap)
             {
             double e = 0.0;
-            if (callback != pybind11::none())
+            if (!callback.is(pybind11::none()))
                 {
                 pybind11::object rv = callback(snap);
                 try
@@ -147,7 +147,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
 template<class Shape>
 void export_ExternalCallback(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<ExternalCallback<Shape>, std::shared_ptr< ExternalCallback<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+    pybind11::class_<ExternalCallback<Shape>, ExternalFieldMono<Shape>, std::shared_ptr< ExternalCallback<Shape> > >(m, name.c_str())
     .def(pybind11::init< std::shared_ptr<SystemDefinition>, pybind11::object>())
     ;
     }

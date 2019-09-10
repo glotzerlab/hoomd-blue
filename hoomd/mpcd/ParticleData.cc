@@ -16,7 +16,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif // ENABLE_MPI
 
-#include "hoomd/extern/pybind/include/pybind11/stl.h"
+#include <pybind11/stl.h>
 
 #include <random>
 #include <iomanip>

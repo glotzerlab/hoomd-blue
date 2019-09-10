@@ -139,8 +139,8 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
 void mpcd::detail::export_ATCollisionMethodGPU(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::ATCollisionMethodGPU, std::shared_ptr<mpcd::ATCollisionMethodGPU> >
-        (m, "ATCollisionMethodGPU", py::base<mpcd::ATCollisionMethod>())
+    py::class_<mpcd::ATCollisionMethodGPU, mpcd::ATCollisionMethod, std::shared_ptr<mpcd::ATCollisionMethodGPU> >
+        (m, "ATCollisionMethodGPU")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       unsigned int,
                       unsigned int,

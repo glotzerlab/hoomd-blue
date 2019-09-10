@@ -94,7 +94,7 @@ void gpu_compute_constraint_sphere_forces_kernel(Scalar4* d_force,
     \param block_size Block size to execute on the GPU
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
+    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
 */
 cudaError_t gpu_compute_constraint_sphere_forces(Scalar4* d_force,
                                                  Scalar* d_virial,

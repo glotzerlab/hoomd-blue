@@ -21,7 +21,7 @@
 #include <vector>
 #include <map>
 #include <fstream>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
 #ifndef __LOGGER_H__
@@ -45,7 +45,7 @@
 
     \ingroup analyzers
 */
-class __attribute__ ((visibility ("hidden"))) Logger : public Analyzer
+class __attribute__((visibility("default"))) Logger : public Analyzer
     {
     public:
         //! Constructs a logger
@@ -61,7 +61,7 @@ class __attribute__ ((visibility ("hidden"))) Logger : public Analyzer
         virtual void registerUpdater(std::shared_ptr<Updater> updater);
 
         //! Register a callback
-        virtual void registerCallback(std::string name, pybind11::object callback);
+        virtual void registerCallback(std::string name, pybind11::handle callback);
 
         //! Clears all registered computes and updaters
         virtual void removeAll();
@@ -97,7 +97,7 @@ class __attribute__ ((visibility ("hidden"))) Logger : public Analyzer
         //! A map of updaters indexed by logged quantity that they provide
         std::map< std::string, std::shared_ptr<Updater> > m_updater_quantities;
         //! List of callbacks
-        std::map< std::string, pybind11::object > m_callback_quantities;
+        std::map< std::string, PyObject * > m_callback_quantities;
         //! List of quantities to log
         std::vector< std::string > m_logged_quantities;
         //! Clock for the time log quantity

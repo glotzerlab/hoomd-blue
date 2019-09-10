@@ -347,7 +347,7 @@ void CellListGPU::initializeMemory()
 
 void export_CellListGPU(py::module& m)
     {
-    py::class_<CellListGPU, std::shared_ptr<CellListGPU> >(m,"CellListGPU",py::base<CellList>())
+    py::class_<CellListGPU, CellList, std::shared_ptr<CellListGPU> >(m,"CellListGPU")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
         ;
     }

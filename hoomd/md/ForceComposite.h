@@ -27,7 +27,7 @@
 #include "hoomd/GPUPartition.cuh"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ForceComposite_H__
 #define __ForceComposite_H__
