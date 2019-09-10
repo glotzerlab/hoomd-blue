@@ -36,7 +36,7 @@ a few important caveats:
 
     1. Embedded particles are not coupled to the boundary walls. They must be confined
        by an appropriate method, e.g., an external potential, an explicit particle wall,
-       or a bounce-back method (see :py:mod:`mpcd.integrate`).
+       or a bounce-back method (see :py:mod:`.mpcd.integrate`).
     2. The confined geometry exists inside a fully periodic simulation box. Hence, the
        box must be padded large enough that the MPCD cells do not interact through the
        periodic boundary. Usually, this means adding at least one extra layer of cells

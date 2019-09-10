@@ -1,5 +1,5 @@
 mpcd.integrate
------------
+--------------
 
 .. rubric:: Overview
 

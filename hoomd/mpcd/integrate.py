@@ -7,11 +7,11 @@ R""" MPCD integration methods
 
 Defines bounce-back methods for integrating solutes (MD particles) embedded in an MPCD
 solvent. The integration scheme is velocity Verlet (NVE) with bounce-back performed at
-the solid boundaries defined by a geometry, as in :py:mod:`mpcd.stream`. This gives a
+the solid boundaries defined by a geometry, as in :py:mod:`.mpcd.stream`. This gives a
 simple approximation of the interactions required to keep a solute bounded in a geometry,
 and more complex interactions can be specified, for example, by writing custom external fields.
 
-Similar caveats apply to these methods as for the :py:mod:`mpcd.stream` methods. In particular:
+Similar caveats apply to these methods as for the :py:mod:`.mpcd.stream` methods. In particular:
 
     1. The simulation box is periodic, but the geometry imposes inherently non-periodic boundary
        conditions. You must ensure that the box is sufficiently large to enclose the geometry
@@ -24,7 +24,7 @@ Similar caveats apply to these methods as for the :py:mod:`mpcd.stream` methods.
        to achieve the right boundary conditions and reduce density fluctuations.
 
 The integration methods defined here are not restricted to only MPCD simulations: they can be
-used with both :py:class:`hoomd.md.mode_standard` and :py:class:`hoomd.mpcd.integrator`. For
+used with both :py:class:`.md.integrate.mode_standard` and :py:class:`.mpcd.integrator`. For
 example, the same integration methods might be used to run DPD simulations with surfaces.
 
 These bounce-back methods do not support anisotropic integration because torques are currently
@@ -47,7 +47,7 @@ class _bounce_back(hoomd.integrate._integration_method):
         group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
 
     :py:class:`_bounce_back` is a base class integration method. It must be used with
-    :py:class:`hoomd.md.mode_standard` or :py:class:`hoomd.mpcd.integrator`.
+    :py:class:`.md.integrate.mode_standard` or :py:class:`.mpcd.integrator`.
     Deriving classes implement the specific geometry and valid parameters for those geometries.
     Currently, there is no mechanism to share geometries between multiple instances of the same
     integration method.
@@ -100,7 +100,7 @@ class slit(_bounce_back):
         boundary : 'slip' or 'no_slip' boundary condition at wall (default: 'no_slip')
 
     This integration method applies to particles in *group* in the parallel-plate channel geometry.
-    This method is the MD analog of :py:class:`mpcd.stream.slit`, which documents additional details
+    This method is the MD analog of :py:class:`.stream.slit`, which documents additional details
     about the geometry.
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
@@ -177,7 +177,7 @@ class slit_pore(_bounce_back):
         boundary : 'slip' or 'no_slip' boundary condition at wall (default: 'no_slip')
 
     This integration method applies to particles in *group* in the parallel-plate (slit) pore geometry.
-    This method is the MD analog of :py:class:`mpcd.stream.slit_pore`, which documents additional details
+    This method is the MD analog of :py:class:`.stream.slit_pore`, which documents additional details
     about the geometry.
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
