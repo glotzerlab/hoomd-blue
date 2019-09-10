@@ -511,15 +511,14 @@ class gsd(hoomd.analyze._analyzer):
     number of particles, number of particle types, particle types, diameter, mass,
     charge, or anything is changing over time.
 
-    To save on space, GSD does not write values that are all set at defaults. So if
-    all masses are left set at the default of 1.0, mass will not take up any space in
-    the file. Additionally, only **dynamic** quantities are written to all frames, non-dynamic
-    quantities are only written to frame 0. The GSD schema defines that data not present in frame *i* is to
-    be read from frame 0. This makes every single frame of a GSD file fully specified and simulations
-    initialized with :py:func:`hoomd.init.read_gsd()` can select any frame of the file.
+    To save on space, GSD does not write values that are all set at defaults. So if all masses, orientations, angular
+    momenta, etc... are left default, these fields  will not take up any space in the file. Additionally, only
+    **dynamic** quantities are written to all frames, non-dynamic quantities are only written to frame 0. The GSD schema
+    defines that data not present in frame *i* is to be read from frame 0. This makes every single frame of a GSD file
+    fully specified and simulations initialized with :py:func:`hoomd.init.read_gsd()` can select any frame of the file.
 
-    You can control what quantities are dynamic by category. ``property`` is always dynamic.
-    The categories listed in the **dynamic** will also be written out to every frame.
+    You can control what quantities are dynamic by category. ``property`` is always dynamic. The categories listed in
+    the **dynamic** will also be written out to every frame, but only if they have changed from the defaults.
 
     * ``attribute``
 
@@ -535,12 +534,12 @@ class gsd(hoomd.analyze._analyzer):
     * ``property``
 
         * particles/position
-        * particles/orientation
+        * particles/orientation (*only written when changed from default*)
 
     * ``momentum``
 
         * particles/velocity
-        * particles/angmom
+        * particles/angmom (*only written when changed from default*)
         * particles/image
 
     * ``topology``
