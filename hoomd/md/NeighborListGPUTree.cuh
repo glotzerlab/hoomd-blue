@@ -210,9 +210,11 @@ struct NeighborListOp
                    unsigned int* new_max_neigh_,
                    const unsigned int* first_neigh_,
                    const unsigned int* max_neigh_)
-        : neigh_list(neigh_list_), nneigh(nneigh_), new_max_neigh(new_max_neigh_),
+        : nneigh(nneigh_), new_max_neigh(new_max_neigh_),
           first_neigh(first_neigh_), max_neigh(max_neigh_)
-        {}
+        {
+        neigh_list = reinterpret_cast<uint4*>(neigh_list_);
+        }
 
     //! Thread-local data
     struct ThreadData
@@ -220,26 +222,55 @@ struct NeighborListOp
         HOSTDEVICE ThreadData(const unsigned int idx_,
                               const unsigned int first_,
                               const unsigned int num_neigh_,
-                              const unsigned int max_neigh_)
-            : idx(idx_), first(first_), num_neigh(num_neigh_), max_neigh(max_neigh_)
-            {}
+                              const unsigned int max_neigh_,
+                              const unsigned int type_,
+                              const uint4 stack_)
+            : idx(idx_), first(first_), num_neigh(num_neigh_), max_neigh(max_neigh_), type(type_)
+            {
+            stack[0] = stack_.x;
+            stack[1] = stack_.y;
+            stack[2] = stack_.z;
+            stack[3] = stack_.w;
+            }
 
         unsigned int idx;       //!< Index of primitive
         unsigned int first;     //!< First index to use for writing neighbors
         unsigned int num_neigh; //!< Number of neighbors for this thread
         unsigned int max_neigh; //!< Maximum number of neighbors
+        unsigned int type;      //!< Type of this particle
+        unsigned int stack[4];
         };
 
     template<class QueryDataT>
     HOSTDEVICE ThreadData setup(const unsigned int idx, const QueryDataT& q) const
         {
-        return ThreadData(q.idx, first_neigh[q.idx], nneigh[q.idx], max_neigh[q.type]);
+        const unsigned int first = first_neigh[q.idx];
+        const unsigned int num_neigh = nneigh[q.idx];
+        const unsigned int nmax = max_neigh[q.type];
+
+        // prefetch from the stack if current number of neighbors does not align with a boundary
+        uint4 stack = make_uint4(0,0,0,0);
+        if (num_neigh % 4 != 0)
+            {
+            stack = neigh_list[(first+num_neigh-1)/4];
+            }
+
+        return ThreadData(q.idx, first, num_neigh, nmax, q.type, stack);
         }
 
     HOSTDEVICE void process(ThreadData& t, const int primitive) const
         {
         if (t.num_neigh < t.max_neigh)
-            neigh_list[t.first+t.num_neigh] = primitive;
+            {
+            // push primitive into the stack of 4, pre-increment
+            const unsigned int offset = t.num_neigh % 4;
+            t.stack[offset] = primitive;
+            // coalesce writes into chunks of 4
+            if (offset == 3)
+                {
+                neigh_list[(t.first+t.num_neigh)/4] = make_uint4(t.stack[0], t.stack[1], t.stack[2], t.stack[3]);
+                }
+            }
         ++t.num_neigh;
         }
 
@@ -249,16 +280,22 @@ struct NeighborListOp
         nneigh[t.idx] = t.num_neigh;
         if (t.num_neigh > t.max_neigh)
             {
-            atomicMax(new_max_neigh, t.num_neigh);
+            atomicMax(new_max_neigh + t.type, t.num_neigh);
+            }
+        else if (t.num_neigh % 4 != 0)
+            {
+            // write partial (leftover) stack, counting is now post-increment so need to shift by 1
+            // only need to do this if didn't overflow, since all neighbors were already written due to alignment of max
+            neigh_list[(t.first+t.num_neigh-1)/4] = make_uint4(t.stack[0], t.stack[1], t.stack[2], t.stack[3]);
             }
         }
     #endif
 
-    unsigned int* neigh_list;   //!< Neighbors of each sphere
-    unsigned int* nneigh;       //!< Number of neighbors per search sphere
-    unsigned int* new_max_neigh;    //!< New maximum number of neighbors
-    const unsigned int* first_neigh;  //!< Index of first neighbor
-    const unsigned int* max_neigh;     //!< Maximum number of neighbors allocated
+    uint4* neigh_list;                  //!< Neighbors of each sphere
+    unsigned int* nneigh;               //!< Number of neighbors per search sphere
+    unsigned int* new_max_neigh;        //!< New maximum number of neighbors
+    const unsigned int* first_neigh;    //!< Index of first neighbor
+    const unsigned int* max_neigh;      //!< Maximum number of neighbors allocated
     };
 
 const unsigned int NeigborListTypeSentinel = 0xffffffff;

@@ -106,8 +106,8 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_n_neigh.swap(n_neigh);
     TAG_ALLOCATION(m_n_neigh);
 
-    // default allocation of 8 neighbors per particle for the neighborlist
-    GlobalArray<unsigned int> nlist(8*m_pdata->getMaxN(), m_exec_conf);
+    // default allocation of 4 neighbors per particle for the neighborlist
+    GlobalArray<unsigned int> nlist(4*m_pdata->getMaxN(), m_exec_conf);
     m_nlist.swap(nlist);
     TAG_ALLOCATION(m_nlist);
 
@@ -121,12 +121,12 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_Nmax.swap(Nmax);
     TAG_ALLOCATION(m_Nmax);
 
-    // flood Nmax with 8s initially
+    // flood Nmax with 4s initially
         {
         ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::overwrite);
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
-            h_Nmax.data[i] = 8;
+            h_Nmax.data[i] = 4;
             }
         }
 
@@ -265,12 +265,12 @@ void NeighborList::reallocateTypes()
     unsigned int old_ntypes = m_Nmax.getNumElements();
     m_Nmax.resize(m_pdata->getNTypes());
 
-    // flood Nmax with 8s initially
+    // flood Nmax with 4s initially
         {
         ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::readwrite);
         for (unsigned int i=old_ntypes; i < m_pdata->getNTypes(); ++i)
             {
-            h_Nmax.data[i] = 8;
+            h_Nmax.data[i] = 4;
             }
         }
 
@@ -1494,6 +1494,9 @@ void NeighborList::resizeNlist(unsigned int size)
             alloc_size = ((unsigned int) (((float) alloc_size) * 1.125f)) + 1 ;
             }
 
+        // round up to nearest multiple of 4
+        alloc_size = (alloc_size > 4) ? (alloc_size + 3) & ~3 : 4;
+
         m_nlist.resize(alloc_size);
         }
     }
@@ -1502,7 +1505,7 @@ void NeighborList::resizeNlist(unsigned int size)
  * \returns true if an overflow is detected for any particle type
  * \returns false if all particle types have enough memory for their neighbors
  *
- * The maximum number of neighbors per particle (rounded up to the nearest 8, min of 8) is recomputed when
+ * The maximum number of neighbors per particle (rounded up to the nearest 4, min of 4) is recomputed when
  * an overflow happens.
  */
 bool NeighborList::checkConditions()
@@ -1515,7 +1518,7 @@ bool NeighborList::checkConditions()
         {
         if (h_conditions.data[i] > h_Nmax.data[i])
             {
-            h_Nmax.data[i] = (h_conditions.data[i] > 8) ? (h_conditions.data[i] + 7) & ~7 : 8;
+            h_Nmax.data[i] = (h_conditions.data[i] > 4) ? (h_conditions.data[i] + 3) & ~3 : 4;
             result = true;
             }
         }
