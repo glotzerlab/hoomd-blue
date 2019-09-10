@@ -48,6 +48,15 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
             NeighborListGPU::setAutotunerParams(enable, period);
+
+            m_mark_tuner->setPeriod(period/10);
+            m_mark_tuner->setEnabled(enable);
+
+            m_count_tuner->setPeriod(period/10);
+            m_count_tuner->setEnabled(enable);
+
+            m_copy_tuner->setPeriod(period/10);
+            m_copy_tuner->setEnabled(enable);
             }
 
     protected:
@@ -55,6 +64,10 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         virtual void buildNlist(unsigned int timestep);
 
     private:
+        std::unique_ptr<Autotuner> m_mark_tuner;
+        std::unique_ptr<Autotuner> m_count_tuner;
+        std::unique_ptr<Autotuner> m_copy_tuner;
+
         GPUArray<unsigned int> m_types;
         GPUArray<unsigned int> m_sorted_types;
         GPUArray<unsigned int> m_indexes;

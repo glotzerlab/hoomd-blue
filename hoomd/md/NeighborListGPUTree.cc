@@ -28,6 +28,10 @@ NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysde
     m_pdata->getNumTypesChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotNumTypesChanged>(this);
     m_pdata->getBoxChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
     m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);
+
+    m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_tree_mark", m_exec_conf));
+    m_count_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_tree_count", m_exec_conf));
+    m_copy_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_tree_copy", m_exec_conf));
     }
 
 NeighborListGPUTree::~NeighborListGPUTree()
@@ -142,6 +146,7 @@ void NeighborListGPUTree::buildTree()
             ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
+            m_mark_tuner->begin();
             gpu_nlist_mark_types(d_types.data,
                                  d_indexes.data,
                                  m_lbvh_errors.getDeviceFlags(),
@@ -151,8 +156,9 @@ void NeighborListGPUTree::buildTree()
                                  m_pdata->getNGhosts(),
                                  box,
                                  ghost_width,
-                                 128);
+                                 m_mark_tuner->getParam());
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            m_mark_tuner->end();
             }
 
         // error check that no local particles are out of bounds
@@ -223,13 +229,15 @@ void NeighborListGPUTree::buildTree()
         ArrayHandle<unsigned int> d_type_last(m_type_last, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_sorted_types(m_sorted_types, access_location::device, access_mode::read);
 
+        m_count_tuner->begin();
         gpu_nlist_count_types(d_type_first.data,
                               d_type_last.data,
                               d_sorted_types.data,
                               m_pdata->getNTypes(),
                               m_pdata->getN()+m_pdata->getNGhosts(),
-                              128);
+                              m_count_tuner->getParam());
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        m_count_tuner->end();
         }
 
     // build a lbvh for each type
@@ -275,11 +283,14 @@ void NeighborListGPUTree::buildTree()
                 {
                 const unsigned int first = h_type_first.data[i];
                 ArrayHandle<unsigned int> d_primitives(m_lbvhs[i]->getPrimitives(), access_location::device, access_mode::read);
+                m_copy_tuner->begin();
                 gpu_nlist_copy_primitives(d_traverse_order.data + first,
                                           d_sorted_indexes.data + first,
                                           d_primitives.data,
                                           Ni,
-                                          128);
+                                          m_copy_tuner->getParam());
+                if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+                m_copy_tuner->end();
                 Ntotal += Ni;
                 }
             }
