@@ -28,6 +28,7 @@ set(_mpcd_sources
 
 set(_mpcd_headers
     ATCollisionMethod.h
+    BounceBackNVE.h
     BoundaryCondition.h
     BulkGeometry.h
     CellCommunicator.h
@@ -69,6 +70,8 @@ list(APPEND _mpcd_sources
 list(APPEND _mpcd_headers
     ATCollisionMethodGPU.cuh
     ATCollisionMethodGPU.h
+    BounceBackNVEGPU.cuh
+    BounceBackNVEGPU.h
     CellCommunicator.cuh
     CellThermoComputeGPU.cuh
     CellThermoComputeGPU.h
@@ -164,6 +167,7 @@ set(files
     data.py
     force.py
     init.py
+    integrate.py
     stream.py
     update.py
     )
