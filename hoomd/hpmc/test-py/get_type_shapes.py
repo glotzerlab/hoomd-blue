@@ -88,6 +88,23 @@ class test_type_shapes(unittest.TestCase):
         self.assertEqual(len(shape_types[0]['vertices']), 3)
         self.assertTrue(all([shape_types[0]['vertices'][i] == list(test_verts[i]) for i in range(len(test_verts))]))
 
+        def test_type_shapes_ellipsoid(self):
+            box = hoomd.data.boxdim(10, dimensions=2)
+            snap = hoomd.data.make_snapshot(N=2, box=box)
+            snap.particles.types = ['A']
+            self.system = hoomd.init.read_snapshot(snap)
+
+            self.mc = hpmc.integrate.ellipsoid(seed=10);
+            test_abc = {"a":1.0, "b":2.0, "c":3.0}
+            self.mc.shape_param.set('A', **test_size)
+
+            shape_types = self.mc.get_type_shapes()
+
+            self.assertEqual(shape_types[0]['type'], 'Ellipsoid')
+            for k in test_size.keys():
+                self.assertAlmostEqual(shape_types[0][k], test_abc[k])
+            self.assertNotIn('vertices', shape_types[0])
+
     def tearDown(self):
         del self.mc
         del self.system
