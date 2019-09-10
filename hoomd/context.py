@@ -29,8 +29,6 @@ options = None;
 ## Current simulation context
 current = None;
 
-_prev_args = None;
-
 class SimulationContext(object):
     R""" Simulation context
 
@@ -179,7 +177,7 @@ class SimulationContext(object):
 
         current = self.prev;
 
-def initialize(args=None, device=None):
+def initialize(device=None):
     R""" Initialize the execution context
 
     Args:
@@ -204,22 +202,20 @@ def initialize(args=None, device=None):
 
         world = MPI.COMM_WORLD
         comm = world.Split(world.Get_rank(), 0)
-        hoomd.context.initialize(mpi_comm=comm)
+        c = comm.Communicator(mpi_comm=comm)
+        hoomd.context.initialize(device=device.GPU(communicator=c))
 
     """
-    global options, current, _prev_args
-
-    _prev_args = args;
+    global options, current
 
     options = hoomd.option.options();
-    hoomd.option._parse_command_line(args);
+    hoomd.option._parse_command_line();
 
     current = SimulationContext(device)
     
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()
 
-    #current = SimulationContext();
     return current
 
 # band-aid
