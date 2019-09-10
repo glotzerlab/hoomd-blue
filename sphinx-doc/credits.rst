@@ -342,6 +342,7 @@ Michael P. Howard, Princeton University & University of Texas at Austin - **Lead
  * SRD and AT collision rules
  * Virtual particle filling framework
  * External force framework and block, constant, and sine forces
+ * Bounce-back integrator framework
 
 Source code
 -----------
