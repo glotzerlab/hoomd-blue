@@ -255,7 +255,7 @@ void NeighborListGPUTree::buildTree()
             const unsigned int first = h_type_first.data[i];
             const unsigned int last = h_type_last.data[i];
 
-            if (first != NeigborListTypeSentinel)
+            if (first != NeighborListTypeSentinel)
                 {
                 m_lbvhs[i]->build(PointMapInsertOp(d_pos.data, d_sorted_indexes.data + first, last-first),
                                   lbvh_box.getLo(),
@@ -269,17 +269,16 @@ void NeighborListGPUTree::buildTree()
             }
         }
 
-    // put particles in primitive order for traversal, filtering out ghosts
+    // put particles in primitive order for traversal
         {
         ArrayHandle<unsigned int> h_type_first(m_type_first, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> d_traverse_order(m_traverse_order, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_sorted_indexes(m_sorted_indexes, access_location::device, access_mode::read);
 
-        unsigned int Ntotal = 0;
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
             const unsigned int Ni = m_lbvhs[i]->getN();
-            if (Ni)
+            if (Ni > 0)
                 {
                 const unsigned int first = h_type_first.data[i];
                 ArrayHandle<unsigned int> d_primitives(m_lbvhs[i]->getPrimitives(), access_location::device, access_mode::read);
@@ -291,23 +290,7 @@ void NeighborListGPUTree::buildTree()
                                           m_copy_tuner->getParam());
                 if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
                 m_copy_tuner->end();
-                Ntotal += Ni;
                 }
-            }
-
-        #if ENABLE_MPI
-        // stream compact to get rid of ghosts
-        if (m_pdata->getNGhosts() > 0)
-            {
-            Ntotal = gpu_nlist_remove_ghosts(d_traverse_order.data, Ntotal, m_pdata->getN());
-            }
-        #endif // ENABLE_MPI
-
-        // check that all primitives are going to be traversed
-        if (Ntotal != m_pdata->getN())
-            {
-            m_exec_conf->msg->error() << "Wrong number of particles in nlist.tree() arrays!" << std::endl;
-            throw std::runtime_error("Wrong number of particles in nlist.tree() arrays!");
             }
         }
     }
@@ -318,29 +301,59 @@ void NeighborListGPUTree::traverseTree()
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
-    NeighborListOp nlist_op(d_nlist.data, d_n_neigh.data, d_conditions.data, d_head_list.data, d_Nmax.data);
 
     ArrayHandle<unsigned int> h_type_first(m_type_first, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_type_last(m_type_last, access_location::host, access_mode::read);
+
     ArrayHandle<unsigned int> d_sorted_indexes(m_sorted_indexes, access_location::device, access_mode::read);
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diam(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_traverse_order(m_traverse_order, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
 
-    Scalar rpad = (m_diameter_shift) ? m_d_max - Scalar(1.0) : Scalar(0.0);
+    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
 
     // clear the neighbor counts
     cudaMemset(d_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
 
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
         {
-        if (m_lbvhs[i]->getN())
+        // skip this type if there are no particles
+        const unsigned int first = h_type_first.data[i];
+        if (first == NeighborListTypeSentinel)
+            continue;
+        const unsigned int Ni = h_type_last.data[i] - first;
+
+        // neighbor list write op for this type
+        NeighborListOp nlist_op(d_nlist.data, d_n_neigh.data, d_conditions.data + i, d_head_list.data, h_Nmax.data[i]);
+
+        // traverse it against all trees
+        for (unsigned int j=0; j < m_pdata->getNTypes(); ++j)
             {
-            const unsigned int first = h_type_first.data[i];
-            neighbor::MapTransformOp map(d_sorted_indexes.data + first);
+            // skip this lbvh if there are no particles in it
+            if (m_lbvhs[j]->getN() == 0)
+                continue;
+
+            // search radii for this type pair
+            Scalar rcut = h_r_cut.data[m_typpair_idx(i,j)];
+            Scalar rlist;
+            if (rcut > Scalar(0))
+                {
+                rcut += m_r_buff;
+                rlist = rcut;
+                if (m_diameter_shift)
+                    rlist += m_d_max - Scalar(1.0);
+                }
+            else
+                {
+                // skip interaction completely if turned off
+                continue;
+                }
+
+            // the transform operator is for the particles in this LBVH (j)
+            neighbor::MapTransformOp map(d_sorted_indexes.data + h_type_first.data[j]);
 
             // dispatch traversal using template method (as a microoptimization)
             if (!m_filter_body && !m_diameter_shift)
@@ -348,56 +361,48 @@ void NeighborListGPUTree::traverseTree()
                 ParticleQueryOp<false,false> query_op(d_pos.data,
                                                       NULL,
                                                       NULL,
-                                                      d_traverse_order.data,
+                                                      d_traverse_order.data + first,
+                                                      Ni,
                                                       m_pdata->getN(),
-                                                      d_r_cut.data,
-                                                      m_r_buff,
-                                                      rpad,
-                                                      m_typpair_idx,
-                                                      i);
-                m_traversers[i]->traverse(nlist_op, query_op, map, *m_lbvhs[i], m_image_list);
+                                                      rcut,
+                                                      rlist);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list);
                 }
             else if (m_filter_body && !m_diameter_shift)
                 {
                 ParticleQueryOp<true,false> query_op(d_pos.data,
                                                      d_body.data,
                                                      NULL,
-                                                     d_traverse_order.data,
+                                                     d_traverse_order.data + first,
+                                                     Ni,
                                                      m_pdata->getN(),
-                                                     d_r_cut.data,
-                                                     m_r_buff,
-                                                     rpad,
-                                                     m_typpair_idx,
-                                                     i);
-                m_traversers[i]->traverse(nlist_op, query_op, map, *m_lbvhs[i], m_image_list);
+                                                     rcut,
+                                                     rlist);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list);
                 }
             else if (!m_filter_body && m_diameter_shift)
                 {
                 ParticleQueryOp<false,true> query_op(d_pos.data,
                                                      NULL,
                                                      d_diam.data,
-                                                     d_traverse_order.data,
+                                                     d_traverse_order.data + first,
+                                                     Ni,
                                                      m_pdata->getN(),
-                                                     d_r_cut.data,
-                                                     m_r_buff,
-                                                     rpad,
-                                                     m_typpair_idx,
-                                                     i);
-                m_traversers[i]->traverse(nlist_op, query_op, map, *m_lbvhs[i], m_image_list);
+                                                     rcut,
+                                                     rlist);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list);
                 }
             else
                 {
                 ParticleQueryOp<true,true> query_op(d_pos.data,
                                                     d_body.data,
                                                     d_diam.data,
-                                                    d_traverse_order.data,
+                                                    d_traverse_order.data + first,
+                                                    Ni,
                                                     m_pdata->getN(),
-                                                    d_r_cut.data,
-                                                    m_r_buff,
-                                                    rpad,
-                                                    m_typpair_idx,
-                                                    i);
-                m_traversers[i]->traverse(nlist_op, query_op, map, *m_lbvhs[i], m_image_list);
+                                                    rcut,
+                                                    rlist);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list);
                 }
             }
         }

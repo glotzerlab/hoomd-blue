@@ -84,14 +84,12 @@ struct ParticleQueryOp
                     const Scalar *diams_,
                     const unsigned int* map_,
                     unsigned int N_,
-                    const Scalar *rcut_,
-                    const Scalar rbuff_,
-                    const Scalar rpad_,
-                    const Index2D type_index_,
-                    const unsigned int lbvh_type_)
-        : positions(positions_), bodies(bodies_), diams(diams_), map(map_), N(N_),
-          rcut(rcut_), rbuff(rbuff_), rpad(rpad_), type_index(type_index_), lbvh_type(lbvh_type_)
-        {}
+                    unsigned int Nown_,
+                    const Scalar rcut_,
+                    const Scalar rlist_)
+        : positions(positions_), bodies(bodies_), diams(diams_), map(map_),
+          N(N_), Nown(Nown_), rcut(rcut_), rlist(rlist_)
+          {}
 
     #ifdef NVCC
     struct ThreadData
@@ -99,20 +97,14 @@ struct ParticleQueryOp
         HOSTDEVICE ThreadData(Scalar3 position_,
                               int idx_,
                               unsigned int body_,
-                              Scalar diam_,
-                              Scalar rc_,
-                              Scalar rl_,
-                              unsigned int type_)
-            : position(position_), idx(idx_), body(body_), diam(diam_), rc(rc_), rl(rl_), type(type_)
+                              Scalar diam_)
+            : position(position_), idx(idx_), body(body_), diam(diam_)
             {}
 
         Scalar3 position;
         int idx;
         unsigned int body;
         Scalar diam;
-        Scalar rc;
-        Scalar rl;
-        unsigned int type;
         };
     typedef SkippableBoundingSphere Volume;
 
@@ -122,20 +114,6 @@ struct ParticleQueryOp
 
         const Scalar4 position = positions[pidx];
         const Scalar3 r = make_scalar3(position.x, position.y, position.z);
-        const unsigned int type = __scalar_as_int(position.w);
-
-        Scalar rc = rcut[type_index(type,lbvh_type)];
-        Scalar rl;
-        if (rc > Scalar(0.0))
-            {
-            rc += rbuff;
-            rl = rc + rpad;
-            }
-        else
-            {
-            rc = Scalar(-1.0);
-            rl = Scalar(-1.0);
-            }
 
         unsigned int body(0xffffffff);
         if (use_body)
@@ -148,12 +126,12 @@ struct ParticleQueryOp
             diam = __ldg(diams + pidx);
             }
 
-        return ThreadData(r, pidx, body, diam, rc, rl, type);
+        return ThreadData(r, pidx, body, diam);
         }
 
     DEVICE Volume get(const ThreadData& q, const Scalar3& image) const
         {
-        return Volume(q.position+image, q.rl);
+        return Volume(q.position+image, (q.idx < Nown) ? rlist : -1.0);
         }
 
     DEVICE bool overlap(const Volume& v, const neighbor::BoundingBox& box) const
@@ -181,14 +159,15 @@ struct ParticleQueryOp
 
             // compute factor to add to base rc
             const Scalar delta = (q.diam + diam) * Scalar(0.5) - Scalar(1.0);
-            const Scalar sqshift = (delta + Scalar(2.0) * q.rc) * delta;
+            Scalar rc2 = (rcut+delta);
+            rc2 *= rc2;
 
             // compute distance and wrap back into box
             const Scalar3 dr = r - q.position;
             const Scalar drsq = dot(dr,dr);
 
             // exclude if outside the sphere
-            exclude |= drsq > (q.rc*q.rc + sqshift);
+            exclude |= drsq > rc2;
             }
 
         return !exclude;
@@ -205,11 +184,9 @@ struct ParticleQueryOp
     const Scalar *diams;
     const unsigned int *map;
     unsigned int N;
-    const Scalar *rcut;
-    Scalar rbuff;
-    Scalar rpad;
-    Index2D type_index;
-    unsigned int lbvh_type;
+    unsigned int Nown;
+    Scalar rcut;
+    Scalar rlist;
     };
 
 struct NeighborListOp
@@ -218,23 +195,22 @@ struct NeighborListOp
                    unsigned int* nneigh_,
                    unsigned int* new_max_neigh_,
                    const unsigned int* first_neigh_,
-                   const unsigned int* max_neigh_)
+                   unsigned int max_neigh_)
         : nneigh(nneigh_), new_max_neigh(new_max_neigh_),
           first_neigh(first_neigh_), max_neigh(max_neigh_)
         {
         neigh_list = reinterpret_cast<uint4*>(neigh_list_);
         }
 
+    #ifdef NVCC
     //! Thread-local data
     struct ThreadData
         {
-        HOSTDEVICE ThreadData(const unsigned int idx_,
-                              const unsigned int first_,
-                              const unsigned int num_neigh_,
-                              const unsigned int max_neigh_,
-                              const unsigned int type_,
-                              const uint4 stack_)
-            : idx(idx_), first(first_), num_neigh(num_neigh_), max_neigh(max_neigh_), type(type_)
+        DEVICE ThreadData(const unsigned int idx_,
+                          const unsigned int first_,
+                          const unsigned int num_neigh_,
+                          const uint4 stack_)
+            : idx(idx_), first(first_), num_neigh(num_neigh_)
             {
             stack[0] = stack_.x;
             stack[1] = stack_.y;
@@ -245,17 +221,14 @@ struct NeighborListOp
         unsigned int idx;       //!< Index of primitive
         unsigned int first;     //!< First index to use for writing neighbors
         unsigned int num_neigh; //!< Number of neighbors for this thread
-        unsigned int max_neigh; //!< Maximum number of neighbors
-        unsigned int type;      //!< Type of this particle
         unsigned int stack[4];
         };
 
     template<class QueryDataT>
-    HOSTDEVICE ThreadData setup(const unsigned int idx, const QueryDataT& q) const
+    DEVICE ThreadData setup(const unsigned int idx, const QueryDataT& q) const
         {
-        const unsigned int first = first_neigh[q.idx];
-        const unsigned int num_neigh = nneigh[q.idx];
-        const unsigned int nmax = max_neigh[q.type];
+        const unsigned int first = __ldg(first_neigh + q.idx);
+        const unsigned int num_neigh = nneigh[q.idx]; // no __ldg, since this is writeable
 
         // prefetch from the stack if current number of neighbors does not align with a boundary
         uint4 stack = make_uint4(0,0,0,0);
@@ -264,12 +237,12 @@ struct NeighborListOp
             stack = neigh_list[(first+num_neigh-1)/4];
             }
 
-        return ThreadData(q.idx, first, num_neigh, nmax, q.type, stack);
+        return ThreadData(q.idx, first, num_neigh, stack);
         }
 
-    HOSTDEVICE void process(ThreadData& t, const int primitive) const
+    DEVICE void process(ThreadData& t, const int primitive) const
         {
-        if (t.num_neigh < t.max_neigh)
+        if (t.num_neigh < max_neigh)
             {
             // push primitive into the stack of 4, pre-increment
             const unsigned int offset = t.num_neigh % 4;
@@ -283,13 +256,12 @@ struct NeighborListOp
         ++t.num_neigh;
         }
 
-    #ifdef NVCC
     DEVICE void finalize(const ThreadData& t) const
         {
         nneigh[t.idx] = t.num_neigh;
-        if (t.num_neigh > t.max_neigh)
+        if (t.num_neigh > max_neigh)
             {
-            atomicMax(new_max_neigh + t.type, t.num_neigh);
+            atomicMax(new_max_neigh, t.num_neigh);
             }
         else if (t.num_neigh % 4 != 0)
             {
@@ -304,10 +276,10 @@ struct NeighborListOp
     unsigned int* nneigh;               //!< Number of neighbors per search sphere
     unsigned int* new_max_neigh;        //!< New maximum number of neighbors
     const unsigned int* first_neigh;    //!< Index of first neighbor
-    const unsigned int* max_neigh;      //!< Maximum number of neighbors allocated
+    unsigned int max_neigh;             //!< Maximum number of neighbors allocated
     };
 
-const unsigned int NeigborListTypeSentinel = 0xffffffff;
+const unsigned int NeighborListTypeSentinel = 0xffffffff;
 
 //! Kernel driver to generate morton code-type keys for particles and reorder by type
 cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
@@ -342,10 +314,6 @@ cudaError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
                                       const unsigned int *d_primitives,
                                       const unsigned int N,
                                       const unsigned int block_size);
-
-unsigned int gpu_nlist_remove_ghosts(unsigned int *d_traverse_order,
-                                     const unsigned int N,
-                                     const unsigned int N_own);
 
 #undef DEVICE
 #undef HOSTDEVICE
