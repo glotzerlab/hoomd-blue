@@ -848,7 +848,7 @@ class frenkel_ladd_energy(_compute):
         :py:class:`lattice_field` are multiplied by the spring constant. As a result,
         when computing the free energies from :py:class:`frenkel_ladd_energy` class,
         instead of integrating the free energy over the spring constants, you should
-        integrate over the *(natural) log* of the spring constants.
+        integrate over the natural log of the spring constants.
 
     Example::
 
