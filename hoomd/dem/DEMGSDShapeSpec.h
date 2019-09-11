@@ -25,12 +25,12 @@ class DEMGSDShapeSpecBase<Real,vec2<Real>>
         unsigned int nverts = verts.size();
         if (nverts == 1)
             {
-            shapedef << "{'type': 'Disk'" << ", 'diameter': " << Real(2)*radius << "}";
+            shapedef << "{\"type\": \"Disk\", " << "\"diameter\": " << Real(2)*radius << "}";
             }
         else
             {
-            shapedef << "{'type': 'Polygon'" << ", 'rounding_radius': " << radius <<
-                        ", 'vertices': "  << parseVertices(verts) << "}";
+            shapedef << "{\"type\": \"Polygon\", " << "\"rounding_radius\": " << radius <<
+                        ", \"vertices\": "  << parseVertices(verts) << "}";
             }
         return shapedef.str();
         }
@@ -39,11 +39,12 @@ class DEMGSDShapeSpecBase<Real,vec2<Real>>
         {
         std::ostringstream vertstr;
         unsigned int nverts = verts.size();
+        vertstr << "[";
         for (unsigned int i = 0; i < nverts-1; i++)
             {
-            vertstr << "[ " << verts[i].x << ", " << verts[i].y << "], ";
+            vertstr << "[" << verts[i].x << ", " << verts[i].y << "], ";
             }
-        vertstr << "[ " << verts[nverts-1].x << ", " << verts[nverts-1].y << "]" << " ]";
+        vertstr << "[" << verts[nverts-1].x << ", " << verts[nverts-1].y << "]" << "]";
         return vertstr.str();
         }
 
@@ -58,12 +59,12 @@ class DEMGSDShapeSpecBase<Real,vec3<Real>>
         unsigned int nverts = verts.size();
         if (nverts == 1)
             {
-            shapedef << "{'type': 'Sphere'" << ", 'diameter': " << Real(2)*radius << "}";
+            shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << Real(2)*radius << "}";
             }
         else
             {
-            shapedef <<  "{'type': 'ConvexPolyhedron'" << ", 'rounding_radius': " << radius <<
-                        ", 'vertices': "  << parseVertices(verts) << "}";
+            shapedef <<  "{\"type\": \"ConvexPolyhedron\", " << "\"rounding_radius\": " << radius <<
+                        ", \"vertices\": "  << parseVertices(verts) << "}";
             }
         return shapedef.str();
         }
@@ -72,11 +73,12 @@ class DEMGSDShapeSpecBase<Real,vec3<Real>>
         {
         std::ostringstream vertstr;
         unsigned int nverts = verts.size();
+        vertstr << "[";
         for (unsigned int i = 0; i < nverts-1; i++)
             {
-            vertstr << "[ " << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
+            vertstr << "[" << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
             }
-        vertstr << "[ " << verts[nverts-1].x << ", " << verts[nverts-1].y << ", " << verts[nverts-1].x  << "]" << " ]";
+        vertstr << "[" << verts[nverts-1].x << ", " << verts[nverts-1].y << ", " << verts[nverts-1].z  << "]" << "]";
         return vertstr.str();
         }
     };
@@ -99,12 +101,12 @@ class DEMGSDShapeSpec : DEMGSDShapeSpecBase<Real, Vector>
 //     unsigned int nverts = verts.size();
 //     if (nverts == 1)
 //         {
-//         shapedef =  "{'type': 'Disk'" << ", 'diameter': " << Real(2)*radius << "}";
+//         shapedef =  "{\"type\": \"Disk\"" << ", \"diameter\": " << Real(2)*radius << "}";
 //         }
 //     else
 //         {
-//         shapedef =  "{'type': 'Polygon'" << ", 'rounding_radius': " << radius <<
-//                     ", 'vertices': "  << parseVertices(verts) << "}";
+//         shapedef =  "{\"type\": \"Polygon\"" << ", \"rounding_radius\": " << radius <<
+//                     ", \"vertices\": "  << parseVertices(verts) << "}";
 //         }
 //     return shapedef.str();
 //     }
@@ -116,12 +118,12 @@ class DEMGSDShapeSpec : DEMGSDShapeSpecBase<Real, Vector>
 //     unsigned int nverts = verts.size();
 //     if (nverts == 1)
 //         {
-//         shapedef =  "{'type': 'Sphere'" << shapetype << ", 'diameter': " << Real(2)*radius << "}";
+//         shapedef =  "{\"type\": \"Sphere\"" << shapetype << ", \"diameter\": " << Real(2)*radius << "}";
 //         }
 //     else
 //         {
-//         shapedef =  "{'type': 'ConvexPolyhedron'" << shapetype << ", 'rounding_radius': " << radius <<
-//                     ", 'vertices': "  << parseVertices(verts) << "}";
+//         shapedef =  "{\"type\": \"ConvexPolyhedron\"" << shapetype << ", \"rounding_radius\": " << radius <<
+//                     ", \"vertices\": "  << parseVertices(verts) << "}";
 //         }
 //     return shapedef.str();
 //     }
