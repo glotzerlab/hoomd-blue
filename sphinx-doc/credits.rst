@@ -179,6 +179,8 @@ Isaac Bruss, Chengyu Dai, University of Michigan
 Vyas Ramasubramani, University of Michigan
  * init.read_gsd bug fixes
  * Reverse communication for MPI
+ * Enable simulation of floppy bodies that can be integrated separately but are ignored by the NeighborList
+ * Enabled use of shared memory for Evaluator structs
 
 Nathan Horst
  * Language and figure clarifying the dihedral angle definition.
@@ -313,7 +315,9 @@ Paul Dodd, Erin Teich, University of Michigan
 Vyas Ramasubramani, University of Michigan
  * hpmc.util.tune fixes for tuning by type
  * hpmc.update.boxmc fixes for non-orthorhombic box volume moves
+ * Fixed various bugs with wall overlap checks
  * `jit.external.user` implementation
+ * Refactored depletant integrators
 
 William Zygmunt, Luis Rivera-Rivera, University of Michigan
  * Patchy interaction support in HPMC CPU integrators
