@@ -42,8 +42,9 @@ class SWCAPotential
             m_rcutsq(radius*radius*4*pow(2.0, 1./3)),
             m_frictionParams(frictionParams), m_radius(radius) {}
 
+        // Get this potential's rounding radius
         Real getRadius() const {return m_radius;}
-        
+
         // Length scale sigma accessors
         Real getSigma6() const {return m_sigma6;}
         void setRadius(Real radius)
@@ -82,7 +83,7 @@ class SWCAPotential
         Real m_sigma6;
         // Cutoff radius
         Real m_rcutsq;
-
+        // Rounding radius
         Real m_radius;
         // Cutoff shift parameter
         Real m_delta;
