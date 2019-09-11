@@ -10,7 +10,7 @@
  */
 
 #include "BounceBackNVEGPU.cuh"
-#include "BounceBackGeometry.h"
+#include "StreamingGeometry.h"
 
 namespace mpcd
 {
