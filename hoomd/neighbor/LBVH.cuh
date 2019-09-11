@@ -343,7 +343,7 @@ void lbvh_bubble_aabbs(const LBVHData tree,
                        const unsigned int block_size,
                        cudaStream_t stream)
     {
-    cudaMemset(d_locks, 0, (N-1)*sizeof(unsigned int));
+    cudaMemsetAsync(d_locks, 0, (N-1)*sizeof(unsigned int), stream);
 
     // clamp block size
     static unsigned int max_block_size = UINT_MAX;

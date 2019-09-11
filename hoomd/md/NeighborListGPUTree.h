@@ -80,6 +80,7 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         GPUFlags<unsigned int> m_lbvh_errors;
         std::vector< std::unique_ptr<neighbor::LBVH> > m_lbvhs;
         std::vector< std::unique_ptr<neighbor::LBVHTraverser> > m_traversers;
+        std::vector<cudaStream_t> m_streams;
 
         GlobalVector<Scalar3> m_image_list; //!< List of translation vectors
         unsigned int m_n_images;        //!< Number of translation vectors

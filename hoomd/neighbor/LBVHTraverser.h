@@ -64,12 +64,9 @@ class PYBIND11_EXPORT LBVHTraverser
         //! Constructor
         /*!
          * \param exec_conf HOOMD-blue execution configuration.
-         * \param stream CUDA stream for kernel execution.
          */
-        LBVHTraverser(std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                      cudaStream_t stream = 0)
-            : m_exec_conf(exec_conf), m_stream(stream),
-              m_lbvh_lo(exec_conf), m_lbvh_hi(exec_conf), m_bins(exec_conf)
+        LBVHTraverser(std::shared_ptr<const ExecutionConfiguration> exec_conf)
+            : m_exec_conf(exec_conf), m_lbvh_lo(exec_conf), m_lbvh_hi(exec_conf), m_bins(exec_conf), m_replay(false)
             {
             m_exec_conf->msg->notice(4) << "Constructing LBVHTraverser" << std::endl;
 
@@ -83,22 +80,40 @@ class PYBIND11_EXPORT LBVHTraverser
             m_exec_conf->msg->notice(4) << "Destroying LBVHTraverser" << std::endl;
             }
 
+        //! Setup LBVH for traversal
+        template<class TransformOpT>
+        void setup(const TransformOpT& transform, const LBVH& lbvh, cudaStream_t stream = 0);
+
+        //! Setup LBVH for traversal
+        void setup(const LBVH& lbvh, cudaStream_t stream = 0)
+            {
+            setup(NullTransformOp(), lbvh, stream);
+            }
+
+        //! Reset (nullify) the setup
+        void reset()
+            {
+            m_replay = false;
+            }
+
         //! Traverse the LBVH.
         template<class OutputOpT, class QueryOpT, class TransformOpT>
         void traverse(OutputOpT& out,
                       const QueryOpT& query,
                       const TransformOpT& transform,
                       const LBVH& lbvh,
-                      const GlobalArray<Scalar3>& images = GlobalArray<Scalar3>());
+                      const GlobalArray<Scalar3>& images = GlobalArray<Scalar3>(),
+                      cudaStream_t stream = 0);
 
         //! Traverse the LBVH.
         template<class OutputOpT, class QueryOpT>
         void traverse(OutputOpT& out,
                       const QueryOpT& query,
                       const LBVH& lbvh,
-                      const GlobalArray<Scalar3>& images = GlobalArray<Scalar3>())
+                      const GlobalArray<Scalar3>& images = GlobalArray<Scalar3>(),
+                      cudaStream_t stream = 0)
             {
-            traverse(out, query, NullTransformOp(), lbvh, images);
+            traverse(out, query, NullTransformOp(), lbvh, images, stream);
             }
 
         //! Access the compressed LBVH data for traversal
@@ -123,7 +138,6 @@ class PYBIND11_EXPORT LBVHTraverser
 
     private:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
-        cudaStream_t m_stream;  //!< CUDA stream for traversals
 
         GlobalArray<int4> m_data;   //!< Internal representation of the LBVH for traversal
         GPUFlags<float3> m_lbvh_lo; //!< Lower bound of tree
@@ -135,8 +149,33 @@ class PYBIND11_EXPORT LBVHTraverser
 
         //! Compresses the lbvh into internal representation
         template<class TransformOpT>
-        void compress(const LBVH& lbvh, const TransformOpT& transform);
+        void compress(const LBVH& lbvh, const TransformOpT& transform, cudaStream_t stream);
+
+        bool m_replay;  //!< If true, the compressed structure has already been set explicitly
     };
+
+/*!
+ * \param transform Transformation operation for cached primitive indexes.
+ * \param lbvh LBVH to traverse.
+ *
+ * \tparam TransformOpT The type of transformation operation.
+ *
+ * This method just calls the compress method on the LBVH, and marks that this has been done
+ * internally so that subsequent calls to traverse do not compress. This is useful if the same
+ * LBVH is going to be traversed multiple times. It is the caller's responsibility to ensure
+ * that the transform op and lbvh do not change between setup and traversal, or the result will
+ * be incorrect.
+ *
+ * To clear a setup, call reset().
+ */
+template<class TransformOpT>
+void LBVHTraverser::setup(const TransformOpT& transform, const LBVH& lbvh, cudaStream_t stream)
+    {
+    if (lbvh.getN() == 0) return;
+
+    compress(lbvh, transform, stream);
+    m_replay = true;
+    }
 
 /*!
  * \param out Output operation for intersected primitives.
@@ -144,6 +183,7 @@ class PYBIND11_EXPORT LBVHTraverser
  * \param transform Transformation operation for cached primitive indexes.
  * \param lbvh LBVH to traverse.
  * \param images Additional images of \a query volumes to test.
+ * \param stream CUDA stream for kernel execution.
  *
  * \tparam OutputOpT The type of output operation.
  * \tparam QueryOpT The type of query operation.
@@ -163,7 +203,8 @@ void LBVHTraverser::traverse(OutputOpT& out,
                              const QueryOpT& query,
                              const TransformOpT& transform,
                              const LBVH& lbvh,
-                             const GlobalArray<Scalar3>& images)
+                             const GlobalArray<Scalar3>& images,
+                             cudaStream_t stream)
     {
     // don't traverse with empty lbvh
     if (lbvh.getN() == 0) return;
@@ -176,8 +217,9 @@ void LBVHTraverser::traverse(OutputOpT& out,
         throw std::runtime_error("Too many images (>32) in LBVH traverser.");
         }
 
-    // compress the tree
-    compress(lbvh, transform);
+    // setup if this is not a replay
+    if (!m_replay)
+        setup(transform, lbvh, stream);
 
     // compressed lbvh data
     ArrayHandle<int4> d_data(m_data, access_location::device, access_mode::read);
@@ -198,7 +240,7 @@ void LBVHTraverser::traverse(OutputOpT& out,
                              d_images.data,
                              Nimages,
                              m_tune_traverse->getParam(),
-                             m_stream);
+                             stream);
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tune_traverse->end();
     }
@@ -206,6 +248,7 @@ void LBVHTraverser::traverse(OutputOpT& out,
 /*!
  * \param lbvh LBVH to compress
  * \param transform Transformation operation for cached primitive indexes.
+ * \param stream CUDA stream for kernel execution.
  *
  * \tparam TransformOpT The type of transformation operation.
  *
@@ -232,7 +275,7 @@ void LBVHTraverser::traverse(OutputOpT& out,
  * index to save indirection when the index itself is not of interest.
  */
 template<class TransformOpT>
-void LBVHTraverser::compress(const LBVH& lbvh, const TransformOpT& transform)
+void LBVHTraverser::compress(const LBVH& lbvh, const TransformOpT& transform, cudaStream_t stream)
     {
     // resize the internal data array
     const unsigned int num_data = lbvh.getNNodes();
@@ -276,7 +319,7 @@ void LBVHTraverser::compress(const LBVH& lbvh, const TransformOpT& transform)
                              lbvh.getNInternal(),
                              lbvh.getNNodes(),
                              m_tune_compress->getParam(),
-                             m_stream);
+                             stream);
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tune_compress->end();
     }

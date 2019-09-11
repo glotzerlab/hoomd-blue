@@ -196,6 +196,9 @@ uchar2 lbvh_sort_codes(void *d_tmp,
     uchar2 swap = make_uchar2(0,0);
     if (d_tmp != NULL)
         {
+        // force the stream to synchronize before checking result (in case CUB doesn't, not documented)
+        cudaStreamSynchronize(stream);
+
         // mark that the gpu arrays should be flipped if the final result is not in the sorted array (1)
         swap.x = (d_keys.selector == 0);
         swap.y = (d_vals.selector == 0);

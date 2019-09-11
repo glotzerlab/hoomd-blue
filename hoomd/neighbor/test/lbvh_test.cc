@@ -74,10 +74,10 @@ UP_TEST( lbvh_test )
 
     for (unsigned int i=0; i < 2; ++i)
         {
-        lbvh = std::make_shared<neighbor::LBVH>(exec_conf, streams[i]);
+        lbvh = std::make_shared<neighbor::LBVH>(exec_conf);
             {
             ArrayHandle<Scalar4> d_points(points, access_location::device, access_mode::read);
-            lbvh->build(neighbor::PointInsertOp(d_points.data, 3), min, max);
+            lbvh->build(neighbor::PointInsertOp(d_points.data, 3), min, max, streams[i]);
             cudaStreamSynchronize(streams[i]);
             }
 
@@ -205,7 +205,7 @@ UP_TEST( lbvh_test )
     exec_conf->msg->notice(0) << "Testing traverser neighbor list..." << std::endl;
     for (unsigned int i=0; i < 2; ++i)
         {
-        neighbor::LBVHTraverser traverser(exec_conf, streams[i]);
+        neighbor::LBVHTraverser traverser(exec_conf);
         // setup nlist data structures
         const unsigned int max_neigh = 2;
         GlobalArray<unsigned int> neigh_list(max_neigh*spheres.getNumElements(), exec_conf);
@@ -219,7 +219,7 @@ UP_TEST( lbvh_test )
             ArrayHandle<Scalar4> d_spheres(spheres, access_location::device, access_mode::read);
             neighbor::SphereQueryOp query(d_spheres.data, spheres.getNumElements());
 
-            traverser.traverse(nl_op, query, *lbvh);
+            traverser.traverse(nl_op, query, *lbvh, GlobalArray<Scalar3>(), streams[i]);
             cudaStreamSynchronize(streams[i]);
             }
         // check output

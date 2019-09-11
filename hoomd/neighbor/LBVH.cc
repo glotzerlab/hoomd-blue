@@ -14,13 +14,11 @@ namespace neighbor
 
 /*!
  * \param exec_conf HOOMD-blue execution configuration
- * \param stream CUDA stream for kernel execution.
  *
  * The constructor defers memory initialization to the first call to ::build.
  */
-LBVH::LBVH(std::shared_ptr<const ExecutionConfiguration> exec_conf, cudaStream_t stream)
-    : m_exec_conf(exec_conf), m_stream(stream),
-      m_root(gpu::LBVHSentinel), m_N(0), m_N_internal(0), m_N_nodes(0)
+LBVH::LBVH(std::shared_ptr<const ExecutionConfiguration> exec_conf)
+    : m_exec_conf(exec_conf), m_root(gpu::LBVHSentinel), m_N(0), m_N_internal(0), m_N_nodes(0)
     {
     m_exec_conf->msg->notice(4) << "Constructing LBVH" << std::endl;
 

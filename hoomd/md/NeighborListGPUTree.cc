@@ -40,6 +40,12 @@ NeighborListGPUTree::~NeighborListGPUTree()
     m_pdata->getNumTypesChangeSignal().disconnect<NeighborListGPUTree, &NeighborListGPUTree::slotNumTypesChanged>(this);
     m_pdata->getBoxChangeSignal().disconnect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
     m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);
+
+    // destroy all of the created streams
+    for (auto stream=m_streams.begin(); stream != m_streams.end(); ++stream)
+        {
+        cudaStreamDestroy(*stream);
+        }
     }
 
 void NeighborListGPUTree::buildNlist(unsigned int timestep)
@@ -81,10 +87,12 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
 
             m_lbvhs.resize(m_pdata->getNTypes());
             m_traversers.resize(m_pdata->getNTypes());
+            m_streams.resize(m_pdata->getNTypes());
             for (unsigned int i=m_max_types; i < m_pdata->getNTypes(); ++i)
                 {
                 m_lbvhs[i].reset(new neighbor::LBVH(m_exec_conf));
                 m_traversers[i].reset(new neighbor::LBVHTraverser(m_exec_conf));
+                cudaStreamCreate(&m_streams[i]);
                 }
 
             m_max_types = m_pdata->getNTypes();
@@ -259,17 +267,20 @@ void NeighborListGPUTree::buildTree()
                 {
                 m_lbvhs[i]->build(PointMapInsertOp(d_pos.data, d_sorted_indexes.data + first, last-first),
                                   lbvh_box.getLo(),
-                                  lbvh_box.getHi());
+                                  lbvh_box.getHi(),
+                                  m_streams[i]);
                 }
             else
                 {
                 // effectively destroy the lbvh
-                m_lbvhs[i]->build(PointMapInsertOp(d_pos.data, NULL, 0), lbvh_box.getLo(), lbvh_box.getHi());
+                m_lbvhs[i]->build(PointMapInsertOp(d_pos.data, NULL, 0), lbvh_box.getLo(), lbvh_box.getHi(), m_streams[i]);
                 }
             }
+        // wait for all builds to finish
+        cudaDeviceSynchronize();
         }
 
-    // put particles in primitive order for traversal
+    // put particles in primitive order for traversal and compress the lbvhs so that the data is ready for traversal
         {
         ArrayHandle<unsigned int> h_type_first(m_type_first, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> d_traverse_order(m_traverse_order, access_location::device, access_mode::overwrite);
@@ -292,6 +303,16 @@ void NeighborListGPUTree::buildTree()
                 m_copy_tuner->end();
                 }
             }
+
+        // loops are not fused to avoid streams or syncing in kernel loop above, but could be done if necessary
+        cudaDeviceSynchronize();
+        for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+            {
+            if (m_lbvhs[i]->getN() == 0) continue;
+            neighbor::MapTransformOp map(d_sorted_indexes.data + h_type_first.data[i]);
+            m_traversers[i]->setup(map, *m_lbvhs[i], m_streams[i]);
+            }
+        cudaDeviceSynchronize();
         }
     }
 
@@ -318,6 +339,8 @@ void NeighborListGPUTree::traverseTree()
     // clear the neighbor counts
     cudaMemset(d_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
 
+    // traverse all pairs in (now-transposed) streams
+    cudaDeviceSynchronize();
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
         {
         // skip this type if there are no particles
@@ -329,7 +352,7 @@ void NeighborListGPUTree::traverseTree()
         // neighbor list write op for this type
         NeighborListOp nlist_op(d_nlist.data, d_n_neigh.data, d_conditions.data + i, d_head_list.data, h_Nmax.data[i]);
 
-        // traverse it against all trees
+        // traverse it against all trees, using the same stream for type i to avoid race conditions on writing
         for (unsigned int j=0; j < m_pdata->getNTypes(); ++j)
             {
             // skip this lbvh if there are no particles in it
@@ -366,7 +389,7 @@ void NeighborListGPUTree::traverseTree()
                                                       m_pdata->getN(),
                                                       rcut,
                                                       rlist);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
                 }
             else if (m_filter_body && !m_diameter_shift)
                 {
@@ -378,7 +401,7 @@ void NeighborListGPUTree::traverseTree()
                                                      m_pdata->getN(),
                                                      rcut,
                                                      rlist);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
                 }
             else if (!m_filter_body && m_diameter_shift)
                 {
@@ -390,7 +413,7 @@ void NeighborListGPUTree::traverseTree()
                                                      m_pdata->getN(),
                                                      rcut,
                                                      rlist);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
                 }
             else
                 {
@@ -402,10 +425,12 @@ void NeighborListGPUTree::traverseTree()
                                                     m_pdata->getN(),
                                                     rcut,
                                                     rlist);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
                 }
             }
         }
+        // wait for all traversals to finish
+        cudaDeviceSynchronize();
     }
 
 /*!
