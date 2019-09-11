@@ -37,7 +37,7 @@ class _DEMBase:
     def _connect_gsd_shape_spec(self, gsd):
         # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
         if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_force, "connectDEMGSDShapeSpec"):
-            self.cpp_force.connectDEMGSDShapeSpec(gsd.cpp_force, "particles/type_shapes");
+            self.cpp_force.connectDEMGSDShapeSpec(gsd.cpp_analyzer, "particles/type_shapes");
         else:
             raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 
