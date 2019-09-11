@@ -24,6 +24,8 @@ void export_NF_SWCA_3D(py::module& m)
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar, SWCA>())
         .def("setParams", &SWCA_DEM_3D::setParams)
         .def("setRcut", &SWCA_DEM_3D::setRcut)
+        .def("connectDEMGSDShapeSpec", &SWCA_DEM_3D::connectDEMGSDShapeSpec)
+        .def("slotWriteDEMGSDShapeSpec", &SWCA_DEM_3D::slotWriteDEMGSDShapeSpec)
         ;
 
 #ifdef ENABLE_CUDA

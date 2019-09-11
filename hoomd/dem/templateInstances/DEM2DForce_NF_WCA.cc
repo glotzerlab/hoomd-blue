@@ -24,6 +24,8 @@ void export_NF_WCA_2D(py::module& m)
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar, WCA>())
         .def("setParams", &WCA_DEM_2D::setParams)
         .def("setRcut", &WCA_DEM_2D::setRcut)
+        .def("connectDEMGSDShapeSpec", &WCA_DEM_2D::connectDEMGSDShapeSpec)
+        .def("slotWriteDEMGSDShapeSpec", &WCA_DEM_2D::slotWriteDEMGSDShapeSpec)
         ;
 
 #ifdef ENABLE_CUDA
