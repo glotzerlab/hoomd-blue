@@ -169,6 +169,8 @@ stages:
 - stage: build_validate_gpu
   displayName: Validate (GPU)
   dependsOn: []
+  variables:
+    enable_cuda: on
 
   jobs:
   - job: vld_linux_gpu
