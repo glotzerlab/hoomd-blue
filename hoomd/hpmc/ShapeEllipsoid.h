@@ -99,9 +99,9 @@ struct ShapeEllipsoid
     HOSTDEVICE std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
-        shapedef << "{'type': 'Ellipsoid', 'a': " << axes.x <<
-                    ", 'b': " << axes.y <<
-                    ", 'c': " << axes.x <<
+        shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << axes.x <<
+                    ", \"b\": " << axes.y <<
+                    ", \"c\": " << axes.x <<
                     "}";
         return shapedef.str();
         }
