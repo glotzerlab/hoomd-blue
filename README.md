@@ -30,10 +30,8 @@ website](https://glotzerlab.engin.umich.edu/hoomd-blue/).
 
 ## Installation
 
-**HOOMD-blue** binaries are available as containers
-([Docker Hub](https://hub.docker.com/r/glotzerlab/software),
-[Singularity Hub](https://singularity-hub.org/collections/1663))
-and for Linux and macOS via the
+**HOOMD-blue** binaries are available in the [glotzerlab-software](https://glotzerlab-software.readthedocs.io)
+[Docker](https://hub.docker.com/)/[Singularity](https://www.sylabs.io/) images and for Linux and macOS via the
 [hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd).
 See the [Installation Guide](INSTALLING.rst) for instructions on installing
 **HOOMD-blue** or compiling from source.
