@@ -88,7 +88,7 @@ BounceBackNVE<Geometry>::BounceBackNVE(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing BounceBackNVE + " << Geometry::getName() << std::endl;
 
-    m_pdata->getBoxChangeSignal().connect<BounceBackNVE<Geometry>, &BounceBackNVE<Geometry>::requestValidate>(this);
+    m_pdata->getBoxChangeSignal().template connect<BounceBackNVE<Geometry>, &BounceBackNVE<Geometry>::requestValidate>(this);
     }
 
 template<class Geometry>
@@ -96,7 +96,7 @@ BounceBackNVE<Geometry>::~BounceBackNVE()
     {
     m_exec_conf->msg->notice(5) << "Destroying BounceBackNVE + " << Geometry::getName() << std::endl;
 
-    m_pdata->getBoxChangeSignal().disconnect<BounceBackNVE<Geometry>, &BounceBackNVE<Geometry>::requestValidate>(this);
+    m_pdata->getBoxChangeSignal().template disconnect<BounceBackNVE<Geometry>, &BounceBackNVE<Geometry>::requestValidate>(this);
     }
 
 template<class Geometry>

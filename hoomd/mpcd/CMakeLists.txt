@@ -95,6 +95,7 @@ endif()
 
 set(_mpcd_cu_sources
     ATCollisionMethodGPU.cu
+    BounceBackNVEGPU.cu
     CellThermoComputeGPU.cu
     CellListGPU.cu
     ConfinedStreamingMethodGPU.cu
