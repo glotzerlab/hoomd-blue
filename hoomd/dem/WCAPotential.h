@@ -41,7 +41,7 @@ class WCAPotential
         WCAPotential(Real radius, const FrictionModel &frictionParams):
             m_sigma6(radius*radius*radius*radius*radius*radius*64.0),
             m_rcutsq(radius*radius*4.0*pow(2.0, 1./3.0)),
-            m_frictionParams(frictionParams) {}
+            m_frictionParams(frictionParams), m_radius(radius) {}
 
         // Energy scale sigma accessors
         DEVICE Real getSigma6() const {return m_sigma6;}
@@ -53,6 +53,8 @@ class WCAPotential
 
         // Get this potential's cutoff radius
         Real getRcutSq() const {return m_rcutsq;}
+
+        Real getRadius() const {return m_radius;}
 
         // Mutate this object by adjusting its lengthscale
         void scale(Real factor)
@@ -91,6 +93,8 @@ class WCAPotential
         Real m_sigma6;
         // Cutoff radius
         Real m_rcutsq;
+
+        Real m_radius;
         //! Parameters for friction (including relative velocity state, if necessary)
         FrictionModel m_frictionParams;
     };

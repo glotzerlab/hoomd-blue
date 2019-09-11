@@ -60,6 +60,31 @@ DEM3DForceCompute<Real, Real4, Potential>::DEM3DForceCompute(
         }
     }
 
+template<typename Real, typename Real4, typename Potential>
+void DEM3DForceCompute<Real, Real4, Potential>::connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer,
+                                          std::string name)
+    {
+    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    auto func = std::bind(&DEM3DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec, this, std::placeholders::_1, name);
+    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    addSlot(pslot);
+    }
+
+template<typename Real, typename Real4, typename Potential>
+int DEM3DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec(gsd_handle& handle, std::string name) const
+    {
+    // create schema helpers
+    #ifdef ENABLE_MPI
+    bool mpi=(bool)m_pdata->getDomainDecomposition();
+    #else
+    bool mpi=false;
+    #endif
+
+    DEMGSDShapeSpec<Real, vec3<Real>> shapespec(m_exec_conf, mpi);
+    int retval = shapespec.write(handle, name, m_vertsVec, m_evaluator.getRadius());
+    return retval;
+}
+
 /*! Destructor. */
 template<typename Real, typename Real4, typename Potential>
 DEM3DForceCompute<Real, Real4, Potential>::~DEM3DForceCompute()

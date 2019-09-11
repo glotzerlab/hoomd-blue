@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "DEMEvaluator.h"
+#include "DEMGSDShapeSpec.h"
 
 /*! \file DEM3DForceCompute.h
   \brief Declares the DEM3DForceCompute class
@@ -59,7 +60,7 @@
   \ingroup computes
 */
 template<typename Real, typename Real4, typename Potential>
-class DEM3DForceCompute : public ForceCompute, public DEMGSDShapeSpec<vec3, Potential>
+class DEM3DForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
@@ -97,6 +98,10 @@ class DEM3DForceCompute : public ForceCompute, public DEMGSDShapeSpec<vec3, Pote
 
         //! Find the total number of degenerate vertices for all shapes
         size_t numDegenerateVerts() const;
+
+        void connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+
+        int slotWriteDEMGSDShapeSpec(gsd_handle& handle, std::string name) const;
 
     #ifdef ENABLE_MPI
         //! Get requested ghost communication flags
