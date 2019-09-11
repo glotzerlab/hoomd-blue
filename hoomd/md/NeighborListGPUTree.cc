@@ -342,18 +342,63 @@ void NeighborListGPUTree::traverseTree()
             const unsigned int first = h_type_first.data[i];
             neighbor::MapTransformOp map(d_sorted_indexes.data + first);
 
-            ParticleQueryOp query_op(d_pos.data,
-                                     (m_filter_body) ? d_body.data : NULL,
-                                     (m_diameter_shift) ? d_diam.data : NULL,
-                                     d_traverse_order.data,
-                                     m_pdata->getN(),
-                                     d_r_cut.data,
-                                     m_r_buff,
-                                     rpad,
-                                     m_typpair_idx,
-                                     i);
-
-            m_traversers[i]->traverse(nlist_op, query_op, map, *m_lbvhs[i], m_image_list);
+            // dispatch traversal using template method (as a microoptimization)
+            if (!m_filter_body && !m_diameter_shift)
+                {
+                ParticleQueryOp<false,false> query_op(d_pos.data,
+                                                      NULL,
+                                                      NULL,
+                                                      d_traverse_order.data,
+                                                      m_pdata->getN(),
+                                                      d_r_cut.data,
+                                                      m_r_buff,
+                                                      rpad,
+                                                      m_typpair_idx,
+                                                      i);
+                m_traversers[i]->traverse(nlist_op, query_op, map, *m_lbvhs[i], m_image_list);
+                }
+            else if (m_filter_body && !m_diameter_shift)
+                {
+                ParticleQueryOp<true,false> query_op(d_pos.data,
+                                                     d_body.data,
+                                                     NULL,
+                                                     d_traverse_order.data,
+                                                     m_pdata->getN(),
+                                                     d_r_cut.data,
+                                                     m_r_buff,
+                                                     rpad,
+                                                     m_typpair_idx,
+                                                     i);
+                m_traversers[i]->traverse(nlist_op, query_op, map, *m_lbvhs[i], m_image_list);
+                }
+            else if (!m_filter_body && m_diameter_shift)
+                {
+                ParticleQueryOp<false,true> query_op(d_pos.data,
+                                                     NULL,
+                                                     d_diam.data,
+                                                     d_traverse_order.data,
+                                                     m_pdata->getN(),
+                                                     d_r_cut.data,
+                                                     m_r_buff,
+                                                     rpad,
+                                                     m_typpair_idx,
+                                                     i);
+                m_traversers[i]->traverse(nlist_op, query_op, map, *m_lbvhs[i], m_image_list);
+                }
+            else
+                {
+                ParticleQueryOp<true,true> query_op(d_pos.data,
+                                                    d_body.data,
+                                                    d_diam.data,
+                                                    d_traverse_order.data,
+                                                    m_pdata->getN(),
+                                                    d_r_cut.data,
+                                                    m_r_buff,
+                                                    rpad,
+                                                    m_typpair_idx,
+                                                    i);
+                m_traversers[i]->traverse(nlist_op, query_op, map, *m_lbvhs[i], m_image_list);
+                }
             }
         }
     }

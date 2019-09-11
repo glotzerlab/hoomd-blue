@@ -76,6 +76,7 @@ struct PointMapInsertOp : public neighbor::PointInsertOp
     const unsigned int *map;
     };
 
+template<bool use_body, bool use_diam>
 struct ParticleQueryOp
     {
     ParticleQueryOp(const Scalar4 *positions_,
@@ -96,22 +97,22 @@ struct ParticleQueryOp
     struct ThreadData
         {
         HOSTDEVICE ThreadData(Scalar3 position_,
-                              Scalar R_,
                               int idx_,
-                              unsigned int type_,
                               unsigned int body_,
                               Scalar diam_,
-                              Scalar rc_)
-            : position(position_), R(R_), idx(idx_), type(type_), body(body_), diam(diam_), rc(rc_)
+                              Scalar rc_,
+                              Scalar rl_,
+                              unsigned int type_)
+            : position(position_), idx(idx_), body(body_), diam(diam_), rc(rc_), rl(rl_), type(type_)
             {}
 
         Scalar3 position;
-        Scalar R;
         int idx;
-        unsigned int type;
         unsigned int body;
         Scalar diam;
         Scalar rc;
+        Scalar rl;
+        unsigned int type;
         };
     typedef SkippableBoundingSphere Volume;
 
@@ -136,15 +137,23 @@ struct ParticleQueryOp
             rl = Scalar(-1.0);
             }
 
-        const unsigned int body = (bodies != NULL) ? __ldg(bodies + pidx) : 0xffffffff;
-        const Scalar diam = (diams != NULL) ? __ldg(diams + pidx) : Scalar(1.0);
+        unsigned int body(0xffffffff);
+        if (use_body)
+            {
+            body = __ldg(bodies + pidx);
+            }
+        Scalar diam(1.0);
+        if (use_diam)
+            {
+            diam = __ldg(diams + pidx);
+            }
 
-        return ThreadData(r, rl, pidx, type, body, diam, rc);
+        return ThreadData(r, pidx, body, diam, rc, rl, type);
         }
 
     DEVICE Volume get(const ThreadData& q, const Scalar3& image) const
         {
-        return Volume(q.position+image,q.R);
+        return Volume(q.position+image, q.rl);
         }
 
     DEVICE bool overlap(const Volume& v, const neighbor::BoundingBox& box) const
@@ -157,14 +166,14 @@ struct ParticleQueryOp
         bool exclude = (q.idx == primitive);
 
         // body exclusion
-        if (bodies != NULL && q.body != 0xffffffff)
+        if (use_body && !exclude && q.body != 0xffffffff)
             {
             const unsigned int body = __ldg(bodies + primitive);
             exclude |= (q.body == body);
             }
 
         // diameter exclusion
-        if (diams != NULL && !exclude)
+        if (use_diam && !exclude)
             {
             const Scalar4 position = positions[primitive];
             const Scalar3 r = make_scalar3(position.x, position.y, position.z);

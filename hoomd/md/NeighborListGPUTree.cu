@@ -251,7 +251,13 @@ template void neighbor::gpu::lbvh_bubble_aabbs(const neighbor::gpu::LBVHData, co
     unsigned int *, const unsigned int, const unsigned int, cudaStream_t);
 template void neighbor::gpu::lbvh_one_primitive(const neighbor::gpu::LBVHData, const PointMapInsertOp&, cudaStream_t);
 template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
-    const ParticleQueryOp&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
+    const ParticleQueryOp<false,false>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
+template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
+    const ParticleQueryOp<false,true>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
+template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
+    const ParticleQueryOp<true,false>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
+template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
+    const ParticleQueryOp<true,true>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
 
 #if 0
 //! Kernel for traversing tree to generate neighbor list
