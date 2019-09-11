@@ -16,6 +16,9 @@
 #include "Communicator.h"
 #endif
 
+#include "hoomd/extern/pybind/include/pybind11/stl_bind.h"
+#include "hoomd/extern/pybind/include/pybind11/numpy.h"
+
 #include <string.h>
 #include <stdexcept>
 #include <list>
@@ -268,6 +271,8 @@ void GSDDumpWriter::analyze(unsigned int timestep)
 
     // emit on all ranks, the slot needs to handle the mpi logic.
     m_write_signal.emit(m_handle);
+
+    writeUser(timestep, root);
 
     if (root)
         {
@@ -842,6 +847,85 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
         }
     }
 
+/*! Perform the user-provided callbacks and write out the resulting data
+*/
+void GSDDumpWriter::writeUser(unsigned int timestep, bool root)
+    {
+    for (std::pair<std::string, pybind11::function> item : m_user_log)
+        {
+        string name = string("log/") + item.first;
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing " << name << endl;
+
+        // call the callback collectively on all ranks
+        pybind11::object obj = item.second(timestep);
+
+        // only evaluate the numpy array on the root rank
+        if (root)
+            {
+            pybind11::array arr = obj;
+            gsd_type type = GSD_TYPE_UINT8;
+            auto dtype = arr.dtype();
+            if (dtype.kind() == 'u' && dtype.itemsize() == 1)
+                {
+                type = GSD_TYPE_UINT8;
+                }
+            else if (dtype.kind() == 'u' && dtype.itemsize() == 2)
+                {
+                type = GSD_TYPE_UINT16;
+                }
+            else if (dtype.kind() == 'u' && dtype.itemsize() == 4)
+                {
+                type = GSD_TYPE_UINT32;
+                }
+            else if (dtype.kind() == 'u' && dtype.itemsize() == 8)
+                {
+                type = GSD_TYPE_UINT64;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 1)
+                {
+                type = GSD_TYPE_INT8;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 2)
+                {
+                type = GSD_TYPE_INT16;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 4)
+                {
+                type = GSD_TYPE_INT32;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 8)
+                {
+                type = GSD_TYPE_INT64;
+                }
+            else if (dtype.kind() == 'f' && dtype.itemsize() == 4)
+                {
+                type = GSD_TYPE_FLOAT;
+                }
+            else if (dtype.kind() == 'f' && dtype.itemsize() == 8)
+                {
+                type = GSD_TYPE_DOUBLE;
+                }
+            else
+                {
+                throw runtime_error("Invalid numpy array format in gsd user-defined log data [" + item.first + "]: " + string(pybind11::str(arr.dtype())));
+                }
+
+            int M = 1;
+            if (arr.ndim() == 2)
+                {
+                M = arr.shape(1);
+                }
+            if (arr.ndim() > 2 || arr.ndim() == 0)
+                {
+                throw runtime_error("Invalid numpy dimension in gsd user-defined log data [" + item.first + "]");
+                }
+
+            int retval = gsd_write_chunk(&m_handle, name.c_str(), type, arr.shape(0), M, 0, (void *)arr.data());
+            checkError(retval);
+            }
+        }
+    }
+
 /*! Populate the m_nondefault map.
     Set entries to true when they exist in frame 0 of the file, otherwise, set them to false.
 */
@@ -918,11 +1002,14 @@ void GSDDumpWriter::populateNonDefault()
 
 void export_GSDDumpWriter(py::module& m)
     {
+    py::bind_map<std::map<std::string, pybind11::function>>(m, "MapStringFunction");
+
     py::class_<GSDDumpWriter, std::shared_ptr<GSDDumpWriter> >(m,"GSDDumpWriter",py::base<Analyzer>())
         .def(py::init< std::shared_ptr<SystemDefinition>, std::string, std::shared_ptr<ParticleGroup>, bool, bool>())
         .def("setWriteAttribute", &GSDDumpWriter::setWriteAttribute)
         .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)
         .def("setWriteMomentum", &GSDDumpWriter::setWriteMomentum)
         .def("setWriteTopology", &GSDDumpWriter::setWriteTopology)
+        .def_readwrite("user_log", &GSDDumpWriter::m_user_log)
     ;
     }
