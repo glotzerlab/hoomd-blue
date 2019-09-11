@@ -19,6 +19,7 @@ class _DEMBase:
         self.nlist = nlist;
         self.nlist.subscribe(self.get_rcut);
         self.nlist.update_rcut();
+        self.cpp_force = None;
 
     def _initialize_types(self):
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
@@ -32,6 +33,13 @@ class _DEMBase:
         else:
             for typ in type_list:
                 self.setParams3D(typ, [[0, 0, 0]], [], False);
+
+    def _connect_gsd_shape_spec(self, gsd):
+        # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_force, "connectDEMGSDShapeSpec"):
+            self.cpp_force.connectDEMGSDShapeSpec(gsd.cpp_force, "particles/type_shapes");
+        else:
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 
     def setParams2D(self, type, vertices, center=False):
         """Set the vertices for a given particle type.
