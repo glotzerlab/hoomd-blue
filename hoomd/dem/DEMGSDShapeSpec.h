@@ -49,7 +49,6 @@ class DEMGSDShapeSpecBase<Real,vec2<Real>>
             vertstr << "[" << verts[nverts-1].x << ", " << verts[nverts-1].y << "]" << "]";
             return vertstr.str();
             }
-
     };
 
 template <typename Real>
@@ -97,66 +96,6 @@ class DEMGSDShapeSpec : public DEMGSDShapeSpecBase<Real, Vector>
         int write(gsd_handle& handle, const std::string& name, const std::vector<std::vector<Vector>> &shapes, const Real &radius);
 
     };
-
-// template <typename Real>
-// std::string DEMGSDShapeSpec<Real,vec2<Real>>::getShapeType(std::vector<vec2<Real> > &verts, Real &radius)
-//     {
-//     std::ostringstream shapedef;
-//     unsigned int nverts = verts.size();
-//     if (nverts == 1)
-//         {
-//         shapedef =  "{\"type\": \"Disk\"" << ", \"diameter\": " << Real(2)*radius << "}";
-//         }
-//     else
-//         {
-//         shapedef =  "{\"type\": \"Polygon\"" << ", \"rounding_radius\": " << radius <<
-//                     ", \"vertices\": "  << parseVertices(verts) << "}";
-//         }
-//     return shapedef.str();
-//     }
-
-// template <typename Real>
-// std::string DEMGSDShapeSpec<vec3<Real>>::getShapeType(std::vector<vec3<Real> > &verts, Real &radius)
-//     {
-//     std::ostringstream shapedef;
-//     unsigned int nverts = verts.size();
-//     if (nverts == 1)
-//         {
-//         shapedef =  "{\"type\": \"Sphere\"" << shapetype << ", \"diameter\": " << Real(2)*radius << "}";
-//         }
-//     else
-//         {
-//         shapedef =  "{\"type\": \"ConvexPolyhedron\"" << shapetype << ", \"rounding_radius\": " << radius <<
-//                     ", \"vertices\": "  << parseVertices(verts) << "}";
-//         }
-//     return shapedef.str();
-//     }
-
-// template <typename Real>
-// inline std::string DEMGSDShapeSpec<vec2<Real>>::parseVertices(std::vector<vec2<Real> > &verts)
-//     {
-//     std::ostringstream vertstr;
-//     unsigned int nverts = verts.size();
-//     for (unsigned int i = 0; i < nverts-1; i++)
-//         {
-//         vertstr << "[ " << verts[i].x << ", " << verts[i].y << "], ";
-//         }
-//     vertstr << "[ " << verts[nverts-1].x << ", " << verts[nverts-1].y << "]" << " ]";
-//     return vertstr.str();
-//     }
-//
-// template <typename Real>
-// inline std::string DEMGSDShapeSpec<vec3<Real>>::parseVertices(std::vector<vec3<Real> > &verts)
-//     {
-//     std::ostringstream vertstr;
-//     unsigned int nverts = verts.size();
-//     for (unsigned int i = 0; i < nverts-1; i++)
-//         {
-//         vertstr << "[ " << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
-//         }
-//     vertstr << "[ " << verts[nverts-1].x << ", " << verts[nverts-1].y << ", " << verts[nverts-1].x  "]" << " ]";
-//     return vertstr.str();
-//     }
 
 template <typename Real, typename Vector>
 int DEMGSDShapeSpec<Real,Vector>::write(gsd_handle& handle, const std::string& name, const std::vector<std::vector<Vector>> &shapes, const Real &radius)
