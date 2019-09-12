@@ -38,9 +38,10 @@ class SWCAPotential
         // so the given value acts as a radius of interaction as might be
         // expected for a spheropolygon
         SWCAPotential(Real radius, const FrictionModel &frictionParams):
+            m_radius(radius),
             m_sigma6(radius*radius*radius*radius*radius*radius*64),
             m_rcutsq(radius*radius*4*pow(2.0, 1./3)),
-            m_frictionParams(frictionParams), m_radius(radius) {}
+            m_frictionParams(frictionParams) {}
 
         // Get this potential's rounding radius
         Real getRadius() const {return m_radius;}
@@ -79,12 +80,12 @@ class SWCAPotential
         DEVICE inline void setVelocity(const vec3<Real> &v) {m_frictionParams.setVelocity(v);}
 
     private:
+        // Rounding radius
+        Real m_radius;
         // Length scale sigma, raised to the sixth power for convenience
         Real m_sigma6;
         // Cutoff radius
         Real m_rcutsq;
-        // Rounding radius
-        Real m_radius;
         // Cutoff shift parameter
         Real m_delta;
         //! Parameters for friction (including relative velocity state, if necessary)

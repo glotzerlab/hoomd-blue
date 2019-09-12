@@ -39,9 +39,10 @@ class WCAPotential
         // the optional viscous term (it is ignored if this potential was
         // not built with viscosity enabled).
         WCAPotential(Real radius, const FrictionModel &frictionParams):
+            m_radius(radius),
             m_sigma6(radius*radius*radius*radius*radius*radius*64.0),
             m_rcutsq(radius*radius*4.0*pow(2.0, 1./3.0)),
-            m_frictionParams(frictionParams), m_radius(radius) {}
+            m_frictionParams(frictionParams) {}
 
         // Energy scale sigma accessors
         DEVICE Real getSigma6() const {return m_sigma6;}
@@ -91,12 +92,12 @@ class WCAPotential
         DEVICE inline void setVelocity(const vec3<Real> &v) {m_frictionParams.setVelocity(v);}
 
     private:
+        // Rounding radius
+        Real m_radius;
         // Length scale sigma, raised to the sixth power for convenience
         Real m_sigma6;
         // Cutoff radius
         Real m_rcutsq;
-        // Rounding radius
-        Real m_radius;
         //! Parameters for friction (including relative velocity state, if necessary)
         FrictionModel m_frictionParams;
     };
