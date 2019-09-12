@@ -158,7 +158,7 @@ struct ShapeUnion
 
     HOSTDEVICE std::string getShapeSpec() const
         {
-        return "{}";
+        throw std::runtime_error("Shape definition not suppored for this shape.");
         }
 
     //! Return the bounding box of the shape in world coordinates
