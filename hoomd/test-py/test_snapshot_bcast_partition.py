@@ -4,11 +4,8 @@
 from hoomd import *
 import hoomd;
 
-if hoomd._hoomd.is_MPI_available():
-    # initialize with every rank == one partition
-    context.initialize()  # used to have --nrank=1
-else:
-    context.initialize('')
+# initialize with every rank == one partition
+context.initialize()  # used to have --nrank=1
 
 import unittest
 import os

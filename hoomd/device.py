@@ -20,15 +20,10 @@ Attributes:
     num_threads (int): the number of CPU threads to be used in simulation, settable
     gpu_ids (list(int)): list of names of the gpus, if in gpu mode
     num_ranks (int): the number of ranks
-    username (str): the username
-    wallclocktime (float): elapsed time since the hoomd script first started execution
-    cputime (float): CPU clock time elapsed since the hoomd script first started execution
-    job_id (int): the id of the job
-    job_name (str): the job name
     notice_level (int): minimum level of notice messages to print, settable
-    hostname (str): the network hostname
     memory_tracback (bool): If true, enable memory allocation tracking (*only for debugging/profiling purposes*)
     gpu_error_checking (bool): Whether or not CUDA error checking is enabled, settable.
+    msg_file (str): The name of the file to write messages. Set this property to None to write to stdout/stderr.
 """
 
 import os
@@ -57,11 +52,7 @@ class _device(hoomd.meta._metadata):
 
         # metadata stuff
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = [
-            'hostname', 'gpu_ids', 'mode', 'num_ranks',
-            'username', 'wallclocktime', 'cputime',
-            'job_id', 'job_name'
-        ]
+        self.metadata_fields = ['gpu_ids', 'mode', 'num_ranks']
         if _hoomd.is_TBB_available():
             self.metadata_fields.append('num_threads')
 
@@ -84,6 +75,9 @@ class _device(hoomd.meta._metadata):
 
         # c++ execution configuration mirror class
         self.cpp_exec_conf = None
+        
+        # name of the message file
+        self._msg_file = msg_file
 
     @property
     def comm(self):
@@ -92,12 +86,6 @@ class _device(hoomd.meta._metadata):
         """
         
         return self._comm
-
-    # \brief Return the network hostname.
-    @property
-    def hostname(self):
-        
-        return socket.gethostname()
 
     # \brief Return the name of the GPU used in GPU mode.
     @property
@@ -120,44 +108,6 @@ class _device(hoomd.meta._metadata):
     def num_ranks(self):
         
         return self.comm.num_ranks
-
-    # \brief Return the username.
-    @property
-    def username(self):
-        
-        return getpass.getuser()
-
-    # \brief Return the wallclock time since the import of hoomd
-    @property
-    def wallclocktime(self):
-        
-        return time.time() - hoomd.context.TIME_START
-
-    # \brief Return the CPU clock time since the import of hoomd
-    @property
-    def cputime(self):
-        
-        return time.clock() - hoomd.context.CLOCK_START
-
-    # \brief Return the job id
-    @property
-    def job_id(self):
-        if 'PBS_JOBID' in os.environ:
-            return os.environ['PBS_JOBID']
-        elif 'SLURM_JOB_ID' in os.environ:
-            return os.environ['SLURM_JOB_ID']
-        else:
-            return ''
-
-    # \brief Return the job name
-    @property
-    def job_name(self):
-        if 'PBS_JOBNAME' in os.environ:
-            return os.environ['PBS_JOBNAME']
-        elif 'SLURM_JOB_NAME' in os.environ:
-            return os.environ['SLURM_JOB_NAME']
-        else:
-            return ''
 
     # \brief Return the number of CPU threads
     @property
@@ -230,7 +180,13 @@ class _device(hoomd.meta._metadata):
         else:
             self.cpp_msg.warning("HOOMD is in CPU mode, ignoring request to set gpu_error_checking.\n")
 
-    def set_msg_file(self, fname):
+    @property
+    def msg_file(self):
+        
+        return self._msg_file
+    
+    @msg_file.setter
+    def msg_file(self, fname):
         R""" Set the message file.
 
         Args:
@@ -241,7 +197,7 @@ class _device(hoomd.meta._metadata):
         Changing the message file will only affect messages sent after the change.
 
         """
-
+        self._msg_file = fname
         if fname is not None:
             self.cpp_msg.openFile(fname)
         else:

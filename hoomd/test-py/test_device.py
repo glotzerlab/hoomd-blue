@@ -51,6 +51,14 @@ class test_devices(unittest.TestCase):
         else:
             assertEquals(hoomd.context.current.device.gpu_error_checking, True)
         
+    def test_msg_file(self):
+        
+        fname = "filename.txt"
+        
+        assertEquals(hoomd.conetxt.current.device.msg_file, None)
+        hoomd.context.current.device.msg_file = fname
+        assertEquals(hoomd.context.current.device.msg_file, fname)
+        
     def test_nondefault(self):
 
         msg_file_name = "msg_file.txt"
@@ -66,6 +74,7 @@ class test_devices(unittest.TestCase):
                              notice_level=8)
         
             # test the non-default args
+            assertEquals(cpu.msg_file, msg_file_name)
             assertEquals(cpu.notice_level, 8)
             assertEquals(cpu.num_threads, 2)
             assertEquals(gpu.comm.num_ranks, 4)
