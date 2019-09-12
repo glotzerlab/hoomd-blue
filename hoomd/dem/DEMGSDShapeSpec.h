@@ -13,14 +13,21 @@ template <typename Real, typename Vector>
 class DEMGSDShapeSpecBase
     {
     protected:
+
+        // Method to parse shape defitinion
         std::string getShapeType(const std::vector<Vector> &verts, const Real &radius){};
+
+        // Helper method to parse vertices into strings
         std::string parseVertices(const std::vector<Vector> &verts){};
+
     };
 
+// Partial 2D specialization
 template <typename Real>
 class DEMGSDShapeSpecBase<Real,vec2<Real>>
     {
     protected:
+
         std::string getShapeType(const std::vector< vec2<Real> > &verts, const Real &radius)
             {
             std::ostringstream shapedef;
@@ -51,10 +58,12 @@ class DEMGSDShapeSpecBase<Real,vec2<Real>>
             }
     };
 
+// Partial 3D specialization
 template <typename Real>
 class DEMGSDShapeSpecBase<Real,vec3<Real>>
     {
     protected:
+
         std::string getShapeType(const std::vector<vec3<Real>> &verts, const Real &radius)
             {
             std::ostringstream shapedef;
@@ -89,12 +98,17 @@ template <typename Real, typename Vector>
 class DEMGSDShapeSpec : public DEMGSDShapeSpecBase<Real, Vector>
     {
     public:
-        DEMGSDShapeSpec(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) :  m_exec_conf(exec_conf), m_mpi(mpi) {}
-        const std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
-        bool m_mpi;
+        DEMGSDShapeSpec(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) :  m_exec_conf(exec_conf), m_mpi(mpi) {};
 
-        int write(gsd_handle& handle, const std::string& name, const std::vector<std::vector<Vector>> &shapes, const Real &radius);
+        // write shape definition to GSD file
+        int write(gsd_handle& handle,
+                  const std::string& name,
+                  const std::vector<std::vector<Vector>> &shapes,
+                  const Real &radius);
 
+   private:
+       const std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
+       bool m_mpi;
     };
 
 template <typename Real, typename Vector>
@@ -103,7 +117,7 @@ int DEMGSDShapeSpec<Real,Vector>::write(gsd_handle& handle, const std::string& n
     if(!m_exec_conf->isRoot())
         return 0;
 
-    std::vector< std::string > type_shape_mapping(shapes.size());
+    std::vector<std::string> type_shape_mapping(shapes.size());
 
     int max_len = 0;
     for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
