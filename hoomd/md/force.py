@@ -186,7 +186,7 @@ class _force(hoomd.meta._metadata):
             g = group.all()
             virial = force.get_net_virial(g)
         """
-        return self.cpp_force.calcVirialGroup(group.cpp_group)
+        return np.asarray(self.cpp_force.calcVirialGroup(group.cpp_group))
 
 
 
