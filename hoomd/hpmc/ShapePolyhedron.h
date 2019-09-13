@@ -189,6 +189,11 @@ struct ShapePolyhedron
             }
         nverts_face = data.face_offs[n_faces] - data.face_offs[n_faces-1];
         offset = data.face_offs[n_faces-1];
+        shapedef << "[";
+        for (unsigned int j = 0; j < nverts_face-1; j++)
+            {
+            shapedef << data.face_verts[offset+j] << ", ";
+            }
         shapedef << data.face_verts[offset+nverts_face-1] << "]]}";
         return shapedef.str();
         }
