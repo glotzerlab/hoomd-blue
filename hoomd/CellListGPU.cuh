@@ -7,7 +7,11 @@
 #ifndef __CELLLISTGPU_CUH__
 #define __CELLLISTGPU_CUH__
 
+//#if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
 #include <cuda_runtime.h>
+#if defined(ENABLE_HIP)
+#include <hip/hip_runtime.h>
+#endif
 
 #include "HOOMDMath.h"
 #include "Index1D.h"
@@ -19,7 +23,7 @@
 */
 
 //! Kernel driver for gpu_compute_cell_list_kernel()
-cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
+void gpu_compute_cell_list(unsigned int *d_cell_size,
                                   Scalar4 *d_xyzf,
                                   Scalar4 *d_tdb,
                                   Scalar4 *d_cell_orientation,
