@@ -5,6 +5,7 @@
 *.gsd
 build/*
 build
+*hoomd/correlator*
 __pycache__
 *.pyc
 *.swp
