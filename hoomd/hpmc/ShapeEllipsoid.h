@@ -101,10 +101,11 @@ struct ShapeEllipsoid
         std::ostringstream shapedef;
         shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << axes.x <<
                     ", \"b\": " << axes.y <<
-                    ", \"c\": " << axes.x <<
+                    ", \"c\": " << axes.z <<
                     "}";
         return shapedef.str();
         }
+
     //! Support function of the shape (in local coordinates), used in getAABB
     /*! \param n Vector to query support function (must be normalized)
     */
