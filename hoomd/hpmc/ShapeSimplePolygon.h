@@ -70,7 +70,7 @@ struct ShapeSimplePolygon
     DEVICE HOSTDEVICE std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
-        shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << getInsphereRadius() << ", \"vertices\": [";
+        shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
         for (unsigned int i = 0; i < verts.N-1; i++)
             {
             shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
