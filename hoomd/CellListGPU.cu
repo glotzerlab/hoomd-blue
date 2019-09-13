@@ -224,7 +224,6 @@ void gpu_compute_cell_list(unsigned int *d_cell_size,
         unsigned int run_block_size = min(block_size, max_block_size);
         int n_blocks = nwork/run_block_size + 1;
 
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
         gpu_compute_cell_list_kernel<<<n_blocks, run_block_size>>>(d_cell_size+idev*ci.getNumElements(),
                                                                    d_xyzf ? d_xyzf+idev*cli.getNumElements() : 0,
                                                                    d_tdb ? d_tdb+idev*cli.getNumElements() : 0,
@@ -248,32 +247,7 @@ void gpu_compute_cell_list(unsigned int *d_cell_size,
                                                                    nwork,
                                                                    range.first);
         }
-        #elif defined(ENABLE_HIP)
-        hipLaunchKernelGGL((gpu_compute_cell_list_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0, d_cell_size+idev*ci.getNumElements(),
-                                                                   d_xyzf ? d_xyzf+idev*cli.getNumElements() : 0,
-                                                                   d_tdb ? d_tdb+idev*cli.getNumElements() : 0,
-                                                                   d_cell_orientation ? d_cell_orientation+idev*cli.getNumElements() : 0,
-                                                                   d_cell_idx ? d_cell_idx+idev*cli.getNumElements() : 0,
-                                                                   d_conditions,
-                                                                   d_pos,
-                                                                   d_orientation,
-                                                                   d_charge,
-                                                                   d_diameter,
-                                                                   d_body,
-                                                                   N,
-                                                                   n_ghost,
-                                                                   Nmax,
-                                                                   flag_charge,
-                                                                   flag_type,
-                                                                   box,
-                                                                   ci,
-                                                                   cli,
-                                                                   ghost_width,
-                                                                   nwork,
-                                                                   range.first);
-        }
-        #endif
-    }
+   }
 
 __global__ void gpu_fill_indices_kernel(
     unsigned int cl_size,
