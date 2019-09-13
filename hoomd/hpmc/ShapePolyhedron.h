@@ -165,7 +165,32 @@ struct ShapePolyhedron
 
     HOSTDEVICE std::string getShapeSpec() const
         {
-        return  "{}";
+        unsigned int n_verts = data.n_verts;
+        unsigned int n_faces = data.n_faces;
+        std::ostringstream shapedef;
+        shapedef << "{\"type\": \"Mesh\", \"vertices\": [";
+        for (unsigned int i = 0; i < n_verts-1; i++)
+            {
+            shapedef << "[" << data.verts[i].x << ", " << data.verts[i].y << ", " << data.verts[i].z << "], ";
+            }
+        shapedef << "[" << data.verts[n_verts-1].x << ", " << data.verts[n_verts-1].y << ", " << data.verts[n_verts-1].z << "]], \"indices\": [";
+        unsigned int nverts_face, offset;
+        for (unsigned int i = 0; i < n_faces-1; i++)
+            {
+            // Number of vertices of ith face
+            nverts_face = data.face_offs[i + 1] - data.face_offs[i];
+            offset = data.face_offs[i];
+            shapedef << "[";
+            for (unsigned int j = 0; j < nverts_face-1; j++)
+                {
+                shapedef << data.face_verts[offset+j] << ", ";
+                }
+            shapedef << data.face_verts[offset+nverts_face-1] << "], ";
+            }
+        nverts_face = data.face_offs[n_faces] - data.face_offs[n_faces-1];
+        offset = data.face_offs[n_faces-1];
+        shapedef << data.face_verts[offset+nverts_face-1] << "]]}";
+        return shapedef.str();
         }
 
     //! Return the bounding box of the shape in world coordinates
