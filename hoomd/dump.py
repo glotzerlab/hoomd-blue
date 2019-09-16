@@ -507,8 +507,8 @@ class gsd(hoomd.analyze._analyzer):
 
     Write a simulation snapshot to the specified GSD file at regular intervals. GSD is capable of storing all particle
     and bond data fields in hoomd, in every frame of the trajectory. This allows GSD to store simulations where the
-    number of particles, number of particle types, particle types, diameter, mass, charge, or anything is changing over
-    time. GSD can also store integrator state information necessary for restarting simulations and user-defined log
+    number of particles, number of particle types, particle types, diameter, mass, charge, and other quantities change
+    over time. GSD can also store integrator state information necessary for restarting simulations and user-defined log
     quantities.
 
     To save on space, GSD does not write values that are all set at defaults. So if all masses, orientations, angular
