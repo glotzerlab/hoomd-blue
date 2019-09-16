@@ -227,6 +227,9 @@ Mike Henry, Boise State University
 Pengji Zhou, University of Michigan
   * pair.fourier
 
+Patrick Lawton, University of Michigan
+  * Documentation changes
+
 HPMC developers
 ---------------
 
