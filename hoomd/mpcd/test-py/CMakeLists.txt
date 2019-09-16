@@ -12,6 +12,7 @@ set(TEST_LIST
     integrate_integrator
     stream_bulk
     stream_slit
+    stream_slit_pore
     update_sort
     )
 SET(EXCLUDE_FROM_MPI
