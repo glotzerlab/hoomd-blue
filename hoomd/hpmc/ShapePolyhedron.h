@@ -175,7 +175,7 @@ struct ShapePolyhedron
             }
         shapedef << "[" << data.verts[n_verts-1].x << ", " << data.verts[n_verts-1].y << ", " << data.verts[n_verts-1].z << "]], \"indices\": [";
         unsigned int nverts_face, offset;
-        for (unsigned int i = 0; i < n_faces-1; i++)
+        for (unsigned int i = 0; i < n_faces; i++)
             {
             // Number of vertices of ith face
             nverts_face = data.face_offs[i + 1] - data.face_offs[i];
@@ -185,16 +185,12 @@ struct ShapePolyhedron
                 {
                 shapedef << data.face_verts[offset+j] << ", ";
                 }
-            shapedef << data.face_verts[offset+nverts_face-1] << "], ";
+            shapedef << data.face_verts[offset+nverts_face-1];
+            if (i == n_faces-1)
+                shapedef << "]]}";
+            else
+                shapedef << "], ";
             }
-        nverts_face = data.face_offs[n_faces] - data.face_offs[n_faces-1];
-        offset = data.face_offs[n_faces-1];
-        shapedef << "[";
-        for (unsigned int j = 0; j < nverts_face-1; j++)
-            {
-            shapedef << data.face_verts[offset+j] << ", ";
-            }
-        shapedef << data.face_verts[offset+nverts_face-1] << "]]}";
         return shapedef.str();
         }
 
