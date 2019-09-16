@@ -34,7 +34,7 @@ class DEMGSDShapeSpecBase<Real,vec2<Real>>
             unsigned int nverts = verts.size();
             if (nverts == 1)
                 {
-                shapedef << "{\"type\": \"Disk\", " << "\"diameter\": " << Real(2)*radius << "}";
+                shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << Real(2)*radius << "}";
                 }
             else
                 {
