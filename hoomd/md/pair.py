@@ -2276,7 +2276,7 @@ class gb(ai_pair):
         lperp = coeff['lperp'];
         lpar = coeff['lpar'];
 
-        return _hoomd.make_scalar3(epsilon, lperp, lpar);
+        return _md.make_pair_gb_params(epsilon, lperp, lpar);
 
 class dipole(ai_pair):
     R""" Screened dipole-dipole interactions.
@@ -2345,9 +2345,7 @@ class dipole(ai_pair):
         A = float(coeff['A']);
         kappa = float(coeff['kappa']);
 
-        params = _hoomd.make_scalar3(mu, A, kappa)
-
-        return params
+        return _md.make_pair_dipole_params(mu, A, kappa);
 
     def set_params(self, *args, **kwargs):
         """ :py:class:`dipole` has no energy shift modes """
