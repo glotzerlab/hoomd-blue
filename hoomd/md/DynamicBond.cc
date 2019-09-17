@@ -20,30 +20,6 @@ namespace py = pybind11;
 
 using namespace std;
 
-// TODO alyssa: make this a table
-Scalar capfraction(Scalar x) {
-  Scalar frac;
-  Scalar a0 = 0.0925721;
-  Scalar a1 = -0.00699901;
-  Scalar a2 = 0.000378692;
-  Scalar a3 = -1.55671e-05;
-  Scalar a4 = 4.33718e-07;
-  Scalar a5 = -7.41086e-09;
-  Scalar a6 = 6.8603e-11;
-  Scalar a7 = -2.61042e-13;
-  x *= 1.1;
-  frac = a0 + a1 * x + a2 * x * x + a3 * x * x * x + a4 * x * x * x * x +
-         a5 * x * x * x * x * x + a6 * x * x * x * x * x * x +
-         a7 * x * x * x * x * x * x * x;
-
-  if (frac <= 0.0) {
-    frac = 0.0;
-  } else if (frac >= 1.0) {
-    frac = 1.0;
-  }
-  return frac;
-}
-
 // TODO alyssa: make these tables or pass in?
 Scalar feneEnergy(Scalar x, int nKuhn) {
   Scalar UBi;
@@ -76,9 +52,6 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
 */
 void DynamicBond::setParams(Scalar r_cut, Scalar r_true, std::string bond_type,
                             Scalar delta_G, int n_polymer, int nK) {
-  if (m_r_cut < 0) {
-    m_exec_conf->msg->error() << "r_cut cannot be less than 0.\n" << std::endl;
-  }
   m_r_cut = r_cut;
   m_r_true = r_true;
   m_delta_G = delta_G;
@@ -175,7 +148,7 @@ void DynamicBond::update(unsigned int timestep) {
 
       if (rsq < r_cut_sq) {
         // count the number of bonds between i and j
-        // TODO alyssa: make this a multimap
+        // TODO alyssa: make this a multimap?
         int n_bonds = h_gpu_n_bonds.data[i];
         int nbridges_ij = 0;
         for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++) {
@@ -193,6 +166,7 @@ void DynamicBond::update(unsigned int timestep) {
         Scalar capfrac = capfraction(surf_dist);
 
         // (1) Compute P_ij, P_ji, and Q_ij
+        // TODO: make this an input?
         Scalar chain_extension = surf_dist / m_nK;
         if (chain_extension < 1.0 &&
             chain_extension >
@@ -239,8 +213,8 @@ void DynamicBond::update(unsigned int timestep) {
             for (unsigned int bond_number = 0; bond_number < size;
                  bond_number++)  // turn into hashtable look-up
             {
-              // look up the tag of each of the particles participating in the
-              // bond
+              // look up the tag of each of the particles
+              // participating in the bond
               const BondData::members_t bond =
                   m_bond_data->getMembersByIndex(bond_number);
               assert(bond.tag[0] < m_pdata->getN());
