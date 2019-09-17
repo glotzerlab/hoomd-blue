@@ -162,7 +162,7 @@ class test_bcast_float (unittest.TestCase):
             # initialize with every rank == one partition
             context.initialize()  # used to have --nrank=1
         else:
-            context.initialize('')
+            context.initialize()
 
 # test make_snapshot and read_snapshot in double precision
 class test_bcast_double (unittest.TestCase):
@@ -315,7 +315,7 @@ class test_bcast_double (unittest.TestCase):
             # initialize with every rank == one partition
             context.initialize()  # used to have --nrank=1
         else:
-            context.initialize('')
+            context.initialize()
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
