@@ -63,13 +63,13 @@ class dynamic_bond(_updater):
         The provided file specifies V and F at equally spaced r values.
         Example::
 
-            #r  V    F
-            1.0 2.0 -3.0
-            1.1 3.0 -4.0
-            1.2 2.0 -3.0
-            1.3 1.0 -2.0
-            1.4 0.0 -1.0
-            1.5 -1.0 0.0
+            #r  XB    M    L
+            1.0
+            1.1
+            1.2
+            1.3
+            1.4 0.0
+            1.5 -1.0
 
         The first r value sets ``rmin``, the last sets ``rmax``. Any line with # as the first non-whitespace character is treated as a comment. The ``r`` values must monotonically increase and be equally spaced. The table is read directly into the grid points used to evaluate :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)`.
         """
@@ -79,10 +79,9 @@ class dynamic_bond(_updater):
         f = open(filename);
 
         r_table = [];
-        V_table = [];
-        F_table = [];
         XB_table = [];
         M_table = [];
+        L_table = []
 
         # read in lines from the file
         for line in f.readlines():
@@ -97,16 +96,15 @@ class dynamic_bond(_updater):
             values = [float(f) for f in cols];
 
             # validate the input
-            if len(values) != 5:
-                hoomd.context.msg.error("bond.table: file must have exactly 5 columns\n");
+            if len(values) != 4:
+                hoomd.context.msg.error("bond.table: file must have exactly 4 columns\n");
                 raise RuntimeError("Error reading table file");
 
             # append to the tables
             r_table.append(values[0]);
-            V_table.append(values[1]);
-            F_table.append(values[2]);
-            XB_table.append(values[3]);
-            M_table.append(values[4]);
+            XB_table.append(values[1]);
+            M_table.append(values[2]);
+            L_table.append(values[3]);
 
         # validate input
         if self.width != len(r_table):
