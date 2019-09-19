@@ -83,18 +83,13 @@ void DynamicBond::update(unsigned int timestep)
     m_prof->push("DynamicBond");
 
   // access the neighbor list
-  ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
-                                    access_location::hostaccess_mode::read);
-  ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
-                                    access_location::host, access_mode::read);
-  ArrayHandle<unsigned int> h_head_list(
-      m_nlist->getHeadList(), access_location::host, access_mode::read);
+  ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
+  ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
+  ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
 
   // Access the particle data
-  ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host,
-                             access_mode::read);
-  ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host,
-                                 access_mode::read);
+  ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+  ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
   // Access bond data
   m_bond_data = m_sysdef->getBondData();
@@ -177,8 +172,8 @@ void DynamicBond::update(unsigned int timestep)
             chain_extension >
                 0.0) // bond(extension)-bond(extension_rC)<deltaG?
         {
-          Scalar p0 = m_delta_t * L(d)
-          Scalar q0 = m_delta_t * M(d)
+          Scalar p0 = m_delta_t; //* L(d);
+          Scalar q0 = m_delta_t; //* M(d);
 
           Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]);
           Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]);

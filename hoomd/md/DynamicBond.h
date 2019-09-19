@@ -32,7 +32,9 @@ public:
     //! Constructs the compute
     DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
                 std::shared_ptr<ParticleGroup> group,
-                std::shared_ptr<NeighborList> nlist, int seed, Scalar delta_t,
+                std::shared_ptr<NeighborList> nlist,
+                int seed,
+                Scalar delta_t,
                 int period);
 
     //! Destructor
@@ -46,20 +48,20 @@ public:
 
 protected:
     std::shared_ptr<ParticleGroup> m_group; //!< Group of particles to operate on
-    std::shared_ptr<NeighborList> m_nlist; //!< neighborlist
-    std::shared_ptr<BondData> m_bond_data; //!< Bond data to use in computing bonds
-    int m_seed;                //!< seed for random number generator
-    int period;                //!< period to create/destroy bonds
-    int bond_type;             //!< bond type to create and break
-    Scalar m_r_cut;            //!< cut off distance for computing bonds
-    Scalar m_r_true;           //!< the "true" radius, i.e. the sticker-colloid energy well
-                               //!< minimum
-    Scalar m_delta_G;          //!< sticker strength
-    Scalar m_delta_t;          //!< time step from integrator
-    std::vector<int> m_nloops; //!< structure of size N to store number of loops
-                               //!< for each colloid
-    int n_polymer;             //!< number of polymers per colloid
-    int m_nK;                  //!< kuhn steps per polymer
+    std::shared_ptr<NeighborList> m_nlist;  //!< neighborlist
+    std::shared_ptr<BondData> m_bond_data;  //!< Bond data to use in computing bonds
+    int m_seed;                             //!< seed for random number generator
+    int period;                             //!< period to create/destroy bonds
+    int bond_type;                          //!< bond type to create and break
+    Scalar m_r_cut;                         //!< cut off distance for computing bonds
+    Scalar m_r_true;                        //!< the "true" radius, i.e. the sticker-colloid energy well
+                                            //!< minimum
+    Scalar m_delta_G;                       //!< sticker strength
+    Scalar m_delta_t;                       //!< time step from integrator
+    std::vector<int> m_nloops;              //!< structure of size N to store number of loops
+                                            //!< for each colloid
+    int n_polymer;                          //!< number of polymers per colloid
+    int m_nK;                               //!< kuhn steps per polymer
 };
 
 //! Exports the DynamicBond class to python
