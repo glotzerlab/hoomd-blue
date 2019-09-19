@@ -20,34 +20,11 @@ namespace py = pybind11;
 
 using namespace std;
 
-// TODO alyssa: make this a table
-Scalar capfraction(Scalar x) {
-  Scalar frac;
-  Scalar a0 = 0.0925721;
-  Scalar a1 = -0.00699901;
-  Scalar a2 = 0.000378692;
-  Scalar a3 = -1.55671e-05;
-  Scalar a4 = 4.33718e-07;
-  Scalar a5 = -7.41086e-09;
-  Scalar a6 = 6.8603e-11;
-  Scalar a7 = -2.61042e-13;
-  x *= 1.1;
-  frac = a0 + a1 * x + a2 * x * x + a3 * x * x * x + a4 * x * x * x * x +
-         a5 * x * x * x * x * x + a6 * x * x * x * x * x * x +
-         a7 * x * x * x * x * x * x * x;
-
-  if (frac <= 0.0) {
-    frac = 0.0;
-  } else if (frac >= 1.0) {
-    frac = 1.0;
-  }
-  return frac;
-}
-
 // TODO alyssa: make these tables or pass in?
-Scalar feneEnergy(Scalar x, int nKuhn) {
+Scalar feneEnergy(Scalar x, int nKuhn)
+{
   Scalar UBi;
-  UBi = nKuhn * -1.5 * log(1.0 - x * x);  // original Elnaz code
+  UBi = nKuhn * -1.5 * log(1.0 - x * x); // original Elnaz code
   return UBi;
 }
 
@@ -62,7 +39,8 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
       m_r_cut(0.0),
       m_r_true(0.0),
       m_delta_t(delta_t),
-      m_nK(0) {
+      m_nK(0)
+{
   m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
   int n_particles = m_pdata->getN();
   m_nloops.resize(n_particles);
@@ -75,7 +53,8 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
     Sets parameters for the dynamic bond updater
 */
 void DynamicBond::setParams(Scalar r_cut, Scalar r_true, std::string bond_type,
-                            Scalar delta_G, int n_polymer, int nK) {
+                            Scalar delta_G, int n_polymer, int nK)
+{
   m_r_cut = r_cut;
   m_r_true = r_true;
   m_delta_G = delta_G;
@@ -83,29 +62,29 @@ void DynamicBond::setParams(Scalar r_cut, Scalar r_true, std::string bond_type,
   std::fill(m_nloops.begin(), m_nloops.end(), n_polymer);
 }
 
-DynamicBond::~DynamicBond() {
+DynamicBond::~DynamicBond()
+{
   m_exec_conf->msg->notice(5) << "Destroying DynamicBond" << endl;
 }
 
-void DynamicBond::update(unsigned int timestep) {
+void DynamicBond::update(unsigned int timestep)
+{
   assert(m_pdata);
   assert(m_nlist);
-
-  // natural thermal vibration frequency 1.2E0*3.9E-9
-  Scalar omega = 4.68;
 
   // start by updating the neighborlist
   m_nlist->compute(timestep);
 
   // get box dimensions
-  const BoxDim& box = m_pdata->getGlobalBox();
+  const BoxDim &box = m_pdata->getGlobalBox();
 
   // start the profile for this compute
-  if (m_prof) m_prof->push("DynamicBond");
+  if (m_prof)
+    m_prof->push("DynamicBond");
 
   // access the neighbor list
   ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
-                                      access_location::host, access_mode::read);
+                                    access_location::hostaccess_mode::read);
   ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
                                     access_location::host, access_mode::read);
   ArrayHandle<unsigned int> h_head_list(
@@ -120,17 +99,16 @@ void DynamicBond::update(unsigned int timestep) {
   // Access bond data
   m_bond_data = m_sysdef->getBondData();
 
-  ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host,
-                                  access_mode::read);
-  ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host,
-                                   access_mode::read);
+  ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+  ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
   Scalar r_cut_sq = m_r_cut * m_r_cut;
 
   // for each particle
-  for (int i = 0; i < (int)m_pdata->getN(); i++) {
+  for (int i = 0; i < (int)m_pdata->getN(); i++)
+  {
     // Access the GPU bond table for reading
-    const Index2D& gpu_table_indexer = this->m_bond_data->getGPUTableIndexer();
+    const Index2D &gpu_table_indexer = this->m_bond_data->getGPUTableIndexer();
     ArrayHandle<BondData::members_t> h_gpu_bondlist(
         this->m_bond_data->getGPUTable(), access_location::host,
         access_mode::read);
@@ -154,7 +132,8 @@ void DynamicBond::update(unsigned int timestep) {
     // radius
     const unsigned int myHead = h_head_list.data[i];
     const unsigned int size = (unsigned int)h_n_neigh.data[i];
-    for (unsigned int k = 0; k < size; k++) {
+    for (unsigned int k = 0; k < size; k++)
+    {
       // access the index (j) of neighbor particle (MEM TRANSFER: 1 scalar)
       unsigned int j = h_nlist.data[myHead + k];
       assert(j < m_pdata->getN() + m_pdata->getNGhosts());
@@ -170,16 +149,19 @@ void DynamicBond::update(unsigned int timestep) {
       // calculate r_ij squared (FLOPS: 5) (center to center dist)
       Scalar rsq = dot(dx, dx);
 
-      if (rsq < r_cut_sq) {
+      if (rsq < r_cut_sq)
+      {
         // count the number of bonds between i and j
         // TODO alyssa: make this a multimap?
         int n_bonds = h_gpu_n_bonds.data[i];
         int nbridges_ij = 0;
-        for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++) {
+        for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+        {
           group_storage<2> cur_bond =
               h_gpu_bondlist.data[gpu_table_indexer(i, bond_idx)];
-          int bonded_idx = cur_bond.idx[0];  // bonded-particle's index
-          if (bonded_idx == j) {
+          int bonded_idx = cur_bond.idx[0]; // bonded-particle's index
+          if (bonded_idx == j)
+          {
             nbridges_ij += 1;
           }
         }
@@ -187,24 +169,20 @@ void DynamicBond::update(unsigned int timestep) {
         Scalar r = sqrt(rsq);
         Scalar surf_dist = r - 2 * m_r_true;
         assert(surf_dist > 0.0);
-        Scalar capfrac = capfraction(surf_dist);
 
         // (1) Compute P_ij, P_ji, and Q_ij
         // TODO: make this an input?
         Scalar chain_extension = surf_dist / m_nK;
         if (chain_extension < 1.0 &&
             chain_extension >
-                0.0)  // bond(extension)-bond(extension_rC)<deltaG?
+                0.0) // bond(extension)-bond(extension_rC)<deltaG?
         {
-          Scalar p0 = m_delta_t * omega *
-                      exp(-(m_delta_G + feneEnergy(chain_extension, m_nK)));
-          Scalar q0 = m_delta_t * omega * exp(-m_delta_G);
+          Scalar p0 = m_delta_t * L(d)
+          Scalar q0 = m_delta_t * M(d)
 
-          Scalar p_ij = p0 * pow((1 - p0), (m_nloops[i] * capfrac - 1.0)) *
-                        m_nloops[i] * capfrac;
-          Scalar p_ji = p0 * pow((1 - p0), (m_nloops[j] * capfrac - 1.0)) *
-                        m_nloops[j] * capfrac;
-          Scalar q_ij = q0 * pow((1 - q0), (nbridges_ij - 1.0)) * nbridges_ij;
+          Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]);
+          Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]);
+          Scalar q_ij = nbridges_ij * q0 * pow((1 - q0), (nbridges_ij - 1.0));
 
           // (2) generate random numbers
           Scalar rnd1 = saru.s<Scalar>(0, 1);
@@ -212,30 +190,33 @@ void DynamicBond::update(unsigned int timestep) {
           Scalar rnd3 = saru.s<Scalar>(0, 1);
           Scalar rnd4 = saru.s<Scalar>(0, 1);
 
-          // (3) check to see if a loop on i should form a bridge btwn particles
-          // i and j
-          if (rnd1 < p_ij && m_nloops[i] >= 1.0) {
+          // (3) check to see if a loop on i should form
+          // a bridge btwn particles i and j
+          if (rnd1 < p_ij && m_nloops[i] >= 1.0)
+          {
             m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
             // TODO alyssa: insert tags into multimap
             m_nloops[i] -= 1;
           }
 
-          // (4) check to see if a loop on j should form a bridge btwn particles
-          // i and j
-          if (rnd2 < p_ji && m_nloops[j] >= 1.0) {
+          // (4) check to see if a loop on j should form
+          // a bridge btwn particlesi and j
+          if (rnd2 < p_ji && m_nloops[j] >= 1.0)
+          {
             m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
             // TODO alyssa: insert tags into multimap
             m_nloops[j] -= 1;
           }
 
-          // (5) check to see if a bond should be broken between particles i and
-          // j
-          if (rnd3 < q_ij && nbridges_ij >= 1.0) {
+          // (5) check to see if a bond should be broken
+          // between particles i and j
+          if (rnd3 < q_ij && nbridges_ij >= 1.0)
+          {
             // remove one bond between i and j
             // for each of the bonds in the *system*
             const unsigned int size = (unsigned int)m_bond_data->getN();
             for (unsigned int bond_number = 0; bond_number < size;
-                 bond_number++)  // turn into hashtable look-up
+                 bond_number++) // turn into hashtable look-up
             {
               // look up the tag of each of the particles
               // participating in the bond
@@ -252,27 +233,32 @@ void DynamicBond::update(unsigned int timestep) {
               assert(idx_b <= m_pdata->getMaximumTag());
 
               // remove bond with index "bond_number" between particles i and j,
-              // the exit the loop
-              if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i)) {
+              // then exit the loop
+              if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
+              {
                 m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
                 // TODO alyssa: remove tags from multimap
                 break;
               }
             }
-            if (rnd4 <= 0.5) {
+            if (rnd4 <= 0.5)
+            {
               m_nloops[i] += 1;
-            } else if (rnd4 > 0.5) {
+            }
+            else if (rnd4 > 0.5)
+            {
               m_nloops[j] += 1;
             }
           }
         }
-        // TODO alyssa: remove all bonds if bond goes beyond extension
-        else if (chain_extension > 1.0) {
+        // remove all bonds if bond goes beyond extension
+        else if (chain_extension > 1.0)
+        {
           // break all bridges between i and j
           // for each of the bonds in the *system*
           const unsigned int size = (unsigned int)m_bond_data->getN();
           for (unsigned int bond_number = 0; bond_number < size;
-               bond_number++)  // turn into hashtable look-up
+               bond_number++) // turn into hashtable look-up
           {
             // look up the tag of each of the particles participating in the
             // bond
@@ -290,13 +276,17 @@ void DynamicBond::update(unsigned int timestep) {
 
             // remove bond with index "bond_number" between particles i and j,
             // the exit the loop
-            if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i)) {
+            if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
+            {
               m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
               // TODO alyssa: remove tags from multimap
               Scalar rnd5 = saru.s<Scalar>(0, 1);
-              if (rnd5 <= 0.5) {
+              if (rnd5 <= 0.5)
+              {
                 m_nloops[i] += 1;
-              } else if (rnd5 > 0.5) {
+              }
+              else if (rnd5 > 0.5)
+              {
                 m_nloops[i] += 1;
               }
             }
@@ -306,12 +296,14 @@ void DynamicBond::update(unsigned int timestep) {
     }
   }
 
-  if (m_prof) m_prof->pop();
+  if (m_prof)
+    m_prof->pop();
 }
 
-void export_DynamicBond(py::module& m) {
-  py::class_<DynamicBond, std::shared_ptr<DynamicBond> >(m, "DynamicBond",
-                                                         py::base<Updater>())
+void export_DynamicBond(py::module &m)
+{
+  py::class_<DynamicBond, std::shared_ptr<DynamicBond>>(m, "DynamicBond",
+                                                        py::base<Updater>())
       .def(py::init<std::shared_ptr<SystemDefinition>,
                     std::shared_ptr<ParticleGroup>,
                     std::shared_ptr<NeighborList>, int, Scalar, int>())

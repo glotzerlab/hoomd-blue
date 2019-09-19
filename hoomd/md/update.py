@@ -15,6 +15,11 @@ import hoomd;
 from hoomd.update import _updater
 import sys;
 
+def _table_eval(r, rmin, rmax, V, F, width):
+      dr = (rmax - rmin) / float(width-1);
+      i = int(round((r - rmin)/dr))
+      return (V[i], F[i])
+
 class dynamic_bond(_updater):
     r"""
     Args:
@@ -48,6 +53,81 @@ class dynamic_bond(_updater):
         self.cpp_updater.setParams(r_cut, r_true, bond_type, delta_G, n_polymer, nK);
         # store metadata
         # metadata_fields = ['r_cut', 'bond_type', 'prob_form', 'prob_break']
+
+    def set_from_file(self, filename):
+        R""" Set a bond pair interaction from a file.
+
+        Args:
+            filename (str): Name of the file to read
+
+        The provided file specifies V and F at equally spaced r values.
+        Example::
+
+            #r  V    F
+            1.0 2.0 -3.0
+            1.1 3.0 -4.0
+            1.2 2.0 -3.0
+            1.3 1.0 -2.0
+            1.4 0.0 -1.0
+            1.5 -1.0 0.0
+
+        The first r value sets ``rmin``, the last sets ``rmax``. Any line with # as the first non-whitespace character is treated as a comment. The ``r`` values must monotonically increase and be equally spaced. The table is read directly into the grid points used to evaluate :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)`.
+        """
+        hoomd.util.print_status_line();
+
+        # open the file
+        f = open(filename);
+
+        r_table = [];
+        V_table = [];
+        F_table = [];
+        XB_table = [];
+        M_table = [];
+
+        # read in lines from the file
+        for line in f.readlines():
+            line = line.strip();
+
+            # skip comment lines
+            if line[0] == '#':
+                continue;
+
+            # split out the columns
+            cols = line.split();
+            values = [float(f) for f in cols];
+
+            # validate the input
+            if len(values) != 5:
+                hoomd.context.msg.error("bond.table: file must have exactly 5 columns\n");
+                raise RuntimeError("Error reading table file");
+
+            # append to the tables
+            r_table.append(values[0]);
+            V_table.append(values[1]);
+            F_table.append(values[2]);
+            XB_table.append(values[3]);
+            M_table.append(values[4]);
+
+        # validate input
+        if self.width != len(r_table):
+            hoomd.context.msg.error("bond.table: file must have exactly " + str(self.width) + " rows\n");
+            raise RuntimeError("Error reading table file");
+
+        # extract rmin and rmax
+        rmin_table = r_table[0];
+        rmax_table = r_table[-1];
+
+        # check for even spacing
+        dr = (rmax_table - rmin_table) / float(self.width-1);
+        for i in range(0,self.width):
+            r = rmin_table + dr * i;
+            if math.fabs(r - r_table[i]) > 1e-3:
+                hoomd.context.msg.error("bond.table: r must be monotonically increasing and evenly spaced\n");
+                raise RuntimeError("Error reading table file");
+
+        hoomd.util.quiet_status();
+        # self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
+        hoomd.util.unquiet_status();
 
 
 class rescale_temp(_updater):
