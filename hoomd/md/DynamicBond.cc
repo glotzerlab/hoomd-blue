@@ -20,6 +20,30 @@ namespace py = pybind11;
 
 using namespace std;
 
+// TODO alyssa: make this a table
+Scalar capfraction(Scalar x) {
+  Scalar frac;
+  Scalar a0 = 0.0925721;
+  Scalar a1 = -0.00699901;
+  Scalar a2 = 0.000378692;
+  Scalar a3 = -1.55671e-05;
+  Scalar a4 = 4.33718e-07;
+  Scalar a5 = -7.41086e-09;
+  Scalar a6 = 6.8603e-11;
+  Scalar a7 = -2.61042e-13;
+  x *= 1.1;
+  frac = a0 + a1 * x + a2 * x * x + a3 * x * x * x + a4 * x * x * x * x +
+         a5 * x * x * x * x * x + a6 * x * x * x * x * x * x +
+         a7 * x * x * x * x * x * x * x;
+
+  if (frac <= 0.0) {
+    frac = 0.0;
+  } else if (frac >= 1.0) {
+    frac = 1.0;
+  }
+  return frac;
+}
+
 // TODO alyssa: make these tables or pass in?
 Scalar feneEnergy(Scalar x, int nKuhn) {
   Scalar UBi;
