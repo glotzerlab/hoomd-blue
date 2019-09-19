@@ -30,8 +30,12 @@ Scalar feneEnergy(Scalar x, int nKuhn)
 
 DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<ParticleGroup> group,
-                         std::shared_ptr<NeighborList> nlist, int seed,
-                         Scalar delta_t, int period)
+                         std::shared_ptr<NeighborList> nlist,
+                         int seed,
+                         Scalar delta_t,
+                         int period,
+                         unsigned int table_width
+                         )
     : Updater(sysdef),
       m_group(group),
       m_nlist(nlist),
@@ -39,7 +43,8 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
       m_r_cut(0.0),
       m_r_true(0.0),
       m_delta_t(delta_t),
-      m_nK(0)
+      m_nK(0),
+      m_table_width(table_width)
 {
   m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
   int n_particles = m_pdata->getN();
@@ -62,6 +67,27 @@ void DynamicBond::setParams(Scalar r_cut, Scalar r_true, std::string bond_type,
   std::fill(m_nloops.begin(), m_nloops.end(), n_polymer);
 }
 
+void DynamicBond::setTable(const std::vector<Scalar> &XB,
+                           const std::vector<Scalar> &M,
+                           const std::vector<Scalar> &L,
+                           Scalar rmin,
+                           Scalar rmax)
+  {
+    // range check on the parameters
+    if (rmin < 0 || rmax < 0 || rmax <= rmin)
+        {
+        m_exec_conf->msg->error()<< "dynamic_bond.table:  rmin, rmax (" << rmin << "," << rmax
+             << ") is invalid."  << endl;
+        throw runtime_error("Error initializing DynamicBond");
+        }
+
+    if (XB.size() != m_table_width || M.size() != m_table_width || L.size() != m_table_width)
+        {
+        m_exec_conf->msg->error() << "dynamic_bond.table: table provided to setTable is not of the correct size" << endl;
+        throw runtime_error("Error initializing DynamicBond");
+        }
+
+  }
 DynamicBond::~DynamicBond()
 {
   m_exec_conf->msg->notice(5) << "Destroying DynamicBond" << endl;
@@ -301,6 +327,6 @@ void export_DynamicBond(py::module &m)
                                                         py::base<Updater>())
       .def(py::init<std::shared_ptr<SystemDefinition>,
                     std::shared_ptr<ParticleGroup>,
-                    std::shared_ptr<NeighborList>, int, Scalar, int>())
+                    std::shared_ptr<NeighborList>, int, Scalar, int, int>())
       .def("setParams", &DynamicBond::setParams);
 }
