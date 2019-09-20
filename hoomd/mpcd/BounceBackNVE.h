@@ -136,7 +136,7 @@ void BounceBackNVE<Geometry>::integrateStepOne(unsigned int timestep)
         const Scalar3 accel = h_accel.data[pid];
         vel += Scalar(0.5) * m_deltaT * accel;
 
-        // load poosition and type
+        // load position and type
         const Scalar4 postype = h_pos.data[pid];
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
         const Scalar type = postype.w;
