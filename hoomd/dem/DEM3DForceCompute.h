@@ -11,7 +11,7 @@
 
 #include "DEMEvaluator.h"
 #include "../GSDShapeSpecWriter.h"
-#include "DEMGSDShapeSpecParser.h"
+#include "DEMShapeSpecParser.h"
 
 /*! \file DEM3DForceCompute.h
   \brief Declares the DEM3DForceCompute class
