@@ -22,8 +22,8 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/managed_allocator.h"
-// #include "hoomd/extern/gsd.h"
-
+#include "hoomd/GSDShapeSpecWriter.h"
+ 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #include "hoomd/HOOMDMPI.h"
@@ -32,6 +32,7 @@
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
+
 
 namespace hpmc
 {
@@ -329,6 +330,19 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         //! Method that is called to connect to the gsd write state signal
         bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
+
+        std::vector<std::string> getTypeShapeMapping(const std::vector<param_type, managed_allocator<param_type> > &params) const
+            {
+            quat<Scalar> q(make_scalar4(1,0,0,0));
+            std::vector<std::string> type_shape_mapping(params.size());
+            for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+                {
+                Shape shape(q, params[i]);
+                type_shape_mapping[i] = shape.getShapeSpec();
+                }
+            return type_shape_mapping;
+            }
+
 
     protected:
         std::vector<param_type, managed_allocator<param_type> > m_params;   //!< Parameters for each particle type on GPU
@@ -1734,8 +1748,8 @@ int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec( gsd_handle& handle, std::s
     bool mpi=false;
     #endif
 
-    gsd_shape_spec<Shape> schema(m_exec_conf, mpi);
-    int retval = schema.write(handle, name, this->m_params);
+    GSDShapeSpecWriter shapespec(m_exec_conf, mpi);
+    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
     return retval;
     }
 

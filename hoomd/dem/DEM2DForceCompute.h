@@ -11,7 +11,8 @@
 #include <memory>
 
 #include "DEMEvaluator.h"
-#include "DEMGSDShapeSpec.h"
+#include "../GSDShapeSpecWriter.h"
+#include "DEMGSDShapeSpecParser.h"
 
 /*! \file DEM2DForceCompute.h
   \brief Declares the DEM2DForceCompute class
@@ -39,7 +40,7 @@
   \ingroup computes
 */
 template<typename Real, typename Real4, typename Potential>
-class DEM2DForceCompute : public ForceCompute
+class DEM2DForceCompute : public ForceCompute, public DEMShapeSpecParser<Real, vec2<Real>>
     {
     public:
         //! Constructs the compute
@@ -64,7 +65,7 @@ class DEM2DForceCompute : public ForceCompute
 
         void connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer, std::string name);
 
-        int slotWriteDEMGSDShapeSpec(gsd_handle& handle, std::string name) const;
+        int slotWriteDEMGSDShapeSpec(gsd_handle& handle) const;
 
     #ifdef ENABLE_MPI
         //! Get requested ghost communication flags

@@ -61,25 +61,18 @@ void DEM2DForceCompute<Real, Real4, Potential>::connectDEMGSDShapeSpec(std::shar
                                           std::string name)
     {
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&DEM2DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec, this, std::placeholders::_1, name);
+    //auto func = std::bind(&DEM2DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec, this, std::placeholders::_1, name);
     std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
 
 template<typename Real, typename Real4, typename Potential>
-int DEM2DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec(gsd_handle& handle, std::string name) const
+int DEM2DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec(gsd_handle& handle) const
     {
-    // create schema helpers
-    #ifdef ENABLE_MPI
-    bool mpi=(bool)m_pdata->getDomainDecomposition();
-    #else
-    bool mpi=false;
-    #endif
-
-    DEMGSDShapeSpec<Real,vec2<Real>> shapespec(m_exec_conf, mpi);
-    int retval = shapespec.write(handle, name, m_shapes, m_evaluator.getRadius());
+    GSDShapeSpecWriter shapespec(m_exec_conf);
+    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_shapes, m_evaluator.getRadius()));
     return retval;
-}
+    }
 
 /*! setParams: set the vertices for a numeric particle type from a python list.
   \param type Particle type index

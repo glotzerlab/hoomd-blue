@@ -10,7 +10,8 @@
 #include <memory>
 
 #include "DEMEvaluator.h"
-#include "DEMGSDShapeSpec.h"
+#include "../GSDShapeSpecWriter.h"
+#include "DEMGSDShapeSpecParser.h"
 
 /*! \file DEM3DForceCompute.h
   \brief Declares the DEM3DForceCompute class
@@ -60,7 +61,7 @@
   \ingroup computes
 */
 template<typename Real, typename Real4, typename Potential>
-class DEM3DForceCompute : public ForceCompute
+class DEM3DForceCompute : public ForceCompute, public DEMShapeSpecParser<Real, vec3<Real>>
     {
     public:
         //! Constructs the compute
@@ -101,7 +102,7 @@ class DEM3DForceCompute : public ForceCompute
 
         void connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer, std::string name);
 
-        int slotWriteDEMGSDShapeSpec(gsd_handle& handle, std::string name) const;
+        int slotWriteDEMGSDShapeSpec(gsd_handle& handle) const;
 
     #ifdef ENABLE_MPI
         //! Get requested ghost communication flags
@@ -141,7 +142,7 @@ class DEM3DForceCompute : public ForceCompute
         GPUArray<Real> m_faceRcutSq; //!< face index->rcut*rcut
         GPUArray<Real> m_edgeRcutSq; //!< edge index->rcut*rcut
         GPUArray<Real4> m_verts; //! Vertices for each real index
-        std::vector<std::vector<vec3<Real> > > m_vertsVec; //!< Vertices for each type
+        std::vector<std::vector<vec3<Real> > > m_shapes; //!< Vertices for each type
         std::vector<std::vector<std::vector<unsigned int> > > m_facesVec; //!< Faces for each type
 
         //! Re-send the list of vertices and links to the GPU
