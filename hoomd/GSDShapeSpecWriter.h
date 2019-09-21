@@ -11,7 +11,7 @@ class GSDShapeSpecWriter
     {
     public:
 
-        GSDShapeSpecWriter(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) : m_exec_conf(exec_conf) {};
+        GSDShapeSpecWriter(const std::shared_ptr<const ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf) {};
 
         int write(gsd_handle& handle, const std::vector<std::string> &type_shape_mapping)
             {
