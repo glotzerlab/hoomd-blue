@@ -12,7 +12,7 @@
 #include "hoomd/md/NeighborList.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-/*! \file DynamicBond.h
+/*! \file PopBD.h
     \brief Declares a class for computing bond breakage/formation
 */
 
@@ -20,17 +20,17 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __DYNAMICBOND_H__
-#define __DYNAMICBOND_H__
+#ifndef __POPBD_H__
+#define __POPBD_H__
 
 //! Creates or breaks bonds with a given probability
 /*!
  */
-class PYBIND11_EXPORT DynamicBond : public Updater
+class PYBIND11_EXPORT PopBD : public Updater
 {
 public:
     //! Constructs the compute
-    DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
+    PopBD(std::shared_ptr<SystemDefinition> sysdef,
                 std::shared_ptr<ParticleGroup> group,
                 std::shared_ptr<NeighborList> nlist,
                 int seed,
@@ -39,7 +39,7 @@ public:
                 unsigned int table_width);
 
     //! Destructor
-    virtual ~DynamicBond();
+    virtual ~PopBD();
 
     virtual void setParams(Scalar r_cut, Scalar r_true, std::string bond_type,
                            Scalar delta_G, int n_polymer, int nK);
@@ -73,7 +73,7 @@ protected:
     int m_nK;                               //!< kuhn steps per polymer
 };
 
-//! Exports the DynamicBond class to python
-void export_DynamicBond(pybind11::module &m);
+//! Exports the PopBD class to python
+void export_PopBD(pybind11::module &m);
 
 #endif

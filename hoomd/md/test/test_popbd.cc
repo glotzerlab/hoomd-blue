@@ -2,7 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/ExecutionConfiguration.h"
-#include "hoomd/md/DynamicBond.h"
+#include "hoomd/md/PopBD.h"
 
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
@@ -17,8 +17,8 @@
 using namespace std;
 using namespace std::placeholders;
 
-/*! \file test_dynamic_bond.cc
-    \brief Unit tests for the DynamicBond class
+/*! \file test_popbd.cc
+    \brief Unit tests for the PopBD class
     \ingroup unit_tests
  */
 
@@ -27,11 +27,11 @@ using namespace std::placeholders;
 HOOMD_UP_MAIN();
 
 //! Typedef to make using the std::function factory easier
-typedef std::function<std::shared_ptr<DynamicBond>  (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, std::shared_ptr<NeighborList> nlist, int seed, Scalar delta_t, int period, unsigned int table_width)> dybond_creator;
+typedef std::function<std::shared_ptr<PopBD>  (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, std::shared_ptr<NeighborList> nlist, int seed, Scalar delta_t, int period, unsigned int table_width)> popbd_creator;
 
 
 //! Test bond creation
-void dynamic_bond_create_destroy_test(dybond_creator db_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
+void popbd_create_destroy_test(popbd_creator pbd_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
 {
     // start with the simplest possible test: 2 particles in a box with only one bond type
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(100.0), 1, 1, 0, 0, 0, exec_conf));
@@ -54,34 +54,34 @@ void dynamic_bond_create_destroy_test(dybond_creator db_creator, std::shared_ptr
     std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN() - 1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    std::shared_ptr<DynamicBond> dybond = db_creator(sysdef, group_all, nlist, 0, 1, 1, 3);
-    dybond->setParams(r_cut, r_true, "harmonic", 1, 1, 1);
+    std::shared_ptr<PopBD> popbd = pbd_creator(sysdef, group_all, nlist, 0, 1, 1, 3);
+    popbd->setParams(r_cut, r_true, "harmonic", 1, 1, 1);
 
     // specify a table to interpolate
     vector<Scalar> XB, M, L;
     XB.push_back(0.0);  M.push_back(0.0); L.push_back(0.0);
     XB.push_back(0.0);  M.push_back(0.0); L.push_back(0.0);
     XB.push_back(0.0);   M.push_back(0.0); L.push_back(0.0);
-    dybond->setTable(XB, M, L, 0.0, 4.0);
+    popbd->setTable(XB, M, L, 0.0, 4.0);
 
     std::shared_ptr<BondData> bdata(sysdef->getBondData());
     // Access the GPU bond table for reading
     ArrayHandle<BondData::members_t> h_gpu_bondlist(bdata->getGPUTable(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_gpu_n_bonds(bdata->getNGroupsArray(), access_location::host, access_mode::read);
 
-    dybond->update(0);
+    popbd->update(0);
 
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 0);
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[1], 0);
 
-    // dybond->setParams(r_cut, "harmonic", 0, 1);
-    // dybond->update(1);
+    // popbd->setParams(r_cut, "harmonic", 0, 1);
+    // popbd->update(1);
 
     // UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 0);
     // UP_ASSERT_EQUAL(h_gpu_n_bonds.data[1], 0);
 }
 
-void dynamic_bond_rcut_test(dybond_creator db_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
+void popbd_rcut_test(popbd_creator pbd_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
 {
     // start with the simplest possible test: 2 particles in a box with only one bond type
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(100.0), 1, 1, 0, 0, 0, exec_conf));
@@ -102,40 +102,40 @@ void dynamic_bond_rcut_test(dybond_creator db_creator, std::shared_ptr<Execution
     std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN() - 1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    std::shared_ptr<DynamicBond> dybond = db_creator(sysdef, group_all, nlist, 0, 1, 1, 3);
-    dybond->setParams(r_cut, r_true, "harmonic", 1, 1, 1);
+    std::shared_ptr<PopBD> popbd = pbd_creator(sysdef, group_all, nlist, 0, 1, 1, 3);
+    popbd->setParams(r_cut, r_true, "harmonic", 1, 1, 1);
 
     std::shared_ptr<BondData> bdata(sysdef->getBondData());
     // Access the GPU bond table for reading
     ArrayHandle<BondData::members_t> h_gpu_bondlist(bdata->getGPUTable(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_gpu_n_bonds(bdata->getNGroupsArray(), access_location::host, access_mode::read);
 
-    dybond->update(0);
+    popbd->update(0);
 
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 1);
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[1], 1);
 
-    dybond->setParams(r_cut, r_true, "harmonic", 1, 1, 1);
-    dybond->update(1);
+    popbd->setParams(r_cut, r_true, "harmonic", 1, 1, 1);
+    popbd->update(1);
 
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 0);
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[1], 0);
 }
 
-//! DynamicBond creator for unit tests
-std::shared_ptr<DynamicBond> base_class_db_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, std::shared_ptr<NeighborList> nlist, int seed, Scalar delta_t, int period, unsigned int table_width)
+//! PopBD creator for unit tests
+std::shared_ptr<PopBD> base_class_pbd_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, std::shared_ptr<NeighborList> nlist, int seed, Scalar delta_t, int period, unsigned int table_width)
 {
-    return std::shared_ptr<DynamicBond>(new DynamicBond(sysdef, group, nlist, seed, delta_t, period, table_width));
+    return std::shared_ptr<PopBD>(new PopBD(sysdef, group, nlist, seed, delta_t, period, table_width));
 }
 
-UP_TEST(dybond_create_destroy)
+UP_TEST(popbd_create_destroy)
 {
-    dybond_creator db_creator_base = bind(base_class_db_creator, _1, _2, _3, _4, _5, _6, _7);
-    dynamic_bond_create_destroy_test(db_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    popbd_creator pbd_creator_base = bind(base_class_pbd_creator, _1, _2, _3, _4, _5, _6, _7);
+    popbd_create_destroy_test(pbd_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
 }
 
-// UP_TEST(dybond_rcut)
+// UP_TEST(popbd_rcut)
 // {
-//     dybond_creator db_creator_base = bind(base_class_db_creator, _1, _2, _3, _4, _5, _6, _7);
-//     dynamic_bond_rcut_test(db_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+//     popbd_creator pbd_creator_base = bind(base_class_pbd_creator, _1, _2, _3, _4, _5, _6, _7);
+//     popbd_rcut_test(pbd_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
 // }

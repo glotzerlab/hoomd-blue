@@ -56,7 +56,7 @@
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
 #include "MuellerPlatheFlow.h"
-#include "DynamicBond.h"
+#include "PopBD.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -379,7 +379,7 @@ PYBIND11_MODULE(_md, m)
     export_ConstraintEllipsoid(m);
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
-    export_DynamicBond(m);
+    export_PopBD(m);
 
 #ifdef ENABLE_CUDA
     export_TwoStepNVEGPU(m);

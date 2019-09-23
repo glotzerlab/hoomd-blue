@@ -4,7 +4,7 @@
 
 // Maintainer: atravitz
 
-#include "DynamicBond.h"
+#include "PopBD.h"
 #include "hoomd/GPUArray.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
@@ -14,8 +14,8 @@
 using namespace hoomd;
 namespace py = pybind11;
 
-/*! \file DynamicBond.cc
-    \brief Contains code for the DynamicBond class
+/*! \file PopBD.cc
+    \brief Contains code for the PopBD class
 */
 
 using namespace std;
@@ -28,7 +28,7 @@ Scalar feneEnergy(Scalar x, int nKuhn)
   return UBi;
 }
 
-DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
+PopBD::PopBD(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<ParticleGroup> group,
                          std::shared_ptr<NeighborList> nlist,
                          int seed,
@@ -46,7 +46,7 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
       m_nK(0),
       m_table_width(table_width)
 {
-  m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
+  m_exec_conf->msg->notice(5) << "Constructing PopBD" << endl;
   int n_particles = m_pdata->getN();
   m_nloops.resize(n_particles);
 }
@@ -55,9 +55,9 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
     \param bond_type type of bond to be formed or broken
     \param delta_G sticker strength (kT)
 
-    Sets parameters for the dynamic bond updater
+    Sets parameters for the popBD updater
 */
-void DynamicBond::setParams(Scalar r_cut, Scalar r_true, std::string bond_type,
+void PopBD::setParams(Scalar r_cut, Scalar r_true, std::string bond_type,
                             Scalar delta_G, int n_polymer, int nK)
 {
   m_r_cut = r_cut;
@@ -67,7 +67,7 @@ void DynamicBond::setParams(Scalar r_cut, Scalar r_true, std::string bond_type,
   std::fill(m_nloops.begin(), m_nloops.end(), n_polymer);
 }
 
-void DynamicBond::setTable(const std::vector<Scalar> &XB,
+void PopBD::setTable(const std::vector<Scalar> &XB,
                            const std::vector<Scalar> &M,
                            const std::vector<Scalar> &L,
                            Scalar rmin,
@@ -76,24 +76,24 @@ void DynamicBond::setTable(const std::vector<Scalar> &XB,
     // range check on the parameters
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
-        m_exec_conf->msg->error()<< "dynamic_bond.table:  rmin, rmax (" << rmin << "," << rmax
+        m_exec_conf->msg->error()<< "popbd.table:  rmin, rmax (" << rmin << "," << rmax
              << ") is invalid."  << endl;
-        throw runtime_error("Error initializing DynamicBond");
+        throw runtime_error("Error initializing PopBD");
         }
 
     if (XB.size() != m_table_width || M.size() != m_table_width || L.size() != m_table_width)
         {
-        m_exec_conf->msg->error() << "dynamic_bond.table: table provided to setTable is not of the correct size" << endl;
-        throw runtime_error("Error initializing DynamicBond");
+        m_exec_conf->msg->error() << "popbd.table: table provided to setTable is not of the correct size" << endl;
+        throw runtime_error("Error initializing PopBD");
         }
 
   }
-DynamicBond::~DynamicBond()
+PopBD::~PopBD()
 {
-  m_exec_conf->msg->notice(5) << "Destroying DynamicBond" << endl;
+  m_exec_conf->msg->notice(5) << "Destroying PopBD" << endl;
 }
 
-void DynamicBond::update(unsigned int timestep)
+void PopBD::update(unsigned int timestep)
 {
   assert(m_pdata);
   assert(m_nlist);
@@ -106,7 +106,7 @@ void DynamicBond::update(unsigned int timestep)
 
   // start the profile for this compute
   if (m_prof)
-    m_prof->push("DynamicBond");
+    m_prof->push("PopBD");
 
   // access the neighbor list
   ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
@@ -321,12 +321,12 @@ void DynamicBond::update(unsigned int timestep)
     m_prof->pop();
 }
 
-void export_DynamicBond(py::module &m)
+void export_PopBD(py::module &m)
 {
-  py::class_<DynamicBond, std::shared_ptr<DynamicBond>>(m, "DynamicBond",
+  py::class_<PopBD, std::shared_ptr<PopBD>>(m, "PopBD",
                                                         py::base<Updater>())
       .def(py::init<std::shared_ptr<SystemDefinition>,
                     std::shared_ptr<ParticleGroup>,
                     std::shared_ptr<NeighborList>, int, Scalar, int, int>())
-      .def("setParams", &DynamicBond::setParams);
+      .def("setParams", &PopBD::setParams);
 }

@@ -20,7 +20,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
       i = int(round((r - rmin)/dr))
       return (V[i], F[i])
 
-class dynamic_bond(_updater):
+class popbd(_updater):
     r"""
     Args:
         r_cut: cutoff radius (scalar)
@@ -38,7 +38,7 @@ class dynamic_bond(_updater):
         _updater.__init__(self);
 
         # create the c++ mirror class
-        self.cpp_updater = _md.DynamicBond(hoomd.context.current.system_definition,
+        self.cpp_updater = _md.PopBD(hoomd.context.current.system_definition,
                         group.cpp_group,
                         nlist.cpp_nlist,
                         seed,

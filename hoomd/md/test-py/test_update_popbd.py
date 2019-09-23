@@ -9,8 +9,8 @@ import os
 
 r_colloid = 1
 
-# tests for md.update.dynamic_bond
-class update_dynamic_bond(unittest.TestCase):
+# tests for md.update.popbd
+class update_popbd(unittest.TestCase):
     def setUp(self):
         snap = data.make_snapshot(
             N=2,
@@ -32,7 +32,7 @@ class update_dynamic_bond(unittest.TestCase):
     # tests basic creation of the updater
     def test_create(self):
         # nl = md.nlist.tree();
-        dybond = md.update.dynamic_bond(
+        dybond = md.update.popbd(
             group=group.all(),
             nlist=self.nl,
             seed=1,
@@ -44,7 +44,7 @@ class update_dynamic_bond(unittest.TestCase):
 
     # tests formation of a bond within a cutoff radius
     def test_set_params(self):
-        dybond = md.update.dynamic_bond(
+        dybond = md.update.popbd(
             group=group.all(),
             nlist=self.nl,
             seed=1,
@@ -62,7 +62,7 @@ class update_dynamic_bond(unittest.TestCase):
         )
 
     def test_set_from_file(self):
-        dybond = md.update.dynamic_bond(
+        dybond = md.update.popbd(
             group=group.all(),
             nlist=self.nl,
             seed=1,
