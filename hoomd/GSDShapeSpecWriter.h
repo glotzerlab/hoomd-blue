@@ -51,11 +51,16 @@ class GSDShapeSpecWriter
                 }
             }
 
+      std::string getName()
+          {
+          return m_field_name;
+          }
+
     private:
 
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
         std::string m_field_name;
-        
+
     };
 
 #endif

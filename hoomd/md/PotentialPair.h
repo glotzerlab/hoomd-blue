@@ -345,8 +345,8 @@ void PotentialPair<evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter
 template <class evaluator>
 int PotentialPair<evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     {
-    m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: particles/type_shapes" << std::endl;
     GSDShapeSpecWriter shapespec(m_exec_conf);
+    m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: " <<  shapespec.getName() << std::endl;
     int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
     return retval;
     }
