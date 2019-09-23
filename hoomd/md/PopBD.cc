@@ -43,7 +43,6 @@ PopBD::PopBD(std::shared_ptr<SystemDefinition> sysdef,
       m_r_cut(0.0),
       m_r_true(0.0),
       m_delta_t(delta_t),
-      m_nK(0),
       m_table_width(table_width)
 {
   m_exec_conf->msg->notice(5) << "Constructing PopBD" << endl;
@@ -53,17 +52,14 @@ PopBD::PopBD(std::shared_ptr<SystemDefinition> sysdef,
 
 /*! \param r_cut cut off distance for computing bonds'
     \param bond_type type of bond to be formed or broken
-    \param delta_G sticker strength (kT)
 
     Sets parameters for the popBD updater
 */
 void PopBD::setParams(Scalar r_cut, Scalar r_true, std::string bond_type,
-                            Scalar delta_G, int n_polymer, int nK)
+int n_polymer)
 {
   m_r_cut = r_cut;
   m_r_true = r_true;
-  m_delta_G = delta_G;
-  m_nK = nK;
   std::fill(m_nloops.begin(), m_nloops.end(), n_polymer);
 }
 
@@ -97,6 +93,8 @@ void PopBD::update(unsigned int timestep)
 {
   assert(m_pdata);
   assert(m_nlist);
+  int m_nK = 200; // TODO: make this r_cut
+
 
   // start by updating the neighborlist
   m_nlist->compute(timestep);

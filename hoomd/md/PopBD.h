@@ -31,28 +31,25 @@ class PYBIND11_EXPORT PopBD : public Updater
 public:
     //! Constructs the compute
     PopBD(std::shared_ptr<SystemDefinition> sysdef,
-                std::shared_ptr<ParticleGroup> group,
-                std::shared_ptr<NeighborList> nlist,
-                int seed,
-                Scalar delta_t,
-                int period,
-                unsigned int table_width);
+          std::shared_ptr<ParticleGroup> group,
+          std::shared_ptr<NeighborList> nlist,
+          int seed,
+          Scalar delta_t,
+          int period,
+          unsigned int table_width);
 
     //! Destructor
     virtual ~PopBD();
 
-    virtual void setParams(Scalar r_cut, Scalar r_true, std::string bond_type,
-                           Scalar delta_G, int n_polymer, int nK);
+    virtual void setParams(Scalar r_cut, Scalar r_true, std::string bond_type, int n_polymer);
 
     virtual void setTable(const std::vector<Scalar> &XB,
-                           const std::vector<Scalar> &M,
-                           const std::vector<Scalar> &L,
-                           Scalar rmin,
-                           Scalar rmax);
+                          const std::vector<Scalar> &M,
+                          const std::vector<Scalar> &L,
+                          Scalar rmin,
+                          Scalar rmax);
     //! Take one timestep forward
     virtual void update(unsigned int timestep);
-
-
 
 protected:
     std::shared_ptr<ParticleGroup> m_group; //!< Group of particles to operate on
@@ -64,13 +61,11 @@ protected:
     Scalar m_r_cut;                         //!< cut off distance for computing bonds
     Scalar m_r_true;                        //!< the "true" radius, i.e. the sticker-colloid energy well
     unsigned int m_table_width;
-                                            //!< minimum
-    Scalar m_delta_G;                       //!< sticker strength
-    Scalar m_delta_t;                       //!< time step from integrator
-    std::vector<int> m_nloops;              //!< structure of size N to store number of loops
-                                            //!< for each colloid
-    int n_polymer;                          //!< number of polymers per colloid
-    int m_nK;                               //!< kuhn steps per polymer
+    //!< minimum
+    Scalar m_delta_t;          //!< time step from integrator
+    std::vector<int> m_nloops; //!< structure of size N to store number of loops
+                               //!< for each colloid
+    int n_polymer;             //!< number of polymers per colloid
 };
 
 //! Exports the PopBD class to python

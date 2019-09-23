@@ -55,7 +55,7 @@ void popbd_create_destroy_test(popbd_creator pbd_creator, std::shared_ptr<Execut
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<PopBD> popbd = pbd_creator(sysdef, group_all, nlist, 0, 1, 1, 3);
-    popbd->setParams(r_cut, r_true, "harmonic", 1, 1, 1);
+    popbd->setParams(r_cut, r_true, "harmonic", 1);
 
     // specify a table to interpolate
     vector<Scalar> XB, M, L;
@@ -74,7 +74,7 @@ void popbd_create_destroy_test(popbd_creator pbd_creator, std::shared_ptr<Execut
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 0);
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[1], 0);
 
-    // popbd->setParams(r_cut, "harmonic", 0, 1);
+    popbd->setParams(r_cut, r_true, "harmonic", 0);
     // popbd->update(1);
 
     // UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 0);
@@ -103,7 +103,7 @@ void popbd_rcut_test(popbd_creator pbd_creator, std::shared_ptr<ExecutionConfigu
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<PopBD> popbd = pbd_creator(sysdef, group_all, nlist, 0, 1, 1, 3);
-    popbd->setParams(r_cut, r_true, "harmonic", 1, 1, 1);
+    popbd->setParams(r_cut, r_true, "harmonic", 1);
 
     std::shared_ptr<BondData> bdata(sysdef->getBondData());
     // Access the GPU bond table for reading
@@ -115,7 +115,7 @@ void popbd_rcut_test(popbd_creator pbd_creator, std::shared_ptr<ExecutionConfigu
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 1);
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[1], 1);
 
-    popbd->setParams(r_cut, r_true, "harmonic", 1, 1, 1);
+    popbd->setParams(r_cut, r_true, "harmonic", 1);
     popbd->update(1);
 
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 0);
