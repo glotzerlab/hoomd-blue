@@ -98,13 +98,13 @@ class AnisoPotentialPair : public ForceCompute
         std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params) const
             {
             ArrayHandle<param_type> h_params(params, access_location::host, access_mode::read);
-            std::vector<std::string> type_shape_mapping(params.getNumElements());
+            std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
             quat<Scalar> q(make_scalar4(1,0,0,0));
             Scalar3 dr = make_scalar3(0,0,0);
             Scalar rcut = Scalar(0.0);
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
                 {
-                aniso_evaluator evaluator(dr,q,q,rcut,h_params.data[i]);
+                aniso_evaluator evaluator(dr,q,q,rcut,h_params.data[m_typpair_idx(i,i)]);
                 type_shape_mapping[i] = evaluator.getShapeSpec();
                 }
             return type_shape_mapping;

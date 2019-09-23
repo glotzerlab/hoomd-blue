@@ -147,10 +147,10 @@ class PotentialPair : public ForceCompute
         std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params) const
             {
             ArrayHandle<param_type> h_params(params, access_location::host, access_mode::read);
-            std::vector<std::string> type_shape_mapping(params.getNumElements());
+            std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
                 {
-                evaluator eval(Scalar(0.0),Scalar(0.0),h_params.data[i]);
+                evaluator eval(Scalar(0.0),Scalar(0.0), h_params.data[m_typpair_idx(i,i)]);
                 type_shape_mapping[i] = eval.getShapeSpec();
                 }
             return type_shape_mapping;
