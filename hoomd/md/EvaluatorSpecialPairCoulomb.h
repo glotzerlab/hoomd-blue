@@ -102,11 +102,6 @@ class EvaluatorSpecialPairCoulomb
             {
             return std::string("coul");
             }
-
-        std::string getShapeSpec() const
-            {
-            throw std::runtime_error("Shape definition not suppored for this pair potential.");
-            }
         #endif
 
     protected:
