@@ -100,7 +100,7 @@ class DEM3DForceCompute : public ForceCompute, public DEMShapeSpecParser<Real, v
         //! Find the total number of degenerate vertices for all shapes
         size_t numDegenerateVerts() const;
 
-        void connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+        void connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
         int slotWriteDEMGSDShapeSpec(gsd_handle& handle) const;
 

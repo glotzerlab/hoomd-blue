@@ -23,7 +23,7 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/managed_allocator.h"
 #include "hoomd/GSDShapeSpecWriter.h"
- 
+
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #include "hoomd/HOOMDMPI.h"
@@ -320,13 +320,13 @@ class IntegratorHPMCMono : public IntegratorHPMC
         int slotWriteGSDState(gsd_handle&, std::string name) const;
 
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
-        int slotWriteGSDShapeSpec(gsd_handle&, std::string name) const;
+        int slotWriteGSDShapeSpec(gsd_handle&) const;
 
         //! Method that is called to connect to the gsd write state signal
         void connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
 
-        //! Method that is called to connect to the gsd write state signal
-        void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+        //! Method that is called to connect to the gsd write shape signal
+        void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
         //! Method that is called to connect to the gsd write state signal
         bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
@@ -1698,12 +1698,10 @@ void IntegratorHPMCMono<Shape>::connectGSDStateSignal(
     }
 
 template <class Shape>
-void IntegratorHPMCMono<Shape>::connectGSDShapeSpec(
-                                                    std::shared_ptr<GSDDumpWriter> writer,
-                                                    std::string name)
+void IntegratorHPMCMono<Shape>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
     {
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec, this, std::placeholders::_1, name);
+    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec, this, std::placeholders::_1);
     std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
@@ -1737,18 +1735,11 @@ int IntegratorHPMCMono<Shape>::slotWriteGSDState( gsd_handle& handle, std::strin
 
 
 template <class Shape>
-int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec( gsd_handle& handle, std::string name ) const
+int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     {
-    m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: "<< name << std::endl;
+    m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: particles/type_shapes" << std::endl;
 
-    // create schema helpers
-    #ifdef ENABLE_MPI
-    bool mpi=(bool)m_pdata->getDomainDecomposition();
-    #else
-    bool mpi=false;
-    #endif
-
-    GSDShapeSpecWriter shapespec(m_exec_conf, mpi);
+    GSDShapeSpecWriter shapespec(m_exec_conf);
     int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
     return retval;
     }

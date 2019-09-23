@@ -178,9 +178,9 @@ class _integrator(hoomd.meta._metadata):
             raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 
     def _connect_gsd_shape_spec(self, gsd):
-        # This is an internal method, and should not be called directly. See gsd.dump_state() instead
+        # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
         if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_integrator, "connectGSDShapeSpec"):
-            self.cpp_integrator.connectGSDShapeSpec(gsd.cpp_analyzer, "particles/type_shapes");
+            self.cpp_integrator.connectGSDShapeSpec(gsd.cpp_analyzer);
         else:
             raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 

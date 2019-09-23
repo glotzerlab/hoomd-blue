@@ -63,7 +63,7 @@ class DEM2DForceCompute : public ForceCompute, public DEMShapeSpecParser<Real, v
         //! Calculates the requested log value and returns it
         virtual Real getLogValue(const std::string& quantity, unsigned int timestep);
 
-        void connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+        void connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
         int slotWriteDEMGSDShapeSpec(gsd_handle& handle) const;
 
