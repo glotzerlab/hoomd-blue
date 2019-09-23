@@ -429,44 +429,4 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
             }
         }
     };
-
-template < class Shape >
-struct gsd_shape_spec: public gsd_schema_hpmc_base
-    {
-    gsd_shape_spec(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) : gsd_schema_hpmc_base(exec_conf, mpi) {}
-
-    int write(gsd_handle& handle, const std::string& name, const param_array<typename Shape::param_type > &params)
-        {
-        if(!m_exec_conf->isRoot())
-            return 0;
-
-        std::vector< std::string > type_shape_mapping(params.size());
-        quat<Scalar> q(make_scalar4(1,0,0,0));
-
-        int max_len = 0;
-        for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
-            {
-            Shape shape(q, params[i]);
-            type_shape_mapping[i] = shape.getShapeSpec();
-            max_len = std::max(max_len, (int)type_shape_mapping[i].size());
-            }
-        max_len += 1;  // for null
-        m_exec_conf->msg->notice(10) << "dump.gsd: writing " << name << std::endl;
-        std::vector<char> types(max_len * type_shape_mapping.size());
-        for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
-            strncpy(&types[max_len*i], type_shape_mapping[i].c_str(), max_len);
-        int retval = gsd_write_chunk(&handle, name.c_str(), GSD_TYPE_UINT8, type_shape_mapping.size(), max_len, 0, (void *)&types[0]);
-        if (retval == -1)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << std::endl;
-            throw std::runtime_error("Error writing GSD file");
-            }
-        else if (retval != 0)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << retval << std::endl;
-            throw std::runtime_error("Error writing GSD file");
-            }
-        return retval;
-        }
-    };
 #endif
