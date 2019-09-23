@@ -365,6 +365,11 @@ class EvaluatorTersoff
             {
             return std::string("tersoff");
             }
+
+        std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not suppored for this pair potential.");
+            }
         #endif
 
     protected:
