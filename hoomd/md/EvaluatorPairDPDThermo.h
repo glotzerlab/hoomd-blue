@@ -234,7 +234,7 @@ class EvaluatorPairDPDThermo
             return std::string("dpd");
             }
 
-        HOSTDEVICE std::string getShapeSpec() const
+        std::string getShapeSpec() const
             {
             throw std::runtime_error("Shape definition not suppored for this pair potential.");
             }

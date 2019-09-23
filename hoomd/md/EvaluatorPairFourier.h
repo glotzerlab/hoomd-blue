@@ -155,7 +155,7 @@ class EvaluatorPairFourier
             return std::string("fourier");
             }
 
-        HOSTDEVICE std::string getShapeSpec() const
+        std::string getShapeSpec() const
             {
             throw std::runtime_error("Shape definition not suppored for this pair potential.");
             }

@@ -136,7 +136,7 @@ class EvaluatorPairBuckingham
             return std::string("buck");
             }
 
-        HOSTDEVICE std::string getShapeSpec() const
+        std::string getShapeSpec() const
             {
             throw std::runtime_error("Shape definition not suppored for this pair potential.");
             }

@@ -121,7 +121,7 @@ class EvaluatorPairEwald
             return std::string("ewald");
             }
 
-        HOSTDEVICE std::string getShapeSpec() const
+        std::string getShapeSpec() const
             {
             throw std::runtime_error("Shape definition not suppored for this pair potential.");
             }
