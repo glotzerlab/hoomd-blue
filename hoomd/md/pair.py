@@ -2632,7 +2632,7 @@ class buckingham(pair):
 
         \begin{eqnarray*}
         V_{\mathrm{Buckingham}}(r)  = & A \exp\left(-\frac{r}{\rho}\right) -
-                          \frac{C}{r} & r < r_{\mathrm{cut}} \\
+                          \frac{C}{r^6} & r < r_{\mathrm{cut}} \\
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
@@ -2643,7 +2643,7 @@ class buckingham(pair):
 
     - :math:`A` - *A* (in energy units)
     - :math:`\rho` - *rho* (in distance units)
-    - :math:`C` - *C* (in energy/distance units )
+    - :math:`C` - *C* (in energy * distance**6 units )
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
