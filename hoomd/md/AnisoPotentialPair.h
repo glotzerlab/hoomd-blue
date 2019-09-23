@@ -18,7 +18,7 @@
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
-#include "hoomd/GSDShapeSpec.h"
+#include "hoomd/GSDShapeSpecWriter.h"
 
 /*! \file AnisoPotentialPair.h
     \brief Defines the template class for anisotropic pair potentials
@@ -85,15 +85,30 @@ class AnisoPotentialPair : public ForceCompute
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
 
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
-        int slotWriteGSDShapeSpec(gsd_handle&, std::string name) const;
+        int slotWriteGSDShapeSpec(gsd_handle&) const;
 
         //! Method that is called to connect to the gsd write state signal
-        void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+        void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+
+        std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params) const
+            {
+            ArrayHandle<param_type> h_params(params, access_location::host, access_mode::read);
+            std::vector<std::string> type_shape_mapping(params.getNumElements());
+            quat<Scalar> q(make_scalar4(1,0,0,0));
+            Scalar3 dr = make_scalar3(0,0,0);
+            Scalar rcut = Scalar(0.0);
+            for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+                {
+                aniso_evaluator evaluator(dr,q,q,rcut,h_params.data[i]);
+                type_shape_mapping[i] = evaluator.getShapeSpec();
+                }
+            return type_shape_mapping;
+            }
 
         //! Shifting modes that can be applied to the energy
         enum energyShiftMode
@@ -173,30 +188,20 @@ class AnisoPotentialPair : public ForceCompute
     };
 
 template <class aniso_evaluator>
-void AnisoPotentialPair<aniso_evaluator>::connectGSDShapeSpec(
-                                                    std::shared_ptr<GSDDumpWriter> writer,
-                                                    std::string name)
+void AnisoPotentialPair<aniso_evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
     {
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec, this, std::placeholders::_1, name);
+    auto func = std::bind(&AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec, this, std::placeholders::_1);
     std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
 
 template <class aniso_evaluator>
-int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec( gsd_handle& handle, std::string name ) const
+int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     {
-    m_exec_conf->msg->notice(10) << "AnisoPotentialPair writing to GSD File to name: "<< name << std::endl;
-
-    // create schema helpers
-    #ifdef ENABLE_MPI
-    bool mpi=(bool)m_pdata->getDomainDecomposition();
-    #else
-    bool mpi=false;
-    #endif
-
-    gsd_shape_spec<aniso_evaluator> schema(m_exec_conf, mpi);
-    int retval = schema.write(handle, name, this->m_params);
+    m_exec_conf->msg->notice(10) << "AnisoPotentialPair writing to GSD File to name: particles/type_shapes" << std::endl;
+    GSDShapeSpecWriter shapespec(m_exec_conf);
+    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
     return retval;
     }
 
