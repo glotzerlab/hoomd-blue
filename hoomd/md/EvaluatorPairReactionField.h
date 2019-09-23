@@ -128,6 +128,11 @@ class EvaluatorPairReactionField
             {
             return std::string("reaction_field");
             }
+
+        HOSTDEVICE std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not suppored for this pair potential.");
+            }
         #endif
 
     protected:

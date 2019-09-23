@@ -162,6 +162,11 @@ class EvaluatorPairDLVO
             {
             return std::string("dlvo");
             }
+
+        HOSTDEVICE std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not suppored for this pair potential.");
+            }
         #endif
 
     protected:
@@ -180,4 +185,3 @@ class EvaluatorPairDLVO
 
 
 #endif // __PAIR_EVALUATOR_DLVO_H__
-
