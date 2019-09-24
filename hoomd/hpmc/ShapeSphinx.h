@@ -132,7 +132,7 @@ struct ShapeSphinx
 
     HOSTDEVICE std::string getShapeSpec() const
         {
-        throw std::runtime_error("Shape definition not suppored for this shape class.");
+        throw std::runtime_error("Shape definition not supported for this shape class.");
         }
 
     //! Return the bounding box of the shape in world coordinates

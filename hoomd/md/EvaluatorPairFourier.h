@@ -157,7 +157,7 @@ class EvaluatorPairFourier
 
         std::string getShapeSpec() const
             {
-            throw std::runtime_error("Shape definition not suppored for this pair potential.");
+            throw std::runtime_error("Shape definition not supported for this pair potential.");
             }
         #endif
 
