@@ -1,6 +1,8 @@
-// inclusion guard
-#ifndef __DEM_SHAPE_SPEC_PARSER
-#define __DEM_SHAPE_SPEC_PARSER
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
+#ifndef __DEMSHAPESPECPARSER_H__
+#define __DEMSHAPESPECPARSER_H__
 
 #include "hoomd/extern/gsd.h"
 #include "hoomd/GSDDumpWriter.h"
