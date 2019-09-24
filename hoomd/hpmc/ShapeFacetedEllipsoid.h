@@ -78,7 +78,7 @@ struct faceted_ellipsoid_params : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+      HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
         n.load_shared(ptr,available_bytes);
         offset.load_shared(ptr,available_bytes);
@@ -275,10 +275,12 @@ struct ShapeFacetedEllipsoid
         return 0.0;
         }
 
-    HOSTDEVICE std::string getShapeSpec() const
+    #ifndef NVCC
+    std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this shape class.");
         }
+    #endf
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const

@@ -163,7 +163,8 @@ struct ShapePolyhedron
         return data.sweep_radius != OverlapReal(0.0);
         }
 
-    HOSTDEVICE std::string getShapeSpec() const
+    #ifndef NVCC
+    std::string getShapeSpec() const
         {
         unsigned int n_verts = data.n_verts;
         unsigned int n_faces = data.n_faces;
@@ -193,6 +194,7 @@ struct ShapePolyhedron
             }
         return shapedef.str();
         }
+    #endf
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const

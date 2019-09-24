@@ -96,7 +96,8 @@ struct ShapeEllipsoid
         return OverlapReal(0.0);
         }
 
-    HOSTDEVICE std::string getShapeSpec() const
+    #ifndef NVCC
+    std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
         shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << axes.x <<
@@ -105,6 +106,7 @@ struct ShapeEllipsoid
                     "}";
         return shapedef.str();
         }
+    #endf
 
     //! Support function of the shape (in local coordinates), used in getAABB
     /*! \param n Vector to query support function (must be normalized)

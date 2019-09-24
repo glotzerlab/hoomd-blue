@@ -339,7 +339,8 @@ struct ShapeConvexPolyhedron
         return OverlapReal(0.0);
         }
 
-    HOSTDEVICE std::string getShapeSpec() const
+    #ifndef NVCC
+    std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
         shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
@@ -350,6 +351,7 @@ struct ShapeConvexPolyhedron
         shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << ", " << verts.z[verts.N-1] << "]]}";
         return shapedef.str();
         }
+    #endf
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
