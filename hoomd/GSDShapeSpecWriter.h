@@ -1,6 +1,8 @@
-// inclusion guard
-#ifndef __GSD_SHAPE_SPEC_WRITER
-#define __GSD_SHAPE_SPEC_WRITER
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
+#ifndef __GSDSHAPESPECWRITER_H__
+#define __GSDSHAPESPECWRITER_H__
 
 #include "extern/gsd.h"
 #include "GSDDumpWriter.h"
