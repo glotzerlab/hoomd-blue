@@ -536,9 +536,9 @@ class pair(force._force):
     def _connect_gsd_shape_spec(self, gsd):
         # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
         if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_force, "connectGSDShapeSpec"):
-            self.cpp_force.connectGSDShapeSpec(gsd.cpp_analyzer, "particles/type_shapes");
+            self.cpp_force.connectGSDShapeSpec(gsd.cpp_analyzer);
         else:
-            raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__name__));
 
 class lj(pair):
     R""" Lennard-Jones pair potential.

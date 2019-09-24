@@ -1,4 +1,3 @@
-
 // inclusion guard
 #ifndef __DEM_SHAPE_SPEC_PARSER
 #define __DEM_SHAPE_SPEC_PARSER
@@ -9,7 +8,6 @@
 #include <sstream>
 #include <iostream>
 
-
 template<typename Real, typename Vector>
 class Parser
     {
@@ -19,7 +17,6 @@ class Parser
 
         std::string parseVertices(const std::vector<Vector> &verts) const;
     };
-
 
 // Partial 2D specialization
 template <typename Real>
@@ -58,7 +55,6 @@ class Parser<Real,vec2<Real>>
             }
     };
 
-
 // Partial 3D specialization
 template <typename Real>
 class Parser<Real,vec3<Real>>
@@ -95,7 +91,6 @@ class Parser<Real,vec3<Real>>
             return vertstr.str();
             }
     };
-
 
 template<typename Real, typename Vector>
 class DEMShapeSpecParser : public Parser<Real, Vector>

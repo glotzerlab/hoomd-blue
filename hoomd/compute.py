@@ -116,7 +116,7 @@ class _compute:
         if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_compute, "connectGSDStateSignal"):
             self.cpp_compute.connectGSDStateSignal(gsd.cpp_analyzer, self._gsd_state_name());
         else:
-            raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
 
     def restore_state(self):
         """ Restore the state information from the file used to initialize the simulations

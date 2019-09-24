@@ -204,8 +204,6 @@ class EvaluatorPairGB
             }
         #endif
 
-
-
     protected:
         vec3<Scalar> dr;   //!< Stored dr from the constructor
         Scalar rcutsq;     //!< Stored rcutsq from the constructor

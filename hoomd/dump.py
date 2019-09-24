@@ -685,8 +685,8 @@ class gsd(hoomd.analyze._analyzer):
         if hasattr(obj, '_connect_gsd_shape_spec') and type(getattr(obj, '_connect_gsd_shape_spec')) == types.MethodType:
             obj._connect_gsd_shape_spec(self);
         else:
-            hoomd.context.msg.warning("GSD is not currently support for {name}".format(obj.__name__));
-            
+            hoomd.context.msg.warning("GSD is not currently support for {}".format(obj.__class__.__name__));
+
     @property
     def log(self):
         """Dictionary mapping user-defined names to callbacks.

@@ -39,7 +39,7 @@ class _DEMBase:
         if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_force, "connectDEMGSDShapeSpec"):
             self.cpp_force.connectDEMGSDShapeSpec(gsd.cpp_analyzer);
         else:
-            raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
 
     def setParams2D(self, type, vertices, center=False):
         """Set the vertices for a given particle type.

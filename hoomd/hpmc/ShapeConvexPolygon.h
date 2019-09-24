@@ -340,7 +340,6 @@ struct ShapeConvexPolygon
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
-
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
     const detail::poly2d_verts& verts;     //!< Vertices

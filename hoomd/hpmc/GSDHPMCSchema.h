@@ -429,4 +429,5 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
             }
         }
     };
+
 #endif
