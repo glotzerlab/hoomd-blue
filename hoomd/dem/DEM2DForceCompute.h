@@ -11,7 +11,7 @@
 #include <memory>
 
 #include "DEMEvaluator.h"
-#include "../GSDShapeSpecWriter.h"
+#include "hoomd/GSDShapeSpecWriter.h"
 #include "DEMShapeSpecParser.h"
 
 /*! \file DEM2DForceCompute.h

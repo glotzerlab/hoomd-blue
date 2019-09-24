@@ -61,7 +61,7 @@ void DEM2DForceCompute<Real, Real4, Potential>::connectDEMGSDShapeSpec(std::shar
     {
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
     auto func = std::bind(&DEM2DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec, this, std::placeholders::_1);
-    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    std::shared_ptr<hoomd::detail::SignalSlot> pslot(new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
 
