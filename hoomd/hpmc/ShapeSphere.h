@@ -188,7 +188,7 @@ struct ShapeSphere
     HOSTDEVICE std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
-        shapedef << "{\"type\": \"Sphere\", \"diameter\": " << getCircumsphereDiameter() << "}";
+        shapedef << "{\"type\": \"Sphere\", \"diameter\": " << params.radius*OverlapReal(2.0) << "}";
         return shapedef.str();
         }
 
