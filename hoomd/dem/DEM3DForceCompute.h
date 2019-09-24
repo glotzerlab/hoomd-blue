@@ -61,7 +61,7 @@
   \ingroup computes
 */
 template<typename Real, typename Real4, typename Potential>
-class DEM3DForceCompute : public ForceCompute, public DEMShapeSpecParser<Real, vec3<Real>>
+class DEM3DForceCompute : public ForceCompute, public DEMShapeSpecParser<Real, vec3<Real> >
     {
     public:
         //! Constructs the compute

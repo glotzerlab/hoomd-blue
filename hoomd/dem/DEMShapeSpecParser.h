@@ -20,7 +20,7 @@ class Parser
 
 // Partial 2D specialization
 template <typename Real>
-class Parser<Real,vec2<Real>>
+class Parser<Real,vec2<Real> >
     {
 
     protected:
@@ -41,7 +41,7 @@ class Parser<Real,vec2<Real>>
             return shapedef.str();
             }
 
-        std::string parseVertices(const std::vector<vec2<Real>> &verts) const
+        std::string parseVertices(const std::vector<vec2<Real> > &verts) const
             {
             std::ostringstream vertstr;
             unsigned int nverts = verts.size();
@@ -57,12 +57,12 @@ class Parser<Real,vec2<Real>>
 
 // Partial 3D specialization
 template <typename Real>
-class Parser<Real,vec3<Real>>
+class Parser<Real,vec3<Real> >
     {
 
     protected:
 
-        std::string getTypeShape(const std::vector<vec3<Real>> &verts, const Real &radius) const
+        std::string getTypeShape(const std::vector<vec3<Real> > &verts, const Real &radius) const
             {
             std::ostringstream shapedef;
             unsigned int nverts = verts.size();
@@ -78,7 +78,7 @@ class Parser<Real,vec3<Real>>
             return shapedef.str();
             }
 
-        std::string parseVertices(const std::vector<vec3<Real>> &verts) const
+        std::string parseVertices(const std::vector<vec3<Real> > &verts) const
             {
             std::ostringstream vertstr;
             unsigned int nverts = verts.size();
@@ -98,7 +98,7 @@ class DEMShapeSpecParser : public Parser<Real, Vector>
 
     public:
 
-        std::vector<std::string> getTypeShapeMapping(const std::vector<std::vector<Vector>> &verts, const Real &radius) const
+        std::vector<std::string> getTypeShapeMapping(const std::vector<std::vector<Vector> > &verts, const Real &radius) const
             {
             std::vector<std::string> type_shape_mapping(verts.size());
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
