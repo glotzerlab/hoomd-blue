@@ -672,7 +672,7 @@ class gsd(hoomd.analyze._analyzer):
         if hasattr(obj, '_connect_gsd') and type(getattr(obj, '_connect_gsd')) == types.MethodType:
             obj._connect_gsd(self);
         else:
-            hoomd.context.msg.warning("GSD is not currently support for {name}".format(obj.__name__));
+            hoomd.context.msg.warning("GSD is not currently support for {name}".format(obj.__class__.__name__));
 
     def dump_shape(self, obj):
         """Write shape information for a hoomd object.
