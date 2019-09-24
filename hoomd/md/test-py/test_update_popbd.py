@@ -7,8 +7,6 @@ context.initialize()
 import unittest
 import os
 
-r_colloid = 1
-
 # tests for md.update.popbd
 class update_popbd(unittest.TestCase):
     def setUp(self):
@@ -20,7 +18,7 @@ class update_popbd(unittest.TestCase):
         )
 
         if comm.get_rank() == 0:
-            snap.particles.diameter[:] = [r_colloid * 2] * 2
+            snap.particles.diameter[:] = [1.0 * 2] * 2
             snap.particles.position[0] = [-1, 0, 0]
             snap.particles.position[1] = [1, 0, 0]
 
@@ -56,9 +54,7 @@ class update_popbd(unittest.TestCase):
             r_cut=2.0,
             r_true=1.0,
             bond_type="harmonic",
-            delta_G=8.0,
             n_polymer=10,
-            nK=10,
         )
 
     def test_set_from_file(self):
@@ -68,9 +64,9 @@ class update_popbd(unittest.TestCase):
             seed=1,
             period=1,
             integrator=self.integrator,
-            table_width=10,
+            table_width=3,
         )
-        dybond.set_from_file('test.txt')
+        dybond.set_from_file('popbd.dat')
 
     def tearDown(self):
         del self.s

@@ -29,13 +29,12 @@ Scalar feneEnergy(Scalar x, int nKuhn)
 }
 
 PopBD::PopBD(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<ParticleGroup> group,
-                         std::shared_ptr<NeighborList> nlist,
-                         int seed,
-                         Scalar delta_t,
-                         int period,
-                         unsigned int table_width
-                         )
+             std::shared_ptr<ParticleGroup> group,
+             std::shared_ptr<NeighborList> nlist,
+             int seed,
+             Scalar delta_t,
+             int period,
+             unsigned int table_width)
     : Updater(sysdef),
       m_group(group),
       m_nlist(nlist),
@@ -56,7 +55,7 @@ PopBD::PopBD(std::shared_ptr<SystemDefinition> sysdef,
     Sets parameters for the popBD updater
 */
 void PopBD::setParams(Scalar r_cut, Scalar r_true, std::string bond_type,
-int n_polymer)
+                      int n_polymer)
 {
   m_r_cut = r_cut;
   m_r_true = r_true;
@@ -64,26 +63,25 @@ int n_polymer)
 }
 
 void PopBD::setTable(const std::vector<Scalar> &XB,
-                           const std::vector<Scalar> &M,
-                           const std::vector<Scalar> &L,
-                           Scalar rmin,
-                           Scalar rmax)
+                     const std::vector<Scalar> &M,
+                     const std::vector<Scalar> &L,
+                     Scalar rmin,
+                     Scalar rmax)
+{
+  // range check on the parameters
+  if (rmin < 0 || rmax < 0 || rmax <= rmin)
   {
-    // range check on the parameters
-    if (rmin < 0 || rmax < 0 || rmax <= rmin)
-        {
-        m_exec_conf->msg->error()<< "popbd.table:  rmin, rmax (" << rmin << "," << rmax
-             << ") is invalid."  << endl;
-        throw runtime_error("Error initializing PopBD");
-        }
-
-    if (XB.size() != m_table_width || M.size() != m_table_width || L.size() != m_table_width)
-        {
-        m_exec_conf->msg->error() << "popbd.table: table provided to setTable is not of the correct size" << endl;
-        throw runtime_error("Error initializing PopBD");
-        }
-
+    m_exec_conf->msg->error() << "popbd.table:  rmin, rmax (" << rmin << "," << rmax
+                              << ") is invalid." << endl;
+    throw runtime_error("Error initializing PopBD");
   }
+
+  if (XB.size() != m_table_width || M.size() != m_table_width || L.size() != m_table_width)
+  {
+    m_exec_conf->msg->error() << "popbd.table: table provided to setTable is not of the correct size" << endl;
+    throw runtime_error("Error initializing PopBD");
+  }
+}
 PopBD::~PopBD()
 {
   m_exec_conf->msg->notice(5) << "Destroying PopBD" << endl;
@@ -94,7 +92,6 @@ void PopBD::update(unsigned int timestep)
   assert(m_pdata);
   assert(m_nlist);
   int m_nK = 200; // TODO: make this r_cut
-
 
   // start by updating the neighborlist
   m_nlist->compute(timestep);
@@ -322,7 +319,7 @@ void PopBD::update(unsigned int timestep)
 void export_PopBD(py::module &m)
 {
   py::class_<PopBD, std::shared_ptr<PopBD>>(m, "PopBD",
-                                                        py::base<Updater>())
+                                            py::base<Updater>())
       .def(py::init<std::shared_ptr<SystemDefinition>,
                     std::shared_ptr<ParticleGroup>,
                     std::shared_ptr<NeighborList>, int, Scalar, int, int>())

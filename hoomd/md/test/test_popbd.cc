@@ -27,8 +27,14 @@ using namespace std::placeholders;
 HOOMD_UP_MAIN();
 
 //! Typedef to make using the std::function factory easier
-typedef std::function<std::shared_ptr<PopBD>  (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, std::shared_ptr<NeighborList> nlist, int seed, Scalar delta_t, int period, unsigned int table_width)> popbd_creator;
-
+typedef std::function<std::shared_ptr<PopBD>(std::shared_ptr<SystemDefinition> sysdef,
+                                             std::shared_ptr<ParticleGroup> group,
+                                             std::shared_ptr<NeighborList> nlist,
+                                             int seed,
+                                             Scalar delta_t,
+                                             int period,
+                                             unsigned int table_width)
+                                             > popbd_creator;
 
 //! Test bond creation
 void popbd_create_destroy_test(popbd_creator pbd_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -59,13 +65,14 @@ void popbd_create_destroy_test(popbd_creator pbd_creator, std::shared_ptr<Execut
 
     // specify a table to interpolate
     vector<Scalar> XB, M, L;
-    XB.push_back(0.0);  M.push_back(0.0); L.push_back(0.0);
-    XB.push_back(0.0);  M.push_back(0.0); L.push_back(0.0);
-    XB.push_back(0.0);   M.push_back(0.0); L.push_back(0.0);
+    XB.push_back(0.0); M.push_back(0.0); L.push_back(0.0);
+    XB.push_back(0.0); M.push_back(0.0); L.push_back(0.0);
+    XB.push_back(0.0); M.push_back(0.0); L.push_back(0.0);
     popbd->setTable(XB, M, L, 0.0, 4.0);
 
-    std::shared_ptr<BondData> bdata(sysdef->getBondData());
+
     // Access the GPU bond table for reading
+    std::shared_ptr<BondData> bdata(sysdef->getBondData());
     ArrayHandle<BondData::members_t> h_gpu_bondlist(bdata->getGPUTable(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_gpu_n_bonds(bdata->getNGroupsArray(), access_location::host, access_mode::read);
 
@@ -123,7 +130,13 @@ void popbd_rcut_test(popbd_creator pbd_creator, std::shared_ptr<ExecutionConfigu
 }
 
 //! PopBD creator for unit tests
-std::shared_ptr<PopBD> base_class_pbd_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, std::shared_ptr<NeighborList> nlist, int seed, Scalar delta_t, int period, unsigned int table_width)
+std::shared_ptr<PopBD> base_class_pbd_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                              std::shared_ptr<ParticleGroup> group,
+                                              std::shared_ptr<NeighborList> nlist,
+                                              int seed,
+                                              Scalar delta_t,
+                                              int period,
+                                              unsigned int table_width)
 {
     return std::shared_ptr<PopBD>(new PopBD(sysdef, group, nlist, seed, delta_t, period, table_width));
 }

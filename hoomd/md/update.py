@@ -3,7 +3,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-R""" Update particle properties.
+r""" Update particle properties.
 
 When an updater is specified, it acts on the particle system each time step to change
 it in some way. See the documentation of specific updaters to find out what they do.
@@ -11,14 +11,18 @@ it in some way. See the documentation of specific updaters to find out what they
 
 from hoomd import _hoomd
 from hoomd.md import _md
-import hoomd;
+import hoomd
 from hoomd.update import _updater
-import sys;
+import math
+import sys
+
+
 
 def _table_eval(r, rmin, rmax, V, F, width):
-      dr = (rmax - rmin) / float(width-1);
-      i = int(round((r - rmin)/dr))
-      return (V[i], F[i])
+    dr = (rmax - rmin) / float(width - 1)
+    i = int(round((r - rmin) / dr))
+    return (V[i], F[i])
+
 
 class popbd(_updater):
     r"""
@@ -31,32 +35,35 @@ class popbd(_updater):
         prob_break: probability that a bond will be broken
         seed: rng seed
     """
+
     def __init__(self, group, nlist, seed, integrator, table_width, period=1):
-        hoomd.util.print_status_line();
+        hoomd.util.print_status_line()
 
         # initialize base class
-        _updater.__init__(self);
+        _updater.__init__(self)
 
         # create the c++ mirror class
-        self.cpp_updater = _md.PopBD(hoomd.context.current.system_definition,
-                        group.cpp_group,
-                        nlist.cpp_nlist,
-                        seed,
-                        integrator.dt,
-                        table_width,
-                        period);
+        self.cpp_updater = _md.PopBD(
+            hoomd.context.current.system_definition,
+            group.cpp_group,
+            nlist.cpp_nlist,
+            seed,
+            integrator.dt,
+            table_width,
+            period,
+        )
         phase = 0
-        self.setupUpdater(period, phase);
-
+        self.table_width = table_width
+        self.setupUpdater(period, phase)
 
     def set_params(self, r_cut, r_true, bond_type, n_polymer):
         self.check_initialization()
-        self.cpp_updater.setParams(r_cut, r_true, bond_type, n_polymer);
+        self.cpp_updater.setParams(r_cut, r_true, bond_type, n_polymer)
         # store metadata
         # metadata_fields = ['r_cut', 'bond_type', 'prob_form', 'prob_break']
 
     def set_from_file(self, filename):
-        R""" Set a bond pair interaction from a file.
+        r""" Set a bond pair interaction from a file.
 
         Args:
             filename (str): Name of the file to read
@@ -74,59 +81,65 @@ class popbd(_updater):
 
         The first r value sets ``rmin``, the last sets ``rmax``. Any line with # as the first non-whitespace character is treated as a comment. The ``r`` values must monotonically increase and be equally spaced. The table is read directly into the grid points used to evaluate :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)`.
         """
-        hoomd.util.print_status_line();
+        hoomd.util.print_status_line()
 
         # open the file
-        f = open(filename);
+        f = open(filename)
 
-        r_table = [];
-        XB_table = [];
-        M_table = [];
+        r_table = []
+        XB_table = []
+        M_table = []
         L_table = []
 
         # read in lines from the file
         for line in f.readlines():
-            line = line.strip();
+            line = line.strip()
 
             # skip comment lines
-            if line[0] == '#':
-                continue;
+            if line[0] == "#":
+                continue
 
             # split out the columns
-            cols = line.split();
-            values = [float(f) for f in cols];
+            cols = line.split()
+            values = [float(f) for f in cols]
 
             # validate the input
             if len(values) != 4:
-                hoomd.context.msg.error("bond.table: file must have exactly 4 columns\n");
-                raise RuntimeError("Error reading table file");
+                hoomd.context.msg.error(
+                    "bond.table: file must have exactly 4 columns\n"
+                )
+                raise RuntimeError("Error reading table file")
 
             # append to the tables
-            r_table.append(values[0]);
-            XB_table.append(values[1]);
-            M_table.append(values[2]);
-            L_table.append(values[3]);
+            r_table.append(values[0])
+            XB_table.append(values[1])
+            M_table.append(values[2])
+            L_table.append(values[3])
 
         # validate input
-        if self.width != len(r_table):
-            hoomd.context.msg.error("bond.table: file must have exactly " + str(self.width) + " rows\n");
-            raise RuntimeError("Error reading table file");
+        if self.table_width != len(r_table):
+            hoomd.context.msg.error(
+                "bond.table: file must have exactly " + str(self.table_width) + " rows\n"
+            )
+            raise RuntimeError("Error reading table file")
 
         # extract rmin and rmax
-        rmin_table = r_table[0];
-        rmax_table = r_table[-1];
+        rmin_table = r_table[0]
+        rmax_table = r_table[-1]
 
         # check for even spacing
-        dr = (rmax_table - rmin_table) / float(self.width-1);
-        for i in range(0,self.width):
-            r = rmin_table + dr * i;
+        dr = (rmax_table - rmin_table) / float(self.table_width - 1)
+        for i in range(0, self.table_width):
+            r = rmin_table + dr * i
             if math.fabs(r - r_table[i]) > 1e-3:
-                hoomd.context.msg.error("bond.table: r must be monotonically increasing and evenly spaced\n");
-                raise RuntimeError("Error reading table file");
+                hoomd.context.msg.error(
+                    "bond.table: r must be monotonically increasing and evenly spaced\n"
+                )
+                raise RuntimeError("Error reading table file")
 
-        hoomd.util.quiet_status();
+        hoomd.util.quiet_status()
         # self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
-        hoomd.util.unquiet_status();
+        hoomd.util.unquiet_status()
 
 
 class rescale_temp(_updater):
@@ -157,29 +170,32 @@ class rescale_temp(_updater):
         update.rescale_temp(period=100, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
 
     """
+
     def __init__(self, kT, period=1, phase=0):
-        hoomd.util.print_status_line();
+        hoomd.util.print_status_line()
 
         # initialize base class
-        _updater.__init__(self);
+        _updater.__init__(self)
 
         # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT);
+        kT = hoomd.variant._setup_variant_input(kT)
 
         # create the compute thermo
-        thermo = hoomd.compute._get_unique_thermo(group=hoomd.context.current.group_all);
+        thermo = hoomd.compute._get_unique_thermo(group=hoomd.context.current.group_all)
 
         # create the c++ mirror class
-        self.cpp_updater = _md.TempRescaleUpdater(hoomd.context.current.system_definition, thermo.cpp_compute, kT.cpp_variant);
-        self.setupUpdater(period, phase);
+        self.cpp_updater = _md.TempRescaleUpdater(
+            hoomd.context.current.system_definition, thermo.cpp_compute, kT.cpp_variant
+        )
+        self.setupUpdater(period, phase)
 
         # store metadata
         self.kT = kT
         self.period = period
-        self.metadata_fields = ['kT','period']
+        self.metadata_fields = ["kT", "period"]
 
     def set_params(self, kT=None):
-        R""" Change rescale_temp parameters.
+        r""" Change rescale_temp parameters.
 
         Args:
             kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature set point (in energy units)
@@ -190,16 +206,17 @@ class rescale_temp(_updater):
 
         """
 
-        hoomd.util.print_status_line();
-        self.check_initialization();
+        hoomd.util.print_status_line()
+        self.check_initialization()
 
         if kT is not None:
-            kT = hoomd.variant._setup_variant_input(kT);
-            self.cpp_updater.setT(kT.cpp_variant);
+            kT = hoomd.variant._setup_variant_input(kT)
+            self.cpp_updater.setT(kT.cpp_variant)
             self.kT = kT
 
+
 class zero_momentum(_updater):
-    R""" Zeroes system momentum.
+    r""" Zeroes system momentum.
 
     Args:
         period (int): Momentum will be zeroed every *period* time steps
@@ -214,22 +231,26 @@ class zero_momentum(_updater):
         zeroer= update.zero_momentum(period=10)
 
     """
+
     def __init__(self, period=1, phase=0):
-        hoomd.util.print_status_line();
+        hoomd.util.print_status_line()
 
         # initialize base class
-        _updater.__init__(self);
+        _updater.__init__(self)
 
         # create the c++ mirror class
-        self.cpp_updater = _md.ZeroMomentumUpdater(hoomd.context.current.system_definition);
-        self.setupUpdater(period, phase);
+        self.cpp_updater = _md.ZeroMomentumUpdater(
+            hoomd.context.current.system_definition
+        )
+        self.setupUpdater(period, phase)
 
         # store metadata
         self.period = period
-        self.metadata_fields = ['period']
+        self.metadata_fields = ["period"]
+
 
 class enforce2d(_updater):
-    R""" Enforces 2D simulation.
+    r""" Enforces 2D simulation.
 
     Every time step, particle velocities and accelerations are modified so that their z components are 0: forcing
     2D simulations when other calculations may cause particles to drift out of the plane. Using enforce2d is only
@@ -240,22 +261,28 @@ class enforce2d(_updater):
         update.enforce2d()
 
     """
+
     def __init__(self):
-        hoomd.util.print_status_line();
-        period = 1;
+        hoomd.util.print_status_line()
+        period = 1
 
         # initialize base class
-        _updater.__init__(self);
+        _updater.__init__(self)
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_updater = _md.Enforce2DUpdater(hoomd.context.current.system_definition);
+            self.cpp_updater = _md.Enforce2DUpdater(
+                hoomd.context.current.system_definition
+            )
         else:
-            self.cpp_updater = _md.Enforce2DUpdaterGPU(hoomd.context.current.system_definition);
-        self.setupUpdater(period);
+            self.cpp_updater = _md.Enforce2DUpdaterGPU(
+                hoomd.context.current.system_definition
+            )
+        self.setupUpdater(period)
+
 
 class constraint_ellipsoid(_updater):
-    R""" Constrain particles to the surface of a ellipsoid.
+    r""" Constrain particles to the surface of a ellipsoid.
 
     Args:
         group (:py:mod:`hoomd.group`): Group for which the update will be set
@@ -285,35 +312,47 @@ class constraint_ellipsoid(_updater):
         update.constraint_ellipsoid(rx=7, ry=5, rz=3)
 
     """
-    def __init__(self, group, r=None, rx=None, ry=None, rz=None, P=(0,0,0)):
-        hoomd.util.print_status_line();
-        period = 1;
+
+    def __init__(self, group, r=None, rx=None, ry=None, rz=None, P=(0, 0, 0)):
+        hoomd.util.print_status_line()
+        period = 1
 
         # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
-            if context.current.system_definition.getParticleData().getDomainDecomposition():
-                context.msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
+        if _hoomd.is_MPI_available():
+            if (
+                context.current.system_definition.getParticleData().getDomainDecomposition()
+            ):
+                context.msg.error(
+                    "constrain.ellipsoid is not supported in multi-processor simulations.\n\n"
+                )
                 raise RuntimeError("Error initializing updater.")
 
         # Error out if no radii are set
-        if (r is None and rx is None and ry is None and rz is None):
-            context.msg.error("no radii were defined in update.constraint_ellipsoid.\n\n")
+        if r is None and rx is None and ry is None and rz is None:
+            context.msg.error(
+                "no radii were defined in update.constraint_ellipsoid.\n\n"
+            )
             raise RuntimeError("Error initializing updater.")
 
         # initialize the base class
-        _updater.__init__(self);
+        _updater.__init__(self)
 
         # Set parameters
-        P = _hoomd.make_scalar3(P[0], P[1], P[2]);
-        if (r is not None): rx = ry = rz = r
+        P = _hoomd.make_scalar3(P[0], P[1], P[2])
+        if r is not None:
+            rx = ry = rz = r
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_updater = _md.ConstraintEllipsoid(hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz);
+            self.cpp_updater = _md.ConstraintEllipsoid(
+                hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz
+            )
         else:
-            self.cpp_updater = _md.ConstraintEllipsoidGPU(hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz);
+            self.cpp_updater = _md.ConstraintEllipsoidGPU(
+                hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz
+            )
 
-        self.setupUpdater(period);
+        self.setupUpdater(period)
 
         # store metadata
         self.group = group
@@ -321,10 +360,11 @@ class constraint_ellipsoid(_updater):
         self.rx = rx
         self.ry = ry
         self.rz = rz
-        self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
+        self.metadata_fields = ["group", "P", "rx", "ry", "rz"]
+
 
 class mueller_plathe_flow(_updater):
-    R""" Updater class for a shear flow according
+    r""" Updater class for a shear flow according
     to an algorithm published by Mueller Plathe.:
 
      "Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium molecular dynamics:
@@ -367,82 +407,113 @@ class mueller_plathe_flow(_updater):
         update.mueller_plathe_flow(all,const_flow,md.update.mueller_plathe_flow.Z,md.update.mueller_plathe_flow.X,100)
 
     """
-    def __init__(self, group,flow_target,slab_direction,flow_direction,n_slabs,max_slab=-1,min_slab=-1):
-        hoomd.util.print_status_line();
-        period=1 # This updater has to be applied every timestep
-        assert (n_slabs > 0 ),"Invalid negative number of slabs."
+
+    def __init__(
+        self,
+        group,
+        flow_target,
+        slab_direction,
+        flow_direction,
+        n_slabs,
+        max_slab=-1,
+        min_slab=-1,
+    ):
+        hoomd.util.print_status_line()
+        period = 1  # This updater has to be applied every timestep
+        assert n_slabs > 0, "Invalid negative number of slabs."
         if min_slab < 0:
             min_slab = 0
         if max_slab < 0:
-            max_slab = n_slabs/2
+            max_slab = n_slabs / 2
 
-        #Cast input to int to avoid mismatch of types in calling the constructor
+        # Cast input to int to avoid mismatch of types in calling the constructor
         n_slabs = int(n_slabs)
         min_slab = int(min_slab)
         max_slab = int(max_slab)
 
-        assert (max_slab>-1 and max_slab < n_slabs),"Invalid max_slab in [0,"+str(n_slabs)+")."
-        assert (min_slab>-1 and min_slab < n_slabs),"Invalid min_slab in [0,"+str(n_slabs)+")."
-        assert (min_slab != max_slab),"Invalid min/max slabs. Both have the same value."
+        assert max_slab > -1 and max_slab < n_slabs, (
+            "Invalid max_slab in [0," + str(n_slabs) + ")."
+        )
+        assert min_slab > -1 and min_slab < n_slabs, (
+            "Invalid min_slab in [0," + str(n_slabs) + ")."
+        )
+        assert min_slab != max_slab, "Invalid min/max slabs. Both have the same value."
 
         # initialize the base class
-        _updater.__init__(self);
+        _updater.__init__(self)
 
-        self._flow_target = hoomd.variant._setup_variant_input(flow_target);
-
+        self._flow_target = hoomd.variant._setup_variant_input(flow_target)
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_updater = _md.MuellerPlatheFlow(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
+            self.cpp_updater = _md.MuellerPlatheFlow(
+                hoomd.context.current.system_definition,
+                group.cpp_group,
+                flow_target.cpp_variant,
+                slab_direction,
+                flow_direction,
+                n_slabs,
+                min_slab,
+                max_slab,
+            )
         else:
-            self.cpp_updater = _md.MuellerPlatheFlowGPU(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
+            self.cpp_updater = _md.MuellerPlatheFlowGPU(
+                hoomd.context.current.system_definition,
+                group.cpp_group,
+                flow_target.cpp_variant,
+                slab_direction,
+                flow_direction,
+                n_slabs,
+                min_slab,
+                max_slab,
+            )
 
-        self.setupUpdater(period);
+        self.setupUpdater(period)
 
     def get_n_slabs(self):
-        R""" Get the number of slabs."""
+        r""" Get the number of slabs."""
         return self.cpp_updater.getNSlabs()
 
     def get_min_slab(self):
-        R""" Get the slab id of min velocity search."""
+        r""" Get the slab id of min velocity search."""
         return self.cpp_updater.getMinSlab()
 
     def get_max_slab(self):
-        R""" Get the slab id of max velocity search."""
+        r""" Get the slab id of max velocity search."""
         return self.cpp_updater.getMaxSlab()
 
     def get_flow_epsilon(self):
-        R""" Get the tolerance between target flow and actual achieved flow."""
+        r""" Get the tolerance between target flow and actual achieved flow."""
         return self.cpp_updater.getFlowEpsilon()
 
-    def set_flow_epsilon(self,epsilon):
-        R""" Set the tolerance between target flow and actual achieved flow.
+    def set_flow_epsilon(self, epsilon):
+        r""" Set the tolerance between target flow and actual achieved flow.
 
            Args:
            epsilon (float): New tolerance for the deviation of actual and achieved flow.
 
         """
-        hoomd.util.print_status_line();
+        hoomd.util.print_status_line()
         return self.cpp_updater.setFlowEpsilon(float(epsilon))
 
     def get_summed_exchanged_momentum(self):
-        R"""Returned the summed up exchanged velocity of the full simulation."""
+        r"""Returned the summed up exchanged velocity of the full simulation."""
         return self.cpp_updater.getSummedExchangedMomentum()
 
-
     def has_min_slab(self):
-        R"""Returns, whether this MPI instance is part of the min slab."""
+        r"""Returns, whether this MPI instance is part of the min slab."""
         return self.cpp_updater.hasMinSlab()
 
     def has_max_slab(self):
-        R"""Returns, whether this MPI instance is part of the max slab."""
+        r"""Returns, whether this MPI instance is part of the max slab."""
         return self.cpp_updater.hasMaxSlab()
 
     X = _md.MuellerPlatheFlow.Direction.X
-    R""" Direction Enum X for this class"""
+    r""" Direction Enum X for this class"""
 
     Y = _md.MuellerPlatheFlow.Direction.Y
-    R""" Direction Enum Y for this class"""
+    r""" Direction Enum Y for this class"""
 
     Z = _md.MuellerPlatheFlow.Direction.Z
-    R""" Direction Enum Z for this class"""
+    r""" Direction Enum Z for this class"""
+
