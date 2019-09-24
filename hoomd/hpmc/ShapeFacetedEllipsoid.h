@@ -280,7 +280,7 @@ struct ShapeFacetedEllipsoid
         {
         throw std::runtime_error("Shape definition not supported for this shape class.");
         }
-    #endf
+    #endif
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const

@@ -78,6 +78,48 @@ int DEM3DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec(gsd_hand
     return retval;
     }
 
+template<typename Real, typename Real4, typename Potential>
+std::string DEM3DForceCompute<Real, Real4, Potential>::getTypeShape(const std::vector<vec3<Real>> &verts, const Real &radius) const
+    {
+    std::ostringstream shapedef;
+    unsigned int nverts = verts.size();
+    if (nverts == 1)
+        {
+        shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << Real(2)*radius << "}";
+        }
+    else
+        {
+        shapedef <<  "{\"type\": \"ConvexPolyhedron\", " << "\"rounding_radius\": " << radius <<
+                    ", \"vertices\": "  << encodeVertices(verts) << "}";
+        }
+    return shapedef.str();
+    }
+
+template<typename Real, typename Real4, typename Potential>
+std::string DEM3DForceCompute<Real, Real4, Potential>::encodeVertices(const std::vector<vec3<Real>> &verts) const
+    {
+    std::ostringstream vertstr;
+    unsigned int nverts = verts.size();
+    vertstr << "[";
+    for (unsigned int i = 0; i < nverts-1; i++)
+        {
+        vertstr << "[" << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
+        }
+    vertstr << "[" << verts[nverts-1].x << ", " << verts[nverts-1].y << ", " << verts[nverts-1].z  << "]" << "]";
+    return vertstr.str();
+    }
+
+template<typename Real, typename Real4, typename Potential>
+std::vector<std::string> DEM3DForceCompute<Real, Real4, Potential>::getTypeShapeMapping(const std::vector<std::vector<vec3<Real>>> &verts, const Real &radius) const
+    {
+    std::vector<std::string> type_shape_mapping(verts.size());
+    for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+        {
+        type_shape_mapping[i] = this->getTypeShape(verts[i], radius);
+        }
+    return type_shape_mapping;
+    }
+
 /*! Destructor. */
 template<typename Real, typename Real4, typename Potential>
 DEM3DForceCompute<Real, Real4, Potential>::~DEM3DForceCompute()

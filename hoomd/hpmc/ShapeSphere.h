@@ -192,7 +192,7 @@ struct ShapeSphere
         shapedef << "{\"type\": \"Sphere\", \"diameter\": " << params.radius*OverlapReal(2.0) << "}";
         return shapedef.str();
         }
-    #endf
+    #endif
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }

@@ -79,7 +79,7 @@ struct ShapeSimplePolygon
         shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
         return shapedef.str();
         }
-    #endf
+    #endif
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const

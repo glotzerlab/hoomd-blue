@@ -74,6 +74,48 @@ int DEM2DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec(gsd_hand
     return retval;
     }
 
+template<typename Real, typename Real4, typename Potential>
+std::string DEM2DForceCompute<Real, Real4, Potential>::getTypeShape(const std::vector<vec2<Real>> &verts, const Real &radius) const
+    {
+    std::ostringstream shapedef;
+    unsigned int nverts = verts.size();
+    if (nverts == 1)
+        {
+        shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << Real(2)*radius << "}";
+        }
+    else
+        {
+        shapedef << "{\"type\": \"Polygon\", " << "\"rounding_radius\": " << radius <<
+                    ", \"vertices\": "  << encodeVertices(verts) << "}";
+        }
+    return shapedef.str();
+    }
+
+template<typename Real, typename Real4, typename Potential>
+std::string DEM2DForceCompute<Real, Real4, Potential>::encodeVertices(const std::vector<vec2<Real>> &verts) const
+    {
+    std::ostringstream vertstr;
+    unsigned int nverts = verts.size();
+    vertstr << "[";
+    for (unsigned int i = 0; i < nverts-1; i++)
+        {
+        vertstr << "[" << verts[i].x << ", " << verts[i].y << "], ";
+        }
+    vertstr << "[" << verts[nverts-1].x << ", " << verts[nverts-1].y << "]" << "]";
+    return vertstr.str();
+    }
+
+template<typename Real, typename Real4, typename Potential>
+std::vector<std::string> DEM2DForceCompute<Real, Real4, Potential>::getTypeShapeMapping(const std::vector<std::vector<vec2<Real>>> &verts, const Real &radius) const
+    {
+    std::vector<std::string> type_shape_mapping(verts.size());
+    for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+        {
+        type_shape_mapping[i] = this->getTypeShape(verts[i], radius);
+        }
+    return type_shape_mapping;
+    }
+
 /*! setParams: set the vertices for a numeric particle type from a python list.
   \param type Particle type index
   \param vertices Python list of 2D vertices specifying a polygon
