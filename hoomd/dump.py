@@ -675,7 +675,10 @@ class gsd(hoomd.analyze._analyzer):
             hoomd.context.msg.warning("GSD is not currently support for {name}".format(obj.__class__.__name__));
 
     def dump_shape(self, obj):
-        """Write shape information for a hoomd object.
+        """This method writes particle shape information stored by a hoomd
+           object into a GSD file, in the chunk :code:`particle/type_shapes`.
+           This information can be used by other libraries for visualization.
+
 
         Call :py:meth:`dump_shape` if you want to write the shape of a hoomd object
         to the gsd file.

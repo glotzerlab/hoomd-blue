@@ -69,7 +69,7 @@ template<typename Real, typename Real4, typename Potential>
 int DEM2DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec(gsd_handle& handle) const
     {
     GSDShapeSpecWriter shapespec(m_exec_conf);
-    m_exec_conf->msg->notice(10) << "DEM2DForceCompute writing to GSD File to name: " << shapespec.getName() << std::endl;
+    m_exec_conf->msg->notice(10) << "DEM3DForceCompute writing particle shape information to GSD file in chunk: " << shapespec.getName() << std::endl;
     int retval = shapespec.write(handle, this->getTypeShapeMapping(m_shapes, m_evaluator.getRadius()));
     return retval;
     }
