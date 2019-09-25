@@ -78,7 +78,7 @@ struct faceted_ellipsoid_params : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-      HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
         n.load_shared(ptr,available_bytes);
         offset.load_shared(ptr,available_bytes);
