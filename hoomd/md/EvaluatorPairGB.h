@@ -196,9 +196,9 @@ class EvaluatorPairGB
         std::string getShapeSpec() const
             {
             std::ostringstream shapedef;
-            shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << params.lpar <<
+            shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << params.lperp <<
                         ", \"b\": " << params.lperp <<
-                        ", \"c\": " << params.lperp <<
+                        ", \"c\": " << params.lpar <<
                         "}";
             return shapedef.str();
             }
