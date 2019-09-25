@@ -127,12 +127,24 @@ struct ShapeSpheropolygon
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
-        shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
-        for (unsigned int i = 0; i < verts.N-1; i++)
+        unsigned int nverts = verts.N;
+        if (nverts == 1)
             {
-            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+            shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << verts.diameter << "}";
             }
-        shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
+        else if (nverts == 2)
+            {
+            throw std::runtime_error("Shape definition not supported for 2-vertex spheropolygons");
+            }
+        else
+            {
+            shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
+            for (unsigned int i = 0; i < nverts-1; i++)
+                {
+                shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+                }
+            shapedef << "[" << verts.x[nverts-1] << ", " << verts.y[nverts-1] << "]]}";
+            }
         return shapedef.str();
         }
     #endif
