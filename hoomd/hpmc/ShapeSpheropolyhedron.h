@@ -147,11 +147,11 @@ struct ShapeSpheropolyhedron
         else
             {
             shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
-            for (unsigned int i = 0; i < verts.N-1; i++)
+            for (unsigned int i = 0; i < nverts-1; i++)
                 {
                 shapedef << "[" << verts.x[i] << ", " << verts.y[i] << ", " << verts.z[i] << "], ";
                 }
-            shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << ", " << verts.z[verts.N-1] << "]]}";
+            shapedef << "[" << verts.x[nverts-1] << ", " << verts.y[nverts-1] << ", " << verts.z[nverts-1] << "]]}";
             }
         return shapedef.str();
         }
