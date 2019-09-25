@@ -8,21 +8,32 @@ v2.7.0 (not yet released)
 
 - General:
 
-  - Allow components to use ``Logger`` at the C++ level
-  - Drop support for python 2.7
+  - Allow components to use ``Logger`` at the C++ level.
+  - Drop support for python 2.7.
+  - User-defined log quantities in ``dump.gsd``.
 
 - MD:
 
 - HPMC:
 
-  - Add ``get_type_shapes`` to ``ellipsoid``
+  - Add ``get_type_shapes`` to ``ellipsoid``.
 
 - MPCD:
 
+  - ``mpcd.stream.slit_pore`` allows for simulations through parallel-plate (lamellar) pores.
+  - ``mpcd.integrate`` supports integration of MD (solute) particles with bounce-back rules in MPCD streaming geometries.
+
 *Bug fixes*
 
-- ``hoomd.hdf5.log.query`` works with matrix quantities
-- ``test_group_rigid.py`` is run out of the ``md`` module
+- ``hoomd.hdf5.log.query`` works with matrix quantities.
+- ``test_group_rigid.py`` is run out of the ``md`` module.
+- Fix a bug in ``md.integrate.langevin()`` and ``md.integrate.bd()`` where on the GPU the value of ``gamma`` would be ignored.
+- Fix documentation about interoperability between ``md.mode_minimize_fire()`` and MPI.
+- Clarify ``dump.gsd`` documentation.
+- Improve documentation of ``lattice_field`` and ``frenkel_ladd_energy`` classes.
+- Clarify singularity image download documentation.
+- Correctly document the functional form of the Buckingham pair potential.
+- Correct typos in HPMC example snippets.
 
 v2.6.0 (2019/05/28)
 -------------------
