@@ -83,6 +83,10 @@ std::string DEM2DForceCompute<Real, Real4, Potential>::getTypeShape(const std::v
         {
         shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << Real(2)*radius << "}";
         }
+    else if (nverts == 2)
+        {
+        throw std::runtime_error("Shape definition not supported for 2-vertex polygons");
+        }
     else
         {
         shapedef << "{\"type\": \"Polygon\", " << "\"rounding_radius\": " << radius <<
