@@ -49,7 +49,7 @@ class free_volume(_compute):
         hoomd.context.current.system.addCompute(cl, "auto_cl3")
 
         cls = None;
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ComputeFreeVolumeSphere;
             elif isinstance(mc, integrate.convex_polygon):
@@ -77,7 +77,7 @@ class free_volume(_compute):
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ComputeFreeVolumeSphereUnion;
             else:
-                hoomd.context.msg.error("compute.free_volume: Unsupported integrator.\n");
+                hoomd.context.current.device.cpp_msg.error("compute.free_volume: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.free_volume");
         else:
             if isinstance(mc, integrate.sphere):
@@ -107,7 +107,7 @@ class free_volume(_compute):
             elif isinstance(mc, integrate.convex_spheropolyhedron_union):
                 cls = _hpmc.ComputeFreeVolumeGPUConvexPolyhedronUnion;
             else:
-                hoomd.context.msg.error("compute.free_volume: Unsupported integrator.\n");
+                hoomd.context.current.device.cpp_msg.error("compute.free_volume: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.free_volume");
 
         if suffix is not '':

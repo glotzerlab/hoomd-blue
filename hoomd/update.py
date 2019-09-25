@@ -29,8 +29,7 @@ class _updater(hoomd.meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot create updater before initialization\n");
-            raise RuntimeError('Error creating updater');
+            raise RuntimeError('Cannot create updater before initialization\n');
 
         self.cpp_updater = None;
 
@@ -70,7 +69,7 @@ class _updater(hoomd.meta._metadata):
             hoomd.context.current.system.addUpdater(self.cpp_updater, self.updater_name, 1000, -1);
             hoomd.context.current.system.setUpdaterPeriodVariable(self.updater_name, period);
         else:
-            hoomd.context.msg.error("I don't know what to do with a period of type " + str(type(period)) + "expecting an int or a function\n");
+            hoomd.context.current.device.cpp_msg.error("I don't know what to do with a period of type " + str(type(period)) + "expecting an int or a function\n");
             raise RuntimeError('Error creating updater');
 
     ## \var enabled
@@ -94,7 +93,7 @@ class _updater(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_updater is None:
-            hoomd.context.msg.error('Bug in hoomd. cpp_updater not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd. cpp_updater not set, please report\n');
             raise RuntimeError();
 
     def disable(self):
@@ -113,7 +112,7 @@ class _updater(hoomd.meta._metadata):
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd.context.msg.warning("Ignoring command to disable an updater that is already disabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to disable an updater that is already disabled");
             return;
 
         self.prev_period = hoomd.context.current.system.getUpdaterPeriod(self.updater_name);
@@ -136,7 +135,7 @@ class _updater(hoomd.meta._metadata):
 
         # check if we are already disabled
         if self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable an updater that is already enabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to enable an updater that is already enabled");
             return;
 
         hoomd.context.current.system.addUpdater(self.cpp_updater, self.updater_name, self.prev_period, self.phase);
@@ -169,9 +168,9 @@ class _updater(hoomd.meta._metadata):
             else:
                 self.prev_period = period;
         elif type(period) == type(lambda n: n*2):
-            hoomd.context.msg.warning("A period cannot be changed to a variable one");
+            hoomd.context.current.device.cpp_msg.warning("A period cannot be changed to a variable one");
         else:
-            hoomd.context.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
+            hoomd.context.current.device.cpp_msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
 
     ## \internal
     # \brief Get metadata
@@ -199,9 +198,9 @@ class _updater(hoomd.meta._metadata):
             self.cpp_updater.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
         else:
             if hoomd.context.current.state_reader is None:
-                hoomd.context.msg.error("Can only restore after the state reader has been initialized.\n");
+                hoomd.context.current.device.cpp_msg.error("Can only restore after the state reader has been initialized.\n");
             else:
-                hoomd.context.msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
+                hoomd.context.current.device.cpp_msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
             raise RuntimeError("Can not restore state information!");
 
 class sort(_updater):
@@ -246,14 +245,14 @@ class sort(_updater):
         _updater.__init__(self);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_updater = _hoomd.SFCPackUpdater(hoomd.context.current.system_definition);
         else:
             self.cpp_updater = _hoomd.SFCPackUpdaterGPU(hoomd.context.current.system_definition);
 
         default_period = 300;
         # change default period to 100 on the CPU
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             default_period = 100;
 
         self.setupUpdater(default_period);
@@ -336,7 +335,7 @@ class box_resize(_updater):
             Lz = L;
 
         if Lx is None and Ly is None and Lz is None and xy is None and xz is None and yz is None:
-            hoomd.context.msg.warning("update.box_resize: Ignoring request to setup updater without parameters\n")
+            hoomd.context.current.device.cpp_msg.warning("update.box_resize: Ignoring request to setup updater without parameters\n")
             return
 
 
@@ -443,11 +442,11 @@ class balance(_updater):
 
         # balancing cannot be done without mpi
         if not _hoomd.is_MPI_available() or hoomd.context.current.decomposition is None:
-            hoomd.context.msg.warning("Ignoring balance command, not supported in current configuration.\n")
+            hoomd.context.current.device.cpp_msg.warning("Ignoring balance command, not supported in current configuration.\n")
             return
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_updater = _hoomd.LoadBalancer(hoomd.context.current.system_definition, hoomd.context.current.decomposition.cpp_dd);
         else:
             self.cpp_updater = _hoomd.LoadBalancerGPU(hoomd.context.current.system_definition, hoomd.context.current.decomposition.cpp_dd);

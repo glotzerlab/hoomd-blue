@@ -58,7 +58,7 @@ class hpmc_gsd_state(unittest.TestCase):
     def tearDown(self):
         for name in self.params:
             filename = "{}.gsd".format(name)
-            if hoomd.comm.get_rank() == 0 and os.path.exists(filename):
+            if hoomd.context.current.device.comm.rank == 0 and os.path.exists(filename):
                 os.remove(filename);
 
     def run_test_1(self, name, dim):
@@ -335,7 +335,7 @@ class hpmc_gsd_check_restore_state(unittest.TestCase):
         del self.gsd
         del self.system
         filename = "init.gsd"
-        if hoomd.comm.get_rank() == 0 and os.path.exists(filename):
+        if hoomd.context.current.device.comm.rank == 0 and os.path.exists(filename):
             os.remove(filename);
         context.initialize()
 

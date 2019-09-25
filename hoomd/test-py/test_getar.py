@@ -18,7 +18,7 @@ except ImportError:
     gtar = None;
 
 def get_tmp(suffix):
-    if hoomd.comm.get_rank() == 0:
+    if hoomd.context.current.device.comm.rank == 0:
         tmp = tempfile.mkstemp(suffix);
         return tmp[1];
     else:
@@ -180,33 +180,33 @@ if gtar is not None:
                 with hoomd.context.initialize():
                     seed = random.randint(1, 2**32 - 1);
                     sys1 = RandomSystem(seed);
-                    if hoomd.comm.get_rank() == 0:
+                    if hoomd.context.current.device.comm.rank == 0:
                         sys1.writeGetar(fname);
 
                     sys2 = RandomSystem(0);
-                    hoomd.comm.barrier_all();
+                    hoomd.context.current.device.comm.barrier_all();
                     system = hoomd.init.read_getar(fname,
                                                    {'any': 'any'});
                     sys2.readSystem(system);
                     del system;
 
-                    if hoomd.comm.get_rank() == 0:
+                    if hoomd.context.current.device.comm.rank == 0:
                         self.assertEqual(sys1, sys2);
 
         def setUp(self):
             hoomd.context.initialize();
 
         def tearDown(self):
-            if hoomd.comm.get_rank() == 0:
+            if hoomd.context.current.device.comm.rank == 0:
                 os.remove(self.last_fname);
-            hoomd.comm.barrier_all();
+            hoomd.context.current.device.comm.barrier_all();
 
 class test_basic_io(unittest.TestCase):
     def test_basic(self):
         N = 10;
         box = hoomd.data.boxdim(20*N, 40*N, 60*N);
         snap = hoomd.data.make_snapshot(N, box);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
         hoomd.init.read_snapshot(snap);
 
@@ -219,7 +219,7 @@ class test_basic_io(unittest.TestCase):
             hoomd.dump.getar.immediate(tmp_file, static=['type'],
                                        dynamic=['position', vel_prop]);
 
-            hoomd.comm.barrier_all();
+            hoomd.context.current.device.comm.barrier_all();
 
             hoomd.init.restore_getar(tmp_file);
 
@@ -227,7 +227,7 @@ class test_basic_io(unittest.TestCase):
         N = 10;
         box = hoomd.data.boxdim(20*N, 40*N, 60*N);
         snap = hoomd.data.make_snapshot(N, box);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
         hoomd.init.read_snapshot(snap);
 
@@ -240,7 +240,7 @@ class test_basic_io(unittest.TestCase):
             hoomd.run(1);
             dump.close();
             dump.disable();
-            hoomd.comm.barrier_all();
+            hoomd.context.current.device.comm.barrier_all();
 
             hoomd.init.restore_getar(tmp_file);
 
@@ -248,7 +248,7 @@ class test_basic_io(unittest.TestCase):
         N = 10;
         box = hoomd.data.boxdim(20*N, 40*N, 60*N);
         snap = hoomd.data.make_snapshot(N, box);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
         hoomd.init.read_snapshot(snap);
 
@@ -261,7 +261,7 @@ class test_basic_io(unittest.TestCase):
             hoomd.run(1);
             dump.close();
             dump.disable();
-            hoomd.comm.barrier_all();
+            hoomd.context.current.device.comm.barrier_all();
 
             hoomd.init.restore_getar(tmp_file);
 
@@ -269,7 +269,7 @@ class test_basic_io(unittest.TestCase):
         N = 10;
         box = hoomd.data.boxdim(20*N, 40*N, 60*N);
         snap = hoomd.data.make_snapshot(N, box);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[:] = [(i, 2*i, 3*i) for i in range(N)];
         hoomd.init.read_snapshot(snap);
 
@@ -284,15 +284,15 @@ class test_basic_io(unittest.TestCase):
 
             hoomd.run(1);
 
-            dump.writeJSON('test.json', dict(testQuantity=hoomd.comm.get_rank()), True)
+            dump.writeJSON('test.json', dict(testQuantity=hoomd.context.current.device.comm.rank), True)
 
             dump.close();
             dump.disable();
-            hoomd.comm.barrier_all();
+            hoomd.context.current.device.comm.barrier_all();
 
             hoomd.init.restore_getar(tmp_file);
 
-            if hoomd.comm.get_rank() == 0:
+            if hoomd.context.current.device.comm.rank == 0:
                 if suffix == 'zip':
                     traj = zipfile.ZipFile(tmp_file, 'r')
                     json_result = traj.read('frames/1/test.json').decode()
@@ -303,7 +303,7 @@ class test_basic_io(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier_all();
+        hoomd.context.current.device.comm.barrier_all();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v']);

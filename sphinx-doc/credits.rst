@@ -227,6 +227,9 @@ Mike Henry, Boise State University
 Pengji Zhou, University of Michigan
   * pair.fourier
 
+Tommy Waltmann, University of Michigan
+  * hoomd.device module
+
 HPMC developers
 ---------------
 

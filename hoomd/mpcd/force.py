@@ -34,16 +34,15 @@ class _force(hoomd.meta._metadata):
     def __init__(self):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("mpcd.force: system must be initialized before the external force.\n")
-            raise RuntimeError('System not initialized')
+            raise RuntimeError('mpcd.force: system must be initialized before the external force.\n')
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
-            hoomd.context.msg.error('mpcd.force: an MPCD system must be initialized before the external force.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.force: an MPCD system must be initialized before the external force.\n')
             raise RuntimeError('MPCD system not initialized')
 
         hoomd.meta._metadata.__init__(self)
-        self._cpp = _mpcd.ExternalField(hoomd.context.exec_conf)
+        self._cpp = _mpcd.ExternalField(hoomd.context.current.device.cpp_exec_conf)
         self.metadata_fields = []
 
 class block(_force):
@@ -102,13 +101,13 @@ class block(_force):
 
         # validate block positions
         if H <= 0 or H > Lz/2:
-            hoomd.context.msg.error('mpcd.force.block: H = {} should be nonzero and inside box.\n'.format(H))
+            hoomd.context.current.device.cpp_msg.error('mpcd.force.block: H = {} should be nonzero and inside box.\n'.format(H))
             raise ValueError('Invalid block spacing')
         if w <= 0 or w > (Lz/2-H):
-            hoomd.context.msg.error('mpcd.force.block: w = {} should be nonzero and keep block in box (H = {}).\n'.format(w,H))
+            hoomd.context.current.device.cpp_msg.error('mpcd.force.block: w = {} should be nonzero and keep block in box (H = {}).\n'.format(w,H))
             raise ValueError('Invalid block width')
         if w > H:
-            hoomd.context.msg.warning('mpcd.force.block: blocks overlap with H = {} < w = {}.\n'.format(H,w))
+            hoomd.context.current.device.cpp_msg.warning('mpcd.force.block: blocks overlap with H = {} < w = {}.\n'.format(H,w))
 
         # initialize python level
         _force.__init__(self)
@@ -162,10 +161,10 @@ class constant(_force):
 
         try:
             if len(F) != 3:
-                hoomd.context.msg.error('mpcd.force.constant: field must be a 3-component vector.\n')
+                hoomd.context.current.device.cpp_msg.error('mpcd.force.constant: field must be a 3-component vector.\n')
                 raise ValueError('External field must be a 3-component vector')
         except TypeError:
-            hoomd.context.msg.error('mpcd.force.constant: field must be a 3-component vector.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.force.constant: field must be a 3-component vector.\n')
             raise ValueError('External field must be a 3-component vector')
 
         # initialize python level

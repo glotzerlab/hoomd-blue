@@ -66,17 +66,16 @@ class _streaming_method(hoomd.meta._metadata):
     def __init__(self, period):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("mpcd.stream: system must be initialized before streaming method\n")
-            raise RuntimeError('System not initialized')
+            raise RuntimeError('mpcd.stream: system must be initialized before streaming method\n')
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
-            hoomd.context.msg.error('mpcd.stream: an MPCD system must be initialized before the streaming method\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.stream: an MPCD system must be initialized before the streaming method\n')
             raise RuntimeError('MPCD system not initialized')
 
         # check for multiple collision rule initializations
         if hoomd.context.current.mpcd._stream is not None:
-            hoomd.context.msg.error('mpcd.stream: only one streaming method can be created.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.stream: only one streaming method can be created.\n')
             raise RuntimeError('Multiple initialization of streaming method')
 
         hoomd.meta._metadata.__init__(self)
@@ -150,7 +149,7 @@ class _streaming_method(hoomd.meta._metadata):
 
         cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
         if cur_tstep % self.period != 0 or cur_tstep % period != 0:
-            hoomd.context.msg.error('mpcd.stream: streaming period can only be changed on multiple of current and new period.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.stream: streaming period can only be changed on multiple of current and new period.\n')
             raise RuntimeError('Streaming period can only be changed on multiple of current and new period')
 
         self._cpp.setPeriod(cur_tstep, period)
@@ -215,7 +214,7 @@ class _streaming_method(hoomd.meta._metadata):
         elif bc == "slip":
             return _mpcd.boundary.slip
         else:
-            hoomd.context.msg.error("mpcd.stream: boundary condition " + bc + " not recognized.\n")
+            hoomd.context.current.device.cpp_msg.error("mpcd.stream: boundary condition " + bc + " not recognized.\n")
             raise ValueError("Unrecognized streaming boundary condition")
             return None
 
@@ -254,7 +253,7 @@ class bulk(_streaming_method):
         _streaming_method.__init__(self, period)
 
         # create the base streaming class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             stream_class = _mpcd.ConfinedStreamingMethodBulk
         else:
             stream_class = _mpcd.ConfinedStreamingMethodGPUBulk
@@ -303,7 +302,7 @@ class slit(_streaming_method):
         bc = self._process_boundary(boundary)
 
         # create the base streaming class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             stream_class = _mpcd.ConfinedStreamingMethodSlit
         else:
             stream_class = _mpcd.ConfinedStreamingMethodGPUSlit
@@ -345,7 +344,7 @@ class slit(_streaming_method):
         T = hoomd.variant._setup_variant_input(kT)
 
         if self._filler is None:
-            if not hoomd.context.exec_conf.isCUDAEnabled():
+            if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
                 fill_class = _mpcd.SlitGeometryFiller
             else:
                 fill_class = _mpcd.SlitGeometryFillerGPU

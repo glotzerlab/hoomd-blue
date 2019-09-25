@@ -260,7 +260,7 @@ class unitcell(object):
         snap = hoomd.data.make_snapshot(N=self.N, box=box, dtype='double');
         mapping = self.get_typeid_mapping();
 
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.types = self.get_type_list();
             snap.particles.typeid[:] = [mapping[name] for name in self.type_name];
             snap.particles.mass[:] = self.mass[:];

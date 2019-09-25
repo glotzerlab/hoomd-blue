@@ -288,6 +288,7 @@ set(files analyze.py
           compute.py
           context.py
           data.py
+          device.py
           dump.py
           group.py
           __init__.py

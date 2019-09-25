@@ -185,12 +185,12 @@ class coeff:
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            hoomd.context.msg.error("Bug detected in pair.coeff. Please report\n");
+            hoomd.context.current.device.cpp_msg.error("Bug detected in pair.coeff. Please report\n");
             raise RuntimeError("Error setting pair coeff");
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.msg.error("No coefficients specified\n");
+            hoomd.context.current.device.cpp_msg.error("No coefficients specified\n");
         for name, val in coeffs.items():
             self.values[cur_pair][name] = val;
 
@@ -210,8 +210,7 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot verify pair coefficients before initialization\n");
-            raise RuntimeError('Error verifying pair coefficients');
+            raise RuntimeError('Cannot verify pair coefficients before initialization\n');
 
         # get a list of types from the particle data
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
@@ -232,7 +231,7 @@ class coeff:
                 elif (b,a) in self.values:
                     cur_pair = (b,a);
                 else:
-                    hoomd.context.msg.error("Type pair " + str((a,b)) + " not found in pair coeff\n");
+                    hoomd.context.current.device.cpp_msg.error("Type pair " + str((a,b)) + " not found in pair coeff\n");
                     valid = False;
                     continue;
 
@@ -240,13 +239,13 @@ class coeff:
                 count = 0;
                 for coeff_name in self.values[cur_pair].keys():
                     if not coeff_name in required_coeffs:
-                        hoomd.context.msg.notice(2, "Notice: Possible typo? Pair coeff " + str(coeff_name) + " is specified for pair " + str((a,b)) + \
+                        hoomd.context.current.device.cpp_msg.notice(2, "Notice: Possible typo? Pair coeff " + str(coeff_name) + " is specified for pair " + str((a,b)) + \
                               ", but is not used by the pair force\n");
                     else:
                         count += 1;
 
                 if count != len(required_coeffs):
-                    hoomd.context.msg.error("Type pair " + str((a,b)) + " is missing required coefficients\n");
+                    hoomd.context.current.device.cpp_msg.error("Type pair " + str((a,b)) + " is missing required coefficients\n");
                     valid = False;
 
 
@@ -404,18 +403,18 @@ class pair(force._force):
             elif mode == "xplor":
                 self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.xplor)
             else:
-                hoomd.context.msg.error("Invalid mode\n");
+                hoomd.context.current.device.cpp_msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
     def process_coeff(self, coeff):
-        hoomd.context.msg.error("Bug in hoomd, please report\n");
+        hoomd.context.current.device.cpp_msg.error("Bug in hoomd, please report\n");
         raise RuntimeError("Error processing coefficients");
 
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut", "r_on"];
         # check that the pair coefficients are valid
         if not self.pair_coeff.verify(coeff_list):
-            hoomd.context.msg.error("Not all pair coefficients are set\n");
+            hoomd.context.current.device.cpp_msg.error("Not all pair coefficients are set\n");
             raise RuntimeError("Error updating pair coefficients");
 
         # set all the params
@@ -582,7 +581,7 @@ class lj(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairLJ;
         else:
@@ -654,7 +653,7 @@ class gauss(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairGauss(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairGauss;
         else:
@@ -748,14 +747,14 @@ class slj(pair):
         if d_max is None :
             sysdef = hoomd.context.current.system_definition;
             d_max = sysdef.getParticleData().getMaxDiameter()
-            hoomd.context.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
+            hoomd.context.current.device.cpp_msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
         # SLJ requires diameter shifting to be on
         self.nlist.cpp_nlist.setDiameterShift(True);
         self.nlist.cpp_nlist.setMaximumDiameter(d_max);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairSLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairSLJ;
         else:
@@ -789,7 +788,7 @@ class slj(pair):
         """
 
         if mode == "xplor":
-            hoomd.context.msg.error("XPLOR is smoothing is not supported with slj\n");
+            hoomd.context.current.device.cpp_msg.error("XPLOR is smoothing is not supported with slj\n");
             raise RuntimeError("Error changing parameters in pair force");
 
         pair.set_params(self, mode=mode);
@@ -842,7 +841,7 @@ class yukawa(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairYukawa(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairYukawa;
         else:
@@ -913,7 +912,7 @@ class ewald(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairEwald(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairEwald;
         else:
@@ -1037,7 +1036,7 @@ class table(force._force):
         self.nlist.update_rcut()
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.TablePotential(hoomd.context.current.system_definition, self.nlist.cpp_nlist, int(width), self.name);
         else:
             self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
@@ -1112,7 +1111,7 @@ class table(force._force):
     def update_coeffs(self):
         # check that the pair coefficients are valid
         if not self.pair_coeff.verify(["func", "rmin", "rmax", "coeff"]):
-            hoomd.context.msg.error("Not all pair coefficients are set for pair.table\n");
+            hoomd.context.current.device.cpp_msg.error("Not all pair coefficients are set for pair.table\n");
             raise RuntimeError("Error updating pair coefficients");
 
         # set all the params
@@ -1177,7 +1176,7 @@ class table(force._force):
 
             # validate the input
             if len(values) != 3:
-                hoomd.context.msg.error("pair.table: file must have exactly 3 columns\n");
+                hoomd.context.current.device.cpp_msg.error("pair.table: file must have exactly 3 columns\n");
                 raise RuntimeError("Error reading table file");
 
             # append to the tables
@@ -1187,7 +1186,7 @@ class table(force._force):
 
         # validate input
         if self.width != len(r_table):
-            hoomd.context.msg.error("pair.table: file must have exactly " + str(self.width) + " rows\n");
+            hoomd.context.current.device.cpp_msg.error("pair.table: file must have exactly " + str(self.width) + " rows\n");
             raise RuntimeError("Error reading table file");
 
         # extract rmin and rmax
@@ -1199,7 +1198,7 @@ class table(force._force):
         for i in range(0,self.width):
             r = rmin_table + dr * i;
             if math.fabs(r - r_table[i]) > 1e-3:
-                hoomd.context.msg.error("pair.table: r must be monotonically increasing and evenly spaced\n");
+                hoomd.context.current.device.cpp_msg.error("pair.table: r must be monotonically increasing and evenly spaced\n");
                 raise RuntimeError("Error reading table file");
 
         self.pair_coeff.set(a, b, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
@@ -1248,7 +1247,7 @@ class morse(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairMorse(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMorse;
         else:
@@ -1373,7 +1372,7 @@ class dpd(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairDPDThermoDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPDThermoDPD;
         else:
@@ -1481,7 +1480,7 @@ class dpd_conservative(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPD;
         else:
@@ -1610,7 +1609,7 @@ class dpdlj(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairDPDLJThermoDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDPDLJThermoDPD;
         else:
@@ -1656,7 +1655,7 @@ class dpdlj(pair):
 
         if mode is not None:
             if mode == "xplor":
-                hoomd.context.msg.error("XPLOR is smoothing is not supported with pair.dpdlj\n");
+                hoomd.context.current.device.cpp_msg.error("XPLOR is smoothing is not supported with pair.dpdlj\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
             #use the inherited set_params
@@ -1729,7 +1728,7 @@ class force_shifted_lj(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairForceShiftedLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairForceShiftedLJ;
         else:
@@ -1800,7 +1799,7 @@ class moliere(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairMoliere(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMoliere;
         else:
@@ -1876,7 +1875,7 @@ class zbl(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairZBL(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairZBL;
         else:
@@ -1942,7 +1941,7 @@ class tersoff(pair):
         self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialTersoff(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialTersoff;
         else:
@@ -2045,7 +2044,7 @@ class mie(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairMie(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairMie;
         else:
@@ -2130,14 +2129,14 @@ class ai_pair(pair):
             elif mode == "shift":
                 self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.shift)
             else:
-                hoomd.context.msg.error("Invalid mode\n");
+                hoomd.context.current.device.cpp_msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut"];
         # check that the pair coefficients are valid
         if not self.pair_coeff.verify(coeff_list):
-            hoomd.context.msg.error("Not all pair coefficients are set\n");
+            hoomd.context.current.device.cpp_msg.error("Not all pair coefficients are set\n");
             raise RuntimeError("Error updating pair coefficients");
 
         # set all the params
@@ -2226,7 +2225,7 @@ class gb(ai_pair):
         ai_pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.AnisoPotentialPairGB(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairGB;
         else:
@@ -2292,7 +2291,7 @@ class dipole(ai_pair):
         ai_pair.__init__(self, r_cut, nlist, name);
 
         ## create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.AnisoPotentialPairDipole(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.AnisoPotentialPairDipole;
         else:
@@ -2391,7 +2390,7 @@ class reaction_field(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairReactionField(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairReactionField;
         else:
@@ -2478,14 +2477,14 @@ class DLVO(pair):
         if d_max is None :
             sysdef = hoomd.context.current.system_definition;
             d_max = sysdef.getParticleData().getMaxDiameter()
-            hoomd.context.msg.notice(2, "Notice: DLVO set d_max=" + str(d_max) + "\n");
+            hoomd.context.current.device.cpp_msg.notice(2, "Notice: DLVO set d_max=" + str(d_max) + "\n");
 
         # SLJ requires diameter shifting to be on
         self.nlist.cpp_nlist.setDiameterShift(True);
         self.nlist.cpp_nlist.setMaximumDiameter(d_max);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairDLVO(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairDLVO;
         else:
@@ -2565,7 +2564,7 @@ class square_density(pair):
         self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialSquareDensity(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialSquareDensity;
         else:
@@ -2636,7 +2635,7 @@ class buckingham(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairBuckingham(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairBuckingham;
         else:
@@ -2711,7 +2710,7 @@ class lj1208(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairLJ1208(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairLJ1208;
         else:
@@ -2791,7 +2790,7 @@ class fourier(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairFourier(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairFourier;
         else:

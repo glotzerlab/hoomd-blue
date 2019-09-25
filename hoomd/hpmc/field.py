@@ -77,7 +77,7 @@ class lattice_field(_external):
         import numpy
         _external.__init__(self);
         cls = None;
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ExternalFieldLatticeSphere;
             elif isinstance(mc, integrate.convex_polygon):
@@ -105,10 +105,10 @@ class lattice_field(_external):
             elif isinstance(mc, integrate.convex_spheropolyhedron_union):
                 cls = _hpmc.ExternalFieldLatticeConvexPolyhedronUnion;
             else:
-                hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
+                hoomd.context.current.device.cpp_msg.error("compute.position_lattice_field: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");
         else:
-            hoomd.context.msg.error("GPU not supported yet")
+            hoomd.context.current.device.cpp_msg.error("GPU not supported yet")
             raise RuntimeError("Error initializing compute.position_lattice_field");
 
         self.compute_name = "lattice_field"
@@ -240,7 +240,7 @@ class external_field_composite(_external):
     def __init__(self, mc, fields = None):
         _external.__init__(self);
         cls = None;
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ExternalFieldCompositeSphere;
             elif isinstance(mc, integrate.convex_polygon):
@@ -268,10 +268,10 @@ class external_field_composite(_external):
             elif isinstance(mc, integrate.convex_spheropolyhedron_union):
                 cls = _hpmc.ExternalFieldCompositeConvexPolyhedronUnion;
             else:
-                hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
+                hoomd.context.current.device.cpp_msg.error("compute.position_lattice_field: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");
         else:
-            hoomd.context.msg.error("GPU not supported yet")
+            hoomd.context.current.device.cpp_msg.error("GPU not supported yet")
             raise RuntimeError("Error initializing compute.position_lattice_field");
 
         self.compute_name = "composite_field"
@@ -351,7 +351,7 @@ class wall(_external):
         cls = None;
         self.compute_name = "wall-"+str(wall.index)
         wall.index+=1
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.WallSphere;
             elif isinstance(mc, integrate.convex_polyhedron):
@@ -359,10 +359,10 @@ class wall(_external):
             elif isinstance(mc, integrate.convex_spheropolyhedron):
                 cls = _hpmc.WallSpheropolyhedron;
             else:
-                hoomd.context.msg.error("compute.wall: Unsupported integrator.\n");
+                hoomd.context.current.device.cpp_msg.error("compute.wall: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.wall");
         else:
-            hoomd.context.msg.error("GPU not supported yet")
+            hoomd.context.current.device.cpp_msg.error("GPU not supported yet")
             raise RuntimeError("Error initializing compute.wall");
 
         self.cpp_compute = cls(hoomd.context.current.system_definition, mc.cpp_integrator);
@@ -457,7 +457,7 @@ class wall(_external):
         elif param == "inside":
             return t[2];
         else:
-            hoomd.context.msg.error("compute.wall.get_sphere_wall_param: Parameter type is not valid. Choose from rsq, origin, inside.");
+            hoomd.context.current.device.cpp_msg.error("compute.wall.get_sphere_wall_param: Parameter type is not valid. Choose from rsq, origin, inside.");
             raise RuntimeError("Error: compute.wall");
 
     def remove_sphere_wall(self, index):
@@ -564,7 +564,7 @@ class wall(_external):
         elif param == "inside":
             return t[3];
         else:
-            hoomd.context.msg.error("compute.wall.get_cylinder_wall_param: Parameter type is not valid. Choose from rsq, origin, orientation, inside.");
+            hoomd.context.current.device.cpp_msg.error("compute.wall.get_cylinder_wall_param: Parameter type is not valid. Choose from rsq, origin, orientation, inside.");
             raise RuntimeError("Error: compute.wall");
 
     def remove_cylinder_wall(self, index):
@@ -659,7 +659,7 @@ class wall(_external):
         elif param == "origin":
             return t[1];
         else:
-            hoomd.context.msg.error("compute.wall.get_plane_wall_param: Parameter type is not valid. Choose from normal, origin.");
+            hoomd.context.current.device.cpp_msg.error("compute.wall.get_plane_wall_param: Parameter type is not valid. Choose from normal, origin.");
             raise RuntimeError("Error: compute.wall");
 
     def remove_plane_wall(self, index):
@@ -777,7 +777,7 @@ class wall(_external):
         """
         # much of this is from hoomd's update.py box_resize class
         if Lx is None and Ly is None and Lz is None and xy is None and xz is None and yz is None:
-            hoomd.context.msg.warning("compute.wall.set_curr_box: Ignoring request to set the wall's box without parameters\n")
+            hoomd.context.current.device.cpp_msg.warning("compute.wall.set_curr_box: Ignoring request to set the wall's box without parameters\n")
             return
 
         # setup arguments
@@ -927,7 +927,7 @@ class callback(_external):
     def __init__(self, mc, energy_function, composite=False):
         _external.__init__(self);
         cls = None;
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ExternalCallbackSphere;
             elif isinstance(mc, integrate.convex_polygon):
@@ -955,10 +955,10 @@ class callback(_external):
             elif isinstance(mc, integrate.convex_spheropolyhedron_union):
                 cls = _hpmc.ExternalCallbackConvexPolyhedronUnion;
             else:
-                hoomd.context.msg.error("hpmc.field.callback: Unsupported integrator.\n");
+                hoomd.context.current.device.cpp_msg.error("hpmc.field.callback: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing python callback");
         else:
-            hoomd.context.msg.error("GPU not supported")
+            hoomd.context.current.device.cpp_msg.error("GPU not supported")
             raise RuntimeError("Error initializing hpmc.field.callback");
 
         self.compute_name = "callback"

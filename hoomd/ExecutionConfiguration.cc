@@ -243,6 +243,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         cudaEventCreateWithFlags(&m_events[idev],cudaEventDisableTiming);
         }
     #endif
+    
     }
 
 ExecutionConfiguration::~ExecutionConfiguration()

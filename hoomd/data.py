@@ -44,13 +44,13 @@ restore_snapshot are collective calls, and need to be called on all ranks. But o
 in the snapshot::
 
     snapshot = system.take_snapshot(all=True)
-    if comm.get_rank() == 0:
+    if context.current.device.comm.rank == 0:
         s = init.create_random(N=100, phi_p=0.05);numpy.mean(snapshot.particles.velocity))
         snapshot.particles.position[0] = [1,2,3];
 
     system.restore_snapshot(snapshot);
     snapshot = data.make_snapshot(N=10, box=data.boxdim(L=10))
-    if comm.get_rank() == 0:
+    if context.current.device.comm.rank == 0:
         snapshot.particles.position[:] = ....
     init.read_snapshot(snapshot)
 
@@ -839,17 +839,17 @@ class system_data(hoomd.meta._metadata):
         nz = int(nz)
 
         if nx == ny == nz == 1:
-            hoomd.context.msg.warning("All replication factors == 1. Not replicating system.\n")
+            hoomd.context.current.device.cpp_msg.warning("All replication factors == 1. Not replicating system.\n")
             return
 
         if nx <= 0 or ny <= 0 or nz <= 0:
-            hoomd.context.msg.error("Cannot replicate by zero or by a negative value along any direction.")
+            hoomd.context.current.device.cpp_msg.error("Cannot replicate by zero or by a negative value along any direction.")
             raise RuntimeError("nx, ny, nz need to be positive integers")
 
         # Take a snapshot
         cpp_snapshot = self.take_snapshot(all=True)
 
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             # replicate
             cpp_snapshot.replicate(nx, ny, nz)
 
@@ -888,7 +888,7 @@ class system_data(hoomd.meta._metadata):
 
         """
 
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             if snapshot.has_particle_data and len(snapshot.particles.types) != self.sysdef.getParticleData().getNTypes():
                 raise RuntimeError("Number of particle types must remain the same")
             if snapshot.has_bond_data and len(snapshot.bonds.types) != self.sysdef.getBondData().getNTypes():
@@ -1028,7 +1028,7 @@ class pdata_types_proxy(object):
         ntypes = self.pdata.getNTypes();
         for i in range(0,ntypes):
             if self.pdata.getNameByType(i) == name:
-                hoomd.context.msg.warning("Type '"+name+"' already defined.\n");
+                hoomd.context.current.device.cpp_msg.warning("Type '"+name+"' already defined.\n");
                 return i
 
         typeid = self.pdata.addType(name);
@@ -2219,14 +2219,14 @@ def set_snapshot_box(snapshot, box):
 def broadcast_snapshot(cpp_snapshot):
     hoomd.context._verify_init();
     # broadcast from rank 0
-    cpp_snapshot._broadcast(0, hoomd.context.exec_conf);
+    cpp_snapshot._broadcast(0, hoomd.context.current.device.cpp_exec_conf);
 
 ## \internal
 # \brief Broadcast snapshot to all ranks
 def broadcast_snapshot_all(cpp_snapshot):
     hoomd.context._verify_init();
     # broadcast from rank 0
-    cpp_snapshot._broadcast_all(0, hoomd.context.exec_conf);
+    cpp_snapshot._broadcast_all(0, hoomd.context.current.device.cpp_exec_conf);
 
 # Inject a box property into SnapshotSystemData that provides and accepts boxdim objects
 _hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
@@ -2286,7 +2286,7 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
         raise ValueError("dtype must be either float or double");
 
     snapshot.box = box;
-    if hoomd.comm.get_rank() == 0:
+    if hoomd.context.current.device.comm.rank == 0:
         snapshot.particles.resize(N);
 
     snapshot.particles.types = particle_types;
@@ -2309,7 +2309,7 @@ def gsd_snapshot(filename, frame=0):
     """
     hoomd.context._verify_init();
 
-    reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, abs(frame), frame < 0);
+    reader = _hoomd.GSDReader(hoomd.context.current.device.cpp_exec_conf, filename, abs(frame), frame < 0);
     return reader.getSnapshot();
 
 

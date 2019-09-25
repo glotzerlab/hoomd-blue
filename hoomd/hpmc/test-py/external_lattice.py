@@ -50,7 +50,7 @@ class external_field_lattice(unittest.TestCase):
             eng=self.lattice.get_energy();
             avg = self.lattice.get_average_energy();
             sigma = self.lattice.get_sigma_energy();
-            if hoomd.comm.get_rank() == 0:
+            if hoomd.context.current.device.comm.rank == 0:
                 diff = (np.array(latticep) - snap.particles.position[:]);
                 box = self.system.box;
                 for i in range(diff.shape[0]):
@@ -87,11 +87,11 @@ class external_field_lattice(unittest.TestCase):
 
         self.snapshot2d = self.system.take_snapshot(particles=True); #data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
         lattice2d = [];
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             lattice2d = self.snapshot2d.particles.position[:];
 
         self.snapshot2d_s = data.make_snapshot(N=N, box=self.system.box, particle_types=['A']);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             self.snapshot2d_s.particles.position[:] = self.snapshot2d.particles.position[:]+dx2d;
             self.snapshot2d_s.particles.orientation[:] = np.array([dq for _ in range(N)]);
         del self.system
@@ -102,10 +102,10 @@ class external_field_lattice(unittest.TestCase):
         self.system.replicate(nx=4, ny=4, nz=4);
         self.snapshot3d = self.system.take_snapshot(particles=True); #data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
         lattice3d = [];
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             lattice3d = self.snapshot3d.particles.position[:];
         self.snapshot3d_s = data.make_snapshot(N=N, box=self.system.box, particle_types=['A']);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             self.snapshot3d_s.particles.position[:] = self.snapshot3d.particles.position[:]+dx3d;
             self.snapshot3d_s.particles.orientation[:] = np.array([dq for _ in range(N)]);
         del self.system

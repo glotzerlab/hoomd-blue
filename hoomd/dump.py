@@ -86,12 +86,12 @@ class dcd(hoomd.analyze._analyzer):
         """ The DCD dump writer cannot be re-enabled """
 
         if self.enabled == False:
-            hoomd.context.msg.error("you cannot re-enable DCD output after it has been disabled\n");
+            hoomd.context.current.device.cpp_msg.error("you cannot re-enable DCD output after it has been disabled\n");
             raise RuntimeError('Error enabling updater');
 
     def set_period(self, period):
 
-        hoomd.context.msg.error("you cannot change the period of a dcd dump writer\n");
+        hoomd.context.current.device.cpp_msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
 
 class getar(hoomd.analyze._analyzer):
@@ -368,7 +368,7 @@ class getar(hoomd.analyze._analyzer):
 
         for val in set(self._static):
             prop = self._getStatic(val);
-            if hoomd.comm.get_num_ranks() > 1 and prop.name in self.bad_mpi_properties:
+            if hoomd.context.current.device.comm.num_ranks > 1 and prop.name in self.bad_mpi_properties:
                 raise RuntimeError(('dump.getar: Can\'t dump property {} '
                                     'with MPI!').format(prop.name));
             else:
@@ -379,7 +379,7 @@ class getar(hoomd.analyze._analyzer):
 
         for prop in self._dynamic:
             try:
-                if hoomd.comm.get_num_ranks() > 1 and prop.name in self.bad_mpi_properties:
+                if hoomd.context.current.device.comm.num_ranks > 1 and prop.name in self.bad_mpi_properties:
                     raise RuntimeError(('dump.getar: Can\'t dump property {} '
                                         'with MPI!').format(prop.name));
                 else:
@@ -390,7 +390,7 @@ class getar(hoomd.analyze._analyzer):
                                                     prop.highPrecision, prop.compression,
                                                     int(period));
             except TypeError: # We got a single value, not an iterable
-                if hoomd.comm.get_num_ranks() > 1 and prop.name in self.bad_mpi_properties:
+                if hoomd.context.current.device.comm.num_ranks > 1 and prop.name in self.bad_mpi_properties:
                     raise RuntimeError(('dump.getar: Can\'t dump property {} '
                                         'with MPI!').format(prop.name));
                 else:
@@ -587,7 +587,7 @@ class gsd(hoomd.analyze._analyzer):
         if dynamic is not None:
             for v in dynamic:
                 if v not in categories:
-                    hoomd.context.msg.warning("dump.gsd: dynamic quantity " + v + " is not recognized\n");
+                    hoomd.context.current.device.cpp_msg.warning("dump.gsd: dynamic quantity " + v + " is not recognized\n");
 
             dynamic_quantities = ['property'] + dynamic;
 
@@ -637,4 +637,4 @@ class gsd(hoomd.analyze._analyzer):
         if hasattr(obj, '_connect_gsd') and type(getattr(obj, '_connect_gsd')) == types.MethodType:
             obj._connect_gsd(self);
         else:
-            hoomd.context.msg.warning("GSD is not currently support for {name}".format(obj.__name__));
+            hoomd.context.current.device.cpp_msg.warning("GSD is not currently support for {name}".format(obj.__name__));

@@ -95,7 +95,7 @@ class sdf(_analyzer):
         elif isinstance(mc, integrate.convex_spheropolygon):
             cls =_hpmc.AnalyzerSDFSpheropolygon;
         else:
-            hoomd.context.msg.error("analyze.sdf: Unsupported integrator.\n");
+            hoomd.context.current.device.cpp_msg.error("analyze.sdf: Unsupported integrator.\n");
             raise runtime_error("Error initializing analyze.sdf");
 
         self.cpp_analyzer = cls(hoomd.context.current.system_definition,

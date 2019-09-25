@@ -22,7 +22,7 @@ rel_err_cs = 0.0015 # see for example Guang-Wen Wu and Richard J. Sadus, doi:10.
 import itertools
 params = list(P_list)
 
-context.msg.notice(1,"{} parameters\n".format(len(params)))
+context.current.device.cpp_msg.notice(1,"{} parameters\n".format(len(params)))
 
 p = int(option.get_user()[0])
 P = params[p]
@@ -60,7 +60,7 @@ class sphereEOS_test(unittest.TestCase):
             translate_acceptance = self.mc.get_translate_acceptance();
             v = boxmc.ln_volume()['delta']
             volume_acceptance = boxmc.get_ln_volume_acceptance();
-            if comm.get_rank() == 0:
+            if context.current.device.comm.rank == 0:
                 print('d: {:3.2f} accept: {:3.2f} / v: {:3.2f} accept: {:3.2f}'.format(d,translate_acceptance,v,volume_acceptance));
 
             mc_tune.update()
@@ -71,7 +71,7 @@ class sphereEOS_test(unittest.TestCase):
         def log_callback(timestep):
             v = self.log.query('phi_p')
             phi_p_measure.append(v)
-            if comm.get_rank() == 0:
+            if context.current.device.comm.rank == 0:
                 print('phi_p =', v);
 
         # equilibrate
@@ -85,7 +85,7 @@ class sphereEOS_test(unittest.TestCase):
         phi_p_avg = np.mean(np.array(phi_p_measure))
         i, phi_p_err = block.get_error_estimate()
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             (n, num, err, err_err) = block.get_hierarchical_errors()
 
             print('Hierarchical error analysis:')
@@ -98,7 +98,7 @@ class sphereEOS_test(unittest.TestCase):
         # confidence interval, 0.95 quantile of the normal distribution
         ci = 1.96
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print('avg: {:.6f} +- {:.6f}'.format(phi_p_avg, phi_p_err))
             print('tgt: {:.6f} +- {:.6f}'.format(phi_p_ref[P], rel_err_cs))
 
