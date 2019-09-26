@@ -360,6 +360,15 @@ void GSDReader::readTopology()
         }
     }
 
+pybind11::list GSDReader::readTypeShapesPy(uint64_t frame)
+    {
+    std::vector<std::string> type_mapping = this->readTypes(frame, "particles/type_shapes");
+    pybind11::list type_shapes;
+    for (unsigned int i = 0; i < type_mapping.size(); i++)
+        type_shapes.append(type_mapping[i]);
+    return type_shapes;
+    }
+
 void export_GSDReader(py::module& m)
     {
     py::class_< GSDReader, std::shared_ptr<GSDReader> >(m,"GSDReader")
@@ -367,5 +376,6 @@ void export_GSDReader(py::module& m)
     .def("getTimeStep", &GSDReader::getTimeStep)
     .def("getSnapshot", &GSDReader::getSnapshot)
     .def("clearSnapshot", &GSDReader::clearSnapshot)
+    .def("readTypeShapesPy", &GSDReader::readTypeShapesPy)
     ;
     }
