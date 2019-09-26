@@ -823,6 +823,8 @@ template < class T > void export_PotentialPair(pybind11::module& m, const std::s
         .def("setRon", &T::setRon)
         .def("setShiftMode", &T::setShiftMode)
         .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
+        .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
+        .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
     ;
 
     pybind11::enum_<typename T::energyShiftMode>(potentialpair,"energyShiftMode")

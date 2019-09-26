@@ -576,6 +576,8 @@ template < class T > void export_AnisoPotentialPair(pybind11::module& m, const s
         .def("setParams", &T::setParams)
         .def("setRcut", &T::setRcut)
         .def("setShiftMode", &T::setShiftMode)
+        .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
+        .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
     ;
 
     pybind11::enum_<typename T::energyShiftMode>(anisopotentialpair,"energyShiftMode")
