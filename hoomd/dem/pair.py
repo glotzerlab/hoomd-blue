@@ -9,6 +9,7 @@ import hoomd.md;
 import hoomd.md.nlist as nl;
 
 from math import sqrt;
+import json;
 
 from hoomd.dem import _dem;
 from hoomd.dem import params;
