@@ -343,6 +343,14 @@ class IntegratorHPMCMono : public IntegratorHPMC
             return type_shape_mapping;
             }
 
+        pybind11::list getTypeShapesPy()
+            {
+            std::vector<std::string> type_shape_mapping = this->getTypeShapeMapping(this->m_params);
+            pybind11::list type_shapes;
+            for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+                type_shapes.append(type_shape_mapping[i]);
+            return type_shapes;
+            }
 
     protected:
         std::vector<param_type, managed_allocator<param_type> > m_params;   //!< Parameters for each particle type on GPU
@@ -1733,7 +1741,6 @@ int IntegratorHPMCMono<Shape>::slotWriteGSDState( gsd_handle& handle, std::strin
     return retval;
     }
 
-
 template <class Shape>
 int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     {
@@ -1844,6 +1851,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("connectGSDShapeSpec", &IntegratorHPMCMono<Shape>::connectGSDShapeSpec)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
           .def("py_test_overlap", &IntegratorHPMCMono<Shape>::py_test_overlap)
+          .def("getTypeShapesPy", &IntegratorHPMCMono<Shape>::getTypeShapesPy)
           ;
     }
 
