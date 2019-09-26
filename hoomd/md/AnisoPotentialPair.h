@@ -99,7 +99,7 @@ class AnisoPotentialPair : public ForceCompute
             {
             ArrayHandle<param_type> h_params(params, access_location::host, access_mode::read);
             std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
-            quat<Scalar> q(make_scalar4(1,0,0,0));
+            Scalar4 q = make_scalar4(1,0,0,0);
             Scalar3 dr = make_scalar3(0,0,0);
             Scalar rcut = Scalar(0.0);
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
