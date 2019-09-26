@@ -26,6 +26,7 @@ void export_NF_WCA_2D(py::module& m)
         .def("setRcut", &WCA_DEM_2D::setRcut)
         .def("connectDEMGSDShapeSpec", &WCA_DEM_2D::connectDEMGSDShapeSpec)
         .def("slotWriteDEMGSDShapeSpec", &WCA_DEM_2D::slotWriteDEMGSDShapeSpec)
+        .def("getTypeShapesPy", &WCA_DEM_2D::getTypeShapesPy)
         ;
 
 #ifdef ENABLE_CUDA

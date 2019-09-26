@@ -120,6 +120,16 @@ std::vector<std::string> DEM2DForceCompute<Real, Real4, Potential>::getTypeShape
     return type_shape_mapping;
     }
 
+template<typename Real, typename Real4, typename Potential>
+pybind11::list DEM2DForceCompute<Real, Real4, Potential>::getTypeShapesPy()
+    {
+    std::vector<std::string> type_shape_mapping = this->getTypeShapeMapping(m_shapes, m_evaluator.getRadius());
+    pybind11::list type_shapes;
+    for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+        type_shapes.append(type_shape_mapping[i]);
+    return type_shapes;
+    }
+
 /*! setParams: set the vertices for a numeric particle type from a python list.
   \param type Particle type index
   \param vertices Python list of 2D vertices specifying a polygon

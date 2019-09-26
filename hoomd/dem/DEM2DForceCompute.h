@@ -72,6 +72,8 @@ class DEM2DForceCompute : public ForceCompute
 
         std::vector<std::string> getTypeShapeMapping(const std::vector<std::vector<vec2<Real>>> &verts, const Real &radius) const;
 
+        pybind11::list getTypeShapesPy();
+
     #ifdef ENABLE_MPI
         //! Get requested ghost communication flags
         virtual CommFlags getRequestedCommFlags(unsigned int timestep)
