@@ -34,7 +34,7 @@ import hoomd;
 
 import math;
 import sys;
-
+import json;
 from collections import OrderedDict
 
 class coeff:
@@ -539,6 +539,23 @@ class pair(force._force):
             self.cpp_force.connectGSDShapeSpec(gsd.cpp_analyzer);
         else:
             raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
+
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Since this behaves differently for different types of shapes, the
+        default behavior just raises an exception. Subclasses can override this
+        to properly return.
+        """
+        raise NotImplementedError(
+            "You are using a shape type that is not implemented! "
+            "If you want it, please modify the "
+            "hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function.")
+
+    def _return_type_shapes(self):
+        type_shapes = self.cpp_force.getTypeShapesPy();
+        ret = [ json.loads(json_string) for json_string in type_shapes ];
+        return ret;
 
 class lj(pair):
     R""" Lennard-Jones pair potential.
@@ -2277,6 +2294,19 @@ class gb(ai_pair):
         lpar = coeff['lpar'];
 
         return _md.make_pair_gb_params(epsilon, lperp, lpar);
+
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+
+            >>> my_gb.get_type_shapes()
+            [{'type': 'Ellipsoid', 'a': 1.0, 'b': 1.0, 'c': 1.5}]
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super(ai_pair, self)._return_type_shapes();
 
 class dipole(ai_pair):
     R""" Screened dipole-dipole interactions.
