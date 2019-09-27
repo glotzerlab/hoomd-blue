@@ -625,7 +625,6 @@ class sphere(mode_hpmc):
 
     Examples::
 
-        mc = hpmc.integrate.sphere(seed=415236)
         mc = hpmc.integrate.sphere(seed=415236, d=0.3)
         mc.shape_param.set('A', diameter=1.0)
         mc.shape_param.set('B', diameter=2.0)
@@ -733,7 +732,6 @@ class convex_polygon(mode_hpmc):
 
     Examples::
 
-        mc = hpmc.integrate.convex_polygon(seed=415236)
         mc = hpmc.integrate.convex_polygon(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
@@ -823,7 +821,6 @@ class convex_spheropolygon(mode_hpmc):
 
     Examples::
 
-        mc = hpmc.integrate.convex_spheropolygon(seed=415236)
         mc = hpmc.integrate.convex_spheropolygon(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)], sweep_radius=0.1, ignore_statistics=False);
         mc.shape_param.set('A', vertices=[(0,0)], sweep_radius=0.5, ignore_statistics=True);
@@ -912,7 +909,6 @@ class simple_polygon(mode_hpmc):
 
     Examples::
 
-        mc = hpmc.integrate.simple_polygon(seed=415236)
         mc = hpmc.integrate.simple_polygon(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(0, 0.5), (-0.5, -0.5), (0, 0), (0.5, -0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
@@ -1016,11 +1012,11 @@ class polyhedron(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.polyhedron(seed=415236)
         mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
-            (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)],\
-            faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)]);
+                 (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)],\
+        faces = [[0, 2, 6], [6, 4, 0], [5, 0, 4], [5,1,0], [5,4,6], [5,6,7], [3,2,0], [3,0,1], [3,6,2], \
+                 [3,7,6], [3,1,5], [3,5,7]]
         print('vertices = ', mc.shape_param['A'].vertices)
         print('faces = ', mc.shape_param['A'].faces)
 
@@ -1028,12 +1024,14 @@ class polyhedron(mode_hpmc):
 
         mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4)
         mc.set_param(nselect=1)
-        faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)];
-        mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
-            (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)], faces = faces);
-        mc.shape_param.set('B', vertices=[(-0.05, -0.05, -0.05), (-0.05, -0.05, 0.05), (-0.05, 0.05, -0.05), (-0.05, 0.05, 0.05), \
-            (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces, origin = (0,0,0));
-        mc.set_fugacity('B',fugacity=3.0)
+        cube_verts = [(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
+                     (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)];
+        cube_faces = [[0, 2, 6], [6, 4, 0], [5, 0, 4], [5,1,0], [5,4,6], [5,6,7], [3,2,0], [3,0,1], [3,6,2], \
+                     [3,7,6], [3,1,5], [3,5,7]]
+        tetra_verts = [(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)];
+        tetra_faces = [[0, 1, 2], [3, 0, 2], [3, 2, 1], [3,1,0]];
+        mc.shape_param.set('A', vertices = cube_verts, faces = cube_faces);
+        mc.shape_param.set('B', vertices = tetra_verts, faces = tetra_faces, origin = (0,0,0));
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
@@ -1088,7 +1086,6 @@ class convex_polyhedron(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.convex_polyhedron(seed=415236)
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
@@ -1200,7 +1197,6 @@ class faceted_ellipsoid(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.faceted_ellipsoid(seed=415236)
         mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4)
 
         # half-space intersection
@@ -1295,7 +1291,6 @@ class faceted_sphere(faceted_ellipsoid):
         # polyedron vertices
         slab_verts = [[-.1,-.5,-.5],[-.1,-.5,.5],[-.1,.5,.5],[-.1,.5,-.5], [.5,-.5,-.5],[.5,-.5,.5],[.5,.5,.5],[.5,.5,-.5]]
 
-        mc = hpmc.integrate.faceted_sphere(seed=415236)
         mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', normals=slab_normals,offsets=slab_offsets, vertices=slab_verts,diameter=1.0);
         print('diameter = ', mc.shape_param['A'].diameter)
@@ -1334,7 +1329,6 @@ class sphinx(mode_hpmc):
 
     Quick Example::
 
-        mc = hpmc.integrate.sphinx(seed=415236)
         mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,.25])
         print('diameters = ', mc.shape_param['A'].diameters)
@@ -1407,7 +1401,6 @@ class convex_spheropolyhedron(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.convex_spheropolyhedron(seed=415236)
         mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4)
         mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
@@ -1495,7 +1488,6 @@ class ellipsoid(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.ellipsoid(seed=415236)
         mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
         print('ellipsoids parameters (a,b,c) = ', mc.shape_param['A'].a, mc.shape_param['A'].b, mc.shape_param['A'].c)
@@ -1587,7 +1579,6 @@ class sphere_union(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.sphere_union(seed=415236)
         mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
         print('diameter of the first sphere = ', mc.shape_param['A'].members[0].diameter)
@@ -1654,7 +1645,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.convex_spheropolyhedron_union(seed=27)
         mc = hpmc.integrate.convex_spheropolyhedron_union(seed=27, d=0.3, a=0.4)
         cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
                      [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
@@ -1717,7 +1707,6 @@ class faceted_ellipsoid_union(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.faceted_ellipsoid_union(seed=27)
         mc = hpmc.integrate.faceted_ellipsoid_union(seed=27, d=0.3, a=0.4)
 
         # make a prolate Janus ellipsoid

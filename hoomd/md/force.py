@@ -169,6 +169,24 @@ class _force(hoomd.meta._metadata):
 
         return (self.cpp_force.calcForceGroup(group.cpp_group).x, self.cpp_force.calcForceGroup(group.cpp_group).y, self.cpp_force.calcForceGroup(group.cpp_group).z)
 
+    def get_net_virial(self,group):
+        R""" Get the virial of a particle group.
+
+        Args:
+            group (:py:mod:`hoomd.group`): The particle group to query the virial for.
+
+        Returns:
+            The last computed virial for the members in the group.
+
+        Examples:
+
+            g = group.all()
+            virial = force.get_net_virial(g)
+        """
+        return np.asarray(self.cpp_force.calcVirialGroup(group.cpp_group))
+
+
+
 
     ## \internal
     # \brief updates force coefficients

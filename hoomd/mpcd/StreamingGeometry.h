@@ -14,6 +14,7 @@
 #include "BoundaryCondition.h"
 #include "BulkGeometry.h"
 #include "SlitGeometry.h"
+#include "SlitPoreGeometry.h"
 
 #ifndef NVCC
 #include <pybind11/pybind11.h>
@@ -30,6 +31,9 @@ void export_BulkGeometry(pybind11::module& m);
 
 //! Export SlitGeometry to python
 void export_SlitGeometry(pybind11::module& m);
+
+//! Export SlitPoreGeometry to python
+void export_SlitPoreGeometry(pybind11::module& m);
 
 } // end namespace detail
 } // end namespace mpcd

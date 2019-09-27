@@ -1,17 +1,15 @@
 Installing binaries
 ===================
 
-**HOOMD-blue** binaries are available as containers (`Docker Hub
-<https://hub.docker.com/r/glotzerlab/software>`_, `Singularity Hub
-<https://singularity-hub.org/collections/1663>`_) and for Linux and macOS via
-the `hoomd package on conda-forge <https://anaconda.org/conda-forge/hoomd>`_.
+**HOOMD-blue** binaries are available in the `glotzerlab-software <https://glotzerlab-software.readthedocs.io>`_
+`Docker <https://hub.docker.com/>`_/`Singularity <https://www.sylabs.io/>`_ images and for Linux and macOS via the
+`hoomd package on conda-forge <https://anaconda.org/conda-forge/hoomd>`_.
 
-Using Singularity / Docker containers
--------------------------------------
+Singularity / Docker images
+---------------------------
 
-Singularity::
-
-    ▶ singularity pull --name "software.simg" shub://glotzerlab/software
+See the `glotzerlab-software documentation <https://glotzerlab-software.readthedocs.io/>`_ for container usage
+information and cluster specific instructions.
 
 Docker::
 

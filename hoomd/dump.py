@@ -497,21 +497,20 @@ class gsd(hoomd.analyze._analyzer):
         time_step (int): Time step to write to the file (only used when period is None)
         dynamic (list): A list of quantity categories to save every frame. (added in version 2.2)
 
-    Write a simulation snapshot to the specified GSD file at regular intervals.
-    GSD is capable of storing all particle and bond data fields in hoomd,
-    in every frame of the trajectory. This allows GSD to store simulations where the
-    number of particles, number of particle types, particle types, diameter, mass,
-    charge, or anything is changing over time.
+    Write a simulation snapshot to the specified GSD file at regular intervals. GSD is capable of storing all particle
+    and bond data fields in hoomd, in every frame of the trajectory. This allows GSD to store simulations where the
+    number of particles, number of particle types, particle types, diameter, mass, charge, and other quantities change
+    over time. GSD can also store integrator state information necessary for restarting simulations and user-defined log
+    quantities.
 
-    To save on space, GSD does not write values that are all set at defaults. So if
-    all masses are left set at the default of 1.0, mass will not take up any space in
-    the file. Additionally, only **dynamic** quantities are written to all frames, non-dynamic
-    quantities are only written to frame 0. The GSD schema defines that data not present in frame *i* is to
-    be read from frame 0. This makes every single frame of a GSD file fully specified and simulations
-    initialized with :py:func:`hoomd.init.read_gsd()` can select any frame of the file.
+    To save on space, GSD does not write values that are all set at defaults. So if all masses, orientations, angular
+    momenta, etc... are left default, these fields  will not take up any space in the file. Additionally, only
+    **dynamic** quantities are written to all frames, non-dynamic quantities are only written to frame 0. The GSD schema
+    defines that data not present in frame *i* is to be read from frame 0. This makes every single frame of a GSD file
+    fully specified and simulations initialized with :py:func:`hoomd.init.read_gsd()` can select any frame of the file.
 
-    You can control what quantities are dynamic by category. ``property`` is always dynamic.
-    The categories listed in the **dynamic** will also be written out to every frame.
+    You can control what quantities are dynamic by category. ``property`` is always dynamic. The categories listed in
+    the **dynamic** will also be written out to every frame, but only if they have changed from the defaults.
 
     * ``attribute``
 
@@ -527,12 +526,12 @@ class gsd(hoomd.analyze._analyzer):
     * ``property``
 
         * particles/position
-        * particles/orientation
+        * particles/orientation (*only written when changed from default*)
 
     * ``momentum``
 
         * particles/velocity
-        * particles/angmom
+        * particles/angmom (*only written when changed from default*)
         * particles/image
 
     * ``topology``
@@ -561,6 +560,14 @@ class gsd(hoomd.analyze._analyzer):
 
     Call :py:meth:`dump_state` with the object as an argument to enable saving its state. State saved in this way
     can be restored after initializing the system with :py:meth:`hoomd.init.read_gsd`.
+
+    .. rubric:: User-defined log quantities
+
+    Associate a name with a callable python object that returns a numpy array in :py:attr:`log`, and :py:class:`gsd`
+    will save the data you provide on every frame. Prefix per-particle quantities with ``particles/`` and per-bond
+    quantities with ``bonds/`` so that visualization tools such as `OVITO <https://www.ovito.org/>`_ will make them
+    available in their pipelines. OVITO also understand scalar values (length 1 numpy arrays) and strings encoded
+    as uint8 numpy arrays.
 
     Examples::
 
@@ -638,3 +645,28 @@ class gsd(hoomd.analyze._analyzer):
             obj._connect_gsd(self);
         else:
             hoomd.context.current.device.cpp_msg.warning("GSD is not currently support for {name}".format(obj.__name__));
+
+    @property
+    def log(self):
+        """Dictionary mapping user-defined names to callbacks.
+
+        Add an item to :py:attr:`log` to save user-defined data in the gsd file. The key provides the name of the data
+        chunk in the gsd file (e.g. ``particles/lj_potential_energy``). The value is a callable python object that takes
+        the current time step as an argument and returns a numpy array that has 1 or 2 dimensions and has a data type
+        supported by `gsd <https://gsd.readthedocs.io>`_.
+
+        Delete a key from :py:attr:`log` to stop logging that quantity.
+
+        .. note::
+
+            All logged data chunks must be present in the first frame in the gsd file to provide the default value. Some
+            (or all) chunks may be omitted on later frames:
+
+        .. note::
+
+            In MPI parallel simulations, the callback will be called on all ranks. :py:class:`gsd` will write the data
+            returned by the root rank. Return values from all other ranks are ignored (and may be None).
+
+        .. versionadded:: 2.7
+        """
+        return self.cpp_analyzer.user_log;

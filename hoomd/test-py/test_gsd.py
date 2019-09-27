@@ -124,7 +124,7 @@ class gsd_write_tests (unittest.TestCase):
             self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
 
     # tests write_restart
-    def write_restart(self):
+    def test_write_restart(self):
         g = dump.gsd(filename=self.tmp_file, group=group.all(), period=1000000, truncate=True, overwrite=True);
         run(5);
         g.write_restart();
@@ -179,6 +179,43 @@ class gsd_write_tests (unittest.TestCase):
         self.s.particles.remove(2)
         self.s.particles.remove(3)
         dump.gsd(filename=self.tmp_file, group=group.all(), period=1, overwrite=True);
+        run(1)
+
+    def test_log(self):
+        gsd = dump.gsd(filename=self.tmp_file, group=group.all(), period=1, overwrite=True);
+        gsd.log['uint8'] = lambda step: numpy.array([1, 2, 3, 4], dtype=numpy.uint8)
+        gsd.log['uint16'] = lambda step: numpy.array([1, 2, 3, 4], dtype=numpy.uint16)
+        gsd.log['uint32'] = lambda step: numpy.array([1, 2, 3, 4], dtype=numpy.uint32)
+        gsd.log['uint64'] = lambda step: numpy.array([1, 2, 3, 4], dtype=numpy.uint64)
+
+        gsd.log['int8'] = lambda step: numpy.array([1, 2, 3, 4, -10], dtype=numpy.int8)
+        gsd.log['int16'] = lambda step: numpy.array([1, 2, 3, 4, -10], dtype=numpy.int16)
+        gsd.log['int32'] = lambda step: numpy.array([1, 2, 3, 4, -10], dtype=numpy.int32)
+        gsd.log['int64'] = lambda step: numpy.array([1, 2, 3, 4, -10], dtype=numpy.int64)
+
+        gsd.log['float32'] = lambda step: numpy.array([1, 2, 3, 4], dtype=numpy.float32)
+        gsd.log['float64'] = lambda step: numpy.array([1, 2, 3, 4], dtype=numpy.float64)
+
+        gsd.log['2d'] = lambda step: numpy.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=numpy.float64)
+        run(1)
+
+        # skip these tests in MPI, only the root rank raises the runtime error resulting in deadlock
+        if hoomd.comm.get_num_ranks() == 1:
+            gsd.log['complex64'] = lambda step: numpy.array([1, 2, 3, 4], dtype=numpy.complex64)
+            self.assertRaises(RuntimeError, run, 1);
+
+            del gsd.log['complex64'];
+            run(1)
+
+            gsd.log['3d'] = lambda step: numpy.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]], dtype=numpy.float64)
+            self.assertRaises(RuntimeError, run, 1);
+
+            del gsd.log['3d']
+            run(1)
+
+            gsd.log['scalar'] = lambda step: 5
+            self.assertRaises(RuntimeError, run, 1);
+
 
     def tearDown(self):
         if (hoomd.context.current.device.comm.rank==0):
