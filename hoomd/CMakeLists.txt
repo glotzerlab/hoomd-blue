@@ -188,7 +188,7 @@ endif (ENABLE_CUDA)
 
 #########################
 ## Build the module
-pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} NO_EXTRAS)
+pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} ${_hoomd_headers} NO_EXTRAS)
 
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hoomd ALIAS _hoomd)
