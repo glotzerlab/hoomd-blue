@@ -442,8 +442,6 @@ class slit_pore(_streaming_method):
 
     """
     def __init__(self, H, L, boundary="no_slip", period=1):
-        hoomd.util.print_status_line()
-
         _streaming_method.__init__(self, period)
 
         self.metadata_fields += ['H','L','boundary']
@@ -454,7 +452,7 @@ class slit_pore(_streaming_method):
         bc = self._process_boundary(boundary)
 
         # create the base streaming class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.mode == 'gpu':
             stream_class = _mpcd.ConfinedStreamingMethodSlitPore
         else:
             stream_class = _mpcd.ConfinedStreamingMethodGPUSlitPore
@@ -488,13 +486,11 @@ class slit_pore(_streaming_method):
             slit_pore.set_filler(density=5.0, kT=1.0, seed=42)
 
         """
-        hoomd.util.print_status_line()
-
         type_id = hoomd.context.current.mpcd.particles.getTypeByName(type)
         T = hoomd.variant._setup_variant_input(kT)
 
         if self._filler is None:
-            if not hoomd.context.exec_conf.isCUDAEnabled():
+            if not hoomd.context.current.device.mode == 'gpu':
                 fill_class = _mpcd.SlitPoreGeometryFiller
             else:
                 fill_class = _mpcd.SlitPoreGeometryFillerGPU
@@ -518,7 +514,6 @@ class slit_pore(_streaming_method):
             slit_pore.remove_filler()
 
         """
-        hoomd.util.print_status_line()
 
         self._filler = None
 
@@ -539,7 +534,6 @@ class slit_pore(_streaming_method):
             slit_pore.set_params(L=10.0, boundary="no_slip")
 
         """
-        hoomd.util.print_status_line()
 
         if H is not None:
             self.H = H

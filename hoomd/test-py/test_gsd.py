@@ -200,7 +200,7 @@ class gsd_write_tests (unittest.TestCase):
         run(1)
 
         # skip these tests in MPI, only the root rank raises the runtime error resulting in deadlock
-        if hoomd.comm.get_num_ranks() == 1:
+        if context.current.device.comm.num_ranks == 1:
             gsd.log['complex64'] = lambda step: numpy.array([1, 2, 3, 4], dtype=numpy.complex64)
             self.assertRaises(RuntimeError, run, 1);
 
