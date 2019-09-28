@@ -275,6 +275,5 @@ class md_gsd_shape_spec(gsd_shape_spec_base):
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=3);
 
 
-
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
