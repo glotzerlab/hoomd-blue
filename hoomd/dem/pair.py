@@ -9,6 +9,7 @@ import hoomd.md;
 import hoomd.md.nlist as nl;
 
 from math import sqrt;
+import json;
 
 from hoomd.dem import _dem;
 from hoomd.dem import params;
@@ -116,12 +117,14 @@ class _DEMBase:
         This assumes all 3D shapes are convex.
 
         Examples:
-            Types depend on the number of shape vertices and system dimensionality. One vertex will yield a Disk (2D) or Sphere (3D), while multiple vertices will give a Polygon (2D) or ConvexPolyhedron (3D).
+            Types depend on the number of shape vertices and system dimensionality.
+            One vertex will yield a Sphere (2D and 3D), while multiple vertices will
+            give a Polygon (2D) or ConvexPolyhedron (3D).
 
             >>> mc.get_type_shapes()  # one vertex in 3D
             [{'type': 'Sphere', 'diameter': 1.0}]
             >>> mc.get_type_shapes()  # one vertex in 2D
-            [{'type': 'Disk', 'diameter': 1.0}]
+            [{'type': 'Sphere', 'diameter': 1.5}]
             >>> mc.get_type_shapes()  # multiple vertices in 3D
             [{'type': 'ConvexPolyhedron', 'rounding_radius': 0.1,
               'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
@@ -133,31 +136,9 @@ class _DEMBase:
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.vertices[typename]
-            if self.dimensions == 2:
-                if len(shape) < 2:
-                    result.append(dict(type='Disk',
-                                       diameter=2*self.radius))
-                else:
-                    result.append(dict(type='Polygon',
-                                       rounding_radius=self.radius,
-                                       vertices=list(shape)))
-            else:
-                if len(shape) < 2:
-                    result.append(dict(type='Sphere',
-                                       diameter=2*self.radius))
-                else:
-                    result.append(dict(type='ConvexPolyhedron',
-                                       rounding_radius=self.radius,
-                                       vertices=list(shape)))
-
-        return result
+        type_shapes = self.cpp_force.getTypeShapesPy();
+        ret = [ json.loads(json_string) for json_string in type_shapes ];
+        return ret;
 
 class WCA(hoomd.md.force._force, _DEMBase):
     R"""Specify a purely repulsive Weeks-Chandler-Andersen DEM force with a constant rounding radius.

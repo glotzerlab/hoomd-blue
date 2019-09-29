@@ -7,6 +7,7 @@ from hoomd.hpmc import data
 from hoomd.integrate import _integrator
 import hoomd
 import sys
+import json
 
 class interaction_matrix:
     R""" Define pairwise interaction matrix
@@ -381,6 +382,11 @@ class mode_hpmc(_integrator):
             "You are using a shape type that is not implemented! "
             "If you want it, please modify the "
             "hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function.")
+
+    def _return_type_shapes(self):
+        type_shapes = self.cpp_integrator.getTypeShapesPy();
+        ret = [ json.loads(json_string) for json_string in type_shapes ];
+        return ret;
 
     def initialize_shape_params(self):
         shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
@@ -858,33 +864,15 @@ class sphere(mode_hpmc):
         """Get all the types of shapes in the current simulation.
 
         Examples:
-            The types will be either Sphere or Disk, depending on system dimensionality.
+            The types will be 'Sphere' regardless of dimensionality.
 
-            >>> mc.get_type_shapes()  # in 3D
-            [{'type': 'Sphere', 'diameter': 1.0, 'orientable': False}]
-            >>> mc.get_type_shapes()  # in 2D
-            [{'type': 'Disk', 'diameter': 1.0, 'orientable': False}]
+            >>> mc.get_type_shapes()
+            [{'type': 'Sphere', 'diameter': 1}, {'type': 'Sphere', 'diameter': 2}]
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        dim = hoomd.context.current.system_definition.getNDimensions()
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            if dim == 3:
-                result.append(dict(type='Sphere', diameter=shape.diameter,
-                                   orientable=shape.orientable));
-            else:
-                result.append(dict(type='Disk', diameter=shape.diameter,
-                                   orientable=shape.orientable));
-
-        return result
-
+        return super(sphere, self)._return_type_shapes()
 
 class convex_polygon(mode_hpmc):
     R""" HPMC integration for convex polygons (2D).
@@ -978,19 +966,7 @@ class convex_polygon(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            result.append(dict(type='Polygon',
-                                   rounding_radius=0,
-                                   vertices=shape.vertices))
-
-        return result
-
+        return super(convex_polygon, self)._return_type_shapes()
 
 class convex_spheropolygon(mode_hpmc):
     R""" HPMC integration for convex spheropolygons (2D).
@@ -1092,18 +1068,7 @@ class convex_spheropolygon(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            result.append(dict(type='Polygon',
-                                   rounding_radius=shape.sweep_radius,
-                                   vertices=shape.vertices))
-
-        return result
+        return super(convex_spheropolygon, self)._return_type_shapes()
 
 class simple_polygon(mode_hpmc):
     R""" HPMC integration for simple polygons (2D).
@@ -1197,18 +1162,7 @@ class simple_polygon(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            result.append(dict(type='Polygon',
-                                   rounding_radius=0,
-                                   vertices=shape.vertices))
-
-        return result
+        return super(simple_polygon, self)._return_type_shapes()
 
 class polyhedron(mode_hpmc):
     R""" HPMC integration for general polyhedra (3D).
@@ -1351,6 +1305,20 @@ class polyhedron(mode_hpmc):
 
         return shape_def
 
+
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'Mesh', 'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5], [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]],
+              'indices': [[0, 1, 2], [0, 3, 1], [0, 2, 3], [1, 3, 2]]}]
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super(polyhedron, self)._return_type_shapes()
+
 class convex_polyhedron(mode_hpmc):
     R""" HPMC integration for convex polyhedra (3D).
 
@@ -1468,20 +1436,7 @@ class convex_polyhedron(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            dim = hoomd.context.current.system_definition.getNDimensions()
-            # Currently can't trivially pull the radius for nonspherical shapes
-            result.append(dict(type='ConvexPolyhedron',
-                                   rounding_radius=0,
-                                   vertices=shape.vertices))
-
-        return result
+        return super(convex_polyhedron, self)._return_type_shapes()
 
 class faceted_ellipsoid(mode_hpmc):
     R""" HPMC integration for faceted ellipsoids (3D).
@@ -1933,20 +1888,7 @@ class convex_spheropolyhedron(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            dim = hoomd.context.current.system_definition.getNDimensions()
-            # Currently can't trivially pull the radius for nonspherical shapes
-            result.append(dict(type='ConvexPolyhedron',
-                                   rounding_radius=shape.sweep_radius,
-                                   vertices=shape.vertices))
-
-        return result
+        return super(convex_spheropolyhedron, self)._return_type_shapes()
 
 class ellipsoid(mode_hpmc):
     R""" HPMC integration for ellipsoids (2D/3D).
@@ -2047,15 +1989,7 @@ class ellipsoid(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            result.append(dict(type='Ellipsoid', a=shape.a, b=shape.b, c=shape.c));
-        return result
+        return super(ellipsoid, self)._return_type_shapes()
 
 class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).

@@ -110,6 +110,15 @@ class AnisoPotentialPair : public ForceCompute
             return type_shape_mapping;
             }
 
+        pybind11::list getTypeShapesPy()
+            {
+            std::vector<std::string> type_shape_mapping = this->getTypeShapeMapping(m_params);
+            pybind11::list type_shapes;
+            for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+                type_shapes.append(type_shape_mapping[i]);
+            return type_shapes;
+            }
+
         //! Shifting modes that can be applied to the energy
         enum energyShiftMode
             {
@@ -578,6 +587,7 @@ template < class T > void export_AnisoPotentialPair(pybind11::module& m, const s
         .def("setShiftMode", &T::setShiftMode)
         .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
+        .def("getTypeShapesPy", &T::getTypeShapesPy)
     ;
 
     pybind11::enum_<typename T::energyShiftMode>(anisopotentialpair,"energyShiftMode")
