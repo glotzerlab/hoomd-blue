@@ -38,8 +38,8 @@ class gsd_shape_spec_base(unittest.TestCase):
         snapshot = system.take_snapshot(all=True)
         bindex = np.random.choice(range(5**dim),int(0.5*5**dim),replace=False)
         if comm.get_rank() == 0:
-        snapshot.particles.types = ['A', 'B']
-        snapshot.particles.typeid[bindex] = 1
+            snapshot.particles.types = ['A', 'B']
+            snapshot.particles.typeid[bindex] = 1
 
         hoomd.context.initialize()
         system = hoomd.init.read_snapshot(snapshot)
@@ -64,8 +64,8 @@ class gsd_shape_spec_base(unittest.TestCase):
         dumper.dump_shape(obj);
         steps = 5
         hoomd.run(steps);
+        reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, 0, False);
         if comm.get_rank() == 0:
-            reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, 0, False);
             for i in range(steps):
                 shape_spec = parse_shape_spec(reader.readTypeShapesPy(i));
                 self.assertEqual(shape_spec[0], expected_shapespec[0]);
@@ -217,6 +217,8 @@ class dem_gsd_shape_spec(gsd_shape_spec_base):
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=3);
 
     def test_swca_2d(self):
+        if comm.get_num_ranks() > 1:
+            return
         sq_verts = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
         trg_verts = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5]];
         shape_params = dict(A=dict(vertices=sq_verts), \
@@ -227,6 +229,8 @@ class dem_gsd_shape_spec(gsd_shape_spec_base):
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=2);
 
     def test_swca_2d_with_sphere(self):
+        if comm.get_num_ranks() > 1:
+            return
         sq_verts = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
         sph_verts = [[-0.5, -0.5]];
         shape_params = dict(A=dict(vertices=sq_verts), \
@@ -237,6 +241,8 @@ class dem_gsd_shape_spec(gsd_shape_spec_base):
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=2);
 
     def test_swca_3d(self):
+        if comm.get_num_ranks() > 1:
+            return
         cube_verts = [[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, -0.5], [-0.5, 0.5, 0.5], \
                       [0.5, -0.5, -0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]];
         cube_faces = [[0,2,6], [6,4,0], [5,0,4], [5,1,0], [5,4,6], [5,6,7], [3,2,0], [3,0,1], \
@@ -251,6 +257,8 @@ class dem_gsd_shape_spec(gsd_shape_spec_base):
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=3);
 
     def test_swca_3d_with_sphere(self):
+        if comm.get_num_ranks() > 1:
+            return
         cube_verts = [[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, -0.5], [-0.5, 0.5, 0.5], \
                       [0.5, -0.5, -0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]];
         cube_faces = [[0,2,6], [6,4,0], [5,0,4], [5,1,0], [5,4,6], [5,6,7], [3,2,0], [3,0,1], \
