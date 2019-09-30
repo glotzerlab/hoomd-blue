@@ -37,8 +37,10 @@ class gsd_shape_spec_base(unittest.TestCase):
             system = hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=5.50),n=5);
         snapshot = system.take_snapshot(all=True)
         bindex = np.random.choice(range(5**dim),int(0.5*5**dim),replace=False)
+        if comm.get_rank() == 0:
         snapshot.particles.types = ['A', 'B']
         snapshot.particles.typeid[bindex] = 1
+
         hoomd.context.initialize()
         system = hoomd.init.read_snapshot(snapshot)
         if cls.__name__ in HPMC_CLASSES:
