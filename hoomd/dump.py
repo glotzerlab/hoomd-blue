@@ -681,7 +681,23 @@ class gsd(hoomd.analyze._analyzer):
 
 
         Call :py:meth:`dump_shape` if you want to write the shape of a hoomd object
-        to the gsd file.
+        to the gsd file. The following classes support writing shape information to
+        GSD files:
+
+        * :py:class:`hoomd.hpmc.integrate.sphere`
+        * :py:class:`hoomd.hpmc.integrate.convex_polyhedron`
+        * :py:class:`hoomd.hpmc.integrate.convex_spheropolyhedron`
+        * :py:class:`hoomd.hpmc.integrate.polyhedron`
+        * :py:class:`hoomd.hpmc.integrate.convex_polygon`
+        * :py:class:`hoomd.hpmc.integrate.convex_spheropolygon`
+        * :py:class:`hoomd.hpmc.integrate.simple_polygon`
+        * :py:class:`hoomd.hpmc.integrate.ellipsoid`
+        * :py:class:`hoomd.dem.pair.WCA`
+        * :py:class:`hoomd.dem.pair.SWCA`
+        * :py:class:`hoomd.md.pair.gb`
+
+        See the `Shape Visualization Specification <https://gsd.readthedocs.io/en/stable/shapes.html>`_
+        section of the GSD package documentation for a detailed description of shape definitions.
 
         .. versionadded:: 2.7
         """
