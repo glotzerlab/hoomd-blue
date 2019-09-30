@@ -62,11 +62,12 @@ class gsd_shape_spec_base(unittest.TestCase):
         dumper.dump_shape(obj);
         steps = 5
         hoomd.run(steps);
-        reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, 0, False);
-        for i in range(steps):
-            shape_spec = parse_shape_spec(reader.readTypeShapesPy(i));
-            self.assertEqual(shape_spec[0], expected_shapespec[0]);
-            self.assertEqual(shape_spec[1], expected_shapespec[1]);
+        if comm.get_rank() == 0:
+            reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, 0, False);
+            for i in range(steps):
+                shape_spec = parse_shape_spec(reader.readTypeShapesPy(i));
+                self.assertEqual(shape_spec[0], expected_shapespec[0]);
+                self.assertEqual(shape_spec[1], expected_shapespec[1]);
 
     def tearDown(self):
         if comm.get_rank() == 0:
