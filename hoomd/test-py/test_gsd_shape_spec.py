@@ -32,9 +32,9 @@ class gsd_shape_spec_base(unittest.TestCase):
 
     def setup_system(self, cls, shape_params, expected_shapespec, filename, dim):
         if dim == 2:
-            system = hoomd.init.create_lattice(unitcell=hoomd.lattice.sq(a=2.50),n=5);
+            system = hoomd.init.create_lattice(unitcell=hoomd.lattice.sq(a=5.50),n=5);
         elif dim == 3:
-            system = hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=2.50),n=5);
+            system = hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=5.50),n=5);
         snapshot = system.take_snapshot(all=True)
         bindex = np.random.choice(range(5**dim),int(0.5*5**dim),replace=False)
         snapshot.particles.types = ['A', 'B']
