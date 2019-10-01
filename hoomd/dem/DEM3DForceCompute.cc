@@ -46,7 +46,7 @@ DEM3DForceCompute<Real, Real4, Potential>::DEM3DForceCompute(
       m_numTypeEdges(0, this->m_exec_conf), m_numTypeFaces(0, this->m_exec_conf),
       m_vertexConnectivity(0, this->m_exec_conf), m_edges(0, this->m_exec_conf),
       m_faceRcutSq(0, this->m_exec_conf), m_edgeRcutSq(0, this->m_exec_conf),
-      m_verts(0, this->m_exec_conf), m_vertsVec(), m_facesVec()
+      m_verts(0, this->m_exec_conf), m_shapes(), m_facesVec()
     {
     m_exec_conf->msg->notice(5) << "Constructing DEM3DForceCompute" << endl;
 
@@ -58,6 +58,80 @@ DEM3DForceCompute<Real, Real4, Potential>::DEM3DForceCompute(
         m_exec_conf->msg->error() << "dem: Negative r_cut makes no sense" << endl;
         throw runtime_error("Error initializing DEM3DForceCompute");
         }
+    }
+
+template<typename Real, typename Real4, typename Potential>
+void DEM3DForceCompute<Real, Real4, Potential>::connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
+    {
+    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    auto func = std::bind(&DEM3DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec, this, std::placeholders::_1);
+    std::shared_ptr<hoomd::detail::SignalSlot> pslot(new SlotType(writer->getWriteSignal(), func));
+    addSlot(pslot);
+    }
+
+template<typename Real, typename Real4, typename Potential>
+int DEM3DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec(gsd_handle& handle) const
+    {
+    GSDShapeSpecWriter shapespec(m_exec_conf);
+    m_exec_conf->msg->notice(10) << "DEM3DForceCompute writing particle shape information to GSD file in chunk: " << shapespec.getName() << std::endl;
+    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_shapes, m_evaluator.getRadius()));
+    return retval;
+    }
+
+template<typename Real, typename Real4, typename Potential>
+std::string DEM3DForceCompute<Real, Real4, Potential>::getTypeShape(const std::vector<vec3<Real>> &verts, const Real &radius) const
+    {
+    std::ostringstream shapedef;
+    unsigned int nverts = verts.size();
+    if (nverts == 1)
+        {
+        shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << Real(2)*radius << "}";
+        }
+    else if (nverts == 2)
+        {
+        throw std::runtime_error("Shape definition not supported for 2-vertex polyhedra");
+        }
+    else
+        {
+        shapedef <<  "{\"type\": \"ConvexPolyhedron\", " << "\"rounding_radius\": " << radius <<
+                    ", \"vertices\": "  << encodeVertices(verts) << "}";
+        }
+    return shapedef.str();
+    }
+
+template<typename Real, typename Real4, typename Potential>
+std::string DEM3DForceCompute<Real, Real4, Potential>::encodeVertices(const std::vector<vec3<Real>> &verts) const
+    {
+    std::ostringstream vertstr;
+    unsigned int nverts = verts.size();
+    vertstr << "[";
+    for (unsigned int i = 0; i < nverts-1; i++)
+        {
+        vertstr << "[" << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
+        }
+    vertstr << "[" << verts[nverts-1].x << ", " << verts[nverts-1].y << ", " << verts[nverts-1].z  << "]" << "]";
+    return vertstr.str();
+    }
+
+template<typename Real, typename Real4, typename Potential>
+std::vector<std::string> DEM3DForceCompute<Real, Real4, Potential>::getTypeShapeMapping(const std::vector<std::vector<vec3<Real>>> &verts, const Real &radius) const
+    {
+    std::vector<std::string> type_shape_mapping(verts.size());
+    for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+        {
+        type_shape_mapping[i] = this->getTypeShape(verts[i], radius);
+        }
+    return type_shape_mapping;
+    }
+
+template<typename Real, typename Real4, typename Potential>
+pybind11::list DEM3DForceCompute<Real, Real4, Potential>::getTypeShapesPy()
+    {
+    std::vector<std::string> type_shape_mapping = this->getTypeShapeMapping(m_shapes, m_evaluator.getRadius());
+    pybind11::list type_shapes;
+    for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+        type_shapes.append(type_shape_mapping[i]);
+    return type_shapes;
     }
 
 /*! Destructor. */
@@ -83,9 +157,9 @@ void DEM3DForceCompute<Real, Real4, Potential>::setParams(
         throw runtime_error("Error setting parameters in DEM3DForceCompute");
         }
 
-    for(int i(type - m_vertsVec.size()); i >= 0; --i)
+    for(int i(type - m_shapes.size()); i >= 0; --i)
         {
-        m_vertsVec.push_back(vector<vec3<Real> >(0));
+        m_shapes.push_back(vector<vec3<Real> >(0));
         m_facesVec.push_back(vector<vector<unsigned int> >(0));
         }
 
@@ -126,7 +200,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::setParams(
         faces.push_back(face);
         }
 
-    m_vertsVec[type] = points;
+    m_shapes[type] = points;
     m_facesVec[type] = faces;
 
     createGeometry();
@@ -144,7 +218,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::createGeometry()
     const size_t nEdges(numEdges());
     const size_t nTypes(m_pdata->getNTypes());
 
-    if(m_facesVec.size() != nTypes || m_vertsVec.size() != nTypes)
+    if(m_facesVec.size() != nTypes || m_shapes.size() != nTypes)
         return;
 
     // resize the geometry arrays if necessary
@@ -221,14 +295,14 @@ void DEM3DForceCompute<Real, Real4, Potential>::createGeometry()
 
     // iterate over shapes to build GPU Arrays m_verts,
     // m_firstTypeVert, and m_numTypeVerts
-    for(size_t i(0), j(0); i < m_vertsVec.size(); ++i)
+    for(size_t i(0), j(0); i < m_shapes.size(); ++i)
         {
         h_firstTypeVert.data[i] = j;
-        h_numTypeVerts.data[i] = m_vertsVec[i].size();
+        h_numTypeVerts.data[i] = m_shapes[i].size();
 
-        for(size_t k(0); k < m_vertsVec[i].size(); ++j, ++k)
+        for(size_t k(0); k < m_shapes[i].size(); ++j, ++k)
             {
-            const vec3<Real> point(m_vertsVec[i][k]);
+            const vec3<Real> point(m_shapes[i][k]);
             h_verts.data[j] = vec_to_scalar4(point, 0);
             }
         }
@@ -297,7 +371,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::createGeometry()
                 ++vertIdx, ++vertCount)
                 h_realVertIndex.data[vertCount] = vertTypeOffset + m_facesVec[shapeIdx][faceIdx][vertIdx];
             }
-        vertTypeOffset += m_vertsVec[shapeIdx].size();
+        vertTypeOffset += m_shapes[shapeIdx].size();
         }
 
     // build m_firstTypeEdge, m_numTypeEdges, m_edges, and m_vertexConnectivity
@@ -330,7 +404,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::createGeometry()
             if(first != second)
                 edges.insert(edge(first, second));
             }
-        vertTypeOffset += m_vertsVec[shapeIdx].size();
+        vertTypeOffset += m_shapes[shapeIdx].size();
 
         // fill the GPUArrays
         h_firstTypeEdge.data[shapeIdx] = edgeCount;
@@ -365,8 +439,8 @@ size_t DEM3DForceCompute<Real, Real4, Potential>::numVertices() const
     {
     size_t result(0);
 
-    for(typename std::vector<std::vector<vec3<Real> > >::const_iterator shapeIter(this->m_vertsVec.begin());
-        shapeIter != this->m_vertsVec.end(); ++shapeIter)
+    for(typename std::vector<std::vector<vec3<Real> > >::const_iterator shapeIter(this->m_shapes.begin());
+        shapeIter != this->m_shapes.end(); ++shapeIter)
         result += shapeIter->size() ? shapeIter->size(): 1;
 
     return result;
@@ -381,8 +455,8 @@ size_t DEM3DForceCompute<Real, Real4, Potential>::maxVertices() const
     {
     size_t result(1);
 
-    for(typename std::vector<std::vector<vec3<Real> > >::const_iterator shapeIter(this->m_vertsVec.begin());
-        shapeIter != this->m_vertsVec.end(); ++shapeIter)
+    for(typename std::vector<std::vector<vec3<Real> > >::const_iterator shapeIter(this->m_shapes.begin());
+        shapeIter != this->m_shapes.end(); ++shapeIter)
         result = max(result, shapeIter->size());
 
     return result;
