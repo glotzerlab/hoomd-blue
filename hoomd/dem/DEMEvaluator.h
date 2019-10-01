@@ -41,6 +41,8 @@ class DEMEvaluator
 
         Real getRcutSq() const {return m_potential.getRcutSq();}
 
+        Real getRadius() const {return m_potential.getRadius();}
+
         /*! Evaluate the force and torque contributions for particles i
           and j, with centers of mass separated by rij. The appropriate
           forces and torques for particles i and j will be added to
