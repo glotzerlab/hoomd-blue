@@ -1,8 +1,8 @@
 Change Log
 ==========
 
-v2.7.0 (not yet released)
--------------------------
+v2.7.0 (2019-10-01)
+-------------------
 
 *New features*
 
@@ -11,8 +11,7 @@ v2.7.0 (not yet released)
   - Allow components to use ``Logger`` at the C++ level.
   - Drop support for python 2.7.
   - User-defined log quantities in ``dump.gsd``.
-
-- MD:
+  - Add ``hoomd.dump.gsd.dump_shape`` to save particle shape information in GSD files.
 
 - HPMC:
 
@@ -34,8 +33,9 @@ v2.7.0 (not yet released)
 - Clarify singularity image download documentation.
 - Correctly document the functional form of the Buckingham pair potential.
 - Correct typos in HPMC example snippets.
+- Support compilation in WSL.
 
-v2.6.0 (2019/05/28)
+v2.6.0 (2019-05-28)
 -------------------
 
 *New features*
@@ -79,7 +79,7 @@ v2.6.0 (2019/05/28)
 - Use ``random123`` for random number generation
 - CMake version 2.8.10.1 is now a minimum requirement for compiling from source
 
-v2.5.2 (2019/04/30)
+v2.5.2 (2019-04-30)
 -------------------
 
 *Bug fixes*
@@ -101,7 +101,7 @@ v2.5.2 (2019/04/30)
 - Improve some angular degrees of freedom integrators with multi-GPU execution
 - Improve rigid body pressure calculation performance with multi-GPU execution
 
-v2.5.1 (2019/03/14)
+v2.5.1 (2019-03-14)
 -------------------
 
 *Bug fixes*
@@ -111,7 +111,7 @@ v2.5.1 (2019/03/14)
 - Documentation improvements
 - Fix a segfault when using ``SLURM_LOCALID``
 
-v2.5.0 (2019/02/05)
+v2.5.0 (2019-02-05)
 -------------------
 
 *New features*
@@ -143,7 +143,7 @@ v2.5.0 (2019/02/05)
       in HPMC.
    -  Use ``-DHOOMD_LLVMJIT_BUILD`` now instead of ``-DHOOMD_NOPYTHON``
 
-v2.4.2 (2018/12/20)
+v2.4.2 (2018-12-20)
 -------------------
 
 *Bug fixes*
@@ -170,7 +170,7 @@ v2.4.2 (2018/12/20)
    returned from ``ParticleData`` and other classes (replace by
    ``GlobalArray``)
 
-v2.4.1 (2018/11/27)
+v2.4.1 (2018-11-27)
 -------------------
 
 *Bug fixes*
@@ -181,7 +181,7 @@ v2.4.1 (2018/11/27)
    conditions
 -  Support llvm 7.0
 
-v2.4.0 (2018/11/07)
+v2.4.0 (2018-11-07)
 -------------------
 
 *New features*
@@ -248,7 +248,7 @@ v2.4.0 (2018/11/07)
       ``convex_spheropolyhedron_union`` (when sweep_radii are 0 for all
       particles)
 
-v2.3.5 (2018/10/07)
+v2.3.5 (2018-10-07)
 -------------------
 
 *Bug fixes*
@@ -257,7 +257,7 @@ v2.3.5 (2018/10/07)
 -  HPMC: Fix a bug where ``hpmc.field.lattice_field`` did not resize 2D
    systems properly in combination with ``update.box_resize``.
 
-v2.3.4 2018/07/30
+v2.3.4 2018-07-30
 -----------------
 
 *Bug fixes*
@@ -267,14 +267,14 @@ v2.3.4 2018/07/30
 -  HPMC: Add ``hpmc_patch_energy`` and ``hpmc_patch_rcut`` loggable
    quantities to the documentation
 
-v2.3.3 (2018/07/03)
+v2.3.3 (2018-07-03)
 -------------------
 
 *Bug fixes*
 
 -  Fix ``libquickhull.so`` not found regression on Mac OS X
 
-v2.3.2 (2018/06/29)
+v2.3.2 (2018-06-29)
 -------------------
 
 *Bug fixes*
@@ -298,7 +298,7 @@ v2.3.2 (2018/06/29)
 -  The **anaconda** channel **glotzer** will no longer be updated. Use
    **conda-forge** to upgrade to v2.3.2 and newer versions.
 
-v2.3.1 (2018/05/25)
+v2.3.1 (2018-05-25)
 -------------------
 
 *Bug fixes*
@@ -314,7 +314,7 @@ v2.3.1 (2018/05/25)
 -  HPMC: Fix name of log quantity ``hpmc_clusters_pivot_acceptance``
 -  MD: Fix image list for tree neighbor lists in 2d
 
-v2.3.0 (2018/04/25)
+v2.3.0 (2018-04-25)
 -------------------
 
 *New features*
@@ -417,7 +417,7 @@ threading in more components, explicitly set –nthreads=1.
 -  HOOMD versions v2.3.x will be the last available on the anaconda
    channel ``glotzer``.
 
-v2.2.5 (2018/04/20)
+v2.2.5 (2018-04-20)
 -------------------
 
 *Bug fixes*
@@ -425,7 +425,7 @@ v2.2.5 (2018/04/20)
 -  Pin cuda compatible version in conda package to resolve ``libcu*.so``
    not found errors in conda installations.
 
-v2.2.4 (2018/03/05)
+v2.2.4 (2018-03-05)
 -------------------
 
 *Bug fixes*
@@ -442,7 +442,7 @@ v2.2.4 (2018/03/05)
 -  Improve acceptance rate in depletant simulations with
    ``depletant_mode='overlap_regions'``
 
-v2.2.3 (2018/01/25)
+v2.2.3 (2018-01-25)
 -------------------
 
 *Bug fixes*
@@ -460,7 +460,7 @@ v2.2.3 (2018/01/25)
    GPU.
 -  Fix binary compatibility across python minor versions.
 
-v2.2.2 (2017/12/04)
+v2.2.2 (2017-12-04)
 -------------------
 
 *Bug fixes*
@@ -490,7 +490,7 @@ v2.2.2 (2017/12/04)
    (``md.constrain.rigid()``) and MPI on multiple ranks is now computed
    correctly
 
-v2.2.1 (2017/10/04)
+v2.2.1 (2017-10-04)
 -------------------
 
 *Bug fixes*
@@ -503,7 +503,7 @@ v2.2.1 (2017/10/04)
    ``hpmc.integrate.convex_polyhedron_union`` produced spurious overlaps
    on the GPU
 
-v2.2.0 (2017/09/08)
+v2.2.0 (2017-09-08)
 -------------------
 
 *New features*
@@ -629,7 +629,7 @@ v2.2.0 (2017/09/08)
 -  Use sphere tree to further improve performance of
    ``hpmc.integrate.sphere_union()``
 
-v2.1.9 (2017/08/22)
+v2.1.9 (2017-08-22)
 -------------------
 
 *Bug fixes*
@@ -648,7 +648,7 @@ v2.1.9 (2017/08/22)
 -  Fix a critical bug where ``charge.pppm()`` calculated invalid forces
    on the GPU
 
-v2.1.8 (2017/07/19)
+v2.1.8 (2017-07-19)
 -------------------
 
 *Bug fixes*
@@ -670,7 +670,7 @@ v2.1.8 (2017/07/19)
    ``SaruGPU`` class has been removed. Use ``hoomd::detail::Saru``
    instead for both CPU and GPU plugins.
 
-v2.1.7 (2017/05/11)
+v2.1.7 (2017-05-11)
 -------------------
 
 *Bug fixes*
@@ -685,7 +685,7 @@ v2.1.7 (2017/05/11)
 -  Fixed aspect ratio with non-cubic boxes in
    ``hoomd.hpmc.update.boxmc``
 
-v2.1.6 (2017/04/12)
+v2.1.6 (2017-04-12)
 -------------------
 
 *Bug fixes*
@@ -700,14 +700,14 @@ v2.1.6 (2017/04/12)
    submodules with ``git submodule update --init``
 -  CMake no longer complains when it finds a partial MKL installation.
 
-v2.1.5 (2017/03/09)
+v2.1.5 (2017-03-09)
 -------------------
 
 *Bug fixes*
 
 -  Fixed a compile error on Mac
 
-v2.1.4 (2017/03/09)
+v2.1.4 (2017-03-09)
 -------------------
 
 *Bug fixes*
@@ -726,14 +726,14 @@ v2.1.4 (2017/03/09)
    limited jobs to exit prematurely
 -  HPMC and DEM components now correctly print citation notices
 
-v2.1.3 (2017/02/07)
+v2.1.3 (2017-02-07)
 -------------------
 
 *Bug fixes*
 
 -  Fixed a bug where the WalltimeLimitReached was ignored
 
-v2.1.2 (2017/01/11)
+v2.1.2 (2017-01-11)
 -------------------
 
 *Bug fixes*
@@ -755,7 +755,7 @@ v2.1.2 (2017/01/11)
 -  Drop support for compute 2.0 GPU devices
 -  Support cusolver with CUDA 8.0
 
-v2.1.1 (2016/10/23)
+v2.1.1 (2016-10-23)
 -------------------
 
 *Bug fixes*
@@ -768,7 +768,7 @@ v2.1.1 (2016/10/23)
    ``md.update.mueller_plathe_flow``
 -  Fix critical bug in MPI communication when using HPMC integrators
 
-v2.1.0 (2016/10/04)
+v2.1.0 (2016-10-04)
 -------------------
 
 *New features*
@@ -831,7 +831,7 @@ v2.1.0 (2016/10/04)
 -  Correctly handle particle type names in lattice.unitcell
 -  Validate ``md.group.tag_list`` is consistent across MPI ranks
 
-v2.0.3 (2016/08/30)
+v2.0.3 (2016-08-30)
 -------------------
 
 -  hpmc.util.tune now works with particle types as documented
@@ -843,7 +843,7 @@ v2.0.3 (2016/08/30)
    context.initialize()
 -  Fix syntax errors in frenkel ladd field
 
-v2.0.2 (2016/08/09)
+v2.0.2 (2016-08-09)
 -------------------
 
 -  Support CUDA Toolkit 8.0
@@ -856,7 +856,7 @@ v2.0.2 (2016/08/09)
    with changing number of particles
 -  replicate() sometimes did not work when restarting a simulation
 
-v2.0.1 (2016/07/15)
+v2.0.1 (2016-07-15)
 -------------------
 
 *Bug fixes*
@@ -870,7 +870,7 @@ v2.0.1 (2016/07/15)
 -  Fix ghost layer when using rigid constraints in MPI runs.
 -  Clarify definition of the dihedral angle.
 
-v2.0.0 (2016/06/22)
+v2.0.0 (2016-06-22)
 -------------------
 
 HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
@@ -1023,7 +1023,7 @@ HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 v1.x
 ----
 
-v1.3.3 (2016/03/06)
+v1.3.3 (2016-03-06)
 ^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
@@ -1031,7 +1031,7 @@ v1.3.3 (2016/03/06)
 -  Fix problem incluing ``hoomd.h`` in plugins
 -  Fix random memory errors when using walls
 
-v1.3.2 (2016/02/08)
+v1.3.2 (2016-02-08)
 ^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
@@ -1045,7 +1045,7 @@ v1.3.2 (2016/02/08)
 -  Fix runtime errors with boost 1.60.0
 -  Fix corrupt metadata dumps in MPI runs
 
-v1.3.1 (2016/1/14)
+v1.3.1 (2016-1-14)
 ^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
@@ -1053,7 +1053,7 @@ v1.3.1 (2016/1/14)
 -  Fix invalid MPI communicator error with Intel MPI
 -  Fix python 3.5.1 seg fault
 
-v1.3.0 (2015/12/8)
+v1.3.0 (2015-12-8)
 ^^^^^^^^^^^^^^^^^^
 
 *New features*
@@ -1112,7 +1112,7 @@ v1.3.0 (2015/12/8)
 -  ``wall.lj`` has a new API
 -  ``dump.bin`` and ``init.bin`` have been removed.
 
-v1.2.1 (2015/10/22)
+v1.2.1 (2015-10-22)
 ^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
@@ -1126,7 +1126,7 @@ v1.2.1 (2015/10/22)
 -  Fix incorrect simulations with ``integrate.npt_rigid``
 -  Label mie potential correctly in user documentation
 
-v1.2.0 (2015/09/30)
+v1.2.0 (2015-09-30)
 ^^^^^^^^^^^^^^^^^^^
 
 *New features*
@@ -1153,7 +1153,7 @@ v1.2.0 (2015/09/30)
 -  Use ``HOOMD_PYTHON_LIBRARY`` to avoid problems with modified CMake
    builds that preset ``PYTHON_LIBRARY``
 
-v1.1.1 (2015/07/21)
+v1.1.1 (2015-07-21)
 ^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
@@ -1163,7 +1163,7 @@ v1.1.1 (2015/07/21)
 -  Build all unit tests by default
 -  Run all script unit tests through ``mpirun -n 1``
 
-v1.1.0 (2015/07/14)
+v1.1.0 (2015-07-14)
 ^^^^^^^^^^^^^^^^^^^
 
 *New features*
@@ -1235,7 +1235,7 @@ v1.1.0 (2015/07/14)
 -  Several ``option`` commands for controlling the execution
    configuration. Replaced with ``context.initialize``.
 
-v1.0.5 (2015/05/19)
+v1.0.5 (2015-05-19)
 ^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
@@ -1255,7 +1255,7 @@ v1.0.5 (2015/05/19)
 -  Properly handle lj.wall potentials with epsilon=0.0 and particles on
    top of the walls
 
-v1.0.4 (2015/04/07)
+v1.0.4 (2015-04-07)
 ^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
@@ -1276,7 +1276,7 @@ v1.0.4 (2015/04/07)
 -  Add additional tests to detect race conditions and memory errors in
    kernels
 
-v1.0.3 (2015/03/18)
+v1.0.3 (2015-03-18)
 ^^^^^^^^^^^^^^^^^^^
 
 **Bug fixes**
@@ -1284,7 +1284,7 @@ v1.0.3 (2015/03/18)
 -  Enable builds with intel MPI
 -  Silence warnings coming from boost and python headers
 
-v1.0.2 (2015/01/21)
+v1.0.2 (2015-01-21)
 ^^^^^^^^^^^^^^^^^^^
 
 **Bug fixes**
@@ -1297,7 +1297,7 @@ v1.0.2 (2015/01/21)
 -  Link to python statically when ``ENABLE_STATIC=on``
 -  Misc documentation updates
 
-v1.0.1 (2014/09/09)
+v1.0.1 (2014-09-09)
 ^^^^^^^^^^^^^^^^^^^
 
 **Bug fixes**
@@ -1331,7 +1331,7 @@ v1.0.1 (2014/09/09)
 3. Binary builds for CentOS/RHEL 6, Fedora 20, Ubuntu 14.04 LTS, and
    Ubuntu 12.04 LTS.
 
-Version 1.0.0 (2014/05/25)
+Version 1.0.0 (2014-05-25)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *New features*
@@ -1422,7 +1422,7 @@ Version 1.0.0 (2014/05/25)
 v0.x
 ----
 
-Version 0.11.3 (2013/05/10)
+Version 0.11.3 (2013-05-10)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
@@ -1431,7 +1431,7 @@ Version 0.11.3 (2013/05/10)
 -  Data proxies can now set body angular momentum before the first run()
 -  Fixed a bug where PPPM forces were incorrect on the GPU
 
-Version 0.11.2 (2012/12/19)
+Version 0.11.2 (2012-12-19)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *New features*
@@ -1446,7 +1446,7 @@ Version 0.11.2 (2012/12/19)
 -  Fixed a bug where analyze.log would report nan for the pressure
    tensor in nve and nvt simulations
 
-Version 0.11.1 (2012/11/2)
+Version 0.11.1 (2012-11-2)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *New features*
