@@ -271,7 +271,7 @@ void GSDReader::readHeader()
 */
 void GSDReader::readParticles()
     {
-    unsigned int N = m_snapshot->particle_data.size;
+    uint64_t N = m_snapshot->particle_data.size;
     m_snapshot->particle_data.type_mapping = readTypes(m_frame, "particles/types");
 
     // the snapshot already has default values, if a chunk is not found, the value
@@ -293,7 +293,7 @@ void GSDReader::readParticles()
 */
 void GSDReader::readTopology()
     {
-    unsigned int N = 0;
+    uint64_t N = 0;
     readChunk(&N, m_frame, "bonds/N", 4);
     if (N > 0)
         {
