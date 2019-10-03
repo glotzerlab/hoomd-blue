@@ -54,6 +54,7 @@ struct SnapshotSystemData {
     ConstraintData::Snapshot constraint_data;//!< The constraint data
     PairData::Snapshot pair_data;            //!< The pair data
     std::vector<IntegratorVariables> integrator_data;  //!< The integrator data
+    std::vector<AlchParticles> alchemy_data;  //!< The integrator data
 
     bool has_particle_data;                //!< True if snapshot contains particle data
     bool has_bond_data;                    //!< True if snapshot contains bond data
@@ -63,6 +64,7 @@ struct SnapshotSystemData {
     bool has_constraint_data;              //!< True if snapshot contains constraint data
     bool has_pair_data;                    //!< True if snapshot contains pair data
     bool has_integrator_data;              //!< True if snapshot contains integrator data
+    bool has_alchemy_data;              //!< True if snapshot contains integrator data
 
     //! Constructor
     SnapshotSystemData()
@@ -78,6 +80,7 @@ struct SnapshotSystemData {
         has_constraint_data = true;
         has_pair_data = true;
         has_integrator_data = true;
+        has_alchemy_data = false; //TODO: should this be true?
         }
 
     // Replicate the system along three spatial dimensions

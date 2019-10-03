@@ -83,12 +83,16 @@
 
     \sa export_PotentialPair()
 */
-template < class evaluator >
+template < class evaluator, bool alchemy >
 class PotentialPair : public ForceCompute
     {
     public:
         //! Param type from evaluator
         typedef typename evaluator::param_type param_type;
+        if (evaluator::num_alch_parameters < 1)
+            {
+            alchemy = false;
+            }
 
         //! Construct the pair potential
         PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
@@ -100,6 +104,7 @@ class PotentialPair : public ForceCompute
         //! Set the pair parameters for a single type pair
         virtual void setParams(unsigned int typ1, unsigned int typ2, const param_type& param);
         //! Set the rcut for a single type pair
+        // TODO: Look into the rcut handling with the nlist, can it be made dynamic easily
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
         //! Set ron for a single type pair
         virtual void setRon(unsigned int typ1, unsigned int typ2, Scalar ron);
@@ -146,6 +151,13 @@ class PotentialPair : public ForceCompute
         GlobalArray<param_type> m_params;              //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
+        if (alchemy)
+            {
+            std::bitset<evaluator::num_alch_parameters> m_alch_param_flags;
+            bool pre_alch_step; //!< Flag for if alchemical forces need computing on this timestep
+            // TODO: alternatively could keep track of n and use with timestep?
+            // TODO: some reference to alchemical particles which are involved, size num_alch_params*types or dynamic reference?
+            }
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -197,8 +209,8 @@ class PotentialPair : public ForceCompute
     \param nlist Neighborlist to use for computing the forces
     \param log_suffix Name given to this instance of the force
 */
-template < class evaluator >
-PotentialPair< evaluator >::PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+template < class evaluator, bool alchemy >
+PotentialPair< evaluator, alchemy >::PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
                                                 std::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
@@ -243,7 +255,7 @@ PotentialPair< evaluator >::PotentialPair(std::shared_ptr<SystemDefinition> sysd
     m_pdata->getNumTypesChangeSignal().template connect<PotentialPair<evaluator>, &PotentialPair<evaluator>::slotNumTypesChange>(this);
     }
 
-template< class evaluator >
+template < class evaluator, bool alchemy >
 PotentialPair< evaluator >::~PotentialPair()
     {
     m_exec_conf->msg->notice(5) << "Destroying PotentialPair<" << evaluator::getName() << ">" << std::endl;
@@ -257,7 +269,7 @@ PotentialPair< evaluator >::~PotentialPair()
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically
           set.
 */
-template< class evaluator >
+template < class evaluator, bool alchemy >
 void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2, const param_type& param)
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
@@ -278,7 +290,7 @@ void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2,
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically
           set.
 */
-template< class evaluator >
+template < class evaluator, bool alchemy >
 void PotentialPair< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
@@ -299,7 +311,7 @@ void PotentialPair< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, S
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically
           set.
 */
-template< class evaluator >
+template < class evaluator, bool alchemy >
 void PotentialPair< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
@@ -329,7 +341,7 @@ std::vector< std::string > PotentialPair< evaluator >::getProvidedLogQuantities(
 /*! \param quantity Name of the log value to get
     \param timestep Current timestep of the simulation
 */
-template< class evaluator >
+template < class evaluator, bool alchemy >
 Scalar PotentialPair< evaluator >::getLogValue(const std::string& quantity, unsigned int timestep)
     {
     if (quantity == m_log_name)
@@ -350,7 +362,7 @@ Scalar PotentialPair< evaluator >::getLogValue(const std::string& quantity, unsi
 
     \param timestep specifies the current time step of the simulation
 */
-template< class evaluator >
+template < class evaluator, bool alchemy >
 void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist

@@ -131,7 +131,8 @@ std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool 
                                                    bool impropers,
                                                    bool constraints,
                                                    bool integrators,
-                                                   bool pairs)
+                                                   bool pairs,
+                                                   bool alchemy)
     {
     std::shared_ptr< SnapshotSystemData<Real> > snap(new SnapshotSystemData<Real>);
 
@@ -202,6 +203,14 @@ std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool 
         }
     else
         snap->has_integrator_data = false;
+
+    if (alchemy)
+        {
+        // TODO: integrate alchemy into snapshots
+        snap->has_constraint_data = true;
+        }
+    else
+        snap->has_alchemy_data = false;
 
     return snap;
     }
