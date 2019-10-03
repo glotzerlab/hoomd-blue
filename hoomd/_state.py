@@ -17,22 +17,22 @@ class State:
         # my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
         if False:  # my_domain_decomposition is not None:
-            self._cpp_system_definition = _hoomd.SystemDefinition(
+            self._cpp_sys_def = _hoomd.SystemDefinition(
                 snapshot, device.cpp_exec_conf, my_domain_decomposition)
         else:
-            self._cpp_system_definition = _hoomd.SystemDefinition(
+            self._cpp_sys_def = _hoomd.SystemDefinition(
                 snapshot, device.cpp_exec_conf)
 
     @property
     def snapshot(self):
-        return self._cpp_system_definition.takeSnapshot_double(*([True] * 8))
+        return self._cpp_sys_def.takeSnapshot_double(*([True] * 8))
 
     @property
     def light_snapshot(self):
-        return self._cpp_system_definition.takeSnapshot_float(*([True] * 8))
+        return self._cpp_sys_def.takeSnapshot_float(*([True] * 8))
 
     @snapshot.setter
-    def restore_snapshot(self, snapshot):
+    def snapshot(self, snapshot):
         R""" Re-initializes the system from a snapshot.
 
         Args:
@@ -88,41 +88,41 @@ class State:
                     len(snapshot.pairs.types) != self.ntype_pairs:
                 raise RuntimeError("Number of pair types must remain the same")
 
-        self._cpp_system_definition.initializeFromSnapshot(snapshot)
+        self._cpp_sys_def.initializeFromSnapshot(snapshot)
 
     @property
     def ntypes(self):
-        return self._cpp_system_definition.getParticleData().getNTypes()
+        return self._cpp_sys_def.getParticleData().getNTypes()
 
     @property
     def ntype_bonds(self):
-        return self._cpp_system_definition.getBondData().getNTypes()
+        return self._cpp_sys_def.getBondData().getNTypes()
 
     @property
     def ntype_angles(self):
-        return self._cpp_system_definition.getAngleData().getNTypes()
+        return self._cpp_sys_def.getAngleData().getNTypes()
 
     @property
     def ntype_dihedral(self):
-        return self._cpp_system_definition.getDihedralData().getNTypes()
+        return self._cpp_sys_def.getDihedralData().getNTypes()
 
     @property
     def ntype_impropers(self):
-        return self._cpp_system_definition.getImproperData().getNTypes()
+        return self._cpp_sys_def.getImproperData().getNTypes()
 
     @property
     def ntype_pairs(self):
-        return self._cpp_system_definition.getPairData().getNTypes()
+        return self._cpp_sys_def.getPairData().getNTypes()
 
     @property
     def box(self):
-        b = self._cpp_system_definition.getParticleData().getGlobalBox()
+        b = self._cpp_sys_def.getParticleData().getGlobalBox()
         L = b.getL()
         return boxdim(Lx=L.x, Ly=L.y, Lz=L.z,
                       xy=b.getTiltFactorXY(),
                       xz=b.getTiltFactorXZ(),
                       yz=b.getTiltFactorYZ(),
-                      dimensions=self._cpp_system_definition.getNDimensions())
+                      dimensions=self._cpp_sys_def.getNDimensions())
 
     # Set the system box
     # \param value The new boundaries (a data.boxdim object)
@@ -130,7 +130,7 @@ class State:
     def box(self, value):
         if not isinstance(value, boxdim):
             raise TypeError('box must be a data.boxdim object')
-        self._cpp_system_definition.getParticleData().setGlobalBox(value._getBoxDim())
+        self._cpp_sys_def.getParticleData().setGlobalBox(value._getBoxDim())
 
     def replicate(self):
         raise NotImplementedError

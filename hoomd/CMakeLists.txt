@@ -301,6 +301,9 @@ set(files analyze.py
           variant.py
           lattice.py
           hdf5.py
+	  _simulation.py
+	  _state.py
+	  _operations.py
     )
 
 install(FILES ${files}
