@@ -9,5 +9,5 @@ build
 __pycache__
 *.pyc
 *.swp
-*.vscode*
-
+*.code-workspace
+.vscode/
