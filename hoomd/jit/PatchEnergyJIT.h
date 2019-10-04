@@ -8,8 +8,6 @@
 
 #include "EvalFactory.h"
 
-#define PATCH_ENERGY_LOG_NAME           "patch_energy"
-#define PATCH_ENERGY_RCUT               "patch_energy_rcut"
 
 //! Evaluate patch energies via runtime generated code
 /*! This class enables the widest possible use-cases of patch energies in HPMC with low energy barriers for users to add
@@ -33,7 +31,7 @@
     LLVM JIT is capable of calling any function in the hosts address space. PatchEnergyJIT does not take advantage of
     that, limiting the user to a very specific API for computing the energy between a pair of particles.
 */
-class PatchEnergyJIT : public hpmc::PatchEnergy
+class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     {
     public:
         //! Constructor
@@ -100,6 +98,12 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
         void setAlpha(float alpha, unsigned int index)
             {
             m_alpha[index] = alpha;
+            }
+
+        static pybind11::object getAlphaNP(pybind11::object self)
+            {
+            auto self_cpp = self.cast<PatchEnergyJIT *>();
+            return pybind11::array(self_cpp->m_alpha_size, (float*)&self_cpp->m_alpha[0], self);
             }
 
     protected:

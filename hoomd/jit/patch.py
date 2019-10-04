@@ -134,7 +134,8 @@ class user(object):
         self.mc = mc
         self.enabled = True
         self.log = False
-        self._alpha = [0]*array_size
+        self.cpp_evaluator.alpha[:] = [0]*array_size
+        self.alpha = self.cpp_evaluator.alpha[:]
 
     def compile_user(self, array_size, code, clang_exec, fn=None):
         R'''Helper function to compile the provided code into an executable
@@ -197,32 +198,6 @@ float eval(const vec3<float>& r_ij,
             raise RuntimeError("Error initializing patch energy");
 
         return llvm_ir
-
-    @property
-    def alpha(self):
-        R""" Get alpha array.
-
-        Returns:
-            A :py:class:`list` of the alpha values
-
-        Note:
-            Elements of the list **cannot** be set by indexing. Instead, the entire
-            list must be set in a single step.
-
-        """
-        return self._alpha;
-
-    @alpha.setter
-    def alpha(self, alpha):
-        if isinstance(alpha,list) or isinstance(alpha,np.ndarray):
-            if len(alpha) == self.cpp_evaluator.getAlphaSize():
-                self._alpha = alpha.copy()
-                for i, a in enumerate(self._alpha):
-                    self.cpp_evaluator.setAlpha(float(a), i)
-            else:
-                raise ValueError("alpha array must have {} elements.".format(self.cpp_evaluator.getAlphaSize()));
-        else:
-            raise TypeError("Only lists and numpy array are supported")
 
     R''' Disable the patch energy and optionally enable it only for logging
 

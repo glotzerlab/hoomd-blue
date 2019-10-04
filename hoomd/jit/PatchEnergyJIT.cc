@@ -3,8 +3,6 @@
 
 #include <sstream>
 
-#define PATCH_ENERGY_LOG_NAME           "patch_energy"
-#define PATCH_ENERGY_RCUT               "patch_energy_rcut"
 /*! \param exec_conf The execution configuration (used for messages and MPI communication)
     \param llvm_ir Contents of the LLVM IR to load
     \param r_cut Center to center distance beyond which the patch energy is 0
@@ -45,5 +43,6 @@ void export_PatchEnergyJIT(pybind11::module &m)
             .def("setAlpha",&PatchEnergyJIT::setAlpha)
             .def("getAlpha",&PatchEnergyJIT::getAlpha)
             .def("getAlphaSize",&PatchEnergyJIT::getAlphaSize)
+            .def_property_readonly("alpha",&PatchEnergyJIT::getAlphaNP)
             ;
     }
