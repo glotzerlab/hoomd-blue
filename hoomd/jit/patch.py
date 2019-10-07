@@ -351,8 +351,8 @@ class user_union(user):
         self.mc = mc
         self.enabled = True
         self.log = False
-        self.cpp_evaluator.alpha_iso = [0]*array_size_iso
-        self.cpp_evaluator.alpha_union = [0]*array_size
+        self.cpp_evaluator.alpha_iso[:] = [0]*array_size_iso
+        self.cpp_evaluator.alpha_union[:] = [0]*array_size
         self.alpha_iso = self.cpp_evaluator.alpha_iso[:]
         self.alpha_union = self.cpp_evaluator.alpha_union[:]
 
