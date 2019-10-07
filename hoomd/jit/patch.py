@@ -148,7 +148,7 @@ class user(object):
             clang = 'clang'
 
         if code is not None:
-            llvm_ir = self.compile_user(array_size, code, clang)
+            llvm_ir = self.compile_user(array_size, 1, code, clang)
         else:
             # IR is a text file
             with open(llvm_ir_file,'r') as f:
@@ -162,9 +162,9 @@ class user(object):
         self.enabled = True
         self.log = False
         self.cpp_evaluator.alpha[:] = [0]*array_size
-        self.alpha = self.cpp_evaluator.alpha[:]
+        self.alpha = self.cpp_evaluator.alpha
 
-    def compile_user(self, array_size, code, clang_exec, fn=None):
+    def compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
         R'''Helper function to compile the provided code into an executable
 
         Args:
@@ -180,6 +180,7 @@ class user(object):
 #include "hoomd/VectorMath.h"
 
 float alpha[{}];
+float alpha_union[{}];
 
 extern "C"
 {{
@@ -193,7 +194,7 @@ float eval(const vec3<float>& r_ij,
     float d_j,
     float charge_j)
     {{
-""".format(array_size);
+""".format(array_size_iso, array_size_union);
         cpp_function += code
         cpp_function += """
     }
@@ -307,8 +308,8 @@ class user_union(user):
 
     .. versionadded:: 2.3
     '''
-    def __init__(self, mc, r_cut,  array_size=1, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
-        llvm_ir_file_iso=None, clang_exec=None):
+    def __init__(self, mc, r_cut, array_size=1, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
+        llvm_ir_file_iso=None, array_size_iso=1, clang_exec=None):
 
         hoomd.util.print_status_line();
 
@@ -322,14 +323,14 @@ class user_union(user):
             clang = 'clang'
 
         if code is not None:
-            llvm_ir = self.compile_user(array_size, code,clang)
+            llvm_ir = self.compile_user(array_size_iso, array_size, code, clang)
         else:
             # IR is a text file
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
         if code_iso is not None:
-            llvm_ir_iso = self.compile_user(array_size, code_iso,clang)
+            llvm_ir_iso = self.compile_user(array_size_iso, array_size, code_iso, clang)
         else:
             if llvm_ir_file_iso is not None:
                 # IR is a text file
@@ -337,21 +338,23 @@ class user_union(user):
                     llvm_ir_iso = f.read()
             else:
                 # provide a dummy function
-                llvm_ir_iso = self.compile_user(array_size, 'return 0;',clang)
+                llvm_ir_iso = self.compile_user(array_size_iso, array_size, 'return 0;', clang)
 
         if r_cut_iso is None:
             r_cut_iso = -1.0
 
         self.compute_name = "patch_union"
         self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf,
-            llvm_ir_iso, r_cut_iso, llvm_ir, r_cut,  array_size);
+            llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size);
         mc.set_PatchEnergyEvaluator(self);
 
         self.mc = mc
         self.enabled = True
         self.log = False
-        self.cpp_evaluator.alpha[:] = [0]*array_size
-        self.alpha = self.cpp_evaluator.alpha[:]
+        self.cpp_evaluator.alpha_iso = [0]*array_size_iso
+        self.cpp_evaluator.alpha_union = [0]*array_size
+        self.alpha_iso = self.cpp_evaluator.alpha_iso[:]
+        self.alpha_union = self.cpp_evaluator.alpha_union[:]
 
     R''' Set the union shape parameters for a given particle type
 
