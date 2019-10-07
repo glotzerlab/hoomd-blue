@@ -189,8 +189,6 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             hoomd.run(2, quiet=True);
             self.assertEqual(self.log.query('hpmc_patch_energy'), 0);
 
-
-
         def tearDown(self):
             del self.mc;
             del self.patch;
@@ -198,8 +196,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             del self.log;
             context.initialize();
 
-# These tests check the methods for functionality
-class patch_test_alpha_methods(unittest.TestCase):
+class patch_test_alpha_simple(unittest.TestCase):
 
     def setUp(self):
         self.lennard_jones = """
@@ -256,18 +253,23 @@ class patch_test_alpha_methods(unittest.TestCase):
         # double epsilon
         patch.alpha[2] = 2;
         hoomd.run(1);
-
         # make sure energy is doubled
         energy_new = logger.query("hpmc_patch_energy");
         self.assertAlmostEqual(energy_new, 2.0*energy_old);
 
-    def test_set_get_alpha_user(self):
+        # set r_cut to zero and check energy is zero
+        patch.alpha[0] = 0;
+        hoomd.run(1);
+        self.assertAlmostEqual(logger.query("hpmc_patch_energy"), 0);
+
+    def test_alpha_user(self):
         patch = jit.patch.user(mc=self.mc, r_cut=2.5, array_size=3, code=self.lennard_jones);
         self.assert_patch(patch, len(patch.alpha))
 
-    def test_set_get_alpha_user_union(self):
-        patch = jit.patch.user_union(mc=self.mc, r_cut=2.5, r_cut_iso=2.5, array_size=3, \
+    def test_user_union(self):
+        patch = jit.patch.user_union(mc=self.mc, r_cut=2.5, r_cut_iso=2.5, array_size_iso=3, \
                                      code="return 0;", code_iso=self.lennard_jones);
+        patch.alpha = patch.alpha_iso
         patch.set_params('A', positions=[[0,0,0]], typeids=[0])
         self.assert_patch(patch, len(patch.alpha))
 
