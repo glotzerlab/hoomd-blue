@@ -265,10 +265,13 @@ class user_union(user):
         llvm_ir_fname (str): File name of the llvm IR file to load.
         llvm_ir_fname_iso (str, **optional**): File name of the llvm IR file to load for isotropic interaction
         array_size (int): Size of array with adjustable elements. (added in version 2.8)
+        array_size_iso (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
 
     Attributes:
-        alpha (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
-                                      defined by the user (added in version 2.8)
+        alpha_union (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
+                                            defined by the user (added in version 2.8)
+        alpha_iso (numpy.ndarray, float): Length array_size_iso numpy array containing dynamically adjustable elements
+                                          defined by the user for the isotropic part. (added in version 2.8)
 
     Example:
 
