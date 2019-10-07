@@ -50,20 +50,19 @@ def make_random(N, kT, seed):
 
     """
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
-        raise RuntimeError("HOOMD system not initialized")
+        raise RuntimeError("mpcd: HOOMD system must be initialized before mpcd\n")
 
     if hoomd.context.current.mpcd is not None:
-        hoomd.context.msg.error("mpcd: system is already initialized, cannot reinitialize\n")
+        hoomd.context.current.device.cpp_msg.error("mpcd: system is already initialized, cannot reinitialize\n")
         raise RuntimeError("mpcd system already initialized")
 
     # make particle data first
     sysdef = hoomd.context.current.system_definition
     box = sysdef.getParticleData().getBox()
     if hoomd.context.current.decomposition:
-        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.exec_conf, hoomd.context.current.decomposition.cpp_dd)
+        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.current.device.cpp_exec_conf, hoomd.context.current.decomposition.cpp_dd)
     else:
-        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.exec_conf)
+        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.current.device.cpp_exec_conf)
 
     # then make mpcd system
     hoomd.context.current.mpcd = data.system(_mpcd.SystemData(sysdef,pdata))
@@ -99,11 +98,10 @@ def read_snapshot(snapshot):
     """
 
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
-        raise RuntimeError("HOOMD system not initialized")
+        raise RuntimeError("mpcd: HOOMD system must be initialized before mpcd\n")
 
     if hoomd.context.current.mpcd is not None:
-        hoomd.context.msg.error("mpcd: system is already initialized, cannot reinitialize\n")
+        hoomd.context.current.device.cpp_msg.error("mpcd: system is already initialized, cannot reinitialize\n")
         raise RuntimeError("mpcd system already initialized")
 
     hoomd.context.current.mpcd = data.system(_mpcd.SystemData(snapshot.sys_snap))

@@ -91,8 +91,17 @@ endif(ENABLE_CUDA)
 # loop through all test_*.py files
 file(GLOB _hoomd_script_tests ${CMAKE_CURRENT_SOURCE_DIR}/test_*.py)
 
+# exclude some tests from serial
+SET(EXCLUDE_FROM_SERIAL
+    test_communication
+    test_update_balance
+    )
+
 foreach(test ${_hoomd_script_tests})
-add_hoomd_script_test(${test})
+GET_FILENAME_COMPONENT(test_name ${test} NAME_WE)
+if(NOT "${EXCLUDE_FROM_SERIAL}" MATCHES ${test_name})
+    add_hoomd_script_test(${test})
+endif()
 endforeach(test)
 
 # exclude some tests from MPI

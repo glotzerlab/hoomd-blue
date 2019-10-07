@@ -229,7 +229,7 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
 
         for face in faces:
             if len(face) != 3 and len(face) != 1:
-                hoomd.context.msg.error("Only triangulated shapes and spheres are supported.\n")
+                hoomd.context.current.device.cpp_msg.error("Only triangulated shapes and spheres are supported.\n")
                 raise RuntimeError('Error setting shape parameters')
             face_offs.append(offs)
             for face_idx in face:
@@ -245,7 +245,7 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
             overlap = [1 for f in faces]
 
         if sweep_radius < 0.0:
-            hoomd.context.msg.warning("A rounding radius < 0 does not make sense.\n")
+            hoomd.context.current.device.cpp_msg.warning("A rounding radius < 0 does not make sense.\n")
 
         if len(origin) != 3:
             hoomd.context.error("Origin must be a coordinate triple.\n")

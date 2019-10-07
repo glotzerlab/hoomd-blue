@@ -129,7 +129,7 @@ class enforce2d(_updater):
         _updater.__init__(self);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_updater = _md.Enforce2DUpdater(hoomd.context.current.system_definition);
         else:
             self.cpp_updater = _md.Enforce2DUpdaterGPU(hoomd.context.current.system_definition);
@@ -171,13 +171,13 @@ class constraint_ellipsoid(_updater):
 
         # Error out in MPI simulations
         if (_hoomd.is_MPI_available()):
-            if context.current.system_definition.getParticleData().getDomainDecomposition():
-                context.msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
+            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
+                hoomd.context.current.device.cpp_msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error initializing updater.")
 
         # Error out if no radii are set
         if (r is None and rx is None and ry is None and rz is None):
-            context.msg.error("no radii were defined in update.constraint_ellipsoid.\n\n")
+            hoomd.context.current.device.cpp_msg.error("no radii were defined in update.constraint_ellipsoid.\n\n")
             raise RuntimeError("Error initializing updater.")
 
         # initialize the base class
@@ -188,7 +188,7 @@ class constraint_ellipsoid(_updater):
         if (r is not None): rx = ry = rz = r
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_updater = _md.ConstraintEllipsoid(hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz);
         else:
             self.cpp_updater = _md.ConstraintEllipsoidGPU(hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz);
@@ -271,7 +271,7 @@ class mueller_plathe_flow(_updater):
 
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_updater = _md.MuellerPlatheFlow(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
         else:
             self.cpp_updater = _md.MuellerPlatheFlowGPU(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);

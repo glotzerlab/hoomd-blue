@@ -78,14 +78,13 @@ def dump_metadata(filename=None,user=None,indent=4):
     """
 
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Need to initialize system first.\n")
-        raise RuntimeError("Error writing out metadata.")
+        raise RuntimeError("Need to initialize system first.")
 
     metadata = dict()
 
     if user is not None:
         if not isinstance(user, collections.Mapping):
-            hoomd.context.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
+            hoomd.context.current.device.cpp_msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
         else:
             metadata['user'] = _metadata_from_dict(user);
 
@@ -93,7 +92,7 @@ def dump_metadata(filename=None,user=None,indent=4):
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     metadata['timestamp'] = st
-    metadata['context'] = hoomd.context.ExecutionContext()
+    metadata['device'] = hoomd.context.current.device
     metadata['hoomd'] = hoomd.context.HOOMDContext()
 
     global_objs = [hoomd.data.system_data(hoomd.context.current.system_definition)];
@@ -136,7 +135,7 @@ def dump_metadata(filename=None,user=None,indent=4):
         metadata, default=default_handler,indent=indent, sort_keys=True)
 
     # only write files on rank 0
-    if filename is not None and hoomd.comm.get_rank() == 0:
+    if filename is not None and hoomd.context.current.device.comm.rank == 0:
         with open(filename, 'w') as file:
             file.write(meta_str)
     return json.loads(meta_str)

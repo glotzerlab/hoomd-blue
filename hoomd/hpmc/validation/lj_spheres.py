@@ -86,7 +86,7 @@ class nvt_lj_sphere_energy(unittest.TestCase):
             # apply long range correction (used in reference data)
             energy += 8/9.0 * math.pi * rho_star * ((1/rcut)**9-3*(1/rcut)**3)
             energy_val.append(energy);
-            if (timestep % 100 == 0): context.msg.notice(1,'energy = {:.5f}\n'.format(energy));
+            if (timestep % 100 == 0): context.current.device.cpp_msg.notice(1,'energy = {:.5f}\n'.format(energy));
 
         mc_tune = hpmc.util.tune(mc, tunables=['d','a'],max_val=[4,0.5],gamma=0.5,target=0.4);
 
@@ -111,8 +111,8 @@ class nvt_lj_sphere_energy(unittest.TestCase):
         mean_U = np.mean(energy_val)
         i, sigma_U = block.get_error_estimate()
 
-        context.msg.notice(1,'rho_star = {:.3f}\nU    = {:.5f} +- {:.5f}\n'.format(rho_star,mean_U,sigma_U))
-        context.msg.notice(1,'Uref = {:.5f} +- {:.5f}\n'.format(mean_Uref,sigma_Uref))
+        context.current.device.cpp_msg.notice(1,'rho_star = {:.3f}\nU    = {:.5f} +- {:.5f}\n'.format(rho_star,mean_U,sigma_U))
+        context.current.device.cpp_msg.notice(1,'Uref = {:.5f} +- {:.5f}\n'.format(mean_Uref,sigma_Uref))
 
         # 0.99 confidence interval
         ci = 2.576

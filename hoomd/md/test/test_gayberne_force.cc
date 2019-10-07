@@ -63,10 +63,11 @@ void gb_force_particle_test(gbforce_creator gb_creator, std::shared_ptr<Executio
     std::shared_ptr<AnisoPotentialPairGB> fc_2 = gb_creator(sysdef_2, nlist_2);
     fc_2->setRcut(0, 0, Scalar(3.0));
 
-    Scalar epsilon = Scalar(1.5);
-    Scalar lperp = Scalar(0.3);
-    Scalar lpar = Scalar(0.5);
-    fc_2->setParams(0,0,make_scalar3(epsilon,lperp,lpar));
+    pair_gb_params params;
+    params.epsilon = Scalar(1.5);
+    params.lperp = Scalar(0.3);
+    params.lpar = Scalar(0.5);
+    fc_2->setParams(0,0,params);
 
     // compute the forces
     fc_2->compute(0);

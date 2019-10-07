@@ -37,17 +37,16 @@ class _collision_method(hoomd.meta._metadata):
     def __init__(self, seed, period):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("mpcd.collide: system must be initialized before collision method\n")
-            raise RuntimeError('System not initialized')
+            raise RuntimeError('mpcd.collide: system must be initialized before collision method\n')
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
-            hoomd.context.msg.error('mpcd.collide: an MPCD system must be initialized before the collision method\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.collide: an MPCD system must be initialized before the collision method\n')
             raise RuntimeError('MPCD system not initialized')
 
         # check for multiple collision rule initializations
         if hoomd.context.current.mpcd._collide is not None:
-            hoomd.context.msg.error('mpcd.collide: only one collision method can be created.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.collide: only one collision method can be created.\n')
             raise RuntimeError('Multiple initialization of collision method')
 
         hoomd.meta._metadata.__init__(self)
@@ -149,7 +148,7 @@ class _collision_method(hoomd.meta._metadata):
 
         cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
         if cur_tstep % self.period != 0 or cur_tstep % period != 0:
-            hoomd.context.msg.error('mpcd.collide: collision period can only be changed on multiple of current and new period.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.collide: collision period can only be changed on multiple of current and new period.\n')
             raise RuntimeError('collision period can only be changed on multiple of current and new period')
 
         self._cpp.setPeriod(cur_tstep, period)
@@ -205,7 +204,7 @@ class at(_collision_method):
         self.metadata_fields += ['kT']
         self.kT = hoomd.variant._setup_variant_input(kT)
 
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             collide_class = _mpcd.ATCollisionMethod
             thermo_class = _mpcd.CellThermoCompute
         else:
@@ -315,7 +314,7 @@ class srd(_collision_method):
         _collision_method.__init__(self, seed, period)
         self.metadata_fields += ['angle','kT']
 
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             collide_class = _mpcd.SRDCollisionMethod
         else:
             collide_class = _mpcd.SRDCollisionMethodGPU

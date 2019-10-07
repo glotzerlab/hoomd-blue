@@ -11,7 +11,7 @@ import unittest
 def not_on_mpi(f):
     def noop(*args, **kwargs):
         return;
-    if hoomd.comm.get_num_ranks() > 1:
+    if hoomd.context.current.device.comm.num_ranks > 1:
         return noop;
     else:
         return f;
@@ -35,7 +35,7 @@ class sphere_sphere(unittest.TestCase):
     def _test_potential(self, typ, twoD, **params):
         box = hoomd.data.boxdim(L=80, dimensions=(2 if twoD else 3));
         snap = hoomd.data.make_snapshot(N=4, box=box);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[0] = (0, 0, 0);
             snap.particles.position[1] = (1, 0, 0);
             snap.particles.position[2] = (0, 2**(1./6), 0);
@@ -59,7 +59,7 @@ class sphere_sphere(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier();
+        hoomd.context.current.device.comm.barrier();
 
 class spherocylinder_sphere(unittest.TestCase):
 
@@ -80,7 +80,7 @@ class spherocylinder_sphere(unittest.TestCase):
     def _test_potential(self, typ, twoD, **params):
         box = hoomd.data.boxdim(L=80, dimensions=(2 if twoD else 3));
         snap = hoomd.data.make_snapshot(N=4, box=box);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[0] = (0, 0, 0);
             snap.particles.position[1] = (1, 0, 0);
             snap.particles.position[2] = (0, 2 + 2**(1./6), 0);
@@ -116,7 +116,7 @@ class spherocylinder_sphere(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier();
+        hoomd.context.current.device.comm.barrier();
 
 class shape_sphere(unittest.TestCase):
 
@@ -137,7 +137,7 @@ class shape_sphere(unittest.TestCase):
     def _test_potential(self, typ, twoD, **params):
         box = hoomd.data.boxdim(L=80, dimensions=(2 if twoD else 3));
         snap = hoomd.data.make_snapshot(N=4, box=box);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[0] = (0, 0, 0);
             snap.particles.position[1] = (3.5, 0, 0);
             snap.particles.position[2] = (0, 5 + 2**(1./6), 0);
@@ -173,7 +173,7 @@ class shape_sphere(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier();
+        hoomd.context.current.device.comm.barrier();
 
 class shape_shape(unittest.TestCase):
 
@@ -197,7 +197,7 @@ class shape_shape(unittest.TestCase):
 
         dz = (0 if twoD else 2.5);
 
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[0] = (0, 0, 0);
             snap.particles.position[1] = (6, 2.5, dz);
             snap.particles.position[2] = (0, 5 + 2**(1./6), 0);
@@ -241,7 +241,7 @@ class shape_shape(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier();
+        hoomd.context.current.device.comm.barrier();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test_potentials.py', '-v']);

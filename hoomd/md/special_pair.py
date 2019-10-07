@@ -120,7 +120,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.msg.error("No coefficients specified\n");
+            hoomd.context.current.device.cpp_msg.error("No coefficients specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -140,8 +140,7 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot verify special_pair coefficients before initialization\n");
-            raise RuntimeError('Error verifying force coefficients');
+            raise RuntimeError('Cannot verify special_pair coefficients before initialization\n');
 
         # get a list of types from the particle data
         ntypes = hoomd.context.current.system_definition.getPairData().getNTypes();
@@ -155,7 +154,7 @@ class coeff:
             type = type_list[i];
 
             if type not in self.values.keys():
-                hoomd.context.msg.error("Pair type " +str(type) + " not found in pair coeff\n");
+                hoomd.context.current.device.cpp_msg.error("Pair type " +str(type) + " not found in pair coeff\n");
                 valid = False;
                 continue;
 
@@ -163,13 +162,13 @@ class coeff:
             count = 0;
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
-                    hoomd.context.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
+                    hoomd.context.current.device.cpp_msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
                           ", but is not used by the special pair force\n");
                 else:
                     count += 1;
 
             if count != len(required_coeffs):
-                hoomd.context.msg.error("Special pair type " + str(type) + " is missing required coefficients\n");
+                hoomd.context.current.device.cpp_msg.error("Special pair type " + str(type) + " is missing required coefficients\n");
                 valid = False;
 
         return valid;
@@ -181,7 +180,7 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values.keys():
-            hoomd.context.msg.error("Bug detected in force.coeff. Please report\n");
+            hoomd.context.current.device.cpp_msg.error("Bug detected in force.coeff. Please report\n");
             raise RuntimeError("Error setting special_pair coeff");
 
         return self.values[type][coeff_name];
@@ -224,7 +223,7 @@ class _special_pair(force._force):
         coeff_list = self.required_coeffs;
         # check that the force coefficients are valid
         if not self.pair_coeff.verify(coeff_list):
-           hoomd.context.msg.error("Not all force coefficients are set\n");
+           hoomd.context.current.device.cpp_msg.error("Not all force coefficients are set\n");
            raise RuntimeError("Error updating force coefficients");
 
         # set all the params
@@ -303,11 +302,11 @@ class lj(_special_pair):
 
         # check that some bonds are defined
         if hoomd.context.current.system_definition.getPairData().getNGlobal() == 0:
-            hoomd.context.msg.error("No pairs are defined.\n");
+            hoomd.context.current.device.cpp_msg.error("No pairs are defined.\n");
             raise RuntimeError("Error creating special pair forces");
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialSpecialPairLJ(hoomd.context.current.system_definition,self.name);
         else:
             self.cpp_force = _md.PotentialSpecialPairLJGPU(hoomd.context.current.system_definition,self.name);
@@ -378,11 +377,11 @@ class coulomb(_special_pair):
 
         # check that some bonds are defined
         if hoomd.context.current.system_definition.getPairData().getNGlobal() == 0:
-            hoomd.context.msg.error("No pairs are defined.\n");
+            hoomd.context.current.device.cpp_msg.error("No pairs are defined.\n");
             raise RuntimeError("Error creating special pair forces");
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialSpecialPairCoulomb(hoomd.context.current.system_definition,self.name);
         else:
             self.cpp_force = _md.PotentialSpecialPairCoulombGPU(hoomd.context.current.system_definition,self.name);
