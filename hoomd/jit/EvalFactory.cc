@@ -92,5 +92,19 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
     m_alpha = (float *) alpha.getAddress();
     #endif
 
+    auto alpha_union = m_jit->findSymbol("alpha_union");
+
+    if (!alpha_union)
+        {
+        m_error_msg = "Could not find alpha_union array in LLVM module.\n";
+        return;
+        }
+
+    #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
+    m_alpha_union = (float *)(cantFail(alpha_union.getAddress()));
+    #else
+    m_alpha_union = (float *) alpha_union.getAddress();
+    #endif
+
     llvm_err.flush();
     }
