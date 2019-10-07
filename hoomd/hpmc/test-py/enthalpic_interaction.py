@@ -231,30 +231,32 @@ class patch_test_alpha_methods(unittest.TestCase):
 
         logger = analyze.log(filename=None, quantities=["hpmc_patch_energy"], period=1);
 
-        # check alpha list is set properly
-        patch.alpha = [-1., 2.7, 10];
+        # check alpha array is set properly
+        patch.alpha[:] = [-1., 2.7, 10];
         np.testing.assert_allclose(patch.alpha, [-1., 2.7, 10]);
 
-        # raise error is list is larger than allocated memory
+        # raise error if array is larger than allocated memory
         with self.assertRaises(ValueError):
-            patch.alpha = [1]*(array_size+1);
-
-        # raise error non-list is provided
-        with self.assertRaises(TypeError):
-            patch.alpha = -10;
+            patch.alpha[:] = [1]*(array_size+1);
 
         # set alpha to sensible LJ values: [rcut, sigma, epsilon]
-        patch.alpha = [2.5, 1.2, 1];
-        hoomd.run(1);
+        patch.alpha[0] = 2.5;
+        patch.alpha[1] = 1.2;
+        patch.alpha[2] = 1;
+        np.testing.assert_allclose(patch.alpha, [2.5, 1.2, 1]);
+
         # get energy for previus LJ params
+        hoomd.run(0, quiet=True);
         energy_old = logger.query("hpmc_patch_energy");
         # make sure energies are calculated properly when using alpha
         sigma_r_6 = (patch.alpha[1] / self.dist)**6;
-        energy_actual = 4.0*patch.alpha[-1]*sigma_r_6*(sigma_r_6-1.0);
+        energy_actual = 4.0*patch.alpha[2]*sigma_r_6*(sigma_r_6-1.0);
         self.assertAlmostEqual(energy_old, energy_actual);
+
         # double epsilon
-        patch.alpha = [2.5, 1.2, 2];
+        patch.alpha[2] = 2;
         hoomd.run(1);
+
         # make sure energy is doubled
         energy_new = logger.query("hpmc_patch_energy");
         self.assertAlmostEqual(energy_new, 2.0*energy_old);

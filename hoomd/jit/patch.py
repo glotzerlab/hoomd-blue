@@ -20,14 +20,21 @@ class user(object):
         code (str): C++ code to compile
         llvm_ir_fname (str): File name of the llvm IR file to load.
         clang_exec (str): The Clang executable to use
+        array_size (int): Size of array with adjustable elements. (added in version 2.8)
+
+    Attributes:
+        alpha (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
+                                      defined by the user (added in version 2.8)
 
     Patch energies define energetic interactions between pairs of shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.
     Shapes within a cutoff distance of *r_cut* are potentially interacting and the energy of interaction is a function
     the type and orientation of the particles and the vector pointing from the *i* particle to the *j* particle center.
 
     The :py:class:`user` patch energy takes C++ code, JIT compiles it at run time and executes the code natively
-    in the MC loop at with full performance. It enables researchers to quickly and easily implement custom energetic
-    interactions without the need to modify and recompile HOOMD.
+    in the MC loop with full performance. It enables researchers to quickly and easily implement custom energetic
+    interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`user` provides a mechanism,
+    through the `alpha` attribute (numpy array), to adjust user defined potential parameters without the need
+    to recompile the patch energy code.
 
     .. rubric:: C++ code
 
@@ -66,7 +73,9 @@ class user(object):
       the centers of the two particles: compute it accordingly based on the maximum range of the anisotropic
       interaction that you implement.
 
-    Example:
+    Examples:
+
+    Static potential parameters
 
     .. code-block:: python
 
@@ -77,6 +86,24 @@ class user(object):
                                 return 0.0f;
                       """
         patch = hoomd.jit.patch.user(mc=mc, r_cut=1.1, code=square_well)
+        hoomd.run(1000)
+
+    Dynamic potential parameters
+
+    .. code-block:: python
+
+        square_well = """float rsq = dot(r_ij, r_ij);
+                         float r_cut = alpha[0];
+                            if (rsq < r_cut*r_cut)
+                                return alpha[1];
+                            else
+                                return 0.0f;
+                      """
+        patch = hoomd.jit.patch.user(mc=mc, r_cut=1.1, array_size=2, code=square_well)
+        patch.alpha[:] = [1.1, 1.5] # [rcut, epsilon]
+        hoomd.run(1000)
+        patch.alpha[1] = 2.0
+        hoomd.run(1000)
 
     .. rubric:: LLVM IR code
 
@@ -144,7 +171,7 @@ class user(object):
             code (str): C++ code to compile
             clang_exec (str): The Clang executable to use
             fn (str): If provided, the code will be written to a file.
-            array_size (int): Size of array with adjustable elements. (added in version 2.7)
+            array_size (int): Size of array with adjustable elements. (added in version 2.8)
 
         .. versionadded:: 2.3
         '''
@@ -236,7 +263,11 @@ class user_union(user):
         code_iso (str, **optional**): C++ code for isotropic part
         llvm_ir_fname (str): File name of the llvm IR file to load.
         llvm_ir_fname_iso (str, **optional**): File name of the llvm IR file to load for isotropic interaction
-        array_size (int): Size of array with adjustable elements. (added in version 2.7)
+        array_size (int): Size of array with adjustable elements. (added in version 2.8)
+
+    Attributes:
+        alpha (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
+                                      defined by the user (added in version 2.8)
 
     Example:
 
@@ -279,7 +310,6 @@ class user_union(user):
     def __init__(self, mc, r_cut,  array_size=1, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
         llvm_ir_file_iso=None, clang_exec=None):
 
-        super(user_union, self).__init__(mc=mc, r_cut=r_cut, array_size=array_size, code=code, llvm_ir_file=llvm_ir_file, clang_exec=clang_exec);
         hoomd.util.print_status_line();
 
         # check if initialization has occurred
@@ -320,6 +350,8 @@ class user_union(user):
         self.mc = mc
         self.enabled = True
         self.log = False
+        self.cpp_evaluator.alpha[:] = [0]*array_size
+        self.alpha = self.cpp_evaluator.alpha[:]
 
     R''' Set the union shape parameters for a given particle type
 

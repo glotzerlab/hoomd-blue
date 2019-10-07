@@ -243,5 +243,6 @@ void export_PatchEnergyJITUnion(pybind11::module &m)
                                  const std::string&, Scalar,
                                  const unsigned int >())
             .def("setParam",&PatchEnergyJITUnion::setParam)
+            .def_property_readonly("alpha",&PatchEnergyJIT::getAlphaNP)
             ;
     }
