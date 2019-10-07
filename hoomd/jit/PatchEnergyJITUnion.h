@@ -32,7 +32,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                 throw std::runtime_error("Error compiling Union JIT code.");
                 }
 
-            m_alpha_union = m_factory->getAlphaUnionArray();
+            m_alpha_union = m_factory_union->getAlphaUnionArray();
 
             // Connect to number of types change signal
             m_sysdef->getParticleData()->getNumTypesChangeSignal().connect<PatchEnergyJITUnion, &PatchEnergyJITUnion::slotNumTypesChange>(this);

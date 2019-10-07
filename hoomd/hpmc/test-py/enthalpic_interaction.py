@@ -196,10 +196,10 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             del self.log;
             context.initialize();
 
-class patch_test_alpha_simple(unittest.TestCase):
+class patch_alpha_user(unittest.TestCase):
 
     def setUp(self):
-        self.lennard_jones = """
+        lennard_jones = """
                              float rsq = dot(r_ij, r_ij);
                              float rcut  = alpha[0];
                              if (rsq <= rcut*rcut)
@@ -221,62 +221,122 @@ class patch_test_alpha_simple(unittest.TestCase):
         snapshot.particles.position[0,:] = (0,0,0);
         snapshot.particles.position[1,:] = (self.dist,0,0);
         system = init.read_snapshot(snapshot);
-        self.mc = hpmc.integrate.sphere(seed=1,d=0);
-        self.mc.shape_param.set('A',diameter=0);
+        mc = hpmc.integrate.sphere(seed=1,d=0);
+        mc.shape_param.set('A',diameter=0);
+        self.patch = jit.patch.user(mc=mc, r_cut=2.5, array_size=3, code=lennard_jones);
+        self.logger = analyze.log(filename=None, quantities=["hpmc_patch_energy"], period=1);
 
-    def assert_patch(self, patch, array_size):
-
-        logger = analyze.log(filename=None, quantities=["hpmc_patch_energy"], period=1);
-
-        # check alpha array is set properly
-        patch.alpha[:] = [-1., 2.7, 10];
-        np.testing.assert_allclose(patch.alpha, [-1., 2.7, 10]);
+    def test_alphas(self):
 
         # raise error if array is larger than allocated memory
         with self.assertRaises(ValueError):
-            patch.alpha[:] = [1]*(array_size+1);
+            self.patch.alpha[:] = [1]*4;
+
+        self.assertAlmostEqual(len(self.patch.alpha), 3)
+
+        # check alpha array is set properly
+        self.patch.alpha[:] = [-1., 2.7, 10];
+        np.testing.assert_allclose(self.patch.alpha, [-1., 2.7, 10]);
 
         # set alpha to sensible LJ values: [rcut, sigma, epsilon]
-        patch.alpha[0] = 2.5;
-        patch.alpha[1] = 1.2;
-        patch.alpha[2] = 1;
-        np.testing.assert_allclose(patch.alpha, [2.5, 1.2, 1]);
+        self.patch.alpha[0] = 2.5;
+        self.patch.alpha[1] = 1.2;
+        self.patch.alpha[2] = 1;
+        np.testing.assert_allclose(self.patch.alpha, [2.5, 1.2, 1]);
 
         # get energy for previus LJ params
         hoomd.run(0, quiet=True);
-        energy_old = logger.query("hpmc_patch_energy");
+        energy_old = self.logger.query("hpmc_patch_energy");
         # make sure energies are calculated properly when using alpha
-        sigma_r_6 = (patch.alpha[1] / self.dist)**6;
-        energy_actual = 4.0*patch.alpha[2]*sigma_r_6*(sigma_r_6-1.0);
+        sigma_r_6 = (self.patch.alpha[1] / self.dist)**6;
+        energy_actual = 4.0*self.patch.alpha[2]*sigma_r_6*(sigma_r_6-1.0);
         self.assertAlmostEqual(energy_old, energy_actual);
 
         # double epsilon
-        patch.alpha[2] = 2;
+        self.patch.alpha[2] = 2;
         hoomd.run(1);
         # make sure energy is doubled
-        energy_new = logger.query("hpmc_patch_energy");
+        energy_new = self.logger.query("hpmc_patch_energy");
         self.assertAlmostEqual(energy_new, 2.0*energy_old);
 
         # set r_cut to zero and check energy is zero
-        patch.alpha[0] = 0;
+        self.patch.alpha[0] = 0;
         hoomd.run(1);
-        self.assertAlmostEqual(logger.query("hpmc_patch_energy"), 0);
-
-    def test_alpha_user(self):
-        patch = jit.patch.user(mc=self.mc, r_cut=2.5, array_size=3, code=self.lennard_jones);
-        self.assert_patch(patch, len(patch.alpha))
-
-    def test_user_union(self):
-        patch = jit.patch.user_union(mc=self.mc, r_cut=2.5, r_cut_iso=2.5, array_size_iso=3, \
-                                     code="return 0;", code_iso=self.lennard_jones);
-        patch.alpha = patch.alpha_iso
-        patch.set_params('A', positions=[[0,0,0]], typeids=[0])
-        self.assert_patch(patch, len(patch.alpha))
+        self.assertAlmostEqual(self.logger.query("hpmc_patch_energy"), 0);
 
     def tearDown(self):
-        del self.lennard_jones
-        del self.mc
-        del self.dist
+        del self.logger
+        del self.patch
+        context.initialize();
+
+class patch_alpha_user_union(unittest.TestCase):
+
+    def setUp(self):
+        # square well attraction on constituent spheres
+        square_well = """float rsq = dot(r_ij, r_ij);
+                              float r_cut = alpha_union[0];
+                              if (rsq < r_cut*r_cut)
+                                  return alpha_union[1];
+                              else
+                                  return 0.0f;
+                           """
+
+        # soft repulsion between centers of unions
+        soft_repulsion = """float rsq = dot(r_ij, r_ij);
+                                  float r_cut = alpha[0];
+                                  if (rsq < r_cut*r_cut)
+                                    return alpha[1];
+                                  else
+                                    return 0.0f;
+                         """
+        diameter = 1.0;
+        snapshot = data.make_snapshot(N=2, box=data.boxdim(L=10, dimensions=3), particle_types=['A']);
+        snapshot.particles.position[0,:] = (0,0,0);
+        snapshot.particles.position[1,:] = (diameter,0,0);
+        system = init.read_snapshot(snapshot);
+        mc = hpmc.integrate.sphere_union(d=0,a=0,seed=1);
+        mc.shape_param.set('A',diameters=[diameter]*2, centers=[(0,0,-diameter/2),(0,0,diameter/2)],overlap=[0]*2);
+        self.patch = jit.patch.user_union(mc=mc, r_cut=2.5, array_size=2, r_cut_iso=2.5, array_size_iso=2, \
+                                          code=square_well, code_iso=soft_repulsion);
+        self.patch.set_params('A',positions=[(0,0,-diameter/2),(0,0,diameter/2)], typeids=[0,0])
+        self.logger = analyze.log(filename=None, quantities=["hpmc_patch_energy"], period=1);
+
+    def test_alphas(self):
+
+        with self.assertRaises(ValueError):
+            self.patch.alpha_iso[:] = [1]*4;
+
+        with self.assertRaises(ValueError):
+            self.patch.alpha_union[:] = [1]*4;
+
+        self.assertAlmostEqual(len(self.patch.alpha_iso), 2);
+        self.assertAlmostEqual(len(self.patch.alpha_union), 2);
+
+        self.patch.alpha_iso[:] = [-1.2, 43.0];
+        self.patch.alpha_union[:] = [2.67, -1.7];
+        np.testing.assert_allclose(self.patch.alpha_iso, [-1.2, 43.0]);
+        np.testing.assert_allclose(self.patch.alpha_union, [2.67, -1.7]);
+
+        self.patch.alpha_iso[0] = 2.5;
+        self.patch.alpha_iso[1] = 1.3;
+        self.patch.alpha_union[0] = 2.5;
+        self.patch.alpha_union[1] = -1.7;
+        hoomd.run(1)
+        self.assertAlmostEqual(self.logger.query("hpmc_patch_energy"), -5.5);
+
+        self.patch.alpha_union[0] = 0;
+        hoomd.run(1)
+        self.assertAlmostEqual(self.logger.query("hpmc_patch_energy"), self.patch.alpha_iso[1]);
+        self.patch.alpha_union[0] = 2.5;
+
+        self.patch.alpha_iso[0] = 0;
+        hoomd.run(1)
+        self.assertAlmostEqual(self.logger.query("hpmc_patch_energy"), 4*self.patch.alpha_union[1]);
+        self.patch.alpha_iso[0] = 2.5;
+
+    def tearDown(self):
+        del self.logger
+        del self.patch
         context.initialize();
 
 if __name__ == '__main__':
