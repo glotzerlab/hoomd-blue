@@ -26,13 +26,13 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             // get the evaluator
             m_eval_union = m_factory_union->getEval();
 
-            if (!m_eval)
+            m_alpha_union = m_factory_union->getAlphaUnionArray();
+
+            if (!m_eval_union || !m_alpha_union)
                 {
                 exec_conf->msg->error() << m_factory_union->getError() << std::endl;
                 throw std::runtime_error("Error compiling Union JIT code.");
                 }
-
-            m_alpha_union = m_factory_union->getAlphaUnionArray();
 
             // Connect to number of types change signal
             m_sysdef->getParticleData()->getNumTypesChangeSignal().connect<PatchEnergyJITUnion, &PatchEnergyJITUnion::slotNumTypesChange>(this);

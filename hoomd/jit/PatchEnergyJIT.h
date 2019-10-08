@@ -76,30 +76,6 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
             return m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
             }
 
-        //! Get size of alpha array
-        unsigned int getAlphaSize()
-            {
-            return m_alpha_size;
-            }
-
-        //! Get the alpha array by index
-        float getAlpha(unsigned int index)
-            {
-            return m_alpha[index];
-            }
-
-        //! Get pointer to the first element of alpha array
-        float * getAlphaArray()
-            {
-            return m_alpha;
-            }
-
-        //! Set alpha array by index
-        void setAlpha(float alpha, unsigned int index)
-            {
-            m_alpha[index] = alpha;
-            }
-
         static pybind11::object getAlphaNP(pybind11::object self)
             {
             auto self_cpp = self.cast<PatchEnergyJIT *>();

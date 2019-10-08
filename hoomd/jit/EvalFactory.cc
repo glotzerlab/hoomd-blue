@@ -72,12 +72,6 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         return;
         }
 
-    #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
-    m_eval = (EvalFnPtr)(long unsigned int)(cantFail(eval.getAddress()));
-    #else
-    m_eval = (EvalFnPtr) eval.getAddress();
-    #endif
-
     auto alpha = m_jit->findSymbol("alpha");
 
     if (!alpha)
@@ -85,12 +79,6 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         m_error_msg = "Could not find alpha array in LLVM module.\n";
         return;
         }
-
-    #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
-    m_alpha = (float *)(cantFail(alpha.getAddress()));
-    #else
-    m_alpha = (float *) alpha.getAddress();
-    #endif
 
     auto alpha_union = m_jit->findSymbol("alpha_union");
 
@@ -101,8 +89,12 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         }
 
     #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
+    m_eval = (EvalFnPtr)(long unsigned int)(cantFail(eval.getAddress()));
+    m_alpha = (float *)(cantFail(alpha.getAddress()));
     m_alpha_union = (float *)(cantFail(alpha_union.getAddress()));
     #else
+    m_eval = (EvalFnPtr) eval.getAddress();
+    m_alpha = (float *) alpha.getAddress();
     m_alpha_union = (float *) alpha_union.getAddress();
     #endif
 

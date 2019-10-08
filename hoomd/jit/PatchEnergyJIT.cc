@@ -18,14 +18,13 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf
     // get the evaluator
     m_eval = m_factory->getEval();
 
-    if (!m_eval)
+    m_alpha = m_factory->getAlphaArray();
+
+    if (!m_eval || !m_alpha)
         {
         exec_conf->msg->error() << m_factory->getError() << std::endl;
         throw std::runtime_error("Error compiling JIT code.");
         }
-
-    m_alpha = m_factory->getAlphaArray();
-
     }
 
 
@@ -40,9 +39,6 @@ void export_PatchEnergyJIT(pybind11::module &m)
                                  const unsigned int >())
             .def("getRCut", &PatchEnergyJIT::getRCut)
             .def("energy", &PatchEnergyJIT::energy)
-            .def("setAlpha",&PatchEnergyJIT::setAlpha)
-            .def("getAlpha",&PatchEnergyJIT::getAlpha)
-            .def("getAlphaSize",&PatchEnergyJIT::getAlphaSize)
             .def_property_readonly("alpha",&PatchEnergyJIT::getAlphaNP)
             ;
     }
