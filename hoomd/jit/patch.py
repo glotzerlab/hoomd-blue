@@ -171,7 +171,8 @@ class user(object):
             code (str): C++ code to compile
             clang_exec (str): The Clang executable to use
             fn (str): If provided, the code will be written to a file.
-            array_size (int): Size of array with adjustable elements. (added in version 2.8)
+            array_size_iso (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
+            array_size_union (int): Size of array with adjustable elements for unions of shapes. (added in version 2.8)
 
         .. versionadded:: 2.3
         '''
@@ -269,7 +270,7 @@ class user_union(user):
 
     Attributes:
         alpha_union (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
-                                            defined by the user (added in version 2.8)
+                                            defined by the user for unions of shapes (added in version 2.8)
         alpha_iso (numpy.ndarray, float): Length array_size_iso numpy array containing dynamically adjustable elements
                                           defined by the user for the isotropic part. (added in version 2.8)
 
@@ -292,22 +293,28 @@ class user_union(user):
 
         # square well attraction on constituent spheres
         square_well = """float rsq = dot(r_ij, r_ij);
-                            if (rsq < 1.21f)
-                                return -1.0f;
-                            else
-                                return 0.0f;
-                      """
+                              float r_cut = alpha_union[0];
+                              if (rsq < r_cut*r_cut)
+                                  return alpha_union[1];
+                              else
+                                  return 0.0f;
+                           """
 
         # soft repulsion between centers of unions
         soft_repulsion = """float rsq = dot(r_ij, r_ij);
-                            if (rsq < 6.25f)
-                                return 1.0f;
-                            else
-                                return 0.0f;
-                      """
+                                  float r_cut = alpha[0];
+                                  if (rsq < r_cut*r_cut)
+                                    return alpha[1];
+                                  else
+                                    return 0.0f;
+                         """
 
-        patch = hoomd.jit.patch.user_union(r_cut=1.1, code=square_well, r_cut_iso=5, code_iso=soft_repulsion)
+        patch = hoomd.jit.patch.user_union(r_cut=2.5, code=square_well, array_size=2, \
+                                           r_cut_iso=5, code_iso=soft_repulsion, array_size_iso=2)
         patch.set_params('A',positions=[(0,0,-5.),(0,0,.5)], typeids=[0,0])
+        # [r_cut, epsilon]
+        patch.alpha_iso[:] = [2.5, 1.3];
+        patch.alpha_union[:] = [2.5, -1.7];
 
     .. versionadded:: 2.3
     '''

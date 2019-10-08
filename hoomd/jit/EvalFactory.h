@@ -51,6 +51,6 @@ class EvalFactory
         std::unique_ptr<llvm::orc::KaleidoscopeJIT> m_jit; //!< The persistent JIT engine
         EvalFnPtr m_eval;         //!< Function pointer to evaluator
         float * m_alpha;         // Pointer to alpha array
-        float * m_alpha_union;         // Pointer to alpha array
+        float * m_alpha_union;   // Pointer to alpha array for union
         std::string m_error_msg; //!< The error message if initialization fails
     };
