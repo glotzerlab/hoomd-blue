@@ -39,6 +39,6 @@ void export_PatchEnergyJIT(pybind11::module &m)
                                  const unsigned int >())
             .def("getRCut", &PatchEnergyJIT::getRCut)
             .def("energy", &PatchEnergyJIT::energy)
-            .def_property_readonly("alpha",&PatchEnergyJIT::getAlphaNP)
+            .def_property_readonly("alpha_iso",&PatchEnergyJIT::getAlphaNP)
             ;
     }

@@ -23,8 +23,8 @@ class user(object):
         array_size (int): Size of array with adjustable elements. (added in version 2.8)
 
     Attributes:
-        alpha (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
-                                      defined by the user (added in version 2.8)
+        alpha_iso (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
+                                          defined by the user (added in version 2.8)
 
     Patch energies define energetic interactions between pairs of shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.
     Shapes within a cutoff distance of *r_cut* are potentially interacting and the energy of interaction is a function
@@ -33,7 +33,7 @@ class user(object):
     The :py:class:`user` patch energy takes C++ code, JIT compiles it at run time and executes the code natively
     in the MC loop with full performance. It enables researchers to quickly and easily implement custom energetic
     interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`user` provides a mechanism,
-    through the `alpha` attribute (numpy array), to adjust user defined potential parameters without the need
+    through the `alpha_iso` attribute (numpy array), to adjust user defined potential parameters without the need
     to recompile the patch energy code.
 
     .. rubric:: C++ code
@@ -93,16 +93,16 @@ class user(object):
     .. code-block:: python
 
         square_well = """float rsq = dot(r_ij, r_ij);
-                         float r_cut = alpha[0];
+                         float r_cut = alpha_iso[0];
                             if (rsq < r_cut*r_cut)
-                                return alpha[1];
+                                return alpha_iso[1];
                             else
                                 return 0.0f;
                       """
         patch = hoomd.jit.patch.user(mc=mc, r_cut=1.1, array_size=2, code=square_well)
-        patch.alpha[:] = [1.1, 1.5] # [rcut, epsilon]
+        patch.alpha_iso[:] = [1.1, 1.5] # [rcut, epsilon]
         hoomd.run(1000)
-        patch.alpha[1] = 2.0
+        patch.alpha_iso[1] = 2.0
         hoomd.run(1000)
 
     .. rubric:: LLVM IR code
@@ -161,8 +161,8 @@ class user(object):
         self.mc = mc
         self.enabled = True
         self.log = False
-        self.cpp_evaluator.alpha[:] = [0]*array_size
-        self.alpha = self.cpp_evaluator.alpha
+        self.cpp_evaluator.alpha_iso[:] = [0]*array_size
+        self.alpha_iso = self.cpp_evaluator.alpha_iso
 
     def compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
         R'''Helper function to compile the provided code into an executable
@@ -180,7 +180,7 @@ class user(object):
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-float alpha[{}];
+float alpha_iso[{}];
 float alpha_union[{}];
 
 extern "C"
@@ -302,9 +302,9 @@ class user_union(user):
 
         # soft repulsion between centers of unions
         soft_repulsion = """float rsq = dot(r_ij, r_ij);
-                                  float r_cut = alpha[0];
+                                  float r_cut = alpha_iso[0];
                                   if (rsq < r_cut*r_cut)
-                                    return alpha[1];
+                                    return alpha_iso[1];
                                   else
                                     return 0.0f;
                          """

@@ -201,11 +201,11 @@ class patch_alpha_user(unittest.TestCase):
     def setUp(self):
         lennard_jones = """
                              float rsq = dot(r_ij, r_ij);
-                             float rcut  = alpha[0];
+                             float rcut  = alpha_iso[0];
                              if (rsq <= rcut*rcut)
                                 {{
-                                float sigma = alpha[1];
-                                float eps   = alpha[2];
+                                float sigma = alpha_iso[1];
+                                float eps   = alpha_iso[2];
                                 float sigmasq = sigma*sigma;
                                 float rsqinv = sigmasq / rsq;
                                 float r6inv = rsqinv*rsqinv*rsqinv;
@@ -230,37 +230,37 @@ class patch_alpha_user(unittest.TestCase):
 
         # raise error if array is larger than allocated memory
         with self.assertRaises(ValueError):
-            self.patch.alpha[:] = [1]*4;
+            self.patch.alpha_iso[:] = [1]*4;
 
-        self.assertAlmostEqual(len(self.patch.alpha), 3)
+        self.assertAlmostEqual(len(self.patch.alpha_iso), 3)
 
         # check alpha array is set properly
-        self.patch.alpha[:] = [-1., 2.7, 10];
-        np.testing.assert_allclose(self.patch.alpha, [-1., 2.7, 10]);
+        self.patch.alpha_iso[:] = [-1., 2.7, 10];
+        np.testing.assert_allclose(self.patch.alpha_iso, [-1., 2.7, 10]);
 
         # set alpha to sensible LJ values: [rcut, sigma, epsilon]
-        self.patch.alpha[0] = 2.5;
-        self.patch.alpha[1] = 1.2;
-        self.patch.alpha[2] = 1;
-        np.testing.assert_allclose(self.patch.alpha, [2.5, 1.2, 1]);
+        self.patch.alpha_iso[0] = 2.5;
+        self.patch.alpha_iso[1] = 1.2;
+        self.patch.alpha_iso[2] = 1;
+        np.testing.assert_allclose(self.patch.alpha_iso, [2.5, 1.2, 1]);
 
         # get energy for previus LJ params
         hoomd.run(0, quiet=True);
         energy_old = self.logger.query("hpmc_patch_energy");
         # make sure energies are calculated properly when using alpha
-        sigma_r_6 = (self.patch.alpha[1] / self.dist)**6;
-        energy_actual = 4.0*self.patch.alpha[2]*sigma_r_6*(sigma_r_6-1.0);
+        sigma_r_6 = (self.patch.alpha_iso[1] / self.dist)**6;
+        energy_actual = 4.0*self.patch.alpha_iso[2]*sigma_r_6*(sigma_r_6-1.0);
         self.assertAlmostEqual(energy_old, energy_actual);
 
         # double epsilon
-        self.patch.alpha[2] = 2;
+        self.patch.alpha_iso[2] = 2;
         hoomd.run(1);
         # make sure energy is doubled
         energy_new = self.logger.query("hpmc_patch_energy");
         self.assertAlmostEqual(energy_new, 2.0*energy_old);
 
         # set r_cut to zero and check energy is zero
-        self.patch.alpha[0] = 0;
+        self.patch.alpha_iso[0] = 0;
         hoomd.run(1);
         self.assertAlmostEqual(self.logger.query("hpmc_patch_energy"), 0);
 
@@ -283,9 +283,9 @@ class patch_alpha_user_union(unittest.TestCase):
 
         # soft repulsion between centers of unions
         soft_repulsion = """float rsq = dot(r_ij, r_ij);
-                                  float r_cut = alpha[0];
+                                  float r_cut = alpha_iso[0];
                                   if (rsq < r_cut*r_cut)
-                                    return alpha[1];
+                                    return alpha_iso[1];
                                   else
                                     return 0.0f;
                          """
