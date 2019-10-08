@@ -14,7 +14,7 @@ if (ENABLE_MPI)
         find_path(cereal_INCLUDE_DIR NAMES cereal/cereal.hpp
             PATHS ${CMAKE_INSTALL_PREFIX}/include)
         add_library(cereal INTERFACE IMPORTED)
-        target_include_directories(cereal INTERFACE ${cereal_INCLUDE_DIR})
+        set_target_properties(cereal PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${cereal_INCLUDE_DIR}")
         find_package_message(cereal "Could not find cereal, assuming it is on a default path" "[${cereal_INCLUDE_DIR}]")
     endif()
 
