@@ -61,6 +61,15 @@ class integrate_npt_tests (unittest.TestCase):
         npt.set_params(rescale_all=True)
         run(1);
 
+    # tests randomize_velocities()
+    def test(self):
+        all = group.all();
+        md.integrate.mode_standard(dt=0.005);
+        npt = md.integrate.npt(all, kT=1.2, tau=0.5, P=1.0, tauP=0.5,couple='none');
+        npt.randomize_velocities(seed=42)
+        run(1);
+
+
     # test w/ empty group
     def test_empty(self):
         # currently cannot catch run-time errors in MPI simulations
