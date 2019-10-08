@@ -147,9 +147,17 @@ stages:
       vmImage: '$(mac_image)'
 
     steps:
-    - script: brew install cereal cmake eigen ninja open-mpi pybind11 python numpy
+    - script: brew install cereal cmake eigen ninja open-mpi python numpy
       displayName: Brew install prereqs
-
+    # work around broken homebrew pybind11 package
+    - script: |
+        curl -sSL https://github.com/pybind/pybind11/archive/v2.4.2.tar.gz | tar -xzC ./ \
+        && cd pybind11-2.4.2 \
+        && mkdir build && cd build \
+        && cmake ../ -DCMAKE_INSTALL_PREFIX=/usr/local -DPYBIND11_TEST=off -DPYTHON_EXECUTABLE=/usr/local/bin/python3 \
+        && make install
+      displayName: Manually install pybind11
+      workingDirectory: $(Pipeline.Workspace)
     # Install Intel's provided TBB builds, homebrew's tbb does not support exception translation
     - script: |
         curl -sLO https://github.com/intel/tbb/releases/download/2019_U8/tbb2019_20190605oss_mac.tgz &&
