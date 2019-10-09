@@ -100,7 +100,7 @@ size_t DEM3DForceComputeGPU<Real, Real4, Potential>::maxGPUThreads() const
             std::pair<unsigned int, unsigned int> edge(smaller, larger);
             edges.insert(edge);
             }
-        maxGPUThreads = max(maxGPUThreads, 2*this->m_vertsVec[i].size() + edges.size());
+        maxGPUThreads = max(maxGPUThreads, 2*this->m_shapes[i].size() + edges.size());
         }
 
     return maxGPUThreads;

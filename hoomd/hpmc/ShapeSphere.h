@@ -9,6 +9,7 @@
 #include "hoomd/AABB.h"
 #include "hoomd/hpmc/OBB.h"
 #include "hoomd/hpmc/HPMCMiscFunctions.h"
+#include <sstream>
 
 #include <stdexcept>
 
@@ -152,6 +153,15 @@ struct ShapeSphere
         // just use the AABB for now
         return detail::OBB(getAABB(pos));
         }
+
+    #ifndef NVCC
+    std::string getShapeSpec() const
+        {
+        std::ostringstream shapedef;
+        shapedef << "{\"type\": \"Sphere\", \"diameter\": " << params.radius*OverlapReal(2.0) << "}";
+        return shapedef.str();
+        }
+    #endif
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }

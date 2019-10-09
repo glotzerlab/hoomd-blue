@@ -158,6 +158,13 @@ struct ShapeUnion
         return OverlapReal(0.0);
         }
 
+    #ifndef NVCC
+    std::string getShapeSpec() const
+        {
+        throw std::runtime_error("Shape definition not supported for this shape class.");
+        }
+    #endif
+
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {

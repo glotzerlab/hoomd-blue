@@ -67,6 +67,20 @@ struct ShapeSimplePolygon
         return Scalar(0.0);
         }
 
+    #ifndef NVCC
+    std::string getShapeSpec() const
+        {
+        std::ostringstream shapedef;
+        shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
+        for (unsigned int i = 0; i < verts.N-1; i++)
+            {
+            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+            }
+        shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
+        return shapedef.str();
+        }
+    #endif
+
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
