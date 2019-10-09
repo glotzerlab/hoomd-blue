@@ -644,7 +644,39 @@ class gsd(hoomd.analyze._analyzer):
         if hasattr(obj, '_connect_gsd') and type(getattr(obj, '_connect_gsd')) == types.MethodType:
             obj._connect_gsd(self);
         else:
-            hoomd.context.current.device.cpp_msg.warning("GSD is not currently support for {name}".format(obj.__name__));
+            hoomd.context.current.device.cpp_msg.warning("GSD is not currently support for {name}".format(obj.__class__.__name__));
+
+    def dump_shape(self, obj):
+        """This method writes particle shape information stored by a hoomd
+           object into a GSD file, in the chunk :code:`particle/type_shapes`.
+           This information can be used by other libraries for visualization.
+
+
+        Call :py:meth:`dump_shape` if you want to write the shape of a hoomd object
+        to the gsd file. The following classes support writing shape information to
+        GSD files:
+
+        * :py:class:`hoomd.hpmc.integrate.sphere`
+        * :py:class:`hoomd.hpmc.integrate.convex_polyhedron`
+        * :py:class:`hoomd.hpmc.integrate.convex_spheropolyhedron`
+        * :py:class:`hoomd.hpmc.integrate.polyhedron`
+        * :py:class:`hoomd.hpmc.integrate.convex_polygon`
+        * :py:class:`hoomd.hpmc.integrate.convex_spheropolygon`
+        * :py:class:`hoomd.hpmc.integrate.simple_polygon`
+        * :py:class:`hoomd.hpmc.integrate.ellipsoid`
+        * :py:class:`hoomd.dem.pair.WCA`
+        * :py:class:`hoomd.dem.pair.SWCA`
+        * :py:class:`hoomd.md.pair.gb`
+
+        See the `Shape Visualization Specification <https://gsd.readthedocs.io/en/stable/shapes.html>`_
+        section of the GSD package documentation for a detailed description of shape definitions.
+
+        .. versionadded:: 2.7
+        """
+        if hasattr(obj, '_connect_gsd_shape_spec') and type(getattr(obj, '_connect_gsd_shape_spec')) == types.MethodType:
+            obj._connect_gsd_shape_spec(self);
+        else:
+            hoomd.context.current.device.cpp_msg.warning("GSD is not currently support for {}".format(obj.__class__.__name__));
 
     @property
     def log(self):

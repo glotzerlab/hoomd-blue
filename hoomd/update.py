@@ -186,10 +186,10 @@ class _updater(hoomd.meta._metadata):
 
     def _connect_gsd(self, gsd):
         # This is an internal method, and should not be called directly. See gsd.dump_state() instead
-        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_updater, "connectGSDSignal"):
-            self.cpp_updater.connectGSDSignal(gsd.cpp_analyzer, self._gsd_state_name());
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_updater, "connectGSDStateSignal"):
+            self.cpp_updater.connectGSDStateSignal(gsd.cpp_analyzer, self._gsd_state_name());
         else:
-            raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
 
     def restore_state(self):
         """ Restore the state information from the file used to initialize the simulations

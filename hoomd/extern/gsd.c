@@ -16,6 +16,10 @@
 
 #endif
 
+#ifdef __APPLE__
+#include <limits.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -31,36 +35,97 @@
 // define windows wrapper functions
 #ifdef _WIN32
 #define lseek _lseeki64
-#define write _write
-#define read _read
 #define open _open
 #define ftruncate _chsize
 #define fsync _commit
+typedef int64_t ssize_t;
 
 int S_IRUSR = _S_IREAD;
 int S_IWUSR = _S_IWRITE;
 int S_IRGRP = _S_IREAD;
 int S_IWGRP = _S_IWRITE;
 
-size_t pread(int fd, void *buf, size_t count, int64_t offset)
+ssize_t pread(int fd, void *buf, size_t count, int64_t offset)
     {
+    // Note: _read only accepts unsigned int values
+    if (count > UINT_MAX)
+        return -1;
+
     int64_t oldpos = _telli64(fd);
     _lseeki64(fd, offset, SEEK_SET);
-    size_t result = _read(fd, buf, count);  // Note: does not support >4GB reads
+    ssize_t result = _read(fd, buf, (unsigned int)count);
     _lseeki64(fd, oldpos, SEEK_SET);
     return result;
     }
 
-size_t pwrite(int fd, void *buf, size_t count, int64_t offset)
+ssize_t pwrite(int fd, const void *buf, size_t count, int64_t offset)
     {
+    // Note: _write only accepts unsigned int values
+    if (count > UINT_MAX)
+        return -1;
+
     int64_t oldpos = _telli64(fd);
     _lseeki64(fd, offset, SEEK_SET);
-    size_t result = _write(fd, buf, count);  // Note: does not support >4GB writes
+    ssize_t result = _write(fd, buf, (unsigned int)count);
     _lseeki64(fd, oldpos, SEEK_SET);
     return result;
     }
 
 #endif
+
+static ssize_t __pwrite_retry(int fd, const void *buf, size_t count, int64_t offset)
+    {
+    size_t total_bytes_written = 0;
+    const char *ptr = (char *)buf;
+
+    // perform multiple pwrite calls to complete a large write successfully
+    while (total_bytes_written < count)
+        {
+        size_t to_write = count - total_bytes_written;
+        #if defined(_WIN32) || defined(__APPLE__)
+        // win32 and apple raise an error for writes greater than INT_MAX
+        if (to_write > INT_MAX/2) to_write = INT_MAX/2;
+        #endif
+
+        errno = 0;
+        ssize_t bytes_written = pwrite(fd, ptr + total_bytes_written, to_write, offset + total_bytes_written);
+        if (bytes_written == -1 || (bytes_written == 0 && errno != 0))
+            return -1;
+
+        total_bytes_written += bytes_written;
+        }
+
+    return total_bytes_written;
+    }
+
+static ssize_t __pread_retry(int fd, void *buf, size_t count, int64_t offset)
+    {
+    size_t total_bytes_read = 0;
+    char *ptr = (char *)buf;
+
+    // perform multiple pread calls to complete a large write successfully
+    while (total_bytes_read < count)
+        {
+        size_t to_read = count - total_bytes_read;
+        #if defined(_WIN32) || defined(__APPLE__)
+        // win32 and apple raise errors for reads greater than INT_MAX
+        if (to_read > INT_MAX/2) to_read = INT_MAX/2;
+        #endif
+
+        errno = 0;
+        ssize_t bytes_read = pread(fd, ptr + total_bytes_read, to_read, offset + total_bytes_read);
+        if (bytes_read == -1 || (bytes_read == 0 && errno != 0))
+            return -1;
+
+        total_bytes_read += bytes_read;
+
+        // handle end of file
+        if (bytes_read == 0)
+            return total_bytes_read;
+        }
+
+    return total_bytes_read;
+    }
 
 /*! \internal
     \brief Utility function to expand the memory space for the index block
@@ -88,8 +153,12 @@ static int __gsd_expand_index(struct gsd_handle *handle)
 
         // now, put the new larger index at the end of the file
         handle->header.index_location = lseek(handle->fd, 0, SEEK_END);
-        size_t bytes_written = write(handle->fd, handle->index, sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries);
-        if (bytes_written != sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries)
+        ssize_t bytes_written = __pwrite_retry(handle->fd,
+                                               handle->index,
+                                               sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries,
+                                               handle->header.index_location);
+
+        if (bytes_written == -1 || bytes_written != sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries)
             return -1;
 
         // set the new file size
@@ -112,12 +181,20 @@ static int __gsd_expand_index(struct gsd_handle *handle)
             if (old_index_bytes - total_bytes_written < buf_size)
                 bytes_to_copy = old_index_bytes - total_bytes_written;
 
-            size_t bytes_read = pread(handle->fd, buf, bytes_to_copy, old_index_location + total_bytes_written);
-            if (bytes_read != bytes_to_copy)
+            ssize_t bytes_read = __pread_retry(handle->fd,
+                                               buf,
+                                               bytes_to_copy,
+                                               old_index_location + total_bytes_written);
+
+            if (bytes_read == -1 || bytes_read != bytes_to_copy)
                 return -1;
 
-            size_t bytes_written = pwrite(handle->fd, buf, bytes_to_copy, new_index_location + total_bytes_written);
-            if (bytes_written != bytes_to_copy)
+            ssize_t bytes_written = __pwrite_retry(handle->fd,
+                                                   buf,
+                                                   bytes_to_copy,
+                                                   new_index_location + total_bytes_written);
+
+            if (bytes_written == -1 || bytes_written != bytes_to_copy)
                 return -1;
             total_bytes_written += bytes_written;
             }
@@ -131,8 +208,12 @@ static int __gsd_expand_index(struct gsd_handle *handle)
             if (new_index_bytes - total_bytes_written < buf_size)
                 bytes_to_copy = new_index_bytes - total_bytes_written;
 
-            size_t bytes_written = pwrite(handle->fd, buf, bytes_to_copy, new_index_location + total_bytes_written);
-            if (bytes_written != bytes_to_copy)
+            ssize_t bytes_written = __pwrite_retry(handle->fd,
+                                                   buf,
+                                                   bytes_to_copy,
+                                                   new_index_location + total_bytes_written);
+
+            if (bytes_written == -1 || bytes_written != bytes_to_copy)
                 return -1;
             total_bytes_written += bytes_written;
             }
@@ -148,9 +229,8 @@ static int __gsd_expand_index(struct gsd_handle *handle)
         return -1;
 
     // write the new header out
-    lseek(handle->fd, 0, SEEK_SET);
-    size_t bytes_written = write(handle->fd, &(handle->header), sizeof(struct gsd_header));
-    if (bytes_written != sizeof(struct gsd_header))
+    ssize_t bytes_written = __pwrite_retry(handle->fd, &(handle->header), sizeof(struct gsd_header), 0);
+    if (bytes_written == -1 || bytes_written != sizeof(struct gsd_header))
         return -1;
 
     // sync the updated header
@@ -188,11 +268,13 @@ uint16_t __gsd_get_id(struct gsd_handle *handle, const char *name, uint8_t appen
         handle->namelist[handle->namelist_num_entries].name[sizeof(struct gsd_namelist_entry)-1] = 0;
 
         // update the namelist on disk
-        lseek(handle->fd,
-              handle->header.namelist_location + sizeof(struct gsd_namelist_entry)*handle->namelist_num_entries,
-              SEEK_SET);
-        size_t bytes_written = write(handle->fd, &(handle->namelist[handle->namelist_num_entries]), sizeof(struct gsd_namelist_entry));
-        if (bytes_written != sizeof(struct gsd_namelist_entry))
+        ssize_t bytes_written = __pwrite_retry(handle->fd,
+                                               &(handle->namelist[handle->namelist_num_entries]),
+                                               sizeof(struct gsd_namelist_entry),
+                                               handle->header.namelist_location
+                                                   + sizeof(struct gsd_namelist_entry)*handle->namelist_num_entries);
+
+        if (bytes_written == -1 || bytes_written != sizeof(struct gsd_namelist_entry))
             return UINT16_MAX;
 
         handle->namelist_num_entries++;
@@ -200,7 +282,7 @@ uint16_t __gsd_get_id(struct gsd_handle *handle, const char *name, uint8_t appen
         // sync the expanded namelist
         int retval = fsync(handle->fd);
         if (retval != 0)
-            return -1;
+            return UINT16_MAX;
 
         return handle->namelist_num_entries-1;
         }
@@ -222,7 +304,6 @@ int __gsd_initialize_file(int fd, const char *application, const char *schema, u
         return -1;
 
     int retval = ftruncate(fd, 0);
-    lseek(fd, 0, SEEK_SET);
     if (retval != 0)
         return retval;
 
@@ -244,8 +325,8 @@ int __gsd_initialize_file(int fd, const char *application, const char *schema, u
     memset(header.reserved, 0, sizeof(header.reserved));
 
     // write the header out
-    size_t bytes_written = write(fd, &header, sizeof(header));
-    if (bytes_written != sizeof(header))
+    ssize_t bytes_written = __pwrite_retry(fd, &header, sizeof(header), 0);
+    if (bytes_written == -1 || bytes_written != sizeof(header))
         return -1;
 
     // allocate and zero default index memory
@@ -253,8 +334,8 @@ int __gsd_initialize_file(int fd, const char *application, const char *schema, u
     memset(index, 0, sizeof(index));
 
     // write the empty index out
-    bytes_written = write(fd, index, sizeof(index));
-    if (bytes_written != sizeof(index))
+    bytes_written = __pwrite_retry(fd, index, sizeof(index), sizeof(header));
+    if (bytes_written == -1 || bytes_written != sizeof(index))
         return -1;
 
     // allocate and zero the namelist memory
@@ -262,8 +343,8 @@ int __gsd_initialize_file(int fd, const char *application, const char *schema, u
     memset(namelist, 0, sizeof(namelist));
 
     // write the namelist out
-    bytes_written = write(fd, namelist, sizeof(namelist));
-    if (bytes_written != sizeof(namelist))
+    bytes_written = __pwrite_retry(fd, namelist, sizeof(namelist), sizeof(header)+sizeof(index));
+    if (bytes_written == -1 || bytes_written != sizeof(namelist))
         return -1;
 
     // sync file
@@ -286,13 +367,13 @@ static int __is_entry_valid(struct gsd_handle *handle, size_t idx)
     const struct gsd_index_entry entry = handle->index[idx];
 
     // check for valid type
-    if (gsd_sizeof_type(entry.type) == 0)
+    if (gsd_sizeof_type((enum gsd_type)entry.type) == 0)
         {
         return 0;
         }
 
     // validate that we don't read past the end of the file
-    size_t size = entry.N * entry.M * gsd_sizeof_type(entry.type);
+    size_t size = entry.N * entry.M * gsd_sizeof_type((enum gsd_type)entry.type);
     if ((entry.location + size) > handle->file_size)
         {
         return 0;
@@ -333,14 +414,14 @@ int __gsd_read_header(struct gsd_handle* handle)
         return -1;
 
     // read the header
-    lseek(handle->fd, 0, SEEK_SET);
-    size_t bytes_read = read(handle->fd, &handle->header, sizeof(struct gsd_header));
+    ssize_t bytes_read = __pread_retry(handle->fd, &handle->header, sizeof(struct gsd_header), 0);
+    if (bytes_read == -1)
+        {
+        return -1;
+        }
     if (bytes_read != sizeof(struct gsd_header))
         {
-        if (errno != 0)
-            return -1;
-        else
-            return -2;
+        return -2;
         }
 
     // validate the header
@@ -383,9 +464,12 @@ int __gsd_read_header(struct gsd_handle* handle)
         if (handle->index == NULL)
             return -5;
 
-        lseek(handle->fd, handle->header.index_location, SEEK_SET);
-        bytes_read = read(handle->fd, handle->index, sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries);
-        if (bytes_read != sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries)
+        bytes_read = __pread_retry(handle->fd,
+                                   handle->index,
+                                   sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries,
+                                   handle->header.index_location);
+
+        if (bytes_read == -1 || bytes_read != sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries)
             return -1;
         }
     #if GSD_USE_MMAP
@@ -419,9 +503,12 @@ int __gsd_read_header(struct gsd_handle* handle)
     if (handle->namelist == NULL)
         return -5;
 
-    lseek(handle->fd, handle->header.namelist_location, SEEK_SET);
-    bytes_read = read(handle->fd, handle->namelist, sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries);
-    if (bytes_read != sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries)
+    bytes_read = __pread_retry(handle->fd,
+                               handle->namelist,
+                               sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries,
+                               handle->header.namelist_location);
+
+    if (bytes_read == -1 || bytes_read != sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries)
         return -1;
 
     // determine the number of namelist entries (marked by an empty string)
@@ -822,12 +909,12 @@ int gsd_end_frame(struct gsd_handle* handle)
         if (handle->open_flags != GSD_OPEN_APPEND)
             data += handle->index_written_entries;
 
-        size_t bytes_written = pwrite(handle->fd,
-                                     data,
-                                     sizeof(struct gsd_index_entry)*entries_to_write,
-                                     write_pos);
+        ssize_t bytes_written = __pwrite_retry(handle->fd,
+                                              data,
+                                              sizeof(struct gsd_index_entry)*entries_to_write,
+                                              write_pos);
 
-        if (bytes_written != sizeof(struct gsd_index_entry) * entries_to_write)
+        if (bytes_written == -1 || bytes_written != sizeof(struct gsd_index_entry)*entries_to_write)
             return -1;
 
         handle->index_written_entries += entries_to_write;
@@ -884,8 +971,8 @@ int gsd_write_chunk(struct gsd_handle* handle,
     index_entry.location = handle->file_size;
 
     // write the data
-    size_t bytes_written = pwrite(handle->fd, data, size, index_entry.location);
-    if (bytes_written != size)
+    ssize_t bytes_written = __pwrite_retry(handle->fd, data, size, index_entry.location);
+    if (bytes_written == -1 || bytes_written != size)
         return -1;
 
     // update the file_size in the handle
@@ -1011,7 +1098,7 @@ int gsd_read_chunk(struct gsd_handle* handle, void* data, const struct gsd_index
     if (handle->open_flags == GSD_OPEN_APPEND)
         return -2;
 
-    size_t size = chunk->N * chunk->M * gsd_sizeof_type(chunk->type);
+    size_t size = chunk->N * chunk->M * gsd_sizeof_type((enum gsd_type)chunk->type);
     if (size == 0)
         return -3;
     if (chunk->location == 0)
@@ -1023,8 +1110,8 @@ int gsd_read_chunk(struct gsd_handle* handle, void* data, const struct gsd_index
         return -3;
         }
 
-    size_t bytes_read = pread(handle->fd, data, size, chunk->location);
-    if (bytes_read != size)
+    ssize_t bytes_read = __pread_retry(handle->fd, data, size, chunk->location);
+    if (bytes_read == -1 || bytes_read != size)
         {
         return -1;
         }
