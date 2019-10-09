@@ -2,7 +2,7 @@ from __future__ import division
 from __future__ import print_function
 
 import hoomd
-from hoomd import context, data, init, analyze, lattice, analyze
+from hoomd import context, data, init, analyze, lattice
 from hoomd import hpmc, jit
 
 import unittest
