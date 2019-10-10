@@ -38,7 +38,7 @@ typedef std::function<std::shared_ptr<PopBD>(std::shared_ptr<SystemDefinition> s
 
 //! Test bond creation
 void popbd_create_destroy_test(popbd_creator pbd_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
-{
+    {
     // start with the simplest possible test: 2 particles in a box with only one bond type
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(100.0), 1, 1, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
@@ -69,7 +69,6 @@ void popbd_create_destroy_test(popbd_creator pbd_creator, std::shared_ptr<Execut
     XB.push_back(0.0); M.push_back(0.0); L.push_back(0.0);
     XB.push_back(0.0); M.push_back(0.0); L.push_back(0.0);
     popbd->setTable(XB, M, L, 0.0, 4.0);
-
 
     // Access the GPU bond table for reading
     std::shared_ptr<BondData> bdata(sysdef->getBondData());
@@ -137,15 +136,15 @@ std::shared_ptr<PopBD> base_class_pbd_creator(std::shared_ptr<SystemDefinition> 
                                               Scalar delta_t,
                                               int period,
                                               unsigned int table_width)
-{
+    {
     return std::shared_ptr<PopBD>(new PopBD(sysdef, group, nlist, seed, delta_t, period, table_width));
-}
+    }
 
 UP_TEST(popbd_create_destroy)
-{
+    {
     popbd_creator pbd_creator_base = bind(base_class_pbd_creator, _1, _2, _3, _4, _5, _6, _7);
     popbd_create_destroy_test(pbd_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-}
+    }
 
 // UP_TEST(popbd_rcut)
 // {
