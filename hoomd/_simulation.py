@@ -17,7 +17,7 @@ class Simulation:
     def __init__(self, device):
         self._device = device
         self._state = None
-        self._operations = Operations()
+        self._operations = Operations(self)
 
     @property
     def device(self):
@@ -57,12 +57,11 @@ class Simulation:
         snapshot = reader.getSnapshot()
 
         step = reader.getTimeStep() if self.timestep is None else self.timestep
-        self._state = State(self.device, snapshot)
+        self._state = State(self, snapshot)
 
         reader.clearSnapshot()
         # Store System and Reader for Operations
-        self.operations._store_system(_hoomd.System(self.state._cpp_sys_def,
-                                                    step))
+        self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
         self.operations._store_reader(reader)
 
     @property

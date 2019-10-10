@@ -5,23 +5,24 @@ from .data import boxdim
 class State:
     R"""
     Parameters:
-        device
+        simulation
         snapshot
 
     Attributes:
     """
 
-    def __init__(self, device, snapshot):
-        self._device = device
-        snapshot._broadcast_box(device.cpp_exec_conf)
+    def __init__(self, simulation, snapshot):
+        self._simulation = simulation
+        snapshot._broadcast_box(simulation.device.cpp_exec_conf)
         # my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
         if False:  # my_domain_decomposition is not None:
             self._cpp_sys_def = _hoomd.SystemDefinition(
-                snapshot, device.cpp_exec_conf, my_domain_decomposition)
+                snapshot, simulation.device.cpp_exec_conf,
+                my_domain_decomposition)
         else:
             self._cpp_sys_def = _hoomd.SystemDefinition(
-                snapshot, device.cpp_exec_conf)
+                snapshot, simulation.device.cpp_exec_conf)
 
     @property
     def snapshot(self):
@@ -64,7 +65,7 @@ class State:
 
         """
 
-        if self._device.comm.rank == 0:
+        if self._simulation.device.comm.rank == 0:
             if snapshot.has_particle_data and \
                     len(snapshot.particles.types) != self.ntypes:
                 raise RuntimeError(
