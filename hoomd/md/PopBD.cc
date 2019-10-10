@@ -45,8 +45,25 @@ PopBD::PopBD(std::shared_ptr<SystemDefinition> sysdef,
         m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing PopBD" << endl;
+
+    assert(m_pdata);
+    // access the bond data for later use
+    m_bond_data = m_sysdef->getBondData();
+
     int n_particles = m_pdata->getN();
     m_nloops.resize(n_particles);
+
+    // allocate storage for the tables and parameters
+    GPUArray<Scalar2> tables(m_table_width, m_bond_data->getNTypes(), m_exec_conf);
+    m_tables.swap(tables);
+    GPUArray<Scalar4> params(m_bond_data->getNTypes(), m_exec_conf);
+    m_params.swap(params);
+    assert(!m_tables.isNull());
+
+    // helper to compute indices
+    Index2D table_value(m_tables.getPitch(),m_bond_data->getNTypes());
+    m_table_value = table_value;
+
     }
 
 PopBD::~PopBD()
@@ -72,6 +89,11 @@ void PopBD::setTable(const std::vector<Scalar> &XB,
                      Scalar rmin,
                      Scalar rmax)
     {
+    int type = 0;
+    // access the arrays
+    ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::readwrite);
+
     // range check on the parameters
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
@@ -83,6 +105,17 @@ void PopBD::setTable(const std::vector<Scalar> &XB,
         {
         m_exec_conf->msg->error() << "popbd.table: table provided to setTable is not of the correct size" << endl;
         throw runtime_error("Error initializing PopBD");
+        }
+    // fill out the parameters
+    h_params.data[type].x = rmin;
+    h_params.data[type].y = rmax;
+    h_params.data[type].z = (rmax - rmin) / Scalar(m_table_width - 1);
+
+    // fill out the table
+    for (unsigned int i = 0; i < m_table_width; i++)
+        {
+        h_tables.data[m_table_value(i, type)].x = M[i];
+        h_tables.data[m_table_value(i, type)].y = L[i];
         }
     }
 
@@ -113,6 +146,10 @@ void PopBD::update(unsigned int timestep)
     m_bond_data = m_sysdef->getBondData();
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    // access the table data
+    ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
 
     Scalar r_cut_sq = m_r_cut * m_r_cut;
 
@@ -172,13 +209,41 @@ void PopBD::update(unsigned int timestep)
                 Scalar surf_dist = r - 2 * m_r_true;
                 assert(surf_dist > 0.0);
 
+                // compute index into the table and read in values
+
+                // access needed parameters
+                int type = 0;
+                // unsigned int type = m_bond_data->getTypeByIndex(i);
+                Scalar4 params = h_params.data[type];
+                Scalar rmin = params.x;
+                Scalar rmax = params.y;
+                Scalar delta_r = params.z;
+
+                // precomputed term
+                Scalar value_f = (r - rmin) / delta_r;
+                /// Here we use the table!!
+                unsigned int value_i = (unsigned int)floor(value_f);
+                Scalar2 ML0 = h_tables.data[m_table_value(value_i, type)];
+                Scalar2 ML1 = h_tables.data[m_table_value(value_i+1, type)];
+                // unpack the data
+                Scalar M0 = ML0.x;
+                Scalar M1 = ML1.x;
+                Scalar L0 = ML0.y;
+                Scalar L1 = ML1.y;
+
+                // compute the linear interpolation coefficient
+                Scalar f = value_f - Scalar(value_i);
+
+                // interpolate to get M and L;
+                Scalar M = M0 + f * (M1 - M0);
+                Scalar L = L0 + f * (L1 - L0);
+
                 // (1) Compute P_ij, P_ji, and Q_ij
-                // TODO: make this an input?
                 Scalar chain_extension = surf_dist / m_nK;
                 if (chain_extension < 1.0 && chain_extension > 0.0) // bond(extension)-bond(extension_rC)<deltaG?
                     {
-                    Scalar p0 = m_delta_t; //* L(d);
-                    Scalar q0 = m_delta_t; //* M(d);
+                    Scalar p0 = m_delta_t * L;
+                    Scalar q0 = m_delta_t * M;
 
                     Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]);
                     Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]);
