@@ -562,7 +562,7 @@ class PoissonDistribution
             }
 
         template<typename RNG>
-        int poissrnd_small(RNG& rng)
+        DEVICE int poissrnd_small(RNG& rng)
             {
             Real L = fast::exp(-mean);
             Real p = 1;
@@ -577,7 +577,7 @@ class PoissonDistribution
             }
 
         template<typename RNG>
-        int poissrnd_large(RNG& rng)
+        DEVICE int poissrnd_large(RNG& rng)
             {
             Real r;
             Real x, m;

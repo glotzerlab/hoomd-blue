@@ -53,26 +53,65 @@ struct union_params : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         tree.load_shared(ptr, available_bytes);
         mpos.load_shared(ptr, available_bytes);
-        mparams.load_shared(ptr, available_bytes);
+        bool params_in_shared_mem = mparams.load_shared(ptr, available_bytes);
         moverlap.load_shared(ptr, available_bytes);
         morientation.load_shared(ptr, available_bytes);
+
+        // load all member parameters
+        #if defined (__CUDA_ARCH__)
+        __syncthreads();
+        #endif
+
+        for (unsigned int i = 0; i < mparams.size(); ++i)
+            {
+            if (params_in_shared_mem)
+                {
+                // load only if we are sure that we are not touching any unified memory
+                mparams[i].load_shared(ptr, available_bytes);
+                }
+            else
+                {
+                // increment pointer only
+                mparams[i].allocate_shared(ptr, available_bytes);
+                }
+            }
         }
 
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Determine size of the shared memory allocaation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        // attach managed memory arrays to stream
-        tree.attach_to_stream(stream);
+        tree.allocate_shared(ptr, available_bytes);
+        mpos.allocate_shared(ptr, available_bytes);
+        mparams.allocate_shared(ptr, available_bytes);
+        moverlap.allocate_shared(ptr, available_bytes);
+        morientation.allocate_shared(ptr, available_bytes);
 
-        mpos.attach_to_stream(stream);
-        morientation.attach_to_stream(stream);
-        mparams.attach_to_stream(stream);
-        moverlap.attach_to_stream(stream);
+        for (unsigned int i = 0; i < mparams.size(); ++i)
+            mparams[i].allocate_shared(ptr, available_bytes);
+        }
+
+
+    #ifdef ENABLE_CUDA
+    //! Set CUDA memory hints
+    void set_memory_hint() const
+        {
+        tree.set_memory_hint();
+
+        mpos.set_memory_hint();
+        morientation.set_memory_hint();
+        mparams.set_memory_hint();
+        moverlap.set_memory_hint();
+
+        // attach member parameters
+        for (unsigned int i = 0; i < mparams.size(); ++i)
+            mparams[i].set_memory_hint();
         }
     #endif
 
@@ -330,25 +369,6 @@ struct ShapeUnion
 
     const param_type& members;     //!< member data
     };
-
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-template <class Shape>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape>& a,
-    const ShapeUnion<Shape> &b)
-    {
-    vec3<OverlapReal> dr(r_ab);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
 
 template<class Shape>
 DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,

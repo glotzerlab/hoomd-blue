@@ -64,9 +64,9 @@ struct poly3d_verts : param_base
         {
         unsigned int align_size = 8; //for AVX
         unsigned int N_align =((N + align_size - 1)/align_size)*align_size;
-        x = ManagedArray<OverlapReal>(N_align,_managed);
-        y = ManagedArray<OverlapReal>(N_align,_managed);
-        z = ManagedArray<OverlapReal>(N_align,_managed);
+        x = ManagedArray<OverlapReal>(N_align,_managed, 32); // 32byte alignment for AVX
+        y = ManagedArray<OverlapReal>(N_align,_managed, 32);
+        z = ManagedArray<OverlapReal>(N_align,_managed, 32);
         for (unsigned int i = 0; i <  N_align; ++i)
             {
             x[i] = y[i] = z[i] = OverlapReal(0.0);
@@ -78,7 +78,7 @@ struct poly3d_verts : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         x.load_shared(ptr,available_bytes);
         y.load_shared(ptr,available_bytes);
@@ -86,14 +86,26 @@ struct poly3d_verts : param_base
         hull_verts.load_shared(ptr,available_bytes);
         }
 
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Determine size of a shared memory allocation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        x.attach_to_stream(stream);
-        y.attach_to_stream(stream);
-        z.attach_to_stream(stream);
-        hull_verts.attach_to_stream(stream);
+        x.allocate_shared(ptr,available_bytes);
+        y.allocate_shared(ptr,available_bytes);
+        z.allocate_shared(ptr,available_bytes);
+        hull_verts.allocate_shared(ptr,available_bytes);
+        }
+
+    #ifdef ENABLE_CUDA
+    //! Set CUDA memory hints
+    void set_memory_hint() const
+        {
+        x.set_memory_hint();
+        y.set_memory_hint();
+        z.set_memory_hint();
+        hull_verts.set_memory_hint();
         }
     #endif
 
@@ -637,24 +649,6 @@ struct ShapeConvexPolyhedron
 
     const detail::poly3d_verts& verts;     //!< Vertices
     };
-
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeConvexPolyhedron& a,
-    const ShapeConvexPolyhedron &b)
-    {
-    vec3<OverlapReal> dr(r_ab);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
 
 //! Convex polyhedron overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)

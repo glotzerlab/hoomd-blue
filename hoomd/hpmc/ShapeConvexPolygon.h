@@ -58,8 +58,8 @@ struct poly2d_verts : param_base
         }
 
     #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Set CUDA memory hint
+    void set_memory_hint() const
         {
         // default implementation does nothing
         }
@@ -495,25 +495,6 @@ DEVICE inline bool test_overlap_separating_planes(const poly2d_verts& a,
     }
 
 }; // end namespace detail
-
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeConvexPolygon& a,
-    const ShapeConvexPolygon &b)
-    {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
 
 //! Convex polygon overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)

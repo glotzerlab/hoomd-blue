@@ -725,9 +725,6 @@ void IntegratorHPMCMono<Shape>::resetStats()
 template <class Shape>
 void IntegratorHPMCMono<Shape>::slotNumTypesChange()
     {
-    // call parent class method
-    IntegratorHPMC::slotNumTypesChange();
-
     // re-allocate the parameter storage
     m_params.resize(m_pdata->getNTypes());
 
@@ -743,8 +740,6 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
     GlobalArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
 
-    updateCellWidth();
-
     // depletant related counters
     unsigned int old_ntypes = m_implicit_count.getNumElements();
     m_implicit_count.resize(this->m_pdata->getNTypes());
@@ -759,6 +754,9 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     // depletant fugacities
     m_fugacity.resize(this->m_pdata->getNTypes(),0.0);
+
+    // call parent class method
+    IntegratorHPMC::slotNumTypesChange();
     }
 
 template <class Shape>
@@ -1479,15 +1477,29 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(unsigned int timestep)
 template <class Shape>
 Scalar IntegratorHPMCMono<Shape>::getMaxCoreDiameter()
     {
-    // for each type, create a temporary shape and return the maximum diameter
-    OverlapReal maxD = OverlapReal(0.0);
-    for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
-        {
-        Shape temp(quat<Scalar>(), m_params[typ]);
-        maxD = std::max(maxD, temp.getCircumsphereDiameter());
-        }
+    Scalar max_d(0.0);
 
-    return maxD;
+    // access the type parameters
+    ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
+
+    // access interaction matrix
+    ArrayHandle<unsigned int> h_overlaps(this->m_overlaps, access_location::host, access_mode::read);
+
+    // for each type, create a temporary shape and return the maximum sum of diameter and move size
+    for (unsigned int typ_i = 0; typ_i < this->m_pdata->getNTypes(); typ_i++)
+        {
+        Shape temp_i(quat<Scalar>(), m_params[typ_i]);
+
+        for (unsigned int typ_j = 0; typ_j < this->m_pdata->getNTypes(); typ_j++)
+            {
+            Shape temp_j(quat<Scalar>(), m_params[typ_j]);
+
+            // ignore non-interacting shapes
+            if (h_overlaps.data[m_overlap_idx(typ_i,typ_j)])
+                max_d = std::max(0.5*(temp_i.getCircumsphereDiameter()+temp_j.getCircumsphereDiameter()),max_d);
+            }
+        }
+    return max_d;
     }
 
 template <class Shape>
@@ -1776,7 +1788,7 @@ void IntegratorHPMCMono<Shape>::updateCellWidth()
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
 
-    this->m_exec_conf->msg->notice(5) << "IntegratorHPMCMonoImplicit: updating nominal width to " << this->m_nominal_width << std::endl;
+    this->m_exec_conf->msg->notice(5) << "IntegratorHPMCMono: updating nominal width to " << this->m_nominal_width << std::endl;
     }
 
 template <class Shape>

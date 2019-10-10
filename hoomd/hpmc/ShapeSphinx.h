@@ -47,8 +47,8 @@ struct sphinx3d_params : param_base
     unsigned int ignore;    //!< 0: Process overlaps - if (a.ignore == True) and (b.ignore == True) then test_overlap(a,b) = False
 
     #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Set CUDA memory hints
+    void set_memory_hint() const
         {
         // default implementation does nothing
         }
@@ -179,24 +179,6 @@ struct ShapeSphinx
 
     const detail::sphinx3d_params& spheres;     //!< Vertices
     };
-
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeSphinx& a,
-    const ShapeSphinx &b)
-    {
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    vec3<OverlapReal> dr(r_ab);
-
-    return (dot(dr,dr) <= DaDb*DaDb/OverlapReal(4.0));
-    }
-
 
 template <>
 DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_ab,
