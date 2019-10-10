@@ -66,7 +66,7 @@ class update_popbd(unittest.TestCase):
             integrator=self.integrator,
             table_width=3,
         )
-        dybond.set_from_file('popbd.dat')
+        dybond.set_from_file(os.path.join(os.path.dirname(__file__), 'popbd.dat'))
 
     def tearDown(self):
         del self.s
