@@ -88,6 +88,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
         std::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
         std::map<std::string, bool> m_nondefault; //!< Map of quantities (true when non-default in frame 0)
+        std::map<std::string, pybind11::function> m_user_log;   //!< Map of user-defined quantities to log
 
         hoomd::detail::SharedSignal<int (gsd_handle&)> m_write_signal;
 
@@ -117,11 +118,16 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
                            ConstraintData::Snapshot& constraint,
                            PairData::Snapshot& pair);
 
+        //! Write user defined log data
+        void writeUser(unsigned int timestep, bool root);
+
         //! Check and raise an exception if an error occurs
         void checkError(int retval);
 
         //! Populate the non-default map
         void populateNonDefault();
+
+        friend void export_GSDDumpWriter(pybind11::module& m);
     };
 
 //! Exports the GSDDumpWriter class to python

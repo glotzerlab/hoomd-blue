@@ -160,6 +160,10 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
+    // On the first iteration, shape parameters are updated. For optimization,
+    // could track this between calls to avoid extra copying.
+    bool first = true;
+
     gpu_cgpf(a_pair_args_t(d_force.data,
                            d_torque.data,
                            d_virial.data,
@@ -180,7 +184,10 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
                            this->m_shift_mode,
                            flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
                            threads_per_particle,
-                           this->m_pdata->getGPUPartition()),
+                           this->m_pdata->getGPUPartition(),
+                           this->m_exec_conf->dev_prop,
+                           first
+                           ),
              d_params.data);
     if (!m_param) this->m_tuner->end();
 

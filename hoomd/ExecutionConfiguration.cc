@@ -261,15 +261,6 @@ ExecutionConfiguration::~ExecutionConfiguration()
     m_cached_alloc.reset();
     m_cached_alloc_managed.reset();
     #endif
-
-    #if defined(ENABLE_CUDA)
-    if (exec_mode == GPU)
-        {
-        #ifndef ENABLE_MPI_CUDA
-        cudaDeviceReset();
-        #endif
-        }
-    #endif
     }
 
 std::string ExecutionConfiguration::getGPUName(unsigned int idev) const
