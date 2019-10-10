@@ -640,32 +640,57 @@ class sphere(mode_hpmc):
         mc.set_fugacity('B',fugacity=3.0)
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
 
         # initialize base class
-        mode_hpmc.__init__(self);
+        self._param_dict = dict(seed=seed,
+                                d=d,
+                                a=a,
+                                move_ratio=move_ratio,
+                                nselect=nselect)
 
+        self._setter_dict = dict(d='setD',
+                                 a='setA',
+                                 move_ratio='setMoveRatio',
+                                 nselect='setNSelect')
+
+        super(self, mode_hpmc).__init__()
+
+    def _attach(self, simulation):
         # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphere(hoomd.context.current.system_definition, seed)
+        sys_def = simulation.state._cpp_sys_def
+        if not simulation.device.mode == 'GPU':
+            self._cpp_obj = _hpmc.IntegratorHPMCMonoSphere(sys_def, self.seed)
         else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphere(hoomd.context.current.system_definition, cl_c, seed);
+            cl_c = _hoomd.CellListGPU(sys_def)
+            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUSphere(sys_def,
+                                                              cl_c,
+                                                              self.seed)
 
         # set the default parameters
-        setD(self.cpp_integrator,d);
-        setA(self.cpp_integrator,a);
+        for attr, setter in self._setter_dict.items():
+            getattr(self._cpp_obj, setter)(self._param_dict[attr])
 
-        self.cpp_integrator.setMoveRatio(move_ratio)
-        self.cpp_integrator.setNSelect(nselect);
+        self.initialize_shape_params()
 
-        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
+        return [cl_c]
 
-        self.initialize_shape_params();
+    def __getattr__(self, attr):
+        # TODO add check for cpp initialization
+        return self._param_dict[attr]
 
-        if restore_state:
-            self.restore_state()
+    def __setattr__(self, attr, value):
+        if self._initialized:
+            try:
+                getattr(self._cpp_obj, self._setter_dict[attr])(value)
+            except (KeyError, AttributeError):
+                raise AttributeError("{} cannot be set after cpp"
+                                     " initialization".format(attr))
+        if attr not in self._param_dict.keys():
+            raise AttributeError("{} attribute does not exist".format())
+        else:
+            self._param_dict[attr] = value
+
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
