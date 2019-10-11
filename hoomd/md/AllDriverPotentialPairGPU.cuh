@@ -93,4 +93,8 @@ cudaError_t gpu_compute_dlvo_forces(const pair_args_t & args,
 cudaError_t gpu_compute_fourier_forces(const pair_args_t & pair_args,
                                             const typename EvaluatorPairFourier::param_type *d_params);
 
+//! Compute gauss pair forces on the GPU with EvaluatorPairLJGauss
+cudaError_t gpu_compute_lj_gauss_forces(const pair_args_t& pair_args,
+                                        const Scalar3 *d_params);
+
 #endif

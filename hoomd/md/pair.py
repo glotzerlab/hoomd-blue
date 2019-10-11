@@ -2878,3 +2878,76 @@ class fourier(pair):
         fourier_b = coeff['fourier_b'];
 
         return _md.make_pair_fourier_params(fourier_a,fourier_b);
+
+class ljgauss(pair):
+    R""" Specify the Lennard-Jones-Gauss pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+
+    :py:class:`ljgauss` specifies that a Lennard-Jones-Gauss pair potential should be added to every
+    non-bonded particle pair in the simulation.
+
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{ljgauss}}(r) = \left(\frac{1}{r^{12}} - \frac{2}{r^{6}} - \epsilon e^{- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}}}right)\epsilon_{norm} \\
+                           = & 0 & r \ge r_{\mathrm{cut}} \\
+
+        \epsilon_{norm} = \left(\sqrt{2 \pi } \sigma  \epsilon +\frac{12\ 2^{5/6}}{55}\right)^{-1} \\
+        \end{eqnarray*}
+
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\sigma` - *sigma* (in distance units)
+    - :math:`r_0` - *r0* (in distance units)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Example::
+
+        nl = nlist.cell()
+        ljg = pair.ljgauss(r_cut=3.0, nlist=nl)
+        ljg.pair_coeff.set('A', 'A', epsilon=1.0, sigma=0.15, r0=1.6)
+        ljg.pair_coeff.set('A', 'B', epsilon=2.0, sigma=0.15, r0=1.6, r_cut=3.0);
+        ljg.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=.5, sigma=0.15, r0=1.4)
+    """
+    def __init__(self, r_cut, nlist, name=None):
+        hoomd.util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialPairLJGauss(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairLJGauss;
+        else:
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.cpp_force = _md.PotentialPairLJGaussGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairLJGaussGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'sigma','r0'];
+
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        sigma = coeff['sigma'];
+        r0 = coeff['r0'];
+
+        return _hoomd.make_scalar3(epsilon, sigma*sigma, r0);
