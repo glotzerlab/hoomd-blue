@@ -646,7 +646,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     f.y = rng.template s<Scalar>();
                     if (m_sysdef->getNDimensions() == 2)
                         {
-                        f.z = Scalar(0.0);
+                        f.z = Scalar(0.5);
                         }
                     else
                         {
