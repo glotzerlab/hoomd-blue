@@ -259,23 +259,22 @@ class GPUTree
             }
 
         #ifdef ENABLE_CUDA
-        //! Attach managed memory to CUDA stream
-        void attach_to_stream(cudaStream_t stream) const
+        //! Set CUDA memory hints
+        void set_memory_hint() const
             {
-            // attach managed memory arrays to stream
-            m_center.attach_to_stream(stream);
-            m_lengths.attach_to_stream(stream);
-            m_rotation.attach_to_stream(stream);
-            m_mask.attach_to_stream(stream);
-            m_is_sphere.attach_to_stream(stream);
+            m_center.set_memory_hint();
+            m_lengths.set_memory_hint();
+            m_rotation.set_memory_hint();
+            m_mask.set_memory_hint();
+            m_is_sphere.set_memory_hint();
 
-            m_left.attach_to_stream(stream);
-            m_escape.attach_to_stream(stream);
-            m_ancestors.attach_to_stream(stream);
+            m_left.set_memory_hint();
+            m_escape.set_memory_hint();
+            m_ancestors.set_memory_hint();
 
-            m_leaf_ptr.attach_to_stream(stream);
-            m_leaf_obb_ptr.attach_to_stream(stream);
-            m_particles.attach_to_stream(stream);
+            m_leaf_ptr.set_memory_hint();
+            m_leaf_obb_ptr.set_memory_hint();
+            m_particles.set_memory_hint();
             }
         #endif
 
@@ -283,7 +282,7 @@ class GPUTree
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
          */
-        HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+        DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
             {
             m_center.load_shared(ptr, available_bytes);
             m_lengths.load_shared(ptr, available_bytes);
@@ -298,6 +297,27 @@ class GPUTree
             m_leaf_ptr.load_shared(ptr, available_bytes);
             m_leaf_obb_ptr.load_shared(ptr, available_bytes);
             m_particles.load_shared(ptr, available_bytes);
+            }
+
+        //! Determine size of the shared memory allocation
+        /*! \param ptr Pointer to increment
+            \param available_bytes Size of remaining shared memory allocation
+         */
+        HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
+            {
+            m_center.allocate_shared(ptr, available_bytes);
+            m_lengths.allocate_shared(ptr, available_bytes);
+            m_rotation.allocate_shared(ptr, available_bytes);
+            m_mask.allocate_shared(ptr, available_bytes);
+            m_is_sphere.allocate_shared(ptr, available_bytes);
+
+            m_left.allocate_shared(ptr, available_bytes);
+            m_escape.allocate_shared(ptr, available_bytes);
+            m_ancestors.allocate_shared(ptr, available_bytes);
+
+            m_leaf_ptr.allocate_shared(ptr, available_bytes);
+            m_leaf_obb_ptr.allocate_shared(ptr, available_bytes);
+            m_particles.allocate_shared(ptr, available_bytes);
             }
 
         //! Get the capacity of leaf nodes

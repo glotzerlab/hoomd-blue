@@ -132,7 +132,7 @@ class implicit_test (unittest.TestCase):
         self.mc.set_fugacity('B',nR)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
-        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=1000)
+        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=100)
 
         eta_p_measure = []
         def log_callback(timestep):
@@ -201,7 +201,7 @@ class implicit_test (unittest.TestCase):
         self.mc.set_fugacity('B',nR)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='C')
-        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=1000)
+        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=100)
 
         eta_p_measure = []
         def log_callback(timestep):

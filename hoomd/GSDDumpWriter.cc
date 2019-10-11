@@ -497,7 +497,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
         }
 
         {
-        std::vector<float> data(N*3);
+        std::vector<float> data(uint64_t(N)*3);
         data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
@@ -543,7 +543,7 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
     uint64_t nframes = gsd_get_nframes(&m_handle);
 
         {
-        std::vector<float> data(N*3);
+        std::vector<float> data(uint64_t(N)*3);
         data.reserve(1); //! make sure we allocate
 
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
@@ -565,7 +565,7 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
         }
 
         {
-        std::vector<float> data(N*4);
+        std::vector<float> data(uint64_t(N)*4);
         data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
@@ -613,7 +613,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
     uint64_t nframes = gsd_get_nframes(&m_handle);
 
         {
-        std::vector<float> data(N*3);
+        std::vector<float> data(uint64_t(N)*3);
         data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
@@ -648,7 +648,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
         }
 
         {
-        std::vector<float> data(N*4);
+        std::vector<float> data(uint64_t(N)*4);
         data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
@@ -685,7 +685,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
         }
 
         {
-        std::vector<int32_t> data(N*3);
+        std::vector<int32_t> data(uint64_t(N)*3);
         data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
