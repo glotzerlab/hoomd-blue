@@ -2895,10 +2895,8 @@ class ljgauss(pair):
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{ljgauss}}(r) = \left(\frac{1}{r^{12}} - \frac{2}{r^{6}} - \epsilon e^{- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}}}right)\epsilon_{norm} \\
+        V_{\mathrm{ljgauss}}(r) = \frac{1}{r^{12}} - \frac{2}{r^{6}} - \epsilon e^{- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}}} \\
                            = & 0 & r \ge r_{\mathrm{cut}} \\
-
-        \epsilon_{norm} = \left(\sqrt{2 \pi } \sigma  \epsilon +\frac{12\ 2^{5/6}}{55}\right)^{-1} \\
         \end{eqnarray*}
 
 

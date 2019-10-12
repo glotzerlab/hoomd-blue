@@ -34,7 +34,6 @@
 
     EvaluatorPairLJGauss evaluates the function:
     \f V_{\mathrm{gauss}}(r) = \frac{1}{r^{12}} - \frac{2}{r^{6}} - \epsilon e^{- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}}} \f]
-    This implementation contains a normalization term.
 
     The LJ Gaussian potential does not need diameter or charge. Three parameters are specified and stored in a Scalar3.
     \a epsilon is placed in \a params.x, \a sigma^2 is in \a params.y, and \a r_0 in \a params.z.
@@ -87,7 +86,6 @@ class EvaluatorPairLJGauss
             if (rsq < rcutsq)
                 {
                 const Scalar sqrt_2pi= Scalar(2.0) * M_SQRT2 / M_2_SQRTPI;
-                const Scalar norm_const = Scalar(12) * pow(2.0,5.0/6.0) / 55;
                 Scalar r = fast::sqrt(rsq);
                 Scalar rdiff = r - r0;
                 Scalar rdiff_sigma2 = rdiff / sigma2;
@@ -104,12 +102,6 @@ class EvaluatorPairLJGauss
                     Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
                     pair_eng -= rcut6inv * (rcut6inv - Scalar(2.0)) - (epsilon * fast::exp(-Scalar(1.0)/Scalar(2.0) * (rcutsq - r0) / sigma2));
                     }
-
-                Scalar sigma = fast::sqrt(sigma2);
-                Scalar norm_term=Scalar(1.0)/(norm_const+ sqrt_2pi * epsilon * sigma);
-                force_divr *= norm_term;
-                pair_eng *= norm_term;
-
                 return true;
                 }
             else
