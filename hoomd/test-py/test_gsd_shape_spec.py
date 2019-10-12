@@ -4,8 +4,29 @@ import unittest
 import os
 import tempfile
 import numpy as np
-from hoomd import _hoomd, hpmc, dem, md
+from hoomd import _hoomd
 import json
+
+try:
+    from hoomd import hpmc
+except ImportError:
+    HPMC = False
+else:
+    HPMC = True
+
+try:
+    from hoomd import dem
+except ImportError:
+    DEM = False
+else:
+    DEM = True
+
+try:
+    from hoomd import md
+except ImportError:
+    MD = False
+else:
+    MD = True
 
 HPMC_CLASSES = ['sphere', 'ellipsoid', 'convex_polyhedron', \
                 'convex_spheropolyhedron','polyhedron', \
@@ -76,6 +97,7 @@ class gsd_shape_spec_base(unittest.TestCase):
             os.remove(self.tmp_file);
         comm.barrier_all();
 
+@unittest.skipIf(not HPMC, "hpmc_gsd_shape_spec requires the hpmc module.")
 class hpmc_gsd_shape_spec(gsd_shape_spec_base):
 
     def test_sphere(self):
@@ -167,6 +189,7 @@ class hpmc_gsd_shape_spec(gsd_shape_spec_base):
         self.setup_system(cls=hpmc.integrate.simple_polygon, shape_params=shape_params, \
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=2);
 
+@unittest.skipIf(not DEM, "dem_gsd_shape_spec requires the dem module.")
 class dem_gsd_shape_spec(gsd_shape_spec_base):
 
     def test_wca_2d(self):
@@ -271,6 +294,7 @@ class dem_gsd_shape_spec(gsd_shape_spec_base):
         self.setup_system(cls=dem.pair.SWCA, shape_params=shape_params, \
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=3);
 
+@unittest.skipIf(not MD, "md_gsd_shape_spec requires the md module.")
 class md_gsd_shape_spec(gsd_shape_spec_base):
 
     def test_gay_berne(self):
