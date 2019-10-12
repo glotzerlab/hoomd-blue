@@ -20,6 +20,7 @@ md.pair
     md.pair.gb
     md.pair.lj
     md.pair.lj1208
+    md.pair.ljgauss
     md.pair.mie
     md.pair.morse
     md.pair.moliere
