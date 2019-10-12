@@ -125,6 +125,11 @@ class EvaluatorPairLJGauss
             {
             return std::string("lj_gauss");
             }
+
+        std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not supported for this pair potential.");
+            }
         #endif
 
     protected:
