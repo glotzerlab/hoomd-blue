@@ -31,10 +31,10 @@ class md_gsd_shape_spec(unittest.TestCase):
         if comm.get_rank() == 0:
             snapshot.particles.types = ['A', 'B']
             snapshot.particles.typeid[bindex] = 1
-
         hoomd.context.initialize()
         system = hoomd.init.read_snapshot(snapshot)
-        obj = cls(r_cut=3, nlist=nl)
+        md.integrate.mode_standard(dt=0.001);
+        obj = cls(r_cut=3, nlist=md.nlist.cell())
         obj.pair_coeff.set('A', 'A', **shape_params['A'])
         obj.pair_coeff.set('B', 'B', **shape_params['B'])
         obj.pair_coeff.set('A', 'B', **shape_params['B'])
