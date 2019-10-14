@@ -139,7 +139,7 @@ void mpcd::SorterGPU::applyOrder() const
 void mpcd::detail::export_SorterGPU(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::SorterGPU, std::shared_ptr<mpcd::SorterGPU> >(m, "SorterGPU", py::base<mpcd::Sorter>())
+    py::class_<mpcd::SorterGPU, mpcd::Sorter, std::shared_ptr<mpcd::SorterGPU> >(m, "SorterGPU")
         .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>())
         ;
     }

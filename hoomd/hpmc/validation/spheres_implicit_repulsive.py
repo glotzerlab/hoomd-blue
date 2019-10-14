@@ -21,14 +21,14 @@ import itertools
 params = []
 params = list(itertools.product(seed_list, phi_c_list, eta_p_r_list))
 
-context.msg.notice(1,"{} parameters\n".format(len(params)))
+context.current.device.cpp_msg.notice(1,"{} parameters\n".format(len(params)))
 
 # choose a random state point
 import random
 p = int(option.get_user()[0])
 (seed, phi_c, eta_p_r) = params[p % len(params)]
 
-context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
+context.current.device.cpp_msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
 
 # test the equation of state for the free volume fraction of hard spheres, when simultaneously
 # applying depletion with a positive and negative coefficients so that both cancel
@@ -89,7 +89,7 @@ class depletion_test(unittest.TestCase):
             alpha_measure.append(v)
             self.assertEqual(log.query('hpmc_overlap_count'),0)
 
-#            if comm.get_rank() == 0:
+#            if context.current.device.comm.rank == 0:
 #                print('alpha =', v);
 
         run(4e5,callback=log_callback,callback_period=100)
@@ -99,7 +99,7 @@ class depletion_test(unittest.TestCase):
         alpha_avg = np.mean(np.array(alpha_measure))
         i, alpha_err = block.get_error_estimate()
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print(i)
             (n, num, err, err_err) = block.get_hierarchical_errors()
 
@@ -107,7 +107,7 @@ class depletion_test(unittest.TestCase):
             for (i, num_samples, e, ee) in zip(n, num, err, err_err):
                 print('{0} {1} {2} {3}'.format(i,num_samples,e,ee))
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print('avg: {:.6f} +- {:.6f}'.format(alpha_avg, alpha_err))
             print('tgt: {:.6f} +- {:.6f}'.format(alpha_ref[(phi_c,eta_p_r)][0], alpha_ref[(phi_c,eta_p_r)][1]))
 

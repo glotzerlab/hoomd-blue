@@ -9,6 +9,7 @@ import hoomd.md;
 import hoomd.md.nlist as nl;
 
 from math import sqrt;
+import json;
 
 from hoomd.dem import _dem;
 from hoomd.dem import params;
@@ -19,6 +20,7 @@ class _DEMBase:
         self.nlist = nlist;
         self.nlist.subscribe(self.get_rcut);
         self.nlist.update_rcut();
+        self.cpp_force = None;
 
     def _initialize_types(self):
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
@@ -32,6 +34,13 @@ class _DEMBase:
         else:
             for typ in type_list:
                 self.setParams3D(typ, [[0, 0, 0]], [], False);
+
+    def _connect_gsd_shape_spec(self, gsd):
+        # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_force, "connectDEMGSDShapeSpec"):
+            self.cpp_force.connectDEMGSDShapeSpec(gsd.cpp_analyzer);
+        else:
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
 
     def setParams2D(self, type, vertices, center=False):
         """Set the vertices for a given particle type.
@@ -108,12 +117,14 @@ class _DEMBase:
         This assumes all 3D shapes are convex.
 
         Examples:
-            Types depend on the number of shape vertices and system dimensionality. One vertex will yield a Disk (2D) or Sphere (3D), while multiple vertices will give a Polygon (2D) or ConvexPolyhedron (3D).
+            Types depend on the number of shape vertices and system dimensionality.
+            One vertex will yield a Sphere (2D and 3D), while multiple vertices will
+            give a Polygon (2D) or ConvexPolyhedron (3D).
 
             >>> mc.get_type_shapes()  # one vertex in 3D
             [{'type': 'Sphere', 'diameter': 1.0}]
             >>> mc.get_type_shapes()  # one vertex in 2D
-            [{'type': 'Disk', 'diameter': 1.0}]
+            [{'type': 'Sphere', 'diameter': 1.5}]
             >>> mc.get_type_shapes()  # multiple vertices in 3D
             [{'type': 'ConvexPolyhedron', 'rounding_radius': 0.1,
               'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
@@ -125,31 +136,9 @@ class _DEMBase:
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.vertices[typename]
-            if self.dimensions == 2:
-                if len(shape) < 2:
-                    result.append(dict(type='Disk',
-                                       diameter=2*self.radius))
-                else:
-                    result.append(dict(type='Polygon',
-                                       rounding_radius=self.radius,
-                                       vertices=list(shape)))
-            else:
-                if len(shape) < 2:
-                    result.append(dict(type='Sphere',
-                                       diameter=2*self.radius))
-                else:
-                    result.append(dict(type='ConvexPolyhedron',
-                                       rounding_radius=self.radius,
-                                       vertices=list(shape)))
-
-        return result
+        type_shapes = self.cpp_force.getTypeShapesPy();
+        ret = [ json.loads(json_string) for json_string in type_shapes ];
+        return ret;
 
 class WCA(hoomd.md.force._force, _DEMBase):
     R"""Specify a purely repulsive Weeks-Chandler-Andersen DEM force with a constant rounding radius.
@@ -180,7 +169,6 @@ class WCA(hoomd.md.force._force, _DEMBase):
     """
 
     def __init__(self, nlist, radius=1.):
-        hoomd.util.print_status_line();
         friction = None;
 
         self.radius = radius;
@@ -188,7 +176,7 @@ class WCA(hoomd.md.force._force, _DEMBase):
         self.autotunerPeriod = 100000;
         self.vertices = {};
 
-        self.onGPU = hoomd.context.exec_conf.isCUDAEnabled();
+        self.onGPU = hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled();
         cppForces = {(2, None, 'cpu'): _dem.WCADEM2D,
              (2, None, 'gpu'): (_dem.WCADEM2DGPU if self.onGPU else None),
              (3, None, 'cpu'): _dem.WCADEM3D,
@@ -295,7 +283,6 @@ class SWCA(hoomd.md.force._force, _DEMBase):
 
     """
     def __init__(self, nlist, radius=1., d_max=None):
-        hoomd.util.print_status_line();
         friction = None;
 
         self.radius = radius;
@@ -303,7 +290,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         self.autotunerPeriod = 100000;
         self.vertices = {};
 
-        self.onGPU = hoomd.context.exec_conf.isCUDAEnabled();
+        self.onGPU = hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled();
         cppForces = {(2, None, 'cpu'): _dem.SWCADEM2D,
              (2, None, 'gpu'): (_dem.SWCADEM2DGPU if self.onGPU else None),
              (3, None, 'cpu'): _dem.SWCADEM3D,
@@ -314,7 +301,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         # Error out in MPI simulations
         if (hoomd._hoomd.is_MPI_available()):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("pair.SWCA is not supported in multi-processor simulations.\n\n");
+                hoomd.context.current.device.cpp_msg.error("pair.SWCA is not supported in multi-processor simulations.\n\n");
                 raise RuntimeError("Error setting up pair potential.");
 
         # initialize the base class
@@ -324,7 +311,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         if d_max is None :
             sysdef = hoomd.context.current.system_definition;
             self.d_max = max(x.diameter for x in hoomd.data.particle_data(sysdef.getParticleData()));
-            hoomd.context.msg.notice(2, "Notice: swca set d_max=" + str(self.d_max) + "\n");
+            hoomd.context.current.device.cpp_msg.notice(2, "Notice: swca set d_max=" + str(self.d_max) + "\n");
 
         # interparticle cutoff radius, will be updated as shapes are added
         self.r_cut = 2*2*self.radius*2**(1./6);

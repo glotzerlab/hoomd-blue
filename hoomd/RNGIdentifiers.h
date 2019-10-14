@@ -28,6 +28,7 @@ struct RNGIdentifier
     static const uint32_t HPMCMonoTrialMove = 0x754dea60;
     static const uint32_t HPMCMonoShift = 0xf4a3210e;
     static const uint32_t HPMCDepletants = 0x6b71abc8;
+    static const uint32_t HPMCDepletantNum = 0x89effeba;
     static const uint32_t UpdaterBoxMC= 0xf6a510ab;
     static const uint32_t UpdaterClusters =  0x09365bf5;
     static const uint32_t UpdaterClustersPairwise = 0x50060112;
@@ -54,7 +55,7 @@ struct RNGIdentifier
     static const uint32_t CollisionMethod = 0x5af53be6;
     static const uint32_t SRDCollisionMethod = 0x7b61fda0;
     static const uint32_t SlitGeometryFiller = 0xdb68c12c;
-
+    static const uint32_t SlitPoreGeometryFiller = 0xc7af9094;
     };
 
 }

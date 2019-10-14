@@ -13,7 +13,7 @@
 #endif
 
 #include "hoomd/Updater.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 #include <vector>
 

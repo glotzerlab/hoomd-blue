@@ -17,7 +17,7 @@
 #include "hoomd/extern/gsd.h"
 
 #ifdef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #endif
 
 #ifndef __GSD_INITIALIZER_H__
@@ -84,6 +84,8 @@ class PYBIND11_EXPORT GSDReader
             {
             return m_handle;
             }
+
+        pybind11::list readTypeShapesPy(uint64_t frame);
 
     private:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration

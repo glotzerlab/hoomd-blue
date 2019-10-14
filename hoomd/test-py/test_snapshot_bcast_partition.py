@@ -4,11 +4,8 @@
 from hoomd import *
 import hoomd;
 
-if hoomd._hoomd.is_MPI_available():
-    # initialize with every rank == one partition
-    context.initialize('--nrank=1')
-else:
-    context.initialize('')
+# initialize with every rank == one partition
+context.initialize()  # used to have --nrank=1
 
 import unittest
 import os
@@ -19,7 +16,7 @@ import numpy
 class test_bcast_float (unittest.TestCase):
     def setUp(self):
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
-        if comm.get_partition() == 0:
+        if context.current.device.comm.rank == 0:
             # particles
             self.snapshot.particles.position[0] = [0,1,2];
             self.snapshot.particles.position[1] = [1,2,3];
@@ -163,15 +160,15 @@ class test_bcast_float (unittest.TestCase):
     def tearDown(self):
         if hoomd._hoomd.is_MPI_available():
             # initialize with every rank == one partition
-            context.initialize('--nrank=1')
+            context.initialize()  # used to have --nrank=1
         else:
-            context.initialize('')
+            context.initialize()
 
 # test make_snapshot and read_snapshot in double precision
 class test_bcast_double (unittest.TestCase):
     def setUp(self):
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='double');
-        if comm.get_partition() == 0:
+        if context.current.device.comm.rank == 0:
             # particles
             self.snapshot.particles.position[0] = [0,1,2];
             self.snapshot.particles.position[1] = [1,2,3];
@@ -316,9 +313,9 @@ class test_bcast_double (unittest.TestCase):
     def tearDown(self):
         if hoomd._hoomd.is_MPI_available():
             # initialize with every rank == one partition
-            context.initialize('--nrank=1')
+            context.initialize()  # used to have --nrank=1
         else:
-            context.initialize('')
+            context.initialize()
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

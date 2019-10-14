@@ -13,74 +13,6 @@ import hoomd;
 
 import sys;
 
-def get_num_ranks():
-    """ Get the number of ranks in this partition.
-
-    Returns:
-        The number of MPI ranks in this partition.
-
-    Note:
-        Returns 1 in non-mpi builds.
-    """
-
-    hoomd.context._verify_init();
-    if _hoomd.is_MPI_available():
-        return hoomd.context.mpi_conf.getNRanks();
-    else:
-        return 1;
-
-def get_rank():
-    """ Get the current rank.
-
-    Returns:
-        Index of the current rank in this partition.
-
-    Note:
-        Always returns 0 in non-mpi builds.
-    """
-
-    hoomd.context._verify_init();
-
-    if _hoomd.is_MPI_available():
-        return hoomd.context.mpi_conf.getRank()
-    else:
-        return 0;
-
-def get_partition():
-    """ Get the current partition index.
-
-    Returns:
-        Index of the current partition.
-
-    Note:
-        Always returns 0 in non-mpi builds.
-    """
-    hoomd.context._verify_init();
-
-    if _hoomd.is_MPI_available():
-        return hoomd.context.mpi_conf.getPartition()
-    else:
-        return 0;
-
-def barrier_all():
-    """ Perform a MPI barrier synchronization across the whole MPI run.
-
-    Note:
-        Does nothing in in non-MPI builds.
-    """
-    if _hoomd.is_MPI_available():
-        _hoomd.mpi_barrier_world();
-
-def barrier():
-    """ Perform a MPI barrier synchronization across all ranks in the partition.
-
-    Note:
-        Does nothing in in non-MPI builds.
-    """
-    hoomd.context._verify_init();
-
-    if _hoomd.is_MPI_available():
-        hoomd.context.mpi_conf.barrier()
 
 class decomposition(object):
     """ Set the domain decomposition.
@@ -92,6 +24,8 @@ class decomposition(object):
         nx (int): Number of processors to uniformly space in x dimension (if *x* is None)
         ny (int): Number of processors to uniformly space in y dimension (if *y* is None)
         nz (int): Number of processors to uniformly space in z dimension (if *z* is None)
+        linear (bool): (MPI only) Force a slab (1D) decomposition along the z-direction
+        onelevel (bool): (MPI only) Disable node-local (two-level) domain decomposition
 
     A single domain decomposition is defined for the simulation.
     A standard domain decomposition divides the simulation box into equal volumes along the Cartesian axes while minimizing
@@ -142,21 +76,26 @@ class decomposition(object):
         raised if both are set.
     """
 
-    def __init__(self, x=None, y=None, z=None, nx=None, ny=None, nz=None):
-        hoomd.util.print_status_line()
+    def __init__(self, x=None, y=None, z=None, nx=None, ny=None, nz=None, linear=False, onelevel=False):
 
         # check that the context has been initialized though
-        if hoomd.context.exec_conf is None:
+        if hoomd.context.current is None:
             raise RuntimeError("Cannot initialize decomposition without context.initialize() first")
 
         # check that system is not initialized
         if hoomd.context.current.system is not None:
-            hoomd.context.msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
+            hoomd.context.current.device.cpp_msg.error("comm.decomposition: cannot modify decomposition after system is initialized. Call before init.*\n")
             raise RuntimeError("Cannot create decomposition after system is initialized. Call before init.*")
 
+        # make sure MPI is enabled if any arguments are not None
+        if (x or y or z or nx or ny or nz) and (not _hoomd.is_MPI_available()):
+            raise RuntimeError("the x, y, z, nx, ny, nz options are only available in MPI builds")
+
+        self._onelevel = onelevel  # cache this for later when we can make the cpp object
+
         # check that there are ranks available for decomposition
-        if get_num_ranks() == 1:
-            hoomd.context.msg.warning("Only 1 rank in system, ignoring decomposition to use optimized code pathways.\n")
+        if hoomd.context.current.device.comm.cpp_mpi_conf == 1:
+            hoomd.context.current.device.cpp_msg.warning("Only 1 rank in system, ignoring decomposition to use optimized code pathways.\n")
             return
         else:
             self.x = []
@@ -169,10 +108,9 @@ class decomposition(object):
             self.uniform_y = True
             self.uniform_z = True
 
-            hoomd.util.quiet_status()
             self.set_params(x,y,z,nx,ny,nz)
-            hoomd.util.unquiet_status()
 
+            """
             # do a one time update of the cuts to the global values if a global is set
             if not self.x and self.nx == 0 and hoomd.context.options.nx is not None:
                 self.nx = hoomd.context.options.nx
@@ -181,16 +119,17 @@ class decomposition(object):
                 self.ny = hoomd.context.options.ny
                 self.uniform_y = True
             if not self.z and self.nz == 0:
-                if hoomd.context.options.linear is True:
-                    self.nz = hoomd.context.mpi_conf.getNRanks()
+                if linear:
+                    self.nz = hoomd.context.current.device.cpp_mpi_conf.getNRanks()
                     self.uniform_z = True
                 elif hoomd.context.options.nz is not None:
                     self.nz = hoomd.context.options.nz
                     self.uniform_z = True
+            """
 
             # set the global decomposition to this class
             if hoomd.context.current.decomposition is not None:
-                hoomd.context.msg.warning("comm.decomposition: overriding currently defined domain decomposition\n")
+                hoomd.context.current.device.cpp_msg.warning("comm.decomposition: overriding currently defined domain decomposition\n")
 
             hoomd.context.current.decomposition = self
 
@@ -210,10 +149,9 @@ class decomposition(object):
             decomposition.set_params(x=[0.2])
             decomposition.set_params(nx=1, y=[0.3,0.4], nz=2)
         """
-        hoomd.util.print_status_line()
 
         if (x is not None and nx is not None) or (y is not None and ny is not None) or (z is not None and nz is not None):
-            hoomd.context.msg.error("comm.decomposition: cannot set fractions and number of processors simultaneously\n")
+            hoomd.context.current.device.cpp_msg.error("comm.decomposition: cannot set fractions and number of processors simultaneously\n")
             raise RuntimeError("Cannot set fractions and number of processors simultaneously")
 
         # if x is set, use it. otherwise, if nx is set, compute x and set it
@@ -256,7 +194,7 @@ class decomposition(object):
     def _make_cpp_decomposition(self, box):
         # if the box is uniform in all directions, just use these values
         if self.uniform_x and self.uniform_y and self.uniform_z:
-            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.exec_conf, box.getL(), self.nx, self.ny, self.nz, not hoomd.context.options.onelevel)
+            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.current.device.cpp_exec_conf, box.getL(), self.nx, self.ny, self.nz, not self._onelevel)
             return self.cpp_dd
 
         # otherwise, make the fractional decomposition
@@ -277,37 +215,167 @@ class decomposition(object):
             tol = 1.0e-5
             for i in self.x:
                 if i <= -tol or i >= 1.0 - tol:
-                    hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                    hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                     raise RuntimeError("Fractional decomposition must be between 0.0 and 1.0")
                 fxs.append(i)
                 sum_x += i
             if sum_x >= 1.0 - tol or sum_x <= -tol:
-                hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                 raise RuntimeError("Sum of decomposition in x must lie between 0.0 and 1.0")
 
             for i in self.y:
                 if i <= -tol or i >= 1.0 - tol:
-                    hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                    hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                     raise RuntimeError("Fractional decomposition must be between 0.0 and 1.0")
                 fys.append(i)
                 sum_y += i
             if sum_y >= 1.0 - tol or sum_y <= -tol:
-                hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                 raise RuntimeError("Sum of decomposition in y must lie between 0.0 and 1.0")
 
             for i in self.z:
                 if i <= -tol or i >= 1.0 - tol:
-                    hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                    hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                     raise RuntimeError("Fractional decomposition must be between 0.0 and 1.0")
                 fzs.append(i)
                 sum_z += i
             if sum_z >= 1.0 - tol or sum_z <= -tol:
-                hoomd.context.msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
+                hoomd.context.current.device.cpp_msg.error("comm.decomposition: fraction must be between 0.0 and 1.0\n")
                 raise RuntimeError("Sum of decomposition in z must lie between 0.0 and 1.0")
 
-            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.exec_conf, box.getL(), fxs, fys, fzs)
+            self.cpp_dd = _hoomd.DomainDecomposition(hoomd.context.current.device.cpp_exec_conf, box.getL(), fxs, fys, fzs)
             return self.cpp_dd
 
         except TypeError as te:
-            hoomd.context.msg.error("Fractional cuts must be iterable (list, tuple, etc.)\n")
+            hoomd.context.current.device.cpp_msg.error("Fractional cuts must be iterable (list, tuple, etc.)\n")
             raise te
+
+class Communicator(object):
+    """
+    MPI communicator
+
+    Args:
+        mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
+                where you communicate between those simulations using your own mpi4py code.
+        nrank (int): (MPI) Number of ranks to include in a partition
+    """
+
+    def __init__(self, mpi_comm=None, nrank=None):
+
+        # check nrank
+        if nrank is not None:
+            if not _hoomd.is_MPI_available():
+                raise RuntimeError("The nrank option is only available in MPI builds.\n")
+
+        mpi_available = _hoomd.is_MPI_available();
+
+        self.cpp_mpi_conf = None
+
+        # create the specified configuration
+        if mpi_comm is None:
+            self.cpp_mpi_conf = _hoomd.MPIConfiguration();
+        else:
+            if not mpi_available:
+                raise RuntimeError("mpi_comm is not supported in serial builds");
+
+            handled = False;
+
+            # pass in pointer to MPI_Comm object provided by mpi4py
+            try:
+                import mpi4py
+                if isinstance(mpi_comm, mpi4py.MPI.Comm):
+                    addr = mpi4py.MPI._addressof(mpi_comm);
+                    self.cpp_mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(addr);
+                    handled = True
+            except ImportError:
+                # silently ignore when mpi4py is missing
+                pass
+
+            # undocumented case: handle plain integers as pointers to MPI_Comm objects
+            if not handled and isinstance(mpi_comm, int):
+                self.cpp_mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(mpi_comm);
+                handled = True
+
+            if not handled:
+                raise RuntimeError("Invalid mpi_comm object: {}".format(mpi_comm));
+
+        if nrank is not None:
+            # check validity
+            if (self.cpp_mpi_conf.getNRanksGlobal() % nrank):
+                raise RuntimeError('Total number of ranks is not a multiple of --nrank');
+
+            # split the communicator into partitions
+            self.cpp_mpi_conf.splitPartitions(nrank)
+
+    @property
+    def num_ranks(self):
+        """ Get the number of ranks in this partition.
+
+        Returns:
+            The number of MPI ranks in this partition.
+
+        Note:
+            Returns 1 in non-mpi builds.
+        """
+
+        hoomd.context._verify_init();
+        if _hoomd.is_MPI_available():
+            return self.cpp_mpi_conf.getNRanks();
+        else:
+            return 1;
+
+    @property
+    def rank(self):
+        """ Get the current rank.
+
+        Returns:
+            Index of the current rank in this partition.
+
+        Note:
+            Always returns 0 in non-mpi builds.
+        """
+
+        hoomd.context._verify_init();
+
+        if _hoomd.is_MPI_available():
+            return self.cpp_mpi_conf.getRank()
+        else:
+            return 0;
+
+    @property
+    def partition(self):
+        """ Get the current partition index.
+
+        Returns:
+            Index of the current partition.
+
+        Note:
+            Always returns 0 in non-mpi builds.
+        """
+        hoomd.context._verify_init();
+
+        if _hoomd.is_MPI_available():
+            return self.cpp_mpi_conf.getPartition()
+        else:
+            return 0;
+
+    def barrier_all(self):
+        """ Perform a MPI barrier synchronization across the whole MPI run.
+
+        Note:
+            Does nothing in in non-MPI builds.
+        """
+        if _hoomd.is_MPI_available():
+            _hoomd.mpi_barrier_world();
+
+    def barrier(self):
+        """ Perform a MPI barrier synchronization across all ranks in the partition.
+
+        Note:
+            Does nothing in in non-MPI builds.
+        """
+        hoomd.context._verify_init();
+
+        if _hoomd.is_MPI_available():
+            self.cpp_mpi_conf.barrier()
+

@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <hoomd/extern/pybind/include/pybind11/iostream.h>
+#include <pybind11/iostream.h>
 #include <sstream>
 #include <assert.h>
 using namespace std;
@@ -151,14 +151,10 @@ Messenger& Messenger::operator=(Messenger& msg)
 
 Messenger::~Messenger()
     {
-    // set pointers to NULL
-    m_err_stream = NULL;
-    m_warning_stream = NULL;
-    m_notice_stream = NULL;
-
-    #ifdef ENABLE_MPI
-    releaseSharedMem();
-    #endif
+    if (! m_is_closed)
+        {
+        close();
+        }
     }
 
 /*! \returns The error stream for use in printing error messages
@@ -464,6 +460,22 @@ void Messenger::releaseSharedMem()
 
 #endif
 
+void Messenger::close()
+    {
+    // set pointers to NULL
+    m_err_stream = NULL;
+    m_warning_stream = NULL;
+    m_notice_stream = NULL;
+
+    #ifdef ENABLE_MPI
+    releaseSharedMem();
+    #endif
+
+    m_is_closed = true;
+
+    openStd();
+    }
+
 void export_Messenger(py::module& m)
     {
     py::class_<Messenger, std::shared_ptr<Messenger> >(m,"Messenger")
@@ -481,6 +493,7 @@ void export_Messenger(py::module& m)
         .def("setWarningPrefix", &Messenger::setWarningPrefix)
         .def("openFile", &Messenger::openFile)
         .def("openPython", &Messenger::openPython)
+        .def("close", &Messenger::close)
 #ifdef ENABLE_MPI
         .def("setSharedFile", &Messenger::setSharedFile)
 #endif

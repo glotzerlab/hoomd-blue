@@ -92,7 +92,7 @@ void MuellerPlatheFlowGPU::update_min_max_velocity(void)
 
 void export_MuellerPlatheFlowGPU(py::module&m)
     {
-    py::class_< MuellerPlatheFlowGPU, std::shared_ptr<MuellerPlatheFlowGPU> >(m,"MuellerPlatheFlowGPU",py::base<MuellerPlatheFlow>())
+    py::class_< MuellerPlatheFlowGPU, MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlowGPU> >(m,"MuellerPlatheFlowGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
              std::shared_ptr<Variant>, const flow_enum::Direction,const flow_enum::Direction,
              const unsigned int, const unsigned int, const unsigned int >())

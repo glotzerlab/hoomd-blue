@@ -9,11 +9,13 @@ import math
 # this script needs to be run on two ranks
 
 # initialize with one rank per partitions
-context.initialize(args="--nrank=1")
+comm = comm.Communicator(nrank=1)
+d = device.CPU(communicator=comm)
+context.initialize(device=d)
 
 class gibbs_ensemble_test(unittest.TestCase):
     def setUp(self):
-        p = comm.get_partition()
+        p = context.current.device.comm.partition
         phi=0.2
         a = (1/6*math.pi / phi)**(1/3)
 
@@ -24,17 +26,12 @@ class gibbs_ensemble_test(unittest.TestCase):
         self.mc = hpmc.integrate.sphere(seed=123+p)
         self.mc.set_params(d=0.1)
 
-    def tearDown(self):
-        del self.mc
-        del self.system
-        context.initialize()
-
     def test_spheres(self):
         # within two-phase region of hard spheres phase diagram
         q=0.8
         etap=0.7
         ntrial = 20
-        p = comm.get_partition()
+        p = context.current.device.comm.partition
 
         nR = etap/(math.pi/6.0*math.pow(q,3.0))
         self.mc.set_fugacity('B',nR)

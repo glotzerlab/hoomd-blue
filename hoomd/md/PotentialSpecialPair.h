@@ -15,7 +15,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __POTENTIALSPECIAL_PAIR_H__
 #define __POTENTIALSPECIAL_PAIR_H__
@@ -335,7 +335,7 @@ CommFlags PotentialSpecialPair< evaluator >::getRequestedCommFlags(unsigned int 
 */
 template < class T > void export_PotentialSpecialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(),pybind11::base<ForceCompute>())
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
         .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& > ())
         .def("setParams", &T::setParams)
         ;

@@ -19,7 +19,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Integrates part of the system forward in two steps in the NVT ensemble
 /*! Implements Martyna-Tobias-Klein (MTK) NVT integration through the IntegrationMethodTwoStep interface

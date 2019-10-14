@@ -16,8 +16,8 @@
 #define __OBB_H__
 
 #ifndef NVCC
-#include "hoomd/extern/Eigen/Eigen/Dense"
-#include "hoomd/extern/Eigen/Eigen/Eigenvalues"
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 
 #include "hoomd/extern/quickhull/QuickHull.hpp"
 

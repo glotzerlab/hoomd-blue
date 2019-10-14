@@ -35,7 +35,8 @@ Although a streaming geometry is enforced on the MPCD solvent particles, there a
 a few important caveats:
 
     1. Embedded particles are not coupled to the boundary walls. They must be confined
-       by an appropriate method, e.g., an external potential or an explicit particle wall.
+       by an appropriate method, e.g., an external potential, an explicit particle wall,
+       or a bounce-back method (see :py:mod:`.mpcd.integrate`).
     2. The confined geometry exists inside a fully periodic simulation box. Hence, the
        box must be padded large enough that the MPCD cells do not interact through the
        periodic boundary. Usually, this means adding at least one extra layer of cells
@@ -66,17 +67,16 @@ class _streaming_method(hoomd.meta._metadata):
     def __init__(self, period):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("mpcd.stream: system must be initialized before streaming method\n")
-            raise RuntimeError('System not initialized')
+            raise RuntimeError('mpcd.stream: system must be initialized before streaming method\n')
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
-            hoomd.context.msg.error('mpcd.stream: an MPCD system must be initialized before the streaming method\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.stream: an MPCD system must be initialized before the streaming method\n')
             raise RuntimeError('MPCD system not initialized')
 
         # check for multiple collision rule initializations
         if hoomd.context.current.mpcd._stream is not None:
-            hoomd.context.msg.error('mpcd.stream: only one streaming method can be created.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.stream: only one streaming method can be created.\n')
             raise RuntimeError('Multiple initialization of streaming method')
 
         hoomd.meta._metadata.__init__(self)
@@ -89,9 +89,7 @@ class _streaming_method(hoomd.meta._metadata):
         self._filler = None
 
         # attach the streaming method to the system
-        hoomd.util.quiet_status()
         self.enable()
-        hoomd.util.unquiet_status()
 
     def enable(self):
         """ Enable the streaming method
@@ -107,7 +105,6 @@ class _streaming_method(hoomd.meta._metadata):
         multiple of *period*.
 
         """
-        hoomd.util.print_status_line()
 
         self.enabled = True
         hoomd.context.current.mpcd._stream = self
@@ -124,7 +121,6 @@ class _streaming_method(hoomd.meta._metadata):
         use this method to remove the current streaming method before adding another.
 
         """
-        hoomd.util.print_status_line()
 
         self.enabled = False
         hoomd.context.current.mpcd._stream = None
@@ -151,11 +147,10 @@ class _streaming_method(hoomd.meta._metadata):
             hoomd.set_period(period=4)
 
         """
-        hoomd.util.print_status_line()
 
         cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
         if cur_tstep % self.period != 0 or cur_tstep % period != 0:
-            hoomd.context.msg.error('mpcd.stream: streaming period can only be changed on multiple of current and new period.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.stream: streaming period can only be changed on multiple of current and new period.\n')
             raise RuntimeError('Streaming period can only be changed on multiple of current and new period')
 
         self._cpp.setPeriod(cur_tstep, period)
@@ -183,7 +178,6 @@ class _streaming_method(hoomd.meta._metadata):
             streamer.set_force(f)
 
         """
-        hoomd.util.print_status_line()
         self.force = force
         self._cpp.setField(self.force._cpp)
 
@@ -199,7 +193,6 @@ class _streaming_method(hoomd.meta._metadata):
             streamer.remove_force()
 
         """
-        hoomd.util.print_status_line()
         self.force = None
         self._cpp.removeField()
 
@@ -222,7 +215,7 @@ class _streaming_method(hoomd.meta._metadata):
         elif bc == "slip":
             return _mpcd.boundary.slip
         else:
-            hoomd.context.msg.error("mpcd.stream: boundary condition " + bc + " not recognized.\n")
+            hoomd.context.current.device.cpp_msg.error("mpcd.stream: boundary condition " + bc + " not recognized.\n")
             raise ValueError("Unrecognized streaming boundary condition")
             return None
 
@@ -257,12 +250,11 @@ class bulk(_streaming_method):
 
     """
     def __init__(self, period=1):
-        hoomd.util.print_status_line()
 
         _streaming_method.__init__(self, period)
 
         # create the base streaming class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             stream_class = _mpcd.ConfinedStreamingMethodBulk
         else:
             stream_class = _mpcd.ConfinedStreamingMethodGPUBulk
@@ -300,7 +292,6 @@ class slit(_streaming_method):
 
     """
     def __init__(self, H, V=0.0, boundary="no_slip", period=1):
-        hoomd.util.print_status_line()
 
         _streaming_method.__init__(self, period)
 
@@ -312,7 +303,7 @@ class slit(_streaming_method):
         bc = self._process_boundary(boundary)
 
         # create the base streaming class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             stream_class = _mpcd.ConfinedStreamingMethodSlit
         else:
             stream_class = _mpcd.ConfinedStreamingMethodGPUSlit
@@ -349,13 +340,12 @@ class slit(_streaming_method):
         .. versionadded:: 2.6
 
         """
-        hoomd.util.print_status_line()
 
         type_id = hoomd.context.current.mpcd.particles.getTypeByName(type)
         T = hoomd.variant._setup_variant_input(kT)
 
         if self._filler is None:
-            if not hoomd.context.exec_conf.isCUDAEnabled():
+            if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
                 fill_class = _mpcd.SlitGeometryFiller
             else:
                 fill_class = _mpcd.SlitGeometryFillerGPU
@@ -381,7 +371,6 @@ class slit(_streaming_method):
         .. versionadded:: 2.6
 
         """
-        hoomd.util.print_status_line()
 
         self._filler = None
 
@@ -404,7 +393,6 @@ class slit(_streaming_method):
         .. versionadded:: 2.6
 
         """
-        hoomd.util.print_status_line()
 
         if H is not None:
             self.H = H
@@ -417,5 +405,146 @@ class slit(_streaming_method):
 
         bc = self._process_boundary(self.boundary)
         self._cpp.geometry = _mpcd.SlitGeometry(self.H,self.V,bc)
+        if self._filler is not None:
+            self._filler.setGeometry(self._cpp.geometry)
+
+class slit_pore(_streaming_method):
+    r""" Parallel plate (slit) pore streaming geometry.
+
+    Args:
+        H (float): channel half-width
+        L (float): pore half-length
+        boundary (str): boundary condition at wall ("slip" or "no_slip"")
+        period (int): Number of integration steps between collisions
+
+    The slit pore geometry represents a fluid partially confined between two
+    parallel plates that have finite length in *x*. The slit pore is centered
+    around the origin, and the walls are placed at :math:`z=-H` and
+    :math:`z=+H`, so the total channel width is *2H*. They extend from
+    :math:`x=-L` to :math:`x=+L` (total length *2L*), where additional solid walls
+    with normals in *x* prevent penetration into the regions above / below the
+    plates. The plates are infinite in *y*. Outside the pore, the simulation box
+    has full periodic boundaries; it is not confined by any walls. This model
+    hence mimics a narrow pore in, e.g., a membrane.
+
+    .. image:: mpcd_slit_pore.png
+
+    The "inside" of the :py:class:`slit_pore` is the space where
+    :math:`|z| < H` for :math:`|x| < L`, and the entire space where
+    :math:`|x| \ge L`.
+
+    Examples::
+
+        stream.slit_pore(period=10, H=30., L=10.)
+        stream.slit_pore(period=1, H=25., L=25.)
+
+    .. versionadded:: 2.7
+
+    """
+    def __init__(self, H, L, boundary="no_slip", period=1):
+        _streaming_method.__init__(self, period)
+
+        self.metadata_fields += ['H','L','boundary']
+        self.H = H
+        self.L = L
+        self.boundary = boundary
+
+        bc = self._process_boundary(boundary)
+
+        # create the base streaming class
+        if not hoomd.context.current.device.mode == 'gpu':
+            stream_class = _mpcd.ConfinedStreamingMethodSlitPore
+        else:
+            stream_class = _mpcd.ConfinedStreamingMethodGPUSlitPore
+        self._cpp = stream_class(hoomd.context.current.mpcd.data,
+                                 hoomd.context.current.system.getCurrentTimeStep(),
+                                 self.period,
+                                 0,
+                                 _mpcd.SlitPoreGeometry(H,L,bc))
+
+    def set_filler(self, density, kT, seed, type='A'):
+        r""" Add virtual particles to slit pore.
+
+        Args:
+            density (float): Density of virtual particles.
+            kT (float): Temperature of virtual particles.
+            seed (int): Seed to pseudo-random number generator for virtual particles.
+            type (str): Type of the MPCD particles to fill with.
+
+        The virtual particle filler draws particles within the volume *outside* the
+        slit pore boundaries that could be overlapped by any cell that is partially *inside*
+        the slit pore. The particles are drawn from the velocity distribution consistent
+        with *kT* and with the given *density*. The mean of the distribution is zero in
+        *x*, *y*, and *z*. Typically, the virtual particle density and temperature are set
+        to the same conditions as the solvent.
+
+        The virtual particles will act as a weak thermostat on the fluid, and so energy
+        is no longer conserved. Momentum will also be sunk into the walls.
+
+        Example::
+
+            slit_pore.set_filler(density=5.0, kT=1.0, seed=42)
+
+        """
+        type_id = hoomd.context.current.mpcd.particles.getTypeByName(type)
+        T = hoomd.variant._setup_variant_input(kT)
+
+        if self._filler is None:
+            if not hoomd.context.current.device.mode == 'gpu':
+                fill_class = _mpcd.SlitPoreGeometryFiller
+            else:
+                fill_class = _mpcd.SlitPoreGeometryFillerGPU
+            self._filler = fill_class(hoomd.context.current.mpcd.data,
+                                      density,
+                                      type_id,
+                                      T.cpp_variant,
+                                      seed,
+                                      self._cpp.geometry)
+        else:
+            self._filler.setDensity(density)
+            self._filler.setType(type_id)
+            self._filler.setTemperature(T.cpp_variant)
+            self._filler.setSeed(seed)
+
+    def remove_filler(self):
+        """ Remove the virtual particle filler.
+
+        Example::
+
+            slit_pore.remove_filler()
+
+        """
+
+        self._filler = None
+
+    def set_params(self, H=None, L=None, boundary=None):
+        """ Set parameters for the slit geometry.
+
+        Args:
+            H (float): channel half-width
+            L (float): pore half-length
+            boundary (str): boundary condition at wall ("slip" or "no_slip"")
+
+        Changing any of these parameters will require the geometry to be
+        constructed and validated, so do not change these too often.
+
+        Examples::
+
+            slit_pore.set_params(H=15.0)
+            slit_pore.set_params(L=10.0, boundary="no_slip")
+
+        """
+
+        if H is not None:
+            self.H = H
+
+        if L is not None:
+            self.L = L
+
+        if boundary is not None:
+            self.boundary = boundary
+
+        bc = self._process_boundary(self.boundary)
+        self._cpp.geometry = _mpcd.SlitPoreGeometry(self.H,self.L,bc)
         if self._filler is not None:
             self._filler.setGeometry(self._cpp.geometry)

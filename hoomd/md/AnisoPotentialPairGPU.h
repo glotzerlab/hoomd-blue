@@ -22,7 +22,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Template class for computing anisotropic pair potentials on the GPU
 /*! Derived from AnisoPotentialPair, this class provides exactly the same interface for computing anisotropic
@@ -160,6 +160,10 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
+    // On the first iteration, shape parameters are updated. For optimization,
+    // could track this between calls to avoid extra copying.
+    bool first = true;
+
     gpu_cgpf(a_pair_args_t(d_force.data,
                            d_torque.data,
                            d_virial.data,
@@ -180,7 +184,10 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
                            this->m_shift_mode,
                            flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
                            threads_per_particle,
-                           this->m_pdata->getGPUPartition()),
+                           this->m_pdata->getGPUPartition(),
+                           this->m_exec_conf->dev_prop,
+                           first
+                           ),
              d_params.data);
     if (!m_param) this->m_tuner->end();
 
@@ -199,7 +206,7 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
 */
 template < class T, class Base > void export_AnisoPotentialPairGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
+     pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
             .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
             .def("setTuningParam",&T::setTuningParam)
               ;

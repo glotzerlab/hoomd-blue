@@ -25,7 +25,7 @@
 #include "hoomd/GPUVector.h"
 #include "hoomd/SystemDefinition.h"
 
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {

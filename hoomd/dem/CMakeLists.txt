@@ -39,10 +39,9 @@ endif(ENABLE_CUDA)
 
 if (ENABLE_CUDA)
 set(_cuda_sources ${_dem_cu_sources})
-set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
-pybind11_add_module(_dem SHARED ${_dem_sources} ${_cuda_sources} NO_EXTRAS)
+pybind11_add_module(_dem SHARED ${_dem_sources} ${_cuda_sources} ${_dem_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_dem ALIAS _dem)
 

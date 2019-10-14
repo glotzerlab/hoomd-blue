@@ -946,36 +946,36 @@ void export_ParticleGroup(py::module& m)
             .def("getSelectedTags", &ParticleSelector::getSelectedTags)
             ;
 
-    py::class_<ParticleSelectorAll, std::shared_ptr<ParticleSelectorAll> >(m,"ParticleSelectorAll",py::base<ParticleSelector>())
+    py::class_<ParticleSelectorAll, ParticleSelector, std::shared_ptr<ParticleSelectorAll> >(m,"ParticleSelectorAll")
             .def(py::init< std::shared_ptr<SystemDefinition> >())
         ;
 
-    py::class_<ParticleSelectorTag, std::shared_ptr<ParticleSelectorTag> >(m,"ParticleSelectorTag",py::base<ParticleSelector>())
+    py::class_<ParticleSelectorTag, ParticleSelector, std::shared_ptr<ParticleSelectorTag> >(m,"ParticleSelectorTag")
             .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
         ;
 
-    py::class_<ParticleSelectorType, std::shared_ptr<ParticleSelectorType> >(m,"ParticleSelectorType",py::base<ParticleSelector>())
+    py::class_<ParticleSelectorType, ParticleSelector, std::shared_ptr<ParticleSelectorType> >(m,"ParticleSelectorType")
             .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
         ;
 
-    py::class_<ParticleSelectorRigid, std::shared_ptr<ParticleSelectorRigid> >(m,"ParticleSelectorRigid",py::base<ParticleSelector>())
+    py::class_<ParticleSelectorRigid, ParticleSelector, std::shared_ptr<ParticleSelectorRigid> >(m,"ParticleSelectorRigid")
             .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
         ;
 
-    py::class_<ParticleSelectorBody, std::shared_ptr<ParticleSelectorBody> >(m,"ParticleSelectorBody",py::base<ParticleSelector>())
+    py::class_<ParticleSelectorBody, ParticleSelector, std::shared_ptr<ParticleSelectorBody> >(m,"ParticleSelectorBody")
 
             .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
         ;
 
-    py::class_<ParticleSelectorFloppy, std::shared_ptr<ParticleSelectorFloppy> >(m,"ParticleSelectorFloppy",py::base<ParticleSelector>())
+    py::class_<ParticleSelectorFloppy, ParticleSelector, std::shared_ptr<ParticleSelectorFloppy> >(m,"ParticleSelectorFloppy")
             .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
         ;
 
-    py::class_<ParticleSelectorCuboid, std::shared_ptr<ParticleSelectorCuboid> >(m,"ParticleSelectorCuboid",py::base<ParticleSelector>())
+    py::class_<ParticleSelectorCuboid, ParticleSelector, std::shared_ptr<ParticleSelectorCuboid> >(m,"ParticleSelectorCuboid")
             .def(py::init< std::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
         ;
 
-    py::class_<ParticleSelectorRigidCenter, std::shared_ptr<ParticleSelectorRigidCenter> >(m,"ParticleSelectorRigidCenter",py::base<ParticleSelector>())
+    py::class_<ParticleSelectorRigidCenter, ParticleSelector, std::shared_ptr<ParticleSelectorRigidCenter> >(m,"ParticleSelectorRigidCenter")
             .def(py::init< std::shared_ptr<SystemDefinition> >())
         ;
     }

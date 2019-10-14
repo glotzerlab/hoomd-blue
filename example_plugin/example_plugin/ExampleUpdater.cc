@@ -47,7 +47,7 @@ void ExampleUpdater::update(unsigned int timestep)
  */
 void export_ExampleUpdater(pybind11::module& m)
     {
-    pybind11::class_<ExampleUpdater, std::shared_ptr<ExampleUpdater> >(m, "ExampleUpdater", pybind11::base<Updater>())
+    pybind11::class_<ExampleUpdater, Updater, std::shared_ptr<ExampleUpdater> >(m, "ExampleUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition> >())
     ;
     }
@@ -89,7 +89,7 @@ void ExampleUpdaterGPU::update(unsigned int timestep)
  */
 void export_ExampleUpdaterGPU(pybind11::module& m)
     {
-    pybind11::class_<ExampleUpdaterGPU, std::shared_ptr<ExampleUpdaterGPU> >(m, "ExampleUpdaterGPU", pybind11::base<ExampleUpdater>())
+    pybind11::class_<ExampleUpdaterGPU, ExampleUpdater, std::shared_ptr<ExampleUpdaterGPU> >(m, "ExampleUpdaterGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition> >())
     ;
     }

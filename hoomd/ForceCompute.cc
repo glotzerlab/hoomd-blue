@@ -238,6 +238,32 @@ vec3<double> ForceCompute::calcForceGroup(std::shared_ptr<ParticleGroup> group)
     return vec3<double>(f_total);
     }
 
+/*! Sums the virial contributions of a particle group calculated by the last call to compute() and returns it.
+*/
+std::vector<Scalar> ForceCompute::calcVirialGroup(std::shared_ptr<ParticleGroup> group)
+    {
+    const unsigned int group_size = group->getNumMembers();
+    const ArrayHandle<Scalar> h_virial(m_virial,access_location::host,access_mode::read);
+
+    std::vector<Scalar> total_virial(6,0.);
+
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        const unsigned int j = group->getMemberIndex(group_idx);
+
+        for(int i=0; i < 6; i++)
+            total_virial[i] += h_virial.data[m_virial_pitch*i +  j];
+        }
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // reduce potential energy on all processors
+        MPI_Allreduce(MPI_IN_PLACE, total_virial.data(), 6, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+#endif
+    return total_virial;
+
+    }
 
 
 /*! Performs the force computation.
@@ -272,7 +298,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
 #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -284,7 +310,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
 
 #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
@@ -387,7 +413,7 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
 
 void export_ForceCompute(py::module& m)
     {
-    py::class_< ForceCompute, std::shared_ptr<ForceCompute> >(m,"ForceCompute",py::base<Compute>())
+    py::class_< ForceCompute, Compute, std::shared_ptr<ForceCompute> >(m,"ForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("getForce", &ForceCompute::getForce)
     .def("getTorque", &ForceCompute::getTorque)
@@ -395,5 +421,6 @@ void export_ForceCompute(py::module& m)
     .def("getEnergy", &ForceCompute::getEnergy)
     .def("calcEnergyGroup", &ForceCompute::calcEnergyGroup)
     .def("calcForceGroup", &ForceCompute::calcForceGroup)
+    .def("calcVirialGroup", &ForceCompute::calcVirialGroup)
     ;
     }

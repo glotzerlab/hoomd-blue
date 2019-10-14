@@ -5,6 +5,18 @@ option (ENABLE_MPI "Enable the compilation of the MPI communication code" off)
 if (ENABLE_MPI)
     # the package is needed
     find_package(MPI REQUIRED)
+    find_package(cereal CONFIG)
+    if (cereal_FOUND)
+        find_package_message(cereal "Found cereal: ${cereal_DIR}" "[${cereal_DIR}]")
+    else()
+        # work around missing ceralConfig.cmake
+
+        find_path(cereal_INCLUDE_DIR NAMES cereal/cereal.hpp
+            PATHS ${CMAKE_INSTALL_PREFIX}/include)
+        add_library(cereal INTERFACE IMPORTED)
+        set_target_properties(cereal PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${cereal_INCLUDE_DIR}")
+        find_package_message(cereal "Could not find cereal, assuming it is on a default path" "[${cereal_INCLUDE_DIR}]")
+    endif()
 
     mark_as_advanced(MPI_EXTRA_LIBRARY)
     mark_as_advanced(MPI_LIBRARY)

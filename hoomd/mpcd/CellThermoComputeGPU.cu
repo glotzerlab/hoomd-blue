@@ -789,7 +789,8 @@ cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element *d_reduced,
     }
 
 //! Explicit template instantiation of pack for cell velocity
-template cudaError_t pack_cell_buffer(typename mpcd::detail::CellVelocityPackOp::element *d_send_buf,
+template cudaError_t __attribute__((visibility("default")))
+pack_cell_buffer(typename mpcd::detail::CellVelocityPackOp::element *d_send_buf,
                                       const double4 *d_props,
                                       const unsigned int *d_send_idx,
                                       const mpcd::detail::CellVelocityPackOp op,
@@ -797,7 +798,8 @@ template cudaError_t pack_cell_buffer(typename mpcd::detail::CellVelocityPackOp:
                                       unsigned int block_size);
 
 //! Explicit template instantiation of pack for cell energy
-template cudaError_t pack_cell_buffer(typename mpcd::detail::CellEnergyPackOp::element *d_send_buf,
+template cudaError_t __attribute__((visibility("default")))
+pack_cell_buffer(typename mpcd::detail::CellEnergyPackOp::element *d_send_buf,
                                       const double3 *d_props,
                                       const unsigned int *d_send_idx,
                                       const mpcd::detail::CellEnergyPackOp op,
@@ -805,7 +807,8 @@ template cudaError_t pack_cell_buffer(typename mpcd::detail::CellEnergyPackOp::e
                                       unsigned int block_size);
 
 //! Explicit template instantiation of unpack for cell velocity
-template cudaError_t unpack_cell_buffer(double4 *d_props,
+template cudaError_t __attribute__((visibility("default")))
+unpack_cell_buffer(double4 *d_props,
                                         const unsigned int *d_cells,
                                         const unsigned int *d_recv,
                                         const unsigned int *d_recv_begin,
@@ -816,7 +819,8 @@ template cudaError_t unpack_cell_buffer(double4 *d_props,
                                         const unsigned int block_size);
 
 //! Explicit template instantiation of unpack for cell energy
-template cudaError_t unpack_cell_buffer(double3 *d_props,
+template cudaError_t __attribute__((visibility("default")))
+unpack_cell_buffer(double3 *d_props,
                                         const unsigned int *d_cells,
                                         const unsigned int *d_recv,
                                         const unsigned int *d_recv_begin,

@@ -26,7 +26,7 @@
 #endif // ENABLE_MPI
 
 #include "hoomd/md/IntegratorTwoStep.h"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {

@@ -106,6 +106,7 @@ SET(EXCLUDE_FROM_MPI
     test_meta_md
     test_minimize_fire
     test_constrain_floppy
+    test_pppm_pressure
     )
 
 if (ENABLE_MPI)

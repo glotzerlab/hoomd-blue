@@ -5,11 +5,6 @@ if (ENABLE_HPMC_SPHINX_GPU)
     add_definitions(-DENABLE_SPHINX_GPU)
 endif()
 
-option(ENABLE_HPMC_REINSERT "Enable ntrial>0 with depletant_mode='circumsphere' on the GPU" OFF)
-if (ENABLE_HPMC_REINSERT)
-    add_definitions(-DENABLE_HPMC_REINSERT)
-endif()
-
 set(_hpmc_sources   module.cc
                     module_external_field.cc
                     module_sphere.cc
@@ -97,10 +92,9 @@ set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
 
 if (ENABLE_CUDA)
 set(_cuda_sources ${_hpmc_cu_sources})
-set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
-pybind11_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} NO_EXTRAS)
+pybind11_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} ${_hpmc_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hpmc ALIAS _hpmc)
 

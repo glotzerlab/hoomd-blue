@@ -14,12 +14,13 @@
 #include <memory>
 
 #include "MPIConfiguration.h"
+#include "HOOMDMPI.h"
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __MESSENGER_H__
 #define __MESSENGER_H__
@@ -140,7 +141,13 @@ class PYBIND11_EXPORT Messenger
         */
         unsigned int getNoticeLevel() const
             {
-            return m_notice_level;
+            unsigned int level = m_notice_level;
+
+            #ifdef ENABLE_MPI
+            bcast(level, 0, m_mpi_config->getCommunicator());
+            #endif
+
+            return level;
             }
 
         //! Set the notice level
@@ -276,6 +283,8 @@ class PYBIND11_EXPORT Messenger
         //! Open stdout and stderr again, closing any open file
         void openStd();
 
+        void close();
+
     private:
         std::shared_ptr<MPIConfiguration> m_mpi_config; //!< The MPI configuration
 
@@ -296,6 +305,7 @@ class PYBIND11_EXPORT Messenger
         unsigned int m_notice_level;    //!< Notice level
 
         bool m_python_open=false;       //!< True when the python output stream is open
+        bool m_is_closed=false;
         pybind11::module m_sys;         //!< sys module
         pybind11::object m_pystdout;    //!< Currently bound python sys.stdout
         pybind11::object m_pystderr;    //!< Currently bound python sys.stderr

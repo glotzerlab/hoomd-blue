@@ -249,7 +249,7 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepLangevinGPU(py::module& m)
     {
-    py::class_<TwoStepLangevinGPU, std::shared_ptr<TwoStepLangevinGPU> >(m, "TwoStepLangevinGPU", py::base<TwoStepLangevin>())
+    py::class_<TwoStepLangevinGPU, TwoStepLangevin, std::shared_ptr<TwoStepLangevinGPU> >(m, "TwoStepLangevinGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                std::shared_ptr<ParticleGroup>,
                                std::shared_ptr<Variant>,

@@ -108,6 +108,7 @@ set(_hoomd_headers
     GPUVector.h
     GSDDumpWriter.h
     GSDReader.h
+    GSDShapeSpecWriter.h
     HalfStepHook.h
     HOOMDMath.h
     HOOMDMPI.h
@@ -136,7 +137,6 @@ set(_hoomd_headers
     Profiler.h
     RandomNumbers.h
     RNGIdentifiers.h
-    Saru.h
     SFCPackUpdaterGPU.cuh
     SFCPackUpdaterGPU.h
     SFCPackUpdater.h
@@ -185,12 +185,11 @@ endif()
 
 if (ENABLE_CUDA)
 set(_cuda_sources ${_hoomd_cu_sources})
-set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
 endif (ENABLE_CUDA)
 
 #########################
 ## Build the module
-pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} NO_EXTRAS)
+pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} ${_hoomd_headers} NO_EXTRAS)
 
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hoomd ALIAS _hoomd)
@@ -199,16 +198,12 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # link the library to its dependencies
-target_link_libraries(_hoomd PUBLIC quickhull)
+target_link_libraries(_hoomd PUBLIC quickhull Eigen3::Eigen)
 
 # specify required include directories
 target_include_directories(_hoomd PUBLIC
                                   $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>
                                   $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include>)
-
-target_include_directories(_hoomd PUBLIC
-                                  $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}/hoomd/extern/cereal/include>
-                                  $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include/hoomd/extern/cereal/include>)
 
 target_include_directories(_hoomd PUBLIC
                                   $<BUILD_INTERFACE:${HOOMD_BINARY_DIR}/hoomd/include>)
@@ -224,6 +219,7 @@ endif(SINGLE_PRECISION)
 if (ENABLE_CUDA)
     target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     target_compile_definitions(_hoomd PUBLIC ENABLE_CUDA CUDA_ARCH=${_cuda_min_arch})
+    target_compile_definitions(_hoomd PUBLIC "$<$<COMPILE_LANGUAGE:CUDA>:NVCC>")
 
     if(ALWAYS_USE_MANAGED_MEMORY)
         target_compile_definitions(_hoomd PUBLIC ALWAYS_USE_MANAGED_MEMORY)
@@ -253,7 +249,7 @@ endif()
 # Libraries and compile definitions for MPI enabled builds
 if (ENABLE_MPI)
     target_compile_definitions(_hoomd PUBLIC ENABLE_MPI)
-    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX)
+    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal)
 
     if (ENABLE_MPI_CUDA)
           target_compile_definitions(_hoomd PUBLIC ENABLE_MPI_CUDA)
@@ -297,6 +293,7 @@ set(files analyze.py
           compute.py
           context.py
           data.py
+          device.py
           dump.py
           group.py
           __init__.py
@@ -348,14 +345,6 @@ if (NOT SINGLE_PRECISION AND BUILD_HPMC)
     add_subdirectory(hpmc)
 endif()
 
-if (BUILD_DEPRECATED)
-    add_subdirectory(deprecated)
-endif()
-
-if (BUILD_CGCMM AND BUILD_MD)
-    add_subdirectory(cgcmm)
-endif()
-
 if (BUILD_METAL AND BUILD_MD)
     add_subdirectory(metal)
 endif()
@@ -375,7 +364,7 @@ endif()
 file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
 
 # explicitly remove packages which are already explicitly dealt with
-list(REMOVE_ITEM _directory_contents test test-py extern md hpmc deprecated cgcmm metal dem mpcd jit)
+list(REMOVE_ITEM _directory_contents test test-py extern md hpmc metal dem mpcd jit)
 
 foreach(entry ${_directory_contents})
     if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})

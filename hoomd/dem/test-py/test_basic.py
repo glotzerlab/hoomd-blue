@@ -10,7 +10,7 @@ import unittest;
 def not_on_mpi(f):
     def noop(*args, **kwargs):
         return;
-    if hoomd.comm.get_num_ranks() > 1:
+    if hoomd.context.current.device.comm.num_ranks > 1:
         return noop;
     else:
         return f;
@@ -58,24 +58,24 @@ class basic(unittest.TestCase):
 
         potential.setParams('A', [[1, 0], [0, 1], [-1, -1]], center=False);
         potential.setParams('B', [(0, 0)], center=False);
-        potential.setParams('C', [(0, 0), (1, 0)], center=False);
+        potential.setParams('C', [(1, 1), (1, -1), (-1, -1), (-1, 1)], center=False);
 
         potential.disable();
 
         shape_types = potential.get_type_shapes()
 
         self.assertEqual(shape_types[0]['type'], 'Polygon')
-        self.assertEqual(shape_types[1]['type'], 'Disk')
+        self.assertEqual(shape_types[1]['type'], 'Sphere')
         self.assertEqual(shape_types[2]['type'], 'Polygon')
 
         self.assertEqual(len(shape_types[0]['vertices']), 3)
         self.assertNotIn('vertices', shape_types[1])
-        self.assertEqual(len(shape_types[2]['vertices']), 2)
+        self.assertEqual(len(shape_types[2]['vertices']), 4)
 
     def test_type_shapes_3d(self):
         box = hoomd.data.boxdim(10);
         snap = hoomd.data.make_snapshot(N=4, box=box);
-        snap.particles.types = ['A', 'B', 'C', 'B'];
+        snap.particles.types = ['A', 'B'];
         system = hoomd.init.read_snapshot(snap);
         nl = hoomd.md.nlist.cell();
 
@@ -84,8 +84,6 @@ class basic(unittest.TestCase):
         potential.setParams('A', [[1, 0, 0], [0, 1, 0], [-1, -1, 0]], [[0, 1, 2]],
                             center=False);
         potential.setParams('B', [], [], center=False);
-        potential.setParams('C', [[1, 0, 0], [0, 1, 0]], [[0, 1, 2]],
-                            center=False);
 
         potential.disable();
 
@@ -93,17 +91,15 @@ class basic(unittest.TestCase):
 
         self.assertEqual(shape_types[0]['type'], 'ConvexPolyhedron')
         self.assertEqual(shape_types[1]['type'], 'Sphere')
-        self.assertEqual(shape_types[2]['type'], 'ConvexPolyhedron')
 
         self.assertEqual(len(shape_types[0]['vertices']), 3)
         self.assertNotIn('vertices', shape_types[1])
-        self.assertEqual(len(shape_types[2]['vertices']), 2)
 
     def setUp(self):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier();
+        hoomd.context.current.device.comm.barrier();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test_basic.py', '-v']);

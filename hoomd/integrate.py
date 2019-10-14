@@ -67,8 +67,7 @@ class _integrator(hoomd.meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot create integrator before initialization\n");
-            raise RuntimeError('Error creating integrator');
+            raise RuntimeError('Cannot create integrator before initialization\n');
 
         # by default, integrators do not support methods
         self.cpp_integrator = None;
@@ -95,7 +94,7 @@ class _integrator(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_integrator is None:
-            hoomd.context.msg.error('Bug in hoomd.integrate: cpp_integrator not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd.integrate: cpp_integrator not set, please report\n');
             raise RuntimeError();
 
     ## \internal
@@ -107,7 +106,7 @@ class _integrator(hoomd.meta._metadata):
         self.cpp_integrator.removeForceComputes();
         for f in hoomd.context.current.forces:
             if f.cpp_force is None:
-                hoomd.context.msg.error('Bug in hoomd.integrate: cpp_force not set, please report\n');
+                hoomd.context.current.device.cpp_msg.error('Bug in hoomd.integrate: cpp_force not set, please report\n');
                 raise RuntimeError('Error updating forces');
 
             if f.log or f.enabled:
@@ -119,7 +118,7 @@ class _integrator(hoomd.meta._metadata):
         # set the constraint forces
         for f in hoomd.context.current.constraint_forces:
             if f.cpp_force is None:
-                hoomd.context.msg.error('Bug in hoomd.integrate: cpp_force not set, please report\n');
+                hoomd.context.current.device.cpp_msg.error('Bug in hoomd.integrate: cpp_force not set, please report\n');
                 raise RuntimeError('Error updating forces');
 
             if f.enabled:
@@ -141,7 +140,7 @@ class _integrator(hoomd.meta._metadata):
             self.cpp_integrator.removeAllIntegrationMethods();
 
             if len(hoomd.context.current.integration_methods) == 0:
-                hoomd.context.msg.error('This integrator requires that one or more integration methods be specified.\n');
+                hoomd.context.current.device.cpp_msg.error('This integrator requires that one or more integration methods be specified.\n');
                 raise RuntimeError('Error initializing integrator methods');
 
             for m in hoomd.context.current.integration_methods:
@@ -149,9 +148,9 @@ class _integrator(hoomd.meta._metadata):
 
         else:
             if len(hoomd.context.current.integration_methods) > 0:
-                hoomd.context.msg.error("This integrator does not support the use of integration methods,\n");
-                hoomd.context.msg.error("but some have been specified in the script. Remove them or use\n");
-                hoomd.context.msg.error("a different integrator.\n");
+                hoomd.context.current.device.cpp_msg.error("This integrator does not support the use of integration methods,\n");
+                hoomd.context.current.device.cpp_msg.error("but some have been specified in the script. Remove them or use\n");
+                hoomd.context.current.device.cpp_msg.error("a different integrator.\n");
                 raise RuntimeError('Error initializing integrator methods');
 
     ## \internal
@@ -172,22 +171,28 @@ class _integrator(hoomd.meta._metadata):
 
     def _connect_gsd(self, gsd):
         # This is an internal method, and should not be called directly. See gsd.dump_state() instead
-        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_integrator, "connectGSDSignal"):
-            self.cpp_integrator.connectGSDSignal(gsd.cpp_analyzer, self._gsd_state_name());
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_integrator, "connectGSDStateSignal"):
+            self.cpp_integrator.connectGSDStateSignal(gsd.cpp_analyzer, self._gsd_state_name());
         else:
-            raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
+
+    def _connect_gsd_shape_spec(self, gsd):
+        # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_integrator, "connectGSDShapeSpec"):
+            self.cpp_integrator.connectGSDShapeSpec(gsd.cpp_analyzer);
+        else:
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
 
     def restore_state(self):
         """ Restore the state information from the file used to initialize the simulations
         """
-        hoomd.util.print_status_line();
         if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_integrator, "restoreStateGSD"):
             self.cpp_integrator.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
         else:
             if hoomd.context.current.state_reader is None:
-                hoomd.context.msg.error("Can only restore after the state reader has been initialized.\n");
+                hoomd.context.current.device.cpp_msg.error("Can only restore after the state reader has been initialized.\n");
             else:
-                hoomd.context.msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
+                hoomd.context.current.device.cpp_msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
             raise RuntimeError("Can not restore state information!");
 
 ## \internal
@@ -207,8 +212,7 @@ class _integration_method(hoomd.meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot create an integration method before initialization\n");
-            raise RuntimeError('Error creating integration method');
+            raise RuntimeError('Cannot create an integration method before initialization\n');
 
         self.cpp_method = None;
 
@@ -231,7 +235,7 @@ class _integration_method(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_method is None:
-            hoomd.context.msg.error('Bug in hoomd.integrate: cpp_method not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd.integrate: cpp_method not set, please report\n');
             raise RuntimeError();
 
     def disable(self):
@@ -246,12 +250,11 @@ class _integration_method(hoomd.meta._metadata):
         not apply the integration method to the particles during the
         simulation. A disabled integration method can be re-enabled with :py:meth:`enable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization()
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd.context.msg.warning("Ignoring command to disable an integration method that is already disabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to disable an integration method that is already disabled");
             return;
 
         self.enabled = False;
@@ -267,12 +270,11 @@ class _integration_method(hoomd.meta._metadata):
         See Also:
             :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable an integration method that is already enabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to enable an integration method that is already enabled");
             return;
 
         self.enabled = True;

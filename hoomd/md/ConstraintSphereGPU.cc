@@ -85,7 +85,7 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
 
 void export_ConstraintSphereGPU(py::module& m)
     {
-    py::class_< ConstraintSphereGPU, std::shared_ptr<ConstraintSphereGPU> >(m, "ConstraintSphereGPU", py::base<ConstraintSphere>())
+    py::class_< ConstraintSphereGPU, ConstraintSphere, std::shared_ptr<ConstraintSphereGPU> >(m, "ConstraintSphereGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<ParticleGroup>,
                 Scalar3,

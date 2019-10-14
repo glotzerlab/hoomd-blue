@@ -109,16 +109,12 @@ class sphere_wall_convex_polyhedron_test(unittest.TestCase):
         # the intersection is between the face of the cube parallel to the yz axis, and the sphere.
         for x in np.linspace(5.499999, 4.5, 1000):
             self.system.particles[0].position = (x,0,0)
-            hoomd.util.quiet_status()
             self.assertEqual(self.ext_wall.count_overlaps(), 1)
-            hoomd.util.unquiet_status()
         # b. inside=True: this should return an overlap.
         self.ext_wall.set_sphere_wall(0, 5.0, origin=[0,0,0], inside=True)
         for x in np.linspace(4.475,5.475,1000):
             self.system.particles[0].position = (x,0,0)
-            hoomd.util.quiet_status()
             self.assertEqual(self.ext_wall.count_overlaps(), 1)
-            hoomd.util.unquiet_status()
 
         # 3. test a particle not quite overlapping the wall
         self.system.particles[0].position = (4.14,0,0)
@@ -184,16 +180,12 @@ class sphere_wall_convex_spheropolyhedron_test(unittest.TestCase):
         # the intersection is between the face of the cube parallel to the yz axis, and the sphere.
         for x in np.linspace(5.999999, 4.0, 1000):
             self.system.particles[0].position = (x,0,0)
-            hoomd.util.quiet_status()
             self.assertEqual(self.ext_wall.count_overlaps(), 1)
-            hoomd.util.unquiet_status()
         # b. inside=True: this should return an overlap.
         self.ext_wall.set_sphere_wall(0, 5.0, origin=[0,0,0], inside=True)
         for x in np.linspace(4.0,5.999999,1000):
             self.system.particles[0].position = (x,0,0)
-            hoomd.util.quiet_status()
             self.assertEqual(self.ext_wall.count_overlaps(), 1)
-            hoomd.util.unquiet_status()
 
     def test_individual(self):
         # 3. test a particle not quite overlapping the wall
@@ -345,16 +337,12 @@ class cylinder_wall_convex_polyhedron_test(unittest.TestCase):
         # the intersection is between the face of the cube parallel to the yz axis, and the cylinder.
         for x in np.linspace(5.499999, 4.5, 1000):
             self.system.particles[0].position = (x,0,0)
-            hoomd.util.quiet_status()
             self.assertEqual(self.ext_wall.count_overlaps(), 1)
-            hoomd.util.unquiet_status()
         # b. inside=True: this should return an overlap.
         self.ext_wall.set_cylinder_wall(0, 5.0, [0,0,0], [0,0,1], inside=True)
         for x in np.linspace(4.475,5.475,1000):
             self.system.particles[0].position = (x,0,0)
-            hoomd.util.quiet_status()
             self.assertEqual(self.ext_wall.count_overlaps(), 1)
-            hoomd.util.unquiet_status()
 
         # 3. test a particle not quite overlapping the wall
         self.system.particles[0].position = (4.14,0,0)

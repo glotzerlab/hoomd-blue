@@ -84,7 +84,6 @@ class mode_standard(_integrator):
     the method :py:method:reset_methods() can be use to re-initialize the variables.
     """
     def __init__(self, dt, aniso=None):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _integrator.__init__(self);
@@ -100,10 +99,8 @@ class mode_standard(_integrator):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
-        hoomd.util.quiet_status();
         if aniso is not None:
             self.set_params(aniso=aniso)
-        hoomd.util.unquiet_status();
 
     ## \internal
     #  \brief Cached set of anisotropic mode enums for ease of access
@@ -125,7 +122,6 @@ class mode_standard(_integrator):
             integrator_mode.set_params(dt=0.005, aniso=False)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -137,7 +133,7 @@ class mode_standard(_integrator):
             if aniso in self._aniso_modes:
                 anisoMode = self._aniso_modes[aniso]
             else:
-                hoomd.context.msg.error("integrate.mode_standard: unknown anisotropic mode {}.\n".format(aniso));
+                hoomd.context.current.device.cpp_msg.error("integrate.mode_standard: unknown anisotropic mode {}.\n".format(aniso));
                 raise RuntimeError("Error setting anisotropic integration mode.");
             self.aniso = aniso
             self.cpp_integrator.setAnisotropicMode(anisoMode)
@@ -155,7 +151,6 @@ class mode_standard(_integrator):
             run(100)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
         self.cpp_integrator.initializeIntegrationMethods();
 
@@ -199,7 +194,6 @@ class nvt(_integration_method):
         integrator = integrate.nvt(group=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     """
     def __init__(self, group, kT, tau):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
@@ -213,10 +207,8 @@ class nvt(_integration_method):
         if group is hoomd.context.current.group_all:
             group_copy = copy.copy(group);
             group_copy.name = "__nvt_all";
-            hoomd.util.quiet_status();
             thermo = hoomd.compute.thermo(group_copy);
             thermo.cpp_compute.setLoggingEnabled(False);
-            hoomd.util.unquiet_status();
         else:
             thermo = hoomd.compute._get_unique_thermo(group=group);
 
@@ -229,7 +221,7 @@ class nvt(_integration_method):
         # setup suffix
         suffix = '_' + group.name;
 
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_method = _md.TwoStepNVTMTK(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, kT.cpp_variant, suffix);
         else:
             self.cpp_method = _md.TwoStepNVTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, kT.cpp_variant, suffix);
@@ -249,7 +241,6 @@ class nvt(_integration_method):
             integrator.set_params(tau=0.7, kT=2.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -410,12 +401,11 @@ class npt(_integration_method):
         integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none", rescale_all=True)
     """
     def __init__(self, group, kT=None, tau=None, S=None, P=None, tauP=None, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, rescale_all=None, gamma=None):
-        hoomd.util.print_status_line();
 
         # check the input
         if (kT is None or tau is None):
             if nph is False:
-                hoomd.context.msg.error("integrate.npt: Need temperature T and thermostat time scale tau.\n");
+                hoomd.context.current.device.cpp_msg.error("integrate.npt: Need temperature T and thermostat time scale tau.\n");
                 raise RuntimeError("Error setting up NPT integration.");
             else:
                 # use dummy values
@@ -423,7 +413,7 @@ class npt(_integration_method):
                 tau=1.0
 
         if (tauP is None):
-                hoomd.context.msg.error("integrate.npt: Need barostat time scale tauP.\n");
+                hoomd.context.current.device.cpp_msg.error("integrate.npt: Need barostat time scale tauP.\n");
                 raise RuntimeError("Error setting up NPT integration.");
 
         # initialize base class
@@ -450,10 +440,8 @@ class npt(_integration_method):
         if group is hoomd.context.current.group_all:
             group_copy = copy.copy(group);
             group_copy.name = "__npt_all";
-            hoomd.util.quiet_status();
             thermo_group = hoomd.compute.thermo(group_copy);
             thermo_group.cpp_compute.setLoggingEnabled(False);
-            hoomd.util.unquiet_status();
         else:
             thermo_group = hoomd.compute._get_unique_thermo(group=group);
 
@@ -463,7 +451,7 @@ class npt(_integration_method):
         # need to know if we are running 2D simulations
         twod = (hoomd.context.current.system_definition.getNDimensions() == 2);
         if twod:
-            hoomd.context.msg.notice(2, "When running in 2D, z couplings and degrees of freedom are silently ignored.\n");
+            hoomd.context.current.device.cpp_msg.notice(2, "When running in 2D, z couplings and degrees of freedom are silently ignored.\n");
 
         # initialize the reflected c++ class
         if twod:
@@ -479,7 +467,7 @@ class npt(_integration_method):
             elif couple == "xyz":
                 cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_xy
             else:
-                hoomd.context.msg.error("Invalid coupling mode\n");
+                hoomd.context.current.device.cpp_msg.error("Invalid coupling mode\n");
                 raise RuntimeError("Error setting up NPT integration.");
         else:
             if couple == "none":
@@ -493,7 +481,7 @@ class npt(_integration_method):
             elif couple == "xyz":
                 cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_xyz
             else:
-                hoomd.context.msg.error("Invalid coupling mode\n");
+                hoomd.context.current.device.cpp_msg.error("Invalid coupling mode\n");
                 raise RuntimeError("Error setting up NPT integration.");
 
         # set degrees of freedom flags
@@ -512,7 +500,7 @@ class npt(_integration_method):
         if (yz or all) and not twod:
             flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_yz)
 
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_method = _md.TwoStepNPTMTK(hoomd.context.current.system_definition,
                                                 group.cpp_group,
                                                 thermo_group.cpp_compute,
@@ -578,7 +566,6 @@ class npt(_integration_method):
             integrator.set_params(dt=3e-3, kT=2.0, P=1.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -710,12 +697,9 @@ class nph(npt):
         nph = integrate.nph(group=all, P=0, tauP=1.0, gamma=0.1)
     """
     def __init__(self, **params):
-        hoomd.util.print_status_line();
 
         # initialize base class
-        hoomd.util.quiet_status();
         npt.__init__(self, nph=True, kT=1.0, **params);
-        hoomd.util.unquiet_status();
 
     def randomize_velocities(self, kT, seed):
         R""" Assign random velocities and angular momenta to particles in the
@@ -785,7 +769,6 @@ class nve(_integration_method):
 
     """
     def __init__(self, group, limit=None, zero_force=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
@@ -794,7 +777,7 @@ class nve(_integration_method):
         hoomd.compute._get_unique_thermo(group=group);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_method = _md.TwoStepNVE(hoomd.context.current.system_definition, group.cpp_group, False);
         else:
             self.cpp_method = _md.TwoStepNVEGPU(hoomd.context.current.system_definition, group.cpp_group);
@@ -824,7 +807,6 @@ class nve(_integration_method):
             integrator.set_params(limit=0.01)
             integrator.set_params(limit=False)
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -938,7 +920,6 @@ class langevin(_integration_method):
 
     """
     def __init__(self, group, kT, seed, dscale=False, tally=False, noiseless_t=False, noiseless_r=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
@@ -958,7 +939,7 @@ class langevin(_integration_method):
             use_lambda = True;
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             my_class = _md.TwoStepLangevin;
         else:
             my_class = _md.TwoStepLangevinGPU;
@@ -1001,7 +982,6 @@ class langevin(_integration_method):
             integrator.set_params(tally=False)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -1033,7 +1013,6 @@ class langevin(_integration_method):
             bd.set_gamma('A', gamma=2.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
         a = str(a);
 
@@ -1065,7 +1044,6 @@ class langevin(_integration_method):
 
         """
 
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if not isinstance(gamma_r,tuple):
@@ -1162,7 +1140,6 @@ class brownian(_integration_method):
 
     """
     def __init__(self, group, kT, seed, dscale=False, noiseless_t=False, noiseless_r=False):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _integration_method.__init__(self);
@@ -1179,7 +1156,7 @@ class brownian(_integration_method):
             use_lambda = True;
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             my_class = _md.TwoStepBD;
         else:
             my_class = _md.TwoStepBDGPU;
@@ -1215,7 +1192,6 @@ class brownian(_integration_method):
             integrator.set_params(kT=2.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # change the parameters
@@ -1244,7 +1220,6 @@ class brownian(_integration_method):
             bd.set_gamma('A', gamma=2.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
         a = str(a);
 
@@ -1276,7 +1251,6 @@ class brownian(_integration_method):
 
         """
 
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if not isinstance(gamma_r,tuple):
@@ -1299,11 +1273,6 @@ class mode_minimize_fire(_integrator):
     R""" Energy Minimizer (FIRE).
 
     Args:
-        group (:py:mod:`hoomd.group`): Particle group to apply minimization to.
-          Deprecated in version 2.2:
-          :py:class:`hoomd.md.integrate.mode_minimize_fire()` now accepts integration methods, such as :py:class:`hoomd.md.integrate.nve()`
-          and :py:class:`hoomd.md.integrate.nph()`. The functions operate on user-defined groups. If **group** is defined here,
-          automatically :py:class:`hoomd.md.integrate.nve()` will be used for integration
         dt (float): This is the maximum step size the minimizer is permitted to use.  Consider the stability of the system when setting. (in time units)
         Nmin (int): Number of steps energy change is negative before allowing :math:`\alpha` and :math:`\delta t` to adapt.
         finc (float): Factor to increase :math:`\delta t` by
@@ -1375,18 +1344,14 @@ class mode_minimize_fire(_integrator):
         aggressive a first step, but also from quitting before having found a good search direction. The minimum number of
         attempts can be set by the user.
 
-    .. attention::
-        :py:class:`mode_minimize_fire` does not function with MPI parallel simulations.
-
     """
-    def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, wtol=1e-1, Etol= 1e-5, min_steps=10, group=None, aniso=None):
-        hoomd.util.print_status_line();
+    def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, wtol=1e-1, Etol= 1e-5, min_steps=10, aniso=None):
 
         # initialize base class
         _integrator.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_integrator = _md.FIREEnergyMinimizer(hoomd.context.current.system_definition, dt);
         else:
             self.cpp_integrator = _md.FIREEnergyMinimizerGPU(hoomd.context.current.system_definition, dt);
@@ -1395,16 +1360,10 @@ class mode_minimize_fire(_integrator):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
-        if group is not None:
-            hoomd.context.msg.warning("group is deprecated. Creating default integrate.nve().\n")
-            integrate_nve = nve(group=group)
-
         self.aniso = aniso
 
-        hoomd.util.quiet_status();
         if aniso is not None:
             self.set_params(aniso=aniso)
-        hoomd.util.unquiet_status();
 
         # change the set parameters if not None
         self.dt = dt
@@ -1456,7 +1415,6 @@ class mode_minimize_fire(_integrator):
     def get_energy(self):
         R""" Returns the energy after the last iteration of the minimizer
         """
-        hoomd.util.print_status_line()
         self.check_initialization();
         return self.cpp_integrator.getEnergy()
 
@@ -1471,14 +1429,13 @@ class mode_minimize_fire(_integrator):
             integrator_mode.set_params(aniso=False)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if aniso is not None:
             if aniso in self._aniso_modes:
                 anisoMode = self._aniso_modes[aniso]
             else:
-                hoomd.context.msg.error("integrate.mode_standard: unknown anisotropic mode {}.\n".format(aniso));
+                hoomd.context.current.device.cpp_msg.error("integrate.mode_standard: unknown anisotropic mode {}.\n".format(aniso));
                 raise RuntimeError("Error setting anisotropic integration mode.");
             self.aniso = aniso
             self.cpp_integrator.setAnisotropicMode(anisoMode)
@@ -1521,12 +1478,11 @@ class berendsen(_integration_method):
         :py:class:`berendsen` does not integrate rotational degrees of freedom.
     """
     def __init__(self, group, kT, tau):
-        hoomd.util.print_status_line();
 
         # Error out in MPI simulations
         if (_hoomd.is_MPI_available()):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("integrate.berendsen is not supported in multi-processor simulations.\n\n")
+                hoomd.context.current.device.cpp_msg.error("integrate.berendsen is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up integration method.")
 
         # initialize base class
@@ -1539,7 +1495,7 @@ class berendsen(_integration_method):
         thermo = hoomd.compute._get_unique_thermo(group = group);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_method = _md.TwoStepBerendsen(hoomd.context.current.system_definition,
                                                      group.cpp_group,
                                                      thermo.cpp_compute,

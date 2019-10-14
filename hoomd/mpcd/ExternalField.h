@@ -17,7 +17,7 @@
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 #endif
 
 namespace mpcd

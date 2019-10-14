@@ -16,7 +16,7 @@
 #include <vector>
 
 #ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #endif
 
 namespace getardump{
@@ -87,7 +87,7 @@ namespace getardump{
             /// Saved execution configuration
             std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
             /// Saved trajectory archive object
-            std::auto_ptr<gtar::GTAR> m_traj;
+            std::shared_ptr<gtar::GTAR> m_traj;
             /// Set of known records we found in the current trajectory archive
             std::vector<gtar::Record> m_knownRecords;
             /// Cached timestep

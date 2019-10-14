@@ -103,10 +103,8 @@ option(BUILD_HPMC "Build the hpmc package" on)
 else ()
 option(BUILD_HPMC "Build the hpmc package" off)
 endif()
-option(BUILD_DEPRECATED "Build the deprecated package" on)
 option(BUILD_METAL "Build the metal package" on)
 option(BUILD_DEM "Build the dem package" on)
-option(BUILD_CGCMM "Build the cgcmm package" on)
 option(BUILD_MPCD "Build the mpcd package" on)
 option(BUILD_JIT "Build the jit package" off)
 
@@ -122,14 +120,18 @@ include (HOOMDCUDASetup)
 include (HOOMDHIPSetup)
 include (hoomd-macros)
 
+find_package(Eigen3 3.2 CONFIG REQUIRED)
+if (Eigen3_FOUND)
+    find_package_message(EIGEN3 "Found eigen: ${Eigen3_DIR} ${EIGEN3_INCLUDE_DIR} (version ${Eigen3_VERSION})" "[${Eigen3_DIR}][${EIGEN3_INCLUDE_DIR}]")
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
 
 #########################################
 # Check for submodules
-if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cereal/include/cereal/cereal.hpp OR
+if (
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cub/cub/cub.cuh OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/nano-signal-slot/nano_signal_slot.hpp OR
-    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/pybind/include/pybind11/pybind11.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/include/Random123/philox.h

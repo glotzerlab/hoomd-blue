@@ -21,7 +21,7 @@ import itertools
 params = []
 params = list(itertools.product(seed_list, phi_c_list, eta_p_r_list))
 
-context.msg.notice(1,"{} parameters\n".format(len(params)))
+context.current.device.cpp_msg.notice(1,"{} parameters\n".format(len(params)))
 
 # choose a random state point
 import random
@@ -31,7 +31,7 @@ p = int(option.get_user()[0])
 # are we using update.cluster?
 use_clusters = p//len(params)
 
-context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
+context.current.device.cpp_msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
 # test the equation of state of spheres with penetrable depletant spheres
 # see M. Dijkstra et al. Phys. Rev. E 73, p. 41404, 2006, Fig. 2 and
 # J. Glaser et al., JCP 143 18, p. 184110, 2015.
@@ -132,7 +132,7 @@ class implicit_test (unittest.TestCase):
         self.mc.set_fugacity('B',nR)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
-        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=1000)
+        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=100)
 
         eta_p_measure = []
         def log_callback(timestep):
@@ -140,7 +140,7 @@ class implicit_test (unittest.TestCase):
             eta_p_measure.append(v)
             self.assertEqual(log.query('hpmc_overlap_count'),0)
 
-            if comm.get_rank() == 0:
+            if context.current.device.comm.rank == 0:
                print('eta_p =', v);
 
         if use_clusters:
@@ -153,7 +153,7 @@ class implicit_test (unittest.TestCase):
         eta_p_avg = np.mean(np.array(eta_p_measure))
         i, eta_p_err = block.get_error_estimate()
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print(i)
             (n, num, err, err_err) = block.get_hierarchical_errors()
 
@@ -161,7 +161,7 @@ class implicit_test (unittest.TestCase):
             for (i, num_samples, e, ee) in zip(n, num, err, err_err):
                 print('{0} {1} {2} {3}'.format(i,num_samples,e,ee))
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print('avg: {:.6f} +- {:.6f}'.format(eta_p_avg, eta_p_err))
             print('tgt: {:.6f} +- {:.6f}'.format(eta_p_ref[(phi_c,eta_p_r)][0], eta_p_ref[(phi_c,eta_p_r)][1]))
 
@@ -201,13 +201,13 @@ class implicit_test (unittest.TestCase):
         self.mc.set_fugacity('B',nR)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='C')
-        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=1000)
+        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=100)
 
         eta_p_measure = []
         def log_callback(timestep):
             v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity_B')
             eta_p_measure.append(v)
-#            if comm.get_rank() == 0:
+#            if context.current.device.comm.rank == 0:
 #                print('eta_p =', v);
 
         if use_clusters:
@@ -224,7 +224,7 @@ class implicit_test (unittest.TestCase):
         eta_p_avg = np.mean(np.array(eta_p_measure))
         i, eta_p_err = block.get_error_estimate()
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print(i)
             (n, num, err, err_err) = block.get_hierarchical_errors()
 
@@ -232,7 +232,7 @@ class implicit_test (unittest.TestCase):
             for (i, num_samples, e, ee) in zip(n, num, err, err_err):
                 print('{0} {1} {2} {3}'.format(i,num_samples,e,ee))
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print('avg: {:.6f} +- {:.6f}'.format(eta_p_avg, eta_p_err))
             print('tgt: {:.6f} +- {:.6f}'.format(eta_p_ref[(phi_c,eta_p_r)][0], eta_p_ref[(phi_c,eta_p_r)][1]))
 

@@ -340,7 +340,7 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepNVE(py::module& m)
     {
-    py::class_<TwoStepNVE, std::shared_ptr<TwoStepNVE> >(m, "TwoStepNVE", py::base<IntegrationMethodTwoStep>())
+    py::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE> >(m, "TwoStepNVE")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool >())
         .def("setLimit", &TwoStepNVE::setLimit)
         .def("removeLimit", &TwoStepNVE::removeLimit)

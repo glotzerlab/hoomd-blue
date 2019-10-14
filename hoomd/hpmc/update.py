@@ -51,7 +51,6 @@ class boxmc(_updater):
 
     """
     def __init__(self, mc, betaP, seed):
-        hoomd.util.print_status_line();
         # initialize base class
         _updater.__init__(self);
 
@@ -60,7 +59,7 @@ class boxmc(_updater):
         period = 1
 
         if not isinstance(mc, integrate.mode_hpmc):
-            hoomd.context.msg.warning("update.boxmc: Must have a handle to an HPMC integrator.\n");
+            hoomd.context.current.device.cpp_msg.warning("update.boxmc: Must have a handle to an HPMC integrator.\n");
             return;
 
         self.betaP = hoomd.variant._setup_variant_input(betaP);
@@ -135,7 +134,6 @@ class boxmc(_updater):
             A :py:class:`dict` with the current values of *delta* and *weight*.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if weight is not None:
@@ -169,7 +167,6 @@ class boxmc(_updater):
             A :py:class:`dict` with the current values of *delta* and *weight*.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if weight is not None:
@@ -209,7 +206,6 @@ class boxmc(_updater):
             A :py:class:`dict` with the current values of *delta* and *weight*.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if weight is not None:
@@ -253,7 +249,6 @@ class boxmc(_updater):
             A :py:class:`dict` with the current values of *delta*, *weight*, and *reduce*.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if weight is not None:
@@ -296,7 +291,6 @@ class boxmc(_updater):
             A :py:class:`dict` with the current values of *delta*, and *weight*.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if weight is not None:
@@ -443,7 +437,6 @@ class wall(_updater):
 
     """
     def __init__(self, mc, walls, py_updater, move_ratio, seed, period=1):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
@@ -456,7 +449,7 @@ class wall(_updater):
         elif isinstance(mc, integrate.convex_spheropolyhedron):
             cls = _hpmc.UpdaterExternalFieldWallSpheropolyhedron;
         else:
-            hoomd.context.msg.error("update.wall: Unsupported integrator.\n");
+            hoomd.context.current.device.cpp_msg.error("update.wall: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.wall");
 
         self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, walls.cpp_compute, py_updater, move_ratio, seed);
@@ -538,10 +531,9 @@ class muvt(_updater):
 
     """
     def __init__(self, mc, seed, period=1, transfer_types=None,ngibbs=1):
-        hoomd.util.print_status_line();
 
         if not isinstance(mc, integrate.mode_hpmc):
-            hoomd.context.msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
+            hoomd.context.current.device.cpp_msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
             return;
 
         self.mc = mc
@@ -584,14 +576,14 @@ class muvt(_updater):
             cls =_hpmc.UpdaterMuVTFacetedEllipsoid;
         elif isinstance(mc, integrate.sphere_union):
             cls = _hpmc.UpdaterMuVTSphereUnion;
-        elif isinstance(mc, integrate.convex_polyhedron_union):
+        elif isinstance(mc, integrate.convex_spheropolyhedron_union):
             cls = _hpmc.UpdaterMuVTConvexPolyhedronUnion;
         elif isinstance(mc, integrate.faceted_ellipsoid_union):
             cls = _hpmc.UpdaterMuVTFacetedEllipsoidUnion;
         elif isinstance(mc, integrate.polyhedron):
             cls =_hpmc.UpdaterMuVTPolyhedron;
         else:
-            hoomd.context.msg.error("update.muvt: Unsupported integrator.\n");
+            hoomd.context.current.device.cpp_msg.error("update.muvt: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.muvt");
 
         self.cpp_updater = cls(hoomd.context.current.system_definition,
@@ -604,13 +596,13 @@ class muvt(_updater):
 
         # set the list of transferred types
         if not isinstance(transfer_types,list):
-            hoomd.context.msg.error("update.muvt: Need list of types to transfer.\n");
+            hoomd.context.current.device.cpp_msg.error("update.muvt: Need list of types to transfer.\n");
             raise RuntimeError("Error initializing update.muvt");
 
         cpp_transfer_types = _hoomd.std_vector_uint();
         for t in transfer_types:
             if t not in type_list:
-                hoomd.context.msg.error("Trying to transfer unknown type " + str(t) + "\n");
+                hoomd.context.current.device.cpp_msg.error("Trying to transfer unknown type " + str(t) + "\n");
                 raise RuntimeError("Error setting muVT parameters");
             else:
                 type_id = hoomd.context.current.system_definition.getParticleData().getTypeByName(t);
@@ -634,7 +626,6 @@ class muvt(_updater):
             muvt.set_fugacity(type='A', fugacity=variant)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if self.gibbs:
@@ -647,7 +638,7 @@ class muvt(_updater):
             type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         if type not in type_list:
-            hoomd.context.msg.error("Trying to set fugacity for unknown type " + str(type) + "\n");
+            hoomd.context.current.device.cpp_msg.error("Trying to set fugacity for unknown type " + str(type) + "\n");
             raise RuntimeError("Error setting muVT parameters");
         else:
             type_id = hoomd.context.current.system_definition.getParticleData().getTypeByName(type);
@@ -671,17 +662,16 @@ class muvt(_updater):
             muvt.set_params(move_ratio=0.05)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if move_ratio is not None:
             if not self.gibbs:
-                hoomd.context.msg.warning("Move ratio only used in Gibbs ensemble.\n");
+                hoomd.context.current.device.cpp_msg.warning("Move ratio only used in Gibbs ensemble.\n");
             self.cpp_updater.setMoveRatio(float(move_ratio))
 
         if dV is not None:
             if not self.gibbs:
-                hoomd.context.msg.warning("Parameter dV only available for Gibbs ensemble.\n");
+                hoomd.context.current.device.cpp_msg.warning("Parameter dV only available for Gibbs ensemble.\n");
             self.cpp_updater.setMaxVolumeRescale(float(dV))
 
         if n_trial is not None:
@@ -708,11 +698,10 @@ class remove_drift(_updater):
 
     """
     def __init__(self, mc, external_lattice, period=1):
-        hoomd.util.print_status_line();
         #initialize base class
         _updater.__init__(self);
         cls = None;
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.RemoveDriftUpdaterSphere;
             elif isinstance(mc, integrate.convex_polygon):
@@ -735,40 +724,15 @@ class remove_drift(_updater):
                 cls =_hpmc.RemoveDriftUpdaterSphinx;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.RemoveDriftUpdaterSphereUnion;
-            elif isinstance(mc, integrate.convex_polyhedron_union):
+            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
                 cls = _hpmc.RemoveDriftUpdaterConvexPolyhedronUnion;
             elif isinstance(mc, integrate.faceted_ellipsoid_union):
                 cls = _hpmc.RemoveDriftUpdaterFacetedEllipsoidUnion;
             else:
-                hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
+                hoomd.context.current.device.cpp_msg.error("update.remove_drift: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing update.remove_drift");
         else:
             raise RuntimeError("update.remove_drift: Error! GPU not implemented.");
-            # if isinstance(mc, integrate.sphere):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUSphere;
-            # elif isinstance(mc, integrate.convex_polygon):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUConvexPolygon;
-            # elif isinstance(mc, integrate.simple_polygon):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUSimplePolygon;
-            # elif isinstance(mc, integrate.convex_polyhedron):
-            #     cls = integrate._get_sized_entry('RemoveDriftUpdaterGPUConvexPolyhedron', mc.max_verts);
-            # elif isinstance(mc, integrate.convex_spheropolyhedron):
-            #     cls = integrate._get_sized_entry('RemoveDriftUpdaterGPUSpheropolyhedron',mc.max_verts);
-            # elif isinstance(mc, integrate.ellipsoid):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUEllipsoid;
-            # elif isinstance(mc, integrate.convex_spheropolygon):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSpheropolygon;
-            # elif isinstance(mc, integrate.faceted_sphere):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUFacetedEllipsoid;
-            # elif isinstance(mc, integrate.polyhedron):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUPolyhedron;
-            # elif isinstance(mc, integrate.sphinx):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSphinx;
-            # elif isinstance(mc, integrate.sphere_union):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSphereUnion;
-            # else:
-            #     hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
-            #     raise RuntimeError("Error initializing update.remove_drift");
 
         self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
         self.setupUpdater(period);
@@ -804,10 +768,9 @@ class clusters(_updater):
 
     """
     def __init__(self, mc, seed, period=1):
-        hoomd.util.print_status_line();
 
         if not isinstance(mc, integrate.mode_hpmc):
-            hoomd.context.msg.warning("update.clusters: Must have a handle to an HPMC integrator.\n");
+            hoomd.context.current.device.cpp_msg.warning("update.clusters: Must have a handle to an HPMC integrator.\n");
             return
 
         # initialize base class
@@ -831,7 +794,7 @@ class clusters(_updater):
             cls =_hpmc.UpdaterClustersFacetedEllipsoid;
         elif isinstance(mc, integrate.sphere_union):
             cls =_hpmc.UpdaterClustersSphereUnion;
-        elif isinstance(mc, integrate.convex_polyhedron_union):
+        elif isinstance(mc, integrate.convex_spheropolyhedron_union):
             cls =_hpmc.UpdaterClustersConvexPolyhedronUnion;
         elif isinstance(mc, integrate.faceted_ellipsoid_union):
             cls =_hpmc.UpdaterClustersFacetedEllipsoidUnion;
@@ -867,7 +830,6 @@ class clusters(_updater):
             clusters.set_params(swap_types=['A','B'], delta_mu = -0.001)
         """
 
-        hoomd.util.print_status_line();
 
         if move_ratio is not None:
             self.cpp_updater.setMoveRatio(float(move_ratio))
@@ -884,7 +846,7 @@ class clusters(_updater):
         if swap_types is not None:
             my_swap_types = tuple(swap_types)
             if len(my_swap_types) != 2:
-                hoomd.context.msg.error("update.clusters: Need exactly two types for type swap.\n");
+                hoomd.context.current.device.cpp_msg.error("update.clusters: Need exactly two types for type swap.\n");
                 raise RuntimeError("Error setting parameters in update.clusters");
             type_A = hoomd.context.current.system_definition.getParticleData().getTypeByName(my_swap_types[0]);
             type_B = hoomd.context.current.system_definition.getParticleData().getTypeByName(my_swap_types[1]);

@@ -357,7 +357,7 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
 
 void export_OPLSDihedralForceCompute(py::module& m)
     {
-    py::class_<OPLSDihedralForceCompute, std::shared_ptr<OPLSDihedralForceCompute> >(m, "OPLSDihedralForceCompute", py::base<ForceCompute>())
+    py::class_<OPLSDihedralForceCompute, ForceCompute, std::shared_ptr<OPLSDihedralForceCompute> >(m, "OPLSDihedralForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &OPLSDihedralForceCompute::setParams)
     ;

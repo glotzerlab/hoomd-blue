@@ -17,10 +17,12 @@
 
 //! Compute dipole forces and torques on the GPU with EvaluatorPairDipole
 
-cudaError_t gpu_compute_pair_aniso_forces_gb(const a_pair_args_t&,
-            const EvaluatorPairGB::param_type*);
+cudaError_t __attribute__((visibility("default")))
+gpu_compute_pair_aniso_forces_gb(const a_pair_args_t&,
+                                 const EvaluatorPairGB::param_type*);
 
-cudaError_t gpu_compute_pair_aniso_forces_dipole(const a_pair_args_t&,
-            const EvaluatorPairDipole::param_type*);
+cudaError_t __attribute__((visibility("default")))
+gpu_compute_pair_aniso_forces_dipole(const a_pair_args_t&,
+                                 const EvaluatorPairDipole::param_type*);
 
 #endif

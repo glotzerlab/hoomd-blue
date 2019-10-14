@@ -207,7 +207,7 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
     \param compute_capability Device compute capability (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
+    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
 
     \a d_params should include one Scalar2 element per angle type. The x component contains K the spring constant
     and the y component contains t_0 the equilibrium angle.

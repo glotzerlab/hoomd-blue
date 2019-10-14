@@ -213,7 +213,7 @@ void ComputeThermoGPU::reduceProperties()
 
 void export_ComputeThermoGPU(py::module& m)
     {
-    py::class_<ComputeThermoGPU, std::shared_ptr<ComputeThermoGPU> >(m,"ComputeThermoGPU",py::base<ComputeThermo>())
+    py::class_<ComputeThermoGPU, ComputeThermo, std::shared_ptr<ComputeThermoGPU> >(m,"ComputeThermoGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
          std::shared_ptr<ParticleGroup>,
          const std::string& >())

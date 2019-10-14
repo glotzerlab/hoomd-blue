@@ -97,7 +97,7 @@ void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_TableAngleForceComputeGPU(py::module& m)
     {
-    py::class_<TableAngleForceComputeGPU, std::shared_ptr<TableAngleForceComputeGPU> >(m, "TableAngleForceComputeGPU", py::base<TableAngleForceCompute>())
+    py::class_<TableAngleForceComputeGPU, TableAngleForceCompute, std::shared_ptr<TableAngleForceComputeGPU> >(m, "TableAngleForceComputeGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                          unsigned int,
                          const std::string& >())

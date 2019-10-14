@@ -180,7 +180,7 @@ void mpcd::detail::export_CellListGPU(pybind11::module& m)
     {
     namespace py = pybind11;
 
-    py::class_<mpcd::CellListGPU, std::shared_ptr<mpcd::CellListGPU> >(m, "CellListGPU", py::base<mpcd::CellList>())
+    py::class_<mpcd::CellListGPU, mpcd::CellList, std::shared_ptr<mpcd::CellListGPU> >(m, "CellListGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData> >())
     ;
     }

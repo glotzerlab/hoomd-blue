@@ -470,7 +470,7 @@ class UniformIntDistribution
             }
 
         //! Draw a value from the distribution
-        /*! \param rng Saru RNG to utilize in the move
+        /*! \param rng RNG to utilize in the move
             \returns a random number 0 <= i <= m with uniform probability.
 
             **Method**
@@ -562,7 +562,7 @@ class PoissonDistribution
             }
 
         template<typename RNG>
-        int poissrnd_small(RNG& rng)
+        DEVICE int poissrnd_small(RNG& rng)
             {
             Real L = fast::exp(-mean);
             Real p = 1;
@@ -577,7 +577,7 @@ class PoissonDistribution
             }
 
         template<typename RNG>
-        int poissrnd_large(RNG& rng)
+        DEVICE int poissrnd_large(RNG& rng)
             {
             Real r;
             Real x, m;

@@ -41,7 +41,8 @@
 */
 
 //! Sort local molecules and assign local molecule indices to particles
-cudaError_t gpu_sort_by_molecule(unsigned int nptl,
+cudaError_t
+gpu_sort_by_molecule(unsigned int nptl,
     const unsigned int *d_tag,
     const unsigned int *d_molecule_tag,
     unsigned int *d_local_molecule_tags,

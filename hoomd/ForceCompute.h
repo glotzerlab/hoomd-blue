@@ -29,7 +29,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __FORCECOMPUTE_H__
 #define __FORCECOMPUTE_H__
@@ -85,6 +85,9 @@ class PYBIND11_EXPORT ForceCompute : public Compute
 
         //! Sum the all forces for a group
         vec3<double> calcForceGroup(std::shared_ptr<ParticleGroup> group);
+
+        //! Sum all virial terms for a group
+        std::vector<Scalar> calcVirialGroup(std::shared_ptr<ParticleGroup> group);
 
         //! Easy access to the torque on a single particle
         Scalar4 getTorque(unsigned int tag);

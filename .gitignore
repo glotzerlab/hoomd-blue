@@ -8,3 +8,6 @@ build
 __pycache__
 *.pyc
 *.swp
+.idea
+*.code-workspace
+.vscode/

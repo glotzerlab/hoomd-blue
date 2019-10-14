@@ -78,7 +78,7 @@ struct faceted_ellipsoid_params : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         n.load_shared(ptr,available_bytes);
         offset.load_shared(ptr,available_bytes);
@@ -86,14 +86,26 @@ struct faceted_ellipsoid_params : param_base
         additional_verts.load_shared(ptr, available_bytes);
         }
 
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Determine size of a shared memory alloation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        n.attach_to_stream(stream);
-        offset.attach_to_stream(stream);
-        verts.attach_to_stream(stream);
-        additional_verts.attach_to_stream(stream);
+        n.allocate_shared(ptr,available_bytes);
+        offset.allocate_shared(ptr,available_bytes);
+        verts.allocate_shared(ptr,available_bytes);
+        additional_verts.allocate_shared(ptr, available_bytes);
+        }
+
+    #ifdef ENABLE_CUDA
+    //! Set CUDA memory hints
+    void set_memory_hint() const
+        {
+        n.set_memory_hint();
+        offset.set_memory_hint();
+        verts.set_memory_hint();
+        additional_verts.set_memory_hint();
         }
     #endif
     } __attribute__((aligned(32)));
@@ -282,6 +294,13 @@ struct ShapeFacetedEllipsoid
         return 0.0;
         }
 
+    #ifndef NVCC
+    std::string getShapeSpec() const
+        {
+        throw std::runtime_error("Shape definition not supported for this shape class.");
+        }
+    #endif
+
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
@@ -455,23 +474,6 @@ struct ShapeFacetedEllipsoid
 
     const param_type& params;           //!< Faceted sphere parameters
     };
-
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeFacetedEllipsoid& a,
-    const ShapeFacetedEllipsoid &b)
-    {
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    vec3<OverlapReal> dr(r_ab);
-
-    return (dot(dr,dr) <= DaDb*DaDb/OverlapReal(4.0));
-    }
 
 //! Overlap of faceted spheres
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)

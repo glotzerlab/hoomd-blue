@@ -5,14 +5,20 @@ HOOMD v3 introduces a number of breaking changes for both users and developers i
 python interface, enable new functionalities, and move away from unsupported tools. This guide highlights
 those changes.
 
+Removed functionality
+---------------------
+
+HOOMD v3 removes old APIs and unused functionality. See :doc:`deprecated` for a full list.
+
 Compiling
 ---------
 
 * CMake 3.8 or newer is required to build HOOMD.
-* ``UPDATE_SUBMODULES`` no longer exists. Users and developers should use ``clone --recursive``,
+* ``UPDATE_SUBMODULES`` no longer exists. Users and developers should use ``git clone --recursive``,
   ``git submodule update`` and ``git submodule sync`` as appropriate.
-* ``COPY_HEADERS`` no longer exists. Users must install HOOMD for use with external components.
+* ``COPY_HEADERS`` no longer exists. Users must ``make install`` HOOMD for use with external components.
 * ``CMAKE_INSTALL_PREFIX`` is set to the python ``site-packages`` directory (if not explicitly set by the user).
+* **cereal**, **eigen**, and **pybind11** headers must be provided to build HOOMD. See :doc:`installation` for details.
 
 Components
 ----------

@@ -18,7 +18,7 @@
 #include "HOOMDMath.h"
 
 #include <map>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Base type for time varying quantities
 /*! Virtual base class for variables specified to vary over time. The base class provides

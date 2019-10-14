@@ -41,11 +41,19 @@
 #include "ConfinedStreamingMethodGPU.h"
 #endif // ENABLE_CUDA
 
+// integration methods
+#include "BounceBackNVE.h"
+#ifdef ENABLE_CUDA
+#include "BounceBackNVEGPU.h"
+#endif
+
 // virtual particle fillers
 #include "VirtualParticleFiller.h"
 #include "SlitGeometryFiller.h"
+#include "SlitPoreGeometryFiller.h"
 #ifdef ENABLE_CUDA
 #include "SlitGeometryFillerGPU.h"
+#include "SlitPoreGeometryFillerGPU.h"
 #endif // ENABLE_CUDA
 
 // communicator
@@ -56,7 +64,7 @@
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 //! MPCD component
 /*!
@@ -130,20 +138,32 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_boundary(m);
     mpcd::detail::export_BulkGeometry(m);
     mpcd::detail::export_SlitGeometry(m);
+    mpcd::detail::export_SlitPoreGeometry(m);
 
     mpcd::detail::export_StreamingMethod(m);
     mpcd::detail::export_ExternalFieldPolymorph(m);
     mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::BulkGeometry>(m);
     mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::SlitGeometry>(m);
+    mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::SlitPoreGeometry>(m);
     #ifdef ENABLE_CUDA
     mpcd::detail::export_ConfinedStreamingMethodGPU<mpcd::detail::BulkGeometry>(m);
     mpcd::detail::export_ConfinedStreamingMethodGPU<mpcd::detail::SlitGeometry>(m);
+    mpcd::detail::export_ConfinedStreamingMethodGPU<mpcd::detail::SlitPoreGeometry>(m);
+    #endif // ENABLE_CUDA
+
+    mpcd::detail::export_BounceBackNVE<mpcd::detail::SlitGeometry>(m);
+    mpcd::detail::export_BounceBackNVE<mpcd::detail::SlitPoreGeometry>(m);
+    #ifdef ENABLE_CUDA
+    mpcd::detail::export_BounceBackNVEGPU<mpcd::detail::SlitGeometry>(m);
+    mpcd::detail::export_BounceBackNVEGPU<mpcd::detail::SlitPoreGeometry>(m);
     #endif // ENABLE_CUDA
 
     mpcd::detail::export_VirtualParticleFiller(m);
     mpcd::detail::export_SlitGeometryFiller(m);
+    mpcd::detail::export_SlitPoreGeometryFiller(m);
     #ifdef ENABLE_CUDA
     mpcd::detail::export_SlitGeometryFillerGPU(m);
+    mpcd::detail::export_SlitPoreGeometryFillerGPU(m);
     #endif // ENABLE_CUDA
 
     #ifdef ENABLE_MPI

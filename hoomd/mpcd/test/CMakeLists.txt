@@ -11,6 +11,7 @@ set(TEST_LIST
     cell_thermo_compute
     #external_field
     slit_geometry_filler
+    slit_pore_geometry_filler
     sorter
     srd_collision_method
     streaming_method
@@ -35,6 +36,7 @@ if(ENABLE_MPI)
     ADD_TO_MPI_TESTS(cell_list 8)
     ADD_TO_MPI_TESTS(cell_thermo_compute 8)
     ADD_TO_MPI_TESTS(slit_geometry_filler 8)
+    ADD_TO_MPI_TESTS(slit_pore_geometry_filler 8)
     endif()
 endif()
 
@@ -43,7 +45,6 @@ macro(compile_test TEST_EXE TEST_SRC)
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_EXE}.cu)
         set(CUDA_SEPARABLE_COMPILATION OFF)
         set(_cuda_sources ${TEST_EXE}.cu)
-        set_source_files_properties(${_cuda_sources} PROPERTIES COMPILE_DEFINITIONS "NVCC")
     else()
         set(_cuda_sources "")
     endif()

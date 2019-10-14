@@ -66,8 +66,8 @@
 
 #include "HOOMDVersion.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/stl_bind.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl_bind.h>
 
 #include <iostream>
 #include <sstream>
@@ -81,15 +81,6 @@ using namespace std;
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
-
-/* numpy is terrible (see /opt/local/Library/Frameworks/Python.framework/Versions/2.7/
-lib/python2.7/site-packages/numpy/core/generate_numpy_array.py)
-The following #defines help get around this
-*/
-
-#if (PYBIND11_VERSION_MAJOR) != 2 || (PYBIND11_VERSION_MINOR) != 2
-#error HOOMD-blue requires pybind11 2.2.x
-#endif
 
 //! Method for getting the current version of HOOMD
 /*! \returns Current HOOMD version identification string

@@ -17,7 +17,7 @@
 #include "hoomd/Variant.h"
 #include "hoomd/Autotuner.h"
 #include "MuellerPlatheFlow.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #include <cfloat>
 #include <memory>

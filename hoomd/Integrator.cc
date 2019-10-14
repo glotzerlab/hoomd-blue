@@ -938,7 +938,7 @@ bool Integrator::getAnisotropic()
 
 void export_Integrator(py::module& m)
     {
-    py::class_<Integrator, std::shared_ptr<Integrator> >(m,"Integrator",py::base<Updater>())
+    py::class_<Integrator, Updater, std::shared_ptr<Integrator> >(m,"Integrator")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
     .def("addForceCompute", &Integrator::addForceCompute)
     .def("addForceConstraint", &Integrator::addForceConstraint)

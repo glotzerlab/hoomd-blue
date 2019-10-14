@@ -243,6 +243,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         cudaEventCreateWithFlags(&m_events[idev],cudaEventDisableTiming);
         }
     #endif
+    
     }
 
 ExecutionConfiguration::~ExecutionConfiguration()
@@ -260,15 +261,6 @@ ExecutionConfiguration::~ExecutionConfiguration()
     // the destructors of these objects can issue cuda calls, so free them before the device reset
     m_cached_alloc.reset();
     m_cached_alloc_managed.reset();
-    #endif
-
-    #if defined(ENABLE_CUDA)
-    if (exec_mode == GPU)
-        {
-        #ifndef ENABLE_MPI_CUDA
-        cudaDeviceReset();
-        #endif
-        }
     #endif
     }
 

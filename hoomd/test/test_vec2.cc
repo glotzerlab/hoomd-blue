@@ -14,7 +14,7 @@ HOOMD_UP_MAIN();
 
 #include <math.h>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
 #include "hoomd/VectorMath.h"
