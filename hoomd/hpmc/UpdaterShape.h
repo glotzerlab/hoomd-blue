@@ -150,7 +150,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
         for(unsigned int type_idx = 0; type_idx < m_pdata->getNTypes(); type_idx++)
             {
             const std::string ptype = m_pdata->getNameByType(type_idx);
-            const std::string qname = "shape_isoperimetric_quotient-" + ptype;
+            const std::string qname = "shape_isoperimetric_quotient_" + ptype;
             m_ProvidedQuantities.push_back(qname);
             }
         }
@@ -159,16 +159,11 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     ArrayHandle<Scalar> h_iq(m_iq, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     m_ProvidedQuantities.push_back("shape_move_energy");
-    //for(size_t i = 0; i < m_pdata->getNTypes(); i++)  // what is this doing?
+    for(size_t i = 0; i < m_pdata->getNTypes(); i++)
         {
-        ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-        for(size_t i = 0; i < m_pdata->getNTypes(); i++)
-            {
-            h_det.data[i] = 0.0;
-            h_ntypes.data[i] = 0;
-            h_iq.data[i] = 0.0;
-            }
+        h_det.data[i] = 0.0;
+        h_ntypes.data[i] = 0;
+        h_iq.data[i] = 0.0;
         }
     // TODO: connect to ntypes change/particle changes to resize arrays and count them up again.
     countTypes();
@@ -263,11 +258,7 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         }
     else
 	    {
-        m_exec_conf->msg->error()
-            << "update.shape: "
-            << quantity
-            << " is not a valid log quantity"
-            << std::endl;
+        m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
 		throw std::runtime_error("Error getting log value");
 		}
     }
