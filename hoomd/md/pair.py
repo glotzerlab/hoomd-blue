@@ -34,7 +34,7 @@ import hoomd;
 
 import math;
 import sys;
-
+import json;
 from collections import OrderedDict
 
 class coeff:
@@ -532,6 +532,30 @@ class pair(force._force):
         """
         # future versions could use np functions to test the assumptions above and raise an error if they occur.
         return self.cpp_force.computeEnergyBetweenSets(tags1, tags2);
+
+    def _connect_gsd_shape_spec(self, gsd):
+        # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_force, "connectGSDShapeSpec"):
+            self.cpp_force.connectGSDShapeSpec(gsd.cpp_analyzer);
+        else:
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
+
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Since this behaves differently for different types of shapes, the
+        default behavior just raises an exception. Subclasses can override this
+        to properly return.
+        """
+        raise NotImplementedError(
+            "You are using a shape type that is not implemented! "
+            "If you want it, please modify the "
+            "hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function.")
+
+    def _return_type_shapes(self):
+        type_shapes = self.cpp_force.getTypeShapesPy();
+        ret = [ json.loads(json_string) for json_string in type_shapes ];
+        return ret;
 
 class lj(pair):
     R""" Lennard-Jones pair potential.
@@ -2269,7 +2293,20 @@ class gb(ai_pair):
         lperp = coeff['lperp'];
         lpar = coeff['lpar'];
 
-        return _hoomd.make_scalar3(epsilon, lperp, lpar);
+        return _md.make_pair_gb_params(epsilon, lperp, lpar);
+
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+
+            >>> my_gb.get_type_shapes()
+            [{'type': 'Ellipsoid', 'a': 1.0, 'b': 1.0, 'c': 1.5}]
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super(ai_pair, self)._return_type_shapes();
 
 class dipole(ai_pair):
     R""" Screened dipole-dipole interactions.
@@ -2338,9 +2375,7 @@ class dipole(ai_pair):
         A = float(coeff['A']);
         kappa = float(coeff['kappa']);
 
-        params = _hoomd.make_scalar3(mu, A, kappa)
-
-        return params
+        return _md.make_pair_dipole_params(mu, A, kappa);
 
     def set_params(self, *args, **kwargs):
         """ :py:class:`dipole` has no energy shift modes """
@@ -2627,7 +2662,7 @@ class buckingham(pair):
 
         \begin{eqnarray*}
         V_{\mathrm{Buckingham}}(r)  = & A \exp\left(-\frac{r}{\rho}\right) -
-                          \frac{C}{r} & r < r_{\mathrm{cut}} \\
+                          \frac{C}{r^6} & r < r_{\mathrm{cut}} \\
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
@@ -2638,7 +2673,7 @@ class buckingham(pair):
 
     - :math:`A` - *A* (in energy units)
     - :math:`\rho` - *rho* (in distance units)
-    - :math:`C` - *C* (in energy/distance units )
+    - :math:`C` - *C* (in energy * distance**6 units )
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)

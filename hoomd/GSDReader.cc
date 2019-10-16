@@ -271,7 +271,7 @@ void GSDReader::readHeader()
 */
 void GSDReader::readParticles()
     {
-    unsigned int N = m_snapshot->particle_data.size;
+    uint64_t N = m_snapshot->particle_data.size;
     m_snapshot->particle_data.type_mapping = readTypes(m_frame, "particles/types");
 
     // the snapshot already has default values, if a chunk is not found, the value
@@ -293,7 +293,7 @@ void GSDReader::readParticles()
 */
 void GSDReader::readTopology()
     {
-    unsigned int N = 0;
+    uint64_t N = 0;
     readChunk(&N, m_frame, "bonds/N", 4);
     if (N > 0)
         {
@@ -360,6 +360,15 @@ void GSDReader::readTopology()
         }
     }
 
+pybind11::list GSDReader::readTypeShapesPy(uint64_t frame)
+    {
+    std::vector<std::string> type_mapping = this->readTypes(frame, "particles/type_shapes");
+    pybind11::list type_shapes;
+    for (unsigned int i = 0; i < type_mapping.size(); i++)
+        type_shapes.append(type_mapping[i]);
+    return type_shapes;
+    }
+
 void export_GSDReader(py::module& m)
     {
     py::class_< GSDReader, std::shared_ptr<GSDReader> >(m,"GSDReader")
@@ -367,5 +376,6 @@ void export_GSDReader(py::module& m)
     .def("getTimeStep", &GSDReader::getTimeStep)
     .def("getSnapshot", &GSDReader::getSnapshot)
     .def("clearSnapshot", &GSDReader::clearSnapshot)
+    .def("readTypeShapesPy", &GSDReader::readTypeShapesPy)
     ;
     }

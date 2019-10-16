@@ -68,6 +68,7 @@ set(TEST_LIST_CPU
     faceted_sphere.py
     test_clusters.py
     test_overlap.py
+    get_type_shapes.py
     )
 
 if (BUILD_JIT)

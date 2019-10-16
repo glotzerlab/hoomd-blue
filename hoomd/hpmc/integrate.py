@@ -7,6 +7,7 @@ from hoomd.hpmc import data
 from hoomd.integrate import _integrator
 import hoomd
 import sys
+import json
 
 class interaction_matrix:
     R""" Define pairwise interaction matrix
@@ -368,6 +369,11 @@ class mode_hpmc(_integrator):
             "You are using a shape type that is not implemented! "
             "If you want it, please modify the "
             "hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function.")
+
+    def _return_type_shapes(self):
+        type_shapes = self.cpp_integrator.getTypeShapesPy();
+        ret = [ json.loads(json_string) for json_string in type_shapes ];
+        return ret;
 
     def initialize_shape_params(self):
         shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
@@ -766,7 +772,6 @@ class sphere(mode_hpmc):
 
     Examples::
 
-        mc = hpmc.integrate.sphere(seed=415236)
         mc = hpmc.integrate.sphere(seed=415236, d=0.3)
         mc.shape_param.set('A', diameter=1.0)
         mc.shape_param.set('B', diameter=2.0)
@@ -776,7 +781,7 @@ class sphere(mode_hpmc):
     Depletants Example::
 
         mc = hpmc.integrate.sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=8,nR=3,depletant_type='B')
+        mc.set_params(nselect=8,nR=3,depletant_type='B')
         mc.shape_param.set('A', diameter=1.0)
         mc.shape_param.set('B', diameter=.1)
     """
@@ -835,33 +840,15 @@ class sphere(mode_hpmc):
         """Get all the types of shapes in the current simulation.
 
         Examples:
-            The types will be either Sphere or Disk, depending on system dimensionality.
+            The types will be 'Sphere' regardless of dimensionality.
 
-            >>> mc.get_type_shapes()  # in 3D
-            [{'type': 'Sphere', 'diameter': 1.0, 'orientable': False}]
-            >>> mc.get_type_shapes()  # in 2D
-            [{'type': 'Disk', 'diameter': 1.0, 'orientable': False}]
+            >>> mc.get_type_shapes()
+            [{'type': 'Sphere', 'diameter': 1}, {'type': 'Sphere', 'diameter': 2}]
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        dim = hoomd.context.current.system_definition.getNDimensions()
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            if dim == 3:
-                result.append(dict(type='Sphere', diameter=shape.diameter,
-                                   orientable=shape.orientable));
-            else:
-                result.append(dict(type='Disk', diameter=shape.diameter,
-                                   orientable=shape.orientable));
-
-        return result
-
+        return super(sphere, self)._return_type_shapes()
 
 class convex_polygon(mode_hpmc):
     R""" HPMC integration for convex polygons (2D).
@@ -900,7 +887,6 @@ class convex_polygon(mode_hpmc):
 
     Examples::
 
-        mc = hpmc.integrate.convex_polygon(seed=415236)
         mc = hpmc.integrate.convex_polygon(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
@@ -956,19 +942,7 @@ class convex_polygon(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            result.append(dict(type='Polygon',
-                                   rounding_radius=0,
-                                   vertices=shape.vertices))
-
-        return result
-
+        return super(convex_polygon, self)._return_type_shapes()
 
 class convex_spheropolygon(mode_hpmc):
     R""" HPMC integration for convex spheropolygons (2D).
@@ -1008,7 +982,6 @@ class convex_spheropolygon(mode_hpmc):
 
     Examples::
 
-        mc = hpmc.integrate.convex_spheropolygon(seed=415236)
         mc = hpmc.integrate.convex_spheropolygon(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)], sweep_radius=0.1, ignore_statistics=False);
         mc.shape_param.set('A', vertices=[(0,0)], sweep_radius=0.5, ignore_statistics=True);
@@ -1071,18 +1044,7 @@ class convex_spheropolygon(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            result.append(dict(type='Polygon',
-                                   rounding_radius=shape.sweep_radius,
-                                   vertices=shape.vertices))
-
-        return result
+        return super(convex_spheropolygon, self)._return_type_shapes()
 
 class simple_polygon(mode_hpmc):
     R""" HPMC integration for simple polygons (2D).
@@ -1121,7 +1083,6 @@ class simple_polygon(mode_hpmc):
 
     Examples::
 
-        mc = hpmc.integrate.simple_polygon(seed=415236)
         mc = hpmc.integrate.simple_polygon(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(0, 0.5), (-0.5, -0.5), (0, 0), (0.5, -0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
@@ -1177,18 +1138,7 @@ class simple_polygon(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            result.append(dict(type='Polygon',
-                                   rounding_radius=0,
-                                   vertices=shape.vertices))
-
-        return result
+        return super(simple_polygon, self)._return_type_shapes()
 
 class polyhedron(mode_hpmc):
     R""" HPMC integration for general polyhedra (3D).
@@ -1221,6 +1171,9 @@ class polyhedron(mode_hpmc):
           don't translate the shape such that (0,0,0) right next to a face).
 
     * *faces* (**required**) - a list of vertex indices for every face
+
+        * For visualization purposes, the faces **MUST** be defined with a counterclockwise winding order to produce an outward normal.
+
     * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
@@ -1246,11 +1199,11 @@ class polyhedron(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.polyhedron(seed=415236)
         mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
-            (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)],\
-            faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)]);
+                 (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)],\
+        faces = [[0, 2, 6], [6, 4, 0], [5, 0, 4], [5,1,0], [5,4,6], [5,6,7], [3,2,0], [3,0,1], [3,6,2], \
+                 [3,7,6], [3,1,5], [3,5,7]]
         print('vertices = ', mc.shape_param['A'].vertices)
         print('faces = ', mc.shape_param['A'].faces)
 
@@ -1258,11 +1211,14 @@ class polyhedron(mode_hpmc):
 
         mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
         mc.set_param(nselect=1,nR=3,depletant_type='B')
-        faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)];
-        mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
-            (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)], faces = faces);
-        mc.shape_param.set('B', vertices=[(-0.05, -0.05, -0.05), (-0.05, -0.05, 0.05), (-0.05, 0.05, -0.05), (-0.05, 0.05, 0.05), \
-            (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces, origin = (0,0,0));
+        cube_verts = [(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
+                     (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)];
+        cube_faces = [[0, 2, 6], [6, 4, 0], [5, 0, 4], [5,1,0], [5,4,6], [5,6,7], [3,2,0], [3,0,1], [3,6,2], \
+                     [3,7,6], [3,1,5], [3,5,7]]
+        tetra_verts = [(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)];
+        tetra_faces = [[0, 1, 2], [3, 0, 2], [3, 2, 1], [3,1,0]];
+        mc.shape_param.set('A', vertices = cube_verts, faces = cube_faces);
+        mc.shape_param.set('B', vertices = tetra_verts, faces = tetra_faces, origin = (0,0,0));
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere', restore_state=False):
         hoomd.util.print_status_line();
@@ -1328,6 +1284,20 @@ class polyhedron(mode_hpmc):
 
         return shape_def
 
+
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+            >>> mc.get_type_shapes()
+            [{'type': 'Mesh', 'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5], [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]],
+              'indices': [[0, 1, 2], [0, 3, 1], [0, 2, 3], [1, 3, 2]]}]
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super(polyhedron, self)._return_type_shapes()
+
 class convex_polyhedron(mode_hpmc):
     R""" HPMC integration for convex polyhedra (3D).
 
@@ -1364,7 +1334,6 @@ class convex_polyhedron(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.convex_polyhedron(seed=415236)
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
@@ -1372,7 +1341,7 @@ class convex_polyhedron(mode_hpmc):
     Depletants Example::
 
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc.set_params(nselect=1,nR=3,depletant_type='B')
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
     """
@@ -1446,20 +1415,7 @@ class convex_polyhedron(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            dim = hoomd.context.current.system_definition.getNDimensions()
-            # Currently can't trivially pull the radius for nonspherical shapes
-            result.append(dict(type='ConvexPolyhedron',
-                                   rounding_radius=0,
-                                   vertices=shape.vertices))
-
-        return result
+        return super(convex_polyhedron, self)._return_type_shapes()
 
 class faceted_ellipsoid(mode_hpmc):
     R""" HPMC integration for faceted ellipsoids (3D).
@@ -1514,7 +1470,6 @@ class faceted_ellipsoid(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.faceted_ellipsoid(seed=415236)
         mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4)
 
         # half-space intersection
@@ -1530,7 +1485,7 @@ class faceted_ellipsoid(mode_hpmc):
     Depletants Example::
 
         mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc.set_params(nselect=1,nR=3,depletant_type='B')
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],a=1.0, b=0.5, c=0.25);
         # depletant sphere
         mc.shape_param.set('B', normals=[],a=0.1,b=0.1,c=0.1);
@@ -1639,7 +1594,6 @@ class faceted_sphere(faceted_ellipsoid):
         # polyedron vertices
         slab_verts = [[-.1,-.5,-.5],[-.1,-.5,.5],[-.1,.5,.5],[-.1,.5,-.5], [.5,-.5,-.5],[.5,-.5,.5],[.5,.5,.5],[.5,.5,-.5]]
 
-        mc = hpmc.integrate.faceted_sphere(seed=415236)
         mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', normals=slab_normals,offsets=slab_offsets, vertices=slab_verts,diameter=1.0);
         print('diameter = ', mc.shape_param['A'].diameter)
@@ -1647,7 +1601,7 @@ class faceted_sphere(faceted_ellipsoid):
     Depletants Example::
 
         mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc.set_params(nselect=1,nR=3,depletant_type='B')
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
         mc.shape_param.set('B', normals=[],diameter=0.1);
     """
@@ -1705,7 +1659,6 @@ class sphinx(mode_hpmc):
 
     Quick Example::
 
-        mc = hpmc.integrate.sphinx(seed=415236)
         mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,.25])
         print('diameters = ', mc.shape_param['A'].diameters)
@@ -1713,7 +1666,7 @@ class sphinx(mode_hpmc):
     Depletants Example::
 
         mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=3,depletant_type='B')
+        mc.set_params(nselect=1,nR=3,depletant_type='B')
         mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,-.25])
         mc.shape_param.set('B', centers=[(0,0,0)], diameters=[.15])
     """
@@ -1824,7 +1777,6 @@ class convex_spheropolyhedron(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.convex_spheropolyhedron(seed=415236)
         mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4)
         mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
@@ -1833,7 +1785,7 @@ class convex_spheropolyhedron(mode_hpmc):
     Depletants example::
 
         mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nR=3,depletant_type='SphericalDepletant')
+        mc.set_params(nR=3,depletant_type='SphericalDepletant')
         mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
     """
@@ -1915,20 +1867,7 @@ class convex_spheropolyhedron(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        result = []
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            dim = hoomd.context.current.system_definition.getNDimensions()
-            # Currently can't trivially pull the radius for nonspherical shapes
-            result.append(dict(type='ConvexPolyhedron',
-                                   rounding_radius=shape.sweep_radius,
-                                   vertices=shape.vertices))
-
-        return result
+        return super(convex_spheropolyhedron, self)._return_type_shapes()
 
 class ellipsoid(mode_hpmc):
     R""" HPMC integration for ellipsoids (2D/3D).
@@ -1958,7 +1897,6 @@ class ellipsoid(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.ellipsoid(seed=415236)
         mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
         print('ellipsoids parameters (a,b,c) = ', mc.shape_param['A'].a, mc.shape_param['A'].b, mc.shape_param['A'].c)
@@ -1966,7 +1904,7 @@ class ellipsoid(mode_hpmc):
     Depletants Example::
 
         mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=50,depletant_type='B')
+        mc.set_params(nselect=1,nR=50,depletant_type='B')
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
         mc.shape_param.set('B', a=0.05, b=0.05, c=0.05);
     """
@@ -2019,6 +1957,19 @@ class ellipsoid(mode_hpmc):
     def format_param_pos(self, param):
         return 'ellipsoid {0} {1} {2}'.format(param.a, param.b, param.c);
 
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+
+            >>> mc.get_type_shapes()
+            [{'type': 'Ellipsoid', 'a': 1.0, 'b': 1.5, 'c': 1}]
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super(ellipsoid, self)._return_type_shapes()
+
 class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).
 
@@ -2060,7 +2011,6 @@ class sphere_union(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.sphere_union(seed=415236)
         mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
         print('diameter of the first sphere = ', mc.shape_param['A'].members[0].diameter)
@@ -2069,7 +2019,7 @@ class sphere_union(mode_hpmc):
     Depletants Example::
 
         mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4, implicit=True, depletant_mode='circumsphere')
-        mc.set_param(nselect=1,nR=50,depletant_type='B')
+        mc.set_params(nselect=1,nR=50,depletant_type='B')
         mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
     """
@@ -2177,7 +2127,6 @@ class convex_spheropolyhedron_union(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.convex_spheropolyhedron_union(seed=27)
         mc = hpmc.integrate.convex_spheropolyhedron_union(seed=27, d=0.3, a=0.4)
         cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
                      [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
@@ -2307,7 +2256,6 @@ class convex_polyhedron_union(convex_spheropolyhedron_union):
 
     Example::
 
-        mc = hpmc.integrate.convex_polyhedron_union(seed=27)
         mc = hpmc.integrate.convex_polyhedron_union(seed=27, d=0.3, a=0.4)
         cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
                      [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
@@ -2359,7 +2307,6 @@ class faceted_ellipsoid_union(mode_hpmc):
 
     Example::
 
-        mc = hpmc.integrate.faceted_ellipsoid_union(seed=27)
         mc = hpmc.integrate.faceted_ellipsoid_union(seed=27, d=0.3, a=0.4)
 
         # make a prolate Janus ellipsoid
@@ -2425,5 +2372,3 @@ class faceted_ellipsoid_union(mode_hpmc):
     # \brief Format shape parameters for pos file output
     def format_param_pos(self, param):
         raise RuntimeError('.pos output not supported.')
-
-

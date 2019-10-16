@@ -194,7 +194,7 @@ class ManagedArray
             return managed;
             }
 
-        unsigned int size() const
+        HOSTDEVICE unsigned int size() const
             {
             return N;
             }
