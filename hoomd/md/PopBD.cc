@@ -20,14 +20,6 @@ namespace py = pybind11;
 
 using namespace std;
 
-// TODO alyssa: make these tables or pass in?
-Scalar feneEnergy(Scalar x, int nKuhn)
-    {
-    Scalar UBi;
-    UBi = nKuhn * -1.5 * log(1.0 - x * x); // from original Elnaz code
-    return UBi;
-    }
-
 PopBD::PopBD(std::shared_ptr<SystemDefinition> sysdef,
              std::shared_ptr<ParticleGroup> group,
              std::shared_ptr<NeighborList> nlist,
@@ -80,6 +72,7 @@ void PopBD::setParams(Scalar r_cut, Scalar r_true, std::string bond_type, int n_
     {
     m_r_cut = r_cut;
     m_r_true = r_true;
+    m_n_polymer = n_polymer;
     std::fill(m_nloops.begin(), m_nloops.end(), n_polymer);
     }
 
@@ -107,6 +100,7 @@ void PopBD::setTable(const std::vector<Scalar> &XB,
         m_exec_conf->msg->error() << XB.size() << " " << M.size() << " " << L.size() << " " << m_table_width << endl;
         throw runtime_error("Error initializing PopBD");
         }
+
     // fill out the parameters
     h_params.data[type].x = rmin;
     h_params.data[type].y = rmax;
@@ -163,6 +157,7 @@ void PopBD::update(unsigned int timestep)
         ArrayHandle<unsigned int> h_gpu_n_bonds(this->m_bond_data->getNGroupsArray(), access_location::host, access_mode::read);
 
         // Access the CPU bond table for reading
+        ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
 
         // initialize the RNG
@@ -205,13 +200,14 @@ void PopBD::update(unsigned int timestep)
                         nbridges_ij += 1;
                         }
                     }
+                if (n_bonds != nbridges_ij)
+                    {
+                    throw runtime_error("bridge count is wrong!");
+                    }
 
                 Scalar r = sqrt(rsq);
-                Scalar surf_dist = r - 2 * m_r_true;
-                assert(surf_dist > 0.0);
 
                 // compute index into the table and read in values
-
                 // access needed parameters
                 int type = 0;
 
@@ -242,20 +238,31 @@ void PopBD::update(unsigned int timestep)
                 Scalar M = M0 + f * (M1 - M0);
                 Scalar L = L0 + f * (L1 - L0);
 
-                // m_exec_conf->msg->notice(1) << "Interpolated f: " << f << endl;
-                // m_exec_conf->msg->notice(1) << "Interpolated M: " << M << endl;
-                // m_exec_conf->msg->notice(1) << "Interpolated L: " << L << endl;
-
                 // (1) Compute P_ij, P_ji, and Q_ij
+                Scalar surf_dist = r - 2 * m_r_true;
+                assert(surf_dist > 0.0);
                 Scalar chain_extension = surf_dist / m_nK;
-                if (chain_extension < 1.0 && chain_extension > 0.0) // bond(extension)-bond(extension_rC)<deltaG?
+                if (chain_extension < 1.0) // bond(extension)-bond(extension_rC)<deltaG?
                     {
                     Scalar p0 = m_delta_t * L;
                     Scalar q0 = m_delta_t * M;
 
+                    // range check on the parameters
+                    if (m_nloops[i]+m_nloops[j]+nbridges_ij != 2*m_n_polymer )
+                        {
+                        // m_exec_conf->msg->error() << "loops(i):  rmin, rmax (" << rmin << "," << rmax << ") is invalid." << endl;
+                        throw runtime_error("number of loops and bridges does not add up!");
+                        }
+
                     Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]-1.0);
                     Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]-1.0);
-                    Scalar q_ij = nbridges_ij * q0 * pow((1 - q0), (nbridges_ij - 1.0));
+                    Scalar q_ij = nbridges_ij * q0 * pow((1 - q0), nbridges_ij - 1.0);
+
+                    // check that P and Q are reasonable
+                    if (p_ij < 0 ||p_ji < 0 || q_ij < 0 || p_ij > 1 ||p_ji > 1 || q_ij > 1)
+                        {
+                        throw runtime_error("p or q is incorrect!");
+                        }
 
                     // (2) generate random numbers
                     Scalar rnd1 = saru.s<Scalar>(0, 1);
@@ -264,25 +271,25 @@ void PopBD::update(unsigned int timestep)
                     Scalar rnd4 = saru.s<Scalar>(0, 1);
 
                     // (3) check to see if a loop on i should form a bridge btwn particles i and j
-                    if (rnd1 < p_ij && m_nloops[i] >= 1.0)
+                    if (rnd1 < p_ij && m_nloops[i] >= 1)
                         {
                         m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                         m_nloops[i] -= 1;
                         }
 
                     // (4) check to see if a loop on j should form a bridge btwn particlesi and j
-                    if (rnd2 < p_ji && m_nloops[j] >= 1.0)
+                    if (rnd2 < p_ji && m_nloops[j] >= 1)
                         {
                         m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                         m_nloops[j] -= 1;
                         }
 
                     // (5) check to see if a bond should be broken between particles i and j
-                    if (rnd3 < q_ij && nbridges_ij >= 1.0)
+                    if (rnd3 < q_ij && nbridges_ij >= 1)
                         {
                         // remove one bond between i and j for each of the bonds in the *system*
                         const unsigned int size = (unsigned int)m_bond_data->getN();
-                        for (unsigned int bond_number = 0; bond_number < size; bond_number++) // turn into hashtable look-up
+                        for (unsigned int bond_number = 0; bond_number < size; bond_number++)
                             {
                             // look up the tag of each of the particles participating in the bond
                             const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
@@ -299,8 +306,8 @@ void PopBD::update(unsigned int timestep)
                             // remove bond with index "bond_number" between particles i and j, then exit the loop
                             if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
                                 {
+                                // remove bond with index "bond_number" between particles i and j, then leave the loop
                                 m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
-                                // TODO alyssa: remove tags from multimap
                                 break;
                                 }
                             }
@@ -314,43 +321,42 @@ void PopBD::update(unsigned int timestep)
                             }
                         }
                     }
-                // remove all bonds if bond goes beyond extension
-                else if (chain_extension > 1.0)
-                    {
-                    // break all bridges between i and j
-                    // for each of the bonds in the *system*
-                    const unsigned int size = (unsigned int)m_bond_data->getN();
-                    for (unsigned int bond_number = 0; bond_number < size; bond_number++) // turn into hashtable look-up
-                        {
-                        // look up the tag of each of the particles participating in the bond
-                        const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
-                        assert(bond.tag[0] < m_pdata->getN());
-                        assert(bond.tag[1] < m_pdata->getN());
+                // // remove all bonds if bond goes beyond extension
+                // else if (chain_extension > 1.0)
+                //     {
+                //     // break all bridges between i and j for each of the bonds in the *system*
+                //     const unsigned int size = (unsigned int)m_bond_data->getN();
+                //     for (unsigned int bond_number = 0; bond_number < size; bond_number++) // turn into hashtable look-up
+                //         {
+                //         // look up the tag of each of the particles participating in the bond
+                //         const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
+                //         assert(bond.tag[0] < m_pdata->getN());
+                //         assert(bond.tag[1] < m_pdata->getN());
 
-                        // transform a and b into indices into the particle data arrays
-                        // (MEM TRANSFER: 4 integers)
-                        unsigned int idx_a = h_rtag.data[bond.tag[0]];
-                        unsigned int idx_b = h_rtag.data[bond.tag[1]];
-                        assert(idx_a <= m_pdata->getMaximumTag());
-                        assert(idx_b <= m_pdata->getMaximumTag());
+                //         // transform a and b into indices into the particle data arrays
+                //         // (MEM TRANSFER: 4 integers)
+                //         unsigned int idx_a = h_rtag.data[bond.tag[0]];
+                //         unsigned int idx_b = h_rtag.data[bond.tag[1]];
+                //         assert(idx_a <= m_pdata->getMaximumTag());
+                //         assert(idx_b <= m_pdata->getMaximumTag());
 
-                        // remove bond with index "bond_number" between particles i and j,
-                        // the exit the loop
-                        if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
-                            {
-                            m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
-                            Scalar rnd5 = saru.s<Scalar>(0, 1);
-                            if (rnd5 <= 0.5)
-                                {
-                                m_nloops[i] += 1;
-                                }
-                            else if (rnd5 > 0.5)
-                            {
-                            m_nloops[i] += 1;
-                            }
-                            }
-                        }
-                    }
+                //         // remove bond with index "bond_number" between particles i and j,
+                //         // then exit the loop
+                //         if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
+                //             {
+                //             m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
+                //             Scalar rnd5 = saru.s<Scalar>(0, 1);
+                //             if (rnd5 <= 0.5)
+                //                 {
+                //                 m_nloops[i] += 1;
+                //                 }
+                //             else if (rnd5 > 0.5)
+                //                 {
+                //                 m_nloops[i] += 1;
+                //                 }
+                //             }
+                //         }
+                //     }
                 }
             }
         }

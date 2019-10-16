@@ -67,6 +67,7 @@ protected:
     Index2D m_table_value;                  //!< Index table helper
     Scalar m_delta_t;                       //!< time step from integrator
     std::vector<int> m_nloops;              //!< structure of size N to store number of loops for each colloid
+    int m_n_polymer;
     int n_polymer;                          //!< number of polymers per colloid
 };
 
