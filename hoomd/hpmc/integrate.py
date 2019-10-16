@@ -1195,6 +1195,9 @@ class polyhedron(mode_hpmc):
           don't translate the shape such that (0,0,0) right next to a face).
 
     * *faces* (**required**) - a list of vertex indices for every face
+
+        * For visualization purposes, the faces **MUST** be defined with a counterclockwise winding order to produce an outward normal.
+
     * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
