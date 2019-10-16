@@ -118,5 +118,54 @@ class muvt_updater_test(unittest.TestCase):
 
         run(100)
 
+
+class muvt_updater_test_2d(unittest.TestCase):
+    def setUp(self):
+        self.system = init.create_lattice(lattice.sq(a=8.059959770082347),n=[10,10]);
+
+    def tearDown(self):
+        del self.muvt
+        del self.mc
+        del self.system
+        context.initialize()
+
+    def test_spheres(self):
+        self.mc = hpmc.integrate.sphere(seed=0)
+        self.mc.set_params(deterministic=True)
+        self.mc.set_params(d=0.1)
+        self.mc.shape_param.set('A', diameter=1.0)
+
+        self.muvt=hpmc.update.muvt(mc=self.mc, seed=456, transfer_types=['A'])
+        self.muvt.set_fugacity('A', 100)
+
+        run(100)
+
+    def test_convex_polygon(self):
+        self.mc = hpmc.integrate.convex_polygon(seed=0)
+        self.mc.set_params(deterministic=True)
+        self.mc.set_params(d=0.1)
+
+        square_vertices = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]
+        self.mc.shape_param.set('A', vertices=square_vertices)
+
+        self.muvt=hpmc.update.muvt(mc=self.mc, seed=456, transfer_types=['A'])
+        self.muvt.set_fugacity('A', 100)
+
+        run(100)
+
+    def test_simple_polygon(self):
+        self.mc = hpmc.integrate.convex_polygon(seed=0)
+        self.mc.set_params(deterministic=True)
+        self.mc.set_params(d=0.1)
+
+        vertices = [[-0.5, -0.5], [-0.25, -0.5], [-0.25, -0.25], [0.25, -0.25],
+                    [0.25, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]
+        self.mc.shape_param.set('A', vertices=vertices)
+
+        self.muvt=hpmc.update.muvt(mc=self.mc, seed=456, transfer_types=['A'])
+        self.muvt.set_fugacity('A', 100)
+
+        run(100)
+
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
