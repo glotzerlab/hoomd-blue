@@ -26,7 +26,7 @@ delta_G = 10
 
 r_cut = 50
 r_buff = 15
-epsilon_cc = 
+# epsilon_cc =0
 class PopBD:
     def setUp(self):
     snapshot = data.make_snapshot(N=2, box=data.boxdim(Lx=80, Ly=80, Lz=80),

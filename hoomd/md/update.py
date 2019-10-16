@@ -18,10 +18,9 @@ import sys
 
 
 
-def _table_eval(r, rmin, rmax, V, F, width):
-    dr = (rmax - rmin) / float(width - 1)
+def _table_eval(r, rmin, rmax, XB, M, L, dr):
     i = int(round((r - rmin) / dr))
-    return (V[i], F[i])
+    return (XB[i], M[i], L[i])
 
 
 class popbd(_updater):
@@ -49,8 +48,8 @@ class popbd(_updater):
             nlist.cpp_nlist,
             seed,
             integrator.dt,
-            table_width,
             period,
+            table_width,
         )
         phase = 0
         self.table_width = table_width
@@ -137,8 +136,22 @@ class popbd(_updater):
                 )
                 raise RuntimeError("Error reading table file")
 
+        XB_hoomd_table =  _hoomd.std_vector_scalar();
+        M_hoomd_table = _hoomd.std_vector_scalar();
+        L_hoomd_table = _hoomd.std_vector_scalar();
+
+        # evaluate each point of the function
+        for i in range(0, self.table_width):
+            r = rmin_table + dr * i;
+            (XB, M, L) = _table_eval(r, rmin_table, rmax_table, XB_table, M_table, L_table, dr);
+
+            # fill out the tables
+            XB_hoomd_table.append(XB);
+            M_hoomd_table.append(M);
+            L_hoomd_table.append(L);
+
         hoomd.util.quiet_status()
-        # self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
+        self.cpp_updater.setTable(XB_hoomd_table, M_hoomd_table, L_hoomd_table, rmin_table, rmax_table)
         hoomd.util.unquiet_status()
 
 

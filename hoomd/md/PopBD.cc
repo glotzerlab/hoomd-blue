@@ -104,6 +104,7 @@ void PopBD::setTable(const std::vector<Scalar> &XB,
     if (XB.size() != m_table_width || M.size() != m_table_width || L.size() != m_table_width)
         {
         m_exec_conf->msg->error() << "popbd.table: table provided to setTable is not of the correct size" << endl;
+        m_exec_conf->msg->error() << XB.size() << " " << M.size() << " " << L.size() << " " << m_table_width << endl;
         throw runtime_error("Error initializing PopBD");
         }
     // fill out the parameters
@@ -213,6 +214,7 @@ void PopBD::update(unsigned int timestep)
 
                 // access needed parameters
                 int type = 0;
+
                 // unsigned int type = m_bond_data->getTypeByIndex(i);
                 Scalar4 params = h_params.data[type];
                 Scalar rmin = params.x;
@@ -221,10 +223,12 @@ void PopBD::update(unsigned int timestep)
 
                 // precomputed term
                 Scalar value_f = (r - rmin) / delta_r;
+
                 /// Here we use the table!!
                 unsigned int value_i = (unsigned int)floor(value_f);
                 Scalar2 ML0 = h_tables.data[m_table_value(value_i, type)];
                 Scalar2 ML1 = h_tables.data[m_table_value(value_i+1, type)];
+
                 // unpack the data
                 Scalar M0 = ML0.x;
                 Scalar M1 = ML1.x;
@@ -238,6 +242,10 @@ void PopBD::update(unsigned int timestep)
                 Scalar M = M0 + f * (M1 - M0);
                 Scalar L = L0 + f * (L1 - L0);
 
+                // m_exec_conf->msg->notice(1) << "Interpolated f: " << f << endl;
+                // m_exec_conf->msg->notice(1) << "Interpolated M: " << M << endl;
+                // m_exec_conf->msg->notice(1) << "Interpolated L: " << L << endl;
+
                 // (1) Compute P_ij, P_ji, and Q_ij
                 Scalar chain_extension = surf_dist / m_nK;
                 if (chain_extension < 1.0 && chain_extension > 0.0) // bond(extension)-bond(extension_rC)<deltaG?
@@ -245,8 +253,8 @@ void PopBD::update(unsigned int timestep)
                     Scalar p0 = m_delta_t * L;
                     Scalar q0 = m_delta_t * M;
 
-                    Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]);
-                    Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]);
+                    Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]-1.0);
+                    Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]-1.0);
                     Scalar q_ij = nbridges_ij * q0 * pow((1 - q0), (nbridges_ij - 1.0));
 
                     // (2) generate random numbers

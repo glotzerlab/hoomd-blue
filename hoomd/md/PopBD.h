@@ -12,6 +12,7 @@
 #include "hoomd/md/NeighborList.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 /*! \file PopBD.h
     \brief Declares a class for computing bond breakage/formation
 */
