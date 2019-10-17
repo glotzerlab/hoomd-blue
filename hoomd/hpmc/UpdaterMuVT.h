@@ -310,12 +310,6 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
         }
     #endif
 
-    if (m_sysdef->getNDimensions() == 2)
-        {
-        m_exec_conf->msg->notice(5) << "Constructing UpdaterMuVT for 2D system" << std::endl;
-        //throw std::runtime_error("2D runs not supported with update.muvt().");
-        }
-
     // initialize list of tags per type
     mapTypes();
 
@@ -659,13 +653,13 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                         {
                         // set particle orientation
                         if (m_sysdef->getNDimensions() == 2)
-                        {
-                        shape_test.orientation = generateRandomOrientation2D(rng);
-                        }
+                            {
+                            shape_test.orientation = generateRandomOrientation2D(rng);
+                            }
                         else
-                        {
-                        shape_test.orientation = generateRandomOrientation(rng);
-                        }
+                            {
+                            shape_test.orientation = generateRandomOrientation(rng);
+                            }
                         }
 
                     if (m_gibbs)
