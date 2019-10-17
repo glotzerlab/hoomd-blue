@@ -144,7 +144,7 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
 template<class RNG>
 DEVICE inline quat<Scalar> generateRandomOrientation2D(RNG& rng)
     {
-    Scalar theta = hoomd::detail::UniformDistribution<Scalar>(-M_PI, M_PI)(rng);
+    Scalar theta = hoomd::UniformDistribution<Scalar>(-M_PI, M_PI)(rng);
     return quat<Scalar>(fast::cos(theta/2.0), vec3<Scalar>(0, 0, fast::sin(theta/2.0)));
     }
 
