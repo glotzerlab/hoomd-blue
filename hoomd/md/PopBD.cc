@@ -200,10 +200,6 @@ void PopBD::update(unsigned int timestep)
                         nbridges_ij += 1;
                         }
                     }
-                if (n_bonds != nbridges_ij)
-                    {
-                    throw runtime_error("bridge count is wrong!");
-                    }
 
                 Scalar r = sqrt(rsq);
 
