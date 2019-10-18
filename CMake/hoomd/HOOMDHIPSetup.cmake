@@ -12,6 +12,20 @@ if(HIP_FOUND)
 
     string(REPLACE " " ";" _hipcc_verbose_options ${_hipcc_verbose_out})
 
+    # get the compiler executable for device code
+    LIST(GET _hipcc_verbose_options 1 _hip_compiler)
+
+    # set it as the compiler
+    if (${_hip_compiler} MATCHES nvcc)
+        set(HIP_PLATFORM nvcc)
+    elseif(${_hip_compiler} MATCHES hcc)
+        set(HIP_PLATFORM hcc)
+    else()
+        message(ERROR "Unknown HIP backend " ${_hip_compiler})
+    endif()
+
+    SET(CMAKE_CUDA_COMPILER ${_hip_compiler})
+
     # drop the compiler exeuctable and the "hipcc-cmd"
     LIST(REMOVE_AT _hipcc_verbose_options 0 1)
 
@@ -47,10 +61,10 @@ if(HIP_FOUND)
         target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_PATCH=${HIP_VERSION_PATCH}>)
 
         # branch upon HCC or NVCC target
-        if(ENABLE_CUDA)
-        target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_NVCC__>)
-        # elif(ENABLE_HCC)
-        # .. similar code for AMD here
+        if(${HIP_PLATFORM} STREQUAL "nvcc")
+            target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_NVCC__>)
+        elseif(${HIP_PLATFORM} STREQUAL "hcc")
+            target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_HCC__>)
         endif()
     endif()
 
