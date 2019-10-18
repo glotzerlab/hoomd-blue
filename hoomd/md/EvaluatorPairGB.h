@@ -78,6 +78,12 @@ class EvaluatorPairGB
             return false;
             }
 
+        //! Whether the pair potential uses shape.
+        HOSTDEVICE static bool needsShape()
+            {
+            return false;
+            }
+
         //! Accept the optional diameter values
         /*! \param di Diameter of particle i
             \param dj Diameter of particle j
