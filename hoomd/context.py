@@ -162,13 +162,14 @@ class SimulationContext(object):
 
         self.prev = current;
         current = self;
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         global current
 
         current = self.prev;
 
-def initialize(device=None):
+def initialize(args=None, device=None):
     R""" Initialize the execution context
 
     Args:
@@ -200,10 +201,10 @@ def initialize(device=None):
     global options, current
 
     options = hoomd.option.options();
-    hoomd.option._parse_command_line();
+    hoomd.option._parse_command_line(args);
 
     current = SimulationContext(device)
-    
+
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()
 
