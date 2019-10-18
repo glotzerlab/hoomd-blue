@@ -76,9 +76,15 @@ class EvaluatorPairALJ
             }
 
         //! whether pair potential requires charges
-        DEVICE static bool needsCharge( )
+        DEVICE static bool needsCharge()
             {
             return false;
+            }
+
+        //! Whether the pair potential uses shape.
+        HOSTDEVICE static bool needsShape()
+            {
+            return true;
             }
 
         //! Accept the optional diameter values
