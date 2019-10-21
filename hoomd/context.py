@@ -172,6 +172,7 @@ class SimulationContext(object):
 
         self.prev = current;
         current = self;
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         global current
