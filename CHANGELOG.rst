@@ -9,6 +9,7 @@ v2.8.0 (not yet released)
 - HPMC:
 
   - Enable the use of an array with adjustable parameters within the user defined pair potential.
+  - Add muVT updater for 2d systems.
 
 *Bug fixes*
 
