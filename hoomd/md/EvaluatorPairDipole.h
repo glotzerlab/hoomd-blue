@@ -70,10 +70,15 @@ struct pair_dipole_params
         }
     };
 
+// Nullary structure required by AnisoPotentialPair.
+struct dipole_shape_params {};
+
 class EvaluatorPairDipole
     {
     public:
         typedef pair_dipole_params param_type;
+        typedef dipole_shape_params shape_param_type;
+
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centers of mass
             \param _rcutsq Squared distance at which the potential goes to 0
@@ -114,7 +119,6 @@ class EvaluatorPairDipole
             }
 
         //! Accept the optional diameter values
-        //! This function is pure virtual
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
@@ -123,6 +127,12 @@ class EvaluatorPairDipole
             q_i = qi;
             q_j = qj;
             }
+
+        //! Accept the optional shape values
+        /*! \param shape_i Shape of particle i
+            \param shape_j Shape of particle j
+        */
+        HOSTDEVICE void setShape(const shape_param_type *shapei, const shape_param_type *shapej) {}
 
         //! Evaluate the force and energy
         /*! \param force Output parameter to write the computed force.
