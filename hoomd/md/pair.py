@@ -2093,7 +2093,7 @@ class mie(pair):
         return _hoomd.make_scalar4(mie1, mie2, mie3, mie4);
 
 class ai_pair(pair):
-    R""" Generic anisotropic pair potential.
+    R"""Generic anisotropic pair potential.
 
     Users should not instantiate :py:class:`ai_pair` directly. It is a base class that
     provides common features to all anisotropic pair forces. Rather than repeating all of that documentation in a
@@ -2128,8 +2128,10 @@ class ai_pair(pair):
         self.nlist.subscribe(lambda:self.get_rcut())
         self.nlist.update_rcut()
 
+        self._shape = {}
+
     def set_params(self, mode=None):
-        R""" Set parameters controlling the way forces are computed.
+        R"""Set parameters controlling the way forces are computed.
 
         Args:
             mode (str): (if set) Set the mode with which potentials are handled at the cutoff
@@ -2156,6 +2158,18 @@ class ai_pair(pair):
                 hoomd.context.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
+    @property
+    def shape(self):
+        R"""Get or set shape parameters per type.
+
+        In addition to any pair-specific parameters required to characterize a
+        pair potential, individual particles that have anisotropic interactions
+        may also have their own shapes that affect the potentials. General
+        anisotropic pair potentials may set per-particle shapes using this
+        method.
+        """
+        return self._shape
+
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut"];
         # check that the pair coefficents are valid
@@ -2170,9 +2184,21 @@ class ai_pair(pair):
             type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         for i in range(0,ntypes):
+            # Shape doesn't have to be set, depends on the potential.
+            try:
+                # Ensure that shape parameters are always 3D lists, even in 2D.
+                shape = self.shape[type_list[i]]
+                if hoomd.context.current.system_definition.getNDimensions() == 2:
+                    shape = [[v[0], v[1], 0] for v in shape]
+
+                param = _md.make_single_shape_table(shape, hoomd.context.exec_conf)
+                self.cpp_force.setShape(i, param)
+            except KeyError:
+                pass
+
             for j in range(i,ntypes):
                 # build a dict of the coeffs to pass to process_coeff
-                coeff_dict = {};
+                coeff_dict = {}
                 for name in coeff_list:
                     coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
 
