@@ -54,6 +54,26 @@ v3.0.0 (not yet released)
 v2.x
 ----
 
+v2.8.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*New Features*
+
+- HPMC:
+
+  - Enable the use of an array with adjustable parameters within the user defined pair potential.
+  - Add muVT updater for 2d systems.
+
+*Bug fixes*
+
+- Fix missing header in external plugin builds.
+- Enable ``couple='none'`` option to ``md.integrate.npt()`` when randomly initializing velocities.
+- Documentation improvements.
+- Skip gsd shape unit test when required modules are not compiled.
+- Fix default particle properties when new particles are added to the system (e.g., via the muVT updater).
+- Fix ``charge.pppm()`` execution on multiple GPUs.
+- Enable ``with SimulationContext() as c``.
+
 v2.7.0 (2019-10-01)
 ^^^^^^^^^^^^^^^^^^^
 
