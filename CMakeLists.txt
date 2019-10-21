@@ -115,9 +115,12 @@ option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
 include (HOOMDMPISetup)
 # find the python libraries to link to
 include(HOOMDPythonSetup)
+
+# this needs to go before CUDA setup
+include (HOOMDHIPSetup)
+
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
-include (HOOMDHIPSetup)
 include (hoomd-macros)
 
 find_package(Eigen3 3.2 CONFIG REQUIRED)

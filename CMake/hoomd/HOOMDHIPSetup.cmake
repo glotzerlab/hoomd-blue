@@ -24,7 +24,10 @@ if(HIP_FOUND)
         message(ERROR "Unknown HIP backend " ${_hip_compiler})
     endif()
 
-    SET(CMAKE_CUDA_COMPILER ${_hip_compiler})
+    SET(CMAKE_CUDA_COMPILER ${HIP_HIPCC_EXECUTABLE})
+
+    # don't let CMake examine the compiler, because it will fail
+    SET(CMAKE_CUDA_COMPILER_FORCED TRUE)
 
     # drop the compiler exeuctable and the "hipcc-cmd"
     LIST(REMOVE_AT _hipcc_verbose_options 0 1)

@@ -6,44 +6,48 @@ MARK_AS_ADVANCED(ALWAYS_USE_MANAGED_MEMORY)
 
 if (ENABLE_CUDA)
     enable_language(CUDA)
-    if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.0)
-        message(SEND_ERROR "HOOMD-blue requires CUDA 9.0 or newer")
+    message(STATUS ${CUDA_COMPILER_VERSION})
+    if (NOT ENABLE_HIP OR (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc"))
+        if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.0)
+            message(SEND_ERROR "HOOMD-blue requires CUDA 9.0 or newer")
+        endif()
     endif()
-
     find_package(CUDALibs REQUIRED)
 endif (ENABLE_CUDA)
 
 # setup CUDA compile options
 if (ENABLE_CUDA)
-    # supress warnings in random123
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcudafe --diag_suppress=code_is_unreachable")
 
-    # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
-    if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER 8.99)
-        set(CUDA_ARCH_LIST 35 50 60 70 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-    elseif (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER 7.99)
-        set(CUDA_ARCH_LIST 35 50 60 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+    if (NOT ENABLE_HIP OR (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc"))
+        # supress warnings in random123
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcudafe --diag_suppress=code_is_unreachable")
+
+        # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
+        if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER 8.99)
+            set(CUDA_ARCH_LIST 35 50 60 70 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        elseif (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER 7.99)
+            set(CUDA_ARCH_LIST 35 50 60 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        endif()
+
+        foreach(_cuda_arch ${CUDA_ARCH_LIST})
+            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_${_cuda_arch},code=sm_${_cuda_arch}")
+        endforeach (_cuda_arch)
+
+        # need to know the minimum supported CUDA_ARCH
+        set(_cuda_arch_list_sorted ${CUDA_ARCH_LIST})
+        list(SORT _cuda_arch_list_sorted)
+        list(GET _cuda_arch_list_sorted 0 _cuda_min_arch)
+        list(GET _cuda_arch_list_sorted -1 _cuda_max_arch)
+
+        if (_cuda_min_arch LESS 35)
+            message(SEND_ERROR "HOOMD requires compute 3.5 or newer")
+        endif ()
+
+        # only generate ptx code for the maximum supported CUDA_ARCH (saves on file size)
+        list(REVERSE _cuda_arch_list_sorted)
+        list(GET _cuda_arch_list_sorted 0 _cuda_max_arch)
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_${_cuda_max_arch},code=compute_${_cuda_max_arch}")
     endif()
-
-    foreach(_cuda_arch ${CUDA_ARCH_LIST})
-        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_${_cuda_arch},code=sm_${_cuda_arch}")
-    endforeach (_cuda_arch)
-
-    # need to know the minimum supported CUDA_ARCH
-    set(_cuda_arch_list_sorted ${CUDA_ARCH_LIST})
-    list(SORT _cuda_arch_list_sorted)
-    list(GET _cuda_arch_list_sorted 0 _cuda_min_arch)
-    list(GET _cuda_arch_list_sorted -1 _cuda_max_arch)
-
-    if (_cuda_min_arch LESS 35)
-        message(SEND_ERROR "HOOMD requires compute 3.5 or newer")
-    endif ()
-
-    # only generate ptx code for the maximum supported CUDA_ARCH (saves on file size)
-    list(REVERSE _cuda_arch_list_sorted)
-    list(GET _cuda_arch_list_sorted 0 _cuda_max_arch)
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_${_cuda_max_arch},code=compute_${_cuda_max_arch}")
-
 endif (ENABLE_CUDA)
 
 # set CUSOLVER_AVAILABLE depending on CUDA Toolkit version
