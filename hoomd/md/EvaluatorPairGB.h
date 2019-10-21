@@ -45,6 +45,9 @@ struct pair_gb_params
     };
 
 
+// Nullary structure required by AnisoPotentialPair.
+struct gb_shape_params {};
+
 /*!
  * Gay-Berne potential as formulated by Allen and Germano,
  * with shape-independent energy parameter, for identical uniaxial particles.
@@ -54,6 +57,7 @@ class EvaluatorPairGB
     {
     public:
         typedef pair_gb_params param_type;
+        typedef gb_shape_params shape_param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centers of mass
@@ -97,11 +101,16 @@ class EvaluatorPairGB
             }
 
         //! Accept the optional diameter values
-        //! This function is pure virtual
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
         HOSTDEVICE void setCharge(Scalar qi, Scalar qj){}
+
+        //! Accept the optional shape values
+        /*! \param shape_i Shape of particle i
+            \param shape_j Shape of particle j
+        */
+        HOSTDEVICE void setShape(const shape_param_type *shapei, const shape_param_type *shapej) {}
 
         //! Evaluate the force and energy
         /*! \param force Output parameter to write the computed force.
