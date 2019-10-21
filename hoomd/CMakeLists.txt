@@ -217,7 +217,9 @@ endif(SINGLE_PRECISION)
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_CUDA)
-    target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
+    if (NOT ENABLE_HIP)
+        target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
+    endif()
     target_compile_definitions(_hoomd PUBLIC ENABLE_CUDA CUDA_ARCH=${_cuda_min_arch})
     target_compile_definitions(_hoomd PUBLIC "$<$<COMPILE_LANGUAGE:CUDA>:NVCC>")
 
