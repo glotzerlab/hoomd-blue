@@ -355,6 +355,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host,access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     //force arrays
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
@@ -390,12 +391,15 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
         Scalar di = Scalar(0.0);
         Scalar qi = Scalar(0.0);
         const shape_param_type *shape_i;
+        unsigned int tag_i = 0;
         if (aniso_evaluator::needsDiameter())
             di = h_diameter.data[i];
         if (aniso_evaluator::needsCharge())
             qi = h_charge.data[i];
         if (aniso_evaluator::needsShape())
             shape_i = &h_shape_params.data[typei];
+        if (aniso_evaluator::needsTags())
+            tag_i = h_tag.data[i];
 
         // initialize current particle force, torque, potential energy, and virial to 0
         Scalar fxi = Scalar(0.0);
@@ -434,12 +438,15 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
             Scalar dj = Scalar(0.0);
             Scalar qj = Scalar(0.0);
             const shape_param_type *shape_j;
+            unsigned int tag_j = 0;
             if (aniso_evaluator::needsDiameter())
                 dj = h_diameter.data[j];
             if (aniso_evaluator::needsCharge())
                 qj = h_charge.data[j];
             if (aniso_evaluator::needsShape())
                 shape_j = &h_shape_params.data[typej];
+            if (aniso_evaluator::needsTags())
+                tag_j = h_tag.data[j];
 
             // apply periodic boundary conditions
             dx = box.minImage(dx);
@@ -470,6 +477,8 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
                 eval.setCharge(qi, qj);
             if (aniso_evaluator::needsShape())
                 eval.setShape(shape_i, shape_j);
+            if (aniso_evaluator::needsTags())
+                eval.setTags(tag_i, tag_j);
 
             bool evaluated = eval.evaluate(force, pair_eng, energy_shift,torque_i,torque_j);
 

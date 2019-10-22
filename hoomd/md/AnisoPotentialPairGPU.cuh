@@ -38,6 +38,7 @@ struct a_pair_args_t
               const Scalar *_d_diameter,
               const Scalar *_d_charge,
               const Scalar4 *_d_orientation,
+              const unsigned int *_d_tag,
               const BoxDim& _box,
               const unsigned int *_d_n_neigh,
               const unsigned int *_d_nlist,
@@ -62,6 +63,7 @@ struct a_pair_args_t
                   d_diameter(_d_diameter),
                   d_charge(_d_charge),
                   d_orientation(_d_orientation),
+                  d_tag(_d_tag),
                   box(_box),
                   d_n_neigh(_d_n_neigh),
                   d_nlist(_d_nlist),
@@ -87,7 +89,8 @@ struct a_pair_args_t
     const Scalar4 *d_pos;           //!< particle positions
     const Scalar *d_diameter;       //!< particle diameters
     const Scalar *d_charge;         //!< particle charges
-    const Scalar4 *d_orientation;    //!< particle orientation to compute forces over
+    const Scalar4 *d_orientation;   //!< particle orientation to compute forces over
+    const unsigned int *d_tag;      //!< particle tags to compute forces over
     const BoxDim& box;              //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
@@ -118,6 +121,7 @@ struct a_pair_args_t
     \param d_diameter particle diameters
     \param d_charge particle charges
     \param d_orientation Quaternion data on the GPU to calculate forces on
+    \param d_tag Tag data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -153,6 +157,7 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                                                      const Scalar *d_diameter,
                                                      const Scalar *d_charge,
                                                      const Scalar4 *d_orientation,
+                                                     const unsigned int *d_tag,
                                                      const BoxDim box,
                                                      const unsigned int *d_n_neigh,
                                                      const unsigned int *d_nlist,
@@ -257,6 +262,10 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
         if (evaluator::needsShape())
             shape_i = &(s_shape_params[__scalar_as_int(postypei.w)]);
 
+        unsigned int tag_i = 0;
+        if (evaluator::needsTags())
+            tag_i = __ldg(d_tag + idx);
+
         unsigned int my_head = d_head_list[idx];
         unsigned int cur_j = 0;
 
@@ -292,6 +301,10 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                 if (evaluator::needsShape())
                     shape_j = &(s_shape_params[__scalar_as_int(postypej.w)]);
 
+                unsigned int tag_j = 0;
+                if (evaluator::needsTags())
+                    tag_j = __ldg(d_tag + idx);
+
                 // calculate dr (with periodic boundary conditions)
                 Scalar3 dx = posi - posj;
 
@@ -326,6 +339,8 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                     eval.setCharge(qi, qj);
                 if (evaluator::needsShape())
                     eval.setShape(shape_i, shape_j);
+                if (evaluator::needsTags())
+                    eval.setTags(tag_i, tag_j);
 
                 // call evaluator
                 eval.evaluate(jforce, pair_eng, energy_shift, torquei, torquej);
@@ -486,6 +501,7 @@ struct AnisoPairForceComputeKernel
                                                    pair_args.d_diameter,
                                                    pair_args.d_charge,
                                                    pair_args.d_orientation,
+                                                   pair_args.d_tag,
                                                    pair_args.box,
                                                    pair_args.d_n_neigh,
                                                    pair_args.d_nlist,

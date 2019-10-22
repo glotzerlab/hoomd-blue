@@ -102,11 +102,11 @@ class EvaluatorPairGB
             return false;
             }
 
-        //! Accept the optional diameter values
-        /*! \param di Diameter of particle i
-            \param dj Diameter of particle j
-        */
-        HOSTDEVICE void setDiameter(Scalar di, Scalar dj){}
+        //! Whether the pair potential needs particle tags.
+        HOSTDEVICE static bool needsTags()
+            {
+            return false;
+            }
 
         //! whether pair potential requires charges
         HOSTDEVICE static bool needsCharge( )
@@ -115,16 +115,28 @@ class EvaluatorPairGB
             }
 
         //! Accept the optional diameter values
-        /*! \param qi Charge of particle i
-            \param qj Charge of particle j
+        /*! \param di Diameter of particle i
+            \param dj Diameter of particle j
         */
-        HOSTDEVICE void setCharge(Scalar qi, Scalar qj){}
+        HOSTDEVICE void setDiameter(Scalar di, Scalar dj){}
 
         //! Accept the optional shape values
         /*! \param shape_i Shape of particle i
             \param shape_j Shape of particle j
         */
         HOSTDEVICE void setShape(const shape_param_type *shapei, const shape_param_type *shapej) {}
+
+        //! Accept the optional tags
+        /*! \param tag_i Tag of particle i
+            \param tag_j Tag of particle j
+        */
+        HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) {}
+
+        //! Accept the optional charge values
+        /*! \param qi Charge of particle i
+            \param qj Charge of particle j
+        */
+        HOSTDEVICE void setCharge(Scalar qi, Scalar qj){}
 
         //! Evaluate the force and energy
         /*! \param force Output parameter to write the computed force.
