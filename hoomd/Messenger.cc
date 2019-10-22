@@ -86,9 +86,6 @@ Messenger::Messenger(std::shared_ptr<MPIConfiguration> mpi_config)
         m_notice_level = 0;
 
 #ifdef ENABLE_MPI
-    m_error_flag = NULL;
-    m_has_lock = false;
-    initializeSharedMem();
     m_shared_filename = "";
 #endif
     }
@@ -112,18 +109,11 @@ Messenger::Messenger(const Messenger& msg)
 
     #ifdef ENABLE_MPI
     m_shared_filename = msg.m_shared_filename;
-    m_error_flag = NULL;
-    m_has_lock = false;
-    initializeSharedMem();
     #endif
     }
 
 Messenger& Messenger::operator=(Messenger& msg)
     {
-    #ifdef ENABLE_MPI
-    releaseSharedMem();
-    #endif
-
     m_err_stream = msg.m_err_stream;
     m_warning_stream = msg.m_warning_stream;
     m_notice_stream = msg.m_notice_stream;
@@ -141,9 +131,6 @@ Messenger& Messenger::operator=(Messenger& msg)
 
     #ifdef ENABLE_MPI
     m_shared_filename = msg.m_shared_filename;
-    m_error_flag = NULL;
-    m_has_lock = false;
-    initializeSharedMem();
     #endif
 
     return *this;
@@ -155,36 +142,22 @@ Messenger::~Messenger()
     m_err_stream = NULL;
     m_warning_stream = NULL;
     m_notice_stream = NULL;
-
-    #ifdef ENABLE_MPI
-    releaseSharedMem();
-    #endif
     }
 
 /*! \returns The error stream for use in printing error messages
     \post If the error prefix is not the empty string, the message is preceded with
     "${error_prefix}: ".
+
+    error() is intended to be used as a collective method where all MPI ranks report the same error. Only rank 0
+    will print the error.
 */
 std::ostream& Messenger::error()
     {
     assert(m_err_stream);
     #ifdef ENABLE_MPI
-    assert(m_error_flag);
     if (m_mpi_config->getNRanks() > 1)
         {
-        int one = 1;
-        int flag;
-        // atomically increment flag
-        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0,0, m_mpi_win);
-        MPI_Accumulate(&one, 1, MPI_INT, 0, 0, 1, MPI_INT, MPI_SUM, m_mpi_win);
-        MPI_Get(&flag, 1, MPI_INT, 0, 0, 1, MPI_INT, m_mpi_win);
-        MPI_Win_unlock(0, m_mpi_win);
-
-        // we have access to stdout if we are the first process to access the counter
-        m_has_lock = m_has_lock || (flag == 1);
-
-        // if we do not have exclusive access to stdout, return NULL stream
-        if (! m_has_lock) return *m_nullstream;
+        return *m_nullstream;
         }
     #endif
     reopenPythonIfNeeded();
@@ -192,6 +165,27 @@ std::ostream& Messenger::error()
         *m_err_stream << m_err_prefix << ": ";
     if (m_mpi_config->getNRanks() > 1)
         *m_err_stream << " (Rank " << m_mpi_config->getRank() << "): ";
+    return *m_err_stream;
+    }
+
+/*! \returns The error stream for use in printing error messages
+    \post If the error prefix is not the empty string, the message is preceded with
+    "${error_prefix}: (Rank N):".
+
+    errorAllRanks() is intended to be used when only one or a small number of ranks report an error. All ranks that call
+    will errorAllRanks() will write output. Callers should flush the stream.
+*/
+std::ostream& Messenger::errorAllRanks()
+    {
+    assert(m_err_stream);
+
+    reopenPythonIfNeeded();
+
+    if (m_err_prefix != string(""))
+        *m_err_stream << m_err_prefix << ": ";
+    if (m_mpi_config->getNRanks() > 1)
+        *m_err_stream << " (Rank " << m_mpi_config->getRank() << "): ";
+
     return *m_err_stream;
     }
 
@@ -442,24 +436,6 @@ void mpi_io::close()
         MPI_File_close(&m_file);
 
     m_file_open = false;
-    }
-
-void Messenger::initializeSharedMem()
-    {
-    // allocate memory for counter
-    MPI_Alloc_mem(sizeof(int), MPI_INFO_NULL, &m_error_flag);
-
-    // reset to zero
-    *m_error_flag = 0;
-
-    // create window for exclusive access to the error stream
-    MPI_Win_create(m_error_flag, sizeof(int), sizeof(int), MPI_INFO_NULL, m_mpi_config->getCommunicator(), &m_mpi_win);
-    }
-
-void Messenger::releaseSharedMem()
-    {
-    MPI_Win_free(&m_mpi_win);
-    MPI_Free_mem(m_error_flag);
     }
 
 #endif
