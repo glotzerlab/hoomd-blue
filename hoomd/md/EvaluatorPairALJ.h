@@ -13,11 +13,11 @@
 
 #include "hoomd/VectorMath.h"
 #include "hoomd/ManagedArray.h"
-#include "ALJData.h"
 #include "GJK.h"
-#include <iostream>
 
+#ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 /*! \file EvaluatorPairALJ.h
     \brief Defines a an evaluator class for the anisotropic LJ table potential.
@@ -95,19 +95,45 @@ struct alj_shape_params
     Scalar k_maxsq;                          //! Largest kernel value.
     };
 
-#ifndef NVCC
-alj_shape_params make_alj_shape_params(pybind11::list shape, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+struct pair_alj_params
     {
-    alj_shape_params result(shape, exec_conf->isCUDAEnabled());
-    return result;
-    }
-#endif
+    DEVICE pair_alj_params()
+        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0.0)
+        {}
+
+    #ifndef NVCC
+    //! Shape constructor
+    pair_alj_params(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _alpha, bool use_device)
+        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha) {}
+
+    #endif
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const {}
+    #endif
+
+    //! Potential parameters
+    Scalar epsilon;                      //! interaction parameter.
+    Scalar sigma_i;                      //! size of i^th particle.
+    Scalar sigma_j;                      //! size of j^th particle.
+    Scalar alpha;                        //! toggle switch of attractive branch of potential.
+    };
+
+
+
 
 template <unsigned int ndim>
 class EvaluatorPairALJ
     {
     public:
-        typedef shape_table param_type;
+        typedef pair_alj_params param_type;
 
         typedef alj_shape_params shape_param_type;
 
@@ -363,6 +389,31 @@ class EvaluatorPairALJ
 
 
 #ifndef NVCC
+alj_shape_params make_alj_shape_params(pybind11::list shape, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+    {
+    alj_shape_params result(shape, exec_conf->isCUDAEnabled());
+    return result;
+    }
+
+pair_alj_params make_pair_alj_params(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Scalar alpha, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+    {
+    pair_alj_params result(epsilon, sigma_i, sigma_j, alpha, exec_conf->isCUDAEnabled());
+    return result;
+    }
+
+//! Function to export the ALJ parameter type to python
+void export_shape_params(pybind11::module& m)
+{
+    pybind11::class_<pair_alj_params>(m, "pair_alj_params")
+        .def(pybind11::init<>())
+        .def_readwrite("alpha", &pair_alj_params::alpha)
+        .def_readwrite("epsilon", &pair_alj_params::epsilon)
+        .def_readwrite("sigma_i", &pair_alj_params::sigma_i)
+        .def_readwrite("sigma_j", &pair_alj_params::sigma_j);
+
+    m.def("make_pair_alj_params", &make_pair_alj_params);
+}
+
 void export_alj_shape_params(pybind11::module& m)
     {
     pybind11::class_<alj_shape_params>(m, "alj_shape_params")

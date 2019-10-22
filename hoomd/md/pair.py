@@ -2878,7 +2878,7 @@ class alj(ai_pair):
         sigma_j = coeff['sigma_j'];
         alpha = coeff['alpha'];
 
-        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, hoomd.context.exec_conf);
+        return _md.make_pair_alj_params(epsilon, sigma_i, sigma_j, alpha, hoomd.context.exec_conf);
 
     def _set_cpp_shape(self, type_id, type_name):
         # Ensure that shape parameters are always 3D lists, even in 2D.
