@@ -2894,8 +2894,10 @@ class alj(ai_pair):
         sigma_i = coeff['sigma_i'];
         sigma_j = coeff['sigma_j'];
         alpha = coeff['alpha'];
+        if alpha not in range(3):
+            raise ValueError("The alpha parameter must be an integer from 0 to 3.")
 
-        return _md.make_pair_alj_params(epsilon, sigma_i, sigma_j, alpha, hoomd.context.exec_conf);
+        return _md.make_pair_alj_params(epsilon, sigma_i, sigma_j, int(alpha), hoomd.context.exec_conf);
 
     def _set_cpp_shape(self, type_id, type_name):
         # Ensure that shape parameters are always 3D lists, even in 2D.

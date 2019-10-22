@@ -95,12 +95,12 @@ struct alj_shape_params
 struct pair_alj_params
     {
     DEVICE pair_alj_params()
-        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0.0)
+        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0)
         {}
 
     #ifndef NVCC
     //! Shape constructor
-    pair_alj_params(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _alpha, bool use_device)
+    pair_alj_params(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, unsigned int _alpha, bool use_device)
         : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha) {}
 
     #endif
@@ -120,7 +120,7 @@ struct pair_alj_params
     Scalar epsilon;                      //! interaction parameter.
     Scalar sigma_i;                      //! size of i^th particle.
     Scalar sigma_j;                      //! size of j^th particle.
-    Scalar alpha;                        //! toggle switch of attractive branch of potential.
+    unsigned int alpha;                  //! toggle switch of attractive branch of potential.
     };
 
 
@@ -285,7 +285,7 @@ class EvaluatorPairALJ
                 Scalar f_scalar_contact = 0;
 
                 // Check repulsion vs attraction for center particle
-                if (_params.alpha < 1.0)
+                if (_params.alpha % 2 == 0)
                     {
                     if (r < two_p_16*sigma12)
                         {
@@ -313,7 +313,7 @@ class EvaluatorPairALJ
 
                 // Check repulsion attraction for contact point
                 // No overlap
-                if (_params.alpha*0.0 < 1.0)
+                if (_params.alpha / 2 == 0)
                     {
                     if (1/rcheck_isq  < two_p_16 *sub_sphere*sigma12)
                         {
@@ -393,7 +393,7 @@ alj_shape_params make_alj_shape_params(pybind11::list shape, std::shared_ptr<con
     return result;
     }
 
-pair_alj_params make_pair_alj_params(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Scalar alpha, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+pair_alj_params make_pair_alj_params(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, unsigned int alpha, std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
     pair_alj_params result(epsilon, sigma_i, sigma_j, alpha, exec_conf->isCUDAEnabled());
     return result;
