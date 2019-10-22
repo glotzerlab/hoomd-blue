@@ -205,8 +205,8 @@ class EvaluatorPairALJ
                     bool success1, overlap1;
                     bool success2, overlap2;
 
-                    gjk<ndim>(_params.verts_i, _params.verts_j, v1, a1, b1, success1, overlap1, qi, qj, dr);
-                    gjk<ndim>(_params.verts_j, _params.verts_i, v2, a2, b2, success2, overlap2, qj, qi, -dr);
+                    gjk<ndim>(shape_i->verts, shape_j->verts, v1, a1, b1, success1, overlap1, qi, qj, dr);
+                    gjk<ndim>(shape_j->verts, shape_i->verts, v2, a2, b2, success2, overlap2, qj, qi, -dr);
 
                     if (dot(v1, v1) < dot(v2, v2))
                         {
