@@ -183,12 +183,15 @@ class AnisoPotentialPair : public ForceCompute
             m_rcutsq.swap(rcutsq);
             GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf, "my_params", true);
             m_params.swap(params);
+            GlobalArray<shape_param_type> shape_params(m_pdata->getNTypes(), m_exec_conf, "shape_params", true);
+            m_shape_params.swap(shape_params);
 
             #ifdef ENABLE_CUDA
             if (m_pdata->getExecConf()->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
                 {
                 cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
                 cudaMemAdvise(m_params.get(), m_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
+                cudaMemAdvise(m_shape_params.get(), m_shape_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
 
                 // prefetch
                 auto& gpu_map = m_exec_conf->getGPUIds();
@@ -198,6 +201,7 @@ class AnisoPotentialPair : public ForceCompute
                     // prefetch data on all GPUs
                     cudaMemPrefetchAsync(m_rcutsq.get(), sizeof(Scalar)*m_rcutsq.getNumElements(), gpu_map[idev]);
                     cudaMemPrefetchAsync(m_params.get(), sizeof(param_type)*m_params.getNumElements(), gpu_map[idev]);
+                    cudaMemPrefetchAsync(m_shape_params.get(), sizeof(param_type)*m_shape_params.getNumElements(), gpu_map[idev]);
                     }
                 CHECK_CUDA_ERROR();
                 }
