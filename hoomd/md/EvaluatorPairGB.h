@@ -46,7 +46,21 @@ struct pair_gb_params
 
 
 // Nullary structure required by AnisoPotentialPair.
-struct gb_shape_params {};
+struct gb_shape_params
+{
+    HOSTDEVICE gb_shape_params() {}
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const {}
+    #endif
+};
 
 /*!
  * Gay-Berne potential as formulated by Allen and Germano,

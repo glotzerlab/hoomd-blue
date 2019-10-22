@@ -11,25 +11,29 @@
 */
 
 cudaError_t gpu_compute_pair_aniso_forces_gb(const a_pair_args_t& pair_args,
-            const EvaluatorPairGB::param_type* d_param)
+            const EvaluatorPairGB::param_type* d_param,
+            const EvaluatorPairGB::shape_param_type* d_shape_param)
     {
-    return gpu_compute_pair_aniso_forces<EvaluatorPairGB>(pair_args, d_param);
+    return gpu_compute_pair_aniso_forces<EvaluatorPairGB>(pair_args, d_param, d_shape_param);
     }
 
 cudaError_t gpu_compute_pair_aniso_forces_dipole(const a_pair_args_t& pair_args,
-            const EvaluatorPairDipole::param_type* d_param)
+            const EvaluatorPairDipole::param_type* d_param,
+            const EvaluatorPairDipole::shape_param_type* d_shape_param)
     {
-    return gpu_compute_pair_aniso_forces<EvaluatorPairDipole>(pair_args, d_param);
+    return gpu_compute_pair_aniso_forces<EvaluatorPairDipole>(pair_args, d_param, d_shape_param);
     }
 
 cudaError_t gpu_compute_pair_aniso_forces_ALJ_2D(const a_pair_args_t& pair_args,
-            const EvaluatorPairALJ<2>::param_type* d_param)
+            const EvaluatorPairALJ<2>::param_type* d_param,
+            const EvaluatorPairALJ<2>::shape_param_type* d_shape_param)
     {
-    return gpu_compute_pair_aniso_forces<EvaluatorPairALJ<2> >(pair_args, d_param);
+    return gpu_compute_pair_aniso_forces<EvaluatorPairALJ<2> >(pair_args, d_param, d_shape_param);
     }
 
 cudaError_t gpu_compute_pair_aniso_forces_ALJ_3D(const a_pair_args_t& pair_args,
-            const EvaluatorPairALJ<3>::param_type* d_param)
+            const EvaluatorPairALJ<3>::param_type* d_param,
+            const EvaluatorPairALJ<3>::shape_param_type* d_shape_param)
     {
-    return gpu_compute_pair_aniso_forces<EvaluatorPairALJ<3> >(pair_args, d_param);
+    return gpu_compute_pair_aniso_forces<EvaluatorPairALJ<3> >(pair_args, d_param, d_shape_param);
     }
