@@ -157,6 +157,24 @@ class EvaluatorPairALJ
             return true;
             }
 
+        //! Whether the pair potential uses shape.
+        HOSTDEVICE static bool needsShape()
+            {
+            return true;
+            }
+
+        //! Whether the pair potential needs particle tags.
+        HOSTDEVICE static bool needsTags()
+            {
+            return true;
+            }
+
+        //! whether pair potential requires charges
+        HOSTDEVICE static bool needsCharge()
+            {
+            return false;
+            }
+
         //! Accept the optional diameter values
         /*! \param di Diameter of particle i
             \param dj Diameter of particle j
@@ -167,24 +185,6 @@ class EvaluatorPairALJ
             dia_j = dj;
             }
 
-        //! whether pair potential requires charges
-        HOSTDEVICE static bool needsCharge()
-            {
-            return false;
-            }
-
-        //! Whether the pair potential uses shape.
-        HOSTDEVICE static bool needsShape()
-            {
-            return true;
-            }
-
-        //! Accept the optional diameter values
-        /*! \param qi Charge of particle i
-            \param qj Charge of particle j
-        */
-        HOSTDEVICE void setCharge(Scalar qi, Scalar qj){}
-
         //! Accept the optional shape values
         /*! \param shape_i Shape of particle i
             \param shape_j Shape of particle j
@@ -194,6 +194,22 @@ class EvaluatorPairALJ
             shape_i = shapei;
             shape_j = shapej;
             }
+
+        //! Accept the optional tags
+        /*! \param tag_i Tag of particle i
+            \param tag_j Tag of particle j
+        */
+        HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj)
+        {
+            tag_i = tagi;
+            tag_j = tagj;
+        }
+
+        //! Accept the optional charge values
+        /*! \param qi Charge of particle i
+            \param qj Charge of particle j
+        */
+        HOSTDEVICE void setCharge(Scalar qi, Scalar qj){}
 
         //! Evaluate the force and energy.
         /*! \param force Output parameter to write the computed force.
@@ -378,11 +394,13 @@ class EvaluatorPairALJ
         Scalar rcutsq;     //!< Stored rcutsq from the constructor
         quat<Scalar> qi;   //!< Orientation quaternion for particle i
         quat<Scalar> qj;   //!< Orientation quaternion for particle j
-        Scalar dia_i;
-        Scalar dia_j;
-        const shape_param_type *shape_i;
-        const shape_param_type *shape_j;
-        const param_type& _params;
+        Scalar dia_i;      //!< Diameter of particle i.
+        Scalar dia_j;      //!< Diameter of particle j.
+        unsigned int tag_i;      //!< Tag of particle i.
+        unsigned int tag_j;      //!< Tag of particle j.
+        const shape_param_type *shape_i;      //!< Shape parameters of particle i.
+        const shape_param_type *shape_j;      //!< Shape parameters of particle j.
+        const param_type& _params;      //!< Potential parameters for the pair of interest.
     };
 
 
