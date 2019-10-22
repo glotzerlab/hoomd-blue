@@ -21,6 +21,8 @@ steps:
     OMPI_MCA_btl: "vader,self"
     # prevent deadlocked MPI tests from causing the job to cancel
     MPIEXEC_TIMEOUT: $(mpiexec_timeout)
+    # workaround issues on Mac
+    TMPDIR: /tmp
 
 - script: cp $(Build.BinariesDirectory)/Testing/**/Test.xml $(Common.TestResultsDirectory)
   displayName: Copy test results
