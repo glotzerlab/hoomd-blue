@@ -35,11 +35,7 @@
 #endif
 #endif
 
-/*!
- * Anisotropic LJ potential (assuming analytical kernel and (temporarily) sigma = 1.0)
- */
-
-
+//! Shape parameters for the ALJ potential.
 struct alj_shape_params
     {
     HOSTDEVICE alj_shape_params()
@@ -95,6 +91,7 @@ struct alj_shape_params
     Scalar k_maxsq;                          //! Largest kernel value.
     };
 
+//! Potential parameters for the ALJ potential.
 struct pair_alj_params
     {
     DEVICE pair_alj_params()
@@ -127,8 +124,9 @@ struct pair_alj_params
     };
 
 
-
-
+/*!
+ * Anisotropic LJ potential.
+ */
 template <unsigned int ndim>
 class EvaluatorPairALJ
     {

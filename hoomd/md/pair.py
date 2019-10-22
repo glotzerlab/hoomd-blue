@@ -2821,18 +2821,35 @@ class alj(ai_pair):
         name (str): Name of the force instance.
 
     :py:class:`alj2D` computes the LJ potential between anisotropic particles.
+    The anisotropy is implemented as a composite of two interactions, a
+    center-center component and a component of interaction measured at the
+    closest point of contact between the two particles. The potential supports
+    both standard LJ interactions as well as repulsive-only WCA interactions.
+    This behavior is controlled using the :code:`alpha` parameter, which can
+    take on the following values:
+
+    * :code:`0`:
+      All interactions are WCA (no attraction).
+
+    * :code:`1`:
+      Center-center interactions include attraction, contact-contact interactions are solely repulsive.
+
+    * :code:`2`:
+      Center-center interactions are solely repulsive, contact-contact interactions include attraction.
+
+    * :code:`0`:
+      All interactions include attractive and repulsive components.
+
 
     Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
-        alj.pair_coeff.set('A', 'A', epsilon=eps_att, sigma_i=sigma_particle, sigma_j=sigma_particle, alpha=alpha, shape_i=vertices, shape_j=vertices);
-
-
     - *epsilon* - :math:`\varepsilon` (in energy units)
     - *sigma_i* (in distance units) - the insphere radius of the first particle type.
     - *sigma_j* (in distance units) - the insphere radius of the second particle type.
-    - *alpha* - boolean indicating whether or not to include attractive component (False gives a WCA potential).
+    - *alpha* - Value indicating whether or not to include attractive component. (False gives a WCA potential).
+    - *alpha* - Integer from 0-3 indicating whether or not to include the attractive component of the interaction (see above for details).
     - *shape_i* (in distance units) - the vertices of the first particle type
     - *shape_j* (in distance units) - the vertices of the first particle type
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
