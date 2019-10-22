@@ -71,7 +71,21 @@ struct pair_dipole_params
     };
 
 // Nullary structure required by AnisoPotentialPair.
-struct dipole_shape_params {};
+struct dipole_shape_params
+{
+    HOSTDEVICE dipole_shape_params() {}
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const {}
+    #endif
+};
 
 class EvaluatorPairDipole
     {
