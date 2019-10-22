@@ -26,50 +26,13 @@
 struct shape_table
     {
     DEVICE shape_table()
-        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0.0), ki_maxsq(0.0), kj_maxsq(0.0)
+        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0.0)
         {}
 
     #ifndef NVCC
     //! Shape constructor
-    shape_table(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _alpha, pybind11::list shape_i, pybind11::list shape_j, bool use_device)
-        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha), ki_maxsq(0.0), kj_maxsq(0.0)
-        {
-        Scalar kmax = 0;
-
-        //! Construct table for particle i
-        unsigned int Ni = len(shape_i);
-        verts_i = ManagedArray<vec3<Scalar> >(Ni, use_device);
-        for (unsigned int i = 0; i < Ni; ++i)
-            {
-            pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_i[i]);
-            verts_i[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
-
-            Scalar ktest = dot(verts_i[i], verts_i[i]);
-            if (ktest > kmax)
-                {
-                kmax = ktest;
-                }
-            }
-        ki_maxsq = kmax;
-
-        kmax = 0;
-
-        //! Construct table for particle j
-        unsigned int Nj = len(shape_j);
-        verts_j = ManagedArray<vec3<Scalar> >(Nj, use_device);
-        for (unsigned int i = 0; i < Nj; ++i)
-            {
-            pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape_j[i]);
-            verts_j[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
-
-            Scalar ktest = dot(verts_j[i], verts_j[i]);
-            if (ktest > kmax)
-                {
-                kmax = ktest;
-                }
-            }
-        kj_maxsq = kmax;
-        }
+    shape_table(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _alpha, bool use_device)
+        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha) {}
 
     #endif
 
@@ -77,40 +40,26 @@ struct shape_table
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
-        {
-        verts_i.load_shared(ptr, available_bytes);
-        verts_j.load_shared(ptr, available_bytes);
-        }
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
 
     #ifdef ENABLE_CUDA
     //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
-        {
-        verts_i.attach_to_stream(stream);
-        verts_j.attach_to_stream(stream);
-        }
+    void attach_to_stream(cudaStream_t stream) const {}
     #endif
 
     //! Potential parameters
     Scalar epsilon;                      //! interaction parameter.
     Scalar sigma_i;                      //! size of i^th particle.
     Scalar sigma_j;                      //! size of j^th particle.
-    Scalar alpha;                        //! toggle switch fo attractive branch of potential.
-
-    //! Shape parameters
-    ManagedArray<vec3<Scalar> > verts_i;       //! Vertices of shape i.
-    ManagedArray<vec3<Scalar> > verts_j;       //! Vertices of shape j.
-    Scalar ki_maxsq;                           //! largest kernel value for shape i.
-    Scalar kj_maxsq;                           //! largest kernel value for shape j.
+    Scalar alpha;                        //! toggle switch of attractive branch of potential.
     };
 
 
 //! Helper function to build shape structure from python
 #ifndef NVCC
-shape_table make_shape_table(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Scalar alpha, pybind11::list shape_i, pybind11::list shape_j, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+shape_table make_shape_table(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Scalar alpha, std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
-    shape_table result(epsilon, sigma_i, sigma_j, alpha, shape_i, shape_j, exec_conf->isCUDAEnabled());
+    shape_table result(epsilon, sigma_i, sigma_j, alpha, exec_conf->isCUDAEnabled());
     return result;
     }
 
@@ -122,9 +71,7 @@ inline void export_shape_params(pybind11::module& m)
         .def_readwrite("alpha", &shape_table::alpha)
         .def_readwrite("epsilon", &shape_table::epsilon)
         .def_readwrite("sigma_i", &shape_table::sigma_i)
-        .def_readwrite("sigma_j", &shape_table::sigma_j)
-        .def_readwrite("ki_maxsq", &shape_table::ki_maxsq)
-        .def_readwrite("kj_maxsq", &shape_table::kj_maxsq);
+        .def_readwrite("sigma_j", &shape_table::sigma_j);
 
     m.def("make_shape_table", &make_shape_table);
 }

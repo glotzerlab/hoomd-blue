@@ -40,16 +40,16 @@
  */
 
 
-struct single_shape_table
+struct alj_shape_params
     {
-    HOSTDEVICE single_shape_table()
+    HOSTDEVICE alj_shape_params()
         : k_maxsq(0.0)
         {}
 
     #ifndef NVCC
 
     //! Shape constructor
-    single_shape_table(pybind11::list shape, bool use_device)
+    alj_shape_params(pybind11::list shape, bool use_device)
         : k_maxsq(0.0)
         {
         Scalar kmax = 0;
@@ -96,9 +96,9 @@ struct single_shape_table
     };
 
 #ifndef NVCC
-single_shape_table make_single_shape_table(pybind11::list shape, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+alj_shape_params make_alj_shape_params(pybind11::list shape, std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
-    single_shape_table result(shape, exec_conf->isCUDAEnabled());
+    alj_shape_params result(shape, exec_conf->isCUDAEnabled());
     return result;
     }
 #endif
@@ -109,7 +109,7 @@ class EvaluatorPairALJ
     public:
         typedef shape_table param_type;
 
-        typedef single_shape_table shape_param_type;
+        typedef alj_shape_params shape_param_type;
 
         //! Constructs the pair potential evaluator.
         /*! \param _dr Displacement vector between particle centers of mass.
@@ -190,7 +190,7 @@ class EvaluatorPairALJ
             // Interaction cutoff is scaled by the max kernel value scaled by
             // the insphere radius, which is the max vertex distance
             // k[ij]_maxsq.
-            if ( (rsq/_params.ki_maxsq < rcutsq) || (rsq/_params.kj_maxsq < rcutsq) )
+            if ( (rsq/shape_i->k_maxsq < rcutsq) || (rsq/shape_i->k_maxsq < rcutsq) )
                 {
                 // Call GJK. In order to ensure that Newton's third law is
                 // obeyed, we must avoid any imbalance caused by numerical
@@ -363,13 +363,13 @@ class EvaluatorPairALJ
 
 
 #ifndef NVCC
-void export_single_shape_table(pybind11::module& m)
+void export_alj_shape_params(pybind11::module& m)
     {
-    pybind11::class_<single_shape_table>(m, "single_shape_table")
+    pybind11::class_<alj_shape_params>(m, "alj_shape_params")
         .def(pybind11::init<>())
-        .def_readwrite("k_maxsq", &single_shape_table::k_maxsq);
+        .def_readwrite("k_maxsq", &alj_shape_params::k_maxsq);
 
-    m.def("make_single_shape_table", &make_single_shape_table);
+    m.def("make_alj_shape_params", &make_alj_shape_params);
     }
 #endif
 

@@ -2870,22 +2870,15 @@ class alj(ai_pair):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
-        self.required_coeffs = ['epsilon','sigma_i','sigma_j','alpha','shape_i', 'shape_j'];
+        self.required_coeffs = ['epsilon','sigma_i','sigma_j','alpha'];
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma_i = coeff['sigma_i'];
         sigma_j = coeff['sigma_j'];
-        shape_i = coeff['shape_i'];
-        shape_j = coeff['shape_j'];
         alpha = coeff['alpha'];
 
-        # Ensure vertex list is always 3D, even for 2D shapes.
-        if hoomd.context.current.system_definition.getNDimensions() == 2:
-            shape_i = [[v[0], v[1], 0] for v in shape_i]
-            shape_j = [[v[0], v[1], 0] for v in shape_j]
-
-        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, list(shape_i), list(shape_j), hoomd.context.exec_conf);
+        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, hoomd.context.exec_conf);
 
     def _set_cpp_shape(self, type_id, type_name):
         # Ensure that shape parameters are always 3D lists, even in 2D.
@@ -2893,7 +2886,7 @@ class alj(ai_pair):
         if hoomd.context.current.system_definition.getNDimensions() == 2:
             shape = [[v[0], v[1], 0] for v in shape]
 
-        param = _md.make_single_shape_table(shape, hoomd.context.exec_conf)
+        param = _md.make_alj_shape_params(shape, hoomd.context.exec_conf)
         self.cpp_force.setShape(type_id, param)
 
 
