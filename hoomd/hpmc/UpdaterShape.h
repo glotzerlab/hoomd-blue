@@ -28,7 +28,8 @@ public:
                     unsigned int nsweeps,
                     bool pretend,
                     bool multiphase,
-                    unsigned int numphase);
+                    unsigned int numphase,
+                    Scalar kappa_iq);
 
     ~UpdaterShape();
 
@@ -94,12 +95,14 @@ private:
     std::vector<unsigned int>   m_box_accepted;
     std::vector<unsigned int>   m_box_total;
     unsigned int                m_move_ratio;
+    Scalar                      m_kappa_iq;
 
     std::shared_ptr< shape_move_function<Shape, hoomd::RandomGenerator> >   m_move_function;
     std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
     std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function;
 
     GPUArray< Scalar >          m_determinant;
+    GPUArray< Scalar >          m_iq;
     GPUArray< unsigned int >    m_ntypes;
 
     std::vector< std::string >  m_ProvidedQuantities;
@@ -109,6 +112,7 @@ private:
     bool                        m_multi_phase;
     unsigned int                m_num_phase;
     detail::UpdateOrder         m_update_order;         //!< Update order
+
 
     static constexpr Scalar m_tol = 0.00001; //!< The minimum move size required not to be ignored.
 
@@ -123,12 +127,14 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  unsigned int nsweeps,
                                  bool pretend,
                                  bool multiphase,
-                                 unsigned int numphase)
-    : Updater(sysdef), m_seed(seed), m_global_partition(0), m_nselect(nselect),m_nsweeps(nsweeps),
-      m_move_ratio(move_ratio*65535), m_mc(mc),
-      m_determinant(m_pdata->getNTypes(), m_exec_conf),
+                                 unsigned int numphase,
+                                 Scalar kappa_iq)
+    : Updater(sysdef), m_seed(seed), m_global_partition(0), m_nselect(nselect), m_nsweeps(nsweeps),
+      m_move_ratio(move_ratio*65535), m_kappa_iq(kappa_iq), m_mc(mc),
+      m_determinant(m_pdata->getNTypes(), m_exec_conf), m_iq(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
-      m_pretend(pretend), m_initialized(false), m_multi_phase(multiphase), m_num_phase(numphase), m_update_order(seed)
+      m_pretend(pretend),m_initialized(false), m_multi_phase(multiphase),
+      m_num_phase(numphase), m_update_order(seed)
     {
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
@@ -138,20 +144,29 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_ProvidedQuantities.push_back("shape_move_acceptance_ratio");
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
     m_ProvidedQuantities.push_back("shape_move_multi_phase_box");
-    ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-    for(size_t i = 0; i < m_pdata->getNTypes(); i++)
-    m_ProvidedQuantities.push_back("shape_move_energy");
+    if (std::is_same<Shape, ShapeConvexPolyhedron>::value)
+        m_ProvidedQuantities.push_back("shape_isoperimetric_quotient");
         {
-        ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-        for(size_t i = 0; i < m_pdata->getNTypes(); i++)
+        for(unsigned int type_idx = 0; type_idx < m_pdata->getNTypes(); type_idx++)
             {
-            h_det.data[i] = 0.0;
-            h_ntypes.data[i] = 0;
+            const std::string ptype = m_pdata->getNameByType(type_idx);
+            const std::string qname = "shape_isoperimetric_quotient_" + ptype;
+            m_ProvidedQuantities.push_back(qname);
             }
         }
-    countTypes(); // TODO: connect to ntypes change/particle changes to resize arrays and count them up again.
+
+    ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_iq(m_iq, access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
+    m_ProvidedQuantities.push_back("shape_move_energy");
+    for(size_t i = 0; i < m_pdata->getNTypes(); i++)
+        {
+        h_det.data[i] = 0.0;
+        h_ntypes.data[i] = 0;
+        h_iq.data[i] = 0.0;
+        }
+    // TODO: connect to ntypes change/particle changes to resize arrays and count them up again.
+    countTypes();
     //TODO: add a sanity check to makesure that MPI is setup correctly
     if(m_multi_phase)
     {
@@ -164,7 +179,10 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     }
 
 template< class Shape >
-UpdaterShape<Shape>::~UpdaterShape() { m_exec_conf->msg->notice(5) << "Destroying UpdaterShape "<< std::endl; }
+UpdaterShape<Shape>::~UpdaterShape()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying UpdaterShape " << std::endl;
+    }
 
 /*! hpmc::UpdaterShape provides:
 \returns a list of provided quantities
@@ -174,6 +192,7 @@ std::vector< std::string > UpdaterShape<Shape>::getProvidedLogQuantities()
     {
     return m_ProvidedQuantities;
     }
+
 //! Calculates the requested log value and returns it
 template < class Shape >
 Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
@@ -216,13 +235,30 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
         for(unsigned int i = 0; i < m_pdata->getNTypes(); i++)
             {
-            energy += m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[i], i, m_mc->getParams()[i], h_det.data[i]);
+            energy += m_log_boltz_function->computeEnergy(
+                    timestep, h_ntypes.data[i], i, m_mc->getParams()[i], h_det.data[i]);
             }
         return energy;
         }
+    else if(quantity.compare(0, 28, "shape_isoperimetric_quotient") == 0)
+        {
+        unsigned int ptype = 0;
+        if(quantity.size() == 28)
+            {
+            ptype = 0;
+            }
+        else
+            {
+            const std::string type_name = quantity.substr(29);
+            ptype = m_pdata->getTypeByName(type_name);
+            }
+        auto params = m_mc->getParams();
+        detail::mass_properties<Shape> mp(params[ptype]);
+        return mp.getIsoperimetricQuotient();
+        }
     else
 	    {
-		m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
+        m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
 		throw std::runtime_error("Error getting log value");
 		}
     }
@@ -280,6 +316,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         if (this->m_prof)
             this->m_prof->push(this->m_exec_conf, "UpdaterShape move");
         GPUArray< Scalar > determinant_backup(m_determinant);
+        GPUArray< Scalar > iq_backup(m_iq);
         m_move_function->prepare(timestep);
 
         for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
@@ -302,12 +339,16 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             param = params[typ_i];
             ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_det_backup(determinant_backup, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_iq(m_iq, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_iq_backup(iq_backup, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
 
             hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterShapeConstruct, m_seed, timestep, typ_i, m_nselect);
             m_move_function->construct(timestep, typ_i, param, rng_i);
             h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
+            h_iq.data[typ_i] = m_move_function->getIsoperimetricQuotient();
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
+            m_exec_conf->msg->notice(5) << " UpdaterShape IQ=" << h_iq.data[typ_i] << ", " << h_iq_backup.data[typ_i] << std::endl;
             // energy and moment of interia change.
             assert(h_det.data[typ_i] != 0 && h_det_backup.data[typ_i] != 0);
             log_boltz += (*m_log_boltz_function)(   timestep,
@@ -318,6 +359,10 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                                                     param_copy[cur_type],           // old shape parameter
                                                     h_det_backup.data[typ_i]        // old determinant
                                                 );
+
+            // add the bias for the isoperimetric quotient;
+            // useful for biasing away from spherical shapes
+            log_boltz += -m_kappa_iq * (h_iq.data[typ_i] - h_iq_backup.data[typ_i]);
             m_mc->setParam(typ_i, param, cur_type == (m_nselect-1));
             }  // end loop over particle types
         if (this->m_prof)
@@ -404,6 +449,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             {
             m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
             m_determinant.swap(determinant_backup);
+            m_iq.swap(iq_backup);
             // m_mc->swapParams(param_copy);
             // ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
             for(size_t typ = 0; typ < m_nselect; typ++)
@@ -417,19 +463,21 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     if (this->m_prof)
         this->m_prof->pop();
     m_exec_conf->msg->notice(4) << " UpdaterShape update done" << std::endl;
-    }
+    }  // end UpdaterShape<Shape>::update(unsigned int timestep)
 
 template< typename Shape>
 void UpdaterShape<Shape>::initialize()
     {
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_iq(m_iq, access_location::host, access_mode::readwrite);
     // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
     auto params = m_mc->getParams();
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
         {
         detail::mass_properties<Shape> mp(params[i]);
         h_det.data[i] = mp.getDeterminant();
+        h_iq.data[i] = mp.getIsoperimetricQuotient();
         }
     m_initialized = true;
     }
@@ -532,7 +580,8 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
                             unsigned int,
                             bool,
                             bool,
-                            unsigned int>())
+                            unsigned int,
+                            Scalar>())
     .def("getAcceptedCount", &UpdaterShape<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterShape<Shape>::getTotalCount)
     .def("registerShapeMove", &UpdaterShape<Shape>::registerShapeMove)

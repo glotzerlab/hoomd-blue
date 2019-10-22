@@ -316,6 +316,20 @@ class shape_updater_test(unittest.TestCase):
         hoomd.analyze.log(filename="shape_updater.log", period=10, overwrite=True, quantities=['shape_move_energy', 'shape_move_stiffness', 'shape_move_acceptance_ratio', 'shape_move_particle_volume'])
         hoomd.run(101)
 
+    def test_iq_logging(self):
+        v = np.array([[x, y, z] for x, y, z in itertools.product((-0.5, 0.5), repeat=3)])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=0, d=0.1, a=0.1)
+        self.mc.shape_param.set(self.types, vertices=v)
+        self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=0,
+                period=1, nselect=1);
+        self.updater.vertex_shape_move(stepsize=0.0, param_ratio=0.2, volume=1.0);
+        log1, log2 = 'shape_isoperimetric_quotient-1', 'shape_isoperimetric_quotient'
+        iq_logger = hoomd.analyze.log(filename="iq.log", period=1, overwrite=True,
+                quantities=[log1, log2])
+        hoomd.run(10, quiet=True);
+        self.assertEqual(iq_logger.query(log1), iq_logger.query(log2))
+        self.assertAlmostEqual(0.5235987756, iq_logger.query(log2))  # cube
+
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

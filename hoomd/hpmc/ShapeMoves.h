@@ -55,6 +55,12 @@ public:
         return m_determinantInertiaTensor;
         }
 
+    // Get the isoperimetric quotient of the shape
+    Scalar getIsoperimetricQuotient() const
+        {
+        return m_isoperimetric_quotient;
+        }
+
     //! Get the stepsize for \param type_id
     Scalar getStepSize(const unsigned int& type_id) const
         {
@@ -139,6 +145,7 @@ public:
 protected:
     std::vector< std::string >      m_ProvidedQuantities;
     Scalar                          m_determinantInertiaTensor;     // TODO: REMOVE?
+    Scalar                          m_isoperimetric_quotient;
     std::vector<Scalar>             m_step_size;                    // maximum stepsize. input/output
 };
 
@@ -297,6 +304,7 @@ class convex_polyhedron_generalized_shape_move : public shape_move_function<Shap
 {
     using shape_move_function<ShapeConvexPolyhedronType, RNG>::m_determinantInertiaTensor;
     using shape_move_function<ShapeConvexPolyhedronType, RNG>::m_step_size;
+    using shape_move_function<ShapeConvexPolyhedronType, RNG>::m_isoperimetric_quotient;
 public:
     convex_polyhedron_generalized_shape_move(
                                             unsigned int ntypes,
@@ -367,6 +375,7 @@ public:
             }
         detail::mass_properties<ShapeConvexPolyhedronType> mp2(points, convex_hull.getFaces());
         m_determinantInertiaTensor = mp2.getDeterminant();
+        m_isoperimetric_quotient = mp2.getIsoperimetricQuotient();
         shape.diameter = 2.0*sqrt(rsq);
         m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
         }

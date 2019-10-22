@@ -759,7 +759,7 @@ template<class Shape>
 void export_LatticeField(pybind11::module& m, std::string name)
     {
    pybind11::class_<
-       ExternalFieldLattice<Shape>, 
+       ExternalFieldLattice<Shape>,
        std::shared_ptr< ExternalFieldLattice<Shape> > >(
                m,
                name.c_str(),
