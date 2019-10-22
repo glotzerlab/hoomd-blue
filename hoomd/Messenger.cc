@@ -10,6 +10,7 @@
 
 #include "ExecutionConfiguration.h"
 #include "Messenger.h"
+#include "ClockSource.h"
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
@@ -180,6 +181,9 @@ std::ostream& Messenger::errorAllRanks()
     assert(m_err_stream);
 
     reopenPythonIfNeeded();
+
+    // Delay so that multiple ranks calling this have a good chance of writing non-overlapping messages
+    Sleep(m_mpi_config->getRank()*10);
 
     if (m_err_prefix != string(""))
         *m_err_stream << m_err_prefix << ": ";
