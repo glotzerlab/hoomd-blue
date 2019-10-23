@@ -53,6 +53,7 @@ minimize_fire_rigid.py 0 0
 bd_angular.py 0 0
 compare_npt_nvt_rigid.py 0 2
 npt_dimer_eos.py 0 2
+alj_conservation.py 0 0
 )
 
 set(TEST_LIST_GPU
@@ -60,6 +61,7 @@ minimize_fire_rigid.py 0 0
 bd_angular.py 0 0
 compare_npt_nvt_rigid.py 0 2
 npt_dimer_eos.py 0 2
+alj_conservation.py 0 0
 )
 
 set(EXCLUDE_FROM_GPU_MPI
