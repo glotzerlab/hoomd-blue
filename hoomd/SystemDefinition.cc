@@ -270,7 +270,7 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr< SnapshotSystemDat
         for (unsigned int i = 0; i < n_integrators; ++i)
             m_integrator_data->setIntegratorVariables(i, snapshot->integrator_data[i]);
         }
-    
+
     if (snapshot->has_alchemy_data)
     // TODO: is this enough? Or needs to mirror integrator data checks?
         has_alchemy_data->initializeFromSnapshot(snapshot->alchemical_data);

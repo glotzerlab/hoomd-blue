@@ -22,7 +22,7 @@ class AlchForceCompute: public Compute
             {
             m_deltaT = dt;
             }
-        
+
         #ifdef ENABLE_MPI
         //! Pre-compute the forces
         /*! This method is called in MPI simulations BEFORE the particles are migrated
@@ -30,7 +30,7 @@ class AlchForceCompute: public Compute
          */
         virtual void preCompute(unsigned int timestep){}
         #endif
-    
+
         //! Computes the forces
         virtual void compute(unsigned int timestep);
 
@@ -46,9 +46,9 @@ class AlchForceCompute: public Compute
             return m_force;
             }
         protected:
-                GlobalArray<Scalar> m_force;            //!< 
+                GlobalArray<Scalar> m_force;            //!<
                 // TODO: Make sure there's no future case where we'd need more information such as second derivatives which would not be per particle?
-        
+
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
             the base class compute() when the forces need to be computed.
