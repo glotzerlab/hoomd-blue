@@ -143,6 +143,12 @@ class PYBIND11_EXPORT SystemDefinition
             return m_pair_data;
             }
 
+        //! Get the pair data
+        std::shared_ptr<PairData> getAlchemyData()
+            {
+            return m_alchemy_data;
+            }
+
         //! Return a snapshot of the current system data
         template <class Real>
         std::shared_ptr< SnapshotSystemData<Real> > takeSnapshot(bool particles= true,
@@ -152,7 +158,8 @@ class PYBIND11_EXPORT SystemDefinition
                                                            bool impropers = false,
                                                            bool constraints = false,
                                                            bool integrators = false,
-                                                           bool pairs = false);
+                                                           bool pairs = false,
+                                                           bool alchemy = false);
 
         //! Re-initialize the system from a snapshot
         template <class Real>
@@ -168,6 +175,7 @@ class PYBIND11_EXPORT SystemDefinition
         std::shared_ptr<ConstraintData> m_constraint_data;//!< Improper data for the system
         std::shared_ptr<IntegratorData> m_integrator_data;    //!< Integrator data for the system
         std::shared_ptr<PairData> m_pair_data;            //!< Special pairs data for the system
+        std::shared_ptr<AlchemyData> m_alchemy_data;     //!< Alchemy data for the system
     };
 
 //! Exports SystemDefinition to python

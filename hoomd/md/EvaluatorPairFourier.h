@@ -154,6 +154,11 @@ class EvaluatorPairFourier
             {
             return std::string("fourier");
             }
+
+        std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not supported for this pair potential.");
+            }
         #endif
 
     protected:

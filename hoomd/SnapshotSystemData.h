@@ -54,7 +54,7 @@ struct SnapshotSystemData {
     ConstraintData::Snapshot constraint_data;//!< The constraint data
     PairData::Snapshot pair_data;            //!< The pair data
     std::vector<IntegratorVariables> integrator_data;  //!< The integrator data
-    std::vector<AlchParticles> alchemy_data;  //!< The integrator data
+    std::vector<AlchemyParticles> alchemy_data;  //!< The alchemical data
 
     bool has_particle_data;                //!< True if snapshot contains particle data
     bool has_bond_data;                    //!< True if snapshot contains bond data

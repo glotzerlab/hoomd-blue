@@ -22,6 +22,7 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/managed_allocator.h"
+#include "hoomd/GSDShapeSpecWriter.h"
 
 #ifdef ENABLE_TBB
 #include <thread>
@@ -36,6 +37,7 @@
 #ifndef NVCC
 #include <pybind11/pybind11.h>
 #endif
+
 
 namespace hpmc
 {
@@ -379,13 +381,40 @@ class IntegratorHPMCMono : public IntegratorHPMC
         void invalidateAABBTree(){ m_aabb_tree_invalid = true; }
 
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
-        int slotWriteGSD(gsd_handle&, std::string name) const;
+        int slotWriteGSDState(gsd_handle&, std::string name) const;
+
+        //! Method that is called whenever the GSD file is written if connected to a GSD file.
+        int slotWriteGSDShapeSpec(gsd_handle&) const;
 
         //! Method that is called to connect to the gsd write state signal
-        void connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+        void connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+
+        //! Method that is called to connect to the gsd write shape signal
+        void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
         //! Method that is called to connect to the gsd write state signal
         bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
+
+        std::vector<std::string> getTypeShapeMapping(const std::vector<param_type, managed_allocator<param_type> > &params) const
+            {
+            quat<Scalar> q(make_scalar4(1,0,0,0));
+            std::vector<std::string> type_shape_mapping(params.size());
+            for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+                {
+                Shape shape(q, params[i]);
+                type_shape_mapping[i] = shape.getShapeSpec();
+                }
+            return type_shape_mapping;
+            }
+
+        pybind11::list getTypeShapesPy()
+            {
+            std::vector<std::string> type_shape_mapping = this->getTypeShapeMapping(this->m_params);
+            pybind11::list type_shapes;
+            for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+                type_shapes.append(type_shape_mapping[i]);
+            return type_shapes;
+            }
 
     protected:
         std::vector<param_type, managed_allocator<param_type> > m_params;   //!< Parameters for each particle type on GPU
@@ -696,9 +725,6 @@ void IntegratorHPMCMono<Shape>::resetStats()
 template <class Shape>
 void IntegratorHPMCMono<Shape>::slotNumTypesChange()
     {
-    // call parent class method
-    IntegratorHPMC::slotNumTypesChange();
-
     // re-allocate the parameter storage
     m_params.resize(m_pdata->getNTypes());
 
@@ -714,8 +740,6 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
     GlobalArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
 
-    updateCellWidth();
-
     // depletant related counters
     unsigned int old_ntypes = m_implicit_count.getNumElements();
     m_implicit_count.resize(this->m_pdata->getNTypes());
@@ -730,6 +754,9 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     // depletant fugacities
     m_fugacity.resize(this->m_pdata->getNTypes(),0.0);
+
+    // call parent class method
+    IntegratorHPMC::slotNumTypesChange();
     }
 
 template <class Shape>
@@ -1450,15 +1477,29 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(unsigned int timestep)
 template <class Shape>
 Scalar IntegratorHPMCMono<Shape>::getMaxCoreDiameter()
     {
-    // for each type, create a temporary shape and return the maximum diameter
-    OverlapReal maxD = OverlapReal(0.0);
-    for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
-        {
-        Shape temp(quat<Scalar>(), m_params[typ]);
-        maxD = std::max(maxD, temp.getCircumsphereDiameter());
-        }
+    Scalar max_d(0.0);
 
-    return maxD;
+    // access the type parameters
+    ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
+
+    // access interaction matrix
+    ArrayHandle<unsigned int> h_overlaps(this->m_overlaps, access_location::host, access_mode::read);
+
+    // for each type, create a temporary shape and return the maximum sum of diameter and move size
+    for (unsigned int typ_i = 0; typ_i < this->m_pdata->getNTypes(); typ_i++)
+        {
+        Shape temp_i(quat<Scalar>(), m_params[typ_i]);
+
+        for (unsigned int typ_j = 0; typ_j < this->m_pdata->getNTypes(); typ_j++)
+            {
+            Shape temp_j(quat<Scalar>(), m_params[typ_j]);
+
+            // ignore non-interacting shapes
+            if (h_overlaps.data[m_overlap_idx(typ_i,typ_j)])
+                max_d = std::max(0.5*(temp_i.getCircumsphereDiameter()+temp_j.getCircumsphereDiameter()),max_d);
+            }
+        }
+    return max_d;
     }
 
 template <class Shape>
@@ -1747,7 +1788,7 @@ void IntegratorHPMCMono<Shape>::updateCellWidth()
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
 
-    this->m_exec_conf->msg->notice(5) << "IntegratorHPMCMonoImplicit: updating nominal width to " << this->m_nominal_width << std::endl;
+    this->m_exec_conf->msg->notice(5) << "IntegratorHPMCMono: updating nominal width to " << this->m_nominal_width << std::endl;
     }
 
 template <class Shape>
@@ -1977,18 +2018,27 @@ pybind11::list IntegratorHPMCMono<Shape>::PyMapOverlaps()
     }
 
 template <class Shape>
-void IntegratorHPMCMono<Shape>::connectGSDSignal(
+void IntegratorHPMCMono<Shape>::connectGSDStateSignal(
                                                     std::shared_ptr<GSDDumpWriter> writer,
                                                     std::string name)
     {
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSD, this, std::placeholders::_1, name);
+    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSDState, this, std::placeholders::_1, name);
     std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
 
 template <class Shape>
-int IntegratorHPMCMono<Shape>::slotWriteGSD( gsd_handle& handle, std::string name ) const
+void IntegratorHPMCMono<Shape>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
+    {
+    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec, this, std::placeholders::_1);
+    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    addSlot(pslot);
+    }
+
+template <class Shape>
+int IntegratorHPMCMono<Shape>::slotWriteGSDState( gsd_handle& handle, std::string name ) const
     {
     m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: "<< name << std::endl;
     int retval = 0;
@@ -2011,6 +2061,15 @@ int IntegratorHPMCMono<Shape>::slotWriteGSD( gsd_handle& handle, std::string nam
         }
     retval |= schema_shape.write(handle, name, m_pdata->getNTypes(), m_params);
 
+    return retval;
+    }
+
+template <class Shape>
+int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec(gsd_handle& handle) const
+    {
+    GSDShapeSpecWriter shapespec(m_exec_conf);
+    m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: " << shapespec.getName() << std::endl;
+    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
     return retval;
     }
 
@@ -3017,7 +3076,8 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
-          .def("connectGSDSignal", &IntegratorHPMCMono<Shape>::connectGSDSignal)
+          .def("connectGSDStateSignal", &IntegratorHPMCMono<Shape>::connectGSDStateSignal)
+          .def("connectGSDShapeSpec", &IntegratorHPMCMono<Shape>::connectGSDShapeSpec)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
           .def("py_test_overlap", &IntegratorHPMCMono<Shape>::py_test_overlap)
           .def("setDepletantFugacity", &IntegratorHPMCMono<Shape>::setDepletantFugacity)
@@ -3027,6 +3087,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setSweepRadius", &IntegratorHPMCMono<Shape>::setSweepRadius)
           .def("getQuermassMode", &IntegratorHPMCMono<Shape>::getQuermassMode)
           .def("getSweepRadius", &IntegratorHPMCMono<Shape>::getSweepRadius)
+          .def("getTypeShapesPy", &IntegratorHPMCMono<Shape>::getTypeShapesPy)
           ;
     }
 

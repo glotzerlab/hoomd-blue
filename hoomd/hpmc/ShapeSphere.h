@@ -9,6 +9,7 @@
 #include "hoomd/AABB.h"
 #include "hoomd/hpmc/OBB.h"
 #include "hoomd/hpmc/HPMCMiscFunctions.h"
+#include <sstream>
 
 #include <stdexcept>
 
@@ -79,10 +80,20 @@ struct param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr,unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr,unsigned int &available_bytes)
         {
         // default implementation does nothing
         }
+
+    //! Determine size of the shared memory allocation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char *& ptr,unsigned int &available_bytes) const
+        {
+        // default implementation does nothing
+        }
+
     };
 
 
@@ -102,8 +113,8 @@ struct sph_params : param_base
                                         //!  for use with anisotropic/patchy pair potentials.
 
     #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Set CUDA memory hints
+    void set_memory_hint() const
         {
         // default implementation does nothing
         }
@@ -152,6 +163,15 @@ struct ShapeSphere
         // just use the AABB for now
         return detail::OBB(getAABB(pos));
         }
+
+    #ifndef NVCC
+    std::string getShapeSpec() const
+        {
+        std::ostringstream shapedef;
+        shapedef << "{\"type\": \"Sphere\", \"diameter\": " << params.radius*OverlapReal(2.0) << "}";
+        return shapedef.str();
+        }
+    #endif
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
@@ -258,6 +278,26 @@ DEVICE inline bool check_three_spheres_overlap(OverlapReal Ra, OverlapReal Rb, O
     }
 } // end namespace detail
 
+//! Check if circumspheres overlap
+/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    \param a first shape
+    \param b second shape
+    \returns true if the circumspheres of both shapes overlap
+
+    \ingroup shape
+*/
+template<class ShapeA, class ShapeB>
+DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB &b,
+    const OverlapReal sweep_radius_a = OverlapReal(0.0), const OverlapReal sweep_radius_b = OverlapReal(0.0))
+    {
+    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
+
+    OverlapReal rsq = dot(dr,dr);
+    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter()
+        + OverlapReal(2.0)*(sweep_radius_a + sweep_radius_b);
+    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+    }
+
 //! Check if three circumspheres overlap in a common point
 /*! \param a first shape
     \param b second shape
@@ -283,21 +323,6 @@ DEVICE inline bool check_circumsphere_overlap_three(const ShapeA& a, const Shape
     OverlapReal Rc = OverlapReal(0.5)*c.getCircumsphereDiameter() + sweep_radius_c;
 
     return detail::check_three_spheres_overlap(Ra,Rb,Rc,ab_t,ac_t);
-    }
-
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeSphere& a,
-    const ShapeSphere &b)
-    {
-    // for now, always return true
-    return true;
     }
 
 //! Check if bounding volumes (OBBs) overlap (generic template)

@@ -207,7 +207,7 @@ std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool 
     if (alchemy)
         {
         // TODO: integrate alchemy into snapshots
-        snap->has_constraint_data = true;
+        snap->has_alchemy_data = true;
         }
     else
         snap->has_alchemy_data = false;
@@ -270,6 +270,10 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr< SnapshotSystemDat
         for (unsigned int i = 0; i < n_integrators; ++i)
             m_integrator_data->setIntegratorVariables(i, snapshot->integrator_data[i]);
         }
+
+    if (snapshot->has_alchemy_data)
+    // TODO: is this enough? Or needs to mirror integrator data checks?
+        has_alchemy_data->initializeFromSnapshot(snapshot->alchemical_data);
     }
 
 // instantiate both float and double methods
@@ -283,7 +287,8 @@ template std::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSnap
                                                                                               bool impropers,
                                                                                               bool constraints,
                                                                                               bool integrators,
-                                                                                              bool pairs);
+                                                                                              bool pairs,
+                                                                                              bool alchemy);
 template void SystemDefinition::initializeFromSnapshot<float>(std::shared_ptr< SnapshotSystemData<float> > snapshot);
 
 template SystemDefinition::SystemDefinition(std::shared_ptr< SnapshotSystemData<double> > snapshot,
@@ -296,7 +301,8 @@ template std::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeSna
                                                                                               bool impropers,
                                                                                               bool constraints,
                                                                                               bool integrators,
-                                                                                              bool pairs);
+                                                                                              bool pairs,
+                                                                                              bool alchemy);
 template void SystemDefinition::initializeFromSnapshot<double>(std::shared_ptr< SnapshotSystemData<double> > snapshot);
 
 void export_SystemDefinition(py::module& m)

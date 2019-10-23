@@ -73,6 +73,8 @@ class Profiler;
 // Forward declaration of IntegratorData
 class IntegratorData;
 
+// TODO: forward declaration for alchemy
+
 //! List of optional fields that can be enabled in ParticleData
 struct pdata_flag
     {
@@ -83,12 +85,14 @@ struct pdata_flag
         potential_energy,          //!< Bit id in PDataFlags for the potential energy
         pressure_tensor,           //!< Bit id in PDataFlags for the full virial
         rotational_kinetic_energy,  //!< Bit id in PDataFlags for the rotational kinetic energy
-        external_field_virial       //!< Bit id in PDataFlags for the external virial contribution of volume change
+        external_field_virial,       //!< Bit id in PDataFlags for the external virial contribution of volume change
+        alchemical_forces,         //!< Bit id in PDataFlags for alchemical force computes
+        num_flags                 //!< Number of flags for convenience
         };
     };
 
 //! flags determines which optional fields in in the particle data arrays are to be computed / are valid
-typedef std::bitset<32> PDataFlags;
+typedef std::bitset<pdata_flag::num_flags> PDataFlags;
 
 //! Defines a simple structure to deal with complex numbers
 /*! This structure is useful to deal with complex numbers for such situations

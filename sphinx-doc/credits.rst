@@ -11,10 +11,12 @@ Joshua Anderson, University of Michigan - **Lead developer**
 Alex Travesset, Iowa State University and Ames Laboratory
 
 Rastko Sknepnek, Northwestern
+
  * integrate.npt
  * pair.morse
 
 Carolyn Phillips, University of Michigan
+
  * dihedral.table
  * angle.table
  * bond.table
@@ -27,12 +29,14 @@ Carolyn Phillips, University of Michigan
  * Initial testing and debugging of HOOMD on Mac OS X systems
 
 Aaron Keys, University of Michigan
+
   * update.enforce2d and other updates enabling to 2D simulations
   * hoomd c++ compilation helper script
   * binary restart files
   * integrate.mode_minimize_fire
 
 Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple University
+
   * pair.cgcmm
   * angle.harmonic
   * angle.cgcmm
@@ -41,31 +45,39 @@ Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple Universi
   * numerous other small contributions enhancing the usability of HOOMD
 
 Igor Morozov, Andrey Kazennov, Roman Bystryi, Joint Institute for High Temperatures of RAS (Moscow, Russia)
+
   * pair.eam (original implementation)
 
 Philipp Mertmann, Ruhr University Bochum
+
  * charge.pppm
  * pair.ewald
 
 Stephen Barr, Princeton University
+
  * charge.pppm
  * pair.ewald
 
 Greg van Anders, Benjamin Schultz, University of Michigan
+
  * refactoring of ForceCompute
 
 Eric Irrgang, University of Michigan
+
  * RPM packaging and daily builds
 
 Ross Smith, University of Michigan
+
  * Deb packaging and daily builds
 
 Peter Palm, Jens Glaser, Leipzig University
+
  * group functionality in force.constant
  * misc bug fixes
  * conversion of bond forces to template evaluator implementation
 
 Jens Glaser, University of Michigan
+
  * integrate.npt anisotropic integration (mkt)
  * pair.force_shifted_lj
  * Dynamic addition/removal of bonds
@@ -94,15 +106,18 @@ Jens Glaser, University of Michigan
  * GPUArray refactoring
 
 Pavani Medapuram, University of Minnesota
+
  * Framework for external potentials
  * external.periodic
 
 Brandon D. Smith, University of Michigan
+
  * full double precision compile time option
  * integrate.berendsen
  * pair.tersoff
 
 Trung Dac Nguyen, University of Michigan
+
  * integrate.nve_rigid
  * integrate.bdnvt_rigid
  * integrate.nvt_rigid
@@ -112,18 +127,23 @@ Trung Dac Nguyen, University of Michigan
  * integrate.nph_rigid
 
 Ryan Marson, University of Michigan
+
  * unwrap_rigid option to dump.dcd
 
 Kevin Silmore, Princeton University
+
  * OPLS dihedral
 
 David Tarjan, University of Virginia
+
  * performance tweaks to the neighbor list and pair force code
 
 Sumedh R. Risbud, James W. Swan, Massachusetts Institute of Technology
+
  * bug fixes for rigid body virial corrections
 
 Michael P. Howard, Princeton University & University of Texas at Austin
+
  * Automatic citation list generator
  * Neighbor list memory footprint reduction
  * Bounding volume hierarchy (tree) neighbor lists
@@ -138,29 +158,36 @@ Michael P. Howard, Princeton University & University of Texas at Austin
  * GPU polymorphic object wrapper
 
 James Antonaglia, University of Michigan
+
  * pair.mie
 
 Carl Simon Adorf, University of Michigan
+
  * Analyzer callback
  * metadata output
  * Frenkel-Ladd bug fixes
 
 Paul Dodd, University of Michigan
+
  * pair.compute_energy
 
 Erin Teich, University of Michigan
+
  * addInfo callback to dump.pos
 
 Joseph Berleant, University of Michigan
+
  * fix python 3.4 segfault
 
 Matthew Spellings, University of Michigan
+
  * anisotropic particle integrators
  * Gay-Berne, dipole pair potentials
  * GTAR file format
  * External components in hoomd 2.x
 
 James Proctor, University of Michigan
+
  * Refactor external potential framework
  * Wall potentials
  * boost python to pybind11 conversion
@@ -169,71 +196,93 @@ James Proctor, University of Michigan
  * Removal of misc boost library calls
 
 Chengyu Dai, University of Michigan
+
  * Rewrite integrate.brownian with 3D rotational updates
  * Rewrite integrate.langevin with 3D rotational updates
 
 Isaac Bruss, Chengyu Dai, University of Michigan
+
  * force.active
  * update.constraint_ellipsoid
 
 Vyas Ramasubramani, University of Michigan
+
  * init.read_gsd bug fixes
  * Reverse communication for MPI
  * Enable simulation of floppy bodies that can be integrated separately but are ignored by the NeighborList
  * Enabled use of shared memory for Evaluator structs
 
 Nathan Horst
+
  * Language and figure clarifying the dihedral angle definition.
 
 Bryan VanSaders, University of Michigan
+
  * constrain.oneD
  * Constant stress mode to integrate.npt.
  * map_overlaps() in hpmc.
  * Torque options to force.constant and force.active
 
 Ludwig Schneider, Georg-August Univeristy Goettingen
+
   * Constant stress flow: hoomd.md.update.mueller_plathe_flow
   * Matrix logging and hdf5 logging: hoomd.hdf5.log
 
 Bjørnar Jensen, University of Bergen
+
  * Add Lennard-Jones 12-8 pair potential
  * Add Buckingham/exp-6 pair potential
  * Add special_pair Coulomb 1-4 scaling
 
 Lin Yang, Alex Travesset, Iowa State University
+
   * metal.pair.eam - reworked implementation
 
 Tim Moore, Vanderbilt University
+
   * angle.cosinesq
   * Documentation fixes
 
 Bradley Dice, Avisek Das, University of Michigan
+
   * integrator.randomize_velocities()
 
 Bradley Dice, Simon Adorf, University of Michigan
+
   * SSAGES support
 
 Bradley Dice, University of Michigan
+
   * Documentation improvements
+  * WSL support
 
 Peter Schwendeman, Jens Glaser, University of Michigan
+
   * NVLINK optimized multi-GPU execution
 
 Alyssa Travitz, University of Michigan
+
   * `get_net_force` implementation
   * bond bug fixes
 
 Mike Henry, Boise State University
+
   * Documentation improvements
 
 Pengji Zhou, University of Michigan
+
   * pair.fourier
 
 Tommy Waltmann, University of Michigan
   * hoomd.device module
 
 Patrick Lawton, University of Michigan
+
   * Documentation changes
+
+Luis Rivera-Rivera, University of Michigan
+
+  * ``hoomd.dump.gsd.dump_shape`` implementation
 
 HPMC developers
 ---------------
@@ -241,6 +290,7 @@ HPMC developers
 The following people contributed to the :py:mod:`hoomd.hpmc` package.
 
 Joshua Anderson, University of Michigan - Lead developer
+
  * Vision
  * Initial design
  * Code review
@@ -261,6 +311,7 @@ Joshua Anderson, University of Michigan - Lead developer
  * `jit.patch.user` user defined patchy interactions with LLVM runtime compiled code
 
 Eric Irrgang, University of Michigan
+
  * NPT updater
  * Convex polyhedron shape
  * Convex spheropolyhedron shape
@@ -273,6 +324,7 @@ Eric Irrgang, University of Michigan
  * Sphere union shape (in collaboration with Khalid Ahmed)
 
 Ben Schultz, University of Michigan
+
  * Frenkel-Ladd free energy determination
  * Move size autotuner (in collaboration with Eric Irrgang)
  * Densest packing compressor (in collaboration with Eric Irrgang)
@@ -281,6 +333,7 @@ Ben Schultz, University of Michigan
  * Ellipsoid overlap check bug fixes
 
 Jens Glaser, University of Michigan
+
  * Patchy sphere shape
  * General polyhedron shape
  * BVH implementation for countOverlaps
@@ -294,31 +347,39 @@ Jens Glaser, University of Michigan
  * `test_overlap` python API
 
 Eric Harper, University of Michigan
+
  * Misc bug fixes to move size by particle type feature
  * Initial code for MPI domain decomposition
 
 Khalid Ahmed, University of Michigan
+
  * Ported the Sphinx overlap check
  * Sphere union shape (in collaboration with Eric Irrgang)
 
 Elizabeth R Chen, University of Michigan
+
  * Developed the Sphinx overlap check
 
 Carl Simon Adorf, University of Michigan
+
  * meta data output
 
 Samanthule Nola, University of Michigan
+
  * Run time determination of max_verts
 
 Paul Dodd, Erin Teich, University of Michigan
+
  * External potential framework
  * Wall overlap checks
  * Lattice external potential
 
  Erin Teich, University of Michigan
+
  * Convex polyhedron union particle type
 
 Vyas Ramasubramani, University of Michigan
+
  * hpmc.util.tune fixes for tuning by type
  * hpmc.update.boxmc fixes for non-orthorhombic box volume moves
  * Fixed various bugs with wall overlap checks
@@ -326,6 +387,7 @@ Vyas Ramasubramani, University of Michigan
  * Refactored depletant integrators
 
 William Zygmunt, Luis Rivera-Rivera, University of Michigan
+
  * Patchy interaction support in HPMC CPU integrators
  * GSD state bug fixes
 
@@ -343,6 +405,7 @@ MPCD developers
 The following people contributed to the :py:mod:`hoomd.mpcd` package.
 
 Michael P. Howard, Princeton University & University of Texas at Austin - **Lead developer**
+
  * Design
  * Cell list and properties
  * Particle and cell communication
