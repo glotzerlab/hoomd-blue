@@ -67,6 +67,20 @@ struct ShapeSimplePolygon
         return Scalar(0.0);
         }
 
+    #ifndef NVCC
+    std::string getShapeSpec() const
+        {
+        std::ostringstream shapedef;
+        shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
+        for (unsigned int i = 0; i < verts.N-1; i++)
+            {
+            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+            }
+        shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
+        return shapedef.str();
+        }
+    #endif
+
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
@@ -277,24 +291,6 @@ DEVICE inline bool test_simple_polygon_overlap(const poly2d_verts& a,
     }
 
 }; // end namespace detail
-
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeSimplePolygon& a,
-    const ShapeSimplePolygon &b)
-    {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
 
 //! Simple polygon overlap test
 /*!

@@ -124,6 +124,11 @@ class EvaluatorPairMie
             {
             return std::string("mie");
             }
+
+        std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not supported for this pair potential.");
+            }
         #endif
 
     protected:

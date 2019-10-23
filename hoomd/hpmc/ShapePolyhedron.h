@@ -92,7 +92,7 @@ struct poly3d_data : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         tree.load_shared(ptr, available_bytes);
         convex_hull_verts.load_shared(ptr, available_bytes);
@@ -102,16 +102,30 @@ struct poly3d_data : param_base
         face_overlap.load_shared(ptr, available_bytes);
         }
 
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Determine size of the shared memory allocation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        tree.attach_to_stream(stream);
-        convex_hull_verts.attach_to_stream(stream);
-        verts.attach_to_stream(stream);
-        face_offs.attach_to_stream(stream);
-        face_verts.attach_to_stream(stream);
-        face_overlap.attach_to_stream(stream);
+        tree.allocate_shared(ptr, available_bytes);
+        convex_hull_verts.allocate_shared(ptr, available_bytes);
+        verts.allocate_shared(ptr, available_bytes);
+        face_offs.allocate_shared(ptr, available_bytes);
+        face_verts.allocate_shared(ptr, available_bytes);
+        face_overlap.allocate_shared(ptr, available_bytes);
+        }
+
+    #ifdef ENABLE_CUDA
+    //! Set CUDA memory hints
+    void set_memory_hint() const
+        {
+        tree.set_memory_hint();
+        convex_hull_verts.set_memory_hint();
+        verts.set_memory_hint();
+        face_offs.set_memory_hint();
+        face_verts.set_memory_hint();
+        face_overlap.set_memory_hint();
         }
     #endif
     } __attribute__((aligned(32)));
@@ -162,6 +176,39 @@ struct ShapePolyhedron
         {
         return data.sweep_radius != OverlapReal(0.0);
         }
+
+    #ifndef NVCC
+    std::string getShapeSpec() const
+        {
+        unsigned int n_verts = data.n_verts;
+        unsigned int n_faces = data.n_faces;
+        std::ostringstream shapedef;
+        shapedef << "{\"type\": \"Mesh\", \"vertices\": [";
+        for (unsigned int i = 0; i < n_verts-1; i++)
+            {
+            shapedef << "[" << data.verts[i].x << ", " << data.verts[i].y << ", " << data.verts[i].z << "], ";
+            }
+        shapedef << "[" << data.verts[n_verts-1].x << ", " << data.verts[n_verts-1].y << ", " << data.verts[n_verts-1].z << "]], \"indices\": [";
+        unsigned int nverts_face, offset;
+        for (unsigned int i = 0; i < n_faces; i++)
+            {
+            // Number of vertices of ith face
+            nverts_face = data.face_offs[i + 1] - data.face_offs[i];
+            offset = data.face_offs[i];
+            shapedef << "[";
+            for (unsigned int j = 0; j < nverts_face-1; j++)
+                {
+                shapedef << data.face_verts[offset+j] << ", ";
+                }
+            shapedef << data.face_verts[offset+nverts_face-1];
+            if (i == n_faces-1)
+                shapedef << "]]}";
+            else
+                shapedef << "], ";
+            }
+        return shapedef.str();
+        }
+    #endif
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
@@ -361,27 +408,6 @@ DEVICE inline bool test_line_segment_overlap(const vec3<OverlapReal>& p,
 
     return false;
     }
-
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapePolyhedron& a,
-    const ShapePolyhedron &b)
-    {
-    vec3<OverlapReal> dr(r_ab);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-
-    // first check overlap of circumspheres
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
 
 // compute shortest distance between two triangles
 // Returns square of shortest distance

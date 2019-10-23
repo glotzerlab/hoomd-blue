@@ -123,6 +123,32 @@ struct ShapeSpheropolygon
         return OverlapReal(0.0);
         }
 
+    #ifndef NVCC
+    std::string getShapeSpec() const
+        {
+        std::ostringstream shapedef;
+        unsigned int nverts = verts.N;
+        if (nverts == 1)
+            {
+            shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << verts.diameter << "}";
+            }
+        else if (nverts == 2)
+            {
+            throw std::runtime_error("Shape definition not supported for 2-vertex spheropolygons");
+            }
+        else
+            {
+            shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
+            for (unsigned int i = 0; i < nverts-1; i++)
+                {
+                shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+                }
+            shapedef << "[" << verts.x[nverts-1] << ", " << verts.y[nverts-1] << "]]}";
+            }
+        return shapedef.str();
+        }
+    #endif
+
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
@@ -149,24 +175,6 @@ struct ShapeSpheropolygon
 
     const detail::poly2d_verts& verts;     //!< Vertices
     };
-
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeSpheropolygon& a,
-    const ShapeSpheropolygon &b)
-    {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
 
 //! Convex polygon overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)

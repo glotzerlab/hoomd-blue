@@ -31,13 +31,13 @@ class ManagedArray
     public:
         //! Default constructor
         DEVICE ManagedArray()
-            : data(nullptr), N(0), managed(0), align(0),
+            : data(nullptr), ptr(nullptr), N(0), managed(0), align(0),
               allocation_ptr(nullptr), allocation_bytes(0)
             { }
 
         #ifndef NVCC
         ManagedArray(unsigned int _N, bool _managed, size_t _align = 0)
-            : data(nullptr), N(_N), managed(_managed), align(_align),
+            : data(nullptr), ptr(nullptr), N(_N), managed(_managed), align(_align),
               allocation_ptr(nullptr), allocation_bytes(0)
             {
             if (N > 0)
@@ -47,7 +47,7 @@ class ManagedArray
             }
         #endif
 
-        DEVICE virtual ~ManagedArray()
+        DEVICE ~ManagedArray()
             {
             #ifndef NVCC
             deallocate();
@@ -56,11 +56,11 @@ class ManagedArray
 
         //! Copy constructor
         /*! \warn the copy constructor reads from the other array and assumes that array is available on the
-                  host. If the GPU isn't synced up, this can lead to erros, so proper multi-GPU synchronization
+                  host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU synchronization
                   needs to be ensured
          */
         DEVICE ManagedArray(const ManagedArray<T>& other)
-            : data(nullptr), N(other.N), managed(other.managed), align(other.align),
+            : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
               allocation_ptr(nullptr), allocation_bytes(0)
             {
             #ifndef NVCC
@@ -68,9 +68,10 @@ class ManagedArray
                 {
                 allocate();
 
-                std::copy(other.data, other.data+N, data);
+                std::copy(other.ptr, other.ptr+N, ptr);
                 }
             #else
+            ptr = other.ptr;
             data = other.data;
             #endif
             }
@@ -95,9 +96,10 @@ class ManagedArray
                 {
                 allocate();
 
-                std::copy(other.data, other.data+N, data);
+                std::copy(other.ptr, other.ptr+N, ptr);
                 }
             #else
+            ptr = other.ptr;
             data = other.data;
             #endif
 
@@ -130,13 +132,12 @@ class ManagedArray
 
         #ifdef ENABLE_CUDA
         //! Attach managed memory to CUDA stream
-        void attach_to_stream(cudaStream_t stream) const
+        void set_memory_hint() const
             {
-            if (managed && data)
+            if (managed && ptr)
                 {
-                cudaStreamAttachMemAsync(stream, data, 0, cudaMemAttachSingle);
                 #if (CUDART_VERSION >= 8000)
-                cudaMemAdvise(data, sizeof(T)*N, cudaMemAdviseSetReadMostly, 0);
+                cudaMemAdvise(ptr, sizeof(T)*N, cudaMemAdviseSetReadMostly, 0);
                 #endif
                 }
             }
@@ -146,7 +147,7 @@ class ManagedArray
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
          */
-        HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+        HOSTDEVICE void* allocate_shared(char *& s_ptr, unsigned int &available_bytes) const
             {
             // size in ints (round up)
             unsigned int size_int = (sizeof(T)*N)/sizeof(int);
@@ -154,39 +155,53 @@ class ManagedArray
 
             // align ptr to size of data type
             unsigned long int max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T))-1;
-            char *ptr_align = (char *)(((unsigned long int)ptr + max_align_bytes) & ~max_align_bytes);
+            char *ptr_align = (char *)(((unsigned long int)s_ptr + max_align_bytes) & ~max_align_bytes);
 
             if (size_int*sizeof(int)+max_align_bytes > available_bytes)
-                return;
+                return nullptr;
 
-            #if defined (__CUDA_ARCH__)
+            // increment pointer
+            s_ptr = ptr_align + size_int*sizeof(int);
+            available_bytes -= size_int*sizeof(int)+max_align_bytes;
+
+            return (void *)ptr_align;
+            }
+
+        //! Load dynamic data members into shared memory and increase pointer
+        /*! \param ptr Pointer to load data to (will be incremented)
+            \param available_bytes Size of remaining shared memory allocation
+
+            \returns true if array was loaded into shared memory
+         */
+        DEVICE bool load_shared(char *& s_ptr, unsigned int &available_bytes)
+            {
+            // align ptr to size of data type
+            void *ptr_align = allocate_shared(s_ptr, available_bytes);
+
+            if (! ptr_align)
+                return false;
+
+            #ifdef __CUDA_ARCH__
             // only in GPU code
             unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
             unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
+
+            unsigned int size_int = (sizeof(T)*N)/sizeof(int);
+            if ((sizeof(T)*N) % sizeof(int)) size_int++;
 
             for (unsigned int cur_offset = 0; cur_offset < size_int; cur_offset += block_size)
                 {
                 if (cur_offset + tidx < size_int)
                     {
-                    ((int *)ptr_align)[cur_offset + tidx] = ((int *)data)[cur_offset + tidx];
+                    ((int *)ptr_align)[cur_offset + tidx] = ((int *)ptr)[cur_offset + tidx];
                     }
                 }
 
-            // make sure all threads have read from data
-            __syncthreads();
-
             // redirect data ptr
-            if (tidx == 0)
-                {
-                data = (T *) ptr_align;
-                }
-
-            __syncthreads();
+            data = (T *) ptr_align;
             #endif
 
-            // increment pointer
-            ptr = ptr_align + size_int*sizeof(int);
-            available_bytes -= size_int*sizeof(int)+max_align_bytes;
+            return true;
             }
 
         bool isManaged() const
@@ -208,20 +223,22 @@ class ManagedArray
         #ifndef NVCC
         void allocate()
             {
-            data = managed_allocator<T>::allocate_construct_aligned(N, managed, align, allocation_bytes, allocation_ptr);
+            ptr = managed_allocator<T>::allocate_construct_aligned(N, managed, align, allocation_bytes, allocation_ptr);
+            data = ptr;
             }
 
         void deallocate()
             {
             if (N > 0)
                 {
-                managed_allocator<T>::deallocate_destroy_aligned(data, N, managed, allocation_ptr);
+                managed_allocator<T>::deallocate_destroy_aligned(ptr, N, managed, allocation_ptr);
                 }
             }
         #endif
 
     private:
-        mutable T *data;         //!< Data pointer
+        T *data;                 //!< Data pointer
+        T *ptr;                  //!< Original data pointer
         unsigned int N;          //!< Number of data elements
         unsigned int managed;    //!< True if we are CUDA managed
         size_t align;            //!< Alignment size
