@@ -18,6 +18,7 @@
 #include "hoomd/GlobalArray.h"
 #include "hoomd/ForceCompute.h"
 #include "NeighborList.h"
+#include "hoomd/GSDShapeSpecWriter.h"
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -104,6 +105,12 @@ class PotentialPair : public ForceCompute
         //! Set ron for a single type pair
         virtual void setRon(unsigned int typ1, unsigned int typ2, Scalar ron);
 
+        //! Method that is called whenever the GSD file is written if connected to a GSD file.
+        int slotWriteGSDShapeSpec(gsd_handle&) const;
+
+        //! Method that is called to connect to the gsd write state signal
+        void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
@@ -136,6 +143,18 @@ class PotentialPair : public ForceCompute
         //! Calculates the energy between two lists of particles.
         Scalar computeEnergyBetweenSetsPythonList(  pybind11::array_t<int, pybind11::array::c_style> tags1,
                                                     pybind11::array_t<int, pybind11::array::c_style> tags2);
+
+        std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params) const
+            {
+            ArrayHandle<param_type> h_params(params, access_location::host, access_mode::read);
+            std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
+            for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+                {
+                evaluator eval(Scalar(0.0),Scalar(0.0), h_params.data[m_typpair_idx(i,i)]);
+                type_shape_mapping[i] = eval.getShapeSpec();
+                }
+            return type_shape_mapping;
+            }
 
     protected:
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
@@ -312,6 +331,24 @@ void PotentialPair< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Sc
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
     h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
     h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
+    }
+
+template <class evaluator>
+void PotentialPair<evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
+    {
+    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    auto func = std::bind(&PotentialPair<evaluator>::slotWriteGSDShapeSpec, this, std::placeholders::_1);
+    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    addSlot(pslot);
+    }
+
+template <class evaluator>
+int PotentialPair<evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
+    {
+    GSDShapeSpecWriter shapespec(m_exec_conf);
+    m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: " << shapespec.getName() << std::endl;
+    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
+    return retval;
     }
 
 /*! PotentialPair provides:
@@ -786,6 +823,8 @@ template < class T > void export_PotentialPair(pybind11::module& m, const std::s
         .def("setRon", &T::setRon)
         .def("setShiftMode", &T::setShiftMode)
         .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
+        .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
+        .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
     ;
 
     pybind11::enum_<typename T::energyShiftMode>(potentialpair,"energyShiftMode")

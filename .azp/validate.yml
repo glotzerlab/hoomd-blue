@@ -169,6 +169,8 @@ stages:
 - stage: build_validate_gpu
   displayName: Validate (GPU)
   dependsOn: []
+  variables:
+    enable_cuda: on
 
   jobs:
   - job: vld_linux_gpu
@@ -208,7 +210,7 @@ stages:
 
     pool:
       name: 'GPU'
-      demands: long_jobs
+      demands: dual_gpu
 
     container:
        image: $(image_root)-$(container_image)
