@@ -131,7 +131,7 @@ class TestALJ(unittest.TestCase):
         total_energy = equilibrated_data['potential_energy'] + equilibrated_data['kinetic_energy']
 
         # Ensure energy conservation up to the 4 digit per-particle.
-        self.assertTrue(np.std(total_energy)/len(system.particles) < 1e-4)
+        self.assertLess(np.std(total_energy)/len(system.particles), 1e-4)
 
         # Test momentum conservation.
         velocities = []
@@ -139,7 +139,7 @@ class TestALJ(unittest.TestCase):
             for frame in traj:
                 velocities.append(frame.particles.velocity)
         velocities = np.asarray(velocities)
-        self.assertTrue(np.std(np.linalg.norm(np.sum(velocities, axis=1), axis=-1)) < 1e-6)
+        self.assertLess(np.std(np.linalg.norm(np.sum(velocities, axis=1), axis=-1)), 1e-6)
 
 
 if __name__ == "__main__":
