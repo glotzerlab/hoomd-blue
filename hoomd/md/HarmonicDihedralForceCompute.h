@@ -40,7 +40,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
         virtual ~HarmonicDihedralForceCompute();
 
         //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity);
+        virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar p_0);
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -65,6 +65,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
         Scalar *m_K;     //!< K parameter for multiple dihedral tyes
         Scalar *m_sign;  //!< sign parameter for multiple dihedral types
         Scalar *m_multi; //!< multiplicity parameter for multiple dihedral types
+        Scalar *m_p_0; //!< p_0 parameter for multiple dihedral types
 
         std::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data to use in computing dihedrals
 
