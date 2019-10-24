@@ -49,7 +49,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceComputeGPU : public HarmonicDihedralF
             }
 
         //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity);
+        virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar p_0);
 
     protected:
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
