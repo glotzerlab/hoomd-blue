@@ -79,3 +79,4 @@ Contributions are welcomed via
 Please report bugs and suggest feature enhancements via the
 [issue tracker](https://github.com/glotzerlab/hoomd-blue/issues).
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
+
