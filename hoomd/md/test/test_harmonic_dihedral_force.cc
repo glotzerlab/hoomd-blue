@@ -52,7 +52,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
 
     // create the dihedral force compute to check
     std::shared_ptr<HarmonicDihedralForceCompute> fc_4 = tf_creator(sysdef_4);
-    fc_4->setParams(0, Scalar(30.0), -1, 3); // type=0, K=30.0,sign=-1,multiplicity=3
+    fc_4->setParams(0, Scalar(30.0), -1, 3, Scalar(0)); // type=0, K=30.0,sign=-1,multiplicity=3, phaseoffset=0
 
     // compute the force and check the results
     fc_4->compute(0);
@@ -199,8 +199,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     }
 
     std::shared_ptr<HarmonicDihedralForceCompute> fc_8 = tf_creator(sysdef_8);
-    fc_8->setParams(0, 50.0, -1, 3);
-    fc_8->setParams(1, 30.0,  1, 4);
+    fc_8->setParams(0, 50.0, -1, 3, 0.0);
+    fc_8->setParams(1, 30.0,  1, 4, 0.0);
 
     sysdef_8->getDihedralData()->addBondedGroup(Dihedral(0, 0,1,2,3));
     sysdef_8->getDihedralData()->addBondedGroup(Dihedral(1, 4,5,6,7));
@@ -309,7 +309,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
 
     // build the dihedral force compute and try it out
     std::shared_ptr<HarmonicDihedralForceCompute> fc_5 = tf_creator(sysdef_5);
-    fc_5->setParams(0, 15.0, -1, 4);
+    fc_5->setParams(0, 15.0, -1, 4, 0.0);
 
     sysdef_5->getDihedralData()->addBondedGroup(Dihedral(0, 0,1,2,3));
     sysdef_5->getDihedralData()->addBondedGroup(Dihedral(0, 1,2,3,4));
@@ -381,8 +381,8 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
 
     std::shared_ptr<HarmonicDihedralForceCompute> fc1 = tf_creator1(sysdef);
     std::shared_ptr<HarmonicDihedralForceCompute> fc2 = tf_creator2(sysdef);
-    fc1->setParams(0, Scalar(3.0), -1, 3);
-    fc2->setParams(0, Scalar(3.0), -1, 3);
+    fc1->setParams(0, Scalar(3.0), -1, 3, Scalar(0.0));
+    fc2->setParams(0, Scalar(3.0), -1, 3, Scalar(0.0));
 
     // add dihedrals
     for (unsigned int i = 0; i < N-3; i++)
