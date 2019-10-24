@@ -437,6 +437,47 @@ class EvaluatorPairALJ
 
 
 #ifndef NVCC
+
+// Note: This method assumes that shape_i == shape_j. This should be valid for
+// all cases, and this logic will be moved up to the AnisoPotentialPair in
+// HOOMD 3.0.
+template <>
+std::string EvaluatorPairALJ<2>::getShapeSpec() const
+    {
+    std::ostringstream shapedef;
+    const ManagedArray<vec3<Scalar> > &verts(shape_i->verts);       //! Shape vertices.
+    const unsigned int N = verts.size();
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": 0, \"vertices\": [";
+    for (unsigned int i = 0; i < N-1; i++)
+        {
+        shapedef << "[" << verts[i].x << ", " << verts[i].y << "], ";
+        }
+    shapedef << "[" << verts[N-1].x << ", " << verts[N-1].y << "]]}";
+    return shapedef.str();
+    }
+
+// Note: This method assumes that shape_i == shape_j. This should be valid for
+// all cases, and this logic will be moved up to the AnisoPotentialPair in
+// HOOMD 3.0.
+template <>
+std::string EvaluatorPairALJ<3>::getShapeSpec() const
+{
+        std::ostringstream shapedef;
+        const ManagedArray<vec3<Scalar> > &verts(shape_i->verts);       //! Shape vertices.
+        const unsigned int N = verts.size();
+        shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": 0, \"vertices\": [";
+        for (unsigned int i = 0; i < N-1; i++)
+            {
+            shapedef << "[" << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
+            }
+        shapedef << "[" << verts[N-1].x << ", " << verts[N-1].y << ", " << verts[N-1].z << "]]}";
+        return shapedef.str();
+        }
+#endif
+
+
+
+#ifndef NVCC
 alj_shape_params make_alj_shape_params(pybind11::list shape, std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
     alj_shape_params result(shape, exec_conf->isCUDAEnabled());

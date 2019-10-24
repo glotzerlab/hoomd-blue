@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import numpy.testing as npt
 import tempfile
 
 import hoomd
@@ -113,14 +114,18 @@ class TestALJ(unittest.TestCase):
             period=dump_steps,
             phase=0,
             overwrite=True)
-        hoomd.dump.gsd(
+        gsd = hoomd.dump.gsd(
             filename=gsd_file,
             period=dump_steps,
             phase=0,
             group=group,
             overwrite=True)
+        gsd.dump_shape(alj)
 
         hoomd.run(n_comp + n_comp_start)
+
+        # Add quick test of shape.
+        npt.assert_allclose(alj.get_type_shapes()[0]['vertices'], particle_vertices, 1e-5)
 
         # Reset velocities after the compression.
         integrator.randomize_velocities(kT, 44)

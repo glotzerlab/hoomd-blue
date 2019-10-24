@@ -2945,6 +2945,14 @@ class alj(ai_pair):
         param = _md.make_alj_shape_params(shape, hoomd.context.exec_conf)
         self.cpp_force.setShape(type_id, param)
 
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super(ai_pair, self)._return_type_shapes();
+
 
 class fourier(pair):
     R""" Fourier pair potential.
