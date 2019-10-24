@@ -138,6 +138,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
         Scalar K = params.x;
         Scalar sign = params.y;
         Scalar multi = params.z;
+        Scalar p_0 = params.w;
 
         Scalar aax = dab.y*dcbm.z - dab.z*dcbm.y;
         Scalar aay = dab.z*dcbm.x - dab.x*dcbm.z;
@@ -179,9 +180,12 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
 
 /////////////////////////
 // FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
+// Adding charmm dihedral functionality, sin_shift not always 0
 /////////////////////////
         p *= sign;
+        p += dfab*sin(p_0);
         dfab *= sign;
+        dfab -= ddfab*sin(p_0);
         dfab *= -multi;
         p += Scalar(1.0);
 
