@@ -53,7 +53,7 @@ void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, int
 
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    h_params.data[type] = make_scalar4(Scalar(K), Scalar(sign), Scalar(multiplicity), Scalar(0.0));
+    h_params.data[type] = make_scalar4(Scalar(K), Scalar(sign), Scalar(multiplicity), Scalar(p_0));
     }
 
 /*! Internal method for computing the forces on the GPU.
