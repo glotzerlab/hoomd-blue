@@ -10,6 +10,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
+#include <sstream>
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -17,6 +18,7 @@
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
+#include "hoomd/GSDShapeSpecWriter.h"
 
 /*! \file AnisoPotentialPair.h
     \brief Defines the template class for anisotropic pair potentials
@@ -82,10 +84,40 @@ class AnisoPotentialPair : public ForceCompute
         //! Set the rcut for a single type pair
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
 
+        //! Method that is called whenever the GSD file is written if connected to a GSD file.
+        int slotWriteGSDShapeSpec(gsd_handle&) const;
+
+        //! Method that is called to connect to the gsd write state signal
+        void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+
+        std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params) const
+            {
+            ArrayHandle<param_type> h_params(params, access_location::host, access_mode::read);
+            std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
+            Scalar4 q = make_scalar4(1,0,0,0);
+            Scalar3 dr = make_scalar3(0,0,0);
+            Scalar rcut = Scalar(0.0);
+            for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+                {
+                aniso_evaluator evaluator(dr,q,q,rcut,h_params.data[m_typpair_idx(i,i)]);
+                type_shape_mapping[i] = evaluator.getShapeSpec();
+                }
+            return type_shape_mapping;
+            }
+
+        pybind11::list getTypeShapesPy()
+            {
+            std::vector<std::string> type_shape_mapping = this->getTypeShapeMapping(m_params);
+            pybind11::list type_shapes;
+            for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
+                type_shapes.append(type_shape_mapping[i]);
+            return type_shapes;
+            }
 
         //! Shifting modes that can be applied to the energy
         enum energyShiftMode
@@ -163,6 +195,24 @@ class AnisoPotentialPair : public ForceCompute
 
             }
     };
+
+template <class aniso_evaluator>
+void AnisoPotentialPair<aniso_evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
+    {
+    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    auto func = std::bind(&AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec, this, std::placeholders::_1);
+    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    addSlot(pslot);
+    }
+
+template <class aniso_evaluator>
+int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
+    {
+    GSDShapeSpecWriter shapespec(m_exec_conf);
+    m_exec_conf->msg->notice(10) << "AnisoPotentialPair writing to GSD File to name: " << shapespec.getName() << std::endl;
+    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
+    return retval;
+    }
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
@@ -535,6 +585,9 @@ template < class T > void export_AnisoPotentialPair(pybind11::module& m, const s
         .def("setParams", &T::setParams)
         .def("setRcut", &T::setRcut)
         .def("setShiftMode", &T::setShiftMode)
+        .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
+        .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
+        .def("getTypeShapesPy", &T::getTypeShapesPy)
     ;
 
     pybind11::enum_<typename T::energyShiftMode>(anisopotentialpair,"energyShiftMode")
