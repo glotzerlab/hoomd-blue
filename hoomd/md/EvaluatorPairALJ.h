@@ -1,6 +1,5 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
 
 // Maintainer: vramasub
 
@@ -18,6 +17,11 @@
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
+
+// Uncomment the following line to force two separate calls to GJK. This flag
+// primarily exists in case there are cases where the precision difference is
+// noticeable.
+// #define DOUBLE_GJK
 
 /*! \file EvaluatorPairALJ.h
     \brief Defines a an evaluator class for the anisotropic LJ table potential.
@@ -239,6 +243,7 @@ class EvaluatorPairALJ
                 // call GJK twice, once in each direction, and choose the
                 // result corresponding to the smaller distance.
                 vec3<Scalar> v = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
+#ifndef DOUBLE_GJK
                     {
                     // Create local scope to avoid polluting the local scope
                     // with many unnecessary variables after GJK is done.
@@ -259,6 +264,30 @@ class EvaluatorPairALJ
                         b = a_tmp - dr;
                         }
                     }
+#else
+					{
+					vec3<Scalar> v1 = vec3<Scalar>(), a1 = vec3<Scalar>(), b1 = vec3<Scalar>();
+					vec3<Scalar> v2 = vec3<Scalar>(), a2 = vec3<Scalar>(), b2 = vec3<Scalar>();
+					bool success1, overlap1;
+					bool success2, overlap2;
+
+					gjk<ndim>(shape_i->verts, shape_j->verts, v1, a1, b1, success1, overlap1, qi, qj, dr);
+					gjk<ndim>(shape_j->verts, shape_i->verts, v2, a2, b2, success2, overlap2, qj, qi, -dr);
+
+					if (dot(v1, v1) < dot(v2, v2))
+						{
+						v = v1;
+						a = a1;
+						b = b1;
+						}
+					else
+						{
+						v = -v2;
+						a = b2 - dr;
+						b = a2 - dr;
+						}
+					}
+#endif
                 if (ndim == 2)
                     {
                     v.z = 0;
