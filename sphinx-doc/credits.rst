@@ -281,6 +281,11 @@ Luis Rivera-Rivera, University of Michigan
 
   * ``hoomd.dump.gsd.dump_shape`` implementation
 
+
+Alex Yang, Vanderbilt University
+
+  * ``hoomd.md.dihedral.harmonic`` update for phase shift
+
 HPMC developers
 ---------------
 
