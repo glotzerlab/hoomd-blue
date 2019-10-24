@@ -104,9 +104,10 @@ class AnisoPotentialPair : public ForceCompute
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
-        std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params) const
+        std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params, const GlobalArray<shape_param_type> &shape_params) const
             {
             ArrayHandle<param_type> h_params(params, access_location::host, access_mode::read);
+            ArrayHandle<shape_param_type> h_shape_params(shape_params, access_location::host, access_mode::read);
             std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
             Scalar4 q = make_scalar4(1,0,0,0);
             Scalar3 dr = make_scalar3(0,0,0);
@@ -114,6 +115,10 @@ class AnisoPotentialPair : public ForceCompute
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
                 {
                 aniso_evaluator evaluator(dr,q,q,rcut,h_params.data[m_typpair_idx(i,i)]);
+                if (aniso_evaluator::needsShape())
+                {
+                    evaluator.setShape(&h_shape_params.data[i], &h_shape_params.data[i]);
+                }
                 type_shape_mapping[i] = evaluator.getShapeSpec();
                 }
             return type_shape_mapping;
@@ -121,7 +126,7 @@ class AnisoPotentialPair : public ForceCompute
 
         pybind11::list getTypeShapesPy()
             {
-            std::vector<std::string> type_shape_mapping = this->getTypeShapeMapping(m_params);
+            std::vector<std::string> type_shape_mapping = this->getTypeShapeMapping(m_params, m_shape_params);
             pybind11::list type_shapes;
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
                 type_shapes.append(type_shape_mapping[i]);
@@ -224,7 +229,7 @@ int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec(gsd_handle& handl
     {
     GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10) << "AnisoPotentialPair writing to GSD File to name: " << shapespec.getName() << std::endl;
-    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
+    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params, m_shape_params));
     return retval;
     }
 
