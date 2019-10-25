@@ -26,6 +26,40 @@ from collections import OrderedDict
 from collections import Mapping
 
 ## \internal
+class _Operation:
+
+    def __init__(self):
+        self._cpp_obj = None
+        self._param_dict = dict()
+
+    def __getattr__(self, attr):
+        if self._cpp_obj is not None:
+            return getattr(self._cpp_obj, attr)
+        else:
+            return self._param_dict[attr]
+
+    def __setattr__(self, attr, value):
+        if self._cpp_obj is not None:
+            try:
+                setattr(self._cpp_obj, attr, value)
+            except (AttributeError):
+                raise AttributeError("{} cannot be set after cpp"
+                                     " initialization".format(attr))
+        if attr not in self._param_dict.keys():
+            raise AttributeError("{} attribute does not exist".format())
+        else:
+            self._param_dict[attr] = value
+
+    def detach(self):
+        for key in self._param_dict.keys():
+            self._param_dict[key] = getattr(self, key)
+        self._cpp_obj = None
+        return self
+
+    def attach(self):
+        raise NotImplementedError
+
+
 # \brief A Mixin to facilitate storage of simulation metadata
 class _metadata(object):
     def __init__(self):
