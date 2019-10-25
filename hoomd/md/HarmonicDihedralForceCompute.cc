@@ -252,14 +252,18 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 
 /////////////////////////
 // FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
-// Adding charmm dihedral functionality, sin_shift not always 0 
+// Adding charmm dihedral functionality, sin_shift not always 0,
+// cos_shift not always 1
 /////////////////////////
 
         Scalar sign = m_sign[dihedral_type];
         Scalar phi_0 = m_phi_0[dihedral_type];
-        Scalar sin_phi_0 = fast::sin(phi_0)
-        p = p*sign + dfab*sin_phi_0;
-        dfab = dfab*sign - ddfab*sin_phi_0;
+        Scalar sin_phi_0 = fast::sin(phi_0);
+        Scalar cos_phi_0 = fast::cos(phi_0);
+        p = p*cos_phi_0 + dfab*sin_phi_0;
+        p = p*sign;
+        dfab = dfab*cos_phi_0 - ddfab*sin_phi_0;
+        dfab = dfab*sign;
         dfab *= (Scalar)-multi;
         p += Scalar(1.0);
 
