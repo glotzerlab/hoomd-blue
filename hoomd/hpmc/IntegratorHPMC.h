@@ -342,6 +342,11 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             m_patch_log = log;
             }
 
+        //! Get the seed
+        unsigned int getSeed()
+            {
+            return m_seed;
+            }
     protected:
         unsigned int m_seed;                        //!< Random number seed
         unsigned int m_move_ratio;                  //!< Ratio of translation to rotation move attempts (*65535)

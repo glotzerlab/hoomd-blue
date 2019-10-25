@@ -331,6 +331,9 @@ void export_IntegratorHPMC(py::module& m)
     .def("slotNumTypesChange", &IntegratorHPMC::slotNumTypesChange)
     .def("setDeterministic", &IntegratorHPMC::setDeterministic)
     .def("disablePatchEnergyLogOnly", &IntegratorHPMC::disablePatchEnergyLogOnly)
+    .def_property_readonly("seed", &IntegratorHPMC::getSeed)
+    .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
+    .def_property("move_ratio", &IntegratorHPMC::getMoveRatio, &IntegratorHPMC::setMoveRatio)
     ;
 
    py::class_< hpmc_counters_t >(m, "hpmc_counters_t")
