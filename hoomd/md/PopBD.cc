@@ -120,7 +120,7 @@ void PopBD::update(unsigned int timestep)
     if (m_prof) m_prof->push("PopBD");
     assert(m_pdata);
     assert(m_nlist);
-    int m_nK = 200; // TODO: make this r_cut
+    int m_nK = 150; // TODO: make this r_cut
 
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -235,20 +235,13 @@ void PopBD::update(unsigned int timestep)
                 Scalar L = L0 + f * (L1 - L0);
 
                 // (1) Compute P_ij, P_ji, and Q_ij
-                Scalar surf_dist = r - 2 * m_r_true;
-                assert(surf_dist > 0.0);
-                Scalar chain_extension = surf_dist / m_nK;
-                if (chain_extension < 1.0) // bond(extension)-bond(extension_rC)<deltaG?
+                // Scalar surf_dist = r - 2 * m_r_true;
+                // assert(surf_dist > 0.0);
+                // Scalar chain_extension = r / m_nK;
+                if (r < m_nK) // bond(extension)-bond(extension_rC)<deltaG?
                     {
                     Scalar p0 = m_delta_t * L;
                     Scalar q0 = m_delta_t * M;
-
-                    // range check on the parameters
-                    if (m_nloops[i]+m_nloops[j]+nbridges_ij != 2*m_n_polymer )
-                        {
-                        // m_exec_conf->msg->error() << "loops(i):  rmin, rmax (" << rmin << "," << rmax << ") is invalid." << endl;
-                        throw runtime_error("number of loops and bridges does not add up!");
-                        }
 
                     Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]-1.0);
                     Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]-1.0);
