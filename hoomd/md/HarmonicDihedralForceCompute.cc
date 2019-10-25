@@ -90,8 +90,8 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
         m_exec_conf->msg->warning() << "dihedral.harmonic: specified K <= 0" << endl;
     if (sign != 1 && sign != -1)
         m_exec_conf->msg->warning() << "dihedral.harmonic: a non unitary sign was specified" << endl;
-    if (phi_0 <= 0)
-        m_exec_conf->msg->warning() << "dihedral.harmonic: specified phi_0 <= 0" << endl;
+    if (phi_0 < 0 || phi_0 >= 2*M_PI)
+        m_exec_conf->msg->warning() << "dihedral.harmonic: specified phi_0 outside [0, 2pi)" << endl;
     }
 
 /*! DihedralForceCompute provides
@@ -257,8 +257,9 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 
         Scalar sign = m_sign[dihedral_type];
         Scalar phi_0 = m_phi_0[dihedral_type];
-        p = p*sign + dfab*sin(phi_0);
-        dfab = dfab*sign - ddfab*sin(phi_0);
+        Scalar sin_phi_0 = fast::sin(phi_0)
+        p = p*sign + dfab*sin_phi_0;
+        dfab = dfab*sign - ddfab*sin_phi_0;
         dfab *= (Scalar)-multi;
         p += Scalar(1.0);
 
