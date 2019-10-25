@@ -55,9 +55,9 @@ class popbd(_updater):
         self.table_width = table_width
         self.setupUpdater(period, phase)
 
-    def set_params(self, r_cut, r_true, bond_type, n_polymer):
+    def set_params(self, r_cut, bond_type, n_polymer):
         self.check_initialization()
-        self.cpp_updater.setParams(r_cut, r_true, bond_type, n_polymer)
+        self.cpp_updater.setParams(r_cut, bond_type, n_polymer)
         # store metadata
         # metadata_fields = ['r_cut', 'bond_type', 'prob_form', 'prob_break']
 

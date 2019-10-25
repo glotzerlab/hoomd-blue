@@ -32,7 +32,6 @@ PopBD::PopBD(std::shared_ptr<SystemDefinition> sysdef,
         m_nlist(nlist),
         m_seed(seed),
         m_r_cut(0.0),
-        m_r_true(0.0),
         m_delta_t(delta_t),
         m_table_width(table_width)
     {
@@ -55,7 +54,6 @@ PopBD::PopBD(std::shared_ptr<SystemDefinition> sysdef,
     // helper to compute indices
     Index2D table_value(m_tables.getPitch(),m_bond_data->getNTypes());
     m_table_value = table_value;
-
     }
 
 PopBD::~PopBD()
@@ -68,10 +66,9 @@ PopBD::~PopBD()
 
     Sets parameters for the popBD updater
 */
-void PopBD::setParams(Scalar r_cut, Scalar r_true, std::string bond_type, int n_polymer)
+void PopBD::setParams(Scalar r_cut, std::string bond_type, int n_polymer)
     {
     m_r_cut = r_cut;
-    m_r_true = r_true;
     m_n_polymer = n_polymer;
     std::fill(m_nloops.begin(), m_nloops.end(), n_polymer);
     }
@@ -120,7 +117,6 @@ void PopBD::update(unsigned int timestep)
     if (m_prof) m_prof->push("PopBD");
     assert(m_pdata);
     assert(m_nlist);
-    int m_nK = 150; // TODO: make this r_cut
 
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -235,81 +231,77 @@ void PopBD::update(unsigned int timestep)
                 Scalar L = L0 + f * (L1 - L0);
 
                 // (1) Compute P_ij, P_ji, and Q_ij
-                // Scalar surf_dist = r - 2 * m_r_true;
-                // assert(surf_dist > 0.0);
-                // Scalar chain_extension = r / m_nK;
-                if (r < m_nK) // bond(extension)-bond(extension_rC)<deltaG?
+
+                Scalar p0 = m_delta_t * L;
+                Scalar q0 = m_delta_t * M;
+
+                Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]-1.0);
+                Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]-1.0);
+                Scalar q_ij = nbridges_ij * q0 * pow((1 - q0), nbridges_ij - 1.0);
+
+                // check that P and Q are reasonable
+                if (p_ij < 0 ||p_ji < 0 || q_ij < 0 || p_ij > 1 ||p_ji > 1 || q_ij > 1)
                     {
-                    Scalar p0 = m_delta_t * L;
-                    Scalar q0 = m_delta_t * M;
+                    throw runtime_error("p or q is incorrect!");
+                    }
 
-                    Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]-1.0);
-                    Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]-1.0);
-                    Scalar q_ij = nbridges_ij * q0 * pow((1 - q0), nbridges_ij - 1.0);
+                // (2) generate random numbers
+                Scalar rnd1 = saru.s<Scalar>(0, 1);
+                Scalar rnd2 = saru.s<Scalar>(0, 1);
+                Scalar rnd3 = saru.s<Scalar>(0, 1);
+                Scalar rnd4 = saru.s<Scalar>(0, 1);
 
-                    // check that P and Q are reasonable
-                    if (p_ij < 0 ||p_ji < 0 || q_ij < 0 || p_ij > 1 ||p_ji > 1 || q_ij > 1)
+                // (3) check to see if a loop on i should form a bridge btwn particles i and j
+                if (rnd1 < p_ij && m_nloops[i] >= 1)
+                    {
+                    m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
+                    m_nloops[i] -= 1;
+                    }
+
+                // (4) check to see if a loop on j should form a bridge btwn particlesi and j
+                if (rnd2 < p_ji && m_nloops[j] >= 1)
+                    {
+                    m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
+                    m_nloops[j] -= 1;
+                    }
+
+                // (5) check to see if a bond should be broken between particles i and j
+                if (rnd3 < q_ij && nbridges_ij >= 1)
+                    {
+                    // remove one bond between i and j for each of the bonds in the *system*
+                    const unsigned int size = (unsigned int)m_bond_data->getN();
+                    for (unsigned int bond_number = 0; bond_number < size; bond_number++)
                         {
-                        throw runtime_error("p or q is incorrect!");
-                        }
+                        // look up the tag of each of the particles participating in the bond
+                        const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
+                        assert(bond.tag[0] < m_pdata->getN());
+                        assert(bond.tag[1] < m_pdata->getN());
 
-                    // (2) generate random numbers
-                    Scalar rnd1 = saru.s<Scalar>(0, 1);
-                    Scalar rnd2 = saru.s<Scalar>(0, 1);
-                    Scalar rnd3 = saru.s<Scalar>(0, 1);
-                    Scalar rnd4 = saru.s<Scalar>(0, 1);
+                        // transform a and b into indices into the particle data arrays
+                        // (MEM TRANSFER: 4 integers)
+                        unsigned int idx_a = h_rtag.data[bond.tag[0]];
+                        unsigned int idx_b = h_rtag.data[bond.tag[1]];
+                        assert(idx_a <= m_pdata->getMaximumTag());
+                        assert(idx_b <= m_pdata->getMaximumTag());
 
-                    // (3) check to see if a loop on i should form a bridge btwn particles i and j
-                    if (rnd1 < p_ij && m_nloops[i] >= 1)
-                        {
-                        m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
-                        m_nloops[i] -= 1;
-                        }
-
-                    // (4) check to see if a loop on j should form a bridge btwn particlesi and j
-                    if (rnd2 < p_ji && m_nloops[j] >= 1)
-                        {
-                        m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
-                        m_nloops[j] -= 1;
-                        }
-
-                    // (5) check to see if a bond should be broken between particles i and j
-                    if (rnd3 < q_ij && nbridges_ij >= 1)
-                        {
-                        // remove one bond between i and j for each of the bonds in the *system*
-                        const unsigned int size = (unsigned int)m_bond_data->getN();
-                        for (unsigned int bond_number = 0; bond_number < size; bond_number++)
+                        // remove bond with index "bond_number" between particles i and j, then exit the loop
+                        if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
                             {
-                            // look up the tag of each of the particles participating in the bond
-                            const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
-                            assert(bond.tag[0] < m_pdata->getN());
-                            assert(bond.tag[1] < m_pdata->getN());
-
-                            // transform a and b into indices into the particle data arrays
-                            // (MEM TRANSFER: 4 integers)
-                            unsigned int idx_a = h_rtag.data[bond.tag[0]];
-                            unsigned int idx_b = h_rtag.data[bond.tag[1]];
-                            assert(idx_a <= m_pdata->getMaximumTag());
-                            assert(idx_b <= m_pdata->getMaximumTag());
-
-                            // remove bond with index "bond_number" between particles i and j, then exit the loop
-                            if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
-                                {
-                                // remove bond with index "bond_number" between particles i and j, then leave the loop
-                                m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
-                                break;
-                                }
+                            // remove bond with index "bond_number" between particles i and j, then leave the loop
+                            m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
+                            break;
                             }
-                        if (rnd4 <= 0.5)
-                            {
-                            m_nloops[i] += 1;
-                            }
-                        else if (rnd4 > 0.5)
-                            {
-                            m_nloops[j] += 1;
-                            }
+                        }
+                    if (rnd4 <= 0.5)
+                        {
+                        m_nloops[i] += 1;
+                        }
+                    else if (rnd4 > 0.5)
+                        {
+                        m_nloops[j] += 1;
                         }
                     }
+
                 // // remove all bonds if bond goes beyond extension
                 // else if (chain_extension > 1.0)
                 //     {

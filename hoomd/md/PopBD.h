@@ -42,7 +42,7 @@ public:
     //! Destructor
     virtual ~PopBD();
 
-    virtual void setParams(Scalar r_cut, Scalar r_true, std::string bond_type, int n_polymer);
+    virtual void setParams(Scalar r_cut, std::string bond_type, int n_polymer);
 
     virtual void setTable(const std::vector<Scalar> &XB,
                           const std::vector<Scalar> &M,
@@ -60,7 +60,6 @@ protected:
     int period;                             //!< period to create/destroy bonds
     int bond_type;                          //!< bond type to create and break
     Scalar m_r_cut;                         //!< cut off distance for computing bonds
-    Scalar m_r_true;                        //!< the "true" radius, i.e. the sticker-colloid energy well min
     unsigned int m_table_width;             //!< Width of the tables in memory
     GPUArray<Scalar2> m_tables;             //!< Stored V and F tables
     GPUArray<Scalar4> m_params;             //!< Parameters stored for each table
