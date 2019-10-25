@@ -258,14 +258,6 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
 
-        const typename evaluator::shape_param_type *shape_i;
-        if (evaluator::needsShape())
-            shape_i = &(s_shape_params[__scalar_as_int(postypei.w)]);
-
-        unsigned int tag_i = 0;
-        if (evaluator::needsTags())
-            tag_i = __ldg(d_tag + idx);
-
         unsigned int my_head = d_head_list[idx];
         unsigned int cur_j = 0;
 
@@ -296,14 +288,6 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                 Scalar qj = Scalar(0);
                 if (evaluator::needsCharge())
                     qj = __ldg(d_charge + cur_j);
-
-                const typename evaluator::shape_param_type *shape_j;
-                if (evaluator::needsShape())
-                    shape_j = &(s_shape_params[__scalar_as_int(postypej.w)]);
-
-                unsigned int tag_j = 0;
-                if (evaluator::needsTags())
-                    tag_j = __ldg(d_tag + idx);
 
                 // calculate dr (with periodic boundary conditions)
                 Scalar3 dx = posi - posj;
@@ -338,9 +322,10 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                 if (evaluator::needsCharge())
                     eval.setCharge(qi, qj);
                 if (evaluator::needsShape())
-                    eval.setShape(shape_i, shape_j);
+                    eval.setShape(&(s_shape_params[__scalar_as_int(postypei.w)]),
+                                  &(s_shape_params[__scalar_as_int(postypej.w)]));
                 if (evaluator::needsTags())
-                    eval.setTags(tag_i, tag_j);
+                    eval.setTags(__ldg(d_tag + idx), __ldg(d_tag + cur_j));
 
                 // call evaluator
                 eval.evaluate(jforce, pair_eng, energy_shift, torquei, torquej);
