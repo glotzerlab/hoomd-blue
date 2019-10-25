@@ -30,7 +30,13 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
     if (m_local_fft)
-        cufftDestroy(m_cufft_plan);
+        {
+        for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
+            {
+            cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
+            CHECK_CUFFT_ERROR(cufftDestroy(m_cufft_plan[idev]));
+            }
+        }
     #ifdef ENABLE_MPI
     else
         {
@@ -101,7 +107,13 @@ void PPPMForceComputeGPU::initializeFFT()
 
     if (m_local_fft)
         {
-        cufftPlan3d(&m_cufft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, CUFFT_C2C);
+        // create plan on every device
+        m_cufft_plan.resize(m_exec_conf->getNumActiveGPUs());
+        for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
+            {
+            cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
+            CHECK_CUFFT_ERROR(cufftPlan3d(&m_cufft_plan[idev], m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, CUFFT_C2C));
+            }
         }
 
     // allocate mesh and transformed mesh
@@ -278,7 +290,7 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
         ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
 
-        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan, d_mesh.data, d_fourier_mesh.data, CUFFT_FORWARD));
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan[0], d_mesh.data, d_fourier_mesh.data, CUFFT_FORWARD));
         if (m_prof) m_prof->pop(m_exec_conf);
         }
     #ifdef ENABLE_MPI
@@ -363,15 +375,15 @@ void PPPMForceComputeGPU::updateMeshes()
         for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev>=0; idev--)
             {
             cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
-            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan[idev],
                          d_fourier_mesh_G_x.data,
                          d_inv_fourier_mesh_x.data+idev*inv_mesh_elements,
                          CUFFT_INVERSE));
-            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan[idev],
                          d_fourier_mesh_G_y.data,
                          d_inv_fourier_mesh_y.data+idev*inv_mesh_elements,
                          CUFFT_INVERSE));
-            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan[idev],
                          d_fourier_mesh_G_z.data,
                          d_inv_fourier_mesh_z.data+idev*inv_mesh_elements,
                          CUFFT_INVERSE));
