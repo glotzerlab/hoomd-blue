@@ -220,15 +220,15 @@ class harmonic(force._force):
     - :math:`k` - strength of force (in energy units)
     - :math:`d` - sign factor (unitless)
     - :math:`n` - angle scaling factor (unitless)
-    - :math:`\phi_0` - rest angle  ``phi_0`` (in radians)
+    - :math:`\phi_0` - phase shift  ``phi_0`` (in radians) - *optional*: defaults to 0.0
 
     Coefficients :math:`k`, :math:`d`, :math:`n` must be set for each type of dihedral in the simulation using
     :py:meth:`dihedral_coeff.set() <coeff.set()>`.
 
     Examples::
 
-        harmonic.dihedral_coeff.set('phi-ang', k=30.0, d=-1, n=3, phi_0=0)
-        harmonic.dihedral_coeff.set('psi-ang', k=100.0, d=1, n=4, phi_0=3.14)
+        harmonic.dihedral_coeff.set('phi-ang', k=30.0, d=-1, n=3)
+        harmonic.dihedral_coeff.set('psi-ang', k=100.0, d=1, n=4, phi_0=math.pi/2)
     """
     def __init__(self):
         hoomd.util.print_status_line();
