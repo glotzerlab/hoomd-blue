@@ -211,6 +211,7 @@ Vyas Ramasubramani, University of Michigan
  * Reverse communication for MPI
  * Enable simulation of floppy bodies that can be integrated separately but are ignored by the NeighborList
  * Enabled use of shared memory for Evaluator structs
+ * Added per-type shape information to anisotropic pair potentials
 
 Nathan Horst
 
