@@ -42,18 +42,18 @@ HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU()
     \param K Stiffness parameter for the force computation
     \param sign the sign of the cosine term
         \param multiplicity the multiplicity of the cosine term
-    \param p_0 the phase offset
+    \param phi_0 the phase offset
 
     Sets parameters for the potential of a particular dihedral type and updates the
     parameters on the GPU.
 */
-void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar p_0)
+void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar phi_0)
     {
-    HarmonicDihedralForceCompute::setParams(type, K, sign, multiplicity, p_0);
+    HarmonicDihedralForceCompute::setParams(type, K, sign, multiplicity, phi_0);
 
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    h_params.data[type] = make_scalar4(Scalar(K), Scalar(sign), Scalar(multiplicity), Scalar(p_0));
+    h_params.data[type] = make_scalar4(Scalar(K), Scalar(sign), Scalar(multiplicity), Scalar(phi_0));
     }
 
 /*! Internal method for computing the forces on the GPU.
