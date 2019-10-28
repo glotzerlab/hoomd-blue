@@ -51,9 +51,9 @@ class mpcd_srd_validation(unittest.TestCase):
         slt = self.solute.take_snapshot()
         if hoomd.comm.get_rank() == 0:
             slv_p1 = np.sum(slv.particles.velocity, axis=0)
-            slt_p1 = self.density*np.sum(slv.particles.velocity, axis=0)
-            np.testing.assert_array_almost_equal(slv_p0, [0,0,0])
-            np.testing.assert_array_almost_equal(slt_p0, [0,0,0])
+            slt_p1 = self.density*np.sum(slt.particles.velocity, axis=0)
+            np.testing.assert_array_almost_equal(slv_p1, [0,0,0])
+            np.testing.assert_array_almost_equal(slt_p1, [0,0,0])
 
     def test_embed(self):
         """Test momentum conservation for SRD solvent + embedded particles."""
@@ -76,10 +76,10 @@ class mpcd_srd_validation(unittest.TestCase):
         slt = self.solute.take_snapshot()
         if hoomd.comm.get_rank() == 0:
             slv_p1 = np.sum(slv.particles.velocity, axis=0)
-            slt_p1 = self.density*np.sum(slv.particles.velocity, axis=0)
+            slt_p1 = self.density*np.sum(slt.particles.velocity, axis=0)
             self.assertFalse(np.allclose(slv_p1, [0,0,0]))
             self.assertFalse(np.allclose(slt_p1, [0,0,0]))
-            np.testing.assert_array_almost_equal(slv_p0 + slt_p0, [0,0,0])
+            np.testing.assert_array_almost_equal(slv_p1 + slt_p1, [0,0,0], decimal=3)
 
     def tearDown(self):
         del self.solute, self.solvent, self.srd
