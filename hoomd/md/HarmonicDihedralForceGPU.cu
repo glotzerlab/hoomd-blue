@@ -185,7 +185,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
 /////////////////////////
         Scalar sin_phi_0 = fast::sin(phi_0);
         Scalar cos_phi_0 = fast::cos(phi_0);
-        p = p*cos_phi_0 + dfab*sin_phi_0
+        p = p*cos_phi_0 + dfab*sin_phi_0;
         p *= sign;
         dfab = dfab*cos_phi_0 - ddfab*sin_phi_0;
         dfab *= sign;
