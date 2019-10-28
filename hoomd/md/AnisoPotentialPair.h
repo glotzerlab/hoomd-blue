@@ -116,9 +116,9 @@ class AnisoPotentialPair : public ForceCompute
                 {
                 aniso_evaluator evaluator(dr,q,q,rcut,h_params.data[m_typpair_idx(i,i)]);
                 if (aniso_evaluator::needsShape())
-                {
+                    {
                     evaluator.setShape(&h_shape_params.data[i], &h_shape_params.data[i]);
-                }
+                    }
                 type_shape_mapping[i] = evaluator.getShapeSpec();
                 }
             return type_shape_mapping;
