@@ -52,7 +52,6 @@ class update_popbd(unittest.TestCase):
         )
         dybond.set_params(
             r_cut=2.0,
-            r_true=1.0,
             bond_type="harmonic",
             n_polymer=10,
         )

@@ -56,9 +56,9 @@ protected:
     std::shared_ptr<ParticleGroup> m_group; //!< Group of particles to operate on
     std::shared_ptr<NeighborList> m_nlist;  //!< neighborlist
     std::shared_ptr<BondData> m_bond_data;  //!< Bond data to use in computing bonds
-    int m_seed;                             //!< seed for random number generator
     int period;                             //!< period to create/destroy bonds
     int bond_type;                          //!< bond type to create and break
+    int m_seed;                             //!< seed for random number generator
     Scalar m_r_cut;                         //!< cut off distance for computing bonds
     unsigned int m_table_width;             //!< Width of the tables in memory
     GPUArray<Scalar2> m_tables;             //!< Stored V and F tables
@@ -66,7 +66,6 @@ protected:
     Index2D m_table_value;                  //!< Index table helper
     Scalar m_delta_t;                       //!< time step from integrator
     std::vector<int> m_nloops;              //!< structure of size N to store number of loops for each colloid
-    int m_n_polymer;
     int n_polymer;                          //!< number of polymers per colloid
 };
 

@@ -69,7 +69,6 @@ PopBD::~PopBD()
 void PopBD::setParams(Scalar r_cut, std::string bond_type, int n_polymer)
     {
     m_r_cut = r_cut;
-    m_n_polymer = n_polymer;
     std::fill(m_nloops.begin(), m_nloops.end(), n_polymer);
     }
 
