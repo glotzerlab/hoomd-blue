@@ -1240,6 +1240,7 @@ template<class T, typename Group>
         .def("addBondedGroup", &T::addBondedGroup)
         .def("removeBondedGroup", &T::removeBondedGroup)
         .def("setProfiler", &T::setProfiler)
+        .def("getTypes", &T::getTypesPy)
         ;
 
     if (T::typemap_val)

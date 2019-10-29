@@ -786,6 +786,17 @@ class PYBIND11_EXPORT ParticleData
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type) const;
 
+        //! Get the types for python
+        pybind11::dict getTypesPy()
+            {
+            pybind11::dict types;
+
+            for (unsigned int i = 0; i < getNTypes(); i++)
+                types[m_type_mapping[i].c_str()] = i;
+
+            return types;
+            }
+
         //! Rename a type
         void setTypeName(unsigned int type, const std::string& name);
 

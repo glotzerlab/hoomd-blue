@@ -2543,6 +2543,7 @@ void export_ParticleData(py::module& m)
     .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)
 #endif
     .def("addType", &ParticleData::addType)
+    .def("getTypes", &ParticleData::getTypesPy)
     ;
     }
 
