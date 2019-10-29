@@ -67,53 +67,63 @@ class State:
 
         if self._simulation.device.comm.rank == 0:
             if snapshot.has_particle_data and \
-                    len(snapshot.particles.types) != self.ntypes:
+                    len(snapshot.particles.types) != len(self.particle_types):
                 raise RuntimeError(
                     "Number of particle types must remain the same")
             if snapshot.has_bond_data and \
-                    len(snapshot.bonds.types) != self.ntype_bonds:
+                    len(snapshot.bonds.types) != len(self.bond_types):
                 raise RuntimeError("Number of bond types must remain the same")
             if snapshot.has_angle_data and \
-                    len(snapshot.angles.types) != self.ntype_angles:
+                    len(snapshot.angles.types) != len(self.angles_types):
                 raise RuntimeError(
                     "Number of angle types must remain the same")
             if snapshot.has_dihedral_data and \
-                    len(snapshot.dihedrals.types) != self.ntype_dihedral:
+                    len(snapshot.dihedrals.types) != len(self.dihedral_types):
                 raise RuntimeError(
                     "Number of dihedral types must remain the same")
             if snapshot.has_improper_data and \
-                    len(snapshot.impropers.types) != self.ntype_impropers:
+                    len(snapshot.impropers.types) != len(self.improper_types):
                 raise RuntimeError(
                     "Number of dihedral types must remain the same")
             if snapshot.has_pair_data and \
-                    len(snapshot.pairs.types) != self.ntype_pairs:
+                    len(snapshot.pairs.types) != len(self.special_pair_types):
                 raise RuntimeError("Number of pair types must remain the same")
 
         self._cpp_sys_def.initializeFromSnapshot(snapshot)
 
     @property
-    def ntypes(self):
-        return self._cpp_sys_def.getParticleData().getNTypes()
+    def types(self):
+        return dict(particle_types=self.particle_types,
+                    bond_types=self.bond_types,
+                    angles_types=self.angles_types,
+                    dihedral_types=self.dihedral_types,
+                    improper_types=self.improper_types,
+                    special_pair_types=self.special_pair_types
+                    )
 
     @property
-    def ntype_bonds(self):
-        return self._cpp_sys_def.getBondData().getNTypes()
+    def particle_types(self):
+        return self._cpp_sys_def.getParticleData().getTypes()
 
     @property
-    def ntype_angles(self):
-        return self._cpp_sys_def.getAngleData().getNTypes()
+    def bond_types(self):
+        return self._cpp_sys_def.getBondData().getTypes()
 
     @property
-    def ntype_dihedral(self):
-        return self._cpp_sys_def.getDihedralData().getNTypes()
+    def angles_types(self):
+        return self._cpp_sys_def.getAngleData().getTypes()
 
     @property
-    def ntype_impropers(self):
-        return self._cpp_sys_def.getImproperData().getNTypes()
+    def dihedral_types(self):
+        return self._cpp_sys_def.getDihedralData().getTypes()
 
     @property
-    def ntype_pairs(self):
-        return self._cpp_sys_def.getPairData().getNTypes()
+    def improper_types(self):
+        return self._cpp_sys_def.getImproperData().getTypes()
+
+    @property
+    def special_pair_types(self):
+        return self._cpp_sys_def.getPairData().getTypes()
 
     @property
     def box(self):
