@@ -59,6 +59,9 @@ class _Operation:
     def attach(self):
         raise NotImplementedError
 
+    def cache_types(self, types):
+        pass
+
 
 # \brief A Mixin to facilitate storage of simulation metadata
 class _metadata(object):
