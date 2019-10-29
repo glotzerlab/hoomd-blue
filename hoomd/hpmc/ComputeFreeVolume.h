@@ -175,13 +175,10 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
 
             Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
             Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
+            Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
             if (m_sysdef->getNDimensions() == 2)
                 {
-                Scalar zrand = 0.5;
-                }
-            else
-                {
-                Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
+                zrand = 0.5;
                 }
 
             Scalar3 f = make_scalar3(xrand, yrand, zrand);
