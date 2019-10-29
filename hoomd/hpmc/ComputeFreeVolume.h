@@ -175,7 +175,14 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
 
             Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
             Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
-            Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
+            if (m_sysdef->getNDimensions() == 2)
+                {
+                Scalar zrand = 0.5;
+                }
+            else
+                {
+                Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
+                }
 
             Scalar3 f = make_scalar3(xrand, yrand, zrand);
             vec3<Scalar> pos_i = vec3<Scalar>(box.makeCoordinates(f));
@@ -183,7 +190,14 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
             Shape shape_i(quat<Scalar>(), params[m_type]);
             if (shape_i.hasOrientation())
                 {
-                shape_i.orientation = generateRandomOrientation(rng_i);
+                if (m_sysdef->getNDimensions() == 2)
+                    {
+                    shape_i.orientation = generateRandomOrientation2D(rng_i);
+                    }
+                else
+                    {
+                    shape_i.orientation = generateRandomOrientation(rng_i);
+                    }
                 }
 
             // check for overlaps with neighboring particle's positions
