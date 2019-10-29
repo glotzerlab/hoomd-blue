@@ -211,6 +211,11 @@ void PopBD::update(unsigned int timestep)
                 // precomputed term
                 Scalar value_f = (r - rmin) / delta_r;
 
+                if (r < rmin)
+                    {
+                    throw runtime_error("gap is too small to compute a probability!");
+                    }
+
                 /// Here we use the table!!
                 unsigned int value_i = (unsigned int)floor(value_f);
                 Scalar2 ML0 = h_tables.data[m_table_value(value_i, type)];
