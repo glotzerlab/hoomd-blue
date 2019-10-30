@@ -2885,10 +2885,7 @@ class alj(ai_pair):
     - *epsilon* - :math:`\varepsilon` (in energy units)
     - *sigma_i* (in distance units) - the insphere radius of the first particle type.
     - *sigma_j* (in distance units) - the insphere radius of the second particle type.
-    - *alpha* - Value indicating whether or not to include attractive component. (False gives a WCA potential).
     - *alpha* - Integer from 0-3 indicating whether or not to include the attractive component of the interaction (see above for details).
-    - *shape_i* (in distance units) - the vertices of the first particle type
-    - *shape_j* (in distance units) - the vertices of the first particle type
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
