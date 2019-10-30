@@ -110,6 +110,7 @@ class Saru
         DEVICE inline Real s(Real a, Real b);
         //@}
 
+        //! \name Other distributions
         //@{
         //! Draw a normally distributed random number (float)
         DEVICE inline float normal(float sigma, float mu=0.0f);

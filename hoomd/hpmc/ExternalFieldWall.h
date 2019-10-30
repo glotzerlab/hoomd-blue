@@ -8,11 +8,11 @@
     \brief Declaration of ExternalField base class
 */
 #include "hoomd/Compute.h"
+#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 
 #include "IntegratorHPMCMono.h"
 #include "ExternalField.h"
-#include "ShapeUtils.h"
 
 #include <tuple>
 #include <limits>
@@ -32,7 +32,6 @@
 
 namespace hpmc
 {
-
 struct SphereWall
     {
     SphereWall() : rsq(0), inside(false), origin(0,0,0), verts(new detail::poly3d_verts(1,false)) {}

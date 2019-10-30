@@ -19,7 +19,6 @@
 #include "Moves.h"
 #include "hoomd/AABBTree.h"
 #include "GSDHPMCSchema.h"
-#include "hoomd/GSDState.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/managed_allocator.h"
@@ -1767,18 +1766,10 @@ void IntegratorHPMCMono<Shape>::connectGSDStateSignal(
                                                     std::shared_ptr<GSDDumpWriter> writer,
                                                     std::string name)
     {
-//<<<<<<< HEAD
-//    _connectGSDSignal(this, writer, name);
-//    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-//    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSD, this, std::placeholders::_1, name);
-//    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
-//    addSlot(pslot);
-//=======
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
     auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSDState, this, std::placeholders::_1, name);
     std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
-//>>>>>>> origin/master
     }
 
 template <class Shape>

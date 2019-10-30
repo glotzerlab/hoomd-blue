@@ -128,6 +128,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
     // if there is a string to be written due to the python method addInfo, write it.
     if (m_write_info)
         {
+        string info = py::cast<string> (m_add_info(timestep));
         m_file << info;
         }
 
