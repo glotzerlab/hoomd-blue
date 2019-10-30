@@ -90,6 +90,9 @@ class AnisoPotentialPair : public ForceCompute
         //! Set the rcut for a single type pair
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
 
+        //! Set the shape parameters for a single type
+        virtual void setShape(unsigned int typ, const shape_param_type& shape_param);
+
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
         int slotWriteGSDShapeSpec(gsd_handle&) const;
 

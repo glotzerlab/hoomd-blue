@@ -1,8 +1,7 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: thivo
+// Maintainer: vramasub
 
 #ifndef __EVALUATOR_PAIR_ALJ_H__
 #define __EVALUATOR_PAIR_ALJ_H__
@@ -13,35 +12,132 @@
 
 #include "hoomd/VectorMath.h"
 #include "hoomd/ManagedArray.h"
-#include "ALJData.h"
 #include "GJK.h"
-#include <iostream>
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
+// Uncomment the following line to force two separate calls to GJK. This flag
+// primarily exists in case there are cases where the precision difference is
+// noticeable.
+// #define DOUBLE_GJK
 
 /*! \file EvaluatorPairALJ.h
     \brief Defines a an evaluator class for the anisotropic LJ table potential.
 */
 
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-//! DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// need to declare these class methods with __host__ __device__ qualifiers when building in nvcc
+//! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
-#define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
-#define DEVICE
+#define HOSTDEVICE
 
 #if defined (__SSE__)
 #include <immintrin.h>
 #endif
 #endif
 
-/*!
- * Anisotropic LJ potential (assuming analytical kernel and (temporarily) sigma = 1.0)
- */
+//! Shape parameters for the ALJ potential.
+struct alj_shape_params
+    {
+    HOSTDEVICE alj_shape_params()
+        : k_maxsq(0.0)
+        {}
 
+    #ifndef NVCC
+
+    //! Shape constructor
+    alj_shape_params(pybind11::list shape, bool use_device)
+        : k_maxsq(0.0)
+        {
+        Scalar kmax = 0;
+
+        //! Construct table for particle i
+        unsigned int N = len(shape);
+        verts = ManagedArray<vec3<Scalar> >(N, use_device);
+        for (unsigned int i = 0; i < N; ++i)
+            {
+            pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape[i]);
+            verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
+
+            Scalar ktest = dot(verts[i], verts[i]);
+            if (ktest > kmax)
+                {
+                kmax = ktest;
+                }
+            }
+        k_maxsq = kmax;
+        }
+
+    #endif
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+        {
+        verts.load_shared(ptr, available_bytes);
+        }
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        verts.attach_to_stream(stream);
+        }
+    #endif
+
+    //! Shape parameters
+    ManagedArray<vec3<Scalar> > verts;       //! Shape vertices.
+    Scalar k_maxsq;                          //! Largest kernel value.
+    };
+
+//! Potential parameters for the ALJ potential.
+struct pair_alj_params
+    {
+    DEVICE pair_alj_params()
+        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0)
+        {}
+
+    #ifndef NVCC
+    //! Shape constructor
+    pair_alj_params(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, unsigned int _alpha, bool use_device)
+        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha) {}
+
+    #endif
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const {}
+    #endif
+
+    //! Potential parameters
+    Scalar epsilon;                      //! interaction parameter.
+    Scalar sigma_i;                      //! size of i^th particle.
+    Scalar sigma_j;                      //! size of j^th particle.
+    unsigned int alpha;                  //! toggle switch of attractive branch of potential.
+    };
+
+
+/*!
+ * Anisotropic LJ potential.
+ */
 template <unsigned int ndim>
 class EvaluatorPairALJ
     {
     public:
-        typedef shape_table param_type;
+        typedef pair_alj_params param_type;
+
+        typedef alj_shape_params shape_param_type;
 
         //! Constructs the pair potential evaluator.
         /*! \param _dr Displacement vector between particle centers of mass.
@@ -50,7 +146,7 @@ class EvaluatorPairALJ
             \param _q_j Quaternion of j^th particle.
             \param _params Per type pair parameters of this potential.
         */
-        DEVICE EvaluatorPairALJ(Scalar3& _dr,
+        HOSTDEVICE EvaluatorPairALJ(Scalar3& _dr,
                                 Scalar4& _qi,
                                 Scalar4& _qj,
                                 Scalar _rcutsq,
@@ -60,33 +156,64 @@ class EvaluatorPairALJ
             }
 
         //! uses diameter
-        DEVICE static bool needsDiameter()
+        HOSTDEVICE static bool needsDiameter()
             {
             return true;
+            }
+
+        //! Whether the pair potential uses shape.
+        HOSTDEVICE static bool needsShape()
+            {
+            return true;
+            }
+
+        //! Whether the pair potential needs particle tags.
+        HOSTDEVICE static bool needsTags()
+            {
+            return true;
+            }
+
+        //! whether pair potential requires charges
+        HOSTDEVICE static bool needsCharge()
+            {
+            return false;
             }
 
         //! Accept the optional diameter values
         /*! \param di Diameter of particle i
             \param dj Diameter of particle j
         */
-        DEVICE void setDiameter(Scalar di, Scalar dj)
+        HOSTDEVICE void setDiameter(Scalar di, Scalar dj)
             {
             dia_i = di;
             dia_j = dj;
             }
 
-        //! whether pair potential requires charges
-        DEVICE static bool needsCharge( )
+        //! Accept the optional shape values
+        /*! \param shape_i Shape of particle i
+            \param shape_j Shape of particle j
+        */
+        HOSTDEVICE void setShape(const shape_param_type *shapei, const shape_param_type *shapej)
             {
-            return false;
+            shape_i = shapei;
+            shape_j = shapej;
             }
 
-        //! Accept the optional diameter values
-        //! This function is pure virtual
+        //! Accept the optional tags
+        /*! \param tag_i Tag of particle i
+            \param tag_j Tag of particle j
+        */
+        HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj)
+        {
+            tag_i = tagi;
+            tag_j = tagj;
+        }
+
+        //! Accept the optional charge values
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
-        DEVICE void setCharge(Scalar qi, Scalar qj){}
+        HOSTDEVICE void setCharge(Scalar qi, Scalar qj){}
 
         //! Evaluate the force and energy.
         /*! \param force Output parameter to write the computed force.
@@ -96,7 +223,7 @@ class EvaluatorPairALJ
             \param torque_j The torque exterted on the j^th particle.
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
-        DEVICE  bool
+        HOSTDEVICE  bool
         evaluate(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
             {
             // Define relevant distance parameters (rsqr, r, directional vector)
@@ -107,7 +234,7 @@ class EvaluatorPairALJ
             // Interaction cutoff is scaled by the max kernel value scaled by
             // the insphere radius, which is the max vertex distance
             // k[ij]_maxsq.
-            if ( (rsq/_params.ki_maxsq < rcutsq) || (rsq/_params.kj_maxsq < rcutsq) )
+            if ( (rsq/shape_i->k_maxsq < rcutsq) || (rsq/shape_i->k_maxsq < rcutsq) )
                 {
                 // Call GJK. In order to ensure that Newton's third law is
                 // obeyed, we must avoid any imbalance caused by numerical
@@ -116,28 +243,51 @@ class EvaluatorPairALJ
                 // call GJK twice, once in each direction, and choose the
                 // result corresponding to the smaller distance.
                 vec3<Scalar> v = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
+#ifndef DOUBLE_GJK
                     {
-                    vec3<Scalar> v1 = vec3<Scalar>(), a1 = vec3<Scalar>(), b1 = vec3<Scalar>();
-                    vec3<Scalar> v2 = vec3<Scalar>(), a2 = vec3<Scalar>(), b2 = vec3<Scalar>();
-                    bool success1, overlap1;
-                    bool success2, overlap2;
+                    // Create local scope to avoid polluting the local scope
+                    // with many unnecessary variables after GJK is done.
+                    bool flip = (tag_i >= tag_j);
+                    const ManagedArray<vec3<Scalar> > &verts1(flip ? shape_j->verts : shape_i->verts);
+                    const ManagedArray<vec3<Scalar> > &verts2(flip ? shape_i->verts : shape_j->verts);
+                    const quat<Scalar> &q1(flip ? qj : qi), &q2(flip ? qi : qj);
+                    vec3<Scalar> dr_use(flip ? -dr : dr);
 
-                    gjk<ndim>(_params.verts_i, _params.verts_j, v1, a1, b1, success1, overlap1, qi, qj, dr);
-                    gjk<ndim>(_params.verts_j, _params.verts_i, v2, a2, b2, success2, overlap2, qj, qi, -dr);
+                    bool success, overlap;
+                    gjk<ndim>(verts1, verts2, v, a, b, success, overlap, q1, q2, dr_use);
 
-                    if (dot(v1, v1) < dot(v2, v2))
+                    if (flip)
                         {
-                        v = v1;
-                        a = a1;
-                        b = b1;
-                        }
-                    else
-                        {
-                        v = -v2;
-                        a = b2 - dr;
-                        b = a2 - dr;
+                        v = Scalar(-1.0)*v;
+                        vec3<Scalar> a_tmp = a;
+                        a = b - dr;
+                        b = a_tmp - dr;
                         }
                     }
+#else
+					{
+					vec3<Scalar> v1 = vec3<Scalar>(), a1 = vec3<Scalar>(), b1 = vec3<Scalar>();
+					vec3<Scalar> v2 = vec3<Scalar>(), a2 = vec3<Scalar>(), b2 = vec3<Scalar>();
+					bool success1, overlap1;
+					bool success2, overlap2;
+
+					gjk<ndim>(shape_i->verts, shape_j->verts, v1, a1, b1, success1, overlap1, qi, qj, dr);
+					gjk<ndim>(shape_j->verts, shape_i->verts, v2, a2, b2, success2, overlap2, qj, qi, -dr);
+
+					if (dot(v1, v1) < dot(v2, v2))
+						{
+						v = v1;
+						a = a1;
+						b = b1;
+						}
+					else
+						{
+						v = -v2;
+						a = b2 - dr;
+						b = a2 - dr;
+						}
+					}
+#endif
                 if (ndim == 2)
                     {
                     v.z = 0;
@@ -178,7 +328,7 @@ class EvaluatorPairALJ
                 Scalar f_scalar_contact = 0;
 
                 // Check repulsion vs attraction for center particle
-                if (_params.alpha < 1.0)
+                if (_params.alpha % 2 == 0)
                     {
                     if (r < two_p_16*sigma12)
                         {
@@ -206,7 +356,7 @@ class EvaluatorPairALJ
 
                 // Check repulsion attraction for contact point
                 // No overlap
-                if (_params.alpha*0.0 < 1.0)
+                if (_params.alpha / 2 == 0)
                     {
                     if (1/rcheck_isq  < two_p_16 *sub_sphere*sigma12)
                         {
@@ -276,10 +426,91 @@ class EvaluatorPairALJ
         Scalar rcutsq;     //!< Stored rcutsq from the constructor
         quat<Scalar> qi;   //!< Orientation quaternion for particle i
         quat<Scalar> qj;   //!< Orientation quaternion for particle j
-        Scalar dia_i;
-        Scalar dia_j;
-        const param_type& _params;
+        Scalar dia_i;      //!< Diameter of particle i.
+        Scalar dia_j;      //!< Diameter of particle j.
+        unsigned int tag_i;      //!< Tag of particle i.
+        unsigned int tag_j;      //!< Tag of particle j.
+        const shape_param_type *shape_i;      //!< Shape parameters of particle i.
+        const shape_param_type *shape_j;      //!< Shape parameters of particle j.
+        const param_type& _params;      //!< Potential parameters for the pair of interest.
     };
 
+
+#ifndef NVCC
+
+// Note: This method assumes that shape_i == shape_j. This should be valid for
+// all cases, and this logic will be moved up to the AnisoPotentialPair in
+// HOOMD 3.0.
+template <>
+std::string EvaluatorPairALJ<2>::getShapeSpec() const
+    {
+    std::ostringstream shapedef;
+    const ManagedArray<vec3<Scalar> > &verts(shape_i->verts);       //! Shape vertices.
+    const unsigned int N = verts.size();
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": 0, \"vertices\": [";
+    for (unsigned int i = 0; i < N-1; i++)
+        {
+        shapedef << "[" << verts[i].x << ", " << verts[i].y << "], ";
+        }
+    shapedef << "[" << verts[N-1].x << ", " << verts[N-1].y << "]]}";
+    return shapedef.str();
+    }
+
+// Note: This method assumes that shape_i == shape_j. This should be valid for
+// all cases, and this logic will be moved up to the AnisoPotentialPair in
+// HOOMD 3.0.
+template <>
+std::string EvaluatorPairALJ<3>::getShapeSpec() const
+{
+        std::ostringstream shapedef;
+        const ManagedArray<vec3<Scalar> > &verts(shape_i->verts);       //! Shape vertices.
+        const unsigned int N = verts.size();
+        shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": 0, \"vertices\": [";
+        for (unsigned int i = 0; i < N-1; i++)
+            {
+            shapedef << "[" << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
+            }
+        shapedef << "[" << verts[N-1].x << ", " << verts[N-1].y << ", " << verts[N-1].z << "]]}";
+        return shapedef.str();
+        }
+#endif
+
+
+
+#ifndef NVCC
+alj_shape_params make_alj_shape_params(pybind11::list shape, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+    {
+    alj_shape_params result(shape, exec_conf->isCUDAEnabled());
+    return result;
+    }
+
+pair_alj_params make_pair_alj_params(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, unsigned int alpha, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+    {
+    pair_alj_params result(epsilon, sigma_i, sigma_j, alpha, exec_conf->isCUDAEnabled());
+    return result;
+    }
+
+//! Function to export the ALJ parameter type to python
+void export_shape_params(pybind11::module& m)
+{
+    pybind11::class_<pair_alj_params>(m, "pair_alj_params")
+        .def(pybind11::init<>())
+        .def_readwrite("alpha", &pair_alj_params::alpha)
+        .def_readwrite("epsilon", &pair_alj_params::epsilon)
+        .def_readwrite("sigma_i", &pair_alj_params::sigma_i)
+        .def_readwrite("sigma_j", &pair_alj_params::sigma_j);
+
+    m.def("make_pair_alj_params", &make_pair_alj_params);
+}
+
+void export_alj_shape_params(pybind11::module& m)
+    {
+    pybind11::class_<alj_shape_params>(m, "alj_shape_params")
+        .def(pybind11::init<>())
+        .def_readwrite("k_maxsq", &alj_shape_params::k_maxsq);
+
+    m.def("make_alj_shape_params", &make_alj_shape_params);
+    }
+#endif
 
 #endif // __EVALUATOR_PAIR_ALJ_H__

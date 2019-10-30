@@ -2858,20 +2858,34 @@ class alj(ai_pair):
         name (str): Name of the force instance.
 
     :py:class:`alj2D` computes the LJ potential between anisotropic particles.
+    The anisotropy is implemented as a composite of two interactions, a
+    center-center component and a component of interaction measured at the
+    closest point of contact between the two particles. The potential supports
+    both standard LJ interactions as well as repulsive-only WCA interactions.
+    This behavior is controlled using the :code:`alpha` parameter, which can
+    take on the following values:
+
+    * :code:`0`:
+      All interactions are WCA (no attraction).
+
+    * :code:`1`:
+      Center-center interactions include attraction, contact-contact interactions are solely repulsive.
+
+    * :code:`2`:
+      Center-center interactions are solely repulsive, contact-contact interactions include attraction.
+
+    * :code:`0`:
+      All interactions include attractive and repulsive components.
+
 
     Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
-        alj.pair_coeff.set('A', 'A', epsilon=eps_att, sigma_i=sigma_particle, sigma_j=sigma_particle, alpha=alpha, shape_i=vertices, shape_j=vertices);
-
-
     - *epsilon* - :math:`\varepsilon` (in energy units)
     - *sigma_i* (in distance units) - the insphere radius of the first particle type.
     - *sigma_j* (in distance units) - the insphere radius of the second particle type.
-    - *alpha* - boolean indicating whether or not to include attractive component (False gives a WCA potential).
-    - *shape_i* (in distance units) - the vertices of the first particle type
-    - *shape_j* (in distance units) - the vertices of the first particle type
+    - *alpha* - Integer from 0-3 indicating whether or not to include the attractive component of the interaction (see above for details).
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
@@ -2907,22 +2921,34 @@ class alj(ai_pair):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
-        self.required_coeffs = ['epsilon','sigma_i','sigma_j','alpha','shape_i', 'shape_j'];
+        self.required_coeffs = ['epsilon','sigma_i','sigma_j','alpha'];
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma_i = coeff['sigma_i'];
         sigma_j = coeff['sigma_j'];
-        shape_i = coeff['shape_i'];
-        shape_j = coeff['shape_j'];
         alpha = coeff['alpha'];
+        if alpha not in range(3):
+            raise ValueError("The alpha parameter must be an integer from 0 to 3.")
 
-        # Ensure vertex list is always 3D, even for 2D shapes.
+        return _md.make_pair_alj_params(epsilon, sigma_i, sigma_j, int(alpha), hoomd.context.exec_conf);
+
+    def _set_cpp_shape(self, type_id, type_name):
+        # Ensure that shape parameters are always 3D lists, even in 2D.
+        shape = self.shape[type_name]
         if hoomd.context.current.system_definition.getNDimensions() == 2:
-            shape_i = [[v[0], v[1], 0] for v in shape_i]
-            shape_j = [[v[0], v[1], 0] for v in shape_j]
+            shape = [[v[0], v[1], 0] for v in shape]
 
-        return _md.make_shape_table(epsilon, sigma_i, sigma_j, alpha, list(shape_i), list(shape_j), hoomd.context.exec_conf);
+        param = _md.make_alj_shape_params(shape, hoomd.context.exec_conf)
+        self.cpp_force.setShape(type_id, param)
+
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super(ai_pair, self)._return_type_shapes();
 
 
 class fourier(pair):
