@@ -20,6 +20,9 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GSDShapeSpecWriter.h"
 
+#include "hoomd/ManagedArray.h"
+#include "hoomd/VectorMath.h"
+
 /*! \file AnisoPotentialPair.h
     \brief Defines the template class for anisotropic pair potentials
     \details The heart of the code that computes anisotropic pair potentials is in this file.
@@ -72,6 +75,9 @@ class AnisoPotentialPair : public ForceCompute
         //! Param type from aniso_evaluator
         typedef typename aniso_evaluator::param_type param_type;
 
+        //! Shape param type from aniso_evaluator
+        typedef typename aniso_evaluator::shape_param_type shape_param_type;
+
         //! Construct the pair potential
         AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr<NeighborList> nlist,
@@ -90,14 +96,18 @@ class AnisoPotentialPair : public ForceCompute
         //! Method that is called to connect to the gsd write state signal
         void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
+        //! Set the shape parameters for a single type
+        virtual void setShape(unsigned int typ, const shape_param_type& shape_param);
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
-        std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params) const
+        std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params, const GlobalArray<shape_param_type> &shape_params) const
             {
             ArrayHandle<param_type> h_params(params, access_location::host, access_mode::read);
+            ArrayHandle<shape_param_type> h_shape_params(shape_params, access_location::host, access_mode::read);
             std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
             Scalar4 q = make_scalar4(1,0,0,0);
             Scalar3 dr = make_scalar3(0,0,0);
@@ -105,6 +115,10 @@ class AnisoPotentialPair : public ForceCompute
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
                 {
                 aniso_evaluator evaluator(dr,q,q,rcut,h_params.data[m_typpair_idx(i,i)]);
+                if (aniso_evaluator::needsShape())
+                    {
+                    evaluator.setShape(&h_shape_params.data[i], &h_shape_params.data[i]);
+                    }
                 type_shape_mapping[i] = evaluator.getShapeSpec();
                 }
             return type_shape_mapping;
@@ -112,7 +126,7 @@ class AnisoPotentialPair : public ForceCompute
 
         pybind11::list getTypeShapesPy()
             {
-            std::vector<std::string> type_shape_mapping = this->getTypeShapeMapping(m_params);
+            std::vector<std::string> type_shape_mapping = this->getTypeShapeMapping(m_params, m_shape_params);
             pybind11::list type_shapes;
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
                 type_shapes.append(type_shape_mapping[i]);
@@ -150,6 +164,7 @@ class AnisoPotentialPair : public ForceCompute
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GlobalArray<Scalar> m_rcutsq;                  //!< Cutoff radius squared per type pair
         GlobalArray<param_type> m_params;   //!< Pair parameters per type pair
+        GlobalArray<shape_param_type> m_shape_params;   //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
 
@@ -173,12 +188,15 @@ class AnisoPotentialPair : public ForceCompute
             m_rcutsq.swap(rcutsq);
             GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf, "my_params", true);
             m_params.swap(params);
+            GlobalArray<shape_param_type> shape_params(m_pdata->getNTypes(), m_exec_conf, "shape_params", true);
+            m_shape_params.swap(shape_params);
 
             #ifdef ENABLE_CUDA
             if (m_pdata->getExecConf()->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
                 {
                 cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
                 cudaMemAdvise(m_params.get(), m_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
+                cudaMemAdvise(m_shape_params.get(), m_shape_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
 
                 // prefetch
                 auto& gpu_map = m_exec_conf->getGPUIds();
@@ -188,6 +206,7 @@ class AnisoPotentialPair : public ForceCompute
                     // prefetch data on all GPUs
                     cudaMemPrefetchAsync(m_rcutsq.get(), sizeof(Scalar)*m_rcutsq.getNumElements(), gpu_map[idev]);
                     cudaMemPrefetchAsync(m_params.get(), sizeof(param_type)*m_params.getNumElements(), gpu_map[idev]);
+                    cudaMemPrefetchAsync(m_shape_params.get(), sizeof(param_type)*m_shape_params.getNumElements(), gpu_map[idev]);
                     }
                 CHECK_CUDA_ERROR();
                 }
@@ -210,7 +229,7 @@ int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec(gsd_handle& handl
     {
     GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10) << "AnisoPotentialPair writing to GSD File to name: " << shapespec.getName() << std::endl;
-    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
+    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params, m_shape_params));
     return retval;
     }
 
@@ -232,12 +251,15 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
     m_rcutsq.swap(rcutsq);
     GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf, "my_params", true);
     m_params.swap(params);
+    GlobalArray<shape_param_type> shape_params(m_pdata->getNTypes(), m_exec_conf, "shape_params", true);
+    m_shape_params.swap(shape_params);
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
         cudaMemAdvise(m_params.get(), m_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_shape_params.get(), m_shape_params.getNumElements()*sizeof(shape_param_type), cudaMemAdviseSetReadMostly, 0);
 
         // prefetch
         auto& gpu_map = m_exec_conf->getGPUIds();
@@ -247,6 +269,7 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
             // prefetch data on all GPUs
             cudaMemPrefetchAsync(m_rcutsq.get(), sizeof(Scalar)*m_rcutsq.getNumElements(), gpu_map[idev]);
             cudaMemPrefetchAsync(m_params.get(), sizeof(param_type)*m_params.getNumElements(), gpu_map[idev]);
+            cudaMemPrefetchAsync(m_shape_params.get(), sizeof(shape_param_type)*m_shape_params.getNumElements(), gpu_map[idev]);
             }
         }
     #endif
@@ -289,6 +312,24 @@ void AnisoPotentialPair< aniso_evaluator >::setParams(unsigned int typ1, unsigne
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[m_typpair_idx(typ1, typ2)] = param;
     h_params.data[m_typpair_idx(typ2, typ1)] = param;
+    }
+
+/*! \param typ The type index.
+    \param param Shape parameter to set
+          set.
+*/
+template< class aniso_evaluator >
+void AnisoPotentialPair< aniso_evaluator >::setShape(unsigned int typ, const shape_param_type& shape_param)
+    {
+    if (typ >= m_pdata->getNTypes())
+        {
+        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": Trying to set shape params for a non existent type! "
+                  << typ << std::endl;
+        throw std::runtime_error("Error setting shape parameters in AnisoPotentialPair");
+        }
+
+    ArrayHandle<shape_param_type> h_shape_params(m_shape_params, access_location::host, access_mode::readwrite);
+    h_shape_params.data[typ] = shape_param;
     }
 
 /*! \param typ1 First type index in the pair
@@ -369,6 +410,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host,access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     //force arrays
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
@@ -378,6 +420,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getBox();
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+    ArrayHandle<shape_param_type> h_shape_params(m_shape_params, access_location::host, access_mode::read);
 
     {
     // need to start from a zero force, energy and virial
@@ -475,6 +518,10 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
                 eval.setDiameter(di, dj);
             if (aniso_evaluator::needsCharge())
                 eval.setCharge(qi, qj);
+            if (aniso_evaluator::needsShape())
+                eval.setShape(&h_shape_params.data[typei], &h_shape_params.data[typej]);
+            if (aniso_evaluator::needsTags())
+                eval.setTags(h_tag.data[i], h_tag.data[j]);
 
             bool evaluated = eval.evaluate(force, pair_eng, energy_shift,torque_i,torque_j);
 
@@ -584,6 +631,7 @@ template < class T > void export_AnisoPotentialPair(pybind11::module& m, const s
     anisopotentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
         .def("setParams", &T::setParams)
         .def("setRcut", &T::setRcut)
+        .def("setShape", &T::setShape)
         .def("setShiftMode", &T::setShiftMode)
         .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
