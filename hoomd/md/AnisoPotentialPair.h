@@ -99,6 +99,9 @@ class AnisoPotentialPair : public ForceCompute
         //! Method that is called to connect to the gsd write state signal
         void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
+        //! Set the shape parameters for a single type
+        virtual void setShape(unsigned int typ, const shape_param_type& shape_param);
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
@@ -116,9 +119,9 @@ class AnisoPotentialPair : public ForceCompute
                 {
                 aniso_evaluator evaluator(dr,q,q,rcut,h_params.data[m_typpair_idx(i,i)]);
                 if (aniso_evaluator::needsShape())
-                {
+                    {
                     evaluator.setShape(&h_shape_params.data[i], &h_shape_params.data[i]);
-                }
+                    }
                 type_shape_mapping[i] = evaluator.getShapeSpec();
                 }
             return type_shape_mapping;
