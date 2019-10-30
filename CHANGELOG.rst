@@ -54,15 +54,21 @@ v3.0.0 (not yet released)
 v2.x
 ----
 
-v2.8.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+v2.8.0 (2019-10-30)
+^^^^^^^^^^^^^^^^^^^
 
 *New Features*
+
+- MD:
+
+  - ``hoomd.md.dihedral.harmonic`` now accepts phase offsets, ``phi_0``, for CHARMM-style periodic dihedrals.
+  - Enable per-type shape information for anisotropic pair potentials that complements the existing pair parameters struct.
 
 - HPMC:
 
   - Enable the use of an array with adjustable parameters within the user defined pair potential.
-  - Add muVT updater for 2d systems.
+  - Add muVT updater for 2D systems.
+
 
 *Bug fixes*
 
@@ -73,6 +79,7 @@ v2.8.0 (not yet released)
 - Fix default particle properties when new particles are added to the system (e.g., via the muVT updater).
 - Fix ``charge.pppm()`` execution on multiple GPUs.
 - Enable ``with SimulationContext() as c``.
+- Fix a bug for ``mpcd.collide.at`` with embedded particles, which may have given incorrect results or simulation crashes.
 
 v2.7.0 (2019-10-01)
 ^^^^^^^^^^^^^^^^^^^

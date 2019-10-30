@@ -29,7 +29,7 @@ void mpcd::ATCollisionMethodGPU::drawVelocities(unsigned int timestep)
     {
     // mpcd particle data
     ArrayHandle<unsigned int> d_tag(m_mpcd_pdata->getTags(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getAltVelocities(), access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_alt_vel(m_mpcd_pdata->getAltVelocities(), access_location::device, access_mode::overwrite);
     const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
@@ -39,16 +39,18 @@ void mpcd::ATCollisionMethodGPU::drawVelocities(unsigned int timestep)
     if (m_embed_group)
         {
         ArrayHandle<unsigned int> d_embed_idx(m_embed_group->getIndexArray(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_vel_embed(m_pdata->getAltVelocities(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_vel_embed(m_pdata->getVelocities(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_alt_vel_embed(m_pdata->getAltVelocities(), access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_tag_embed(m_pdata->getTags(), access_location::device, access_mode::read);
         N_tot += m_embed_group->getNumMembers();
 
         m_tuner_draw->begin();
-        mpcd::gpu::at_draw_velocity(d_vel.data,
-                                    d_vel_embed.data,
+        mpcd::gpu::at_draw_velocity(d_alt_vel.data,
+                                    d_alt_vel_embed.data,
                                     d_tag.data,
                                     m_mpcd_pdata->getMass(),
                                     d_embed_idx.data,
+                                    d_vel_embed.data,
                                     d_tag_embed.data,
                                     timestep,
                                     m_seed,
@@ -62,10 +64,11 @@ void mpcd::ATCollisionMethodGPU::drawVelocities(unsigned int timestep)
     else
         {
         m_tuner_draw->begin();
-        mpcd::gpu::at_draw_velocity(d_vel.data,
+        mpcd::gpu::at_draw_velocity(d_alt_vel.data,
                                     NULL,
                                     d_tag.data,
                                     m_mpcd_pdata->getMass(),
+                                    NULL,
                                     NULL,
                                     NULL,
                                     timestep,

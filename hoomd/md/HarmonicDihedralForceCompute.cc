@@ -28,7 +28,7 @@ using namespace std;
     \post Memory is allocated, and forces are zeroed.
 */
 HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceCompute(sysdef), m_K(NULL), m_sign(NULL), m_multi(NULL)
+    : ForceCompute(sysdef), m_K(NULL), m_sign(NULL), m_multi(NULL), m_phi_0(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing HarmonicDihedralForceCompute" << endl;
 
@@ -46,6 +46,7 @@ HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(std::shared_ptr<Syste
     m_K = new Scalar[m_dihedral_data->getNTypes()];
     m_sign = new Scalar[m_dihedral_data->getNTypes()];
     m_multi = new Scalar[m_dihedral_data->getNTypes()];
+    m_phi_0 = new Scalar[m_dihedral_data->getNTypes()];
 
     }
 
@@ -56,9 +57,11 @@ HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
     delete[] m_K;
     delete[] m_sign;
     delete[] m_multi;
+    delete[] m_phi_0;
     m_K = NULL;
     m_sign = NULL;
     m_multi = NULL;
+    m_phi_0 = NULL;
     }
 
 /*! \param type Type of the dihedral to set parameters for
@@ -68,7 +71,7 @@ HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
 
     Sets parameters for the potential of a particular dihedral type
 */
-void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity)
+void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar phi_0)
     {
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
@@ -80,12 +83,15 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
     m_K[type] = K;
     m_sign[type] = (Scalar)sign;
     m_multi[type] = (Scalar)multiplicity;
+    m_phi_0[type] = phi_0;
 
     // check for some silly errors a user could make
     if (K <= 0)
         m_exec_conf->msg->warning() << "dihedral.harmonic: specified K <= 0" << endl;
     if (sign != 1 && sign != -1)
         m_exec_conf->msg->warning() << "dihedral.harmonic: a non unitary sign was specified" << endl;
+    if (phi_0 < 0 || phi_0 >= 2*M_PI)
+        m_exec_conf->msg->warning() << "dihedral.harmonic: specified phi_0 outside [0, 2pi)" << endl;
     }
 
 /*! DihedralForceCompute provides
@@ -246,10 +252,17 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 
 /////////////////////////
 // FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
+// Adding charmm dihedral functionality, sin_shift not always 0,
+// cos_shift not always 1
 /////////////////////////
 
         Scalar sign = m_sign[dihedral_type];
+        Scalar phi_0 = m_phi_0[dihedral_type];
+        Scalar sin_phi_0 = fast::sin(phi_0);
+        Scalar cos_phi_0 = fast::cos(phi_0);
+        p = p*cos_phi_0 + dfab*sin_phi_0;
         p = p*sign;
+        dfab = dfab*cos_phi_0 - ddfab*sin_phi_0;
         dfab = dfab*sign;
         dfab *= (Scalar)-multi;
         p += Scalar(1.0);

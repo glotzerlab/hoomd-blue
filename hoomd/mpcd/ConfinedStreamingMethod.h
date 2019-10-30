@@ -192,7 +192,7 @@ bool ConfinedStreamingMethod<Geometry>::validateParticles()
         const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
         if (m_geom->isOutside(pos))
             {
-            m_exec_conf->msg->error() << "MPCD particle with tag " << h_tag.data[idx] << " at (" << pos.x << "," << pos.y << "," << pos.z
+            m_exec_conf->msg->errorAllRanks() << "MPCD particle with tag " << h_tag.data[idx] << " at (" << pos.x << "," << pos.y << "," << pos.z
                           << ") lies outside the " << Geometry::getName() << " geometry. Fix configuration." << std::endl;
             return false;
             }

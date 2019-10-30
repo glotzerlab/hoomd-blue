@@ -243,6 +243,8 @@ void abort_mpi(std::shared_ptr<ExecutionConfiguration> exec_conf)
     #ifdef ENABLE_MPI
     if(exec_conf->getMPIConfig()->getNRanksGlobal() > 1)
         {
+        // delay for a moment to give time for error messages to print
+        Sleep(1000);
         MPI_Abort(exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
         }
     #endif
