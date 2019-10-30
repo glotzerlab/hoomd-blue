@@ -41,8 +41,8 @@ class mpcd_at_validation(unittest.TestCase):
         if hoomd.comm.get_rank() == 0:
             slv_p0 = np.sum(slv.particles.velocity, axis=0)
             slt_p0 = self.density*np.sum(slt.particles.velocity, axis=0)
-            np.testing.assert_array_almost_equal(slv_p0, [0,0,0])
-            np.testing.assert_array_almost_equal(slt_p0, [0,0,0])
+            np.testing.assert_allclose(slv_p0, [0,0,0], atol=1.e-6)
+            np.testing.assert_allclose(slt_p0, [0,0,0], atol=1.e-6)
 
         hoomd.run(100)
 
@@ -52,8 +52,8 @@ class mpcd_at_validation(unittest.TestCase):
         if hoomd.comm.get_rank() == 0:
             slv_p1 = np.sum(slv.particles.velocity, axis=0)
             slt_p1 = self.density*np.sum(slt.particles.velocity, axis=0)
-            np.testing.assert_array_almost_equal(slv_p1, [0,0,0])
-            np.testing.assert_array_almost_equal(slt_p1, [0,0,0])
+            np.testing.assert_allclose(slv_p1, [0,0,0], atol=1.e-6)
+            np.testing.assert_allclose(slt_p1, [0,0,0], atol=1.e-6)
 
     def test_embed(self):
         """Test momentum conservation for AT solvent + embedded particles."""
@@ -66,8 +66,8 @@ class mpcd_at_validation(unittest.TestCase):
         if hoomd.comm.get_rank() == 0:
             slv_p0 = np.sum(slv.particles.velocity, axis=0)
             slt_p0 = self.density*np.sum(slt.particles.velocity, axis=0)
-            np.testing.assert_array_almost_equal(slv_p0, [0,0,0])
-            np.testing.assert_array_almost_equal(slt_p0, [0,0,0])
+            np.testing.assert_allclose(slv_p0, [0,0,0], atol=1.e-6)
+            np.testing.assert_allclose(slt_p0, [0,0,0], atol=1.e-6)
 
         hoomd.run(100)
 
@@ -79,7 +79,7 @@ class mpcd_at_validation(unittest.TestCase):
             slt_p1 = self.density*np.sum(slt.particles.velocity, axis=0)
             self.assertFalse(np.allclose(slv_p1, [0,0,0]))
             self.assertFalse(np.allclose(slt_p1, [0,0,0]))
-            np.testing.assert_array_almost_equal(slv_p1 + slt_p1, [0,0,0], decimal=3)
+            np.testing.assert_allclose(slv_p1 + slt_p1, [0,0,0], atol=1.e-3)
 
     def tearDown(self):
         del self.solute, self.solvent, self.at
