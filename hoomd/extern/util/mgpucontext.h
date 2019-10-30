@@ -3,7 +3,9 @@
 #include "util.h"
 #include "format.h"
 #include "mgpualloc.h"
-#include <cuda.h>
+#ifndef ENABLE_HIP
+    #include <cuda.h>
+#endif
 
 namespace mgpu {
 

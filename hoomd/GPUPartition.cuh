@@ -7,7 +7,11 @@
 #include <stdexcept>
 #include <algorithm>
 
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
+#else
 #include <cuda_runtime.h>
+#endif
 
 class GPUPartition
     {

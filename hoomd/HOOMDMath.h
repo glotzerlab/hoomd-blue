@@ -28,7 +28,11 @@
 
 // for vector types
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+    #if ENABLE_HIP
+    #include <hip/hip_runtime.h>
+    #else
+    #include <cuda_runtime.h>
+    #endif
 #else
 
 // for builds on systems where CUDA is not available, include copies of the CUDA header
@@ -219,6 +223,7 @@ HOSTDEVICE inline Scalar3 operator+ (const Scalar3 &a, const Scalar3 &b)
                         a.z + b.z);
     }
 
+#ifndef ENABLE_HIP
 //! Vector addition
 HOSTDEVICE inline Scalar3& operator+= (Scalar3 &a, const Scalar3 &b)
     {
@@ -227,7 +232,7 @@ HOSTDEVICE inline Scalar3& operator+= (Scalar3 &a, const Scalar3 &b)
     a.z += b.z;
     return a;
     }
-
+#endif
 
 //! Vector subtraction
 HOSTDEVICE inline Scalar3 operator- (const Scalar3 &a, const Scalar3 &b)

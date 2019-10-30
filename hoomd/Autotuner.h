@@ -16,7 +16,11 @@
 #include <string>
 
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+    #if ENABLE_HIP
+    #include <hip/hip_runtime.h>
+    #else
+    #include <cuda_runtime.h>
+    #endif
 #endif
 
 #ifndef NVCC

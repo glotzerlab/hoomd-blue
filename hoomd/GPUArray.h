@@ -20,13 +20,18 @@
 
 // for vector types
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+    #if ENABLE_HIP
+    #include <hip/hip_runtime.h>
+    #else
+    #include <cuda_runtime.h>
+    #endif
 #endif
 
 // for HIP vector types
-#ifdef ENABLE_HIP
+/*#ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
+*/
 
 #include "ExecutionConfiguration.h"
 #include <string.h>

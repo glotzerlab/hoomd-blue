@@ -14,7 +14,12 @@
 #define __CACHED_ALLOCATOR_H__
 
 #ifdef ENABLE_CUDA
+
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
+#else
 #include <cuda_runtime.h>
+#endif
 
 #include <map>
 #include <cassert>
