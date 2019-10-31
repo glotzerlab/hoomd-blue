@@ -78,7 +78,10 @@ PYBIND11_MODULE(_hpmc, m)
     export_convex_polyhedron(m);
     export_convex_spheropolyhedron(m);
 
-    py::class_<sph_params, std::shared_ptr<sph_params> >(m, "sph_params");
+    py::class_<sph_params, std::shared_ptr<sph_params> >(m, "sph_params")
+        .def(pybind11::init< pybind11::dict >())
+        .def("asDict", &sph_params::asDict)
+        ;
     py::class_<ell_params, std::shared_ptr<ell_params> >(m, "ell_params");
     py::class_<poly2d_verts, std::shared_ptr<poly2d_verts> >(m, "poly2d_verts");
     py::class_<poly3d_data, std::shared_ptr<poly3d_data> >(m, "poly3d_data");

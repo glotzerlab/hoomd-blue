@@ -28,6 +28,7 @@
 #else
 #define DEVICE
 #define HOSTDEVICE
+#include <pybind11/pybind11.h>
 #endif
 
 #define SMALL 1e-5
@@ -118,6 +119,27 @@ struct sph_params : param_base
         {
         // default implementation does nothing
         }
+    #endif
+
+    #ifndef NVCC
+    sph_params() { }
+
+    sph_params(pybind11::dict v)
+        {
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+        radius = v["diameter"].cast<OverlapReal>() / OverlapReal(2.0);
+        isOriented = v["orientable"].cast<bool>();
+        }
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["ignore_statistics"] = ignore;
+        v["diameter"] =  radius * OverlapReal(2.0);
+        v["orientable"] = isOriented;
+        return v;
+        }
+
     #endif
     } __attribute__((aligned(32)));
 
