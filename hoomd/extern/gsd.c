@@ -279,7 +279,7 @@ uint16_t __gsd_get_id(struct gsd_handle *handle, const char *name, uint8_t appen
 
         handle->namelist_num_entries++;
 
-        // sync the expanded namelist
+        // mark that synchronization is needed
         handle->needs_sync = true;
 
         return handle->namelist_num_entries-1;
@@ -918,6 +918,7 @@ int gsd_end_frame(struct gsd_handle* handle)
         handle->index_written_entries += entries_to_write;
         }
 
+    // this sync is triggered by the namelist update
     if (handle->needs_sync)
         {
         int retval = fsync(handle->fd);
