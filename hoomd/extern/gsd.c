@@ -280,9 +280,7 @@ uint16_t __gsd_get_id(struct gsd_handle *handle, const char *name, uint8_t appen
         handle->namelist_num_entries++;
 
         // sync the expanded namelist
-        int retval = fsync(handle->fd);
-        if (retval != 0)
-            return UINT16_MAX;
+        handle->needs_sync = true;
 
         return handle->namelist_num_entries-1;
         }
@@ -918,6 +916,14 @@ int gsd_end_frame(struct gsd_handle* handle)
             return -1;
 
         handle->index_written_entries += entries_to_write;
+        }
+
+    if (handle->needs_sync)
+        {
+        int retval = fsync(handle->fd);
+        if (retval != 0)
+            return -1;
+        handle->needs_sync = false;
         }
 
     return 0;
