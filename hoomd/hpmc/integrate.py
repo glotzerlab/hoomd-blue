@@ -236,23 +236,10 @@ class mode_hpmc(_integrator):
                 hoomd.context.current.device.cpp_msg.error("Particle type {} has not been set!\n".format(name));
                 raise RuntimeError("Error running integrator");
 
-        # setup new interaction matrix elements to default
-        for i in range(0,ntypes):
-            type_name_i = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            for j in range(0,ntypes):
-                type_name_j = hoomd.context.current.system_definition.getParticleData().getNameByType(j);
-                if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
-                    # by default, perform overlap checks
-                    self.overlap_checks.set(str(type_name_i), str(type_name_j), True)
-
-        # set overlap matrix on C++ side
-        for (i,type_i) in enumerate(type_names):
-            for (j,type_j) in enumerate(type_names):
-                check = self.overlap_checks.get(type_i, type_j)
-                if check is None:
-                    hoomd.context.current.device.cpp_msg.error("Interaction matrix element ({},{}) not set!\n".format(type_i, type_j))
-                    raise RuntimeError("Error running integrator");
-                self.cpp_integrator.setOverlapChecks(i,j,check)
+        for (a,b) in self.overlap_checks.values:
+            i = hoomd.context.current.system_definition.getParticleData().getTypeByName(a);
+            j = hoomd.context.current.system_definition.getParticleData().getTypeByName(b);
+            self.cpp_integrator.setOverlapChecks(i,j,self.overlap_checks.values[(a,b)])
 
         # check that particle orientations are normalized
         if not self.cpp_integrator.checkParticleOrientations():
@@ -298,16 +285,6 @@ class mode_hpmc(_integrator):
             type_name = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             if not type_name in self.shape_param.keys(): # only add new keys
                 self.shape_param.update({ type_name: shape_param_type(self, i) });
-
-        # setup the interaction matrix elements
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        for i in range(0,ntypes):
-            type_name_i = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            for j in range(0,ntypes):
-                type_name_j = hoomd.context.current.system_definition.getParticleData().getNameByType(j);
-                if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
-                    # by default, perform overlap checks
-                    self.overlap_checks.set(type_name_i, type_name_j, True)
 
     def set_params(self,
                    d=None,

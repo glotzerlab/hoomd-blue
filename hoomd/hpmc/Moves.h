@@ -30,7 +30,7 @@ namespace hpmc
 
 //! Translation move
 /*! \param v Vector to translate (in/out)
-    \param rng RNG to utilize in the move
+    \param rng random123 RNG to utilize in the move
     \param d Maximum move distance
     \param dim Dimension
 
@@ -57,7 +57,7 @@ DEVICE inline void move_translate(vec3<Scalar>& v, RNG& rng, Scalar d, unsigned 
 
 //! Rotation move
 /*! \param orientation Quaternion to rotate (in/out)
-    \param rng RNG to utilize in the move
+    \param rng random123 RNG to utilize in the move
     \param a Rotation magnitude
     \param dim Dimension
 
@@ -154,7 +154,7 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng, unsigned int ndim
     }
 
 /* Generate a uniformly distributed random position in a sphere
- * \param rng RNG
+ * \param rng random123 RNG to use to generate the position
  * \param pos_sphere Center of insertion sphere
  * \param R radius of insertion sphere
  */
