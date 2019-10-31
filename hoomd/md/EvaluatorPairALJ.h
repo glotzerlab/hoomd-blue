@@ -461,18 +461,18 @@ std::string EvaluatorPairALJ<2>::getShapeSpec() const
 // HOOMD 3.0.
 template <>
 std::string EvaluatorPairALJ<3>::getShapeSpec() const
-{
-        std::ostringstream shapedef;
-        const ManagedArray<vec3<Scalar> > &verts(shape_i->verts);       //! Shape vertices.
-        const unsigned int N = verts.size();
-        shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": 0, \"vertices\": [";
-        for (unsigned int i = 0; i < N-1; i++)
-            {
-            shapedef << "[" << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
-            }
-        shapedef << "[" << verts[N-1].x << ", " << verts[N-1].y << ", " << verts[N-1].z << "]]}";
-        return shapedef.str();
+    {
+    std::ostringstream shapedef;
+    const ManagedArray<vec3<Scalar> > &verts(shape_i->verts);       //! Shape vertices.
+    const unsigned int N = verts.size();
+    shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": 0, \"vertices\": [";
+    for (unsigned int i = 0; i < N-1; i++)
+        {
+        shapedef << "[" << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
         }
+    shapedef << "[" << verts[N-1].x << ", " << verts[N-1].y << ", " << verts[N-1].z << "]]}";
+    return shapedef.str();
+    }
 #endif
 
 
