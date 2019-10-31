@@ -2093,8 +2093,19 @@ class mie(pair):
         mie4 = m
         return _hoomd.make_scalar4(mie1, mie2, mie3, mie4);
 
+
+class _shape_dict(dict):
+    """Simple dictionary subclass to improve handling of anisotropic potential
+    shape information."""
+    def __getitem__(self, key):
+        try:
+            return super(_shape_dict, self).__getitem__(key)
+        except KeyError as e:
+            raise KeyError("No shape parameters specified for particle type {}!".format(key)) from e
+
+
 class ai_pair(pair):
-    R""" Generic anisotropic pair potential.
+    R"""Generic anisotropic pair potential.
 
     Users should not instantiate :py:class:`ai_pair` directly. It is a base class that
     provides common features to all anisotropic pair forces. Rather than repeating all of that documentation in a
@@ -2129,8 +2140,10 @@ class ai_pair(pair):
         self.nlist.subscribe(lambda:self.get_rcut())
         self.nlist.update_rcut()
 
+        self._shape = _shape_dict()
+
     def set_params(self, mode=None):
-        R""" Set parameters controlling the way forces are computed.
+        R"""Set parameters controlling the way forces are computed.
 
         Args:
             mode (str): (if set) Set the mode with which potentials are handled at the cutoff
@@ -2156,6 +2169,18 @@ class ai_pair(pair):
                 hoomd.context.current.device.cpp_msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
+    @property
+    def shape(self):
+        R"""Get or set shape parameters per type.
+
+        In addition to any pair-specific parameters required to characterize a
+        pair potential, individual particles that have anisotropic interactions
+        may also have their own shapes that affect the potentials. General
+        anisotropic pair potentials may set per-particle shapes using this
+        method.
+        """
+        return self._shape
+
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut"];
         # check that the pair coefficients are valid
@@ -2170,15 +2195,24 @@ class ai_pair(pair):
             type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         for i in range(0,ntypes):
+            self._set_cpp_shape(i, type_list[i])
+
             for j in range(i,ntypes):
                 # build a dict of the coeffs to pass to process_coeff
-                coeff_dict = {};
+                coeff_dict = {}
                 for name in coeff_list:
                     coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
 
                 param = self.process_coeff(coeff_dict);
                 self.cpp_force.setParams(i, j, param);
                 self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
+
+    def _set_cpp_shape(self, type_id, type_name):
+        """Update shape information in C++.
+
+        This method must be implemented by subclasses to generate the
+        appropriate shape structure. The default behavior is to do nothing."""
+        pass
 
 class gb(ai_pair):
     R""" Gay-Berne anisotropic pair potential.

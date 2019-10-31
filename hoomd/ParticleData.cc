@@ -2268,6 +2268,8 @@ unsigned int ParticleData::addParticle(unsigned int type)
         ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::readwrite);
         ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_angmom(getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_inertia(getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
@@ -2280,8 +2282,10 @@ unsigned int ParticleData::addParticle(unsigned int type)
         h_vel.data[idx] = make_scalar4(0,0,0,1.0);
         h_accel.data[idx] = make_scalar3(0,0,0);
         h_charge.data[idx] = 0.0;
-        h_diameter.data[idx] = 0.0;
+        h_diameter.data[idx] = 1.0;
         h_image.data[idx] = make_int3(0,0,0);
+        h_angmom.data[idx] = make_scalar4(0,0,0,0);
+        h_inertia.data[idx] = make_scalar3(0,0,0);
         h_body.data[idx] = NO_BODY;
         h_orientation.data[idx] = make_scalar4(1.0,0.0,0.0,0.0);
         h_tag.data[idx] = tag;

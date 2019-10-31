@@ -108,6 +108,7 @@ set(_hoomd_headers
     GPUVector.h
     GSDDumpWriter.h
     GSDReader.h
+    GSDShapeSpecWriter.h
     HalfStepHook.h
     HOOMDMath.h
     HOOMDMPI.h

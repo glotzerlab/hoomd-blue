@@ -34,18 +34,6 @@ import getpass
 import hoomd
 from hoomd import _hoomd
 
-# Global list of messengers for proper messenger destruction
-_cpp_msgs = []
-
-# this function destroys all the messenger objects that have been created throughout the execution of a script
-@atexit.register
-def _destroy_messengers():
-    global _cpp_msgs
-
-    for msg in _cpp_msgs:
-        msg.close()
-
-
 class _device(hoomd.meta._metadata):
 
     def __init__(self, communicator, notice_level, msg_file, shared_msg_file):
@@ -75,7 +63,7 @@ class _device(hoomd.meta._metadata):
 
         # c++ execution configuration mirror class
         self.cpp_exec_conf = None
-        
+
         # name of the message file
         self._msg_file = msg_file
 
@@ -84,20 +72,20 @@ class _device(hoomd.meta._metadata):
         """
         Get the MPI Communicator
         """
-        
+
         return self._comm
 
     # \brief Return the name of the GPU used in GPU mode.
     @property
     def gpu_ids(self):
-        
+
         n_gpu = self.cpp_exec_conf.getNumActiveGPUs()
         return [self.cpp_exec_conf.getGPUName(i) for i in range(n_gpu)]
 
     # \brief Return the execution mode
     @property
     def mode(self):
-        
+
         if self.cpp_exec_conf.isCUDAEnabled():
             return 'gpu'
         else:
@@ -106,7 +94,7 @@ class _device(hoomd.meta._metadata):
     # \brief Return the number of ranks.
     @property
     def num_ranks(self):
-        
+
         return self.comm.num_ranks
 
     # \brief Return the number of CPU threads
@@ -136,7 +124,7 @@ class _device(hoomd.meta._metadata):
 
     @property
     def notice_level(self):
-        
+
         return self.cpp_msg.getNoticeLevel()
 
     @notice_level.setter
@@ -155,26 +143,26 @@ class _device(hoomd.meta._metadata):
 
     @property
     def memory_traceback():
-        
+
         return self.cpp_exec_conf.getMemoryTracer() is not None
-        
+
     @memory_traceback.setter
     def memory_traceback(self, mem_traceback):
-        
+
         self.cpp_exec_conf.setMemoryTracing(mem_traceback)
 
     @property
     def gpu_error_checking(self):
-        
+
         if self.mode == 'gpu':
             return self.cpp_exec_conf.isCUDAErrorCheckingEnabled()
         else:
             self.cpp_msg.warning("Attempting to access gpu_error_checking while HOOMD is in CPU mode, returning False.\n")
             return False
-    
+
     @gpu_error_checking.setter
     def gpu_error_checking(self, new_bool):
-        
+
         if self.mode == 'gpu':
             self.cpp_exec_conf.setCUDAErrorChecking(new_bool)
         else:
@@ -182,9 +170,9 @@ class _device(hoomd.meta._metadata):
 
     @property
     def msg_file(self):
-        
+
         return self._msg_file
-    
+
     @msg_file.setter
     def msg_file(self, fname):
         R""" Set the message file.
@@ -207,8 +195,6 @@ class _device(hoomd.meta._metadata):
 ## Initializes the Messenger
 # \internal
 def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
-    global _cpp_msgs
-
     msg = _hoomd.Messenger(mpi_config)
 
     # try to detect if we're running inside an MPI job
@@ -235,9 +221,6 @@ def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
             raise RuntimeError('Error setting option');
         msg.setSharedFile(shared_msg_file);
 
-    # add this messenger to the global list of messengers
-    _cpp_msgs.append(msg)
-
     return msg
 
 
@@ -245,7 +228,7 @@ def _init_nthreads(nthreads):
     """
     initializes the number of threads
     """
-    
+
     if nthreads is not None:
         self.num_threads = nthreads
 
@@ -279,8 +262,8 @@ class GPU(_device):
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.GPU,
                                                            gpu_vec,
-                                                           False, 
-                                                           False, 
+                                                           False,
+                                                           False,
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)
 
@@ -304,9 +287,9 @@ class CPU(_device):
         _init_nthreads(nthreads)
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.CPU,
-                                                           _hoomd.std_vector_int(), 
-                                                           False, 
-                                                           False, 
+                                                           _hoomd.std_vector_int(),
+                                                           False,
+                                                           False,
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)
 
@@ -330,8 +313,8 @@ class Auto(_device):
         _init_nthreads(nthreads)
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
-                                                           _hoomd.std_vector_int(), 
-                                                           False, 
-                                                           False, 
-                                                           self.comm.cpp_mpi_conf, 
+                                                           _hoomd.std_vector_int(),
+                                                           False,
+                                                           False,
+                                                           self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)

@@ -617,7 +617,8 @@ bool CellList::checkConditions()
         {
         unsigned int n = conditions.y - 1;
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-        m_exec_conf->msg->error() << "Particle with unique tag " << h_tag.data[n] << " has NaN for its position." << endl;
+        m_exec_conf->msg->errorAllRanks() << "Particle with unique tag " << h_tag.data[n]
+                                          << " has NaN for its position." << endl;
         throw runtime_error("Error computing cell list");
         }
 
@@ -628,18 +629,19 @@ bool CellList::checkConditions()
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-        m_exec_conf->msg->error() <<"Particle with unique tag " << h_tag.data[n] << " is no longer in the simulation box."
-                                  << endl << endl;
-
-        m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
-        m_exec_conf->msg->error() << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;
-        m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
         Scalar3 f = m_pdata->getBox().makeFraction(make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z));
-        m_exec_conf->msg->error() << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
         Scalar3 lo = m_pdata->getBox().getLo();
         Scalar3 hi = m_pdata->getBox().getHi();
-        m_exec_conf->msg->error() << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
-        m_exec_conf->msg->error() << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
+
+        m_exec_conf->msg->errorAllRanks()
+           << "Particle with unique tag " << h_tag.data[n]
+           << " is no longer in the simulation box." << std::endl << std::endl
+           << "Cartesian coordinates: " << std::endl
+           << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl
+           << "Fractional coordinates: " << std::endl
+           << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl
+           << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl
+           << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
         throw runtime_error("Error computing cell list");
         }
 
