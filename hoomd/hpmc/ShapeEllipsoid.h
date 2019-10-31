@@ -48,6 +48,8 @@ namespace hpmc
 
     \ingroup shape
 */
+
+// Original
 struct ell_params : param_base
     {
     OverlapReal x;                      //!< x semiaxis of the ellipsoid
@@ -61,6 +63,28 @@ struct ell_params : param_base
     void set_memory_hint() const
         {
         // default implementation does nothing
+        }
+    #endif
+
+    #ifndef NVCC
+    ell_params() { }
+
+    ell_params(pybind11::dict v)
+        {
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+        x = v["a"].cast<OverlapReal>();
+        y = v["b"].cast<OverlapReal>();
+        z = v["c"].cast<OverlapReal>();
+        }
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["ignore_statistics"] = ignore;
+        v["a"] = x;
+        v["b"] = y;
+        v["c"] = z;
+        return v;
         }
     #endif
     } __attribute__((aligned(32)));
