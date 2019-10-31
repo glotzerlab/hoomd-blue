@@ -417,6 +417,11 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_overlap_idx = Index2D(m_pdata->getNTypes());
     GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
+    for(unsigned int i = 0; i < m_overlap_idx.getNumElements(); i++)
+        {
+        h_overlaps.data[i] = 1; // Assume we want to check overlaps.
+        }
 
     // Connect to the BoxChange signal
     m_pdata->getBoxChangeSignal().template connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
