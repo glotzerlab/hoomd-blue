@@ -310,12 +310,12 @@ class BondedGroupData
         const std::string getNameByType(unsigned int type) const;
 
         //! Get the types for python
-        pybind11::dict getTypesPy()
+        pybind11::list getTypesPy()
             {
-            pybind11::dict types;
+            pybind11::list types;
 
             for (unsigned int i = 0; i < getNTypes(); i++)
-                types[m_type_mapping[i].c_str()] = i;
+                types.append(pybind11::str(m_type_mapping[i]));
 
             return types;
             }
