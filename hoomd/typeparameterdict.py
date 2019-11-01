@@ -150,15 +150,72 @@ class TypeParameterDict(_ValidateDict):
         else:
             self._dict.default_factory = const(val)
 
-    def __init__(self, types, type_param_dict, cpp_obj, sim):
+
+class AttachedTypeParameterDict(_ValidateDict):
+
+    def __init__(self, cpp_obj, param_name,
+                 type_kind, type_param_dict, sim):
         # add all types to c++
-        pass
+        self._cpp_obj = cpp_obj
+        self._param_name = param_name
+        self._sim = sim
+        self._default = type_param_dict.default
+        self._len_keys = type_param_dict._len_keys
+        self._type_kind = type_kind
 
     def to_dettached(self):
         pass
 
     def __getitem__(self, key):
-        pass
+        keys = self._validate_and_split_key(key)
+        curr_keys = self.keys()
+        vals = {}
+        for key in keys:
+            if self._len_keys > 1:
+                key = tuple(sorted(key))
+            if key not in curr_keys:
+                raise KeyError("Type {} does not exist in the "
+                               "system.".format(key))
+            vals[key] = getattr(self._cpp_obj, self._getter)(key)
 
     def __setitem__(self, key, val):
+        keys = self._validate_and_split_key(key)
+        curr_keys = self.keys()
+        for key in keys:
+            if key not in curr_keys:
+                raise KeyError("Type {} does not exist in the "
+                               "system.".format(key))
+            getattr(self._cpp_obj, self._setter)(key, val)
+
+    @property
+    def _setter(self):
         pass
+
+    @property
+    def _getter(self):
+        pass
+
+    def keys(self):
+        single_keys = getattr(self._sim.state, self._type_kind)
+        if self._len_keys == 2:
+            return product(single_keys, single_keys)
+        else:
+            return single_keys
+
+    @property
+    def default(self):
+        return self._default
+
+    @default.setter
+    def default(self, val):
+        curr_dft = self.default
+        if not isinstance(val, type(curr_dft)):
+            raise ValueError("New default expected type {} "
+                             "but received type {}".format(type(curr_dft),
+                                                           type(val)))
+        if isinstance(val, dict):
+            if curr_dft.keys() != val.keys():
+                raise ValueError("New default must contain the same keys.")
+            self._default = deepcopy(val)
+        else:
+            self._default = deepcopy(val)
