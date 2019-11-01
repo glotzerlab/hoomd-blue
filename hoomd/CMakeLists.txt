@@ -287,6 +287,7 @@ set(files analyze.py
           cite.py
           comm.py
           compute.py
+          conftest.py
           context.py
           data.py
           device.py
@@ -323,6 +324,7 @@ install(FILES ${_hoomd_headers}
        )
 
 if (BUILD_TESTING)
+    add_subdirectory(pytest)
     add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
