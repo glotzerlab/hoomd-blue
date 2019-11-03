@@ -215,6 +215,12 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Set the pair parameters for a single type
         virtual void setParam(unsigned int typ, const param_type& param);
 
+        //! Set shape parameters from python
+        void setShape(std::string typ, pybind11::dict v);
+
+        //! Get shape parameter from python
+        pybind11::dict getShape(std::string typ);
+
         //! Set elements of the interaction matrix
         virtual void setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps);
 
@@ -1527,6 +1533,40 @@ OverlapReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
         }
 
     return minD;
+    }
+
+/*! \param typ type name to set
+    \param v python dictionary to convert to shape
+*/
+template <> inline
+void IntegratorHPMCMono<ShapeSphere>::setShape(std::string typ, pybind11::dict v)
+    {
+    unsigned int id = this->m_pdata->getTypeByName(typ);
+    setParam(id, (typename ShapeSphere::param_type)(v));
+    }
+
+template <class Shape> inline
+void IntegratorHPMCMono<Shape>::setShape(std::string typ, pybind11::dict v)
+    {
+    // catch all for not implemented shapes
+    // remove this and unspecialize the above when all shapes have been converted.
+    }
+
+/*! \param typ type name to get
+*/
+template <> inline
+pybind11::dict IntegratorHPMCMono<ShapeSphere>::getShape(std::string typ)
+    {
+    unsigned int id = this->m_pdata->getTypeByName(typ);
+    return m_params[id].asDict();
+    }
+
+template <class Shape> inline
+pybind11::dict IntegratorHPMCMono<Shape>::getShape(std::string typ)
+    {
+    // catch all for not implemented shapes
+    // remove this and unspecialize the above when all shapes have been converted.
+    return pybind11::dict();
     }
 
 template <class Shape>
@@ -3093,6 +3133,8 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("getQuermassMode", &IntegratorHPMCMono<Shape>::getQuermassMode)
           .def("getSweepRadius", &IntegratorHPMCMono<Shape>::getSweepRadius)
           .def("getTypeShapesPy", &IntegratorHPMCMono<Shape>::getTypeShapesPy)
+          .def("getShape", &IntegratorHPMCMono<Shape>::getShape)
+          .def("setShape", &IntegratorHPMCMono<Shape>::setShape)
           ;
     }
 
