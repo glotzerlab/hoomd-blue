@@ -184,7 +184,7 @@ stages:
       vmImage: 'ubuntu-16.04'
 
     container:
-      image: $(image_root)-ubuntu18.04
+      image: $(image_root)-gcc7_py37
       options: -u 0
 
     workspace:
