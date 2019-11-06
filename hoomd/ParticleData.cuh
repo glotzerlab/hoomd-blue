@@ -7,6 +7,7 @@
 #ifndef _PARTICLEDATA_CUH_
 #define _PARTICLEDATA_CUH_
 
+#if ENABLE_CUDA
 #include <hip/hip_runtime.h>
 #include "BoxDim.h"
 #include "GPUPartition.cuh"

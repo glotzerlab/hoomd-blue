@@ -1,11 +1,4 @@
 #pragma once
-#include <hip/hip_runtime.h>
-
-#include <hip/hip_runtime.h>
-
-#include <hip/hip_runtime.h>
-
-#include <hip/hip_runtime.h>
 
 
 #ifdef ENABLE_CUDA

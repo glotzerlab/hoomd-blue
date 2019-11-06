@@ -21,12 +21,6 @@
 
 #ifdef ENABLE_CUDA
 #include <hip/hip_runtime.h>
-
-#include <hip/hip_profile.h>
-#endif
-
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
 #endif
 
 #ifdef ENABLE_TBB
@@ -46,7 +40,7 @@
 
 #include <pybind11/pybind11.h>
 
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_CUDA) ||defined(ENABLE_HIP)
 //! Forward declaration
 class CachedAllocator;
 #endif
@@ -117,7 +111,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
 
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
-    bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
+    bool m_hip_error_checking;                //!< Set to true if GPU error checking is enabled
 
     std::shared_ptr<MPIConfiguration> m_mpi_config; //!< The MPI object holding the MPI communicator
     std::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
@@ -134,34 +128,34 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         #ifndef NDEBUG
         return true;
         #else
-        return m_cuda_error_checking;
+        return m_hip_error_checking;
         #endif
         }
 
-    //! Sets the cuda error checking mode
-    void setCUDAErrorChecking(bool cuda_error_checking)
+    //! Sets the hip error checking mode
+    void setCUDAErrorChecking(bool hip_error_checking)
         {
-        m_cuda_error_checking = cuda_error_checking;
+        m_hip_error_checking = hip_error_checking;
         }
 
     //! Get the number of active GPUs
     unsigned int getNumActiveGPUs() const
         {
-        #ifdef ENABLE_CUDA
+        #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
         return m_gpu_id.size();
         #else
         return 0;
         #endif
         }
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_CUDA) ||defined(ENABLE_HIP)
     //! Get the IDs of the active GPUs
     const std::vector<unsigned int>& getGPUIds() const
         {
         return m_gpu_id;
         }
 
-    void cudaProfileStart() const
+    void hipProfileStart() const
         {
         for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
             {
@@ -171,7 +165,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
             }
         }
 
-    void cudaProfileStop() const
+    void hipProfileStop() const
         {
         for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
             {
@@ -194,7 +188,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName(unsigned int idev=0) const;
 
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
     //! Get the device properties of a logical GPU
     hipDeviceProp_t getDeviceProperties(unsigned int idev) const
         {
@@ -208,7 +202,11 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         return m_concurrent;
         }
 
+<<<<<<< HEAD
 #ifdef ENABLE_CUDA
+=======
+#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+>>>>>>> 54678846bd8ff83217e4006f12e6f75e99e10aa1
     hipDeviceProp_t dev_prop;              //!< Cached device properties of the first GPU
     std::vector<unsigned int> m_gpu_id;   //!< IDs of active GPUs
     std::vector<hipDeviceProp_t> m_dev_prop; //!< Device configuration of active GPUs
@@ -219,13 +217,20 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! Get the compute capability of the GPU
     unsigned int getComputeCapability(unsigned int igpu = 0) const;
 
+<<<<<<< HEAD
     //! Handle cuda error message
     void handleCUDAError(hipError_t err, const char *file, unsigned int line) const;
+=======
+    //! Handle hip error message
+    void handleHIPError(hipError_t err, const char *file, unsigned int line) const;
+>>>>>>> 54678846bd8ff83217e4006f12e6f75e99e10aa1
 #endif
 
-#ifdef ENABLE_HIP
+//commented out code because of change above
+/*#ifdef ENABLE_HIP
     void handleHIPError(hipError_t err, const char *file, unsigned int line) const;
 #endif
+*/
     /*
      * The following MPI related methods only wrap those of the MPIConfiguration object,
        which can obtained with getMPIConfig(), and are provided as a legacy API.
@@ -286,7 +291,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         }
 
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_CUDA) ||defined(ENABLE_HIP)
     //! Returns the cached allocator for temporary allocations
     CachedAllocator& getCachedAllocator() const
         {
@@ -329,7 +334,7 @@ private:
      */
     int guessLocalRank(bool &found);
 
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_CUDA) ||defined(ENABLE_HIP)
     //! Initialize the GPU with the given id
     void initializeGPU(int gpu_id, bool min_cpu);
 
@@ -360,7 +365,7 @@ private:
 
     mutable bool m_in_multigpu_block;       //!< Tracks whether we are in a multi-GPU block
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_CUDA) ||defined(ENABLE_HIP)
     std::unique_ptr<CachedAllocator> m_cached_alloc;       //!< Cached allocator for temporary allocations
     std::unique_ptr<CachedAllocator> m_cached_alloc_managed; //!< Cached allocator for temporary allocations in managed memory
     #endif

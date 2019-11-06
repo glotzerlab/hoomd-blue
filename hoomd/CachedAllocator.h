@@ -15,6 +15,7 @@
 
 #ifdef ENABLE_CUDA
 #include <hip/hip_runtime.h>
+#endif
 
 #include <map>
 #include <cassert>

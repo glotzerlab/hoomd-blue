@@ -11,7 +11,7 @@
 /*! GlobalArray internally uses managed memory to store data, to allow buffers being accessed from
     multiple devices.
 
-    cudaMemAdvise() can be called on GlobalArray's data, which is obtained using ::get().
+    hipMemAdvise() can be called on GlobalArray's data, which is obtained using ::get().
 
     GlobalArray<> supports all functionality that GPUArray<> does, and should eventually replace GPUArray.
     In fact, for performance considerations in single GPU situations, GlobalArray internally falls
@@ -28,11 +28,6 @@
 */
 
 #pragma once
-#include <hip/hip_runtime.h>
-
-#include <hip/hip_runtime.h>
-
-#include <hip/hip_runtime.h>
 
 
 #ifdef ENABLE_CUDA
@@ -133,7 +128,11 @@ class managed_deleter
             if (m_use_device)
                 {
                 hipDeviceSynchronize();
+<<<<<<< HEAD
                 CHECK_CUDA_ERROR();
+=======
+                CHECK_DEVICE_ERROR();
+>>>>>>> 54678846bd8ff83217e4006f12e6f75e99e10aa1
                 }
             #endif
 
@@ -149,7 +148,11 @@ class managed_deleter
                 this->m_exec_conf->msg->notice(10) << oss.str();
 
                 hipFree(m_allocation_ptr);
+<<<<<<< HEAD
                 CHECK_CUDA_ERROR();
+=======
+                CHECK_DEVICE_ERROR();
+>>>>>>> 54678846bd8ff83217e4006f12e6f75e99e10aa1
                 }
             else
             #endif
@@ -165,7 +168,7 @@ class managed_deleter
 
     private:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
-        bool m_use_device;     //!< Whether to use cudaMallocManaged
+        bool m_use_device;     //!< Whether to use hipMallocManaged
         unsigned int m_N;      //!< Number of elements in array
         void *m_allocation_ptr;  //!< Start of unaligned allocation
         size_t m_allocation_bytes; //!< Size of actual allocation
@@ -181,7 +184,7 @@ class event_deleter
             {}
 
         //! Constructor with execution configuration
-        /*! \param exec_conf The execution configuration (needed for CHECK_CUDA_ERROR)
+        /*! \param exec_conf The execution configuration (needed for CHECK_DEVICE_ERROR)
          */
         event_deleter(std::shared_ptr<const ExecutionConfiguration> exec_conf)
             : m_exec_conf(exec_conf)
@@ -193,7 +196,11 @@ class event_deleter
         void operator()(hipEvent_t *ptr)
             {
             hipEventDestroy(*ptr);
+<<<<<<< HEAD
             CHECK_CUDA_ERROR();
+=======
+            CHECK_DEVICE_ERROR();
+>>>>>>> 54678846bd8ff83217e4006f12e6f75e99e10aa1
 
             delete ptr;
             }
@@ -705,7 +712,11 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                     << " bytes of managed memory." << std::endl;
 
                 hipMallocManaged(&ptr, allocation_bytes, hipMemAttachGlobal);
+<<<<<<< HEAD
                 CHECK_CUDA_ERROR();
+=======
+                CHECK_DEVICE_ERROR();
+>>>>>>> 54678846bd8ff83217e4006f12e6f75e99e10aa1
 
                 allocation_ptr = ptr;
 
@@ -738,7 +749,11 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             if (use_device)
                 {
                 hipDeviceSynchronize();
+<<<<<<< HEAD
                 CHECK_CUDA_ERROR();
+=======
+                CHECK_DEVICE_ERROR();
+>>>>>>> 54678846bd8ff83217e4006f12e6f75e99e10aa1
                 }
 
             if (use_device)
@@ -747,7 +762,11 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                     new hipEvent_t, hoomd::detail::event_deleter(this->m_exec_conf));
 
                 hipEventCreate(m_event.get(), hipEventDisableTiming);
+<<<<<<< HEAD
                 CHECK_CUDA_ERROR();
+=======
+                CHECK_DEVICE_ERROR();
+>>>>>>> 54678846bd8ff83217e4006f12e6f75e99e10aa1
                 }
             #endif
 
@@ -827,7 +846,7 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
         hipEventRecord(*m_event);
         hipEventSynchronize(*m_event);
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
+            CHECK_DEVICE_ERROR();
         }
     #endif
 

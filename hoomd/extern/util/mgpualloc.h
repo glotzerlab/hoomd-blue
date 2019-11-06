@@ -2,7 +2,9 @@
 #pragma once
 
 #include "util.h"
-#include <cuda.h>
+#ifndef ENABLE_HIP
+    #include <cuda.h>
+#endif
 
 namespace mgpu {
 

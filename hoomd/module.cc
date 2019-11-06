@@ -42,12 +42,14 @@
 
 // include GPU classes
 #ifdef ENABLE_CUDA
+#ifndef ENABLE_HIP
 #include <cuda.h>
 #include "CellListGPU.h"
 #include "ComputeThermoGPU.h"
 #include "SFCPackUpdaterGPU.h"
 
 #include <cuda_profiler_api.h>
+#endif
 #endif
 
 // include MPI classes
