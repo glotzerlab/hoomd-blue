@@ -13,6 +13,14 @@
 #endif
 
 #pragma once
+#include <hip/hip_runtime.h>
+
+#include <hip/hip_runtime.h>
+
+#include <hip/hip_runtime.h>
+
+#include <hip/hip_runtime.h>
+
 
 #include "GPUArray.h"
 #include <algorithm>

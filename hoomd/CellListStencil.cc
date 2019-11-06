@@ -8,6 +8,10 @@
     \brief Defines CellListStencil
 */
 
+
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
 #include "CellListStencil.h"
 
 namespace py = pybind11;

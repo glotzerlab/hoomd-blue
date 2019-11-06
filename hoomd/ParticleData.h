@@ -15,6 +15,8 @@
 #ifndef __PARTICLE_DATA_H__
 #define __PARTICLE_DATA_H__
 
+
+#include <hip/hip_runtime.h>
 #include "HOOMDMath.h"
 #include "GlobalArray.h"
 #include "GPUVector.h"

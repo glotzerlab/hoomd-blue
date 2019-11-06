@@ -8,6 +8,16 @@
     \brief Defines the helper functions (GPU version) for updating the GPU bonded group tables
  */
 
+
+
+
+
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
 #include "hoomd/extern/util/mgpucontext.h"
 
 #include "HOOMDMath.h"

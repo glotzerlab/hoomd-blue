@@ -4,6 +4,18 @@
 
 // Maintainer: mphoward
 
+
+
+
+
+
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
 #include "Compute.h"
 #include "CellList.h"
 

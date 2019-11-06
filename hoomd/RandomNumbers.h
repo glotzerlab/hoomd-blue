@@ -19,7 +19,7 @@
 // ensure that curand is included before random123. This avoids multiple defiintion issues
 // unfortunately, at the cost of random123 using the coefficients provided by curand
 // for now, they are the same
-#include <curand_kernel.h>
+#include <hiprand_kernel.h>
 #endif
 
 #include <math.h>
@@ -31,7 +31,7 @@ namespace r123 {
 using std::make_signed;
 using std::make_unsigned;
 
-#if defined(__CUDACC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
+#if defined(__HIPCC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
 // Amazing! cuda thinks numeric_limits::max() is a __host__ function, so
 // we can't use it in a device function.
 //

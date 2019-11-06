@@ -14,7 +14,7 @@
 #define __CACHED_ALLOCATOR_H__
 
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 #include <map>
 #include <cassert>
@@ -22,15 +22,15 @@
 //! Need to define an error checking macro that can be used in .cu files
 #define CHECK_CUDA() \
     { \
-    cudaError_t err = cudaDeviceSynchronize(); \
-    if (err != cudaSuccess) \
+    hipError_t err = hipDeviceSynchronize(); \
+    if (err != hipSuccess) \
         { \
-        throw std::runtime_error("CUDA Error in CachedAllocator "+std::string(cudaGetErrorString(err))); \
+        throw std::runtime_error("CUDA Error in CachedAllocator "+std::string(hipGetErrorString(err))); \
         } \
-    err = cudaGetLastError(); \
-    if (err != cudaSuccess) \
+    err = hipGetLastError(); \
+    if (err != hipSuccess) \
         { \
-        throw std::runtime_error("CUDA Error in CachedAllocator "+std::string(cudaGetErrorString(err))); \
+        throw std::runtime_error("CUDA Error in CachedAllocator "+std::string(hipGetErrorString(err))); \
         } \
     }
 
@@ -121,14 +121,14 @@ class __attribute__((visibility("default"))) CachedAllocator
             // deallocate all outstanding blocks in both lists
             for(free_blocks_type::iterator i = m_free_blocks.begin(); i != m_free_blocks.end(); ++i)
                 {
-                cudaFree((void *) i->second);
+                hipFree((void *) i->second);
                 CHECK_CUDA();
                 }
 
             for(allocated_blocks_type::iterator i = m_allocated_blocks.begin();
                 i != m_allocated_blocks.end(); ++i)
                 {
-                cudaFree((void *) i->first);
+                hipFree((void *) i->first);
                 CHECK_CUDA();
                 }
             }
@@ -199,9 +199,9 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements)
 //            << " allocating " << float(num_bytes)/1024.0f/1024.0f << " MB" << std::endl;
 
         if (m_managed)
-            cudaMallocManaged((void **) &result, num_bytes);
+            hipMallocManaged((void **) &result, num_bytes);
         else
-            cudaMalloc((void **) &result, num_bytes);
+            hipMalloc((void **) &result, num_bytes);
         CHECK_CUDA();
 
         m_num_bytes_tot += num_bytes;
@@ -216,7 +216,7 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements)
 //                << float(i->first)/1024.0f/1024.0f << " MB)" << std::endl;
 
             // transform the pointer to cuda::pointer before calling cuda::free
-            cudaFree((void *) i->second);
+            hipFree((void *) i->second);
             CHECK_CUDA();
             m_num_bytes_tot -= i->first;
 

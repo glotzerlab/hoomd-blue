@@ -12,6 +12,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+
+#include <hip/hip_runtime.h>
 #include "Analyzer.h"
 #include "ClockSource.h"
 #include "Compute.h"

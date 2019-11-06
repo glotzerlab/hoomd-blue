@@ -4,6 +4,18 @@
 
 // Maintainer: joaander
 
+
+
+
+
+
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
 #include "SystemDefinition.h"
 #include "Profiler.h"
 #include "SharedSignal.h"

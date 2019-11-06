@@ -8,6 +8,8 @@
     \brief Declares the Messenger class
 */
 
+
+#include <hip/hip_runtime.h>
 #include <iostream>
 #include <fstream>
 #include <string>

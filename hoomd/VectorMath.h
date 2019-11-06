@@ -2,6 +2,8 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
+
+#include <hip/hip_runtime.h>
 #include "HOOMDMath.h"
 
 #ifndef __VECTOR_MATH_H__

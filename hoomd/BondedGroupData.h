@@ -18,6 +18,14 @@
 //! Sentinel value to indicate group is not present on this processor
 const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 
+
+
+
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
 #include "ExecutionConfiguration.h"
 #include "GPUVector.h"
 #include "Profiler.h"

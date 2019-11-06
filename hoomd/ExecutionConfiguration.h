@@ -20,9 +20,9 @@
 #include <memory>
 
 #ifdef ENABLE_CUDA
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <cuda_profiler_api.h>
+#include <hip/hip_runtime.h>
+
+#include <hip/hip_profile.h>
 #endif
 
 #ifdef ENABLE_HIP
@@ -165,9 +165,9 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         {
         for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
             {
-            cudaSetDevice(m_gpu_id[idev]);
-            cudaDeviceSynchronize();
-            cudaProfilerStart();
+            hipSetDevice(m_gpu_id[idev]);
+            hipDeviceSynchronize();
+            hipProfilerStart();
             }
         }
 
@@ -175,9 +175,9 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         {
         for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
             {
-            cudaSetDevice(m_gpu_id[idev]);
-            cudaDeviceSynchronize();
-            cudaProfilerStop();
+            hipSetDevice(m_gpu_id[idev]);
+            hipDeviceSynchronize();
+            hipProfilerStop();
             }
         }
     #endif
@@ -196,7 +196,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
 
 #ifdef ENABLE_CUDA
     //! Get the device properties of a logical GPU
-    cudaDeviceProp getDeviceProperties(unsigned int idev) const
+    hipDeviceProp_t getDeviceProperties(unsigned int idev) const
         {
         return m_dev_prop[idev];
         }
@@ -209,9 +209,9 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         }
 
 #ifdef ENABLE_CUDA
-    cudaDeviceProp dev_prop;              //!< Cached device properties of the first GPU
+    hipDeviceProp_t dev_prop;              //!< Cached device properties of the first GPU
     std::vector<unsigned int> m_gpu_id;   //!< IDs of active GPUs
-    std::vector<cudaDeviceProp> m_dev_prop; //!< Device configuration of active GPUs
+    std::vector<hipDeviceProp_t> m_dev_prop; //!< Device configuration of active GPUs
 
     //! Get the compute capability of the GPU that we are running on
     std::string getComputeCapabilityAsString(unsigned int igpu = 0) const;
@@ -220,7 +220,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     unsigned int getComputeCapability(unsigned int igpu = 0) const;
 
     //! Handle cuda error message
-    void handleCUDAError(cudaError_t err, const char *file, unsigned int line) const;
+    void handleCUDAError(hipError_t err, const char *file, unsigned int line) const;
 #endif
 
 #ifdef ENABLE_HIP
@@ -354,7 +354,7 @@ private:
     std::vector< bool > m_gpu_available;    //!< true if the GPU is available for computation, false if it is not
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
-    std::vector< cudaEvent_t > m_events;      //!< A list of events to synchronize between GPUs
+    std::vector< hipEvent_t > m_events;      //!< A list of events to synchronize between GPUs
 #endif
     bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 
@@ -381,13 +381,13 @@ private:
 #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
 #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
 #define CHECK_DEVICE_ERROR() { \
-    cudaError_t err_sync = cudaGetLastError(); \
+    hipError_t err_sync = hipGetLastError(); \
     this->m_exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__); \
     auto gpu_map = this->m_exec_conf->getGPUIds(); \
     for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev) \
         { \
-        cudaSetDevice(gpu_map[idev]); \
-        cudaError_t err_async = cudaDeviceSynchronize(); \
+        hipSetDevice(gpu_map[idev]); \
+        hipError_t err_async = hipDeviceSynchronize(); \
         this->m_exec_conf->handleCUDAError(err_async, __FILE__, __LINE__); \
         } \
     }

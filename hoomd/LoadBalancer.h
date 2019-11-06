@@ -17,6 +17,8 @@
 #ifndef __LOADBALANCER_H__
 #define __LOADBALANCER_H__
 
+
+#include <hip/hip_runtime.h>
 #include "Updater.h"
 
 #include <memory>

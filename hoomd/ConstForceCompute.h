@@ -4,6 +4,14 @@
 
 // Maintainer: joaander
 
+
+
+
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
 #include "ForceCompute.h"
 #include "ParticleGroup.h"
 

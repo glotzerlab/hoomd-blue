@@ -11,7 +11,7 @@
 #endif
 
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 #endif
 
 #include <memory>

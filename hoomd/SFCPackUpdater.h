@@ -12,6 +12,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+
+#include <hip/hip_runtime.h>
 #include "Updater.h"
 #include "GPUVector.h"
 

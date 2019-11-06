@@ -15,6 +15,8 @@
 #ifndef __SIGNALHANDLER_H__
 #define __SIGNALHANDLER_H__
 
+
+#include <hip/hip_runtime.h>
 #include <signal.h>
 
 //! Value set to non-zero if SIGINT has occurred

@@ -7,7 +7,7 @@
 #pragma once
 
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 #endif
 
 #include <iostream>
@@ -64,10 +64,10 @@ class managed_allocator
                 {
                 size_t allocation_bytes = n*sizeof(T);
 
-                cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
-                if (error != cudaSuccess)
+                hipError_t error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
                     }
                 }
@@ -105,10 +105,10 @@ class managed_allocator
                 if (align_size)
                     allocation_bytes = ((n*sizeof(T))/align_size + 1)*align_size;
 
-                cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
-                if (error != cudaSuccess)
+                hipError_t error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
                     }
 
@@ -151,10 +151,10 @@ class managed_allocator
             #ifdef ENABLE_CUDA
             if (use_device)
                 {
-                cudaError_t error = cudaDeviceSynchronize();
-                if (error != cudaSuccess)
+                hipError_t error = hipDeviceSynchronize();
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error on device sync during allocate_construct");
                     }
                 }
@@ -172,10 +172,10 @@ class managed_allocator
             #ifdef ENABLE_CUDA
             if (m_use_device)
                 {
-                cudaError_t error = cudaFree(ptr);
-                if (error != cudaSuccess)
+                hipError_t error = hipFree(ptr);
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error freeing managed memory");
                     }
                 }
@@ -198,10 +198,10 @@ class managed_allocator
             #ifdef ENABLE_CUDA
             if (use_device)
                 {
-                cudaError_t error = cudaDeviceSynchronize();
-                if (error != cudaSuccess)
+                hipError_t error = hipDeviceSynchronize();
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error on device sync during deallocate_destroy");
                     }
                 }
@@ -216,10 +216,10 @@ class managed_allocator
             #ifdef ENABLE_CUDA
             if (use_device)
                 {
-                cudaError_t error = cudaFree(allocation_ptr);
-                if (error != cudaSuccess)
+                hipError_t error = hipFree(allocation_ptr);
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error freeing managed memory");
                     }
                 }

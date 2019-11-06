@@ -4,6 +4,8 @@
 // Maintainer: jglaser
 
 #pragma once
+#include <hip/hip_runtime.h>
+
 
 // ensure that HOOMDMath.h is the first thing included
 #include "HOOMDMath.h"

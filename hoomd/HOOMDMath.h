@@ -28,7 +28,7 @@
 
 // for vector types
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 #else
 
 // for builds on systems where CUDA is not available, include copies of the CUDA header
@@ -37,9 +37,9 @@
 #include "hoomd/extern/cudacpu_vector_functions.h"
 
 //! Define complex type
-typedef float2 cufftComplex;
+typedef float2 hipfftComplex;
 //! Double complex type
-typedef double2 cufftDoubleComplex;
+typedef double2 hipfftDoubleComplex;
 #endif
 
 // need to declare these classes with __host__ __device__ qualifiers when building in nvcc

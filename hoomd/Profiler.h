@@ -16,7 +16,7 @@
 #include "ClockSource.h"
 
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 #endif
 
 #ifdef ENABLE_NVTOOLS
@@ -167,7 +167,7 @@ inline void Profiler::push(std::shared_ptr<const ExecutionConfiguration> exec_co
     if(exec_conf->isCUDAEnabled())
         {
         exec_conf->multiGPUBarrier();
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         }
 #endif
     push(name);
@@ -180,7 +180,7 @@ inline void Profiler::pop(std::shared_ptr<const ExecutionConfiguration> exec_con
     if(exec_conf->isCUDAEnabled())
         {
         exec_conf->multiGPUBarrier();
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         }
 #endif
     pop(flop_count, byte_count);

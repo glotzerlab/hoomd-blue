@@ -9,6 +9,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+
+#include <hip/hip_runtime.h>
 #include "LogMatrix.h"
 #include <pybind11/numpy.h>
 #ifndef __LOGHDF5_H__

@@ -1,4 +1,12 @@
 #pragma once
+#include <hip/hip_runtime.h>
+
+#include <hip/hip_runtime.h>
+
+#include <hip/hip_runtime.h>
+
+#include <hip/hip_runtime.h>
+
 
 #ifdef ENABLE_CUDA
 
@@ -7,7 +15,7 @@
 #include <stdexcept>
 #include <algorithm>
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 class GPUPartition
     {
@@ -71,7 +79,7 @@ class GPUPartition
             unsigned int gpu_id = m_gpu_map[igpu];
 
             // set the active GPU
-            cudaSetDevice(gpu_id);
+            hipSetDevice(gpu_id);
 
             return getRange(igpu);
             };

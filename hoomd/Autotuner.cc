@@ -2,6 +2,8 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
+
+#include <hip/hip_runtime.h>
 #include "Autotuner.h"
 
 #ifdef ENABLE_MPI
@@ -60,8 +62,8 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
 
     // create CUDA events
     #ifdef ENABLE_CUDA
-    cudaEventCreate(&m_start);
-    cudaEventCreate(&m_stop);
+    hipEventCreate(&m_start);
+    hipEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
     #endif
 
@@ -124,8 +126,8 @@ Autotuner::Autotuner(unsigned int start,
 
     // create CUDA events
     #ifdef ENABLE_CUDA
-    cudaEventCreate(&m_start);
-    cudaEventCreate(&m_stop);
+    hipEventCreate(&m_start);
+    hipEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
     #endif
 
@@ -136,8 +138,8 @@ Autotuner::~Autotuner()
     {
     m_exec_conf->msg->notice(5) << "Destroying Autotuner " << m_name << endl;
     #ifdef ENABLE_CUDA
-    cudaEventDestroy(m_start);
-    cudaEventDestroy(m_stop);
+    hipEventDestroy(m_start);
+    hipEventDestroy(m_stop);
     CHECK_CUDA_ERROR();
     #endif
     }
@@ -152,7 +154,7 @@ void Autotuner::begin()
     // if we are scanning, record a cuda event - otherwise do nothing
     if (m_state == STARTUP || m_state == SCANNING)
         {
-        cudaEventRecord(m_start, 0);
+        hipEventRecord(m_start, 0);
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
@@ -169,9 +171,9 @@ void Autotuner::end()
     // handle timing updates if scanning
     if (m_state == STARTUP || m_state == SCANNING)
         {
-        cudaEventRecord(m_stop, 0);
-        cudaEventSynchronize(m_stop);
-        cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
+        hipEventRecord(m_stop, 0);
+        hipEventSynchronize(m_stop);
+        hipEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
         m_exec_conf->msg->notice(9) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
                                      << ") = " << m_samples[m_current_element][m_current_sample] << endl;
 

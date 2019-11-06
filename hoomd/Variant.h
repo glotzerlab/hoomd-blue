@@ -15,6 +15,8 @@
 #define __VARIANT_H__
 
 // ensure that HOOMDMath.h is the first thing included
+
+#include <hip/hip_runtime.h>
 #include "HOOMDMath.h"
 
 #include <map>

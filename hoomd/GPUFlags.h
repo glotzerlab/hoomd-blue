@@ -17,7 +17,13 @@
 
 // for vector types
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+
+
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
 #endif
 
 #include "ExecutionConfiguration.h"
@@ -223,12 +229,12 @@ template<class T> void GPUFlags<T>::allocate()
                 throw std::runtime_error("Error allocating GPUArray.");
                 }
             h_data = (T *) ptr;
-            cudaHostRegister(h_data, sizeof(T), cudaHostRegisterMapped);
+            hipHostRegister(h_data, sizeof(T), hipHostRegisterMapped);
             #else
-            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocMapped);
+            hipHostMalloc(&h_data, sizeof(T), hipHostMallocMapped);
             #endif
             CHECK_CUDA_ERROR();
-            cudaHostGetDevicePointer(&d_data, h_data, 0);
+            hipHostGetDevicePointer(&d_data, h_data, 0);
             CHECK_CUDA_ERROR();
             }
         else
@@ -242,12 +248,12 @@ template<class T> void GPUFlags<T>::allocate()
                 throw std::runtime_error("Error allocating GPUArray.");
                 }
             h_data = (T *) ptr;
-            cudaHostRegister(h_data, sizeof(T), cudaHostRegisterDefault);
+            hipHostRegister(h_data, sizeof(T), hipHostRegisterDefault);
             #else
-            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocDefault);
+            hipHostMalloc(&h_data, sizeof(T), hipHostMallocDefault);
             #endif
             CHECK_CUDA_ERROR();
-            cudaMalloc(&d_data, sizeof(T));
+            hipMalloc(&d_data, sizeof(T));
             CHECK_CUDA_ERROR();
             }
         }
@@ -274,16 +280,16 @@ template<class T> void GPUFlags<T>::deallocate()
         {
         assert(d_data);
         #ifdef ENABLE_MPI
-        cudaHostUnregister(h_data);
+        hipHostUnregister(h_data);
         CHECK_CUDA_ERROR();
         free(h_data);
         #else
-        cudaFreeHost(h_data);
+        hipHostFree(h_data);
         CHECK_CUDA_ERROR();
         #endif
         if (!m_mapped)
             {
-            cudaFree(d_data);
+            hipFree(d_data);
             CHECK_CUDA_ERROR();
             }
         }
@@ -317,7 +323,7 @@ template<class T> void GPUFlags<T>::memclear()
     // wait for the device to catch up
     if (m_exec_conf && m_exec_conf->isCUDAEnabled() && m_mapped)
         {
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         }
 #endif
 
@@ -327,7 +333,7 @@ template<class T> void GPUFlags<T>::memclear()
     if (m_exec_conf && m_exec_conf->isCUDAEnabled() && !m_mapped)
         {
         assert(d_data);
-        cudaMemset(d_data, 0, sizeof(T));
+        hipMemset(d_data, 0, sizeof(T));
         }
 #endif
     }
@@ -343,14 +349,14 @@ template<class T> const T GPUFlags<T>::readFlags()
     if (m_mapped)
         {
         // synch to wait for kernels
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         }
     else
         {
         if (m_exec_conf->isCUDAEnabled())
             {
             // memcpy the results to the host
-            cudaMemcpy(h_data, d_data, sizeof(T), cudaMemcpyDeviceToHost);
+            hipMemcpy(h_data, d_data, sizeof(T), hipMemcpyDeviceToHost);
             }
         }
 #endif
@@ -370,7 +376,7 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
         {
 #ifdef ENABLE_CUDA
         // synch to wait for kernels
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 #endif
         // set the flags
         *h_data = flags;
@@ -383,7 +389,7 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
         if (m_exec_conf->isCUDAEnabled())
             {
             // copy to the device
-            cudaMemcpy(d_data, h_data, sizeof(T), cudaMemcpyHostToDevice);
+            hipMemcpy(d_data, h_data, sizeof(T), hipMemcpyHostToDevice);
             }
 #endif
         }

@@ -15,6 +15,8 @@
 #ifndef __INTEGRATORDATA_H__
 #define __INTEGRATORDATA_H__
 
+
+#include <hip/hip_runtime.h>
 #include "ParticleData.h"
 #include <string>
 

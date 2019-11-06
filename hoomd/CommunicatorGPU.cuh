@@ -9,6 +9,24 @@
 */
 
 #ifdef ENABLE_MPI
+
+
+
+
+
+
+
+
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
 #include "ParticleData.cuh"
 #include "BondedGroupData.cuh"
 

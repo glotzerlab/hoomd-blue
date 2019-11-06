@@ -4,6 +4,16 @@
 
 // Maintainer: joaander
 
+
+
+
+
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
 #include "Compute.h"
 #include "GlobalArray.h"
 #include "ComputeThermoTypes.h"

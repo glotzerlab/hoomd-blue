@@ -10,6 +10,8 @@
 
 
 
+
+#include <hip/hip_runtime.h>
 #include "Analyzer.h"
 
 namespace py = pybind11;

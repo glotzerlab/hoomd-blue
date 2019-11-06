@@ -20,7 +20,13 @@
 
 // for vector types
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+
+
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
 #endif
 
 // for HIP vector types
@@ -114,7 +120,7 @@ class device_deleter
                 this->m_exec_conf->msg->notice(7) << "Freeing " << m_N*sizeof(T) << " bytes of CUDA memory." << std::endl;
 
                 #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-                cudaFree(ptr);
+                hipFree(ptr);
                 #elif defined(ENABLE_HIP)
                 hipFree(ptr);
                 #endif
@@ -163,7 +169,7 @@ class host_deleter
 
                 // unregister host memory from CUDA driver
                 #if(ENABLE_CUDA) && !defined(ENABLE_HIP)
-                cudaHostUnregister(ptr);
+                hipHostUnregister(ptr);
                 #elif defined(ENABLE_HIP)
                 hipHostUnregister(ptr);
                 #endif
@@ -932,7 +938,7 @@ template<class T> void GPUArray<T>::allocate()
         {
         // register pointer for DMA
         #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        cudaHostRegister(host_ptr,m_num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
+        hipHostRegister(host_ptr,m_num_elements*sizeof(T), m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
         #elif defined(ENABLE_HIP)
         hipHostRegister(host_ptr,m_num_elements*sizeof(T), m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
         #endif
@@ -952,7 +958,7 @@ template<class T> void GPUArray<T>::allocate()
         if (m_mapped)
             {
             #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-            cudaHostGetDevicePointer(&device_ptr, h_data.get(), 0);
+            hipHostGetDevicePointer(&device_ptr, h_data.get(), 0);
             #elif defined(ENABLE_HIP)
             hipHostGetDevicePointer(&device_ptr, h_data.get(), 0);
             #endif
@@ -961,7 +967,7 @@ template<class T> void GPUArray<T>::allocate()
         else
             {
             #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-            cudaMalloc(&device_ptr, m_num_elements*sizeof(T));
+            hipMalloc(&device_ptr, m_num_elements*sizeof(T));
             #elif defined(ENABLE_HIP)
             hipMalloc(&device_ptr, m_num_elements*sizeof(T));
             #endif
@@ -996,7 +1002,7 @@ template<class T> void GPUArray<T>::memclear(unsigned int first)
         assert(d_data);
         if (! m_mapped)
             #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-            cudaMemset(d_data.get()+first, 0, (m_num_elements-first)*sizeof(T));
+            hipMemset(d_data.get()+first, 0, (m_num_elements-first)*sizeof(T));
             #elif defined(ENABLE_HIP)
             hipMemset(d_data.get()+first, 0, (m_num_elements-first)*sizeof(T));
             #endif
@@ -1018,7 +1024,7 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
         {
         // if we are using mapped pinned memory, no need to copy, only synchronize
         #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        if (!async) cudaDeviceSynchronize();
+        if (!async) hipDeviceSynchronize();
         return;
         }
         #elif defined(ENABLE_HIP)
@@ -1032,13 +1038,13 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
            (async ? std::string("async") : std::string()) << std::endl;
     if (async)
         #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        cudaMemcpyAsync(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, cudaMemcpyDeviceToHost);
+        hipMemcpyAsync(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, hipMemcpyDeviceToHost);
         #elif defined(ENABLE_HIP)
         hipMemcpyAsync(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, hipMemcpyDeviceToHost);
         #endif
     else
         #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        cudaMemcpy(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, cudaMemcpyDeviceToHost);
+        hipMemcpy(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, hipMemcpyDeviceToHost);
         #elif defined(ENABLE_HIP)
         hipMemcpy(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, hipMemcpyDeviceToHost);
         #endif
@@ -1066,13 +1072,13 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
            (async ? std::string("async") : std::string()) << std::endl;
     if (async)
         #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        cudaMemcpyAsync(d_data.get(), h_data.get(), sizeof(T)*m_num_elements, cudaMemcpyHostToDevice);
+        hipMemcpyAsync(d_data.get(), h_data.get(), sizeof(T)*m_num_elements, hipMemcpyHostToDevice);
         #elif defined(ENABLE_HIP)
         hipMemcpyAsync(d_data.get(), h_data.get(), sizeof(T)*m_num_elements, hipMemcpyHostToDevice);
         #endif
     else
         #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        cudaMemcpy(d_data.get(), h_data.get(), sizeof(T)*m_num_elements, cudaMemcpyHostToDevice);
+        hipMemcpy(d_data.get(), h_data.get(), sizeof(T)*m_num_elements, hipMemcpyHostToDevice);
         #elif defined(ENABLE_HIP)
         hipMemcpy(d_data.get(), h_data.get(), sizeof(T)*m_num_elements, hipMemcpyHostToDevice);
         #endif
@@ -1285,7 +1291,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        cudaHostRegister(h_tmp, num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
+        hipHostRegister(h_tmp, num_elements*sizeof(T), m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
         #elif defined(ENABLE_HIP)
         hipHostRegister(h_tmp, num_elements*sizeof(T), m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
         #endif
@@ -1310,7 +1316,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
         {
         void *dev_ptr = nullptr;
         #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        cudaHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
+        hipHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
         #elif defined(ENABLE_HIP)
         hipHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
         #endif
@@ -1348,7 +1354,7 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        cudaHostRegister(h_tmp, size, m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
+        hipHostRegister(h_tmp, size, m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
         #elif defined (ENABLE_HIP)
         hipHostRegister(h_tmp, size, m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
         #endif
@@ -1377,7 +1383,7 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
         {
         void *dev_ptr = nullptr;
         #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        cudaHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
+        hipHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
         #elif defined(ENABLE_HIP)
         hipHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
         #endif
@@ -1404,7 +1410,7 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
     // allocate resized array
     T *d_tmp;
     #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-    cudaMalloc(&d_tmp, num_elements*sizeof(T));
+    hipMalloc(&d_tmp, num_elements*sizeof(T));
     #elif defined(ENABLE_HIP)
     hipMalloc(&d_tmp, num_elements*sizeof(T));
     #endif
@@ -1415,7 +1421,7 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
 
     // clear memory
     #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-    cudaMemset(d_tmp, 0, num_elements*sizeof(T));
+    hipMemset(d_tmp, 0, num_elements*sizeof(T));
     #elif defined(ENABLE_HIP)
     hipMemset(d_tmp, 0, num_elements*sizeof(T));
     #endif
@@ -1424,7 +1430,7 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
     // copy over data
     unsigned int num_copy_elements = m_num_elements > num_elements ? num_elements : m_num_elements;
     #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-    cudaMemcpy(d_tmp, d_data.get(), sizeof(T)*num_copy_elements,cudaMemcpyDeviceToDevice);
+    hipMemcpy(d_tmp, d_data.get(), sizeof(T)*num_copy_elements,hipMemcpyDeviceToDevice);
     #elif defined(ENABLE_HIP)
     hipMemcpy(d_tmp, d_data.get(), sizeof(T)*num_copy_elements,hipMemcpyDeviceToDevice);
     #endif
@@ -1452,7 +1458,7 @@ template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsign
     // allocate resized array
     T *d_tmp;
     #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-    cudaMalloc(&d_tmp, new_pitch*new_height*sizeof(T));
+    hipMalloc(&d_tmp, new_pitch*new_height*sizeof(T));
     #elif defined(ENABLE_HIP)
     hipMalloc(&d_tmp, new_pitch*new_height*sizeof(T));
     #endif
@@ -1461,7 +1467,7 @@ template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsign
 
     // clear memory
     #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-    cudaMemset(d_tmp, 0, new_pitch*new_height*sizeof(T));
+    hipMemset(d_tmp, 0, new_pitch*new_height*sizeof(T));
     #elif defined(ENABLE_HIP)
     hipMemset(d_tmp, 0, new_pitch*new_height*sizeof(T));
     #endif
@@ -1475,7 +1481,7 @@ template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsign
     for (unsigned int i = 0; i < num_copy_rows; i++)
         {
         #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        cudaMemcpy(d_tmp + i * new_pitch, d_data.get() + i * pitch, sizeof(T)*num_copy_columns,cudaMemcpyDeviceToDevice);
+        hipMemcpy(d_tmp + i * new_pitch, d_data.get() + i * pitch, sizeof(T)*num_copy_columns,hipMemcpyDeviceToDevice);
         #elif defined(ENABLE_HIP)
         hipMemcpy(d_tmp + i * new_pitch, d_data.get() + i * pitch, sizeof(T)*num_copy_columns,hipMemcpyDeviceToDevice);
         #endif

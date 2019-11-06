@@ -8,7 +8,7 @@
 #define __CELLLISTGPU_CUH__
 
 //#if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 #if defined(ENABLE_HIP)
 #include <hip/hip_runtime.h>
 #endif
@@ -47,7 +47,7 @@ void gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const GPUPartition& gpu_partition);
 
 //! Driver function to combine the cell lists from different GPUs into one
-cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
+hipError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
                                 unsigned int *d_cell_size,
                                 const unsigned int *d_idx_scratch,
                                 unsigned int *d_idx,
@@ -64,7 +64,7 @@ cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
                                 uint3 *d_conditions,
                                 const GPUPartition& gpu_partition);
 
-cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
+hipError_t gpu_sort_cell_list(unsigned int *d_cell_size,
                         Scalar4 *d_xyzf,
                         Scalar4 *d_xyzf_new,
                         Scalar4 *d_tdb,

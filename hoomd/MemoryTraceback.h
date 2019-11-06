@@ -4,6 +4,8 @@
 // Maintainer: jglaser
 
 #pragma once
+#include <hip/hip_runtime.h>
+
 
 /*! \file MemoryTraceback.h
     \brief Declares a class for memory allocation tracking

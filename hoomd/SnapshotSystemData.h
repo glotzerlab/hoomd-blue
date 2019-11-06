@@ -15,6 +15,8 @@
 #ifndef __SNAPSHOT_SYSTEM_DATA_H__
 #define __SNAPSHOT_SYSTEM_DATA_H__
 
+
+#include <hip/hip_runtime.h>
 #include "BoxDim.h"
 #include "ParticleData.h"
 #include "BondedGroupData.h"

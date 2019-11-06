@@ -112,7 +112,7 @@ class WarpReduce
             }
 
     private:
-        typedef cub::WarpReduceShfl<T,LOGICAL_WARP_THREADS,PTX_ARCH> WarpReduceShfl;    //!< CUB shuffle-based reduce
+        typedef hipcub::WarpReduceShfl<T,LOGICAL_WARP_THREADS,PTX_ARCH> WarpReduceShfl;    //!< CUB shuffle-based reduce
         typedef typename WarpReduceShfl::TempStorage TempStorage;                       //!< Nominal data type for CUB temporary storage
     };
 
@@ -342,7 +342,7 @@ class WarpScan
             }
 
     private:
-        typedef cub::WarpScanShfl<T,LOGICAL_WARP_THREADS,PTX_ARCH> WarpScanShfl;    //!< CUB shuffle-based scan
+        typedef hipcub::WarpScanShfl<T,LOGICAL_WARP_THREADS,PTX_ARCH> WarpScanShfl;    //!< CUB shuffle-based scan
         typedef typename WarpScanShfl::TempStorage TempStorage;                     //!< Nominal data type for CUB temporary storage
 
         enum

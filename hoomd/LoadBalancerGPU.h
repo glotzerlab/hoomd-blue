@@ -18,6 +18,8 @@
 #ifndef __LOADBALANCERGPU_H__
 #define __LOADBALANCERGPU_H__
 
+
+#include <hip/hip_runtime.h>
 #include "HOOMDMath.h"
 #include "GPUFlags.h"
 #include "LoadBalancer.h"

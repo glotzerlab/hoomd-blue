@@ -17,6 +17,16 @@
 #define NEDGE 12
 #define NFACE 6
 
+
+
+
+
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime.h>
 #include "HOOMDMath.h"
 #include "GlobalArray.h"
 #include "GPUVector.h"

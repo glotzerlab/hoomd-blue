@@ -4,6 +4,8 @@
 
 // Maintainer: joaander
 
+
+#include <hip/hip_runtime.h>
 #include "HOOMDMath.h"
 #include "SystemDefinition.h"
 #include "Profiler.h"
