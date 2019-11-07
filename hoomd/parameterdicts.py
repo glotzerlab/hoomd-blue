@@ -1,5 +1,5 @@
 from collections import defaultdict
-from itertools import product
+from itertools import product, combinations_with_replacement
 from functools import partial
 from copy import deepcopy
 
@@ -27,6 +27,10 @@ def partial_dict(**kwargs):
 
 def const(val):
     return lambda: val
+
+
+def to_camel_case(string):
+    return string.replace('_', ' ').title().replace(' ', '')
 
 
 class _ValidateDict:
@@ -71,7 +75,7 @@ class _ValidateDict:
 
 class TypeParameterDict(_ValidateDict):
 
-    def __init__(self, len_keys=1, *args, **kwargs):
+    def __init__(self, *args, len_keys, **kwargs):
 
         # Validate proper key constraint
         if len_keys > 2:
@@ -162,6 +166,8 @@ class AttachedTypeParameterDict(_ValidateDict):
         self._default = type_param_dict.default
         self._len_keys = type_param_dict._len_keys
         self._type_kind = type_kind
+        for key, value in type_param_dict._dict.items():
+            self[key] = value
 
     def to_dettached(self):
         pass
@@ -177,6 +183,7 @@ class AttachedTypeParameterDict(_ValidateDict):
                 raise KeyError("Type {} does not exist in the "
                                "system.".format(key))
             vals[key] = getattr(self._cpp_obj, self._getter)(key)
+        return vals
 
     def __setitem__(self, key, val):
         keys = self._validate_and_split_key(key)
@@ -189,16 +196,16 @@ class AttachedTypeParameterDict(_ValidateDict):
 
     @property
     def _setter(self):
-        pass
+        return 'Set' + to_camel_case(self._param_name)
 
     @property
     def _getter(self):
-        pass
+        return 'Get' + to_camel_case(self._param_name)
 
     def keys(self):
         single_keys = getattr(self._sim.state, self._type_kind)
         if self._len_keys == 2:
-            return product(single_keys, single_keys)
+            return combinations_with_replacement(single_keys, 2)
         else:
             return single_keys
 
