@@ -59,29 +59,17 @@ import sys;
 # writers. 1) The instance of the c++ integrator itself is tracked 2) All
 # forces created so far in the simulation are updated in the cpp_integrator
 # whenever run() is called.
-class _integrator(hoomd.meta._metadata):
+class _integrator(hoomd.meta._Operation):
     ## \internal
     # \brief Constructs the integrator
     #
     # This doesn't really do much bet set some member variables to None
     def __init__(self):
-        # check if initialization has occurred
-        if not hoomd.init.is_initialized():
-            raise RuntimeError('Cannot create integrator before initialization\n');
 
-        # by default, integrators do not support methods
-        self.cpp_integrator = None;
-        self.supports_methods = False;
-
-        # save ourselves in the global variable
-        hoomd.context.current.integrator = self;
+        self.supports_methods = False
 
         # base class constructor
-        hoomd.meta._metadata.__init__(self)
-
-    ## \var cpp_integrator
-    # \internal
-    # \brief Stores the C++ side Integrator managed by this class
+        super(hoomd.meta._Operation, self)
 
     ## \var supports_methods
     # \internal
@@ -90,80 +78,72 @@ class _integrator(hoomd.meta._metadata):
     # type that is supported and add a type string to each of the integration_methods.
 
     ## \internal
-    # \brief Checks that proper initialization has completed
-    def check_initialization(self):
-        # check that we have been initialized properly
-        if self.cpp_integrator is None:
-            hoomd.context.current.device.cpp_msg.error('Bug in hoomd.integrate: cpp_integrator not set, please report\n');
-            raise RuntimeError();
-
-    ## \internal
     # \brief Updates the integrators in the reflected c++ class
     def update_forces(self):
-        self.check_initialization();
+        self.check_initialization()
 
         # set the forces
-        self.cpp_integrator.removeForceComputes();
+        self._cpp_obj.removeForceComputes()
         for f in hoomd.context.current.forces:
             if f.cpp_force is None:
-                hoomd.context.current.device.cpp_msg.error('Bug in hoomd.integrate: cpp_force not set, please report\n');
-                raise RuntimeError('Error updating forces');
+                hoomd.context.current.device.cpp_msg.error('Bug in hoomd.integrate: cpp_force not set, please report\n')
+                raise RuntimeError('Error updating forces')
 
             if f.log or f.enabled:
-                f.update_coeffs();
+                f.update_coeffs()
 
             if f.enabled:
-                self.cpp_integrator.addForceCompute(f.cpp_force);
+                self._cpp_obj.addForceCompute(f.cpp_force)
 
         # set the constraint forces
         for f in hoomd.context.current.constraint_forces:
             if f.cpp_force is None:
                 hoomd.context.current.device.cpp_msg.error('Bug in hoomd.integrate: cpp_force not set, please report\n');
-                raise RuntimeError('Error updating forces');
+                raise RuntimeError('Error updating forces')
 
             if f.enabled:
-                self.cpp_integrator.addForceConstraint(f.cpp_force);
+                self._cpp_obj.addForceConstraint(f.cpp_force)
 
                 # register any composite body forces
                 if f.composite:
-                    self.cpp_integrator.addForceComposite(f.cpp_force);
+                    self._cpp_obj.addForceComposite(f.cpp_force)
 
                 f.update_coeffs();
 
     ## \internal
     # \brief Updates the integration methods in the reflected c++ class
     def update_methods(self):
-        self.check_initialization();
+        # self.check_initialization()
 
         # if we support methods, add them all to the list
         if self.supports_methods:
-            self.cpp_integrator.removeAllIntegrationMethods();
+            self._cpp_obj.removeAllIntegrationMethods()
 
             if len(hoomd.context.current.integration_methods) == 0:
-                hoomd.context.current.device.cpp_msg.error('This integrator requires that one or more integration methods be specified.\n');
-                raise RuntimeError('Error initializing integrator methods');
+                hoomd.context.current.device.cpp_msg.error('This integrator requires that one or more integration methods be specified.\n')
+                raise RuntimeError('Error initializing integrator methods')
 
             for m in hoomd.context.current.integration_methods:
-                self.cpp_integrator.addIntegrationMethod(m.cpp_method);
+                self._cpp_obj.addIntegrationMethod(m.cpp_method)
 
         else:
             if len(hoomd.context.current.integration_methods) > 0:
-                hoomd.context.current.device.cpp_msg.error("This integrator does not support the use of integration methods,\n");
-                hoomd.context.current.device.cpp_msg.error("but some have been specified in the script. Remove them or use\n");
-                hoomd.context.current.device.cpp_msg.error("a different integrator.\n");
-                raise RuntimeError('Error initializing integrator methods');
+                hoomd.context.current.device.cpp_msg.error("This integrator does not support the use of integration methods,\n")
+                hoomd.context.current.device.cpp_msg.error("but some have been specified in the script. Remove them or use\n")
+                hoomd.context.current.device.cpp_msg.error("a different integrator.\n")
+                raise RuntimeError('Error initializing integrator methods')
 
     ## \internal
     # \brief Counts the number of degrees of freedom and updates each hoomd.compute.thermo specified
     def update_thermos(self):
-        self.check_initialization();
+        self.check_initialization()
 
         for t in hoomd.context.current.thermos:
-            ndof = self.cpp_integrator.getNDOF(t.group.cpp_group);
-            t.cpp_compute.setNDOF(ndof);
+            ndof = self._cpp_obj.getNDOF(t.group.cpp_group)
+            t.cpp_compute.setNDOF(ndof)
 
-            ndof_rot = self.cpp_integrator.getRotationalNDOF(t.group.cpp_group);
-            t.cpp_compute.setRotationalNDOF(ndof_rot);
+            ndof_rot = self._cpp_obj.getRotationalNDOF(t.group.cpp_group)
+            t.cpp_compute.setRotationalNDOF(ndof_rot)
 
     @classmethod
     def _gsd_state_name(cls):
@@ -171,23 +151,23 @@ class _integrator(hoomd.meta._metadata):
 
     def _connect_gsd(self, gsd):
         # This is an internal method, and should not be called directly. See gsd.dump_state() instead
-        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_integrator, "connectGSDStateSignal"):
-            self.cpp_integrator.connectGSDStateSignal(gsd.cpp_analyzer, self._gsd_state_name());
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self._cpp_obj, "connectGSDStateSignal"):
+            self._cpp_obj.connectGSDStateSignal(gsd.cpp_analyzer, self._gsd_state_name());
         else:
             raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
 
     def _connect_gsd_shape_spec(self, gsd):
         # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
-        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_integrator, "connectGSDShapeSpec"):
-            self.cpp_integrator.connectGSDShapeSpec(gsd.cpp_analyzer);
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self._cpp_obj, "connectGSDShapeSpec"):
+            self._cpp_obj.connectGSDShapeSpec(gsd.cpp_analyzer);
         else:
             raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
 
     def restore_state(self):
         """ Restore the state information from the file used to initialize the simulations
         """
-        if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_integrator, "restoreStateGSD"):
-            self.cpp_integrator.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
+        if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self._cpp_obj, "restoreStateGSD"):
+            self._cpp_obj.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
         else:
             if hoomd.context.current.state_reader is None:
                 hoomd.context.current.device.cpp_msg.error("Can only restore after the state reader has been initialized.\n");
