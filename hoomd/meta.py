@@ -28,9 +28,8 @@ from collections import Mapping
 ## \internal
 class _Operation:
 
-    def __init__(self):
-        self._cpp_obj = None
-        self._param_dict = dict()
+    _cpp_obj = None
+    _param_dict = dict()
 
     def __getattr__(self, attr):
         if self._cpp_obj is not None:
