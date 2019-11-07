@@ -50,10 +50,7 @@ class _Operation:
             self.__dict__[attr] = value
 
     def detach(self):
-        for key in self._param_dict.keys():
-            self._param_dict[key] = getattr(self, key)
-        self._cpp_obj = None
-        return self
+        raise NotImplementedError
 
     def attach(self):
         raise NotImplementedError
