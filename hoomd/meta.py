@@ -59,9 +59,6 @@ class _Operation:
     def is_attached(self):
         return hasattr(self, '_cpp_obj')
 
-    def cache_simulation(self, types):
-        pass
-
     def _apply_param_dict(self):
         for attr, value in self._param_dict.items():
             try:

@@ -34,20 +34,14 @@ class Operations:
     def schedule(self):
         if not self._sys_init:
             raise RuntimeError("System not initialized yet")
-        self.broadcast_types()
-        if hasattr(self, '_integrator'):
-            sys_def = self.simulation.state._cpp_sys_def
-            new_objs = self._integrator._attach(sys_def)
-            self.simulation._cpp_sys.setIntegrator(
-                    self._integrator.cpp_integrator)
+        sim = self.simulation
+        for op in self._operations:
+            new_objs = op.attach(sim)
+            if isinstance(op, hoomd.integrate._integrator):
+                sim._cpp_sys.setIntegrator(op._cpp_obj)
             if new_objs is not None:
                 self._compute.extend(new_objs)
 
-    def broadcast_types(self):
-        if self._sys_init:
-            types = self.simulation.state.types
-        else:
-            raise RuntimeError(
-                    "Simulation and state must be set to query types")
-        for op in self._operations:
-            op.cache_types(types)
+    def _store_reader(self, reader):
+        # TODO
+        pass
