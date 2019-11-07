@@ -38,16 +38,16 @@ class _Operation:
             return self._param_dict[attr]
 
     def __setattr__(self, attr, value):
-        if self._cpp_obj is not None:
-            try:
-                setattr(self._cpp_obj, attr, value)
-            except (AttributeError):
-                raise AttributeError("{} cannot be set after cpp"
-                                     " initialization".format(attr))
-        if attr not in self._param_dict.keys():
-            raise AttributeError("{} attribute does not exist".format())
-        else:
+        if attr in self._param_dict.keys():
+            if self._cpp_obj is not None:
+                try:
+                    setattr(self._cpp_obj, attr, value)
+                except (AttributeError):
+                    raise AttributeError("{} cannot be set after cpp"
+                                         " initialization".format(attr))
             self._param_dict[attr] = value
+        else:
+            self.__dict__[attr] = value
 
     def detach(self):
         for key in self._param_dict.keys():
