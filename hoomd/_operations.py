@@ -1,21 +1,18 @@
-import hoomd._integrator
+import hoomd.integrate
 
 
 class Operations:
     def __init__(self, simulation=None):
-        self.simulation = None
+        self.simulation = simulation
         self._auto_schedule = False
         self._compute = list()
 
     def add(self, op):
         if isinstance(op, hoomd.integrate._integrator):
-            self._set_integrator(op)
+            self._integrator = op
         else:
             raise ValueError("Operation is not of the correct type to add to"
                              " Operations.")
-
-    def _set_integrator(self, integrator):
-        self._integrator = integrator
 
     @property
     def _operations(self):
