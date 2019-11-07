@@ -2,6 +2,8 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 from hoomd import _hoomd
+from hoomd.parameterdicts import TypeParameterDict, AttachedTypeParameterDict
+from hoomd.parameterdicts import RequiredArg
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import data
 from hoomd.integrate import _integrator
@@ -626,24 +628,25 @@ class sphere(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
 
         # initialize base class
+        super(mode_hpmc, self).__init__()
         self._param_dict = dict(seed=seed,
-                                d=d,
-                                a=a,
                                 move_ratio=move_ratio,
                                 nselect=nselect)
 
-        self._setter_dict = dict(d='setD',
-                                 a='setA',
-                                 move_ratio='setMoveRatio',
-                                 nselect='setNSelect')
+        self._d = TypeParameterDict(d, len_keys=1)
+        self._a = TypeParameterDict(a, len_keys=1)
+        self._shape = TypeParameterDict(diameter=RequiredArg,
+                                        ignore_statistics=False,
+                                        orientable=False,
+                                        len_keys=1)
 
-        super(self, mode_hpmc).__init__()
 
-    def _attach(self, simulation):
+    def attach(self, simulation):
         # initialize the reflected c++ class
         sys_def = simulation.state._cpp_sys_def
         if not simulation.device.mode == 'GPU':
             self._cpp_obj = _hpmc.IntegratorHPMCMonoSphere(sys_def, self.seed)
+            cl_c = None
         else:
             cl_c = _hoomd.CellListGPU(sys_def)
             self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUSphere(sys_def,
@@ -651,29 +654,39 @@ class sphere(mode_hpmc):
                                                               self.seed)
 
         # set the default parameters
-        for attr, setter in self._setter_dict.items():
-            getattr(self._cpp_obj, setter)(self._param_dict[attr])
+        self._apply_param_dict()
 
-        self.initialize_shape_params()
+        # Deal with type specific properties
+        try:
+            self._d = AttachedTypeParameterDict(self._cpp_obj, 'd',
+                                                'particle_types',
+                                                self.d,
+                                                simulation)
+        except ValueError as verr:
+            raise ValueError("{} had an error with attribute {}:"
+                             " ".format(type(self), 'd') + verr.args[0])
 
-        return [cl_c]
+        try:
+            self._a = AttachedTypeParameterDict(self._cpp_obj,
+                                                'a',
+                                                'particle_types',
+                                                self.a,
+                                                simulation)
+        except ValueError as verr:
+            raise ValueError("{} had an error with attribute {}:"
+                             " ".format(type(self), 'a') + verr.args[0])
 
-    def __getattr__(self, attr):
-        # TODO add check for cpp initialization
-        return self._param_dict[attr]
+        try:
+            self._shape = AttachedTypeParameterDict(self._cpp_obj,
+                                                    'shape',
+                                                    'particle_types',
+                                                    self.shape,
+                                                    simulation)
+        except ValueError as verr:
+            raise ValueError("{} had an error with attribute {}:"
+                             " ".format(type(self), 'shape') + verr.args[0])
 
-    def __setattr__(self, attr, value):
-        if self._initialized:
-            try:
-                getattr(self._cpp_obj, self._setter_dict[attr])(value)
-            except (KeyError, AttributeError):
-                raise AttributeError("{} cannot be set after cpp"
-                                     " initialization".format(attr))
-        if attr not in self._param_dict.keys():
-            raise AttributeError("{} attribute does not exist".format())
-        else:
-            self._param_dict[attr] = value
-
+        return [cl_c] if cl_c is not None else None
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
