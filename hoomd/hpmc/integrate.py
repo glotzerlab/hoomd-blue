@@ -186,12 +186,8 @@ class mode_hpmc(_integrator):
     #
     # \post the member shape_param is created
     def __init__(self):
-        _integrator.__init__(self);
+        _integrator.__init__(self)
 
-        # setup the shape parameters
-        self.shape_param = data.param_dict(self); # must call initialize_shape_params() after the cpp_integrator is created.
-
-        # setup interaction matrix
         self.overlap_checks = interaction_matrix()
 
         #initialize list to check implicit params
@@ -571,22 +567,39 @@ class mode_hpmc(_integrator):
         """
         return self.cpp_integrator.getSweepRadius();
 
-## Helper methods to set rotation and translation moves by type
-def setD(cpp_integrator,d):
-    if isinstance(d, dict):
-        for t,t_d in d.items():
-            cpp_integrator.setD(t_d,hoomd.context.current.system_definition.getParticleData().getTypeByName(t))
-    else:
-        for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes()):
-            cpp_integrator.setD(d,i);
+    @property
+    def d(self):
+        return self._d
 
-def setA(cpp_integrator,a):
-    if isinstance(a, dict):
-        for t,t_a in a.items():
-            cpp_integrator.setA(t_a,hoomd.context.current.system_definition.getParticleData().getTypeByName(t))
-    else:
-        for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes()):
-            cpp_integrator.setA(a,i);
+    @d.setter
+    def d(self, value):
+        if not isinstance(value, 'dict'):
+            raise TypeError("Type must be a subclass of dict.")
+        for key, val in value.items():
+            self._d[key] = val
+
+    @property
+    def a(self):
+        return self._a
+
+    @a.setter
+    def a(self, value):
+        if not isinstance(value, 'dict'):
+            raise TypeError("Type must be a subclass of dict.")
+        for key, val in value.items():
+            self._a[key] = val
+
+    @property
+    def shape(self):
+        return self._shape
+
+    @shape.setter
+    def shape(self, value):
+        if not isinstance(value, 'dict'):
+            raise TypeError("Type must be a subclass of dict.")
+        for key, val in value.items():
+            self._shape[key] = val
+
 
 class sphere(mode_hpmc):
     R""" HPMC integration for spheres (2D/3D).
