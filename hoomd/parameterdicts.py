@@ -196,11 +196,11 @@ class AttachedTypeParameterDict(_ValidateDict):
 
     @property
     def _setter(self):
-        return 'Set' + to_camel_case(self._param_name)
+        return 'set' + to_camel_case(self._param_name)
 
     @property
     def _getter(self):
-        return 'Get' + to_camel_case(self._param_name)
+        return 'get' + to_camel_case(self._param_name)
 
     def keys(self):
         single_keys = getattr(self._sim.state, self._type_kind)
