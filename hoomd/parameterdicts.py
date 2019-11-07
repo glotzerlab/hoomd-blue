@@ -101,6 +101,11 @@ class TypeParameterDict(_ValidateDict):
 
     def __getitem__(self, key):
         keys = self._validate_and_split_key(key)
+        if len(keys) == 1:
+            key = keys[0]
+            if self._len_keys > 1:
+                key = tuple(sorted(key))
+            return self._dict[key]
         vals = dict()
         for key in keys:
             if self._len_keys > 1:
@@ -175,15 +180,22 @@ class AttachedTypeParameterDict(_ValidateDict):
     def __getitem__(self, key):
         keys = self._validate_and_split_key(key)
         curr_keys = self.keys()
-        vals = {}
-        for key in keys:
-            if self._len_keys > 1:
-                key = tuple(sorted(key))
+        if len(keys) == 1:
+            key = keys[0]
             if key not in curr_keys:
                 raise KeyError("Type {} does not exist in the "
                                "system.".format(key))
-            vals[key] = getattr(self._cpp_obj, self._getter)(key)
-        return vals
+            return getattr(self._cpp_obj, self._getter)(key)
+        else:
+            vals = {}
+            for key in keys:
+                if self._len_keys > 1:
+                    key = tuple(sorted(key))
+                if key not in curr_keys:
+                    raise KeyError("Type {} does not exist in the "
+                                "system.".format(key))
+                vals[key] = getattr(self._cpp_obj, self._getter)(key)
+            return vals
 
     def __setitem__(self, key, val):
         keys = self._validate_and_split_key(key)
