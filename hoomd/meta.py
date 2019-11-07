@@ -62,6 +62,13 @@ class _Operation:
     def cache_simulation(self, types):
         pass
 
+    def _apply_param_dict(self):
+        for attr, value in self._param_dict.items():
+            try:
+                setattr(self, attr, value)
+            except AttributeError:
+                pass
+
 
 # \brief A Mixin to facilitate storage of simulation metadata
 class _metadata(object):
