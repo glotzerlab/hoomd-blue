@@ -187,12 +187,36 @@ class AttachedTypeParameterDict(_ValidateDict):
 
     def __setitem__(self, key, val):
         keys = self._validate_and_split_key(key)
+        val = self._validate_and_default_values(val)
         curr_keys = self.keys()
         for key in keys:
             if key not in curr_keys:
                 raise KeyError("Type {} does not exist in the "
                                "system.".format(key))
             getattr(self._cpp_obj, self._setter)(key, val)
+
+    def _validate_and_default_values(self, val):
+        if isinstance(self._default, dict):
+            neccessary_keys = set([key for key, value in self._default.items()
+                                   if value is None])
+            try:
+                given_keys = set(val.keys())
+            except AttributeError:
+                raise ValueError("Expected a subclass of dict. "
+                                 "Got {}".format(type(val)))
+            none_keys = []
+            for key in given_keys:
+                if val[key] is None:
+                    none_keys.append(key)
+            given_keys = given_keys.difference(none_keys)
+            keys_missing = neccessary_keys - given_keys
+            if keys_missing != set():
+                raise ValueError("Missing keys {}.".format(tuple(keys_missing)))
+            new_val = deepcopy(self._default)
+            new_val.update(val)
+        else:
+            new_val = val
+        return new_val
 
     @property
     def _setter(self):
