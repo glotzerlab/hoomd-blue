@@ -55,7 +55,11 @@ class _Operation:
     def attach(self):
         raise NotImplementedError
 
-    def cache_types(self, types):
+    @property
+    def is_attached(self):
+        return hasattr(self, '_cpp_obj')
+
+    def cache_simulation(self, types):
         pass
 
 
