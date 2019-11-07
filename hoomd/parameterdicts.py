@@ -171,8 +171,11 @@ class AttachedTypeParameterDict(_ValidateDict):
         self._default = type_param_dict.default
         self._len_keys = type_param_dict._len_keys
         self._type_kind = type_kind
-        for key, value in type_param_dict._dict.items():
-            self[key] = value
+        for key in self.keys():
+            try:
+                self[key] = type_param_dict[key]
+            except ValueError as verr:
+                raise ValueError("Type {} ".format(key) + verr.args[0])
 
     def to_dettached(self):
         pass
