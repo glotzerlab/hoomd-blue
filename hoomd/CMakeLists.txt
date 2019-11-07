@@ -306,6 +306,7 @@ set(files analyze.py
 	  _simulation.py
 	  _state.py
 	  _operations.py
+	  parameterdicts.py
     )
 
 install(FILES ${files}
