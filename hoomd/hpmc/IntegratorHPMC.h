@@ -96,23 +96,27 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             }
 
         //! Change maximum displacement
-        /*! \param d new d to set
-         *! \param typ type to which d will be set
+        /*! \param typ Name of type to set
+         *! \param d new d to set
         */
-        void setD(Scalar d,unsigned int typ)
+        inline void setD(std::string name, Scalar d)
             {
+            unsigned int id = this->m_pdata->getTypeByName(name);
+
                 {
                 ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
-                h_d.data[typ] = d;
+                h_d.data[id] = d;
                 }
+
             updateCellWidth();
             }
 
-        //! Get maximum displacement (by type)
-        inline Scalar getD(unsigned int typ)
+        //! Get maximum displacement (by type name)
+        inline Scalar getD(std::string name)
             {
+            unsigned int id = this->m_pdata->getTypeByName(name);
             ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
-            return h_d.data[typ];
+            return h_d.data[id];
             }
 
         //! Get array of translation move sizes
@@ -138,20 +142,22 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             }
 
         //! Change maximum rotation
-        /*! \param a new a to set
-         *! \param type type to which d will be set
+        /*! \param name Type name to set
+         *! \param a new a to set
         */
-        void setA(Scalar a,unsigned int typ)
+        inline void setA(std::string name, Scalar a)
             {
+            unsigned int id = this->m_pdata->getTypeByName(name);
             ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
-            h_a.data[typ] = a;
+            h_a.data[id] = a;
             }
 
-        //! Get maximum rotation
-        inline Scalar getA(unsigned int typ)
+        //! Get maximum rotation by name
+        inline Scalar getA(std::string name)
             {
+            unsigned int id = this->m_pdata->getTypeByName(name);
             ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::read);
-            return h_a.data[typ];
+            return h_a.data[id];
             }
 
         //! Get array of rotation move sizes
