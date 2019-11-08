@@ -1,6 +1,6 @@
 import hoomd._hoomd as _hoomd
-from hoomd._state import State
-from hoomd._operations import Operations
+from hoomd.state import State
+from hoomd.operations import Operations
 
 
 class Simulation:

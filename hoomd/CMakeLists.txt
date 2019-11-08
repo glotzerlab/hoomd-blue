@@ -303,9 +303,9 @@ set(files analyze.py
           variant.py
           lattice.py
           hdf5.py
-	  _simulation.py
-	  _state.py
-	  _operations.py
+	  simulation.py
+	  state.py
+	  operations.py
 	  parameterdicts.py
 	  typeparam.py
     )
