@@ -307,6 +307,7 @@ set(files analyze.py
 	  _state.py
 	  _operations.py
 	  parameterdicts.py
+	  typeparam.py
     )
 
 install(FILES ${files}
