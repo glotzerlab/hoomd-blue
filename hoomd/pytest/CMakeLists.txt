@@ -12,6 +12,7 @@ ENDMACRO(copy_file)
 
 set(files __init__.py
           test_device.py
+          test_example.py
     )
 
 install(FILES ${files}

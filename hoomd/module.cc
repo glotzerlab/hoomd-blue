@@ -153,6 +153,17 @@ bool is_MPI_available()
 #endif
     }
 
+//! Determine availability of CUDA support
+bool isCUDAAvailable()
+   {
+   return
+#ifdef ENABLE_CUDA
+       true;
+#else
+       false;
+#endif
+    }
+
 void mpi_barrier_world()
     {
     #ifdef ENABLE_MPI
@@ -302,6 +313,7 @@ PYBIND11_MODULE(_hoomd, m)
 
     m.def("is_MPI_available", &is_MPI_available);
     m.def("is_TBB_available", &is_TBB_available);
+    m.def("isCUDAAvailable", &isCUDAAvailable);
 
     pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector_scalar");
     pybind11::bind_vector< std::vector<string> >(m,"std_vector_string");
