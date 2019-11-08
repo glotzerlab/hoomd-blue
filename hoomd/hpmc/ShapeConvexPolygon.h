@@ -44,6 +44,15 @@ const unsigned int MAX_POLY2D_VERTS=64;
 /*! \ingroup hpmc_data_structs */
 struct poly2d_verts : param_base
     {
+
+    OverlapReal x[MAX_POLY2D_VERTS];    //!< X coordinate of vertices
+    OverlapReal y[MAX_POLY2D_VERTS];    //!< Y coordinate of vertices
+    unsigned int N;                     //!< Number of vertices
+    OverlapReal diameter;               //!< Precomputed diameter
+    OverlapReal sweep_radius;           //!< Radius of the sphere sweep (used for spheropolygons)
+    unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
+                                        //   First bit is ignore overlaps, Second bit is ignore statistics
+    
     //! Default constructor initializes zero values.
     DEVICE poly2d_verts()
         : N(0),
@@ -56,7 +65,7 @@ struct poly2d_verts : param_base
             x[i] = y[i] = OverlapReal(0);
             }
         }
-
+    
     #ifdef ENABLE_CUDA
     //! Set CUDA memory hint
     void set_memory_hint() const
@@ -65,13 +74,60 @@ struct poly2d_verts : param_base
         }
     #endif
 
-    OverlapReal x[MAX_POLY2D_VERTS];    //!< X coordinate of vertices
-    OverlapReal y[MAX_POLY2D_VERTS];    //!< Y coordinate of vertices
-    unsigned int N;                     //!< Number of vertices
-    OverlapReal diameter;               //!< Precomputed diameter
-    OverlapReal sweep_radius;           //!< Radius of the sphere sweep (used for spheropolygons)
-    unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
-                                        //   First bit is ignore overlaps, Second bit is ignore statistics
+    #ifndef NVCC
+
+    poly2d_verts(pybind11::dict v)
+            {
+            pybind11::list verts = v["vertices"];
+            if (len(verts) > MAX_POLY2D_VERTS)
+                throw std::runtime_error("Too many polygon vertices");
+
+            N = len(verts);
+            ignore = v["ignore_statistics"].cast<unsigned int>();
+
+            // extract the verts from the python list and compute the radius on the way
+            OverlapReal radius_sq = OverlapReal(0.0);
+            for (unsigned int i = 0; i < len(verts); i++)
+                {
+                pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
+                vec2<OverlapReal> vert = vec2<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]), pybind11::cast<OverlapReal>(verts_i[1]));
+                x[i] = vert.x;
+                y[i] = vert.y;
+                radius_sq = max(radius_sq, dot(vert, vert));
+                }
+            for (unsigned int i = len(verts); i < MAX_POLY2D_VERTS; i++)
+                {
+                x[i] = 0;
+                y[i] = 0;
+                }
+
+            // set the diameter
+            diameter = 2*(sqrt(radius_sq)+sweep_radius);
+            }
+            
+
+        pybind11::dict asDict()
+            {
+            pybind11::dict v;
+            v["one"] = 1;
+            return v;
+                /*
+            pybind11::dict v;
+            pybind11::list verts;
+            for(unsigned int i = 0; i < N; i++)
+            {
+                vec2<OverlapReal> vert;
+                vert.x = x[i];
+                vert.y = y[i];
+                verts.append(vert);
+            }    
+            v["vertices"] = verts;
+            v["ignore_statistics"] = ignore;
+            return v;
+
+            */
+            }
+    #endif
     } __attribute__((aligned(32)));
 
 //! Support function for ShapeConvexPolygon

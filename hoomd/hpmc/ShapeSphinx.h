@@ -53,6 +53,80 @@ struct sphinx3d_params : param_base
         // default implementation does nothing
         }
     #endif
+        
+    #ifndef NVCC
+    sphinx3d_params() { }
+    
+    sphinx3d_params(pybind11::dict v)
+    {
+        pybind11::list centers = v["centers"];
+        pybind11::list diameters = v["diameters"];
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+        
+        
+        N = pybind11::len(diameters);
+        int N_centers = pybind11::len(centers);
+        
+        if (N_centers > MAX_SPHERE_CENTERS)
+            throw std::runtime_error("Too many spheres");
+        
+        if (N != N_centers)
+            {
+            throw std::runtime_error("Number of centers not equal to number of diameters");
+            }
+        
+        OverlapReal radius = OverlapReal(0.0);
+        for (unsigned int i = 0; i < N_centers; i++)
+            {
+            pybind11::list center_i = centers[i];
+            
+            OverlapReal center_x = center_i[0].cast<OverlapReal>();
+            OverlapReal center_y = center_i[1].cast<OverlapReal>();
+            OverlapReal center_z = center_i[2].cast<OverlapReal>();
+            
+            vec3<OverlapReal> center_vec;
+            center_vec.x = center_x;
+            center_vec.y = center_y;
+            center_vec.z = center_z;
+            
+            center[i] = center_vec;
+            
+            OverlapReal d = diameters[i].cast<OverlapReal>();
+            diameter[i] = d;
+            
+            OverlapReal n = sqrt(center_x*center_x + center_y*center_y + center_z*center_z);
+            radius = max(radius, (n+d/OverlapReal(2.0)));
+            }
+
+        // set the diameter
+        circumsphereDiameter = 2.0*radius;
+
+    }
+    
+    pybind11::dict asDict()
+        {
+        pybind11::list centers;
+        pybind11::dict v;
+        pybind11::list diameters;
+        for (unsigned int i = 0; i < N; i++)
+        {
+            vec3<OverlapReal> center_i = center[i];
+            OverlapReal x = center_i.x;
+            OverlapReal y = center_i.y;
+            OverlapReal z = center_i.z;
+            pybind11::list xyz;
+            xyz.append(x);
+            xyz.append(y);
+            xyz.append(z);
+            centers.append(xyz);
+            diameters.append(diameter[i]);
+        }
+        v["centers"] = centers;
+        v["diameters"] = diameters;
+        v["ignore_statistics"] = ignore;
+        return v;
+        }
+    #endif
     } __attribute__((aligned(32)));
 
 }; // end namespace detail

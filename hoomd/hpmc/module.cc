@@ -86,12 +86,18 @@ PYBIND11_MODULE(_hpmc, m)
         .def(pybind11::init< pybind11::dict >())
         .def("asDict", &ell_params::asDict)
         ;
-    py::class_<poly2d_verts, std::shared_ptr<poly2d_verts> >(m, "poly2d_verts");
+    py::class_<poly2d_verts, std::shared_ptr<poly2d_verts> >(m, "poly2d_verts")
+        .def(pybind11::init< pybind11::dict >())
+        .def("asDict", &poly2d_verts::asDict)
+        ;
     py::class_<poly3d_data, std::shared_ptr<poly3d_data> >(m, "poly3d_data");
     py::class_< poly3d_verts, std::shared_ptr< poly3d_verts > >(m, "poly3d_verts");
     py::class_<faceted_ellipsoid_params, std::shared_ptr<faceted_ellipsoid_params> >(m, "faceted_ellipsoid_params");
     py::class_<sphinx3d_params, std::shared_ptr<sphinx3d_params> >(m, "sphinx3d_params")
-        .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter);
+        .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter)
+        .def(pybind11::init< pybind11::dict >())
+        .def("asDict", &sphinx3d_params::asDict)
+        ;
     py::class_< ShapeUnion<ShapeSphere>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere>::param_type> >(m, "msph_params");
 
     py::class_< ShapeUnion<ShapeSpheropolyhedron>::param_type, std::shared_ptr< ShapeUnion<ShapeSpheropolyhedron>::param_type> >(m, "mpoly3d_params");
