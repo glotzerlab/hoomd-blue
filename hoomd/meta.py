@@ -30,24 +30,51 @@ class _Operation:
 
     _cpp_obj = None
     _param_dict = dict()
+    _typeparam_dict = dict()
 
     def __getattr__(self, attr):
+        if attr in self._param_dict.keys():
+            return self._getattr_param(attr)
+        elif attr in self._typeparam_dict.keys():
+            return self._getattr_typeparam(attr)
+        else:
+            raise AttributeError("Object {} has no attribute {}"
+                                 "".format(self, attr))
+
+    def _getattr_param(self, attr):
         if self._cpp_obj is not None:
             return getattr(self._cpp_obj, attr)
         else:
             return self._param_dict[attr]
 
+    def _getattr_typeparam(self, attr):
+        return self._typeparam_dict[attr]
+
+
     def __setattr__(self, attr, value):
         if attr in self._param_dict.keys():
-            if self._cpp_obj is not None:
-                try:
-                    setattr(self._cpp_obj, attr, value)
-                except (AttributeError):
-                    raise AttributeError("{} cannot be set after cpp"
-                                         " initialization".format(attr))
-            self._param_dict[attr] = value
+            self._setattr_param(attr, value)
+        elif attr in self._typeparam_dict.keys():
+            self._setattr_typeparam(attr, value)
         else:
             self.__dict__[attr] = value
+
+    def _setattr_param(self, attr, value):
+        if self._cpp_obj is not None:
+            try:
+                setattr(self._cpp_obj, attr, value)
+            except (AttributeError):
+                raise AttributeError("{} cannot be set after cpp"
+                                        " initialization".format(attr))
+        self._param_dict[attr] = value
+
+    def _setattr_typeparam(self, attr, value):
+        try:
+            for k, v in value.items():
+                self._typeparam_dict[attr][k] = v
+        except TypeError:
+            raise ValueError("To set {}, you must use a dictionary "
+                             "with types as keys.".format(attr))
 
     def detach(self):
         raise NotImplementedError
@@ -65,6 +92,17 @@ class _Operation:
                 setattr(self, attr, value)
             except AttributeError:
                 pass
+
+    def _apply_typeparam_dict(self, cpp_obj, sim):
+        for typeparam in self._typeparam_dict.values():
+            try:
+                typeparam.attach(cpp_obj, sim)
+            except ValueError as verr:
+                raise ValueError("TypeParameter {}:"
+                                 " ".format(typeparam.name) + verr.args[0])
+
+    def _add_typeparam(self, typeparam):
+        self._typeparam_dict[typeparam.name] = typeparam
 
 
 # \brief A Mixin to facilitate storage of simulation metadata
