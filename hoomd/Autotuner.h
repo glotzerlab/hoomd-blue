@@ -19,7 +19,7 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 #include <pybind11/pybind11.h>
 #endif
 

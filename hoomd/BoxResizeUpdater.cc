@@ -7,9 +7,6 @@
     \brief Defines the BoxResizeUpdater class
 */
 
-
-
-#include <hip/hip_runtime.h>
 #include "BoxResizeUpdater.h"
 
 #include <math.h>

@@ -4,11 +4,9 @@
 
 // Maintainer: joaander
 
-#ifndef _PARTICLEDATA_CUH_
-#define _PARTICLEDATA_CUH_
+#pragma once
 
 #if ENABLE_CUDA
-#include <hip/hip_runtime.h>
 #include "BoxDim.h"
 #include "GPUPartition.cuh"
 
@@ -18,7 +16,7 @@
     \brief Declares GPU kernel code and data structure functions used by ParticleData
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 //! Sentinel value in \a body to signify that this particle does not belong to a body
 const unsigned int NO_BODY = 0xffffffff;
 
@@ -29,7 +27,7 @@ const unsigned int MIN_FLOPPY = 0x80000000;
 const unsigned int NOT_LOCAL = 0xffffffff;
 #endif
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 //! Compact particle data storage
 struct pdata_element
     {

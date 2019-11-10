@@ -8,7 +8,7 @@
     \brief Defines the GPUArray class
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -38,7 +38,7 @@ struct access_location
     enum Enum
         {
         host,   //!< Ask to acquire the data on the host
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         device  //!< Ask to acquire the data on the device
 #endif
         };
@@ -51,7 +51,7 @@ struct data_location
     enum Enum
         {
         host,       //!< Data was last updated on the host
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         device,     //!< Data was last updated on the device
         hostdevice  //!< Data is up to date on both the host and device
 #endif
@@ -108,12 +108,10 @@ class device_deleter
                 assert(m_exec_conf);
                 this->m_exec_conf->msg->notice(7) << "Freeing " << m_N*sizeof(T) << " bytes of CUDA memory." << std::endl;
 
-                #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-                hipFree(ptr);
-                #elif defined(ENABLE_HIP)
+                #ifdef ENABLE_CUDA
                 hipFree(ptr);
                 #endif
-                CHECK_DEVICE_ERROR();
+                CHECK_CUDA_ERROR();
                 }
             }
 
@@ -157,12 +155,10 @@ class host_deleter
                 assert(m_exec_conf);
 
                 // unregister host memory from CUDA driver
-                #if(ENABLE_CUDA) && !defined(ENABLE_HIP)
-                hipHostUnregister(ptr);
-                #elif defined(ENABLE_HIP)
+                #if(ENABLE_CUDA)
                 hipHostUnregister(ptr);
                 #endif
-                CHECK_DEVICE_ERROR();
+                CHECK_CUDA_ERROR();
                 }
 
             // free the allocation
@@ -250,13 +246,13 @@ class GPUArrayBase
     protected:
         //! Acquires the data pointer for use
         inline ArrayHandleDispatch<T> acquire(const access_location::Enum location, const access_mode::Enum mode
-        #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
                          , bool async = false
         #endif
                         ) const
             {
             return static_cast<Derived const&>(*this).acquire(location, mode
-            #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+            #ifdef ENABLE_CUDA
                 , async
             #endif
                 );
@@ -350,7 +346,7 @@ class ArrayHandle
         T* const data;          //!< Pointer to data
     };
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
 //! Implementation of ArrayHandle using asynchronous copying between host and device
 /*! This handle can be used to speed up access to the GPUArray data when
     accessing multiple buffers on the host AND the device.
@@ -460,7 +456,7 @@ class GPUArray : public GPUArrayBase<T, GPUArray<T> >
         //! Frees memory
         virtual ~GPUArray() {}
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         //! Constructs a 1-D GPUArray
         GPUArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
         //! Constructs a 2-D GPUArray
@@ -535,7 +531,7 @@ class GPUArray : public GPUArrayBase<T, GPUArray<T> >
 
         //! Acquires the data pointer for use
         inline ArrayHandleDispatch<T> acquire(const access_location::Enum location, const access_mode::Enum mode
-        #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
                          , bool async = false
         #endif
                         ) const;
@@ -568,13 +564,13 @@ class GPUArray : public GPUArrayBase<T, GPUArray<T> >
 
         mutable bool m_acquired;                //!< Tracks whether the data has been acquired
         mutable data_location::Enum m_data_location;    //!< Tracks the current location of the data
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         bool m_mapped;                          //!< True if we are using mapped memory
 #endif
 
     // ok, this looks weird, but I want m_exec_conf to be protected and not have to go reorder all of the initializers
     protected:
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         std::unique_ptr<T, hoomd::detail::device_deleter<T> > d_data;      //!< Smart pointer to allocated device memory
 #endif
 
@@ -586,7 +582,7 @@ class GPUArray : public GPUArrayBase<T, GPUArray<T> >
         //! Helper function to allocate memory
         inline void allocate();
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         //! Helper function to copy memory from the device to host
         inline void memcpyDeviceToHost(bool async) const;
         //! Helper function to copy memory from the host to device
@@ -622,7 +618,7 @@ ArrayHandle<T>::ArrayHandle(const GPUArrayBase<T, Derived>& array, const access_
     {
     }
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
 template<class T>
 template<class Derived>
 ArrayHandleAsync<T>::ArrayHandleAsync(const GPUArrayBase<T, Derived>& array, const access_location::Enum location,
@@ -660,7 +656,7 @@ class GPUArrayDispatch : public ArrayHandleDispatch<T>
 
 template<class T> GPUArray<T>::GPUArray() :
         m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_data_location(data_location::host)
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         , m_mapped(false)
 #endif
     {
@@ -668,7 +664,7 @@ template<class T> GPUArray<T>::GPUArray() :
 
 template<class T> GPUArray<T>::GPUArray(std::shared_ptr<const ExecutionConfiguration> exec_conf) :
         m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_data_location(data_location::host),
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         m_mapped(false),
 #endif
         m_exec_conf(exec_conf)
@@ -681,7 +677,7 @@ template<class T> GPUArray<T>::GPUArray(std::shared_ptr<const ExecutionConfigura
 */
 template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf) :
         m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_data_location(data_location::host),
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         m_mapped(false),
 #endif
         m_exec_conf(exec_conf)
@@ -697,7 +693,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, std::shared_p
 */
 template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf) :
         m_height(height), m_acquired(false), m_data_location(data_location::host),
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         m_mapped(false),
 #endif
         m_exec_conf(exec_conf)
@@ -713,7 +709,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height,
     memclear();
     }
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
 /*! \param num_elements Number of elements to allocate in the array
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
     \param mapped True if we are using mapped-pinned memory
@@ -753,7 +749,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height,
 template<class T> GPUArray<T>::GPUArray(const GPUArray& from) noexcept
     : m_num_elements(from.m_num_elements), m_pitch(from.m_pitch),
       m_height(from.m_height), m_acquired(false), m_data_location(data_location::host),
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         m_mapped(from.m_mapped),
 #endif
         m_exec_conf(from.m_exec_conf)
@@ -782,7 +778,7 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs) noexc
         m_pitch = rhs.m_pitch;
         m_height = rhs.m_height;
         m_exec_conf = rhs.m_exec_conf;
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         m_mapped = rhs.m_mapped;
 #endif
         // initialize state variables
@@ -802,7 +798,7 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs) noexc
             {
             h_data.reset();
 
-            #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+            #ifdef ENABLE_CUDA
             d_data.reset();
             #endif
             }
@@ -818,7 +814,7 @@ template<class T> GPUArray<T>::GPUArray(GPUArray&& from) noexcept
     m_height(std::move(from.m_height)),
     m_acquired(std::move(from.m_acquired)),
     m_data_location(std::move(from.m_data_location)),
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     m_mapped(std::move(from.m_mapped)),
     d_data(std::move(from.d_data)),
 #endif
@@ -835,7 +831,7 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(GPUArray&& rhs) noexcept
         m_pitch = std::move(rhs.m_pitch);
         m_height = std::move(rhs.m_height);
         m_exec_conf = std::move(rhs.m_exec_conf);
-    #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+    #ifdef ENABLE_CUDA
         m_mapped = std::move(rhs.m_mapped);
         d_data = std::move(rhs.d_data);
     #endif
@@ -871,7 +867,7 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
     std::swap(m_acquired, from.m_acquired);
     std::swap(m_data_location, from.m_data_location);
     std::swap(m_exec_conf, from.m_exec_conf);
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     std::swap(d_data, from.d_data);
     std::swap(m_mapped, from.m_mapped);
 #endif
@@ -894,7 +890,7 @@ template<class T> void GPUArray<T>::allocate()
         m_exec_conf->msg->notice(7) << "GPUArray is trying to allocate a very large (>4GB) amount of memory." << std::endl;
         }
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     // we require mapped pinned memory
     if (m_mapped && m_exec_conf && !m_exec_conf->dev_prop.canMapHostMemory)
         {
@@ -921,17 +917,15 @@ template<class T> void GPUArray<T>::allocate()
 
     bool use_device = m_exec_conf && m_exec_conf->isCUDAEnabled();
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     void *device_ptr = nullptr;
     if (use_device)
         {
         // register pointer for DMA
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        hipHostRegister(host_ptr,m_num_elements*sizeof(T), m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
-        #elif defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
         hipHostRegister(host_ptr,m_num_elements*sizeof(T), m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
         #endif
-        CHECK_DEVICE_ERROR();
+        CHECK_CUDA_ERROR();
         }
 #endif
 
@@ -939,28 +933,24 @@ template<class T> void GPUArray<T>::allocate()
     hoomd::detail::host_deleter<T> host_deleter(m_exec_conf, use_device, m_num_elements);
     h_data = std::unique_ptr<T, hoomd::detail::host_deleter<T> >(reinterpret_cast<T *>(host_ptr), host_deleter);
 
-#if defined (ENABLE_CUDA) || defined(ENABLE_HIP)
+#if defined (ENABLE_CUDA)
     assert(!d_data);
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         // allocate and/or map host memory
         if (m_mapped)
             {
-            #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-            hipHostGetDevicePointer(&device_ptr, h_data.get(), 0);
-            #elif defined(ENABLE_HIP)
+            #ifdef ENABLE_CUDA
             hipHostGetDevicePointer(&device_ptr, h_data.get(), 0);
             #endif
-            CHECK_DEVICE_ERROR();
+            CHECK_CUDA_ERROR();
             }
         else
             {
-            #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-            hipMalloc(&device_ptr, m_num_elements*sizeof(T));
-            #elif defined(ENABLE_HIP)
+            #ifdef ENABLE_CUDA
             hipMalloc(&device_ptr, m_num_elements*sizeof(T));
             #endif
-            CHECK_DEVICE_ERROR();
+            CHECK_CUDA_ERROR();
             }
 
         // store in smart pointer with custom deleter
@@ -985,14 +975,12 @@ template<class T> void GPUArray<T>::memclear(unsigned int first)
     // clear memory
     memset((void *)(h_data.get()+first), 0, sizeof(T)*(m_num_elements-first));
 
-#if defined (ENABLE_CUDA) || defined(ENABLE_HIP)
+#if defined (ENABLE_CUDA)
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
         if (! m_mapped)
-            #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-            hipMemset(d_data.get()+first, 0, (m_num_elements-first)*sizeof(T));
-            #elif defined(ENABLE_HIP)
+            #ifdef ENABLE_CUDA
             hipMemset(d_data.get()+first, 0, (m_num_elements-first)*sizeof(T));
             #endif
         }
@@ -1000,7 +988,7 @@ template<class T> void GPUArray<T>::memclear(unsigned int first)
     }
 
 
-#if defined (ENABLE_CUDA) || defined(ENABLE_HIP)
+#if defined (ENABLE_CUDA)
 /*! \post All memory on the device is copied to the host array
 */
 template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
@@ -1012,33 +1000,25 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
     if (m_mapped)
         {
         // if we are using mapped pinned memory, no need to copy, only synchronize
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
         if (!async) hipDeviceSynchronize();
-        return;
-        }
-        #elif defined(ENABLE_HIP)
-        if (!async) hipDeviceSynchronize();
-        return;
-        }
         #endif
+        return;
+        }
 
     if (m_exec_conf)
         m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB device->host " <<
            (async ? std::string("async") : std::string()) << std::endl;
     if (async)
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        hipMemcpyAsync(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, hipMemcpyDeviceToHost);
-        #elif defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
         hipMemcpyAsync(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, hipMemcpyDeviceToHost);
         #endif
     else
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        hipMemcpy(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, hipMemcpyDeviceToHost);
-        #elif defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
         hipMemcpy(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, hipMemcpyDeviceToHost);
         #endif
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_DEVICE_ERROR();
+        CHECK_CUDA_ERROR();
     }
 
 /*! \post All memory on the host is copied to the device array
@@ -1060,19 +1040,15 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
         m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB host->device " <<
            (async ? std::string("async") : std::string()) << std::endl;
     if (async)
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        hipMemcpyAsync(d_data.get(), h_data.get(), sizeof(T)*m_num_elements, hipMemcpyHostToDevice);
-        #elif defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
         hipMemcpyAsync(d_data.get(), h_data.get(), sizeof(T)*m_num_elements, hipMemcpyHostToDevice);
         #endif
     else
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        hipMemcpy(d_data.get(), h_data.get(), sizeof(T)*m_num_elements, hipMemcpyHostToDevice);
-        #elif defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
         hipMemcpy(d_data.get(), h_data.get(), sizeof(T)*m_num_elements, hipMemcpyHostToDevice);
         #endif
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_DEVICE_ERROR();
+        CHECK_CUDA_ERROR();
     }
 #endif
 
@@ -1088,7 +1064,7 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
 */
 template<class T>
 ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location, const access_mode::Enum mode
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
                                          , bool async
 #endif
                                         ) const
@@ -1110,7 +1086,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
             // the state stays on the host regardles of the access mode
             return GPUArrayDispatch<T>(h_data.get(), *this);
             }
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
         else if (m_data_location == data_location::hostdevice)
             {
             // finally perform the action based on the access mode requested
@@ -1170,7 +1146,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
             return ArrayHandleDispatch<T>(nullptr);
             }
         }
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     else if (location == access_location::device)
         {
         // check that a GPU is actually specified
@@ -1276,15 +1252,13 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
         throw std::runtime_error("Error allocating GPUArray.");
         }
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        hipHostRegister(h_tmp, num_elements*sizeof(T), m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
-        #elif defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
         hipHostRegister(h_tmp, num_elements*sizeof(T), m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
         #endif
-        CHECK_DEVICE_ERROR();
+        CHECK_CUDA_ERROR();
         }
 #endif
     // clear memory
@@ -1299,14 +1273,12 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
     hoomd::detail::host_deleter<T> host_deleter(m_exec_conf, use_device, num_elements);
     h_data = std::unique_ptr<T, hoomd::detail::host_deleter<T> >(h_tmp, host_deleter);
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     // update device pointer
     if (m_mapped)
         {
         void *dev_ptr = nullptr;
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        hipHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
-        #elif defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
         hipHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
         #endif
 
@@ -1339,15 +1311,13 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
         throw std::runtime_error("Error allocating GPUArray.");
         }
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        hipHostRegister(h_tmp, size, m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
-        #elif defined (ENABLE_HIP)
+        #ifdef ENABLE_CUDA
         hipHostRegister(h_tmp, size, m_mapped ? hipHostRegisterMapped : hipHostRegisterDefault);
         #endif
-        CHECK_DEVICE_ERROR();
+        CHECK_CUDA_ERROR();
         }
 #endif
 
@@ -1366,14 +1336,12 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
     hoomd::detail::host_deleter<T> host_deleter(m_exec_conf, use_device, new_pitch*new_height);
     h_data = std::unique_ptr<T, hoomd::detail::host_deleter<T> >(h_tmp, host_deleter);
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     // update device pointer
     if (m_mapped)
         {
         void *dev_ptr = nullptr;
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        hipHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
-        #elif defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
         hipHostGetDevicePointer(&dev_ptr, h_data.get(), 0);
         #endif
 
@@ -1393,37 +1361,31 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 */
 template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
     {
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     if (m_mapped) return NULL;
 
     // allocate resized array
     T *d_tmp;
-    #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-    hipMalloc(&d_tmp, num_elements*sizeof(T));
-    #elif defined(ENABLE_HIP)
+    #ifdef ENABLE_CUDA
     hipMalloc(&d_tmp, num_elements*sizeof(T));
     #endif
 
-    CHECK_DEVICE_ERROR();
+    CHECK_CUDA_ERROR();
 
     assert(d_tmp);
 
     // clear memory
-    #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-    hipMemset(d_tmp, 0, num_elements*sizeof(T));
-    #elif defined(ENABLE_HIP)
+    #ifdef ENABLE_CUDA
     hipMemset(d_tmp, 0, num_elements*sizeof(T));
     #endif
-    CHECK_DEVICE_ERROR();
+    CHECK_CUDA_ERROR();
 
     // copy over data
     unsigned int num_copy_elements = m_num_elements > num_elements ? num_elements : m_num_elements;
-    #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-    hipMemcpy(d_tmp, d_data.get(), sizeof(T)*num_copy_elements,hipMemcpyDeviceToDevice);
-    #elif defined(ENABLE_HIP)
+    #ifdef ENABLE_CUDA
     hipMemcpy(d_tmp, d_data.get(), sizeof(T)*num_copy_elements,hipMemcpyDeviceToDevice);
     #endif
-    CHECK_DEVICE_ERROR();
+    CHECK_CUDA_ERROR();
 
     // update smart ptr
     hoomd::detail::device_deleter<T> device_deleter(m_exec_conf, m_exec_conf->isCUDAEnabled(), num_elements, m_mapped);
@@ -1441,26 +1403,22 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(unsigned int num_elements)
 */
 template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsigned int new_pitch, unsigned int height, unsigned int new_height)
     {
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     if (m_mapped) return NULL;
 
     // allocate resized array
     T *d_tmp;
-    #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-    hipMalloc(&d_tmp, new_pitch*new_height*sizeof(T));
-    #elif defined(ENABLE_HIP)
+    #ifdef ENABLE_CUDA
     hipMalloc(&d_tmp, new_pitch*new_height*sizeof(T));
     #endif
-    CHECK_DEVICE_ERROR();
+    CHECK_CUDA_ERROR();
     assert(d_tmp);
 
     // clear memory
-    #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-    hipMemset(d_tmp, 0, new_pitch*new_height*sizeof(T));
-    #elif defined(ENABLE_HIP)
+    #ifdef ENABLE_CUDA
     hipMemset(d_tmp, 0, new_pitch*new_height*sizeof(T));
     #endif
-    CHECK_DEVICE_ERROR();
+    CHECK_CUDA_ERROR();
 
     // copy over data
     // every column is copied separately such as to align with the new pitch
@@ -1469,12 +1427,10 @@ template<class T> T* GPUArray<T>::resize2DDeviceArray(unsigned int pitch, unsign
 
     for (unsigned int i = 0; i < num_copy_rows; i++)
         {
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        hipMemcpy(d_tmp + i * new_pitch, d_data.get() + i * pitch, sizeof(T)*num_copy_columns,hipMemcpyDeviceToDevice);
-        #elif defined(ENABLE_HIP)
+        #ifdef ENABLE_CUDA
         hipMemcpy(d_tmp + i * new_pitch, d_data.get() + i * pitch, sizeof(T)*num_copy_columns,hipMemcpyDeviceToDevice);
         #endif
-        CHECK_DEVICE_ERROR();
+        CHECK_CUDA_ERROR();
         }
 
     // update smart ptr
@@ -1516,7 +1472,7 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
         m_exec_conf->msg->notice(7) << "GPUArray: Resizing to " << float(num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
 
     resizeHostArray(num_elements);
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         resizeDeviceArray(num_elements);
 #endif
@@ -1558,7 +1514,7 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
         }
 
     resize2DHostArray(m_pitch, new_pitch, m_height, height);
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         resize2DDeviceArray(m_pitch, new_pitch, m_height, height);
 #endif

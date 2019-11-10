@@ -200,10 +200,7 @@ void gpu_compute_cell_list(unsigned int *d_cell_size,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        #if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)gpu_compute_cell_list_kernel);
-        #elif defined(ENABLE_HIP)
+        #if defined(ENABLE_CUDA)
         hipFuncAttributes attr;
         hipFuncGetAttributes(&attr, (const void*)gpu_compute_cell_list_kernel);
         #endif
@@ -393,7 +390,7 @@ __global__ void gpu_combine_cell_lists_kernel(
    \param block_size GPU block size
    \param gpu_partition multi-GPU partition
  */
-cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
+hipError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
                                 unsigned int *d_cell_size,
                                 const unsigned int *d_idx_scratch,
                                 unsigned int *d_idx,
@@ -437,7 +434,7 @@ cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
             d_conditions);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 __global__ void gpu_apply_sorted_cell_list_order(
@@ -477,7 +474,7 @@ __global__ void gpu_apply_sorted_cell_list_order(
    \param cli Cell list indexer
    \param mgpu_context ModernGPU context
  */
-cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
+hipError_t gpu_sort_cell_list(unsigned int *d_cell_size,
                         Scalar4 *d_xyzf,
                         Scalar4 *d_xyzf_new,
                         Scalar4 *d_tdb,
@@ -528,18 +525,18 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
 
     // copy back permuted arrays to original ones
     if (d_xyzf)
-        cudaMemcpy(d_xyzf, d_xyzf_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+        hipMemcpy(d_xyzf, d_xyzf_new, sizeof(Scalar4)*cli.getNumElements(), hipMemcpyDeviceToDevice);
 
-    cudaMemcpy(d_cell_idx, d_cell_idx_new, sizeof(unsigned int)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+    hipMemcpy(d_cell_idx, d_cell_idx_new, sizeof(unsigned int)*cli.getNumElements(), hipMemcpyDeviceToDevice);
 
     if (d_tdb)
         {
-        cudaMemcpy(d_tdb, d_tdb_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+        hipMemcpy(d_tdb, d_tdb_new, sizeof(Scalar4)*cli.getNumElements(), hipMemcpyDeviceToDevice);
         }
     if (d_cell_orientation)
         {
-        cudaMemcpy(d_cell_orientation, d_cell_orientation_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+        hipMemcpy(d_cell_orientation, d_cell_orientation_new, sizeof(Scalar4)*cli.getNumElements(), hipMemcpyDeviceToDevice);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }

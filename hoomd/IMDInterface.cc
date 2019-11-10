@@ -8,7 +8,6 @@
     \brief Defines the IMDInterface class
 */
 
-
 #include "IMDInterface.h"
 #include "SignalHandler.h"
 

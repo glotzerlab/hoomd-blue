@@ -8,7 +8,7 @@
     \brief Defines the GPUFlags class
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 

@@ -7,11 +7,7 @@
 #include "HOOMDVersion.h"
 
 #ifdef ENABLE_CUDA
-    #if ENABLE_HIP
-    #include <hip/hip_runtime.h>
-    #else
-    #include <hip_runtime.h>
-    #endif
+#include <hip/hip_runtime.h>
 #endif
 
 #ifdef ENABLE_MPI
@@ -27,7 +23,7 @@ namespace py = pybind11;
 
 using namespace std;
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#if defined(ENABLE_CUDA)
 #include "CachedAllocator.h"
 #endif
 
@@ -75,7 +71,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     msg->notice(5) << "Constructing ExecutionConfiguration: ( " << s.str() << ") " <<  min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#if defined(ENABLE_CUDA)
     // scan the available GPUs
     scanGPUs(ignore_display);
     int dev_count = getNumCapableGPUs();
@@ -133,7 +129,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     setupStats();
 
-    #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA)
     if (exec_mode == GPU)
         {
         if (! m_concurrent && gpu_id.size() > 1)
@@ -238,7 +234,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         }
     #endif
 
-    #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA)
     // setup synchronization events
     m_events.resize(m_gpu_id.size());
     for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
@@ -254,14 +250,14 @@ ExecutionConfiguration::~ExecutionConfiguration()
     {
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
 
-    #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA)
     for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
         {
         hipEventDestroy(m_events[idev]);
         }
     #endif
 
-    #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA)
     // the destructors of these objects can issue hip calls, so free them before the device reset
     m_cached_alloc.reset();
     m_cached_alloc_managed.reset();
@@ -270,7 +266,7 @@ ExecutionConfiguration::~ExecutionConfiguration()
 
 std::string ExecutionConfiguration::getGPUName(unsigned int idev) const
     {
-    #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA)
     if (exec_mode == GPU)
         return string(m_dev_prop[idev].name);
     else
@@ -281,7 +277,7 @@ std::string ExecutionConfiguration::getGPUName(unsigned int idev) const
     }
 
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#if defined(ENABLE_CUDA)
 /*! \returns Compute capability of GPU 0 as a string
     \note Silently returns an empty string if no GPUs are specified
 */
@@ -326,7 +322,7 @@ void ExecutionConfiguration::handleHIPError(hipError_t err, const char *file, un
                      << file << ":" << line << endl;
 
         // throw an error exception
-        throw(runtime_error("CUDA Error"));
+        throw(runtime_error("HIP Error"));
         }
     }
 
@@ -635,7 +631,7 @@ int ExecutionConfiguration::getNumCapableGPUs()
     }
 #endif
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_CUDA
 void ExecutionConfiguration::handleHIPError(hipError_t err, const char *file, unsigned int line) const
     {
     // if there was an error
@@ -661,7 +657,7 @@ void ExecutionConfiguration::setupStats()
     {
     n_cpu = 1;
 
-    #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA) 
     if (exec_mode == GPU)
         {
         m_dev_prop.resize(m_gpu_id.size());
@@ -693,7 +689,7 @@ void ExecutionConfiguration::setupStats()
 
 void ExecutionConfiguration::multiGPUBarrier() const
     {
-    #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA)
     if (getNumActiveGPUs() > 1)
         {
         // record the synchronization point on every GPU after the last kernel has finished, count down in reverse
@@ -718,7 +714,7 @@ void ExecutionConfiguration::beginMultiGPU() const
     {
     m_in_multigpu_block = true;
 
-    #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA)
     // implement a one-to-n barrier
     if (getNumActiveGPUs() > 1)
         {
@@ -738,7 +734,7 @@ void ExecutionConfiguration::beginMultiGPU() const
         if (isCUDAErrorCheckingEnabled())
             {
             hipError_t err_sync = hipGetLastError();
-            handleCUDAError(err_sync, __FILE__, __LINE__);
+            handleHIPError(err_sync, __FILE__, __LINE__);
             }
         }
     #endif
@@ -748,7 +744,7 @@ void ExecutionConfiguration::endMultiGPU() const
     {
     m_in_multigpu_block = false;
 
-    #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA)
     // implement an n-to-one barrier
     if (getNumActiveGPUs() > 1)
         {
@@ -769,7 +765,7 @@ void ExecutionConfiguration::endMultiGPU() const
         if (isCUDAErrorCheckingEnabled())
             {
             hipError_t err_sync = hipGetLastError();
-            handleCUDAError(err_sync, __FILE__, __LINE__);
+            handleHIPError(err_sync, __FILE__, __LINE__);
             }
         }
     #endif
@@ -856,14 +852,14 @@ void export_ExecutionConfiguration(py::module& m)
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
         .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#if defined(ENABLE_CUDA)
         .def("hipProfileStart", &ExecutionConfiguration::hipProfileStart)
         .def("hipProfileStop", &ExecutionConfiguration::hipProfileStop)
 #endif
         .def("getGPUName", &ExecutionConfiguration::getGPUName)
         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
         .def_readonly("msg", &ExecutionConfiguration::msg)
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#if defined(ENABLE_CUDA)
         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
         .def("getPartition", &ExecutionConfiguration::getPartition)

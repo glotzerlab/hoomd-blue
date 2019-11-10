@@ -4,11 +4,6 @@
 
 // Maintainer: joaander
 
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "Compute.h"
 #include "Index1D.h"
 #include "ParticleGroup.h"
@@ -31,7 +26,7 @@
     \brief Declares the ForceCompute class
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -204,7 +199,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     };
 
 //! Exports the ForceCompute class to python
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 void export_ForceCompute(pybind11::module& m);
 #endif
 

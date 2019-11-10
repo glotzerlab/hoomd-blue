@@ -3,7 +3,6 @@
 
 
 // Maintainer: joaander All developers are free to add the calls needed to export their modules
-
 #include "HOOMDMath.h"
 #include "ExecutionConfiguration.h"
 #include "ClockSource.h"
@@ -42,14 +41,10 @@
 
 // include GPU classes
 #ifdef ENABLE_CUDA
-#ifndef ENABLE_HIP
-#include <cuda.h>
+#include <hip/hip_runtime.h>
 #include "CellListGPU.h"
 #include "ComputeThermoGPU.h"
 #include "SFCPackUpdaterGPU.h"
-
-#include <cuda_profiler_api.h>
-#endif
 #endif
 
 // include MPI classes

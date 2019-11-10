@@ -4,18 +4,6 @@
 
 // Maintainer: joaander
 
-
-
-
-
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "SystemDefinition.h"
 #include "Profiler.h"
 #include "SharedSignal.h"
@@ -31,7 +19,7 @@
     \brief Declares a base class for all computes
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -229,7 +217,7 @@ class PYBIND11_EXPORT Compute
     };
 
 //! Exports the Compute class to python
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 void export_Compute(pybind11::module& m);
 #endif
 

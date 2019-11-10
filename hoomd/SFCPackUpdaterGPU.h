@@ -8,14 +8,11 @@
     \brief Declares the SFCPackUpdaterGPU class
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
 #ifdef ENABLE_CUDA
-
-
-#include <hip/hip_runtime.h>
 #include "Updater.h"
 
 #include "SFCPackUpdater.h"

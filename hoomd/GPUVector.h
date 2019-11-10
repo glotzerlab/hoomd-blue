@@ -8,20 +8,11 @@
     \brief Defines the GPUVector and GlobalVector classes
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
 #pragma once
-#include <hip/hip_runtime.h>
-
-#include <hip/hip_runtime.h>
-
-#include <hip/hip_runtime.h>
-
-#include <hip/hip_runtime.h>
-
-
 #include "GPUArray.h"
 #include <algorithm>
 

@@ -4,8 +4,6 @@
 // Maintainer: jglaser
 
 #pragma once
-#include <hip/hip_runtime.h>
-
 
 // ensure that HOOMDMath.h is the first thing included
 #include "HOOMDMath.h"
@@ -18,7 +16,7 @@
     \brief Declares MPIConfiguration, which initializes the MPI environment
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -135,6 +133,6 @@ class PYBIND11_EXPORT MPIConfiguration
 
 
 //! Exports MPIConfiguration to python
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 void export_MPIConfiguration(pybind11::module& m);
 #endif

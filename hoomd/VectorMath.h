@@ -1,9 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-
-#include <hip/hip_runtime.h>
 #include "HOOMDMath.h"
 
 #ifndef __VECTOR_MATH_H__
@@ -16,7 +13,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #undef DEVICE
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #define DEVICE __host__ __device__
 #else
 #define DEVICE

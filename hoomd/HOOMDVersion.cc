@@ -10,10 +10,6 @@
 #include <string>
 
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
-#endif
-
-#ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
 
@@ -30,13 +26,6 @@ std::string hoomd_compile_flags()
     ostringstream o;
 
     #ifdef ENABLE_CUDA
-    int cudart_major = CUDART_VERSION / 1000;
-    int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
-
-    o << "CUDA (" << cudart_major << "." << cudart_minor << ") ";
-    #endif
-
-    #ifdef ENABLE_HIP
     int hip_major = HIP_VERSION_MAJOR;
     int hip_minor = HIP_VERSION_MINOR;
 

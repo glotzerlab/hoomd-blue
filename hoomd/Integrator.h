@@ -8,7 +8,7 @@
     \brief Declares the Integrator base class
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -25,11 +25,7 @@
 #include <pybind11/pybind11.h>
 
 #ifdef ENABLE_CUDA
-    #if ENABLE_HIP
-    #include <hip/hip_runtime.h>
-    #else
-    #include <cuda_runtime.h>
-    #endif
+#include <hip/hip_runtime.h>
 #endif
 
 //! Base class that defines an integrator

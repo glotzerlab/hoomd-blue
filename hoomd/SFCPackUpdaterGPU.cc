@@ -10,7 +10,6 @@
 
 #ifdef ENABLE_CUDA
 
-
 #include "SFCPackUpdaterGPU.h"
 #include "SFCPackUpdaterGPU.cuh"
 

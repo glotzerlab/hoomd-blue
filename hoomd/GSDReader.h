@@ -8,19 +8,15 @@
     \brief Declares the HOOMDInitializer class
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "ParticleData.h"
 #include <string>
 #include "hoomd/extern/gsd.h"
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #include <pybind11/pybind11.h>
 #endif
 

@@ -8,16 +8,6 @@
     \brief Defines the helper functions (GPU version) for updating the GPU bonded group tables
  */
 
-
-
-
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "hoomd/extern/util/mgpucontext.h"
 
 #include "HOOMDMath.h"
@@ -25,7 +15,7 @@
 #ifndef __BONDED_GROUP_DATA_CUH__
 #define __BONDED_GROUP_DATA_CUH__
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 //! Sentinel value
 const unsigned int GROUP_NOT_LOCAL = 0xffffffff;
 

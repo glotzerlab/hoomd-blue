@@ -8,15 +8,13 @@
     \brief Contains declarations for IntegratorData.
  */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
 #ifndef __INTEGRATORDATA_H__
 #define __INTEGRATORDATA_H__
 
-
-#include <hip/hip_runtime.h>
 #include "ParticleData.h"
 #include <string>
 

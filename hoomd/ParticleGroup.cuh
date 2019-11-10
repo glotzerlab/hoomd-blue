@@ -3,9 +3,6 @@
 
 
 // Maintainer: jglaser
-
-
-#include <hip/hip_runtime.h>
 #include "CachedAllocator.h"
 
 /*! \file ParticleGroup.cuh

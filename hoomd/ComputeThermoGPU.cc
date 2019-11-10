@@ -8,7 +8,6 @@
     \brief Contains code for the ComputeThermoGPU class
 */
 
-
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoGPU.cuh"
 #include "GPUPartition.cuh"
@@ -42,13 +41,13 @@ ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     m_block_size = 512;
 
-    cudaEventCreate(&m_event, cudaEventDisableTiming);
+    hipEventCreate(&m_event, hipEventDisableTiming);
     }
 
 //! Destructor
 ComputeThermoGPU::~ComputeThermoGPU()
     {
-    cudaEventDestroy(m_event);
+    hipEventDestroy(m_event);
     }
 
 /*! Computes all thermodynamic properties of the system in one fell swoop, on the GPU.
@@ -97,9 +96,9 @@ void ComputeThermoGPU::computeProperties()
         ArrayHandle<Scalar> d_scratch_pressure_tensor(m_scratch_pressure_tensor, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_scratch_rot(m_scratch_rot, access_location::device, access_mode::overwrite);
 
-        cudaMemset(d_scratch.data, 0, sizeof(Scalar4)*m_scratch.size());
-        cudaMemset(d_scratch_pressure_tensor.data, 0, sizeof(Scalar)*m_scratch_pressure_tensor.size());
-        cudaMemset(d_scratch_rot.data, 0, sizeof(Scalar)*m_scratch_rot.size());
+        hipMemset(d_scratch.data, 0, sizeof(Scalar4)*m_scratch.size());
+        hipMemset(d_scratch_pressure_tensor.data, 0, sizeof(Scalar)*m_scratch_pressure_tensor.size());
+        hipMemset(d_scratch_rot.data, 0, sizeof(Scalar)*m_scratch_rot.size());
         }
 
     // access the particle data

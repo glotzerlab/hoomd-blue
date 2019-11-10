@@ -4,14 +4,6 @@
 
 // Maintainer: joaander
 
-
-
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "ForceCompute.h"
 #include "ParticleGroup.h"
 
@@ -22,7 +14,7 @@
     \brief Declares a class for computing constant forces
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 

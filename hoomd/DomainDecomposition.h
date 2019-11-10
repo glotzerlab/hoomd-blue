@@ -20,7 +20,7 @@
 #include <set>
 #include <vector>
 
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 #include <pybind11/pybind11.h>
 #endif
 

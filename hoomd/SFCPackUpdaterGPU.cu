@@ -8,6 +8,8 @@
     \brief Defines GPU kernel code for generating the space-filling curve sorted order on the GPU. Used by SFCPackUpdaterGPU.
 */
 
+
+#include <hip/hip_runtime.h>
 #include "SFCPackUpdaterGPU.cuh"
 #include "hoomd/extern/kernels/mergesort.cuh"
 
@@ -86,9 +88,9 @@ void gpu_generate_sorted_order(unsigned int N,
     unsigned int n_blocks = N/block_size + 1;
 
     if (twod)
-        gpu_sfc_bin_particles_kernel<true><<<n_blocks, block_size>>>(N, d_pos, d_particle_bins, d_traversal_order, n_grid, d_sorted_order, box);
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_sfc_bin_particles_kernel<true>), dim3(n_blocks), dim3(block_size), 0, 0, N, d_pos, d_particle_bins, d_traversal_order, n_grid, d_sorted_order, box);
     else
-        gpu_sfc_bin_particles_kernel<false><<<n_blocks, block_size>>>(N, d_pos, d_particle_bins, d_traversal_order, n_grid, d_sorted_order, box);
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_sfc_bin_particles_kernel<false>), dim3(n_blocks), dim3(block_size), 0, 0, N, d_pos, d_particle_bins, d_traversal_order, n_grid, d_sorted_order, box);
 
     // Sort particles
     if (N)
@@ -206,7 +208,7 @@ void gpu_apply_sorted_order(
     unsigned int block_size = 512;
     unsigned int n_blocks = (N+n_ghost)/block_size + 1;
 
-    gpu_apply_sorted_order_kernel<<<n_blocks, block_size>>>(N,
+    hipLaunchKernelGGL(gpu_apply_sorted_order_kernel, dim3(n_blocks), dim3(block_size), 0, 0, N,
         n_ghost,
         d_sorted_order,
         d_pos,

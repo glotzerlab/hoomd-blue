@@ -8,15 +8,12 @@
     \brief Declares variables and functions related to handling signals
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
 #ifndef __SIGNALHANDLER_H__
 #define __SIGNALHANDLER_H__
-
-
-#include <hip/hip_runtime.h>
 #include <signal.h>
 
 //! Value set to non-zero if SIGINT has occurred

@@ -10,7 +10,6 @@
 
 #ifdef ENABLE_MPI
 
-#include <hip/hip_runtime.h>
 #include "ParticleData.cuh"
 #include "Index1D.h"
 

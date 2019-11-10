@@ -7,6 +7,7 @@
 /*! \file ParticleData.cc
     \brief Contains all code for ParticleData, and SnapshotParticleData.
  */
+
 #include "ParticleData.h"
 #include "Profiler.h"
 

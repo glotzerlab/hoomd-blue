@@ -8,14 +8,10 @@
     \brief Declares a base class for all analyzers
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include <pybind11/pybind11.h>
 
 #ifndef __ANALYZER_H__

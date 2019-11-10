@@ -5,12 +5,10 @@
     \brief Declares the LogMatrix class
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
-
-#include <hip/hip_runtime.h>
 #include "Logger.h"
 #include "Analyzer.h"
 #include "Compute.h"

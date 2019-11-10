@@ -8,7 +8,6 @@
     \brief Defines the System class
 */
 
-
 #include "System.h"
 #include "SignalHandler.h"
 

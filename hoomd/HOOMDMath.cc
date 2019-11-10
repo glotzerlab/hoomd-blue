@@ -8,7 +8,6 @@
     \brief Defines code needed for common math operations
  */
 
-
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 

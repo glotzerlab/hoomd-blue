@@ -4,23 +4,13 @@
 
 // Maintainer: joaander
 
-
-
-
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "ComputeThermo.h"
 
 /*! \file ComputeThermoGPU.h
     \brief Declares a class for computing thermodynamic quantities on the GPU
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 

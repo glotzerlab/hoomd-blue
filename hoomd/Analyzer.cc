@@ -8,10 +8,6 @@
     \brief Defines the base class Analyzer
 */
 
-
-
-
-#include <hip/hip_runtime.h>
 #include "Analyzer.h"
 
 namespace py = pybind11;

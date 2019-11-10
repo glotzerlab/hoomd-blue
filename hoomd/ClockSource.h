@@ -8,31 +8,13 @@
     \brief Declares the ClockSource class
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
 #ifndef __CLOCK_SOURCE_H__
 #define __CLOCK_SOURCE_H__
 
-
-
-
-
-
-
-
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "HOOMDMath.h"
 
 // The clock code uses 64 bit integers for big numbers of nanoseconds.
@@ -77,7 +59,7 @@ class PYBIND11_EXPORT ClockSource
     };
 
 //! Exports the ClockSource class to python
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 void export_ClockSource(pybind11::module& m);
 #endif
 

@@ -7,7 +7,7 @@
     \brief Declares the Variant and related classes
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -15,8 +15,6 @@
 #define __VARIANT_H__
 
 // ensure that HOOMDMath.h is the first thing included
-
-#include <hip/hip_runtime.h>
 #include "HOOMDMath.h"
 
 #include <map>

@@ -10,23 +10,6 @@
 
 #ifdef ENABLE_MPI
 
-
-
-
-
-
-
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "ParticleData.cuh"
 #include "BondedGroupData.cuh"
 
@@ -35,7 +18,7 @@
 #include "hoomd/extern/util/mgpucontext.h"
 #include "hoomd/CachedAllocator.h"
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 //! The flags used for indicating the itinerary of a particle
 enum gpu_send_flags
     {
@@ -173,10 +156,6 @@ void gpu_exchange_ghosts_pack(
     const Index3D& di,
     uint3 my_pos,
     const BoxDim& box);
-
-//! Initialize cache configuration
-void gpu_communicator_initialize_cache_config();
-
 
 //! Copy receive buffers into particle data
 void gpu_exchange_ghosts_copy_buf(

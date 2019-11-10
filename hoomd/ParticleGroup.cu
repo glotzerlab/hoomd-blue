@@ -52,7 +52,7 @@ __global__ void gpu_scatter_member_indices(unsigned int N,
     \param d_tag Array of tags
     \param num_local_members Number of members on the local processor (return value)
 */
-cudaError_t gpu_rebuild_index_list(unsigned int N,
+hipError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int *d_is_member_tag,
                                    unsigned int *d_is_member,
                                    unsigned int *d_tag)
@@ -68,7 +68,7 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                                          d_tag,
                                                          d_is_member_tag,
                                                          d_is_member);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! GPU method for compacting the group member indices
@@ -79,7 +79,7 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
     \param d_tag Array of tags
     \param num_local_members Number of members on the local processor (return value)
 */
-cudaError_t gpu_compact_index_list(unsigned int N,
+hipError_t gpu_compact_index_list(unsigned int N,
                                    unsigned int *d_is_member,
                                    unsigned int *d_member_idx,
                                    unsigned int &num_local_members,
@@ -111,5 +111,5 @@ cudaError_t gpu_compact_index_list(unsigned int N,
 
     gpu_scatter_member_indices<<<n_blocks, block_size>>>(N, d_tmp, d_is_member, d_member_idx);
 
-    return cudaSuccess;
+    return hipSuccess;
     }

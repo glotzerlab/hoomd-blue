@@ -8,21 +8,19 @@
     \brief Defines the SnapshotSystemData class
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
 #ifndef __SNAPSHOT_SYSTEM_DATA_H__
 #define __SNAPSHOT_SYSTEM_DATA_H__
 
-
-#include <hip/hip_runtime.h>
 #include "BoxDim.h"
 #include "ParticleData.h"
 #include "BondedGroupData.h"
 #include "IntegratorData.h"
 
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 #include <pybind11/pybind11.h>
 #endif
 

@@ -8,7 +8,7 @@
     \brief Declares an updater that changes the MPI domain decomposition to balance the load using the GPU
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -18,8 +18,6 @@
 #ifndef __LOADBALANCERGPU_H__
 #define __LOADBALANCERGPU_H__
 
-
-#include <hip/hip_runtime.h>
 #include "HOOMDMath.h"
 #include "GPUFlags.h"
 #include "LoadBalancer.h"

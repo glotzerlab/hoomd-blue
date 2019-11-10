@@ -9,7 +9,7 @@
 #include "ParticleGroup.cuh"
 #include "CachedAllocator.h"
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 #endif
 
 #include <algorithm>

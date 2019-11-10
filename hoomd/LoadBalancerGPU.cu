@@ -100,8 +100,8 @@ void gpu_load_balance_mark_rank(unsigned int *d_ranks,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_load_balance_mark_rank_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_load_balance_mark_rank_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
     unsigned int run_block_size = min(block_size, max_block_size);

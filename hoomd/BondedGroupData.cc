@@ -8,9 +8,6 @@
     \brief Defines implementation of BondedGroupData
  */
 
-
-
-#include <hip/hip_runtime.h>
 #include "BondedGroupData.h"
 #include "ParticleData.h"
 #include "Index1D.h"

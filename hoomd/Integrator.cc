@@ -7,7 +7,6 @@
     \brief Defines the Integrator base class
 */
 
-
 #include "Integrator.h"
 
 namespace py = pybind11;
@@ -544,9 +543,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         if (m_forces.size() == 0)
             {
             // start by zeroing the net force and virial arrays
-            cudaMemset(d_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
-            cudaMemset(d_net_torque.data, 0, sizeof(Scalar4)*net_torque.getNumElements());
-            cudaMemset(d_net_virial.data, 0, 6*sizeof(Scalar)*net_virial_pitch);
+            hipMemset(d_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
+            hipMemset(d_net_torque.data, 0, sizeof(Scalar4)*net_torque.getNumElements());
+            hipMemset(d_net_virial.data, 0, 6*sizeof(Scalar)*net_virial_pitch);
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }

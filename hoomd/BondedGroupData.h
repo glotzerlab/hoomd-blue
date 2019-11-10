@@ -8,7 +8,7 @@
     \brief Declares BondedGroupData
  */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -18,14 +18,6 @@
 //! Sentinel value to indicate group is not present on this processor
 const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 
-
-
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "ExecutionConfiguration.h"
 #include "GPUVector.h"
 #include "Profiler.h"
@@ -41,7 +33,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 #include <pybind11/pybind11.h>
 #endif
 

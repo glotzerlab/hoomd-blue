@@ -34,13 +34,13 @@
     \brief Declares ExecutionConfiguration and related classes
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include <pybind11/pybind11.h>
 
-#if defined(ENABLE_CUDA) ||defined(ENABLE_HIP)
+#if defined(ENABLE_CUDA)
 //! Forward declaration
 class CachedAllocator;
 #endif
@@ -141,14 +141,14 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! Get the number of active GPUs
     unsigned int getNumActiveGPUs() const
         {
-        #if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+        #if defined(ENABLE_CUDA)
         return m_gpu_id.size();
         #else
         return 0;
         #endif
         }
 
-    #if defined(ENABLE_CUDA) ||defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA)
     //! Get the IDs of the active GPUs
     const std::vector<unsigned int>& getGPUIds() const
         {
@@ -188,7 +188,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName(unsigned int idev=0) const;
 
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
+#if defined(ENABLE_CUDA)
     //! Get the device properties of a logical GPU
     hipDeviceProp_t getDeviceProperties(unsigned int idev) const
         {
@@ -202,11 +202,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         return m_concurrent;
         }
 
-<<<<<<< HEAD
 #ifdef ENABLE_CUDA
-=======
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
->>>>>>> 54678846bd8ff83217e4006f12e6f75e99e10aa1
     hipDeviceProp_t dev_prop;              //!< Cached device properties of the first GPU
     std::vector<unsigned int> m_gpu_id;   //!< IDs of active GPUs
     std::vector<hipDeviceProp_t> m_dev_prop; //!< Device configuration of active GPUs
@@ -217,20 +213,12 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! Get the compute capability of the GPU
     unsigned int getComputeCapability(unsigned int igpu = 0) const;
 
-<<<<<<< HEAD
     //! Handle cuda error message
     void handleCUDAError(hipError_t err, const char *file, unsigned int line) const;
-=======
     //! Handle hip error message
     void handleHIPError(hipError_t err, const char *file, unsigned int line) const;
->>>>>>> 54678846bd8ff83217e4006f12e6f75e99e10aa1
 #endif
 
-//commented out code because of change above
-/*#ifdef ENABLE_HIP
-    void handleHIPError(hipError_t err, const char *file, unsigned int line) const;
-#endif
-*/
     /*
      * The following MPI related methods only wrap those of the MPIConfiguration object,
        which can obtained with getMPIConfig(), and are provided as a legacy API.
@@ -291,7 +279,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         }
 
 
-    #if defined(ENABLE_CUDA) ||defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA)
     //! Returns the cached allocator for temporary allocations
     CachedAllocator& getCachedAllocator() const
         {
@@ -334,7 +322,7 @@ private:
      */
     int guessLocalRank(bool &found);
 
-#if defined(ENABLE_CUDA) ||defined(ENABLE_HIP)
+#if defined(ENABLE_CUDA)
     //! Initialize the GPU with the given id
     void initializeGPU(int gpu_id, bool min_cpu);
 
@@ -365,7 +353,7 @@ private:
 
     mutable bool m_in_multigpu_block;       //!< Tracks whether we are in a multi-GPU block
 
-    #if defined(ENABLE_CUDA) ||defined(ENABLE_HIP)
+    #if defined(ENABLE_CUDA)
     std::unique_ptr<CachedAllocator> m_cached_alloc;       //!< Cached allocator for temporary allocations
     std::unique_ptr<CachedAllocator> m_cached_alloc_managed; //!< Cached allocator for temporary allocations in managed memory
     #endif
@@ -382,41 +370,24 @@ private:
     };
 
 
-//meant to replace CHECK_CUDA_ERROR() and generalize for HIP and CUDA
-#if defined(ENABLE_CUDA) || defined(ENABLE_HIP)
-#if defined(ENABLE_CUDA) && !defined(ENABLE_HIP)
-#define CHECK_DEVICE_ERROR() { \
-    hipError_t err_sync = hipGetLastError(); \
-    this->m_exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__); \
-    auto gpu_map = this->m_exec_conf->getGPUIds(); \
-    for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev) \
-        { \
-        hipSetDevice(gpu_map[idev]); \
-        hipError_t err_async = hipDeviceSynchronize(); \
-        this->m_exec_conf->handleCUDAError(err_async, __FILE__, __LINE__); \
-        } \
-    }
-#elif defined(ENABLE_HIP)
-#define CHECK_DEVICE_ERROR() { \
+#if defined(ENABLE_CUDA)
+#define CHECK_CUDA_ERROR() { \
     hipError_t err_sync = hipGetLastError(); \
     this->m_exec_conf->handleHIPError(err_sync, __FILE__, __LINE__); \
     auto gpu_map = this->m_exec_conf->getGPUIds(); \
     for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev) \
         { \
         hipSetDevice(gpu_map[idev]); \
-        hipError_t err_async = hipDeviceSynchronize();  \
-        this->m_exec_conf->handleHIPError(err_async, __FILE__, __LINE__);  \
+        hipError_t err_async = hipDeviceSynchronize(); \
+        this->m_exec_conf->handleHIPError(err_async, __FILE__, __LINE__); \
         } \
     }
-#endif
 #else
-#define CHECK_DEVICE_ERROR()
+#define CHECK_CUDA_ERROR()
 #endif
 
-// Macro for easy checking of CUDA errors - enabled all the time
-#define CHECK_CUDA_ERROR CHECK_DEVICE_ERROR
 //! Exports ExecutionConfiguration to python
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 void export_ExecutionConfiguration(pybind11::module& m);
 #endif
 

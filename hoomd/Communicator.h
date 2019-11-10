@@ -13,20 +13,6 @@
 #ifndef __COMMUNICATOR_H__
 #define __COMMUNICATOR_H__
 
-#define NCORNER 8
-#define NEDGE 12
-#define NFACE 6
-
-
-
-
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "HOOMDMath.h"
 #include "GlobalArray.h"
 #include "GPUVector.h"
@@ -37,7 +23,7 @@
 #include <memory>
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 #include <pybind11/pybind11.h>
 #endif
 

@@ -7,8 +7,6 @@
 #ifndef _COMPUTE_THERMO_GPU_CUH_
 #define _COMPUTE_THERMO_GPU_CUH_
 
-#include <hip/hip_runtime.h>
-
 #include "ParticleData.cuh"
 #include "ComputeThermoTypes.h"
 #include "HOOMDMath.h"

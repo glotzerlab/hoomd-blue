@@ -3,11 +3,6 @@
 
 
 // Maintainer: joaander
-
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "ForceCompute.h"
 
 #include <memory>
@@ -16,7 +11,7 @@
     \brief Declares a base class for computing constraint
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 

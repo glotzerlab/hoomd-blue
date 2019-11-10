@@ -9,7 +9,6 @@
 */
 
 #ifdef ENABLE_MPI
-
 #include "Communicator.h"
 #include "System.h"
 

@@ -4,18 +4,6 @@
 
 // Maintainer: mphoward
 
-
-
-
-
-
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
 #include "Compute.h"
 #include "CellList.h"
 
@@ -23,7 +11,7 @@
     \brief Declares the CellListStencil class
 */
 
-#ifdef NVCC
+#ifdef __HIP_DEVICE_COMPILE__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -125,7 +113,7 @@ class PYBIND11_EXPORT CellListStencil : public Compute
     };
 
 //! Exports CellListStencil to python
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 void export_CellListStencil(pybind11::module& m);
 #endif
 

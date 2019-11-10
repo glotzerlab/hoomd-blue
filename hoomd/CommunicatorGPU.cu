@@ -768,8 +768,8 @@ void gpu_exchange_ghosts_make_indices(
         }
     else
         {
-        cudaMemset(d_ghost_begin, 0, sizeof(unsigned int)*n_unique_neigh);
-        cudaMemset(d_ghost_end, 0, sizeof(unsigned int)*n_unique_neigh);
+        hipMemset(d_ghost_begin, 0, sizeof(unsigned int)*n_unique_neigh);
+        hipMemset(d_ghost_end, 0, sizeof(unsigned int)*n_unique_neigh);
         }
     }
 
@@ -997,14 +997,6 @@ void gpu_exchange_ghost_groups_pack(
     unsigned int n_blocks = n_out/block_size + 1;
 
     gpu_group_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_group_tag, d_groups, d_group_typeval, d_group_ranks, d_groups_sendbuf);
-    }
-
-void gpu_communicator_initialize_cache_config()
-    {
-    cudaFuncSetCacheConfig(gpu_pack_kernel<Scalar>, cudaFuncCachePreferL1);
-    cudaFuncSetCacheConfig(gpu_pack_kernel<Scalar4>, cudaFuncCachePreferL1);
-    cudaFuncSetCacheConfig(gpu_pack_kernel<unsigned int>, cudaFuncCachePreferL1);
-    cudaFuncSetCacheConfig(gpu_pack_wrap_kernel, cudaFuncCachePreferL1);
     }
 
 template<typename T>
@@ -1976,7 +1968,7 @@ void gpu_reset_exchange_plan(
     unsigned int N,
     unsigned int *d_plan)
     {
-    cudaMemsetAsync(d_plan, 0, sizeof(unsigned int)*N);
+    hipMemsetAsync(d_plan, 0, sizeof(unsigned int)*N);
     }
 /*
  *! Explicit template instantiations for BondData (n=2)

@@ -7,7 +7,6 @@
     \brief Defines Variant and related classes
 */
 
-
 #include "Variant.h"
 
 #include <iostream>

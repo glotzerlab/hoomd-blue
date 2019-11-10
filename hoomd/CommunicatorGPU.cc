@@ -45,21 +45,18 @@ CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
     // initialize communication stages
     initializeCommunicationStages();
 
-    // Initialize cache configuration
-    gpu_communicator_initialize_cache_config();
-
     // create at ModernGPU context
     m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
 
     // create cuda event
-    cudaEventCreate(&m_event, cudaEventDisableTiming);
+    hipEventCreate(&m_event, hipEventDisableTiming);
     }
 
 //! Destructor
 CommunicatorGPU::~CommunicatorGPU()
     {
     m_exec_conf->msg->notice(5) << "Destroying CommunicatorGPU";
-    cudaEventDestroy(m_event);
+    hipEventDestroy(m_event);
     }
 
 void CommunicatorGPU::allocateBuffers()
@@ -624,7 +621,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<rank_element_t> ranks_recvbuf_handle(m_ranks_recvbuf, access_location::device, access_mode::overwrite);
 
             // MPI library may use non-zero stream
-            cudaDeviceSynchronize();
+            hipDeviceSynchronize();
             #else
             ArrayHandle<rank_element_t> ranks_sendbuf_handle(m_ranks_sendbuf, access_location::host, access_mode::read);
             ArrayHandle<rank_element_t> ranks_recvbuf_handle(m_ranks_recvbuf, access_location::host, access_mode::overwrite);
@@ -2057,7 +2054,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::device, access_mode::read);
 
             // MPI library may use non-zero stream
-            cudaDeviceSynchronize();
+            hipDeviceSynchronize();
             #else
             // recv buffers
             ArrayHandleAsync<unsigned int> tag_ghost_recvbuf_handle(m_tag_ghost_recvbuf, access_location::host, access_mode::overwrite);
@@ -2079,7 +2076,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandleAsync<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::host, access_mode::read);
 
             // lump together into one synchronization call
-            cudaDeviceSynchronize();
+            hipDeviceSynchronize();
             #endif
 
             ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
@@ -2332,7 +2329,7 @@ void CommunicatorGPU::exchangeGhosts()
 
         #ifdef ENABLE_MPI_CUDA
         // MPI library may use non-zero stream
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         #else
         // only unpack in non-CUDA MPI builds
             {
@@ -2511,7 +2508,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
             ArrayHandle<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
 
             // MPI library may use non-zero stream
-            cudaDeviceSynchronize();
+            hipDeviceSynchronize();
             #else
             // recv buffers
             ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::host, access_mode::overwrite);
@@ -2527,8 +2524,8 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
             ArrayHandleAsync<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
 
             // lump together into one synchronization call
-            cudaEventRecord(m_event);
-            cudaEventSynchronize(m_event);
+            hipEventRecord(m_event);
+            hipEventSynchronize(m_event);
             #endif
 
             // access send buffers
@@ -2723,7 +2720,7 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
 
         #ifdef ENABLE_MPI_CUDA
         // MPI library may use non-zero stream
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         #else
         // only unpack in non-CUDA-MPI builds
         assert(m_num_stages == 1);
