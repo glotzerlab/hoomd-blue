@@ -7,7 +7,7 @@
 #include "ParticleData.cuh"
 #include "ParticleGroup.cuh"
 
-#include "hoomd/extern/cub/cub/cub.cuh"
+#include <hipcub/hipcub.hpp>
 #include <thrust/reduce.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
@@ -94,7 +94,7 @@ hipError_t gpu_compact_index_list(unsigned int N,
     size_t   temp_storage_bytes = 0;
 
     // determine size of temporary storage
-    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
     cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);

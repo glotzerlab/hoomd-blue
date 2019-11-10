@@ -75,14 +75,6 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
 
     // initialize data structures
     initialize();
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
     }
 
 /*! \param exec_conf Execution configuration
@@ -100,14 +92,6 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     // connect to particle sort signal
     m_pdata->getParticleSortSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
         &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
 
     // initialize from snapshot
     initializeFromSnapshot(snapshot);
@@ -875,7 +859,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
             ScopedAllocation<unsigned int> d_scratch_g(alloc, tmp_size);
             ScopedAllocation<unsigned int> d_scratch_idx(alloc, tmp_size);
             ScopedAllocation<unsigned int> d_offsets(alloc, tmp_size);
-            ScopedAllocation<unsigned int> d_seg_offsets(alloc, nptl);
 
             // fill group table on GPU
             gpu_update_group_table<group_size, members_t>(
@@ -895,9 +878,8 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                 d_scratch_g.data,
                 d_scratch_idx.data,
                 d_offsets.data,
-                d_seg_offsets.data,
                 has_type_mapping,
-                m_mgpu_context);
+                m_exec_conf->getCachedAllocator());
             }
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
 

@@ -19,8 +19,6 @@
 #include <thrust/scatter.h>
 #include <thrust/device_ptr.h>
 
-#include "hoomd/extern/kernels/scan.cuh"
-
 //! Kernel to partition particle data
 __global__ void gpu_scatter_particle_data_kernel(
     const unsigned int nwork,
@@ -203,7 +201,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     unsigned int *d_comm_flags_out,
                     unsigned int max_n_out,
                     unsigned int *d_tmp,
-                    mgpu::ContextPtr mgpu_context,
+                    CachedAllocator& alloc,
                     GPUPartition& gpu_partition)
     {
     unsigned int n_out;
@@ -219,13 +217,35 @@ unsigned int gpu_pdata_remove(const unsigned int N,
         d_tmp);
 
     // perform a scan over the array of ones and zeroes
-    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_tmp,
-        N, (unsigned int) 0, mgpu::plus<unsigned int>(),
-        (unsigned int *)NULL, &n_out, d_tmp, *mgpu_context);
+    void     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
 
-    // NOTE: the call in the line above assumes that a cudaDeviceSynchronize() with the host is performed
-    // in mgpu.  If this call is ever replaced by a device-level primitive which does not synchronize, e.g. CUB,
-    // we will need to perform an explicit sync between devices in multi-GPU simulations here
+    // determine size of temporary storage
+    unsigned int *d_scan = alloc.getTemporaryBuffer<unsigned int>(N);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
+
+    d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
+    alloc.deallocate((char *)d_temp_storage);
+
+    // determine total number of sent particles
+    d_temp_storage = NULL;
+    temp_storage_bytes = 0;
+    unsigned int *d_n_out = (unsigned int *) alloc.allocate(sizeof(unsigned int));
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_tmp,
+        d_n_out,
+        N);
+    d_temp_storage = alloc.allocate(temp_storage_bytes);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_tmp
+        d_n_out,
+        N);
+    alloc.deallocate((char *) d_temp_storage);
+    hipMemcpy(&n_out, d_n_max, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    alloc.deallocate((char *) d_n_out);
 
     // Don't write past end of buffer
     if (n_out <= max_n_out)
@@ -276,10 +296,13 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                 d_out,
                 d_comm_flags,
                 d_comm_flags_out,
-                d_tmp,
+                d_scan,
                 offset);
             }
         }
+
+    // free temp buf
+    alloc.deallocate((char *)d_scan);
 
     // return elements written to output stream
     return n_out;

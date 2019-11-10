@@ -11,7 +11,7 @@
 #ifndef HOOMD_WARP_TOOLS_CUH_
 #define HOOMD_WARP_TOOLS_CUH_
 
-#include "hoomd/extern/cub/cub/cub.cuh"
+#include <hipcub/hipcub.hpp>
 
 #define DEVICE __device__ __forceinline__
 

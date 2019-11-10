@@ -10,6 +10,7 @@
 
 
 #include <hip/hip_runtime.h>
+#include <hipcub/hipcub.hpp>
 #include "SFCPackUpdaterGPU.cuh"
 #include "hoomd/extern/kernels/mergesort.cuh"
 
@@ -81,7 +82,7 @@ void gpu_generate_sorted_order(unsigned int N,
         unsigned int *d_sorted_order,
         const BoxDim& box,
         bool twod,
-        mgpu::ContextPtr mgpu_context)
+        CachedAllocator& alloc) 
     {
     // maybe need to autotune, but SFCPackUpdater is called infrequently
     unsigned int block_size = 512;
@@ -94,7 +95,25 @@ void gpu_generate_sorted_order(unsigned int N,
 
     // Sort particles
     if (N)
-        mgpu::MergesortPairs(d_particle_bins, d_sorted_order, N, *mgpu_context);
+        {
+        void     *d_temp_storage = NULL;
+        size_t   temp_storage_bytes = 0;
+
+        // sort groups by particle idx
+		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
+										temp_storage_bytes,
+										d_particle_bins,
+										d_sorted_order,
+										N);
+    
+        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
+										temp_storage_bytes,
+										d_particle_bins,
+										d_sorted_order,
+										N);
+        alloc.deallocate((char *)d_temp_storage);
+        }
     }
 
 //! Kernel to apply sorted order

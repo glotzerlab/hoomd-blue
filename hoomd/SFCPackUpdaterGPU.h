@@ -58,8 +58,6 @@ class PYBIND11_EXPORT SFCPackUpdaterGPU : public SFCPackUpdater
 
         //! Apply the sorted order to the particle data
         virtual void applySortOrder();
-
-        mgpu::ContextPtr m_mgpu_context;                    //!< MGPU context (for sorting)
     };
 
 //! Export the SFCPackUpdaterGPU class to python

@@ -8,9 +8,8 @@
     \brief Defines the helper functions (GPU version) for updating the GPU bonded group tables
  */
 
-#include "hoomd/extern/util/mgpucontext.h"
-
 #include "HOOMDMath.h"
+#include "CachedAllocator.h"
 
 #ifndef __BONDED_GROUP_DATA_CUH__
 #define __BONDED_GROUP_DATA_CUH__
@@ -75,8 +74,7 @@ void gpu_update_group_table(
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
-    unsigned int *d_seg_offsets,
     bool has_type_mapping,
-    mgpu::ContextPtr mgpu_context
+    CachedAllocator& alloc
     );
 #endif // __BONDED_GROUP_DATA_CUH__

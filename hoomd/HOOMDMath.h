@@ -219,6 +219,7 @@ HOSTDEVICE inline Scalar3 operator+ (const Scalar3 &a, const Scalar3 &b)
                         a.z + b.z);
     }
 
+#ifndef ENABLE_CUDA
 //! Vector addition
 HOSTDEVICE inline Scalar3& operator+= (Scalar3 &a, const Scalar3 &b)
     {
@@ -227,6 +228,7 @@ HOSTDEVICE inline Scalar3& operator+= (Scalar3 &a, const Scalar3 &b)
     a.z += b.z;
     return a;
     }
+#endif
 
 //! Vector subtraction
 HOSTDEVICE inline Scalar3 operator- (const Scalar3 &a, const Scalar3 &b)

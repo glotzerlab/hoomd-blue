@@ -7,9 +7,7 @@
 #include "ParticleData.cuh"
 #include "BondedGroupData.cuh"
 
-#include "hoomd/extern/kernels/scan.cuh"
-#include "hoomd/extern/kernels/mergesort.cuh"
-#include "hoomd/extern/kernels/intervalmove.cuh"
+#include <hipcub/hipcub.hpp>
 
 /*! \file BondedGroupData.cu
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables
@@ -139,9 +137,8 @@ void gpu_update_group_table(
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
-    unsigned int *d_seg_offsets,
     bool has_type_mapping,
-    mgpu::ContextPtr mgpu_context
+    CachedAllocator& alloc
     )
     {
     // construct scratch table by expanding the group table by particle index
@@ -169,19 +166,33 @@ void gpu_update_group_table(
     if (! (flag >= next_flag) && n_groups)
         {
         // we are good, fill group table
+        void     *d_temp_storage = NULL;
+        size_t   temp_storage_bytes = 0;
 
-        // sort groups by particle index
-        mgpu::MergesortPairs(d_scratch_idx, d_scratch_g, group_size*n_groups, *mgpu_context);
+        // sort groups by particle idx
+		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
+										temp_storage_bytes,
+										d_scratch_idx,
+										d_scratch_g,
+										group_size*n_groups);
+    
+        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
+										temp_storage_bytes,
+										d_scratch_idx,
+										d_scratch_g,
+										group_size*n_groups);
+        alloc.deallocate((char *)d_temp_storage);
 
-        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_n_groups, N, (unsigned int) 0, mgpu::plus<unsigned int>(),
-            (unsigned int *) NULL, (unsigned int *)NULL, d_seg_offsets,*mgpu_context);
-
-        // use IntervalMove to perform a segmented scan of d_scratch_idx,
-        // using segment offsets as input
-        mgpu::constant_iterator<unsigned int> const_it(0);
-        mgpu::counting_iterator<unsigned int> count_it(0);
-        mgpu::IntervalMove(group_size*n_groups, const_it, d_seg_offsets, d_seg_offsets, N,
-            count_it, d_offsets, *mgpu_context);
+        // perform a segmented scan of d_scratch_idx
+        thrust::device_ptr<unsigned int> scratch_idx(d_scratch_ptr):
+        thrust::device_Ptr<unsigned int> offsets(d_offsets);
+        thrust::constant_iterator<unsigned int> const_it(1);
+        thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
+            scratch_idx,
+            scratch_idx + group_size*n_groups,
+            const_it,
+            offsets);
 
         // scatter groups to destinations
         block_size = 512;
