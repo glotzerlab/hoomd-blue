@@ -6,9 +6,6 @@
 
 #include "CellListGPU.cuh"
 
-#include "hoomd/extern/util/mgpucontext.h"
-#include "hoomd/extern/kernels/localitysort.cuh"
-
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
 
@@ -472,7 +469,6 @@ __global__ void gpu_apply_sorted_cell_list_order(
    \param d_sort_permutation Temporary array for storing the permuted cell list indices
    \param ci Cell indexer
    \param cli Cell list indexer
-   \param mgpu_context ModernGPU context
  */
 hipError_t gpu_sort_cell_list(unsigned int *d_cell_size,
                         Scalar4 *d_xyzf,

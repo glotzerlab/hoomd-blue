@@ -61,7 +61,6 @@ set(_hoomd_sources Analyzer.cc
                    extern/imd.cc
                    extern/kiss_fft.cc
                    extern/kiss_fftnd.cc
-                   extern/mgpuutil.cc
                    extern/vmdsock.cc
                    )
 
@@ -169,8 +168,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       LoadBalancerGPU.cu
                       ParticleData.cu
                       ParticleGroup.cu
-                      SFCPackUpdaterGPU.cu
-                      extern/mgpucontext.cu)
+                      SFCPackUpdaterGPU.cu)
 
 # include libgetar sources directly into _hoomd.so
 get_property(GETAR_SRCS_REL TARGET getar PROPERTY SOURCES)
