@@ -205,7 +205,7 @@ class AttachedTypeParameterDict(_ValidateDict):
                     key = tuple(sorted(key))
                 if key not in curr_keys:
                     raise KeyError("Type {} does not exist in the "
-                                "system.".format(key))
+                                   "system.".format(key))
                 vals[key] = getattr(self._cpp_obj, self._getter)(key)
             return vals
 
@@ -235,7 +235,8 @@ class AttachedTypeParameterDict(_ValidateDict):
             given_keys = given_keys.difference(none_keys)
             keys_missing = neccessary_keys - given_keys
             if keys_missing != set():
-                raise ValueError("Missing keys {}.".format(tuple(keys_missing)))
+                raise ValueError(
+                    "Missing keys {}.".format(tuple(keys_missing)))
             new_val = deepcopy(self._default)
             new_val.update(val)
         else:
