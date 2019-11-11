@@ -3,7 +3,7 @@
 
 #pragma once
 
-#ifndef __HIP_DEVICE_COMPILE__
+#ifndef ____HIPCC____
 #include "managed_allocator.h"
 
 #include <algorithm>
@@ -16,7 +16,7 @@
 
 #include <memory>
 
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef ____HIPCC____
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -35,7 +35,7 @@ class ManagedArray
               allocation_ptr(nullptr), allocation_bytes(0)
             { }
 
-        #ifndef __HIP_DEVICE_COMPILE__
+        #ifndef ____HIPCC____
         ManagedArray(unsigned int _N, bool _managed, size_t _align = 0)
             : data(nullptr), ptr(nullptr), N(_N), managed(_managed), align(_align),
               allocation_ptr(nullptr), allocation_bytes(0)
@@ -49,7 +49,7 @@ class ManagedArray
 
         DEVICE ~ManagedArray()
             {
-            #ifndef __HIP_DEVICE_COMPILE__
+            #ifndef ____HIPCC____
             deallocate();
             #endif
             }
@@ -63,7 +63,7 @@ class ManagedArray
             : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
               allocation_ptr(nullptr), allocation_bytes(0)
             {
-            #ifndef __HIP_DEVICE_COMPILE__
+            #ifndef ____HIPCC____
             if (N > 0)
                 {
                 allocate();
@@ -83,7 +83,7 @@ class ManagedArray
          */
         DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
             {
-            #ifndef __HIP_DEVICE_COMPILE__
+            #ifndef ____HIPCC____
             deallocate();
             #endif
 
@@ -91,7 +91,7 @@ class ManagedArray
             managed = other.managed;
             align = other.align;
 
-            #ifndef __HIP_DEVICE_COMPILE__
+            #ifndef ____HIPCC____
             if (N > 0)
                 {
                 allocate();
@@ -220,7 +220,7 @@ class ManagedArray
             }
 
     protected:
-        #ifndef __HIP_DEVICE_COMPILE__
+        #ifndef ____HIPCC____
         void allocate()
             {
             ptr = managed_allocator<T>::allocate_construct_aligned(N, managed, align, allocation_bytes, allocation_ptr);

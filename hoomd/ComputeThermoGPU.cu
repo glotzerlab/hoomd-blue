@@ -4,7 +4,6 @@
 
 // Maintainer: joaander
 
-
 #include <hip/hip_runtime.h>
 #include "ComputeThermoGPU.cuh"
 #include "VectorMath.h"

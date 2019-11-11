@@ -17,7 +17,7 @@
 
 #include "hoomd/CachedAllocator.h"
 
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIPCC__
 //! The flags used for indicating the itinerary of a particle
 enum gpu_send_flags
     {

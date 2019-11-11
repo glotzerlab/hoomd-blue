@@ -22,7 +22,7 @@
 #include "GPUFlags.h"
 #include "GPUVector.h"
 
-#ifndef __HIP_DEVICE_COMPILE__
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 

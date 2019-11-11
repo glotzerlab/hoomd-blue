@@ -16,7 +16,7 @@
     \brief Declares a class for computing thermodynamic quantities
 */
 
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef ____HIPCC____
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -322,7 +322,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
     };
 
 //! Exports the ComputeThermo class to python
-#ifndef __HIP_DEVICE_COMPILE__
+#ifndef ____HIPCC____
 void export_ComputeThermo(pybind11::module& m);
 #endif
 

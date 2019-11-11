@@ -7,6 +7,10 @@
 #include "ParticleData.cuh"
 #include "BondedGroupData.cuh"
 
+#include <hip/hip_runtime.h>
+#include <thrust/sort.h>
+#include <thrust/device_ptr.h>
+#include <thrust/execution_policy.h>
 #include <hipcub/hipcub.hpp>
 
 /*! \file BondedGroupData.cu
@@ -148,7 +152,7 @@ void gpu_update_group_table(
     // reset number of groups
     hipMemsetAsync(d_n_groups, 0, sizeof(unsigned int)*N);
 
-    gpu_count_groups_kernel<group_size><<<n_blocks, block_size>>>(
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_count_groups_kernel<group_size>), dim3(n_blocks), dim3(block_size), 0, 0,
         n_groups,
         d_group_table,
         d_rtag,
@@ -166,27 +170,15 @@ void gpu_update_group_table(
     if (! (flag >= next_flag) && n_groups)
         {
         // we are good, fill group table
-        void     *d_temp_storage = NULL;
-        size_t   temp_storage_bytes = 0;
-
         // sort groups by particle idx
-		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-										temp_storage_bytes,
-										d_scratch_idx,
-										d_scratch_g,
-										group_size*n_groups);
-    
-        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-										temp_storage_bytes,
-										d_scratch_idx,
-										d_scratch_g,
-										group_size*n_groups);
-        alloc.deallocate((char *)d_temp_storage);
+        thrust::device_ptr<unsigned int> scratch_idx(d_scratch_idx);
+        thrust::sort_by_key(thrust::cuda::par(alloc),
+            scratch_idx,
+            scratch_idx + group_size*n_groups,
+            thrust::device_ptr<unsigned int>(d_scratch_g));
 
         // perform a segmented scan of d_scratch_idx
-        thrust::device_ptr<unsigned int> scratch_idx(d_scratch_ptr):
-        thrust::device_Ptr<unsigned int> offsets(d_offsets);
+        thrust::device_ptr<unsigned int> offsets(d_offsets);
         thrust::constant_iterator<unsigned int> const_it(1);
         thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
             scratch_idx,
@@ -198,7 +190,7 @@ void gpu_update_group_table(
         block_size = 512;
         n_blocks = group_size*n_groups/block_size + 1;
 
-        gpu_group_scatter_kernel<group_size><<<n_blocks, block_size>>>(
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_group_scatter_kernel), dim3(n_blocks), dim3(block_size), 0, 0,
             n_groups*group_size,
             d_scratch_g,
             d_scratch_idx,
@@ -235,7 +227,6 @@ template void gpu_update_group_table<2>(
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
-    unsigned int *d_seg_offsets,
     bool has_type_mapping,
     CachedAllocator& alloc
     );
@@ -258,7 +249,6 @@ template void gpu_update_group_table<3>(
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
-    unsigned int *d_seg_offsets,
     bool has_type_mapping,
     CachedAllocator& alloc
     );
@@ -281,7 +271,6 @@ template void gpu_update_group_table<4>(
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
-    unsigned int *d_seg_offsets,
     bool has_type_mapping,
     CachedAllocator& alloc
     );

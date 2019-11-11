@@ -14,7 +14,7 @@
 #ifndef __BONDED_GROUP_DATA_CUH__
 #define __BONDED_GROUP_DATA_CUH__
 
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIPCC__
 //! Sentinel value
 const unsigned int GROUP_NOT_LOCAL = 0xffffffff;
 

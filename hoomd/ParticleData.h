@@ -8,7 +8,7 @@
     \brief Defines the ParticleData class and associated utilities
 */
 
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef ____HIPCC____
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -33,7 +33,7 @@
 #include <memory>
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
-#ifndef __HIP_DEVICE_COMPILE__
+#ifndef ____HIPCC____
 #include <pybind11/pybind11.h>
 #endif
 
@@ -1223,7 +1223,7 @@ class PYBIND11_EXPORT ParticleData
         void setGPUAdvice();
     };
 
-#ifndef __HIP_DEVICE_COMPILE__
+#ifndef ____HIPCC____
 //! Exports the BoxDim class to python
 void export_BoxDim(pybind11::module& m);
 //! Exports ParticleData to python

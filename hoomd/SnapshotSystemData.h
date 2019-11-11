@@ -8,7 +8,7 @@
     \brief Defines the SnapshotSystemData class
 */
 
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef ____HIPCC____
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -20,7 +20,7 @@
 #include "BondedGroupData.h"
 #include "IntegratorData.h"
 
-#ifndef __HIP_DEVICE_COMPILE__
+#ifndef ____HIPCC____
 #include <pybind11/pybind11.h>
 #endif
 

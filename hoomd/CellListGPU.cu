@@ -6,8 +6,8 @@
 
 #include "CellListGPU.cuh"
 
-#include <thrust/device_vector.h>
 #include <thrust/sort.h>
+#include <thrust/device_ptr.h>
 
 /*! \file CellListGPU.cu
     \brief Defines GPU kernel code for cell list generation on the GPU
@@ -218,7 +218,8 @@ void gpu_compute_cell_list(unsigned int *d_cell_size,
         unsigned int run_block_size = min(block_size, max_block_size);
         int n_blocks = nwork/run_block_size + 1;
 
-        gpu_compute_cell_list_kernel<<<n_blocks, run_block_size>>>(d_cell_size+idev*ci.getNumElements(),
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_compute_cell_list_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0,
+                                                                   d_cell_size+idev*ci.getNumElements(),
                                                                    d_xyzf ? d_xyzf+idev*cli.getNumElements() : 0,
                                                                    d_tdb ? d_tdb+idev*cli.getNumElements() : 0,
                                                                    d_cell_orientation ? d_cell_orientation+idev*cli.getNumElements() : 0,
@@ -412,8 +413,7 @@ hipError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
         {
         gpu_partition.getRangeAndSetGPU(idev);
 
-        gpu_combine_cell_lists_kernel<<<grid, threads>>>
-            (
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_combine_cell_lists_kernel), grid, threads, 0, 0,
             d_cell_size_scratch,
             d_cell_size,
             d_idx_scratch,
@@ -490,8 +490,7 @@ hipError_t gpu_sort_cell_list(unsigned int *d_cell_size,
     dim3 threads(block_size);
     dim3 grid(cli.getNumElements()/block_size + 1);
 
-    gpu_fill_indices_kernel<<<grid, threads>>>
-        (
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_fill_indices_kernel), grid, threads, 0, 0,
         cli.getNumElements(),
         d_sort_idx,
         d_sort_permutation,
@@ -506,7 +505,7 @@ hipError_t gpu_sort_cell_list(unsigned int *d_cell_size,
     thrust::sort_by_key(d_sort_idx_thrust, d_sort_idx_thrust + cli.getNumElements(), d_sort_permutation_thrust, comp_less_uint2());
 
     // apply sorted order
-    gpu_apply_sorted_cell_list_order<<<grid, threads>>>(
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_apply_sorted_cell_list_order), grid, threads, 0, 0,
         cli.getNumElements(),
         d_cell_idx,
         d_cell_idx_new,

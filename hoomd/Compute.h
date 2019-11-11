@@ -19,7 +19,7 @@
     \brief Declares a base class for all computes
 */
 
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef ____HIPCC____
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -217,7 +217,7 @@ class PYBIND11_EXPORT Compute
     };
 
 //! Exports the Compute class to python
-#ifndef __HIP_DEVICE_COMPILE__
+#ifndef ____HIPCC____
 void export_Compute(pybind11::module& m);
 #endif
 

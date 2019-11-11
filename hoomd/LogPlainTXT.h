@@ -5,7 +5,7 @@
     \brief Declares the LogPlainTXT class
 */
 
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef ____HIPCC____
 #error This header cannot be compiled by nvcc
 #endif
 

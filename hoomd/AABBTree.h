@@ -21,7 +21,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef ____HIPCC____
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -40,7 +40,7 @@ namespace detail
 const unsigned int NODE_CAPACITY = 16;           //!< Maximum number of particles in a node
 const unsigned int INVALID_NODE = 0xffffffff;   //!< Invalid node index sentinel
 
-#ifndef __HIP_DEVICE_COMPILE__
+#ifndef ____HIPCC____
 
 //! Node in an AABBTree
 /*! Stores data for a node in the AABB tree
@@ -612,7 +612,7 @@ inline unsigned int AABBTree::allocateNode()
 // end group overlap
 /*! @}*/
 
-#endif // __HIP_DEVICE_COMPILE__
+#endif // ____HIPCC____
 
 }; // end namespace detail
 

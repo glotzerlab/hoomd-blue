@@ -17,7 +17,7 @@
 
 #include "HOOMDMath.h"
 
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef ____HIPCC____
 
 //! Fetch a double4 value from texture memory.
 /*! This function should be called whenever a CUDA kernel wants to retrieve a

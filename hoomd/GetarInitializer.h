@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-#ifndef __HIP_DEVICE_COMPILE__
+#ifndef ____HIPCC____
 #include <pybind11/pybind11.h>
 #endif
 
@@ -94,7 +94,7 @@ namespace getardump{
             unsigned int m_timestep;
         };
 
-#ifndef __HIP_DEVICE_COMPILE__
+#ifndef ____HIPCC____
 void export_GetarInitializer(pybind11::module& m);
 #endif
 
