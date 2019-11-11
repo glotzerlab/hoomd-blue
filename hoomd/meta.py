@@ -109,6 +109,10 @@ class _Operation:
     def _add_typeparam(self, typeparam):
         self._typeparam_dict[typeparam.name] = typeparam
 
+    def _extend_typeparam(self, typeparams):
+        for typeparam in typeparams:
+            self._add_typeparam(typeparam)
+
 
 # \brief A Mixin to facilitate storage of simulation metadata
 class _metadata(object):
