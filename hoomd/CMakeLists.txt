@@ -308,6 +308,7 @@ set(files analyze.py
 	  operations.py
 	  parameterdicts.py
 	  typeparam.py
+	  triggers.py
     )
 
 install(FILES ${files}
