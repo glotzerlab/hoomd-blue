@@ -19,6 +19,7 @@
 // #include <pybind11/pybind11.h>
 #include <stdexcept>
 #include <time.h>
+#include <pybind11/stl_bind.h>
 
 using namespace std;
 namespace py = pybind11;
@@ -66,243 +67,6 @@ System::System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_ts
     can be prevented from running in future runs by removing it (removeAnalyzer()) before
     calling run()
 */
-void System::addAnalyzer(std::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period, int phase)
-    {
-    // sanity check
-    assert(analyzer);
-    assert(period != 0);
-
-    // first check that the name is unique
-    vector<analyzer_item>::iterator i;
-    for (i = m_analyzers.begin(); i != m_analyzers.end(); ++i)
-        {
-        if (i->m_name == name)
-            {
-            m_exec_conf->msg->error() << "Analyzer " << name << " already exists" << endl;
-            throw runtime_error("System: cannot add Analyzer");
-            }
-        }
-
-    unsigned int start_step = m_cur_tstep;
-    if (phase >= 0)
-        {
-        // determine next step that is in line with period + phase
-        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
-        start_step = multiple * period + phase;
-        }
-
-    // if we get here, we can add it
-    m_analyzers.push_back(analyzer_item(analyzer, name, period, m_cur_tstep, start_step));
-    }
-
-/*! \param name Name of the Analyzer to find in m_analyzers
-    \returns An iterator into m_analyzers of the found Analyzer
-*/
-std::vector<System::analyzer_item>::iterator System::findAnalyzerItem(const std::string &name)
-    {
-    // search for the analyzer
-    vector<analyzer_item>::iterator i;
-    for (i = m_analyzers.begin(); i != m_analyzers.end(); ++i)
-        {
-        if (i->m_name == name)
-            {
-            return i;
-            }
-        }
-
-    m_exec_conf->msg->error() << "Analyzer " << name << " not found" << endl;
-    throw runtime_error("System: cannot find Analyzer");
-    // dummy return
-    return m_analyzers.begin();
-    }
-
-/*! \param name Name of the Analyzer to be removed
-    \sa addAnalyzer()
-*/
-void System::removeAnalyzer(const std::string& name)
-    {
-    vector<analyzer_item>::iterator i = findAnalyzerItem(name);
-    m_analyzers.erase(i);
-    }
-
-/*! \param name Name of the Analyzer to retrieve
-    \returns A shared pointer to the requested Analyzer
-*/
-std::shared_ptr<Analyzer> System::getAnalyzer(const std::string& name)
-    {
-    vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
-    return i->m_analyzer;
-    }
-
-/*! \param name Name of the Analyzer to modify
-    \param period New period to set
-*/
-void System::setAnalyzerPeriod(const std::string& name, unsigned int period, int phase)
-    {
-    // sanity check
-    assert(period != 0);
-
-    unsigned int start_step = m_cur_tstep;
-    if (phase >= 0)
-        {
-        // determine next step that is in line with period + phase
-        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
-        start_step = multiple * period + phase;
-        }
-
-    vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
-    i->setPeriod(period, start_step);
-    }
-
-/*! \param name Name of the Updater to modify
-    \param update_func A python callable function taking one argument that returns an integer value of the next time step to analyze at
-*/
-void System::setAnalyzerPeriodVariable(const std::string& name, py::object update_func)
-    {
-    vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
-    i->setVariablePeriod(update_func, m_cur_tstep);
-    }
-
-
-/*! \param name Name of the Analyzer to get the period of
-    \returns Period of the Analyzer
-*/
-unsigned int System::getAnalyzerPeriod(const std::string& name)
-    {
-    vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
-    return i->m_period;
-    }
-
-
-// -------------- Updater get/set methods
-/*! \param name Name of the Updater to find in m_updaters
-    \returns An iterator into m_updaters of the found Updater
-*/
-std::vector<System::updater_item>::iterator System::findUpdaterItem(const std::string &name)
-    {
-    // search for the analyzer
-    vector<System::updater_item>::iterator i;
-    for (i = m_updaters.begin(); i != m_updaters.end(); ++i)
-        {
-        if (i->m_name == name)
-            {
-            return i;
-            }
-        }
-
-    m_exec_conf->msg->error() << "Updater " << name << " not found" << endl;
-    throw runtime_error("System: cannot find Updater");
-    // dummy return
-    return m_updaters.begin();
-    }
-
-
-/*! \param updater Shared pointer to the Updater to add
-    \param name A unique name to identify the Updater by
-    \param period Updater::update() will be called for every time step that is a multiple
-    of \a period.
-    \param phase Phase offset. A value of -1 sets no phase, updates start on the current step. A value of 0 or greater
-                 sets the analyzer to run at steps where (step % (period + phase)) == 0.
-
-    All Updaters will be called, in the order that they are added, and with the specified
-    \a period during time step calculations performed when run() is called. An updater
-    can be prevented from running in future runs by removing it (removeUpdater()) before
-    calling run()
-*/
-void System::addUpdater(std::shared_ptr<Updater> updater, const std::string& name, unsigned int period, int phase)
-    {
-    // sanity check
-    assert(updater);
-
-    if (period == 0)
-        {
-        m_exec_conf->msg->error() << "The period cannot be set to 0!" << endl;
-        throw runtime_error("System: cannot add Updater");
-        }
-
-    // first check that the name is unique
-    vector<updater_item>::iterator i;
-    for (i = m_updaters.begin(); i != m_updaters.end(); ++i)
-        {
-        if (i->m_name == name)
-            {
-            m_exec_conf->msg->error() << "Updater " << name << " already exists" << endl;
-            throw runtime_error("System: cannot add Updater");
-            }
-        }
-
-    unsigned int start_step = m_cur_tstep;
-    if (phase >= 0)
-        {
-        // determine next step that is in line with period + phase
-        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
-        start_step = multiple * period + phase;
-        }
-
-    // if we get here, we can add it
-    m_updaters.push_back(updater_item(updater, name, period, m_cur_tstep, start_step));
-    }
-
-/*! \param name Name of the Updater to be removed
-    \sa addUpdater()
-*/
-void System::removeUpdater(const std::string& name)
-    {
-    vector<updater_item>::iterator i = findUpdaterItem(name);
-    m_updaters.erase(i);
-    }
-
-/*! \param name Name of the Updater to retrieve
-    \returns A shared pointer to the requested Updater
-*/
-std::shared_ptr<Updater> System::getUpdater(const std::string& name)
-    {
-    vector<System::updater_item>::iterator i = findUpdaterItem(name);
-    return i->m_updater;
-    }
-
-/*! \param name Name of the Updater to modify
-    \param period New period to set
-    \param phase New phase to set
-*/
-void System::setUpdaterPeriod(const std::string& name, unsigned int period, int phase)
-    {
-    // sanity check
-    assert(period != 0);
-
-    unsigned int start_step = m_cur_tstep;
-    if (phase >= 0)
-        {
-        // determine next step that is in line with period + phase
-        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
-        start_step = multiple * period + phase;
-        }
-
-    vector<System::updater_item>::iterator i = findUpdaterItem(name);
-    i->setPeriod(period, start_step);
-    }
-
-/*! \param name Name of the Updater to modify
-    \param update_func A python callable function taking one argument that returns an integer value of the next time step to update at
-*/
-void System::setUpdaterPeriodVariable(const std::string& name, py::object update_func)
-    {
-    vector<System::updater_item>::iterator i = findUpdaterItem(name);
-    i->setVariablePeriod(update_func, m_cur_tstep);
-    }
-
-/*! \param name Name of the Updater to get the period of
-    \returns Period of the Updater
-*/
-unsigned int System::getUpdaterPeriod(const std::string& name)
-    {
-    vector<System::updater_item>::iterator i = findUpdaterItem(name);
-    return i->m_period;
-    }
-
-
-// -------------- Compute get/set methods
-
 /*! \param compute Shared pointer to the Compute to add
     \param name Unique name to assign to this Compute
 
@@ -440,9 +204,8 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     if (m_comm)
         {
         //! Set communicator in all Updaters
-        vector<updater_item>::iterator updater;
-        for (updater =  m_updaters.begin(); updater != m_updaters.end(); ++updater)
-            updater->m_updater->setCommunicator(m_comm);
+		for (auto &updater_trigger_pair: m_updaters)
+			updater_trigger_pair.first->setCommunicator(m_comm);
 
         // Set communicator in all Computes
         map< string, std::shared_ptr<Compute> >::iterator compute;
@@ -450,9 +213,8 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             compute->second->setCommunicator(m_comm);
 
         // Set communicator in all Analyzers
-        vector<analyzer_item>::iterator analyzer;
-        for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
-            analyzer->m_analyzer->setCommunicator(m_comm);
+        for (auto &analyzer_trigger_pair: m_analyzers)
+            analyzer_trigger_pair.first->setCommunicator(m_comm);
 
         // Set communicator in Integrator
         if (m_integrator)
@@ -582,19 +344,17 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             }
 
         // execute analyzers
-        vector<analyzer_item>::iterator analyzer;
-        for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+        for (auto &analyzer_trigger_pair: m_analyzers)
             {
-            if (analyzer->shouldExecute(m_cur_tstep))
-                analyzer->m_analyzer->analyze(m_cur_tstep);
+            if (analyzer_trigger_pair.second(m_cur_tstep))
+                analyzer_trigger_pair.first->analyze(m_cur_tstep);
             }
 
         // execute updaters
-        vector<updater_item>::iterator updater;
-        for (updater =  m_updaters.begin(); updater != m_updaters.end(); ++updater)
+        for (auto &updater_trigger_pair: m_updaters)
             {
-            if (updater->shouldExecute(m_cur_tstep))
-                updater->m_updater->update(m_cur_tstep);
+            if (updater_trigger_pair.second(m_cur_tstep))
+                updater_trigger_pair.first->update(m_cur_tstep);
             }
 
         // look ahead to the next time step and see which analyzers and updaters will be executed
@@ -669,9 +429,8 @@ void System::registerLogger(std::shared_ptr<Logger> logger)
         logger->registerUpdater(m_integrator);
 
     // updaters
-    vector<updater_item>::iterator updater;
-    for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
-        logger->registerUpdater(updater->m_updater);
+	for (auto &updater_trigger_pair: m_updaters)
+		logger->registerUpdater(updater_trigger_pair.first);
 
     // computes
     map< string, std::shared_ptr<Compute> >::iterator compute;
@@ -696,14 +455,12 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
         m_integrator->setAutotunerParams(enabled, period);
 
     // analyzers
-    vector<analyzer_item>::iterator analyzer;
-    for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
-        analyzer->m_analyzer->setAutotunerParams(enabled, period);
+	for (auto &analyzer_trigger_pair: m_analyzers)
+		analyzer_trigger_pair.first->setAutotunerParams(enabled, period);
 
     // updaters
-    vector<updater_item>::iterator updater;
-    for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
-        updater->m_updater->setAutotunerParams(enabled, period);
+	for (auto &updater_trigger_pair: m_updaters)
+		updater_trigger_pair.first->setAutotunerParams(enabled, period);
 
     // computes
     map< string, std::shared_ptr<Compute> >::iterator compute;
@@ -737,14 +494,12 @@ void System::setupProfiling()
     m_sysdef->getConstraintData()->setProfiler(m_profiler);
 
     // analyzers
-    vector<analyzer_item>::iterator analyzer;
-    for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
-        analyzer->m_analyzer->setProfiler(m_profiler);
+	for (auto &analyzer_trigger_pair: m_analyzers)
+		analyzer_trigger_pair.first->setProfiler(m_profiler);
 
     // updaters
-    vector<updater_item>::iterator updater;
-    for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
-        updater->m_updater->setProfiler(m_profiler);
+	for (auto &updater_trigger_pair: m_updaters)
+		updater_trigger_pair.first->setProfiler(m_profiler);
 
     // computes
     map< string, std::shared_ptr<Compute> >::iterator compute;
@@ -766,14 +521,12 @@ void System::printStats()
         m_integrator->printStats();
 
     // analyzers
-    vector<analyzer_item>::iterator analyzer;
-    for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
-      analyzer->m_analyzer->printStats();
+	for (auto &analyzer_trigger_pair: m_analyzers)
+		analyzer_trigger_pair.first->printStats();
 
     // updaters
-    vector<updater_item>::iterator updater;
-    for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
-        updater->m_updater->printStats();
+    for (auto &updater_trigger_pair: m_updaters)
+        updater_trigger_pair.first->printStats();
 
     // computes
     map< string, std::shared_ptr<Compute> >::iterator compute;
@@ -791,14 +544,12 @@ void System::resetStats()
         m_integrator->resetStats();
 
     // analyzers
-    vector<analyzer_item>::iterator analyzer;
-    for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
-      analyzer->m_analyzer->resetStats();
+	for (auto &analyzer_trigger_pair: m_analyzers)
+		analyzer_trigger_pair.first->resetStats();
 
     // updaters
-    vector<updater_item>::iterator updater;
-    for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
-        updater->m_updater->resetStats();
+    for (auto &updater_trigger_pair: m_updaters)
+        updater_trigger_pair.first->resetStats();
 
     // computes
     map< string, std::shared_ptr<Compute> >::iterator compute;
@@ -862,18 +613,16 @@ PDataFlags System::determineFlags(unsigned int tstep)
     if (m_integrator)
         flags = m_integrator->getRequestedPDataFlags();
 
-    vector<analyzer_item>::iterator analyzer;
-    for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+    for (auto &analyzer_trigger_pair: m_analyzers)
         {
-        if (analyzer->peekExecute(tstep))
-            flags |= analyzer->m_analyzer->getRequestedPDataFlags();
+        if (analyzer_trigger_pair.second(tstep))
+            flags |= analyzer_trigger_pair.first->getRequestedPDataFlags();
         }
 
-    vector<updater_item>::iterator updater;
-    for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
+    for (auto &updater_trigger_pair: m_updaters)
         {
-        if (updater->peekExecute(tstep))
-            flags |= updater->m_updater->getRequestedPDataFlags();
+        if (updater_trigger_pair.second(tstep))
+            flags |= updater_trigger_pair.first->getRequestedPDataFlags();
         }
 
     return flags;
@@ -900,22 +649,10 @@ void export_System(py::module& m)
     {
     walltimeLimitExceptionTypeObj = createExceptionClass(m,"WalltimeLimitReached");
 
+	py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>, py::object> > >(m, "AnalyzerTriggerList");
+	py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>, py::object> > >(m, "UpdaterTriggerList");
     py::class_< System, std::shared_ptr<System> > (m,"System")
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
-    .def("addAnalyzer", &System::addAnalyzer)
-    .def("removeAnalyzer", &System::removeAnalyzer)
-    .def("getAnalyzer", &System::getAnalyzer)
-    .def("setAnalyzerPeriod", &System::setAnalyzerPeriod)
-    .def("setAnalyzerPeriodVariable", &System::setAnalyzerPeriodVariable)
-    .def("getAnalyzerPeriod", &System::getAnalyzerPeriod)
-
-    .def("addUpdater", &System::addUpdater)
-    .def("removeUpdater", &System::removeUpdater)
-    .def("getUpdater", &System::getUpdater)
-    .def("setUpdaterPeriod", &System::setUpdaterPeriod)
-    .def("setUpdaterPeriodVariable", &System::setUpdaterPeriodVariable)
-    .def("getUpdaterPeriod", &System::getUpdaterPeriod)
-
     .def("addCompute", &System::addCompute)
     .def("overwriteCompute", &System::overwriteCompute)
     .def("removeCompute", &System::removeCompute)
@@ -933,6 +670,8 @@ void export_System(py::module& m)
 
     .def("getLastTPS", &System::getLastTPS)
     .def("getCurrentTimeStep", &System::getCurrentTimeStep)
+	.def_property_readonly("analyzers", &System::getAnalyzers)
+	.def_property_readonly("updaters", &System::getUpdaters)
 #ifdef ENABLE_MPI
     .def("setCommunicator", &System::setCommunicator)
     .def("getCommunicator", &System::getCommunicator)
