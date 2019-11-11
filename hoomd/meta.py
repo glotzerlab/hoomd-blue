@@ -16,8 +16,9 @@ Example::
 
 """
 
-import hoomd;
-import json, collections;
+import hoomd
+from hoomd.triggers import PeriodicTrigger
+import json
 import time
 import datetime
 import copy
@@ -114,6 +115,37 @@ class _Operation:
             self._add_typeparam(typeparam)
 
 
+class _TriggeredOperation(_Operation):
+    _cpp_list_name = None
+
+    def __init__(self, trigger):
+        if isinstance(trigger, int):
+            trigger = PeriodicTrigger(period=trigger, phase=0)
+        self._trigger = trigger
+
+    @property
+    def trigger(self):
+        return self._trigger
+
+    @trigger.setter
+    def trigger(self, new_trigger):
+        if self.is_attached:
+            sys = self._simulation._cpp_sys
+            triggered_ops = getattr(sys, self._cpp_list_name)
+            for index in range(len(triggered_ops)):
+                if triggered_ops[index][0] == self._cpp_obj:
+                    triggered_ops[index][1] = new_trigger
+        self._trigger = new_trigger
+
+
+class _Updater(_TriggeredOperation):
+    _cpp_list_name = 'updaters'
+
+
+class _Analyzers(_TriggeredOperation):
+    _cpp_list_name = 'analyzers'
+
+
 # \brief A Mixin to facilitate storage of simulation metadata
 class _metadata(object):
     def __init__(self):
@@ -171,7 +203,7 @@ def dump_metadata(filename=None,user=None,indent=4):
     metadata = dict()
 
     if user is not None:
-        if not isinstance(user, collections.Mapping):
+        if not isinstance(user, Mapping):
             hoomd.context.current.device.cpp_msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
         else:
             metadata['user'] = _metadata_from_dict(user);
