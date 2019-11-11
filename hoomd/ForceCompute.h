@@ -26,7 +26,7 @@
     \brief Declares the ForceCompute class
 */
 
-#ifdef ____HIPCC____
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -199,7 +199,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     };
 
 //! Exports the ForceCompute class to python
-#ifndef ____HIPCC____
+#ifndef __HIPCC__
 void export_ForceCompute(pybind11::module& m);
 #endif
 

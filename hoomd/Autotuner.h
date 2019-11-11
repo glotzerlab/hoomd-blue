@@ -19,7 +19,7 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#ifndef ____HIPCC____
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 

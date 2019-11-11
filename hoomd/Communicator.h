@@ -23,7 +23,7 @@
 #include <memory>
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
-#ifndef ____HIPCC____
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 

@@ -8,7 +8,7 @@
     \brief Declares the ClockSource class
 */
 
-#ifdef ____HIPCC____
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -59,7 +59,7 @@ class PYBIND11_EXPORT ClockSource
     };
 
 //! Exports the ClockSource class to python
-#ifndef ____HIPCC____
+#ifndef __HIPCC__
 void export_ClockSource(pybind11::module& m);
 #endif
 

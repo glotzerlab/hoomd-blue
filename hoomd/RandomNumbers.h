@@ -113,11 +113,11 @@ R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
 // end code copied from random123 examples
 }
 
-#ifdef ____HIPCC____
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
-#endif // ____HIPCC____
+#endif // __HIPCC__
 
 namespace hoomd
 {

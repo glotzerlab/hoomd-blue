@@ -26,9 +26,12 @@ if(ENABLE_HIP)
         endif()
 
         SET(CMAKE_CUDA_COMPILER ${HIP_HIPCC_EXECUTABLE})
+        # this is hack to set the right options on hipcc, may not be portable
+        include(hipcc)
 
-        # don't let CMake examine the compiler, because it will fail
+	    # don't let CMake examine the compiler, because it will fail
         SET(CMAKE_CUDA_COMPILER_FORCED TRUE)
+        ENABLE_LANGUAGE(CUDA)
 
         # drop the compiler exeuctable and the "hipcc-cmd"
         LIST(REMOVE_AT _hipcc_verbose_options 0 1)
@@ -68,7 +71,7 @@ if(ENABLE_HIP)
         add_library(HIP::hip INTERFACE IMPORTED)
         set_target_properties(HIP::hip PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${HIP_INCLUDE_DIR}")
-        target_compile_options(HIP::hip INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:${HIP_NVCC_FLAGS}>)
+#        target_compile_options(HIP::hip INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:${HIP_NVCC_FLAGS}>)
         target_compile_definitions(HIP::hip INTERFACE ENABLE_HIP)
         target_compile_definitions(HIP::hip INTERFACE HIP_PLATFORM=${HIP_PLATFORM})
 
@@ -86,15 +89,12 @@ if(ENABLE_HIP)
     endif()
 
     # CMake doesn't know HIP as a language, compile through CUDA
-    if (ENABLE_HIP)
-        enable_language(CUDA)
-        if (NOT ENABLE_HIP OR (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc"))
-            if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.0)
-                message(SEND_ERROR "HOOMD-blue requires CUDA 9.0 or newer")
-            endif()
-        endif()
-        find_package(CUDALibs REQUIRED)
-    endif (ENABLE_HIP)
+	if (NOT ENABLE_HIP OR (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc"))
+		if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.0)
+			message(SEND_ERROR "HOOMD-blue requires CUDA 9.0 or newer")
+		endif()
+	endif()
+	find_package(CUDALibs REQUIRED)
 endif()
 
 

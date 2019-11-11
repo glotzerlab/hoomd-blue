@@ -9,8 +9,10 @@
 */
 
 #ifdef ENABLE_MPI
+#include <hip/hip_runtime.h>
 
 #include "LoadBalancerGPU.cuh"
+
 #include <thrust/copy.h>
 #include <thrust/execution_policy.h>
 
@@ -107,7 +109,8 @@ void gpu_load_balance_mark_rank(unsigned int *d_ranks,
     unsigned int run_block_size = min(block_size, max_block_size);
     unsigned int n_blocks = N/run_block_size + 1;
 
-    gpu_load_balance_mark_rank_kernel<<<n_blocks, run_block_size>>>(d_ranks, d_pos, d_cart_ranks, rank_pos, box, di, N);
+    hipLaunchKernelGGL(gpu_load_balance_mark_rank_kernel, dim3(n_blocks), dim3(run_block_size), 0, 0,
+        d_ranks, d_pos, d_cart_ranks, rank_pos, box, di, N);
     }
 
 //! Functor for selecting ranks not equal to the current rank

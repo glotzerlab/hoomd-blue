@@ -12,7 +12,7 @@
 */
 
 // bring in math.h
-#ifndef ____HIPCC____
+#ifndef __HIPCC__
 
 // define HOOMD_LLVMJIT_BUILD to prevent the need for python and pybind includes
 // this simplifies LLVM code generation
@@ -44,7 +44,7 @@ typedef double2 hipfftDoubleComplex;
 
 // need to declare these classes with __host__ __device__ qualifiers when building in nvcc
 // HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef ____HIPCC____
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #define DEVICE __device__
 #else
@@ -103,7 +103,7 @@ HOSTDEVICE inline Scalar4 make_scalar4(Scalar x, Scalar y, Scalar z, Scalar w)
     return retval;
     }
 
-#ifndef ____HIPCC____
+#ifndef __HIPCC__
 //! Stuff an integer inside a float
 HOSTDEVICE inline float __int_as_float(int a)
     {
@@ -116,7 +116,7 @@ HOSTDEVICE inline float __int_as_float(int a)
 
     return u.b;
     }
-#endif // ____HIPCC____
+#endif // __HIPCC__
 
 //! Stuff an integer inside a double
 HOSTDEVICE inline double __int_as_double(int a)
@@ -144,7 +144,7 @@ HOSTDEVICE inline Scalar __int_as_scalar(int a)
     return u.b;
     }
 
-#ifndef ____HIPCC____
+#ifndef __HIPCC__
 //! Extract an integer from a float stuffed by __int_as_float()
 HOSTDEVICE inline int __float_as_int(float b)
     {
@@ -157,7 +157,7 @@ HOSTDEVICE inline int __float_as_int(float b)
 
     return u.a;
     }
-#endif // ____HIPCC____
+#endif // __HIPCC__
 
 //! Extract an integer from a double stuffed by __int_as_double()
 HOSTDEVICE inline int __double_as_int(double b)
@@ -368,7 +368,7 @@ HOSTDEVICE inline bool operator!= (const int3 &a, const int3 &b)
     }
 
 //! Export relevant hoomd math functions to python
-#ifndef ____HIPCC____
+#ifndef __HIPCC__
 #ifndef HOOMD_LLVMJIT_BUILD
 void export_hoomd_math_functions(pybind11::module& m);
 #endif

@@ -10,9 +10,12 @@
 
 
 #include <hip/hip_runtime.h>
-#include <hipcub/hipcub.hpp>
+
+#include <thrust/sort.h>
+#include <thrust/execution_policy.h>
+#include <thrust/device_ptr.h>
+
 #include "SFCPackUpdaterGPU.cuh"
-#include "hoomd/extern/kernels/mergesort.cuh"
 
 //! Kernel to bin particles
 template<bool twod>
@@ -96,23 +99,12 @@ void gpu_generate_sorted_order(unsigned int N,
     // Sort particles
     if (N)
         {
-        void     *d_temp_storage = NULL;
-        size_t   temp_storage_bytes = 0;
-
-        // sort groups by particle idx
-		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-										temp_storage_bytes,
-										d_particle_bins,
-										d_sorted_order,
-										N);
-    
-        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-										temp_storage_bytes,
-										d_particle_bins,
-										d_sorted_order,
-										N);
-        alloc.deallocate((char *)d_temp_storage);
+        thrust::device_ptr<unsigned int> particle_bins(d_particle_bins);
+        thrust::device_ptr<unsigned int> sorted_order(d_sorted_order);
+        thrust::sort_by_key(thrust::cuda::par(alloc),
+            particle_bins,
+            particle_bins+N,
+            sorted_order);
         }
     }
 

@@ -27,7 +27,7 @@ T* device_new(Args... args);
 template<class T>
 void device_delete(T* data);
 
-#ifdef ____HIPCC____
+#ifdef __HIPCC__
 namespace kernel
 {
 //! Kernel to initialize and place object into allocated memory.
@@ -103,7 +103,7 @@ void device_delete(T* data)
         hipFree((void*)data);
         }
     }
-#endif // ____HIPCC____
+#endif // __HIPCC__
 
 } // end namespace gpu
 } // end namespace hoomd

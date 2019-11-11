@@ -8,7 +8,7 @@
     \brief Declares BondedGroupData
  */
 
-#ifdef ____HIPCC____
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -33,7 +33,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
-#ifndef ____HIPCC____
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 

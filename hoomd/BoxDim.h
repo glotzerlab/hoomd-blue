@@ -14,14 +14,14 @@
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
-// Don't include MPI when compiling with ____HIPCC____ or an LLVM JIT build
-#if defined(ENABLE_MPI) && !defined(____HIPCC____) && !defined(HOOMD_LLVMJIT_BUILD)
+// Don't include MPI when compiling with __HIPCC__ or an LLVM JIT build
+#if defined(ENABLE_MPI) && !defined(__HIPCC__) && !defined(HOOMD_LLVMJIT_BUILD)
 #include "HOOMDMPI.h"
 #endif
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef ____HIPCC____
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__ inline
 #else
 #define HOSTDEVICE inline __attribute__((always_inline))
@@ -279,7 +279,7 @@ struct __attribute__((visibility("default"))) BoxDim
             Scalar3 w = v;
             Scalar3 L = getL();
 
-            #ifdef ____HIPCC____
+            #ifdef __HIPCC__
             if (m_periodic.z)
                 {
                 Scalar img = rintf(w.z * m_Linv.z);

@@ -12,7 +12,7 @@
 
 #ifdef ENABLE_MPI
 
-#include <iterator>
+#include <hipcub/hipcub.hpp>
 
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -211,7 +211,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     unsigned int n_blocks = N/block_size+1;
 
     // select nonzero communication flags
-    gpu_select_sent_particles<<<n_blocks, block_size>>>(
+    hipLaunchKernelGGL(gpu_select_sent_particles, dim3(n_blocks), dim3(block_size), 0, 0,
         N,
         d_comm_flags,
         d_tmp);
@@ -244,7 +244,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
         d_n_out,
         N);
     alloc.deallocate((char *) d_temp_storage);
-    hipMemcpy(&n_out, d_n_max, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    hipMemcpy(&n_out, d_n_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
     alloc.deallocate((char *) d_n_out);
 
     // Don't write past end of buffer
@@ -261,7 +261,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             unsigned int block_size =512;
             unsigned int n_blocks = nwork/block_size+1;
 
-            gpu_scatter_particle_data_kernel<<<n_blocks, block_size>>>(
+            hipLaunchKernelGGL(gpu_scatter_particle_data_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
                 nwork,
                 d_pos,
                 d_vel,
@@ -400,7 +400,8 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
     unsigned int block_size = 512;
     unsigned int n_blocks = num_add_ptls/block_size + 1;
 
-    gpu_pdata_add_particles_kernel<<<n_blocks, block_size>>>(old_nparticles,
+    hipLaunchKernelGGL(gpu_pdata_add_particles_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
+        old_nparticles,
         num_add_ptls,
         d_pos,
         d_vel,

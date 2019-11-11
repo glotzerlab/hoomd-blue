@@ -13,6 +13,7 @@
 
 #include "ParticleData.cuh"
 #include "GPUPartition.cuh"
+#include "HOOMDMath.h"
 
 //! struct to pack up several force and virial arrays for addition
 /*! To keep the argument count down to gpu_integrator_sum_accel, up to 6 force/virial array pairs are packed up in this

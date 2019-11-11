@@ -190,7 +190,7 @@ void gpu_update_group_table(
         block_size = 512;
         n_blocks = group_size*n_groups/block_size + 1;
 
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_group_scatter_kernel), dim3(n_blocks), dim3(block_size), 0, 0,
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_group_scatter_kernel<group_size>), dim3(n_blocks), dim3(block_size), 0, 0,
             n_groups*group_size,
             d_scratch_g,
             d_scratch_idx,

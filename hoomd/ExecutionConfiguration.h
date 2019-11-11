@@ -34,7 +34,7 @@
     \brief Declares ExecutionConfiguration and related classes
 */
 
-#ifdef ____HIPCC____
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -387,7 +387,7 @@ private:
 #endif
 
 //! Exports ExecutionConfiguration to python
-#ifndef ____HIPCC____
+#ifndef __HIPCC__
 void export_ExecutionConfiguration(pybind11::module& m);
 #endif
 

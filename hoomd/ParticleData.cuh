@@ -6,7 +6,7 @@
 
 #pragma once
 
-#if ENABLE_HIP
+#ifdef ENABLE_HIP
 #include "BoxDim.h"
 #include "GPUPartition.cuh"
 
@@ -27,7 +27,7 @@ const unsigned int MIN_FLOPPY = 0x80000000;
 const unsigned int NOT_LOCAL = 0xffffffff;
 #endif
 
-#ifdef ____HIPCC____
+#ifdef __HIPCC__
 //! Compact particle data storage
 struct pdata_element
     {
