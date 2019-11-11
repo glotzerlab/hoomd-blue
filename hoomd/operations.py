@@ -4,8 +4,9 @@ import hoomd.integrate
 class Operations:
     def __init__(self, simulation=None):
         self.simulation = simulation
-        self._auto_schedule = False
         self._compute = list()
+        self._auto_schedule = False
+        self._scheduled = False
 
     def add(self, op):
         if isinstance(op, hoomd.integrate._integrator):
@@ -38,7 +39,12 @@ class Operations:
                 sim._cpp_sys.setIntegrator(op._cpp_obj)
             if new_objs is not None:
                 self._compute.extend(new_objs)
+        self._scheduled = True
 
     def _store_reader(self, reader):
         # TODO
         pass
+
+    @property
+    def scheduled(self):
+        return self._scheduled
