@@ -6,7 +6,7 @@
 
 #pragma once
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
 
@@ -59,7 +59,7 @@ class managed_allocator
             {
             void *result = nullptr;
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (m_use_device)
                 {
                 size_t allocation_bytes = n*sizeof(T);
@@ -97,7 +97,7 @@ class managed_allocator
             {
             void *result = nullptr;
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (use_device)
                 {
                 allocation_bytes = n*sizeof(T);
@@ -148,7 +148,7 @@ class managed_allocator
                 allocation_ptr = result;
                 }
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (use_device)
                 {
                 hipError_t error = hipDeviceSynchronize();
@@ -169,7 +169,7 @@ class managed_allocator
 
         void deallocate(value_type *ptr, std::size_t N)
             {
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (m_use_device)
                 {
                 hipError_t error = hipFree(ptr);
@@ -195,7 +195,7 @@ class managed_allocator
         static void deallocate_destroy_aligned(value_type *ptr, std::size_t N, bool use_device,
             void *allocation_ptr)
             {
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (use_device)
                 {
                 hipError_t error = hipDeviceSynchronize();
@@ -213,7 +213,7 @@ class managed_allocator
                 ptr[i].~value_type();
                 }
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (use_device)
                 {
                 hipError_t error = hipFree(allocation_ptr);

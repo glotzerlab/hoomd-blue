@@ -6,7 +6,7 @@
 
 #pragma once
 
-#if ENABLE_CUDA
+#if ENABLE_HIP
 #include "BoxDim.h"
 #include "GPUPartition.cuh"
 

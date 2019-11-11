@@ -7,7 +7,7 @@
 #ifndef __ANISO_POTENTIAL_PAIR_GPU_H__
 #define __ANISO_POTENTIAL_PAIR_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "hoomd/Autotuner.h"
 #include "AnisoPotentialPair.h"
@@ -212,5 +212,5 @@ template < class T, class Base > void export_AnisoPotentialPairGPU(pybind11::mod
               ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __ANISO_POTENTIAL_PAIR_GPU_H__

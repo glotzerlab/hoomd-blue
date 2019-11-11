@@ -13,7 +13,7 @@
 #ifndef __CACHED_ALLOCATOR_H__
 #define __CACHED_ALLOCATOR_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 
 #include <map>
@@ -247,5 +247,5 @@ ScopedAllocation<T>::~ScopedAllocation()
 
 
 #undef CHECK_CUDA
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __CACHED_ALLOCATOR_H__

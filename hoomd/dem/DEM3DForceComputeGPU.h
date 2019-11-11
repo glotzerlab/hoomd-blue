@@ -22,7 +22,7 @@
 #ifndef __DEM3DFORCECOMPUTEGPU_H__
 #define __DEM3DFORCECOMPUTEGPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 //! Computes DEM3D forces on each particle using the GPU
 /*! Calculates the same forces as DEM3DForceCompute, but on the GPU.

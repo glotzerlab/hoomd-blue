@@ -15,7 +15,7 @@
 
 #include "HOOMDMath.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 // ensure that curand is included before random123. This avoids multiple defiintion issues
 // unfortunately, at the cost of random123 using the coefficients provided by curand
 // for now, they are the same

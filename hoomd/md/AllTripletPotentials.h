@@ -10,7 +10,7 @@
 #include "EvaluatorTersoff.h"
 #include "EvaluatorSquareDensity.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "PotentialTersoffGPU.h"
 #include "DriverTersoffGPU.cuh"
 #endif
@@ -29,11 +29,11 @@ typedef PotentialTersoff< EvaluatorTersoff > PotentialTripletTersoff;
 //! Three-body potential force compute forces for soft vdW fluid
 typedef PotentialTersoff< EvaluatorSquareDensity > PotentialTripletSquareDensity;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Three-body potential force compute for Tersoff forces on the GPU
 typedef PotentialTersoffGPU< EvaluatorTersoff, gpu_compute_tersoff_forces > PotentialTripletTersoffGPU;
 //! Three-body potential force compute for Tersoff forces on the GPU
 typedef PotentialTersoffGPU< EvaluatorSquareDensity, gpu_compute_sq_density_forces > PotentialTripletSquareDensityGPU;
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #endif // __TRIPLET_POTENTIALS_H__

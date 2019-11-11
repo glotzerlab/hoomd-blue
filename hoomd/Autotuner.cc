@@ -58,7 +58,7 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
     m_current_param = m_parameters[m_current_element];
 
     // create CUDA events
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     hipEventCreate(&m_start);
     hipEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
@@ -122,7 +122,7 @@ Autotuner::Autotuner(unsigned int start,
     m_current_param = m_parameters[m_current_element];
 
     // create CUDA events
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     hipEventCreate(&m_start);
     hipEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
@@ -134,7 +134,7 @@ Autotuner::Autotuner(unsigned int start,
 Autotuner::~Autotuner()
     {
     m_exec_conf->msg->notice(5) << "Destroying Autotuner " << m_name << endl;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     hipEventDestroy(m_start);
     hipEventDestroy(m_stop);
     CHECK_CUDA_ERROR();
@@ -147,7 +147,7 @@ void Autotuner::begin()
     if (!m_enabled)
         return;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     // if we are scanning, record a cuda event - otherwise do nothing
     if (m_state == STARTUP || m_state == SCANNING)
         {
@@ -164,7 +164,7 @@ void Autotuner::end()
     if (!m_enabled)
         return;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     // handle timing updates if scanning
     if (m_state == STARTUP || m_state == SCANNING)
         {

@@ -1,24 +1,11 @@
-option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
 option(ENABLE_NVTOOLS "Enable NVTools profiler integration" off)
 
 option(ALWAYS_USE_MANAGED_MEMORY "Use CUDA managed memory also when running on single GPU" OFF)
 MARK_AS_ADVANCED(ALWAYS_USE_MANAGED_MEMORY)
 
-if (ENABLE_CUDA)
-    enable_language(CUDA)
-    message(STATUS ${CUDA_COMPILER_VERSION})
-    if (NOT ENABLE_HIP OR (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc"))
-        if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.0)
-            message(SEND_ERROR "HOOMD-blue requires CUDA 9.0 or newer")
-        endif()
-    endif()
-    find_package(CUDALibs REQUIRED)
-endif (ENABLE_CUDA)
-
 # setup CUDA compile options
-if (ENABLE_CUDA)
-
-    if (NOT ENABLE_HIP OR (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc"))
+if (ENABLE_HIP)
+    if (HIP_PLATFORM STREQUAL "nvcc")
         # supress warnings in random123
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcudafe --diag_suppress=code_is_unreachable")
 
@@ -47,11 +34,13 @@ if (ENABLE_CUDA)
         list(REVERSE _cuda_arch_list_sorted)
         list(GET _cuda_arch_list_sorted 0 _cuda_max_arch)
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_${_cuda_max_arch},code=compute_${_cuda_max_arch}")
+    elseif(HIP_PLATFORM STREQUAL "hcc")
+        set(_cuda_min_arch 35)
     endif()
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 # set CUSOLVER_AVAILABLE depending on CUDA Toolkit version
-if (ENABLE_CUDA)
+if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
     # CUDA 8.0 requires that libgomp be linked in - see if we can link it
     try_compile(_can_link_gomp
                 ${CMAKE_CURRENT_BINARY_DIR}/tmp

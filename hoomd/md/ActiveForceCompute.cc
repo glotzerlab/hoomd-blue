@@ -387,7 +387,7 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
         setForces(); // set forces for particles
         }
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     #endif

@@ -26,7 +26,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include "HOOMDMPI.h"
 #include "ParticleData.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "CachedAllocator.h"
 #include "BondedGroupData.cuh"
 #endif
@@ -674,7 +674,7 @@ class BondedGroupData
             #endif
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Helper function to rebuild lookup by index table on the GPU
         void rebuildGPUTableGPU();
 

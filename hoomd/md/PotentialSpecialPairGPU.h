@@ -7,7 +7,7 @@
 #ifndef __POTENTIAL_SPECIAL_PAIR_GPU_H__
 #define __POTENTIAL_SPECIAL_PAIR_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "PotentialSpecialPair.h"
 //! Use GPU functions for bonds
@@ -175,5 +175,5 @@ template < class T, class Base > void export_PotentialSpecialPairGPU(pybind11::m
             ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __POTENTIAL_SPECIAL_PAIR_GPU_H__

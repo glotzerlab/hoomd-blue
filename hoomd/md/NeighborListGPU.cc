@@ -36,7 +36,7 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
     buildNlist(0);
     filterNlist();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         {
         cudaDeviceSynchronize();
@@ -49,7 +49,7 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
     for (unsigned int i = 0; i < num_iters; i++)
         filterNlist();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         cudaDeviceSynchronize();
 #endif

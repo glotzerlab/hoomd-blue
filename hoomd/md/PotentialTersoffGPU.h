@@ -5,7 +5,7 @@
 #ifndef __POTENTIAL_TERSOFF_GPU_H__
 #define __POTENTIAL_TERSOFF_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include <memory>
 
@@ -192,5 +192,5 @@ template < class T, class Base > void export_PotentialTersoffGPU(pybind11::modul
     ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif

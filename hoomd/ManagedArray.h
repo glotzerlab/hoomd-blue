@@ -10,7 +10,7 @@
 #include <utility>
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
 
@@ -130,7 +130,7 @@ class ManagedArray
             return data;
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const
             {

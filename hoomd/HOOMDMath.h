@@ -27,7 +27,7 @@
 #endif
 
 // for vector types
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #else
 
@@ -219,7 +219,7 @@ HOSTDEVICE inline Scalar3 operator+ (const Scalar3 &a, const Scalar3 &b)
                         a.z + b.z);
     }
 
-#ifndef ENABLE_CUDA
+#ifndef ENABLE_HIP
 //! Vector addition
 HOSTDEVICE inline Scalar3& operator+= (Scalar3 &a, const Scalar3 &b)
     {

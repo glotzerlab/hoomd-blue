@@ -200,7 +200,7 @@ void gpu_compute_cell_list(unsigned int *d_cell_size,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        #if defined(ENABLE_CUDA)
+        #if defined(ENABLE_HIP)
         hipFuncAttributes attr;
         hipFuncGetAttributes(&attr, (const void*)gpu_compute_cell_list_kernel);
         #endif

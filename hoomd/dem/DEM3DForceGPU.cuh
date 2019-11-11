@@ -15,7 +15,7 @@
 #ifndef __DEM3DFORCEGPU_CUH__
 #define __DEM3DFORCEGPU_CUH__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 //! Kernel driver that computes 3D DEM forces on the GPU for DEM3DForceComputeGPU
 template<typename Real,  typename Real4, typename Evaluator>

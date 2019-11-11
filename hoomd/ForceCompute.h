@@ -11,7 +11,7 @@
 #include "GlobalArray.h"
 #include "GlobalArray.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "ParticleData.cuh"
 #endif
 

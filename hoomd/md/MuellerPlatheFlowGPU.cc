@@ -9,7 +9,7 @@ using namespace std;
 
 //! \file MuellerPlatheFlowGPU.cc Implementation of GPU version of MuellerPlatheFlow.
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "MuellerPlatheFlowGPU.cuh"
 
 MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
@@ -98,4 +98,4 @@ void export_MuellerPlatheFlowGPU(py::module&m)
              const unsigned int, const unsigned int, const unsigned int >())
         ;
     }
-#endif //ENABLE_CUDA
+#endif //ENABLE_HIP

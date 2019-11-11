@@ -526,7 +526,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
         #endif
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Reset memory usage hints
         void unsetMemoryMapping();
 
@@ -581,7 +581,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             m_need_reallocate_exlist = true;
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints
         #endif
     };

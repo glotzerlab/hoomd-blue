@@ -98,7 +98,7 @@ struct poly3d_verts : param_base
         hull_verts.allocate_shared(ptr,available_bytes);
         }
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     //! Set CUDA memory hints
     void set_memory_hint() const
         {

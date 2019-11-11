@@ -258,7 +258,7 @@ class GPUTree
             return obb;
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Set CUDA memory hints
         void set_memory_hint() const
             {

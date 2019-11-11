@@ -11,7 +11,7 @@
 
 namespace py = pybind11;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "Integrator.cuh"
 #endif
 
@@ -485,7 +485,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         }
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 /*! \param timestep Current time step of the simulation
     \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
     \note The summation step is performed <b>on the GPU</b>.

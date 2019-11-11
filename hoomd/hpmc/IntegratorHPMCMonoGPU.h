@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "hoomd/hpmc/IntegratorHPMCMono.h"
 #include "hoomd/hpmc/IntegratorHPMCMonoGPU.cuh"
@@ -1149,4 +1149,4 @@ template < class Shape > void export_IntegratorHPMCMonoGPU(pybind11::module& m, 
 
 } // end namespace hpmc
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

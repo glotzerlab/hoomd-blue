@@ -41,7 +41,7 @@ ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     m_block_size = 512;
 
-    hipEventCreate(&m_event, hipEventDisableTiming);
+    hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
     }
 
 //! Destructor
@@ -77,6 +77,7 @@ void ComputeThermoGPU::computeProperties()
 
     if (m_scratch.size() != old_size)
         {
+        #ifdef __HIP_PLATFORM_NVCC__
         if (m_exec_conf->allConcurrentManagedAccess())
             {
             auto& gpu_map  = m_exec_conf->getGPUIds();
@@ -90,6 +91,7 @@ void ComputeThermoGPU::computeProperties()
                 }
             CHECK_CUDA_ERROR();
             }
+        #endif
 
         // reset to zero, to be on the safe side
         ArrayHandle<Scalar4> d_scratch(m_scratch, access_location::device, access_mode::overwrite);

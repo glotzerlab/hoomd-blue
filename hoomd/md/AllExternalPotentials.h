@@ -13,7 +13,7 @@
 #include "EvaluatorWalls.h"
 #include "AllPairPotentials.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "PotentialExternalGPU.h"
 #endif
 
@@ -40,7 +40,7 @@ typedef PotentialExternal<EvaluatorWalls<EvaluatorPairYukawa> > WallsPotentialYu
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMorse;
 
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! External potential to impose periodic structure on the GPU
 typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodicGPU;
 typedef PotentialExternalGPU<EvaluatorExternalElectricField> PotentialExternalElectricFieldGPU;

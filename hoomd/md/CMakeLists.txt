@@ -162,7 +162,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ZeroMomentumUpdater.h
                 )
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
@@ -252,9 +252,9 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       CosineSqAngleForceGPU.cu
                       )
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 set(_cuda_sources ${_md_cu_sources} ${DFFT_CU_SOURCES})
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work

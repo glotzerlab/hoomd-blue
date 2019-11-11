@@ -9,7 +9,7 @@
 #include "hoomd/CachedAllocator.h"
 #include "hoomd/Autotuner.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "MolecularForceCompute.cuh"
 #endif
 
@@ -38,7 +38,7 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
     TAG_ALLOCATION(m_molecule_order);
     TAG_ALLOCATION(m_molecule_idx);
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         // initialize autotuner
@@ -57,7 +57,7 @@ MolecularForceCompute::~MolecularForceCompute()
     m_pdata->getParticleSortSignal().disconnect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 void MolecularForceCompute::initMoleculesGPU()
     {
     if (m_prof) m_prof->push(m_exec_conf,"init molecules");
@@ -223,7 +223,7 @@ void MolecularForceCompute::initMolecules()
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute initializing molecule table" << std::endl;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         initMoleculesGPU();

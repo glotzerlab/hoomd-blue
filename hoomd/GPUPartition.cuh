@@ -1,7 +1,7 @@
 #pragma once
 
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include <string>
 #include <vector>

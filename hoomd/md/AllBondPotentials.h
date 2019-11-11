@@ -11,7 +11,7 @@
 #include "EvaluatorBondHarmonic.h"
 #include "EvaluatorBondFENE.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "PotentialBondGPU.h"
 #include "AllDriverPotentialBondGPU.cuh"
 #endif
@@ -29,7 +29,7 @@ typedef PotentialBond<EvaluatorBondHarmonic> PotentialBondHarmonic;
 //! Bond potential force compute for FENE forces
 typedef PotentialBond<EvaluatorBondFENE> PotentialBondFENE;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Bond potential force compute for harmonic forces on the GPU
 typedef PotentialBondGPU< EvaluatorBondHarmonic, gpu_compute_harmonic_forces > PotentialBondHarmonicGPU;
 //! Bond potential force compute for FENE forces on the GPU

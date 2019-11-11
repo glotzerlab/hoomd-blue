@@ -7,7 +7,7 @@
 #ifndef __POTENTIAL_PAIR_GPU_H__
 #define __POTENTIAL_PAIR_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include <memory>
 
@@ -213,5 +213,5 @@ template < class T, class Base > void export_PotentialPairGPU(pybind11::module& 
     ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __POTENTIAL_PAIR_GPU_H__

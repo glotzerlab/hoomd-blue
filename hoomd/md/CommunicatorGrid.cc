@@ -12,7 +12,7 @@
 
 #include <map>
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include <cufft.h>
 #endif
 
@@ -250,7 +250,7 @@ inline kiss_fft_cpx operator + (kiss_fft_cpx& lhs, kiss_fft_cpx& rhs)
 
 template class PYBIND11_EXPORT CommunicatorGrid<kiss_fft_cpx>;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Define plus operator for complex data type (needed by CommunicatorMesh)
 inline cufftComplex operator + (cufftComplex& lhs, cufftComplex& rhs)
     {

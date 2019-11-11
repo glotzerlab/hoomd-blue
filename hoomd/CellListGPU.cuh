@@ -7,7 +7,7 @@
 #ifndef __CELLLISTGPU_CUH__
 #define __CELLLISTGPU_CUH__
 
-#if defined(ENABLE_CUDA)
+#if defined(ENABLE_HIP)
 #include <hip/hip_runtime.h>
 #endif
 

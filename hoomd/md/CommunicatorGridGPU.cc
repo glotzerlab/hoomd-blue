@@ -7,7 +7,7 @@
 
 #include "CommunicatorGridGPU.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "CommunicatorGridGPU.cuh"
 
 #include <cufft.h>
@@ -170,6 +170,6 @@ void CommunicatorGridGPU<T>::communicate(const GlobalArray<T>& grid)
 template class PYBIND11_EXPORT CommunicatorGridGPU<Scalar>;
 template class PYBIND11_EXPORT CommunicatorGridGPU<unsigned int>;
 template class PYBIND11_EXPORT CommunicatorGridGPU<cufftComplex>;
-#endif //ENABLE_CUDA
+#endif //ENABLE_HIP
 
 #endif // ENABLE_MPI

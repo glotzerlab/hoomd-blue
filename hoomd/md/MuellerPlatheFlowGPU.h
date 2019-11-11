@@ -9,7 +9,7 @@
 */
 
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //Above this line shared constructs can be declared.
 #ifndef NVCC
 #include "hoomd/ParticleGroup.h"
@@ -75,4 +75,4 @@ void export_MuellerPlatheFlowGPU(pybind11::module& m);
 
 #endif//NVCC
 #endif//__MUELLER_PLATHE_FLOW_GPU_H__
-#endif// ENABLE_CUDA
+#endif// ENABLE_HIP

@@ -57,7 +57,7 @@ struct poly2d_verts : param_base
             }
         }
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     //! Set CUDA memory hint
     void set_memory_hint() const
         {

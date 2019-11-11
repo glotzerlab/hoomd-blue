@@ -56,7 +56,7 @@ struct ell_params : param_base
     unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                         //   First bit is ignore overlaps, Second bit is ignore statistics
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     //! Set CUDA memory hints
     void set_memory_hint() const
         {

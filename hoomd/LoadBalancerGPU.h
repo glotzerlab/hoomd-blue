@@ -13,7 +13,7 @@
 #endif
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #ifndef __LOADBALANCERGPU_H__
 #define __LOADBALANCERGPU_H__
@@ -68,5 +68,5 @@ void export_LoadBalancerGPU(pybind11::module& m);
 
 #endif // __LOADBALANCERGPU_H__
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI

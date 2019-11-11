@@ -20,7 +20,7 @@
 #include "GPUVector.h"
 #include "GlobalArray.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "ParticleData.cuh"
 #include "GPUPartition.cuh"
 #endif
@@ -1029,7 +1029,7 @@ class PYBIND11_EXPORT ParticleData
          */
         void addParticles(const std::vector<pdata_element>& in);
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Pack particle data into a buffer (GPU version)
         /*! \param out Buffer into which particle data is packed
          *  \param comm_flags Buffer into which communication flags is packed
@@ -1049,7 +1049,7 @@ class PYBIND11_EXPORT ParticleData
         /*! \param in List of particle data elements to fill the particle data with
          */
         void addParticlesGPU(const GlobalVector<pdata_element>& in);
-        #endif // ENABLE_CUDA
+        #endif // ENABLE_HIP
 
 #endif // ENABLE_MPI
 
@@ -1096,7 +1096,7 @@ class PYBIND11_EXPORT ParticleData
             m_o_image = make_int3(0,0,0);
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Return the load balancing GPU partition
         const GPUPartition& getGPUPartition() const
             {
@@ -1192,7 +1192,7 @@ class PYBIND11_EXPORT ParticleData
 
         bool m_arrays_allocated;                     //!< True if arrays have been initialized
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         GPUPartition m_gpu_partition;                //!< The partition of the local number of particles across GPUs
         unsigned int m_memory_advice_last_Nmax;      //!< Nmax at which memory hints were last set
         #endif

@@ -47,9 +47,9 @@ class ExampleUpdater : public Updater
 void export_ExampleUpdater(pybind11::module& m);
 
 // Third, this class offers a GPU accelerated method in order to demonstrate how to include CUDA code in pluins
-// we need to declare a separate class for that (but only if ENABLE_CUDA is set)
+// we need to declare a separate class for that (but only if ENABLE_HIP is set)
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 //! A GPU accelerated nonsense particle updater written to demonstrate how to write a plugin w/ CUDA code
 /*! This updater simply sets all of the particle's velocities to 0 (on the GPU) when update() is called.
@@ -67,6 +67,6 @@ class ExampleUpdaterGPU : public ExampleUpdater
 //! Export the ExampleUpdaterGPU class to python
 void export_ExampleUpdaterGPU(pybind11::module& m);
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #endif // _EXAMPLE_UPDATER_H_

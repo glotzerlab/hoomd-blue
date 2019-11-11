@@ -12,7 +12,7 @@
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "DEM2DForceComputeGPU.h"
 #include "cuda_runtime.h"

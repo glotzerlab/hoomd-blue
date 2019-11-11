@@ -8,7 +8,7 @@
 */
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #include "LoadBalancerGPU.h"
 #include "LoadBalancerGPU.cuh"
@@ -100,5 +100,5 @@ void export_LoadBalancerGPU(py::module& m)
     ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI

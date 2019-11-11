@@ -12,7 +12,7 @@
 #define __COMMUNICATOR_GPU_H__
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "Communicator.h"
 #include "Autotuner.h"
@@ -249,6 +249,6 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
 //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU(pybind11::module& m);
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI
 #endif // __COMMUNICATOR_GPU_H

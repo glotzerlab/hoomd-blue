@@ -19,7 +19,7 @@
 #include <string>
 #include <memory>
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
 
@@ -40,7 +40,7 @@
 
 #include <pybind11/pybind11.h>
 
-#if defined(ENABLE_CUDA)
+#if defined(ENABLE_HIP)
 //! Forward declaration
 class CachedAllocator;
 #endif
@@ -141,14 +141,14 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! Get the number of active GPUs
     unsigned int getNumActiveGPUs() const
         {
-        #if defined(ENABLE_CUDA)
+        #if defined(ENABLE_HIP)
         return m_gpu_id.size();
         #else
         return 0;
         #endif
         }
 
-    #if defined(ENABLE_CUDA)
+    #if defined(ENABLE_HIP)
     //! Get the IDs of the active GPUs
     const std::vector<unsigned int>& getGPUIds() const
         {
@@ -188,7 +188,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName(unsigned int idev=0) const;
 
-#if defined(ENABLE_CUDA)
+#if defined(ENABLE_HIP)
     //! Get the device properties of a logical GPU
     hipDeviceProp_t getDeviceProperties(unsigned int idev) const
         {
@@ -202,7 +202,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         return m_concurrent;
         }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     hipDeviceProp_t dev_prop;              //!< Cached device properties of the first GPU
     std::vector<unsigned int> m_gpu_id;   //!< IDs of active GPUs
     std::vector<hipDeviceProp_t> m_dev_prop; //!< Device configuration of active GPUs
@@ -279,7 +279,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         }
 
 
-    #if defined(ENABLE_CUDA)
+    #if defined(ENABLE_HIP)
     //! Returns the cached allocator for temporary allocations
     CachedAllocator& getCachedAllocator() const
         {
@@ -322,7 +322,7 @@ private:
      */
     int guessLocalRank(bool &found);
 
-#if defined(ENABLE_CUDA)
+#if defined(ENABLE_HIP)
     //! Initialize the GPU with the given id
     void initializeGPU(int gpu_id, bool min_cpu);
 
@@ -353,7 +353,7 @@ private:
 
     mutable bool m_in_multigpu_block;       //!< Tracks whether we are in a multi-GPU block
 
-    #if defined(ENABLE_CUDA)
+    #if defined(ENABLE_HIP)
     std::unique_ptr<CachedAllocator> m_cached_alloc;       //!< Cached allocator for temporary allocations
     std::unique_ptr<CachedAllocator> m_cached_alloc_managed; //!< Cached allocator for temporary allocations in managed memory
     #endif
@@ -370,7 +370,7 @@ private:
     };
 
 
-#if defined(ENABLE_CUDA)
+#if defined(ENABLE_HIP)
 #define CHECK_CUDA_ERROR() { \
     hipError_t err_sync = hipGetLastError(); \
     this->m_exec_conf->handleHIPError(err_sync, __FILE__, __LINE__); \

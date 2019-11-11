@@ -6,7 +6,7 @@
 #ifndef __PPPM_FORCE_COMPUTE_GPU_H__
 #define __PPPM_FORCE_COMPUTE_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include <cufft.h>
 #include <sstream>
@@ -134,5 +134,5 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
 
 void export_PPPMForceComputeGPU(pybind11::module& m);
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __PPPM_FORCE_COMPUTE_GPU_H__

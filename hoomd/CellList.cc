@@ -219,7 +219,7 @@ double CellList::benchmark(unsigned int num_iters)
     // warm up run
     computeCellList();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         {
         hipDeviceSynchronize();
@@ -232,7 +232,7 @@ double CellList::benchmark(unsigned int num_iters)
     for (unsigned int i = 0; i < num_iters; i++)
         computeCellList();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         hipDeviceSynchronize();
 #endif

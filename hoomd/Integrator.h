@@ -24,7 +24,7 @@
 #include <vector>
 #include <pybind11/pybind11.h>
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
 
@@ -154,7 +154,7 @@ class PYBIND11_EXPORT Integrator : public Updater
         //! helper function to compute net force/virial
         void computeNetForce(unsigned int timestep);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
         //! helper function to compute net force/virial on the GPU
         void computeNetForceGPU(unsigned int timestep);
 #endif

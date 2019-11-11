@@ -27,7 +27,7 @@
 #include "EvaluatorPairDLVO.h"
 #include "EvaluatorPairFourier.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "PotentialPairGPU.h"
 #include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairDPDThermoGPU.cuh"
@@ -81,7 +81,7 @@ typedef PotentialPair<EvaluatorPairDLVO> PotentialPairDLVO;
 //! Pair potential force compute for Fourier potential
 typedef PotentialPair<EvaluatorPairFourier> PotentialPairFourier;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Pair potential force compute for lj forces on the GPU
 typedef PotentialPairGPU< EvaluatorPairLJ, gpu_compute_ljtemp_forces > PotentialPairLJGPU;
 //! Pair potential force compute for gaussian forces on the GPU

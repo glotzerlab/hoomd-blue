@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 
 #include "hoomd/Compute.h"
@@ -324,6 +324,6 @@ template < class Shape > void export_ComputeFreeVolumeGPU(pybind11::module& m, c
 
 } // end namespace hpmc
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #endif // __COMPUTE_FREE_VOLUME_GPU_H__

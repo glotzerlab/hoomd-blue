@@ -7,7 +7,7 @@
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_GPU_H__
 #define __POTENTIAL_PAIR_DPDTHERMO_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "PotentialPairDPDThermo.h"
 #include "PotentialPairDPDThermoGPU.cuh"
@@ -202,5 +202,5 @@ template < class T, class Base > void export_PotentialPairDPDThermoGPU(pybind11:
               ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __POTENTIAL_PAIR_DPDTHERMO_GPU_H__

@@ -53,7 +53,7 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
         memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
         }
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -113,7 +113,7 @@ void ForceCompute::reallocate()
 
 void ForceCompute::updateGPUAdvice()
     {
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -293,7 +293,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
     // warm up run
     computeForces(0);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         {
         hipDeviceSynchronize();
@@ -306,7 +306,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
     for (unsigned int i = 0; i < num_iters; i++)
         computeForces(0);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         hipDeviceSynchronize();
 #endif

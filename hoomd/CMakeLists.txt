@@ -152,7 +152,7 @@ set(_hoomd_headers
     WarpTools.cuh
     )
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 list(APPEND _hoomd_sources CellListGPU.cc
                            CommunicatorGPU.cc
                            ComputeThermoGPU.cc
@@ -183,9 +183,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
 endif()
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 set(_cuda_sources ${_hoomd_cu_sources})
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 #########################
 ## Build the module
@@ -216,11 +216,11 @@ if (SINGLE_PRECISION)
 endif(SINGLE_PRECISION)
 
 # Libraries and compile definitions for CUDA enabled builds
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
     if (NOT ENABLE_HIP)
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
-    target_compile_definitions(_hoomd PUBLIC ENABLE_CUDA CUDA_ARCH=${_cuda_min_arch})
+    target_compile_definitions(_hoomd PUBLIC ENABLE_HIP CUDA_ARCH=${_cuda_min_arch})
     target_compile_definitions(_hoomd PUBLIC "$<$<COMPILE_LANGUAGE:CUDA>:NVCC>")
 
     if(ALWAYS_USE_MANAGED_MEMORY)

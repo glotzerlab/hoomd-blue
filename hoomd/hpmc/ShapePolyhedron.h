@@ -116,7 +116,7 @@ struct poly3d_data : param_base
         face_overlap.allocate_shared(ptr, available_bytes);
         }
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     //! Set CUDA memory hints
     void set_memory_hint() const
         {

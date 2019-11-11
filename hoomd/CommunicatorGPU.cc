@@ -9,7 +9,7 @@
 */
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "CommunicatorGPU.h"
 #include "Profiler.h"
@@ -46,7 +46,7 @@ CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
     initializeCommunicationStages();
 
     // create cuda event
-    hipEventCreate(&m_event, hipEventDisableTiming);
+    hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
     }
 
 //! Destructor
@@ -163,8 +163,8 @@ void CommunicatorGPU::allocateBuffers()
     GlobalVector<unsigned int> neigh_counts(m_exec_conf);
     m_neigh_counts.swap(neigh_counts);
 
-    GlobalVector<unsigned int> ghost_scan(m_exec_conf);
-    m_ghost_scan.swap(ghost_scan);
+    GlobalVector<unsigned int> scan(m_exec_conf);
+    m_scan.swap(scan);
     }
 
 void CommunicatorGPU::initializeCommunicationStages()
@@ -3132,5 +3132,5 @@ void export_CommunicatorGPU(py::module& m)
     ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI

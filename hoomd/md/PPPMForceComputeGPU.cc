@@ -3,7 +3,7 @@
 
 #include "PPPMForceComputeGPU.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "PPPMForceComputeGPU.cuh"
 
 namespace py = pybind11;
@@ -702,4 +702,4 @@ void export_PPPMForceComputeGPU(py::module& m)
                                       std::shared_ptr<ParticleGroup> >());
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

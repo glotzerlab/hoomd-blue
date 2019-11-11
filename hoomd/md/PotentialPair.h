@@ -20,7 +20,7 @@
 #include "NeighborList.h"
 #include "hoomd/GSDShapeSpecWriter.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include <cuda_runtime.h>
 #endif
 
@@ -189,7 +189,7 @@ class PotentialPair : public ForceCompute
             GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
             m_params.swap(params);
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (m_pdata->getExecConf()->isCUDAEnabled() && m_pdata->getExecConf()->allConcurrentManagedAccess())
                 {
                 cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -234,7 +234,7 @@ PotentialPair< evaluator >::PotentialPair(std::shared_ptr<SystemDefinition> sysd
     GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_pdata->getExecConf()->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);

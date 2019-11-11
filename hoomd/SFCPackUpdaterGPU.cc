@@ -8,7 +8,7 @@
     \brief Defines the SFCPackUpdaterGPU class
 */
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "SFCPackUpdaterGPU.h"
 #include "SFCPackUpdaterGPU.cuh"

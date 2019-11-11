@@ -555,14 +555,24 @@ struct __attribute__((visibility("default"))) BoxDim
         template<class Archive>
         void serialize(Archive & ar, const unsigned int version)
             {
-            ar & m_lo;
-            ar & m_hi;
-            ar & m_L;
-            ar & m_Linv;
+            ar & m_lo.x;
+            ar & m_lo.y;
+            ar & m_lo.z;
+            ar & m_hi.x;
+            ar & m_hi.y;
+            ar & m_hi.z;
+            ar & m_L.x;
+            ar & m_L.y;
+            ar & m_L.z;
+            ar & m_Linv.x;
+            ar & m_Linv.y;
+            ar & m_Linv.z;
             ar & m_xy;
             ar & m_xz;
             ar & m_yz;
-            ar & m_periodic;
+            ar & m_periodic.x;
+            ar & m_periodic.y;
+            ar & m_periodic.z;
             }
         #endif
 

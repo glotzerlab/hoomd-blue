@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
 
@@ -25,7 +25,7 @@ std::string hoomd_compile_flags()
     {
     ostringstream o;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     int hip_major = HIP_VERSION_MAJOR;
     int hip_minor = HIP_VERSION_MINOR;
 
