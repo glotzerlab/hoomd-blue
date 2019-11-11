@@ -28,3 +28,6 @@ class TypeParameter:
                                                     self.param_dict,
                                                     sim)
         return self
+
+    def detach(self):
+        self.param_dict = self.param_dict.to_dettached()

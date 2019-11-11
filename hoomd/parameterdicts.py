@@ -178,7 +178,16 @@ class AttachedTypeParameterDict(_ValidateDict):
                 raise ValueError("Type {} ".format(key) + verr.args[0])
 
     def to_dettached(self):
-        pass
+        default = self._default
+        if isinstance(default, dict):
+            type_param_dict = TypeParameterDict(**default,
+                                                len_keys=self._len_keys)
+        else:
+            type_param_dict = TypeParameterDict(default,
+                                                len_keys=self._len_keys)
+        for key in self.keys():
+            type_param_dict[key] = self[key]
+        return type_param_dict
 
     def __getitem__(self, key):
         keys = self._validate_and_split_key(key)

@@ -77,7 +77,8 @@ class _Operation:
                              "with types as keys.".format(attr))
 
     def detach(self):
-        raise NotImplementedError
+        self._unapply_typeparam_dict()
+        self._cpp_obj = None
 
     def attach(self):
         raise NotImplementedError
@@ -100,6 +101,10 @@ class _Operation:
             except ValueError as verr:
                 raise ValueError("TypeParameter {}:"
                                  " ".format(typeparam.name) + verr.args[0])
+
+    def _unapply_typeparam_dict(self):
+        for typeparam in self._typeparam_dict.values():
+            typeparam.detach()
 
     def _add_typeparam(self, typeparam):
         self._typeparam_dict[typeparam.name] = typeparam
