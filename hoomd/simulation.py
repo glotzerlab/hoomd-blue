@@ -18,6 +18,7 @@ class Simulation:
         self._device = device
         self._state = None
         self._operations = Operations(self)
+        self._verbose = False
 
     @property
     def device(self):
@@ -62,6 +63,7 @@ class Simulation:
         reader.clearSnapshot()
         # Store System and Reader for Operations
         self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
+        self._cpp_sys.enableQuietRun(not self.verbose_run)
         self.operations._store_reader(reader)
 
     @property
@@ -84,3 +86,35 @@ class Simulation:
     @property
     def tps(self):
         raise NotImplementedError
+
+    @property
+    def verbose_run(self):
+        return self._verbose
+
+    @verbose_run.setter
+    def verbose_run(self, value):
+        self._verbose = bool(value)
+        self._cpp_sys.enableQuietRun(not self.verbose_run)
+
+    def run(self, tsteps):
+        """Run the simulation forward tsteps."""
+        # check if initialization has occurred
+        if not hasattr(self, '_cpp_sys'):
+            raise RuntimeError('Cannot run before state is set.')
+        if not self.operations.scheduled:
+            raise RuntimeError('Cannot run before operations are scheduled.')
+
+        # if context.current.integrator is None:
+        #     context.current.device.cpp_msg.warning("Starting a run without an integrator set")
+        # else:
+        #     context.current.integrator.update_forces()
+        #     context.current.integrator.update_methods()
+        #     context.current.integrator.update_thermos()
+
+        # update all user-defined neighbor lists
+        # for nl in context.current.neighbor_lists:
+        #     nl.update_rcut()
+        #     nl.update_exclusions_defaults()
+
+        # detect 0 hours remaining properly
+        self._cpp_sys.run(int(tsteps), 0, None, 0, 0)
