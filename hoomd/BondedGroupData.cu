@@ -237,7 +237,7 @@ template void gpu_update_group_table<2>(
     unsigned int *d_offsets,
     unsigned int *d_seg_offsets,
     bool has_type_mapping,
-    mgpu::ContextPtr mgpu_context
+    CachedAllocator& alloc
     );
 
 //! AngleData
@@ -260,7 +260,7 @@ template void gpu_update_group_table<3>(
     unsigned int *d_offsets,
     unsigned int *d_seg_offsets,
     bool has_type_mapping,
-    mgpu::ContextPtr mgpu_context
+    CachedAllocator& alloc
     );
 
 //! DihedralData and ImproperData
@@ -283,5 +283,5 @@ template void gpu_update_group_table<4>(
     unsigned int *d_offsets,
     unsigned int *d_seg_offsets,
     bool has_type_mapping,
-    mgpu::ContextPtr mgpu_context
+    CachedAllocator& alloc
     );

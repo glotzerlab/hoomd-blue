@@ -15,7 +15,6 @@
 
 #include "Index1D.h"
 
-#include "hoomd/extern/util/mgpucontext.h"
 #include "hoomd/CachedAllocator.h"
 
 #ifdef __HIP_DEVICE_COMPILE__
@@ -71,7 +70,6 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    const unsigned int *d_neighbors,
                    const unsigned int nneigh,
                    const unsigned int mask,
-                   mgpu::ContextPtr mgpu_context,
                    unsigned int *d_tmp,
                    pdata_element *d_in_copy,
                    CachedAllocator& alloc);
@@ -104,8 +102,9 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
     const unsigned int *d_ghost_plan,
     const unsigned int *d_adj,
     unsigned int *d_counts,
+    unsigned int *d_scan,
     unsigned int nneigh,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 //! Construct tag lists per ghost particle
 void gpu_exchange_ghosts_make_indices(
@@ -115,6 +114,7 @@ void gpu_exchange_ghosts_make_indices(
     const unsigned int *d_adj,
     const unsigned int *d_unique_neighbors,
     const unsigned int *d_counts,
+    const unsigned int *d_scan,
     uint2 *d_ghost_idx,
     unsigned int *d_ghost_neigh,
     unsigned int *d_ghost_begin,
@@ -122,7 +122,6 @@ void gpu_exchange_ghosts_make_indices(
     unsigned int n_unique_neigh,
     unsigned int n_out,
     unsigned int mask,
-    mgpu::ContextPtr mgpu_context,
     CachedAllocator& alloc);
 
 //! Pack ghosts in output buffers
@@ -206,13 +205,14 @@ void gpu_mark_groups(
     ranks_t *d_group_ranks,
     unsigned int *d_rank_mask,
     const unsigned int *d_rtag,
+    unsigned int *d_marked_groups,
     unsigned int *d_scan,
     unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
     const unsigned int *d_cart_ranks,
     bool incomplete,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 //! Compact rank information for groups that have been marked for sending
 template<unsigned int group_size, typename group_t, typename ranks_t, typename rank_element_t>
@@ -224,10 +224,11 @@ void gpu_scatter_ranks_and_mark_send_groups(
     const group_t *d_groups,
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
+    unsigned int *d_marked_send_groups,
     unsigned int *d_scan,
     unsigned int &n_send,
     rank_element_t *d_out_ranks,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template<unsigned int group_size, typename ranks_t, typename rank_element_t>
 void gpu_update_ranks_table(
@@ -249,7 +250,8 @@ void gpu_scatter_and_mark_groups_for_removal(
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
     unsigned int my_rank,
-    unsigned int *d_scan,
+    const unsigned int *d_scan,
+    unsigned int *d_marked_groups,
     packed_t *d_out_groups,
     unsigned int *d_out_rank_masks,
     bool local_multiple);
@@ -266,8 +268,9 @@ void gpu_remove_groups(unsigned int n_groups,
     ranks_t *d_group_ranks_alt,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
+    const unsigned int *d_marked_groups,
     unsigned int *d_scan,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template<typename packed_t, typename group_t, typename ranks_t>
 void gpu_add_groups(unsigned int n_groups,
@@ -279,10 +282,11 @@ void gpu_add_groups(unsigned int n_groups,
     ranks_t *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
+    unsigned int *d_marked_groups,
     unsigned int *d_tmp,
     bool local_multiple,
     unsigned int myrank,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template<unsigned int group_size, typename members_t, typename ranks_t>
 void gpu_mark_bonded_ghosts(
@@ -331,7 +335,7 @@ void gpu_exchange_ghost_groups_copy_buf(
     const unsigned int *d_rtag,
     unsigned int max_n_local,
     unsigned int &n_keep,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 void gpu_exchange_ghosts_pack_netforce(
     unsigned int n_out,

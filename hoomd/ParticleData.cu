@@ -240,7 +240,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     d_temp_storage = alloc.allocate(temp_storage_bytes);
     hipcub::DeviceReduce::Sum(d_temp_storage,
         temp_storage_bytes,
-        d_tmp
+        d_tmp,
         d_n_out,
         N);
     alloc.deallocate((char *) d_temp_storage);

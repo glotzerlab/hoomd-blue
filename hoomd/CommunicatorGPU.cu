@@ -12,6 +12,8 @@
 #include "CommunicatorGPU.cuh"
 #include "ParticleData.cuh"
 
+#include <hipcub/hipcub.hpp>
+
 #include <thrust/device_ptr.h>
 #include <thrust/scatter.h>
 #include <thrust/gather.h>
@@ -21,16 +23,6 @@
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/system/cuda/execution_policy.h>
-
-// moderngpu
-#include "hoomd/extern/util/mgpucontext.h"
-#include "hoomd/extern/device/loadstore.cuh"
-#include "hoomd/extern/device/launchbox.cuh"
-#include "hoomd/extern/device/ctaloadbalance.cuh"
-#include "hoomd/extern/kernels/mergesort.cuh"
-#include "hoomd/extern/kernels/search.cuh"
-#include "hoomd/extern/kernels/scan.cuh"
-#include "hoomd/extern/kernels/sortedsearch.cuh"
 
 using namespace thrust;
 
@@ -153,57 +145,6 @@ void gpu_stage_particles(const unsigned int N,
         box);
     }
 
-//! Specialization of MergeSortPairs for uint2 values
-namespace mgpu {
-template<typename KeyType, typename ValType>
-MGPU_HOST void MergesortPairs_uint2(KeyType* keys_global, ValType* values_global,
-    int count, CudaContext& context) {
-
-    typedef LaunchBoxVT<
-        256, 7, 0,
-        256, 11, 0,
-        256, 11, 0
-    > Tuning;
-    int2 launch = Tuning::GetLaunchParams(context);
-
-    const int NV = launch.x * launch.y;
-    int numBlocks = MGPU_DIV_UP(count, NV);
-    int numPasses = FindLog2(numBlocks, true);
-
-    MGPU_MEM(KeyType) keysDestDevice = context.Malloc<KeyType>(count);
-    MGPU_MEM(ValType) valsDestDevice = context.Malloc<ValType>(count);
-    KeyType* keysSource = keys_global;
-    KeyType* keysDest = keysDestDevice->get();
-    ValType* valsSource = values_global;
-    ValType* valsDest = valsDestDevice->get();
-
-    KernelBlocksort<Tuning, true><<<numBlocks, launch.x, 0, context.Stream()>>>(
-        keysSource, valsSource, count, (1 & numPasses) ? keysDest : keysSource,
-        (1 & numPasses) ? valsDest : valsSource, mgpu::less<KeyType>());
-    MGPU_SYNC_CHECK("KernelBlocksort");
-
-    if(1 & numPasses) {
-        std::swap(keysSource, keysDest);
-        std::swap(valsSource, valsDest);
-    }
-
-    for(int pass = 0; pass < numPasses; ++pass) {
-        int coop = 2<< pass;
-        MGPU_MEM(int) partitionsDevice = MergePathPartitions<MgpuBoundsLower>(
-            keysSource, count, keysSource, 0, NV, coop, mgpu::less<KeyType>(), context);
-
-        KernelMerge<Tuning, true, false>
-            <<<numBlocks, launch.x, 0, context.Stream()>>>(keysSource,
-            valsSource, count, keysSource, valsSource, 0,
-            partitionsDevice->get(), coop, keysDest, valsDest, mgpu::less<KeyType>());
-        MGPU_SYNC_CHECK("KernelMerge");
-
-        std::swap(keysDest, keysSource);
-        std::swap(valsDest, valsSource);
-    }
-}
-} // end namespace mgpu
-
 /*! \param nsend Number of particles in buffer
     \param d_in Send buf (in-place sort)
     \param d_comm_flags Buffer of communication flags
@@ -228,7 +169,7 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    const unsigned int *d_neighbors,
                    const unsigned int nneigh,
                    const unsigned int mask,
-                   mgpu::ContextPtr mgpu_context,
+                   CachedAllocator& alloc,
                    unsigned int *d_tmp,
                    pdata_element *d_in_copy,
                    CachedAllocator& alloc)
@@ -253,7 +194,26 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
         thrust::make_zip_iterator(thrust::make_tuple(tmp_ptr, in_copy_ptr)));
 
     // sort buffer by neighbors
-    if (nsend) mgpu::MergesortPairs(thrust::raw_pointer_cast(keys_ptr), d_tmp, nsend, *mgpu_context);
+    if (nsend)
+        {
+        void     *d_temp_storage = NULL;
+        size_t   temp_storage_bytes = 0;
+
+        // sort groups by particle idx
+		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
+										temp_storage_bytes,
+										d_keys,
+										d_tmp,
+										nsend);
+    
+        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
+										temp_storage_bytes,
+										d_keys,
+										d_tmp,
+										nsend);
+        alloc.deallocate((char *)d_temp_storage);
+        }
 
     // reorder send buf
     thrust::gather(tmp_ptr, tmp_ptr + nsend, in_copy_ptr, in_ptr);
@@ -588,8 +548,9 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
     const unsigned int *d_ghost_plan,
     const unsigned int *d_adj,
     unsigned int *d_counts,
+    unsigned int *d_scan,
     unsigned int nneigh,
-    mgpu::ContextPtr mgpu_context)
+    CachedAlloc& alloc)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = N/block_size + 1;
@@ -604,112 +565,67 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
 
     // determine output size
     unsigned int total = 0;
-    if (N) mgpu::ScanExc(d_counts, N, &total, *mgpu_context);
+    if (N)
+        {
+        void     *d_temp_storage = NULL;
+        size_t   temp_storage_bytes = 0;
 
+        // determine size of temporary storage
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_counts, d_scan, N);
+
+        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_counts, d_scan, N);
+        alloc.deallocate((char *)d_temp_storage);
+
+        // determine total number of ghosts
+        d_temp_storage = NULL;
+        temp_storage_bytes = 0;
+        unsigned int *d_total = alloc.getTemporaryBuffer<unsigned int>(1);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_counts,
+            d_total,
+            N);
+        d_temp_storage = alloc.allocate(temp_storage_bytes);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_counts,
+            d_total,
+            N);
+        alloc.deallocate((char *) d_temp_storage);
+     
+        hipMemcpy(&total, d_total, sizeof(unsigned int), hipMemcpyDeviceToHost);
+        alloc.deallocate((char *)d_total);
+        }
     return total;
     }
 
-template<typename Tuning>
-__global__ void gpu_expand_neighbors_kernel(const unsigned int n_out,
-    const int *d_offs,
-    const unsigned int *d_tag,
+__global__ void gpu_expand_neighbors_kernel(
+	const unsigned int n_out,
+    const unsigned int *d_output_indices,
     const unsigned int *d_plan,
-    const unsigned int n_offs,
-    const int* mp_global,
     uint2 *d_idx_adj_out,
     const unsigned int *d_neighbors,
     const unsigned int *d_adj,
     const unsigned int nneigh,
     unsigned int *d_neighbors_out)
     {
-    typedef MGPU_LAUNCH_PARAMS Params;
-    const int NT = Params::NT;
-    const int VT = Params::VT;
+	unsigned int idx  = blockIdx.x*blockDim.x + threadIdx.x;
 
-    union Shared
-        {
-        int indices[NT * (VT + 1)];
-        unsigned int values[NT * VT];
-        };
-    __shared__ Shared shared;
-    int tid = threadIdx.x;
-    int block = blockIdx.x;
-
-    // Compute the input and output intervals this CTA processes.
-    int4 range = mgpu::CTALoadBalance<NT, VT>(n_out, d_offs, n_offs,
-        block, tid, mp_global, shared.indices, true);
-
-    // The interval indices are in the left part of shared memory (n_out).
-    // The scan of interval counts are in the right part (n_offs)
-    int destCount = range.y - range.x;
-
-    // Copy the source indices into register.
-    int sources[VT];
-    mgpu::DeviceSharedToReg<NT, VT>(shared.indices, tid, sources);
-
-    __syncthreads();
+	if (idx >= n_out)
+		return;
 
     // Now use the segmented scan to fetch nth neighbor
     get_neighbor_rank_n getn(d_adj, d_neighbors, nneigh);
 
-    // register to hold neighbors
-    unsigned int neighbors[VT];
+	unsigned int pidx = d_output_indices[idx];
+	int n = idx - d_scan[pidx];
+	int plan = d_plan[pidx];
+	uint2 neighbor_adj = getn(plan, n);
 
-    int *intervals = shared.indices + destCount;
-
-    #pragma unroll
-    for(int i = 0; i < VT; ++i)
-        {
-        int index = NT * i + tid;
-        int gid = range.x + index;
-
-        if(index < destCount)
-            {
-            int interval = sources[i];
-            int rank = gid - intervals[interval - range.z];
-            int plan = d_plan[interval];
-            uint2 neighbor_adj = getn(plan, rank);
-            neighbors[i] = neighbor_adj.x;
-
-            // write out values to global mem
-            d_idx_adj_out[gid] = make_uint2(sources[i], neighbor_adj.y);
-            }
-        }
-
-    // write out neighbors (keys) to global mem
-    mgpu::DeviceRegToGlobal<NT, VT>(destCount, neighbors, tid, d_neighbors_out + range.x);
-    }
-
-void gpu_expand_neighbors(unsigned int n_out,
-    const unsigned int *d_offs,
-    const unsigned int *d_tag,
-    const unsigned int *d_plan,
-    unsigned int n_offs,
-    uint2 *d_idx_adj_out,
-    const unsigned int *d_neighbors,
-    const unsigned int *d_adj,
-    const unsigned int nneigh,
-    unsigned int *d_neighbors_out,
-    mgpu::CudaContext& context)
-    {
-    const int __attribute__((unused)) NT = 128;
-    const int __attribute__((unused)) VT = 7;
-    typedef mgpu::LaunchBoxVT<NT, VT> Tuning;
-    int2 launch = Tuning::GetLaunchParams(context);
-
-    int NV = launch.x * launch.y;
-    int numBlocks = MGPU_DIV_UP(n_out + n_offs, NV);
-
-    // Partition the input and output sequences so that the load-balancing
-    // search results in a CTA fit in shared memory.
-    MGPU_MEM(int) partitionsDevice = mgpu::MergePathPartitions<mgpu::MgpuBoundsUpper>(
-        mgpu::counting_iterator<int>(0), n_out, (int *) d_offs,
-        n_offs, NV, 0, mgpu::less<int>(), context);
-
-    gpu_expand_neighbors_kernel<Tuning><<<numBlocks, launch.x, 0, context.Stream()>>>(
-        n_out, (int *) d_offs, d_tag, d_plan, n_offs,
-        partitionsDevice->get(), d_idx_adj_out,
-        d_neighbors, d_adj, nneigh, d_neighbors_out);
+	// write out values to global mem
+	d_neighbors_out[idx] = neighbor_adj.x;
+	d_idx_adj_out[idx] = make_uint2(pidx, neighbor_adj.y);
     }
 
 void gpu_exchange_ghosts_make_indices(
@@ -718,6 +634,7 @@ void gpu_exchange_ghosts_make_indices(
     const unsigned int *d_tag,
     const unsigned int *d_adj,
     const unsigned int *d_unique_neighbors,
+    const unsigned int *d_scan,
     const unsigned int *d_counts,
     uint2 *d_ghost_idx_adj,
     unsigned int *d_ghost_neigh,
@@ -726,7 +643,6 @@ void gpu_exchange_ghosts_make_indices(
     unsigned int n_unique_neigh,
     unsigned int n_out,
     unsigned int mask,
-    mgpu::ContextPtr mgpu_context,
     CachedAllocator& alloc)
     {
     /*
@@ -736,17 +652,56 @@ void gpu_exchange_ghosts_make_indices(
 
     if (n_out)
         {
-        // allocate temporary array
-        gpu_expand_neighbors(n_out,
-            d_counts,
-            d_tag, d_ghost_plan, N, d_ghost_idx_adj,
-            d_unique_neighbors, d_adj, n_unique_neigh,
-            d_ghost_neigh,
-            *mgpu_context);
+		// scatter the nonzero counts into their corresponding output positions
+		thrust::device_ptr<unsigned int> counts(d_counts);
+		thrust::device_ptr<unsigned int> scan(d_scan);
+        unsigned int d_output_indices = alloc.getTemporaryBuffer<unsigned int>(n_out);
+        thrust::device_ptr<unsigned int> output_indices(d_output_indices);
+		thrust::scatter_if(thrust::cuda::par(alloc),
+			 thrust::counting_iterator<unsigned int>(0),
+			 thrust::counting_iterator<unsigned int>(N),
+			 scan,
+			 counts,
+			 output_indices);
+
+        // compute max-scan over the output indices, filling in the holes
+		thrust::inclusive_scan
+			(output_indices,
+			 output_indices + n_out,
+			 output_indices,
+			 thrust::maximum<difference_type>());
+
+		// output_indices now contains the source particle index, replicated by the number of ghosts
+
+        // fill destination arrays
+        unsigned int block_size = 512;
+        unsigned int n_blocks = n_out/block_size + 1;
+        gpu_expand_neighbors_kernel<<<n_blocks, block_size>>>(
+            n_out, d_output_indices, d_ghost_plan,
+            d_ghost_idx_adj_out, d_unique_neighbors, d_adj,
+            n_unique_neigh, d_ghost_neigh);
+
+        alloc.deallocate((char *)d_output_indices);
 
         // sort tags by neighbors
-        mgpu::MergesortPairs_uint2(d_ghost_neigh, d_ghost_idx_adj, n_out, *mgpu_context);
+        void   *d_temp_storage = NULL;
+        size_t temp_storage_bytes = 0;
 
+        // sort by neighbor
+		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
+										temp_storage_bytes,
+										d_ghost_neigh,
+    									d_ghost_idx_adj,
+        								n_out);
+    
+        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+		hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
+										temp_storage_bytes,
+										d_ghost_neigh,
+									    d_ghost_idx_adj,
+										n_out);
+        alloc.deallocate((char *)d_temp_storage);
+ 
         thrust::device_ptr<const unsigned int> unique_neighbors(d_unique_neighbors);
         thrust::device_ptr<unsigned int> ghost_neigh(d_ghost_neigh);
         thrust::device_ptr<unsigned int> ghost_begin(d_ghost_begin);
@@ -765,6 +720,7 @@ void gpu_exchange_ghosts_make_indices(
             unique_neighbors,
             unique_neighbors + n_unique_neigh,
             ghost_end);
+
         }
     else
         {
@@ -1171,7 +1127,7 @@ void gpu_exchange_ghost_groups_copy_buf(
     const unsigned int *d_rtag,
     unsigned int max_n_local,
     unsigned int &n_keep,
-    mgpu::ContextPtr mgpu_context)
+    CachedAllocator& alloc)
     {
     unsigned int block_size = 256;
     unsigned int n_blocks = nrecv/block_size + 1;
@@ -1188,9 +1144,35 @@ void gpu_exchange_ghost_groups_copy_buf(
 
     if (nrecv)
         {
-        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_keep,
-            nrecv, (unsigned int) 0, mgpu::plus<unsigned int>(),
-            (unsigned int *)NULL, &n_keep, d_scan, *mgpu_context);
+        void     *d_temp_storage = NULL;
+        size_t   temp_storage_bytes = 0;
+
+        // determine size of temporary storage
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_keep, d_scan, nrecv);
+
+        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_keep, d_scan, nrecv);
+        alloc.deallocate((char *)d_temp_storage);
+
+        // determine total number of received groups
+        d_temp_storage = NULL;
+        temp_storage_bytes = 0;
+        unsigned int *d_n_keep = alloc.getTemporaryBuffer<unsigned int>(1);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_keep,
+            d_n_keep,
+            nrecv);
+        d_temp_storage = alloc.allocate(temp_storage_bytes);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_keep,
+            d_n_keep,
+            nrecv);
+        alloc.deallocate((char *) d_temp_storage);
+     
+        hipMemcpy(&n_keep, d_n_keep, sizeof(unsigned int), hipMemcpyDeviceToHost);
+        alloc.deallocate((char *)d_n_keep);
         }
 
     gpu_unpack_groups_kernel<<<n_blocks, block_size>>>(
@@ -1362,13 +1344,14 @@ void gpu_mark_groups(
     ranks_t *d_group_ranks,
     unsigned int *d_rank_mask,
     const unsigned int *d_rtag,
+    unsigned int *d_marked_groups,
     unsigned int *d_scan,
     unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
     const unsigned int *d_cart_ranks,
     bool incomplete,
-    mgpu::ContextPtr mgpu_context)
+    CachedAllocator& alloc)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
@@ -1379,7 +1362,7 @@ void gpu_mark_groups(
         d_members,
         d_group_ranks,
         d_rank_mask,
-        d_scan,
+        d_marked_groups,
         d_rtag,
         di,
         my_pos,
@@ -1388,10 +1371,41 @@ void gpu_mark_groups(
 
     // scan over marked groups
     if (n_groups)
-        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_scan, n_groups, (unsigned int) 0, mgpu::plus<unsigned int>(),
-        (unsigned int *)NULL, &n_out, d_scan, *mgpu_context);
+        {
+        void     *d_temp_storage = NULL;
+        size_t   temp_storage_bytes = 0;
+
+        // determine size of temporary storage
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
+
+        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
+        alloc.deallocate((char *)d_temp_storage);
+
+        // determine total number of sent groups
+        d_temp_storage = NULL;
+        temp_storage_bytes = 0;
+        unsigned int *d_n_out = alloc.getTemporaryBuffer<unsigned int>(1);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_marked_groups,
+            d_n_out,
+            n_groups);
+        d_temp_storage = alloc.allocate(temp_storage_bytes);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_marked_groups,
+            d_n_out,
+            n_groups);
+        alloc.deallocate((char *) d_temp_storage);
+     
+        hipMemcpy(&n_out, d_n_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
+        alloc.deallocate((char *)d_n_out);
+        }
     else
+        {
         n_out = 0;
+        }
     }
 
 template<unsigned int group_size, typename group_t, typename ranks_t, typename rank_element_t>
@@ -1403,7 +1417,8 @@ __global__ void gpu_scatter_ranks_and_mark_send_groups_kernel(
     const group_t *d_groups,
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
-    unsigned int *d_scan,
+    unsigned int *d_marked_send_groups,
+    const unsigned int *d_scan,
     rank_element_t *d_out_ranks)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1437,7 +1452,7 @@ __global__ void gpu_scatter_ranks_and_mark_send_groups_kernel(
         }
 
     // output to 0-1 array
-    d_scan[group_idx] = mask ? 1 :0;
+    d_marked_send_groups[group_idx] = mask ? 1 :0;
     d_rank_mask[group_idx] = mask;
     }
 
@@ -1450,10 +1465,11 @@ void gpu_scatter_ranks_and_mark_send_groups(
     const group_t *d_groups,
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
+    unsigned int *d_marked_send_groups,
     unsigned int *d_scan,
     unsigned int &n_send,
     rank_element_t *d_out_ranks,
-    mgpu::ContextPtr mgpu_context)
+    CachedAllocator& alloc)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
@@ -1465,15 +1481,47 @@ void gpu_scatter_ranks_and_mark_send_groups(
         d_groups,
         d_rtag,
         d_comm_flags,
+        d_marked_send_groups,
         d_scan,
         d_out_ranks);
 
     // scan over groups marked for sending
     if (n_groups)
-        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_scan, n_groups, (unsigned int) 0, mgpu::plus<unsigned int>(),
-            (unsigned int *)NULL, &n_send, d_scan, *mgpu_context);
+        {
+        void     *d_temp_storage = NULL;
+        size_t   temp_storage_bytes = 0;
+
+        // determine size of temporary storage
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_send_groups, d_scan, n_groups);
+
+        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_send_groups, d_scan, n_groups);
+        alloc.deallocate((char *)d_temp_storage);
+
+        // determine total number of sent groups
+        d_temp_storage = NULL;
+        temp_storage_bytes = 0;
+        unsigned int *d_n_send = alloc.getTemporaryBuffer<unsigned int>(1);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_marked_send_groups,
+            d_n_send,
+            n_groups);
+        d_temp_storage = alloc.allocate(temp_storage_bytes);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_marked_send_groups,
+            d_n_send,
+            n_groups);
+        alloc.deallocate((char *) d_temp_storage);
+     
+        hipMemcpy(&n_send, d_n_send, sizeof(unsigned int), hipMemcpyDeviceToHost);
+        alloc.deallocate((char *)d_n_send);
+        }
     else
+        {
         n_send = 0;
+        }
     }
 
 template<unsigned int group_size, typename ranks_t, typename rank_element_t>
@@ -1541,7 +1589,8 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
     unsigned int my_rank,
-    unsigned int *d_scan,
+    const unsigned int *d_scan,
+    unsigned int *d_marked_groups,
     packed_t *d_out_groups,
     unsigned int *d_out_rank_mask,
     bool local_multiple)
@@ -1589,7 +1638,7 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
         }
 
     // update zero-one array (zero == remove group, one == retain group)
-    d_scan[group_idx] = flag;
+    d_marked_groups[group_idx] = flag;
     }
 
 template<unsigned int group_size, typename group_t, typename ranks_t, typename packed_t>
@@ -1604,7 +1653,8 @@ void gpu_scatter_and_mark_groups_for_removal(
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
     unsigned int my_rank,
-    unsigned int *d_scan,
+    const unsigned int *d_scan,
+    unsigned int *d_marked_groups,
     packed_t *d_out_groups,
     unsigned int *d_out_rank_mask,
     bool local_multiple)
@@ -1624,6 +1674,7 @@ void gpu_scatter_and_mark_groups_for_removal(
         d_comm_flags,
         my_rank,
         d_scan,
+        d_marked_groups,
         d_out_groups,
         d_out_rank_mask,
         local_multiple);
@@ -1677,15 +1728,47 @@ void gpu_remove_groups(unsigned int n_groups,
     ranks_t *d_group_ranks_alt,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
+    const unsigned int *d_marked_groups,
     unsigned int *d_scan,
-    mgpu::ContextPtr mgpu_context)
+    CachedAllocator& alloc)
     {
     // scan over marked groups
     if (n_groups)
-        mgpu::Scan<mgpu::MgpuScanTypeExc>( d_scan, n_groups, (unsigned int) 0,
-            mgpu::plus<unsigned int>(), (unsigned int *)NULL, &new_ngroups, d_scan, *mgpu_context);
+        {
+        void     *d_temp_storage = NULL;
+        size_t   temp_storage_bytes = 0;
+
+        // determine size of temporary storage
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
+
+        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
+        alloc.deallocate((char *)d_temp_storage);
+
+        // determine new_ngroups number of ghosts
+        d_temp_storage = n_groups;
+        temp_storage_bytes = 0;
+        unsigned int *d_new_ngroups = alloc.getTemporaryBuffer<unsigned int>(1);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_marked_groups,
+            d_new_ngroups,
+            n_groups);
+        d_temp_storage = alloc.allocate(temp_storage_bytes);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_marked_groups,
+            d_new_ngroups,
+            n_groups);
+        alloc.deallocate((char *) d_temp_storage);
+     
+        hipMemcpy(&new_ngroups, d_new_ngroups, sizeof(unsigned int), hipMemcpyDeviceToHost);
+        alloc.deallocate((char *)d_new_ngroups);
+        }
     else
+        {
         new_ngroups = 0;
+        }
 
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
@@ -1791,10 +1874,11 @@ void gpu_add_groups(unsigned int n_groups,
     ranks_t *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
+    unsigned int *d_marked_groups,
     unsigned int *d_tmp,
     bool local_multiple,
     unsigned int myrank,
-    mgpu::ContextPtr mgpu_context)
+    CachedAllocator& alloc)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = n_recv/block_size + 1;
@@ -1804,7 +1888,7 @@ void gpu_add_groups(unsigned int n_groups,
         n_recv,
         d_groups_in,
         d_group_rtag,
-        d_tmp,
+        d_marked_groups,
         local_multiple,
         myrank);
 
@@ -1812,10 +1896,41 @@ void gpu_add_groups(unsigned int n_groups,
 
     // scan over input groups, select those which are not already local
     if (n_recv)
-        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_tmp, n_recv, (unsigned int) 0, mgpu::plus<unsigned int>(),
-            (unsigned int *)NULL, &n_unique, d_tmp, *mgpu_context);
+        {
+        void     *d_temp_storage = NULL;
+        size_t   temp_storage_bytes = 0;
+
+        // determine size of temporary storage
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_tmp, n_recv);
+
+        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_tmp, n_recv);
+        alloc.deallocate((char *)d_temp_storage);
+
+        // determine n_unique number of ghosts
+        d_temp_storage = n_recv;
+        temp_storage_bytes = 0;
+        unsigned int *d_n_unique = alloc.getTemporaryBuffer<unsigned int>(1);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_marked_groups,
+            d_n_unique,
+            n_recv);
+        d_temp_storage = alloc.allocate(temp_storage_bytes);
+        hipcub::DeviceReduce::Sum(d_temp_storage,
+            temp_storage_bytes,
+            d_marked_groups,
+            d_n_unique,
+            n_recv);
+        alloc.deallocate((char *) d_temp_storage);
+     
+        hipMemcpy(&n_unique, d_n_unique, sizeof(unsigned int), hipMemcpyDeviceToHost);
+        alloc.deallocate((char *)d_n_unique);
+        }
     else
+        {
         n_unique = 0;
+        }
 
     new_ngroups = n_groups + n_unique;
 
@@ -1982,13 +2097,14 @@ template void gpu_mark_groups<2, group_storage<2>, group_storage<2> >(
     group_storage<2> *d_group_ranks,
     unsigned int *d_rank_mask,
     const unsigned int *d_rtag,
+    unsigned int *d_marked_groups,
     unsigned int *d_scan,
     unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
     const unsigned int *d_cart_ranks,
     bool incomplete,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template void gpu_scatter_ranks_and_mark_send_groups<2>(
     unsigned int n_groups,
@@ -1998,10 +2114,11 @@ template void gpu_scatter_ranks_and_mark_send_groups<2>(
     const group_storage<2> *d_groups,
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
+    unsigned int *d_marked_send_groups,
     unsigned int *d_scan,
     unsigned int &n_send,
     rank_element<group_storage<2> > *d_out_ranks,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc)
 
 template void gpu_update_ranks_table<2>(
     unsigned int n_groups,
@@ -2021,7 +2138,8 @@ template void gpu_scatter_and_mark_groups_for_removal<2>(
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
     unsigned int my_rank,
-    unsigned int *d_scan,
+    const unsigned int *d_scan,
+    unsigned int *d_marked_groups,
     packed_storage<2> *d_out_groups,
     unsigned int *d_out_rank_mask,
     bool local_multiple);
@@ -2037,8 +2155,9 @@ template void gpu_remove_groups(unsigned int n_groups,
     group_storage<2> *d_group_ranks_alt,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
+    const unsigned int *d_marked_groups,
     unsigned int *d_scan,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
@@ -2049,10 +2168,11 @@ template void gpu_add_groups(unsigned int n_groups,
     group_storage<2> *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
+    unsigned int *d_marked_groups,
     unsigned int *d_tmp,
     bool local_multiple,
     unsigned int myrank,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template void gpu_mark_bonded_ghosts<2>(
     unsigned int n_groups,
@@ -2080,13 +2200,14 @@ template void gpu_mark_groups<3, group_storage<3>, group_storage<3> >(
     group_storage<3> *d_group_ranks,
     unsigned int *d_rank_mask,
     const unsigned int *d_rtag,
+    unsigned int *d_marked_groups,
     unsigned int *d_scan,
     unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
     const unsigned int *d_cart_ranks,
     bool incomplete,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template void gpu_scatter_ranks_and_mark_send_groups<3>(
     unsigned int n_groups,
@@ -2096,10 +2217,11 @@ template void gpu_scatter_ranks_and_mark_send_groups<3>(
     const group_storage<3> *d_groups,
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
+    unsigned int *d_marked_send_groups,
     unsigned int *d_scan,
     unsigned int &n_send,
     rank_element<group_storage<3> > *d_out_ranks,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template void gpu_update_ranks_table<3>(
     unsigned int n_groups,
@@ -2119,7 +2241,8 @@ template void gpu_scatter_and_mark_groups_for_removal<3>(
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
     unsigned int my_rank,
-    unsigned int *d_scan,
+    const unsigned int *d_scan,
+    unsigned int *d_marked_groups,
     packed_storage<3> *d_out_groups,
     unsigned int *d_out_rank_mask,
     bool local_multiple);
@@ -2135,8 +2258,9 @@ template void gpu_remove_groups(unsigned int n_groups,
     group_storage<3> *d_group_ranks_alt,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
+    const unsigned int *d_marked_groups,
     unsigned int *d_scan,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
@@ -2147,10 +2271,11 @@ template void gpu_add_groups(unsigned int n_groups,
     group_storage<3> *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
+    unsigned int *d_marked_groups,
     unsigned int *d_tmp,
     bool local_multiple,
     unsigned int myrank,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template void gpu_mark_bonded_ghosts<3>(
     unsigned int n_groups,
@@ -2178,13 +2303,14 @@ template void gpu_mark_groups<4, group_storage<4>, group_storage<4> >(
     group_storage<4> *d_group_ranks,
     unsigned int *d_rank_mask,
     const unsigned int *d_rtag,
+    unsigned int *d_marked_groups,
     unsigned int *d_scan,
     unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
     const unsigned int *d_cart_ranks,
     bool incomplete,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template void gpu_scatter_ranks_and_mark_send_groups<4>(
     unsigned int n_groups,
@@ -2194,10 +2320,11 @@ template void gpu_scatter_ranks_and_mark_send_groups<4>(
     const group_storage<4> *d_groups,
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
+    unsigned int *d_marked_send_groups,
     unsigned int *d_scan,
     unsigned int &n_send,
     rank_element<group_storage<4> > *d_out_ranks,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template void gpu_update_ranks_table<4>(
     unsigned int n_groups,
@@ -2217,7 +2344,8 @@ template void gpu_scatter_and_mark_groups_for_removal<4>(
     const unsigned int *d_rtag,
     const unsigned int *d_comm_flags,
     unsigned int my_rank,
-    unsigned int *d_scan,
+    const unsigned int *d_scan,
+    unsigned int *d_marked_groups,
     packed_storage<4> *d_out_groups,
     unsigned int *d_out_rank_mask,
     bool local_multiple);
@@ -2233,8 +2361,9 @@ template void gpu_remove_groups(unsigned int n_groups,
     group_storage<4> *d_group_ranks_alt,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
+    const unsigned int *d_marked_groups,
     unsigned int *d_scan,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
@@ -2245,10 +2374,11 @@ template void gpu_add_groups(unsigned int n_groups,
     group_storage<4> *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
+    unsigned int *d_marked_groups,
     unsigned int *d_tmp,
     bool local_multiple,
     unsigned int myrank,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 template void gpu_mark_bonded_ghosts<4>(
     unsigned int n_groups,
@@ -2296,6 +2426,6 @@ template void gpu_exchange_ghost_groups_copy_buf<2>(
     const unsigned int *d_rtag,
     unsigned int max_n_local,
     unsigned int &n_keep,
-    mgpu::ContextPtr mgpu_context);
+    CachedAllocator& alloc);
 
 #endif // ENABLE_MPI

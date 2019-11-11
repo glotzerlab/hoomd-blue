@@ -97,7 +97,7 @@ hipError_t gpu_compact_index_list(unsigned int N,
     hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
     alloc.deallocate((char *)d_temp_storage);
 
     thrust::device_ptr<unsigned int> is_member(d_is_member);
