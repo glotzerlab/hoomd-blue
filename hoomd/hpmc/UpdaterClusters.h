@@ -319,10 +319,22 @@ class UpdaterClusters : public Updater
         */
         virtual void update(unsigned int timestep);
 
+        //! Get the seed
+        unsigned int getSeed()
+            {
+            return m_seed;
+            }
+
         //! Set the move ratio
         void setMoveRatio(Scalar move_ratio)
             {
             m_move_ratio = move_ratio;
+            }
+
+        //! Get the move ratio
+        Scalar getMoveRatio()
+            {
+            return m_move_ratio;
             }
 
         //! Set the swap to geometric move ratio
@@ -331,12 +343,23 @@ class UpdaterClusters : public Updater
             m_swap_move_ratio = move_ratio;
             }
 
+        //! Get the swap move ratio
+        Scalar getSwapMoveRatio()
+            {
+            return m_swap_move_ratio;
+            }
+
         //! Set the cluster flip probability
         void setFlipProbability(Scalar flip_probability)
             {
             m_flip_probability = flip_probability;
             }
 
+        //! Get the flip probability
+        Scalar getFlipProbability()
+            {
+            return m_flip_probability;
+            }
 
         //! Set an AB type pair to be used with type swap moves
         /*! \param type_A first type
@@ -350,10 +373,55 @@ class UpdaterClusters : public Updater
             m_ab_types[1] = type_B;
             }
 
+        //! Set the pair type to be used with type swap moves (by name)
+        void setSwapTypePairStr(pybind11::list l)
+            {
+            size_t l_size = pybind11::len(l);
+            if (l_size == 0)
+                {
+                m_ab_types.clear();
+                }
+            else if (l_size == 2)
+                {
+                unsigned int id_A = m_pdata->getTypeByName(type_A);
+                unsigned int id_B = m_pdata->getTypeByName(type_B);
+                setSwapTypePair(id_A, id_B);
+                }
+            else
+                {
+                throw runtime_error("swap_types must be a list of length 0 or 2");
+                }
+            }
+
+        //! Get the swap pair types as a python list
+        pybind11::list getSwapTypePairSty()
+            {
+            pybind11::list result;
+            if (m_ab_types.size() == 0)
+                {
+                return result;
+                }
+            else if (m_ab_types.size() == 2)
+                {
+                result.append(pybind11::str(m_pdata->getNameByType(m_ab_types[0]),
+                                            m_pdata->getNameByType(m_ab_types[1])));
+                }
+            else
+                {
+                throw runtime_error("invalid m_ab_types");
+                }
+            }
+
         //! Set the difference in chemical potential mu_B - mu_A
         void setDeltaMu(Scalar delta_mu)
             {
             m_delta_mu = delta_mu;
+            }
+
+        //! Get the the difference in chemical potential mu_B - mu_A
+        Scalar getDeltaMu()
+            {
+            return m_delta_mu;
             }
 
         //! Reset statistics counters
@@ -2155,12 +2223,13 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
                          std::shared_ptr< IntegratorHPMCMono<Shape> >,
                          unsigned int >())
         .def("getCounters", &UpdaterClusters<Shape>::getCounters)
-        .def("setMoveRatio", &UpdaterClusters<Shape>::setMoveRatio)
-        .def("setFlipProbability", &UpdaterClusters<Shape>::setFlipProbability)
-        .def("setSwapMoveRatio", &UpdaterClusters<Shape>::setSwapMoveRatio)
-        .def("setSwapTypePair", &UpdaterClusters<Shape>::setSwapTypePair)
-        .def("setDeltaMu", &UpdaterClusters<Shape>::setDeltaMu)
-    ;
+        .def_property("move_ratio", &UpdaterClusters<Shape>::getMoveRatio, &UpdaterClusters<Shape>::setMoveRatio)
+        .def_property("flip_probability", &UpdaterClusters<Shape>::getFlipProbability, &UpdaterClusters<Shape>::setFlipProbability)
+        .def_property("swap_move_ratio", &UpdaterClusters<Shape>::getSwapMoveRatio, &UpdaterClusters<Shape>::setSwapMoveRatio)
+        .def_property("swap_type_pair", &UpdaterClusters<Shape>::getSwapTypePairStr, &UpdaterClusters<Shape>::setSwapTypePairStr)
+        .def_property("delta_mu", &UpdaterClusters<Shape>::getDeltaMu, &UpdaterClusters<Shape>::setDeltaMu)
+        .def_property_readonly("seed", &UpdaterClusters<Shape>::getSeed)
+        ;
     }
 
 inline void export_hpmc_clusters_counters(pybind11::module &m)
