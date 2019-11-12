@@ -829,6 +829,8 @@ class clusters(_Updater):
         if cpp_cls is None:
             raise RuntimeError("Unsupported integrator.\n")
 
+        if not integrator.is_attached:
+            raise RuntimeError("Integrator is not attached yet.")
         self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
                                 integrator._cpp_obj,
                                 int(self.seed))
