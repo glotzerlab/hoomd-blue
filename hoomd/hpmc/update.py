@@ -807,19 +807,32 @@ class clusters(_Updater):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
         integrator_pairs = [
-                (integrate.sphere, _hpmc.UpdaterClustersSphere),
-                (integrate.convex_polygon, _hpmc.UpdaterClustersConvexPolygon),
-                (integrate.simple_polygon, _hpmc.UpdaterClustersConvexPolygon),
-                (integrate.convex_polyhedron, _hpmc.UpdaterClustersConvexPolyhedron),
-                (integrate.convex_spheropolyhedron, _hpmc.UpdaterClustersSpheropolyhedron),
-                (integrate.ellipsoid, _hpmc.UpdaterClustersEllipsoid),
-                (integrate.convex_spheropolygon, _hpmc.UpdaterClustersSpheropolygon),
-                (integrate.faceted_sphere, _hpmc.UpdaterClustersFacetedEllipsoid),
-                (integrate.sphere_union, _hpmc.UpdaterClustersSphereUnion),
-                (integrate.convex_spheropolyhedron_union, _hpmc.UpdaterClustersConvexPolyhedronUnion),
-                (integrate.faceted_ellipsoid_union, _hpmc.UpdaterClustersFacetedEllipsoidUnion),
-                (integrate.polyhedron, _hpmc.UpdaterClustersPolyhedron),
-                (integrate.sphinx, _hpmc.UpdaterClustersSphinx)
+                (integrate.sphere,
+                    _hpmc.UpdaterClustersSphere),
+                (integrate.convex_polygon,
+                    _hpmc.UpdaterClustersConvexPolygon),
+                (integrate.simple_polygon,
+                    _hpmc.UpdaterClustersConvexPolygon),
+                (integrate.convex_polyhedron,
+                    _hpmc.UpdaterClustersConvexPolyhedron),
+                (integrate.convex_spheropolyhedron,
+                    _hpmc.UpdaterClustersSpheropolyhedron),
+                (integrate.ellipsoid,
+                    _hpmc.UpdaterClustersEllipsoid),
+                (integrate.convex_spheropolygon,
+                    _hpmc.UpdaterClustersSpheropolygon),
+                (integrate.faceted_sphere,
+                    _hpmc.UpdaterClustersFacetedEllipsoid),
+                (integrate.sphere_union,
+                    _hpmc.UpdaterClustersSphereUnion),
+                (integrate.convex_spheropolyhedron_union,
+                    _hpmc.UpdaterClustersConvexPolyhedronUnion),
+                (integrate.faceted_ellipsoid_union,
+                    _hpmc.UpdaterClustersFacetedEllipsoidUnion),
+                (integrate.polyhedron,
+                    _hpmc.UpdaterClustersPolyhedron),
+                (integrate.sphinx,
+                    _hpmc.UpdaterClustersSphinx)
                 ]
 
         cpp_cls = None
