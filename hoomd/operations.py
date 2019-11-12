@@ -48,3 +48,10 @@ class Operations:
     @property
     def scheduled(self):
         return self._scheduled
+
+    @property
+    def integrator(self):
+        try:
+            return self._integrator
+        except AttributeError:
+            return None
