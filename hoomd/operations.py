@@ -13,9 +13,9 @@ class Operations:
     def add(self, op):
         if isinstance(op, hoomd.integrate._integrator):
             self._integrator = op
-        if isinstance(op, hoomd.meta._Updater):
+        elif isinstance(op, hoomd.meta._Updater):
             self._updaters.append(op)
-        if isinstance(op, hoomd.meta._Analyzer):
+        elif isinstance(op, hoomd.meta._Analyzer):
             self._analyzers.append(op)
         else:
             raise ValueError("Operation is not of the correct type to add to"
