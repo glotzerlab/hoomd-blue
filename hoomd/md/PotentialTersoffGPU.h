@@ -32,7 +32,7 @@
 
     \sa export_PotentialTersoffGPU()
 */
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     {
@@ -62,7 +62,7 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
         virtual void computeForces(unsigned int timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                                 std::shared_ptr<NeighborList> nlist,
@@ -100,14 +100,14 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<
     m_tuner.reset(new Autotuner(valid_params, 5, 100000, "pair_tersoff", this->m_exec_conf));
     }
 
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 PotentialTersoffGPU< evaluator, gpu_cgpf >::~PotentialTersoffGPU()
         {
         this->m_exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << std::endl;
         }
 
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -42,7 +43,7 @@ struct tersoff_args_t
                    const unsigned int _ntypes,
                    const unsigned int _block_size,
                    const unsigned int _tpp,
-                   const cudaDeviceProp& _devprop)
+                   const hipDeviceProp_t& _devprop)
                    : d_force(_d_force),
                      N(_N),
                      Nghosts(_Nghosts),
@@ -81,7 +82,7 @@ struct tersoff_args_t
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int tpp;         //!< Threads per particle
-    const cudaDeviceProp& devprop;   //!< CUDA device properties
+    const hipDeviceProp_t& devprop;   //!< CUDA device properties
     };
 
 
@@ -171,7 +172,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared arrays for per type pair parameters
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
     Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
@@ -628,8 +629,8 @@ __global__ void gpu_zero_forces_kernel(Scalar4 *d_force,
 template<typename T>
 void get_max_block_size(T func, const tersoff_args_t& pair_args, unsigned int& max_block_size, unsigned int& kernel_shared_bytes)
     {
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, (const void *)func);
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void *)func);
 
     max_block_size = attr.maxThreadsPerBlock;
     max_block_size &= ~(pair_args.devprop.warpSize - 1);
@@ -680,7 +681,7 @@ struct TersoffComputeKernel
                 }
 
             // zero the forces
-            gpu_zero_forces_kernel<<<(pair_args.N + pair_args.Nghosts)/run_block_size + 1, run_block_size>>>(pair_args.d_force,
+            hipLaunchKernelGGL((gpu_zero_forces_kernel), dim3((pair_args.N + pair_args.Nghosts)/run_block_size + 1), dim3(run_block_size), 0, 0, pair_args.d_force,
                                                     pair_args.d_virial,
                                                     pair_args.virial_pitch,
                                                     pair_args.N + pair_args.Nghosts);
@@ -689,8 +690,7 @@ struct TersoffComputeKernel
             dim3 grid( pair_args.N / (run_block_size/pair_args.tpp) + 1, 1, 1);
             dim3 threads(run_block_size, 1, 1);
 
-            gpu_compute_triplet_forces_kernel<evaluator, compute_virial, tpp>
-              <<<grid, threads, shared_bytes>>>(pair_args.d_force,
+            hipLaunchKernelGGL((gpu_compute_triplet_forces_kernel<evaluator, compute_virial, tpp>), dim3(grid), dim3(threads), shared_bytes, 0, pair_args.d_force,
                                                 pair_args.N,
                                                 pair_args.d_virial,
                                                 pair_args.virial_pitch,
@@ -728,7 +728,7 @@ struct TersoffComputeKernel<evaluator, compute_virial, 0>
     This is just a driver function for gpu_compute_triplet_forces_kernel(), see it for details.
 */
 template< class evaluator >
-cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
+hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                                        const typename evaluator::param_type *d_params)
     {
     assert(d_params);
@@ -745,7 +745,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
         {
         TersoffComputeKernel<evaluator, 1, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
         }
-    return cudaSuccess;
+    return hipSuccess;
     }
 #endif
 

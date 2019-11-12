@@ -35,14 +35,14 @@ namespace detail
  * \tparam LOGICAL_WARP_THREADS number of threads in a "logical" warp, must be a multiple of 2.
  * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
  */
-template<typename T, int LOGICAL_WARP_THREADS = CUB_PTX_WARP_THREADS, int PTX_ARCH = CUB_PTX_ARCH>
+template<typename T, int LOGICAL_WARP_THREADS = HIPCUB_WARP_THREADS, int PTX_ARCH = HIPCUB_ARCH>
 class WarpReduce
     {
     public:
         DEVICE WarpReduce()
             {
             static_assert(PTX_ARCH >= 300, "PTX architecture must be >= 300");
-            static_assert(LOGICAL_WARP_THREADS <= CUB_PTX_WARP_THREADS, "Logical warp size cannot exceed hardware warp size");
+            static_assert(LOGICAL_WARP_THREADS <= HIPCUB_WARP_THREADS, "Logical warp size cannot exceed hardware warp size");
             static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS-1)), "Logical warp size must be a power of 2");
             }
 
@@ -131,14 +131,14 @@ class WarpReduce
  * \tparam LOGICAL_WARP_THREADS number of threads in a "logical" warp, must be a multiple of 2.
  * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
  */
-template<typename T, int LOGICAL_WARP_THREADS = CUB_PTX_WARP_THREADS, int PTX_ARCH = CUB_PTX_ARCH>
+template<typename T, int LOGICAL_WARP_THREADS = HIPCUB_WARP_THREADS, int PTX_ARCH = HIPCUB_ARCH>
 class WarpScan
     {
     public:
         DEVICE WarpScan()
             {
             static_assert(PTX_ARCH >= 300, "PTX architecture must be >= 300");
-            static_assert(LOGICAL_WARP_THREADS <= CUB_PTX_WARP_THREADS, "Logical warp size cannot exceed hardware warp size");
+            static_assert(LOGICAL_WARP_THREADS <= HIPCUB_WARP_THREADS, "Logical warp size cannot exceed hardware warp size");
             static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS-1)), "Logical warp size must be a power of 2");
             }
 

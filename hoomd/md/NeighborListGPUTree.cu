@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -167,9 +168,9 @@ __global__ void gpu_nlist_morton_types_kernel(uint64_t *d_morton_types,
  * \param ghost_width Anticipated size of the ghost layer for nonbonded interactions
  * \param block_size Requested thread block size of kernel launch
  *
- * \returns cudaSuccess on completion
+ * \returns hipSuccess on completion
  */
-cudaError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
+hipError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
                                    unsigned int *d_map_tree_pid,
                                    int *d_morton_conditions,
                                    const Scalar4 *d_pos,
@@ -182,14 +183,14 @@ cudaError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_morton_types_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_nlist_morton_types_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     int run_block_size = min(block_size,max_block_size);
 
-    gpu_nlist_morton_types_kernel<<<(N+nghosts)/run_block_size + 1, run_block_size>>>(d_morton_types,
+    hipLaunchKernelGGL((gpu_nlist_morton_types_kernel), dim3((N+nghosts)/run_block_size + 1), dim3(run_block_size), 0, 0, d_morton_types,
                                                                                       d_map_tree_pid,
                                                                                       d_morton_conditions,
                                                                                       d_pos,
@@ -197,7 +198,7 @@ cudaError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
                                                                                       nghosts,
                                                                                       box,
                                                                                       ghost_width);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 /*!
@@ -212,7 +213,7 @@ cudaError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
  * \param Ntot Total number of keys to sort
  * \param n_type_bits Number of bits to check for particle types
  *
- * \returns cudaSuccess on completion
+ * \returns hipSuccess on completion
  *
  * \b Implementation
  * The CUB library is used for device-wide radix sorting. Radix sorting is O(kN) where k is the number of bits to check
@@ -226,7 +227,7 @@ cudaError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
  * active (sorted) buffer in either slot of the DoubleBuffer, a boolean flag is set in \a swap_morton and \a swap_map
  * for whether these data arrays should be swapped.
  */
-cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
+hipError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
                                   uint64_t *d_morton_types_alt,
                                   unsigned int *d_map_tree_pid,
                                   unsigned int *d_map_tree_pid_alt,
@@ -259,7 +260,7 @@ cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
         swap_map = (d_vals.selector == 1);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! Kernel to merge adjacent codes into leaf nodes
@@ -391,9 +392,9 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_tree_aabbs,
  * \param Ntot Total number of keys to sort
  * \param nleafs Number of leaf nodes
  *
- * \returns cudaSuccess on completion
+ * \returns hipSuccess on completion
  */
-cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
+hipError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
                                       uint32_t *d_morton_codes_red,
                                       uint2 *d_tree_parent_sib,
                                       const uint64_t *d_morton_types,
@@ -410,14 +411,14 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_merge_particles_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_nlist_merge_particles_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     int run_block_size = min(block_size,max_block_size);
 
-    gpu_nlist_merge_particles_kernel<<<nleafs/run_block_size + 1, block_size>>>(d_tree_aabbs,
+    hipLaunchKernelGGL((gpu_nlist_merge_particles_kernel), dim3(nleafs/run_block_size + 1), dim3(block_size), 0, 0, d_tree_aabbs,
                                                                                 d_morton_codes_red,
                                                                                 d_tree_parent_sib,
                                                                                 d_morton_types,
@@ -429,7 +430,7 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
                                                                                 d_type_head,
                                                                                 Ntot,
                                                                                 nleafs);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! Computes the longest common prefix between Morton codes
@@ -660,9 +661,9 @@ __global__ void gpu_nlist_gen_hierarchy_kernel(uint2 *d_tree_parent_sib,
  * \param nleafs Number of leafs
  * \param block_size Requested thread block size
  *
- * \returns cudaSuccess on completion
+ * \returns hipSuccess on completion
  */
-cudaError_t gpu_nlist_gen_hierarchy(uint2 *d_tree_parent_sib,
+hipError_t gpu_nlist_gen_hierarchy(uint2 *d_tree_parent_sib,
                                     const uint32_t *d_morton_codes,
                                     const unsigned int *d_num_per_type,
                                     const unsigned int ntypes,
@@ -673,21 +674,21 @@ cudaError_t gpu_nlist_gen_hierarchy(uint2 *d_tree_parent_sib,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_gen_hierarchy_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_nlist_gen_hierarchy_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     int run_block_size = min(block_size,max_block_size);
 
     // one thread per internal node
-    gpu_nlist_gen_hierarchy_kernel<<<ninternal/run_block_size + 1, run_block_size>>>(d_tree_parent_sib,
+    hipLaunchKernelGGL((gpu_nlist_gen_hierarchy_kernel), dim3(ninternal/run_block_size + 1), dim3(run_block_size), 0, 0, d_tree_parent_sib,
                                                                                      d_morton_codes,
                                                                                      d_num_per_type,
                                                                                      ntypes,
                                                                                      nleafs,
                                                                                      ninternal);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! Kernel to bubble up enclosing AABBs to internal nodes from leaf nodes
@@ -807,9 +808,9 @@ __global__ void gpu_nlist_bubble_aabbs_kernel(unsigned int *d_node_locks,
  * \param nleafs Number of leaf nodes
  * \param block_size Requested thread block size
  *
- * \returns cudaSuccess on completion
+ * \returns hipSuccess on completion
  */
-cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
+hipError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
                                    Scalar4 *d_tree_aabbs,
                                    const uint2 *d_tree_parent_sib,
                                    const unsigned int ntypes,
@@ -817,15 +818,15 @@ cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
                                    const unsigned int ninternal,
                                    const unsigned int block_size)
     {
-    cudaMemset(d_node_locks, 0, sizeof(unsigned int)*ninternal);
+    hipMemset(d_node_locks, 0, sizeof(unsigned int)*ninternal);
 
-    gpu_nlist_bubble_aabbs_kernel<<<nleafs/block_size + 1, block_size>>>(d_node_locks,
+    hipLaunchKernelGGL((gpu_nlist_bubble_aabbs_kernel), dim3(nleafs/block_size + 1), dim3(block_size), 0, 0, d_node_locks,
                                                                          d_tree_aabbs,
                                                                          d_tree_parent_sib,
                                                                          ntypes,
                                                                          nleafs);
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! Kernel to rearrange particle data into leaf order for faster traversal
@@ -875,9 +876,9 @@ __global__ void gpu_nlist_move_particles_kernel(Scalar4 *d_leaf_xyzf,
  * \param Ntot Number of particles owned by this rank
  * \param block_size Requested thread block size
  *
- * \returns cudaSuccess on completion
+ * \returns hipSuccess on completion
  */
-cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
+hipError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
                                      Scalar2 *d_leaf_db,
                                      const Scalar4 *d_pos,
                                      const Scalar *d_diameter,
@@ -889,21 +890,21 @@ cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_move_particles_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_nlist_move_particles_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     int run_block_size = min(block_size,max_block_size);
 
-    gpu_nlist_move_particles_kernel<<<Ntot/run_block_size + 1, run_block_size>>>(d_leaf_xyzf,
+    hipLaunchKernelGGL((gpu_nlist_move_particles_kernel), dim3(Ntot/run_block_size + 1), dim3(run_block_size), 0, 0, d_leaf_xyzf,
                                                                                  d_leaf_db,
                                                                                  d_pos,
                                                                                  d_diameter,
                                                                                  d_body,
                                                                                  d_map_tree_pid,
                                                                                  Ntot);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 
@@ -974,7 +975,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared data for per type pair parameters
-    extern __shared__ unsigned char s_data[];
+    HIP_DYNAMIC_SHARED( unsigned char, s_data)
 
     // pointer for the r_listsq data
     Scalar *s_r_list = (Scalar *)(&s_data[0]);
@@ -1177,15 +1178,15 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
  * \param compute_capability Compute capability of the GPU (in 20, 30, 35 format)
  * \param block_size Requested thread block size
  *
- * \returns cudaSuccess on completion
- * \returns cudaError on failure to texture bind
+ * \returns hipSuccess on completion
+ * \returns hipError_t on failure to texture bind
  *
  * \note Kernel calls are templated on body filtering and diameter shifting for optimization.
  * \note One thread is called for all leaf particles. Some of these threads will die because they correspond to ghost
  *       particles not owned by the rank. Because the leaf particles are sorted, there is no easy way to skip these
  *       particles, and this inefficiency is assumed to be relatively small.
  */
-cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
+hipError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     unsigned int *d_n_neigh,
                                     Scalar4 *d_last_updated_pos,
                                     unsigned int *d_conditions,
@@ -1222,14 +1223,14 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<0>);
+            hipFuncAttributes attr;
+            hipFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<0>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
         int run_block_size = min(block_size,max_block_size);
         int nblocks = (N+nghosts)/run_block_size + 1;
-        gpu_nlist_traverse_tree_kernel<0><<<nblocks, run_block_size, shared_size>>>(d_nlist,
+        hipLaunchKernelGGL((gpu_nlist_traverse_tree_kernel<0>), dim3(nblocks), dim3(run_block_size), shared_size, 0, d_nlist,
                                                                                     d_n_neigh,
                                                                                     d_last_updated_pos,
                                                                                     d_conditions,
@@ -1257,14 +1258,14 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<1>);
+            hipFuncAttributes attr;
+            hipFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<1>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
         int run_block_size = min(block_size,max_block_size);
         int nblocks = (N+nghosts)/run_block_size + 1;
-        gpu_nlist_traverse_tree_kernel<1><<<nblocks, run_block_size, shared_size>>>(d_nlist,
+        hipLaunchKernelGGL((gpu_nlist_traverse_tree_kernel<1>), dim3(nblocks), dim3(run_block_size), shared_size, 0, d_nlist,
                                                                                     d_n_neigh,
                                                                                     d_last_updated_pos,
                                                                                     d_conditions,
@@ -1292,14 +1293,14 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<2>);
+            hipFuncAttributes attr;
+            hipFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<2>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
         int run_block_size = min(block_size,max_block_size);
         int nblocks = (N+nghosts)/run_block_size + 1;
-        gpu_nlist_traverse_tree_kernel<2><<<nblocks, run_block_size, shared_size>>>(d_nlist,
+        hipLaunchKernelGGL((gpu_nlist_traverse_tree_kernel<2>), dim3(nblocks), dim3(run_block_size), shared_size, 0, d_nlist,
                                                                                     d_n_neigh,
                                                                                     d_last_updated_pos,
                                                                                     d_conditions,
@@ -1327,14 +1328,14 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<3>);
+            hipFuncAttributes attr;
+            hipFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<3>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
         int run_block_size = min(block_size,max_block_size);
         int nblocks = (N+nghosts)/run_block_size + 1;
-        gpu_nlist_traverse_tree_kernel<3><<<nblocks, run_block_size, shared_size>>>(d_nlist,
+        hipLaunchKernelGGL((gpu_nlist_traverse_tree_kernel<3>), dim3(nblocks), dim3(run_block_size), shared_size, 0, d_nlist,
                                                                                     d_n_neigh,
                                                                                     d_last_updated_pos,
                                                                                     d_conditions,
@@ -1358,7 +1359,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     ntypes);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! Kernel to find divisions between particle types in sorted order
@@ -1419,9 +1420,9 @@ __global__ void gpu_nlist_get_divisions_kernel(unsigned int *d_type_head,
  * \param ntypes Number of types
  * \param block_size Requested thread block size
  *
- * \returns cudaSuccess on completion
+ * \returns hipSuccess on completion
  */
-cudaError_t gpu_nlist_init_count(unsigned int *d_type_head,
+hipError_t gpu_nlist_init_count(unsigned int *d_type_head,
                                  const Scalar4 *d_pos,
                                  const unsigned int *d_map_tree_pid,
                                  const unsigned int N,
@@ -1432,20 +1433,20 @@ cudaError_t gpu_nlist_init_count(unsigned int *d_type_head,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_get_divisions_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_nlist_get_divisions_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     int run_block_size = min(block_size,max_block_size);
 
     // zero out the head list
-    cudaMemset(d_type_head, 0, sizeof(unsigned int)*ntypes);
+    hipMemset(d_type_head, 0, sizeof(unsigned int)*ntypes);
 
     // get the head list divisions
-    gpu_nlist_get_divisions_kernel<<<N/run_block_size + 1, run_block_size>>>(d_type_head, d_pos, d_map_tree_pid, N);
+    hipLaunchKernelGGL((gpu_nlist_get_divisions_kernel), dim3(N/run_block_size + 1), dim3(run_block_size), 0, 0, d_type_head, d_pos, d_map_tree_pid, N);
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 #undef MORTON_CODE_BITS

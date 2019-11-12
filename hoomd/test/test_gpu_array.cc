@@ -12,7 +12,7 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/GPUVector.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "test_gpu_array.cuh"
 #endif
 
@@ -89,7 +89,7 @@ UP_TEST( GPUArray_basic_tests )
 
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for testing device to/from host transfers
 UP_TEST( GPUArray_transfer_tests )
     {
@@ -104,8 +104,8 @@ UP_TEST( GPUArray_transfer_tests )
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_fill_test_pattern(d_handle.data, gpu_array.getNumElements());
-        cudaError_t err_sync = cudaGetLastError();
-        exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__);
+        hipError_t err_sync = hipGetLastError();
+        exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
     // copy it to the host and verify
@@ -127,8 +127,8 @@ UP_TEST( GPUArray_transfer_tests )
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        cudaError_t err_sync = cudaGetLastError();
-        exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__);
+        hipError_t err_sync = hipGetLastError();
+        exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
     // copy it back to the host and verify
@@ -151,8 +151,8 @@ UP_TEST( GPUArray_transfer_tests )
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        cudaError_t err_sync = cudaGetLastError();
-        exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__);
+        hipError_t err_sync = hipGetLastError();
+        exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
         {
@@ -170,8 +170,8 @@ UP_TEST( GPUArray_transfer_tests )
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        cudaError_t err_sync = cudaGetLastError();
-        exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__);
+        hipError_t err_sync = hipGetLastError();
+        exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
     // via the read access mode
@@ -189,8 +189,8 @@ UP_TEST( GPUArray_transfer_tests )
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        cudaError_t err_sync = cudaGetLastError();
-        exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__);
+        hipError_t err_sync = hipGetLastError();
+        exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
     // and via the readwrite access mode

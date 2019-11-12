@@ -101,7 +101,7 @@ void PPPMForceComputeGPU::initializeFFT()
 
     if (m_local_fft)
         {
-        cufftPlan3d(&m_cufft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, CUFFT_C2C);
+        cufftPlan3d(&m_cufft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, HIPFFT_C2C);
         }
 
     // allocate mesh and transformed mesh
@@ -278,7 +278,7 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
         ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
 
-        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan, d_mesh.data, d_fourier_mesh.data, CUFFT_FORWARD));
+        CHECK_HIPFFT_ERROR(cufftExecC2C(m_cufft_plan, d_mesh.data, d_fourier_mesh.data, HIPFFT_FORWARD));
         if (m_prof) m_prof->pop(m_exec_conf);
         }
     #ifdef ENABLE_MPI
@@ -362,19 +362,19 @@ void PPPMForceComputeGPU::updateMeshes()
 
         for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev>=0; idev--)
             {
-            cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
-            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+            hipSetDevice(m_exec_conf->getGPUIds()[idev]);
+            CHECK_HIPFFT_ERROR(cufftExecC2C(m_cufft_plan,
                          d_fourier_mesh_G_x.data,
                          d_inv_fourier_mesh_x.data+idev*inv_mesh_elements,
-                         CUFFT_INVERSE));
-            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+                         HIPFFT_INVERSE));
+            CHECK_HIPFFT_ERROR(cufftExecC2C(m_cufft_plan,
                          d_fourier_mesh_G_y.data,
                          d_inv_fourier_mesh_y.data+idev*inv_mesh_elements,
-                         CUFFT_INVERSE));
-            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+                         HIPFFT_INVERSE));
+            CHECK_HIPFFT_ERROR(cufftExecC2C(m_cufft_plan,
                          d_fourier_mesh_G_z.data,
                          d_inv_fourier_mesh_z.data+idev*inv_mesh_elements,
-                         CUFFT_INVERSE));
+                         HIPFFT_INVERSE));
             }
         m_exec_conf->endMultiGPU();
 
@@ -668,7 +668,7 @@ void PPPMForceComputeGPU::fixExclusions()
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
     // reset virial
-    cudaMemset(d_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
+    hipMemset(d_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
 
     Index2D nex = m_nlist->getExListIndexer();
 

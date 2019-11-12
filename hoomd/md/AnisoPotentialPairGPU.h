@@ -35,7 +35,7 @@
 
     \sa export_AnisoPotentialPairGPU()
 */
-template< class evaluator, cudaError_t gpu_cgpf(const a_pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
     {
@@ -76,7 +76,7 @@ class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
         virtual void computeForces(unsigned int timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cgpf(const a_pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                           std::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
@@ -110,7 +110,7 @@ AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(std::shared_
     #endif
     }
 
-template< class evaluator, cudaError_t gpu_cgpf(const a_pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {

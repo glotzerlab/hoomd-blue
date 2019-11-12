@@ -13,7 +13,7 @@
 #include "hoomd/md/IntegratorTwoStep.h"
 #include "hoomd/md/TwoStepLangevin.h"
 #include "hoomd/md/ConstraintSphere.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/ConstraintSphereGPU.h"
 #endif
 
@@ -105,7 +105,7 @@ std::shared_ptr<ConstraintSphere> base_class_cs_creator(std::shared_ptr<SystemDe
     return std::shared_ptr<ConstraintSphere>(new ConstraintSphere(sysdef, group, P, r));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! ConstraintSphereGPU factory for the unit tests
 std::shared_ptr<ConstraintSphere> gpu_cs_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<ParticleGroup> group,
@@ -123,7 +123,7 @@ UP_TEST( BDUpdater_tests )
     constraint_sphere_tests(cs_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Basic test for the GPU class
 UP_TEST( BDUpdaterGPU_tests )
     {

@@ -8,7 +8,7 @@
 
 #ifdef ENABLE_HIP
 
-#include <cufft.h>
+#include <hipfft.h>
 #include <sstream>
 
 //#define USE_HOST_DFFT
@@ -25,7 +25,7 @@
 #endif
 #endif
 
-#define CHECK_CUFFT_ERROR(status) { handleCUFFTResult(status, __FILE__, __LINE__); }
+#define CHECK_HIPFFT_ERROR(status) { handleHIPFFTResult(status, __FILE__, __LINE__); }
 
 /*! Order parameter evaluated using the particle mesh method
  */
@@ -85,13 +85,13 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         //! Helper function to correct forces on excluded particles
         virtual void fixExclusions();
 
-        //! Check for CUFFT errors
-        inline void handleCUFFTResult(cufftResult result, const char *file, unsigned int line) const
+        //! Check for HIPFFT errors
+        inline void handleHIPFFTResult(hipfftResult result, const char *file, unsigned int line) const
             {
-            if (result != CUFFT_SUCCESS)
+            if (result != HIPFFT_SUCCESS)
                 {
                 std::ostringstream oss;
-                oss << "CUFFT returned error " << result << " in file " << file << " line " << line << std::endl;
+                oss << "HIPFFT returned error " << result << " in file " << file << " line " << line << std::endl;
                 throw std::runtime_error(oss.str());
                 }
             }
@@ -103,11 +103,11 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
         std::unique_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function
 
-        cufftHandle m_cufft_plan;          //!< The FFT plan
+        hipfftHandle m_hipfft_plan;          //!< The FFT plan
         bool m_local_fft;                  //!< True if we are only doing local FFTs (not distributed)
 
         #ifdef ENABLE_MPI
-        typedef CommunicatorGridGPU<cufftComplex> CommunicatorGridGPUComplex;
+        typedef CommunicatorGridGPU<hipfftComplex> CommunicatorGridGPUComplex;
         std::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_forward; //!< Communicate mesh
         std::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_reverse; //!< Communicate fourier mesh
 
@@ -115,15 +115,15 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         dfft_plan m_dfft_plan_inverse;     //!< Forward distributed FFT
         #endif
 
-        GlobalArray<cufftComplex> m_mesh;                 //!< The particle density mesh
-        GlobalArray<cufftComplex> m_mesh_scratch;         //!< The particle density mesh per GPU, staging array
-        GlobalArray<cufftComplex> m_fourier_mesh;         //!< The fourier transformed mesh
-        GlobalArray<cufftComplex> m_fourier_mesh_G_x;       //!< Fourier transformed mesh times the influence function, x component
-        GlobalArray<cufftComplex> m_fourier_mesh_G_y;       //!< Fourier transformed mesh times the influence function, y component
-        GlobalArray<cufftComplex> m_fourier_mesh_G_z;       //!< Fourier transformed mesh times the influence function, z component
-        GlobalArray<cufftComplex> m_inv_fourier_mesh_x;     //!< The inverse-fourier transformed force mesh
-        GlobalArray<cufftComplex> m_inv_fourier_mesh_y;     //!< The inverse-fourier transformed force mesh
-        GlobalArray<cufftComplex> m_inv_fourier_mesh_z;     //!< The inverse-fourier transformed force mesh
+        GlobalArray<hipfftComplex> m_mesh;                 //!< The particle density mesh
+        GlobalArray<hipfftComplex> m_mesh_scratch;         //!< The particle density mesh per GPU, staging array
+        GlobalArray<hipfftComplex> m_fourier_mesh;         //!< The fourier transformed mesh
+        GlobalArray<hipfftComplex> m_fourier_mesh_G_x;       //!< Fourier transformed mesh times the influence function, x component
+        GlobalArray<hipfftComplex> m_fourier_mesh_G_y;       //!< Fourier transformed mesh times the influence function, y component
+        GlobalArray<hipfftComplex> m_fourier_mesh_G_z;       //!< Fourier transformed mesh times the influence function, z component
+        GlobalArray<hipfftComplex> m_inv_fourier_mesh_x;     //!< The inverse-fourier transformed force mesh
+        GlobalArray<hipfftComplex> m_inv_fourier_mesh_y;     //!< The inverse-fourier transformed force mesh
+        GlobalArray<hipfftComplex> m_inv_fourier_mesh_z;     //!< The inverse-fourier transformed force mesh
 
         GPUFlags<Scalar> m_sum;                    //!< Sum over fourier mesh values
         GlobalArray<Scalar> m_sum_partial;            //!< Partial sums over fourier mesh values

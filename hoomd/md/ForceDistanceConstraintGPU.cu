@@ -6,7 +6,7 @@
 
 #include "ForceDistanceConstraintGPU.cuh"
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 /*! \file ForceDistanceConstraintGPU.cu
     \brief Defines GPU kernel code for pairwise distance constraints on the GPU
@@ -166,7 +166,7 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
         }
     }
 
-cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
+hipError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           unsigned int nptl_local,
                           double *d_matrix,
                           double *d_vec,
@@ -190,8 +190,8 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)gpu_fill_matrix_vector_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void*)gpu_fill_matrix_vector_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -200,7 +200,7 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
     unsigned int n_blocks = nptl_local/run_block_size + 1;
 
     // run GPU kernel
-    gpu_fill_matrix_vector_kernel<<<n_blocks, run_block_size>>>(
+    hipLaunchKernelGGL((gpu_fill_matrix_vector_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0, 
         n_constraint,
         nptl_local,
         d_matrix,
@@ -221,7 +221,7 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
         deltaT,
         box);
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
@@ -320,7 +320,7 @@ __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
     d_virial[5*virial_pitch+idx] = virialzz;
     }
 
-cudaError_t gpu_count_nnz(unsigned int n_constraint,
+hipError_t gpu_count_nnz(unsigned int n_constraint,
                            double *d_matrix,
                            int *d_nnz,
                            int &nnz,
@@ -332,10 +332,10 @@ cudaError_t gpu_count_nnz(unsigned int n_constraint,
     cusparseDnnz(cusparse_handle, CUSPARSE_DIRECTION_ROW, n_constraint, n_constraint,
         cusparse_mat_descr, d_matrix, n_constraint, d_nnz, &nnz);
     #endif
-    return cudaSuccess;
+    return hipSuccess;
     }
 
-cudaError_t gpu_dense2sparse(unsigned int n_constraint,
+hipError_t gpu_dense2sparse(unsigned int n_constraint,
                            double *d_matrix,
                            int *d_nnz,
                            cusparseHandle_t cusparse_handle,
@@ -351,10 +351,10 @@ cudaError_t gpu_dense2sparse(unsigned int n_constraint,
     cusparseDdense2csr(cusparse_handle, n_constraint, n_constraint, cusparse_mat_descr, d_matrix, n_constraint, d_nnz,
         d_csr_val, d_csr_rowptr, d_csr_colind);
     #endif
-    return cudaSuccess;
+    return hipSuccess;
     }
 
-cudaError_t gpu_compute_constraint_forces(const Scalar4 *d_pos,
+hipError_t gpu_compute_constraint_forces(const Scalar4 *d_pos,
                                    const group_storage<2> *d_gpu_clist,
                                    const Index2D& gpu_clist_indexer,
                                    const unsigned int *d_gpu_n_constraints,
@@ -373,8 +373,8 @@ cudaError_t gpu_compute_constraint_forces(const Scalar4 *d_pos,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)gpu_fill_constraint_forces_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void*)gpu_fill_constraint_forces_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -383,7 +383,7 @@ cudaError_t gpu_compute_constraint_forces(const Scalar4 *d_pos,
     unsigned int n_blocks = nptl_local/run_block_size + 1;
 
     // invoke kernel
-    gpu_fill_constraint_forces_kernel<<<n_blocks,run_block_size>>>(nptl_local,
+    hipLaunchKernelGGL((gpu_fill_constraint_forces_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0, nptl_local,
         d_pos,
         d_gpu_clist,
         gpu_clist_indexer,
@@ -395,5 +395,5 @@ cudaError_t gpu_compute_constraint_forces(const Scalar4 *d_pos,
         virial_pitch,
         box);
 
-    return cudaSuccess;
+    return hipSuccess;
     }

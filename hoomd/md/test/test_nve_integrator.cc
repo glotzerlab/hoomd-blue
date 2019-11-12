@@ -12,7 +12,7 @@
 #include "hoomd/ConstForceCompute.h"
 #include "hoomd/ComputeThermo.h"
 #include "hoomd/md/TwoStepNVE.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/TwoStepNVEGPU.h"
 #endif
 
@@ -441,7 +441,7 @@ std::shared_ptr<TwoStepNVE> base_class_nve_creator(std::shared_ptr<SystemDefinit
     return std::shared_ptr<TwoStepNVE>(new TwoStepNVE(sysdef, group));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! TwoStepNVEGPU factory for the unit tests
 std::shared_ptr<TwoStepNVE> gpu_nve_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group)
     {
@@ -478,7 +478,7 @@ UP_TEST( TwoStepNVE_aniso_test )
     }
 
 //! Need work on NVEUpdaterGPU with rigid bodies to test these cases
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for base class integration tests
 UP_TEST( TwoStepNVEGPU_integrate_tests )
     {

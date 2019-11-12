@@ -16,7 +16,7 @@
 #define __HARMONICDIHEDRALFORCEGPU_CUH__
 
 //! Kernel driver that computes harmonic dihedral forces for HarmonicDihedralForceComputeGPU
-cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
+hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                  Scalar* d_virial,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int N,

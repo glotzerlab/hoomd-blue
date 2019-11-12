@@ -385,7 +385,7 @@ double NeighborList::benchmark(unsigned int num_iters)
 #ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -397,7 +397,7 @@ double NeighborList::benchmark(unsigned int num_iters)
 
 #ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 

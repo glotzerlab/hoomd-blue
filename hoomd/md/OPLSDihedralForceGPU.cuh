@@ -16,7 +16,7 @@
 #define __OPLSDIHEDRALFORCEGPU_CUH__
 
 //! Kernel driver that computes OPLS dihedral forces for OPLSDihedralForceComputeGPU
-cudaError_t gpu_compute_opls_dihedral_forces(Scalar4* d_force,
+hipError_t gpu_compute_opls_dihedral_forces(Scalar4* d_force,
                                                 Scalar* d_virial,
                                                 const unsigned int virial_pitch,
                                                 const unsigned int N,

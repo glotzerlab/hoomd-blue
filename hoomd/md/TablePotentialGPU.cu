@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -57,7 +58,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     Index2D table_value(table_width);
 
     // read in params for easy and fast access in the kernel
-    extern __shared__ Scalar4 s_params[];
+    HIP_DYNAMIC_SHARED( Scalar4, s_params)
     for (unsigned int cur_offset = 0; cur_offset < table_index.getNumElements(); cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < table_index.getNumElements())
@@ -202,7 +203,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
 
     \note This is just a kernel driver. See gpu_compute_table_forces_kernel for full documentation.
 */
-cudaError_t gpu_compute_table_forces(Scalar4* d_force,
+hipError_t gpu_compute_table_forces(Scalar4* d_force,
                                      Scalar* d_virial,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
@@ -236,8 +237,8 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_compute_table_forces_kernel);
+            hipFuncAttributes attr;
+            hipFuncGetAttributes(&attr, gpu_compute_table_forces_kernel);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -250,7 +251,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
         dim3 grid( (range.second-range.first) / run_block_size + 1, 1, 1);
         dim3 threads(run_block_size, 1, 1);
 
-        gpu_compute_table_forces_kernel<<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>(d_force,
+        hipLaunchKernelGGL((gpu_compute_table_forces_kernel), dim3(grid), dim3(threads), sizeof(Scalar4)*table_index.getNumElements() , 0, d_force,
                                                                                                            d_virial,
                                                                                                            virial_pitch,
                                                                                                            range.second-range.first,
@@ -265,6 +266,6 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
                                                                                                            table_width,
                                                                                                            range.first);
         }
-    return cudaSuccess;
+    return hipSuccess;
     }
 // vim:syntax=cpp

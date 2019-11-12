@@ -215,6 +215,7 @@ endif(SINGLE_PRECISION)
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
+    target_link_libraries(_hoomd PUBLIC HIP::hiprand HIP::hipfft HIP::hip_hcc)
     if (NOT ENABLE_HIP)
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()

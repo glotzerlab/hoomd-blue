@@ -10,7 +10,7 @@
 #include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
 #include "hoomd/ComputeThermo.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/TwoStepNVTMTKGPU.h"
 #endif
 #include "hoomd/md/IntegratorTwoStep.h"
@@ -54,7 +54,7 @@ std::shared_ptr<TwoStepNVTMTK> base_class_nvt_creator(std::shared_ptr<SystemDefi
     return std::shared_ptr<TwoStepNVTMTK>(new TwoStepNVTMTK(sysdef, group, thermo, Q, T_variant));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! NVTUpdaterGPU factory for the unit tests
 std::shared_ptr<TwoStepNVTMTK> gpu_nvt_creator(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<ParticleGroup> group,
@@ -396,7 +396,7 @@ UP_TEST( TwoStepNVTMTK_basic_aniso_test )
     test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nvt_creator, _1, _2, _3, _4, _5));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Performs a basic equilibration test of TwoStepNVTMTKGPU
 UP_TEST( TwoStepNVTMTKGPU_basic_test )
     {

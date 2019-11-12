@@ -7,7 +7,7 @@
 #include "ForceDistanceConstraintGPU.h"
 #include "ForceDistanceConstraintGPU.cuh"
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 #include <string.h>
 namespace py = pybind11;
@@ -116,8 +116,8 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
 
 
         // reset matrix elements
-        cudaMemset(d_cmatrix.data, 0, sizeof(double)*n_constraint*n_constraint);
-        cudaMemset(d_cvec.data, 0, sizeof(double)*n_constraint);
+        hipMemset(d_cmatrix.data, 0, sizeof(double)*n_constraint*n_constraint);
+        hipMemset(d_cvec.data, 0, sizeof(double)*n_constraint);
         }
 
         {
@@ -189,7 +189,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
         {
         // copy new sparse values to host sparse matrix
         ArrayHandle<double> h_sparse_val(m_sparse_val, access_location::device, access_mode::read);
-        cudaMemcpy(m_sparse.valuePtr(), h_sparse_val.data, sizeof(double)*m_sparse.data().size(),cudaMemcpyDeviceToHost);
+        hipMemcpy(m_sparse.valuePtr(), h_sparse_val.data, sizeof(double)*m_sparse.data().size(),hipMemcpyDeviceToHost);
         }
 
     // solve on CPU
@@ -542,7 +542,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
 
     // copy RHS into solution vector
     ArrayHandle<double> d_vec(m_cvec, access_location::device, access_mode::read);
-    cudaMemcpy(d_lagrange.data, d_vec.data, sizeof(double)*n_constraint,cudaMemcpyDeviceToDevice);
+    hipMemcpy(d_lagrange.data, d_vec.data, sizeof(double)*n_constraint,hipMemcpyDeviceToDevice);
 
     int nrhs = 1;
     // solve

@@ -8,7 +8,7 @@
 #include "EvaluatorPairGauss.h"
 #include "AllDriverPotentialPairGPU.cuh"
 
-cudaError_t gpu_compute_gauss_forces(const pair_args_t& pair_args,
+hipError_t gpu_compute_gauss_forces(const pair_args_t& pair_args,
                                      const Scalar2 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairGauss>(pair_args,

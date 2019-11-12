@@ -31,7 +31,7 @@
 
     \sa export_PotentialSpecialPairGPU()
 */
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 class PotentialSpecialPairGPU : public PotentialSpecialPair<evaluator>
@@ -62,7 +62,7 @@ class PotentialSpecialPairGPU : public PotentialSpecialPair<evaluator>
         virtual void computeForces(unsigned int timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 PotentialSpecialPairGPU< evaluator, gpu_cgbf >::PotentialSpecialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
@@ -91,7 +91,7 @@ PotentialSpecialPairGPU< evaluator, gpu_cgbf >::PotentialSpecialPairGPU(std::sha
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "special_pair_"+evaluator::getName(), this->m_exec_conf));
     }
 
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 void PotentialSpecialPairGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timestep)

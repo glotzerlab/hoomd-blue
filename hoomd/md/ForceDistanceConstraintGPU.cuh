@@ -14,7 +14,7 @@
 #ifndef __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
 #define __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
 
-cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
+hipError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           unsigned int nptl_local,
                           double *d_matrix,
                           double *d_vec,
@@ -35,14 +35,14 @@ cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           const BoxDim box,
                           unsigned int block_size);
 
-cudaError_t gpu_count_nnz(unsigned int n_constraint,
+hipError_t gpu_count_nnz(unsigned int n_constraint,
                            double *d_matrix,
                            int *d_nnz,
                            int &nnz,
                            cusparseHandle_t cusparse_handle,
                            cusparseMatDescr_t cusparse_mat_descr);
 
-cudaError_t gpu_dense2sparse(unsigned int n_constraint,
+hipError_t gpu_dense2sparse(unsigned int n_constraint,
                                double *d_matrix,
                                int *d_nnz,
                                cusparseHandle_t cusparse_handle,
@@ -51,7 +51,7 @@ cudaError_t gpu_dense2sparse(unsigned int n_constraint,
                                int *d_csr_colind,
                                double *d_csr_val);
 
-cudaError_t gpu_compute_constraint_forces(const Scalar4 *d_pos,
+hipError_t gpu_compute_constraint_forces(const Scalar4 *d_pos,
                                    const group_storage<2> *d_gpu_clist,
                                    const Index2D & gpu_clist_indexer,
                                    const unsigned int *d_gpu_n_constraints,

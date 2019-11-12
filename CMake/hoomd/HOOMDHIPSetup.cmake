@@ -54,6 +54,7 @@ if(ENABLE_HIP)
                 ENV ROCM_PATH
                 ENV HIP_PATH
                 PATH_SUFFIXES include)
+
     else()
         # here we go if hipcc is not available, fall back on internal HIP->CUDA headers
 

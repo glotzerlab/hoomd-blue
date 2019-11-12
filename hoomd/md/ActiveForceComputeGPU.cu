@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -290,7 +291,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     }
 
 
-cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
+hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            unsigned int *d_rtag,
                                            unsigned int *d_groupTags,
                                            Scalar4 *d_force,
@@ -314,8 +315,8 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
-    gpu_compute_active_force_set_forces_kernel<<< grid, threads>>>( group_size,
+    hipMemset(d_force, 0, sizeof(Scalar4)*N);
+    hipLaunchKernelGGL((gpu_compute_active_force_set_forces_kernel), dim3(grid), dim3(threads), 0, 0,  group_size,
                                                                     d_rtag,
                                                                     d_groupTags,
                                                                     d_force,
@@ -332,10 +333,10 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                                                     orientationLink,
                                                                     orientationReverseLink,
                                                                     N);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
-cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
+hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
                                                    unsigned int *d_rtag,
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
@@ -354,7 +355,7 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_compute_active_force_set_constraints_kernel<<< grid, threads>>>(group_size,
+    hipLaunchKernelGGL((gpu_compute_active_force_set_constraints_kernel), dim3(grid), dim3(threads), 0, 0, group_size,
                                                                     d_rtag,
                                                                     d_groupTags,
                                                                     d_pos,
@@ -364,10 +365,10 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                                     rx,
                                                                     ry,
                                                                     rz);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
-cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
+hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
                                                        unsigned int *d_rtag,
                                                        unsigned int *d_groupTags,
                                                        const Scalar4 *d_pos,
@@ -390,7 +391,7 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_compute_active_force_rotational_diffusion_kernel<<< grid, threads>>>(group_size,
+    hipLaunchKernelGGL((gpu_compute_active_force_rotational_diffusion_kernel), dim3(grid), dim3(threads), 0, 0, group_size,
                                                                     d_rtag,
                                                                     d_groupTags,
                                                                     d_pos,
@@ -404,7 +405,7 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
                                                                     rotationDiff,
                                                                     timestep,
                                                                     seed);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 

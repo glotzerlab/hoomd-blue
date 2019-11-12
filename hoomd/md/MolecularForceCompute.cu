@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -24,15 +25,15 @@
 #include <string>
 #define CHECK_CUDA() \
     { \
-    cudaError_t err = cudaDeviceSynchronize(); \
-    if (err != cudaSuccess) \
+    hipError_t err = hipDeviceSynchronize(); \
+    if (err != hipSuccess) \
         { \
-        throw std::runtime_error("CUDA error in MolecularForceCompute "+std::string(cudaGetErrorString(err))); \
+        throw std::runtime_error("CUDA error in MolecularForceCompute "+std::string(hipGetErrorString(err))); \
         } \
-    err = cudaGetLastError(); \
-    if (err != cudaSuccess) \
+    err = hipGetLastError(); \
+    if (err != hipSuccess) \
         { \
-        throw std::runtime_error("CUDA error "+std::string(cudaGetErrorString(err))); \
+        throw std::runtime_error("CUDA error "+std::string(hipGetErrorString(err))); \
         } \
     }
 
@@ -41,7 +42,7 @@
 */
 
 //! Sort local molecules and assign local molecule indices to particles
-cudaError_t
+hipError_t
 gpu_sort_by_molecule(unsigned int nptl,
     const unsigned int *d_tag,
     const unsigned int *d_molecule_tag,
@@ -188,7 +189,7 @@ gpu_sort_by_molecule(unsigned int nptl,
         thrust::plus<unsigned int>(),
         n_local_ptls_in_molecules);
 
-    cudaMemcpy(&n_local_molecules, d_num_runs_out, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    hipMemcpy(&n_local_molecules, d_num_runs_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
     if (check_cuda) CHECK_CUDA();
 
     alloc.deallocate((char *) d_temp_storage);
@@ -231,7 +232,7 @@ gpu_sort_by_molecule(unsigned int nptl,
         d_max,
         n_local_molecules);
     alloc.deallocate((char *) d_temp_storage);
-    cudaMemcpy(&max_len, d_max, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    hipMemcpy(&max_len, d_max, sizeof(unsigned int), hipMemcpyDeviceToHost);
     alloc.deallocate((char *) d_max);
 
     if (check_cuda) CHECK_CUDA();
@@ -348,7 +349,7 @@ gpu_sort_by_molecule(unsigned int nptl,
         idx_lookup);
     if (check_cuda) CHECK_CUDA();
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 __global__ void gpu_fill_molecule_table_kernel(
@@ -367,7 +368,7 @@ __global__ void gpu_fill_molecule_table_kernel(
         d_molecule_list[molecule_idx(d_molecule_order[idx], molidx)] = idx;
     }
 
-cudaError_t gpu_fill_molecule_table(
+hipError_t gpu_fill_molecule_table(
     unsigned int nptl,
     unsigned int n_local_ptls_in_molecules,
     Index2D molecule_idx,
@@ -395,12 +396,12 @@ cudaError_t gpu_fill_molecule_table(
         idx_lookup);
 
     // write out the table
-    gpu_fill_molecule_table_kernel<<<nptl/block_size+1,block_size>>>(
+    hipLaunchKernelGGL((gpu_fill_molecule_table_kernel), dim3(nptl/block_size+1), dim3(block_size), 0, 0, 
         nptl,
         molecule_idx,
         d_molecule_idx,
         d_molecule_list,
         d_molecule_order);
 
-    return cudaSuccess;
+    return hipSuccess;
     }

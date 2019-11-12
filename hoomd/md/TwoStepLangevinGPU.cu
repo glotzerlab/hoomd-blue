@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -64,7 +65,7 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  bool tally,
                                  Scalar *d_partial_sum_bdenergy)
     {
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     Scalar *s_gammas = (Scalar *)s_data;
 
     if (!use_lambda)
@@ -192,7 +193,7 @@ __global__ void gpu_bdtally_reduce_partial_sum_kernel(Scalar *d_sum,
                                             unsigned int num_blocks)
     {
     Scalar sum = Scalar(0.0);
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     Scalar *bdtally_sdata = (Scalar *)&s_data[0];
 
     // sum up the values in the partial sum via a sliding window
@@ -263,7 +264,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                              Scalar scale
                             )
     {
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     Scalar3 *s_gammas_r = (Scalar3 *)s_data;
 
     // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
@@ -380,7 +381,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
     This is just a driver for gpu_langevin_angular_step_two_kernel(), see it for details.
 
 */
-cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
+hipError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                              Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
@@ -422,7 +423,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                                         scale
                                         );
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 
@@ -440,7 +441,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
 
     This is just a driver for gpu_langevin_step_two_kernel(), see it for details.
 */
-cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
+hipError_t gpu_langevin_step_two(const Scalar4 *d_pos,
                                   Scalar4 *d_vel,
                                   Scalar3 *d_accel,
                                   const Scalar *d_diameter,
@@ -460,11 +461,7 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
     dim3 threads1(256, 1, 1);
 
     // run the kernel
-    gpu_langevin_step_two_kernel<<< grid,
-                                 threads,
-                                 max((unsigned int)(sizeof(Scalar)*langevin_args.n_types),
-                                     (unsigned int)(langevin_args.block_size*sizeof(Scalar)))
-                             >>>(d_pos,
+    hipLaunchKernelGGL((gpu_langevin_step_two_kernel), dim3(grid), dim3(threads), max((unsigned int)(sizeof(Scalar)*langevin_args.n_types), (unsigned int)(langevin_args.block_size*sizeof(Scalar))), d_pos,
                                  d_vel,
                                  d_accel,
                                  d_diameter,
@@ -487,16 +484,13 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
 
     // run the summation kernel
     if (langevin_args.tally)
-        gpu_bdtally_reduce_partial_sum_kernel<<<grid1,
-                                                threads1,
-                                                langevin_args.block_size*sizeof(Scalar)
-                                             >>>(&langevin_args.d_sum_bdenergy[0],
+        hipLaunchKernelGGL((gpu_bdtally_reduce_partial_sum_kernel), dim3(grid1), dim3(threads1), langevin_args.block_size*sizeof(Scalar), 0, &langevin_args.d_sum_bdenergy[0],
                                                  langevin_args.d_partial_sum_bdenergy,
                                                  langevin_args.num_blocks);
 
 
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 

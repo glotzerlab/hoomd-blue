@@ -44,7 +44,7 @@
 
     \sa export_PotentialPairGPU()
 */
-template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
 class PotentialPairGPU : public PotentialPair<evaluator>
     {
@@ -87,7 +87,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
 
     };
 
-template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
 PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                           std::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
@@ -120,7 +120,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(std::shared_ptr<System
     #endif
     }
 
-template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
 void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {

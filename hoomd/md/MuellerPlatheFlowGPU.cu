@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -119,7 +120,7 @@ struct vel_search_binary_opt : public thrust::binary_function< Scalar3, Scalar3,
             }
     };
 
-cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
+hipError_t gpu_search_min_max_velocity(const unsigned int group_size,
                                         const Scalar4*const d_vel,
                                         const Scalar4*const d_pos,
                                         const unsigned int *const d_tag,
@@ -160,7 +161,7 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
         }
 
 
-    return cudaPeekAtLastError();
+    return hipPeekAtLastError();
     }
 
 
@@ -215,7 +216,7 @@ void __global__ gpu_update_min_max_velocity_kernel(const unsigned int *const d_r
       }
     }
 
-cudaError_t gpu_update_min_max_velocity(const unsigned int *const d_rtag,
+hipError_t gpu_update_min_max_velocity(const unsigned int *const d_rtag,
                                         Scalar4*const d_vel,
                                         const unsigned int Ntotal,
                                         const Scalar3 last_max_vel,
@@ -225,8 +226,8 @@ cudaError_t gpu_update_min_max_velocity(const unsigned int *const d_rtag,
     dim3 grid( 1, 1, 1);
     dim3 threads(1, 1, 1);
 
-    gpu_update_min_max_velocity_kernel<<<grid,threads>>>(d_rtag, d_vel, Ntotal,last_max_vel,
+    hipLaunchKernelGGL((gpu_update_min_max_velocity_kernel), dim3(grid), dim3(threads), 0, 0, d_rtag, d_vel, Ntotal,last_max_vel,
                                                          last_min_vel, flow_direction);
 
-    return cudaPeekAtLastError();
+    return hipPeekAtLastError();
     }

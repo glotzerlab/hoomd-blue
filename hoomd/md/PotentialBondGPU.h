@@ -30,7 +30,7 @@
 
     \sa export_PotentialBondGPU()
 */
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 class PotentialBondGPU : public PotentialBond<evaluator>
@@ -61,7 +61,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
         virtual void computeForces(unsigned int timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef,
@@ -90,7 +90,7 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<System
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
 
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timestep)

@@ -14,7 +14,7 @@
 #define NLIST_GPU_PARTICLES_PER_LEAF 4      //!< Max number of particles in a leaf node
 #define NLIST_GPU_INVALID_NODE 0xffffffff   //!< Sentinel for an invalid node
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
@@ -24,7 +24,7 @@
 #include <stdint.h>
 
 //! Kernel driver to generate morton code-type keys for particles and reorder by type
-cudaError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
+hipError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
                                    unsigned int *d_map_tree_pid,
                                    int *d_morton_conditions,
                                    const Scalar4 *d_pos,
@@ -35,7 +35,7 @@ cudaError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
                                    const unsigned int block_size);
 
 //! Wrapper to CUB sort for morton codes
-cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
+hipError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
                                   uint64_t *d_morton_types_alt,
                                   unsigned int *d_map_tree_pid,
                                   unsigned int *d_map_tree_pid_alt,
@@ -47,7 +47,7 @@ cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
                                   const unsigned int n_type_bits);
 
 //! Kernel driver to merge the bottom layers of particles into leaf nodes
-cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
+hipError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
                                       uint32_t *d_morton_codes_red,
                                       uint2 *d_tree_parent_sib,
                                       const uint64_t *d_morton_types,
@@ -62,7 +62,7 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
                                       const unsigned int block_size);
 
 //! Kernel driver to generate the AABB tree hierarchy from morton codes
-cudaError_t gpu_nlist_gen_hierarchy(uint2 *d_tree_parent_sib,
+hipError_t gpu_nlist_gen_hierarchy(uint2 *d_tree_parent_sib,
                                     const uint32_t *d_morton_codes,
                                     const unsigned int *d_num_per_type,
                                     const unsigned int ntypes,
@@ -71,7 +71,7 @@ cudaError_t gpu_nlist_gen_hierarchy(uint2 *d_tree_parent_sib,
                                     const unsigned int block_size);
 
 //! Kernel driver to form conservative AABBs for internal nodes
-cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
+hipError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
                                    Scalar4 *d_tree_aabbs,
                                    const uint2 *d_tree_parent_sib,
                                    const unsigned int ntypes,
@@ -80,7 +80,7 @@ cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
                                    const unsigned int block_size);
 
 //! Kernel driver to rearrange particle data into leaf order
-cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
+hipError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
                                      Scalar2 *d_leaf_db,
                                      const Scalar4 *d_pos,
                                      const Scalar *d_diameter,
@@ -90,7 +90,7 @@ cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
                                      const unsigned int block_size);
 
 //! Kernel driver to traverse tree and generate neighbor list
-cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
+hipError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     unsigned int *d_n_neigh,
                                     Scalar4 *d_last_updated_pos,
                                     unsigned int *d_conditions,
@@ -123,7 +123,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     const unsigned int block_size);
 
 //! Kernel driver to initialize counting for types and nodes
-cudaError_t gpu_nlist_init_count(unsigned int *d_type_head,
+hipError_t gpu_nlist_init_count(unsigned int *d_type_head,
                                  const Scalar4 *d_pos,
                                  const unsigned int *d_map_tree_pid,
                                  const unsigned int N,

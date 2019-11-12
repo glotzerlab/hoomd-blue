@@ -22,7 +22,7 @@ ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
     {
 
     // power of two block sizes
-    const cudaDeviceProp& dev_prop = m_exec_conf->dev_prop;
+    const hipDeviceProp_t& dev_prop = m_exec_conf->dev_prop;
     std::vector<unsigned int> valid_params;
     unsigned int bodies_per_block = 1;
     for (unsigned int i = 0; i < 5; ++i)
@@ -125,8 +125,8 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
             if (nelem == 0)
                 continue;
 
-            cudaMemsetAsync(d_force.data+range.first, 0, sizeof(Scalar4)*nelem);
-            cudaMemsetAsync(d_torque.data+range.first, 0, sizeof(Scalar4)*nelem);
+            hipMemsetAsync(d_force.data+range.first, 0, sizeof(Scalar4)*nelem);
+            hipMemsetAsync(d_torque.data+range.first, 0, sizeof(Scalar4)*nelem);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -203,7 +203,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
 
             for (unsigned int i = 0; i < 6; i++)
                 {
-                cudaMemsetAsync(d_virial.data+i*m_virial_pitch+range.first, 0, sizeof(Scalar)*nelem);
+                hipMemsetAsync(d_virial.data+i*m_virial_pitch+range.first, 0, sizeof(Scalar)*nelem);
                 }
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())

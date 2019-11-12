@@ -13,7 +13,7 @@
 #include <map>
 
 #ifdef ENABLE_HIP
-#include <cufft.h>
+#include <hipfft.h>
 #endif
 
 /*! \param sysdef The system definition
@@ -252,15 +252,15 @@ template class PYBIND11_EXPORT CommunicatorGrid<kiss_fft_cpx>;
 
 #ifdef ENABLE_HIP
 //! Define plus operator for complex data type (needed by CommunicatorMesh)
-inline cufftComplex operator + (cufftComplex& lhs, cufftComplex& rhs)
+inline hipfftComplex operator + (hipfftComplex& lhs, hipfftComplex& rhs)
     {
-    cufftComplex res;
+    hipfftComplex res;
     res.x = lhs.x + rhs.x;
     res.y = lhs.y + rhs.y;
     return res;
     }
 
-template class PYBIND11_EXPORT CommunicatorGrid<cufftComplex>;
+template class PYBIND11_EXPORT CommunicatorGrid<hipfftComplex>;
 #endif
 
 #endif //ENABLE_MPI

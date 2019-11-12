@@ -104,7 +104,7 @@ void warp_reduce_launcher(const reduce_params& params)
     if (tpp == params.tpp)
         {
         dim3 grid((params.N*tpp+BLOCK_SIZE-1)/BLOCK_SIZE);
-        warp_reduce_kernel<tpp><<<grid, BLOCK_SIZE>>>(params.data, params.reduce, params.sum, params.N, params.width, params.reduce_idx);
+        hipLaunchKernelGGL((warp_reduce_kernel<tpp>), dim3(grid), dim3(BLOCK_SIZE), 0, 0, params.data, params.reduce, params.sum, params.N, params.width, params.reduce_idx);
         }
     else
         {
@@ -124,8 +124,8 @@ void warp_reduce_launcher<0>(const reduce_params& params)
  */
 void warp_reduce(const reduce_params& params)
     {
-    cudaMemset(params.reduce, 0, params.reduce_idx.getNumElements() * sizeof(int));
-    cudaMemset(params.sum, 0, params.N * sizeof(int));
+    hipMemset(params.reduce, 0, params.reduce_idx.getNumElements() * sizeof(int));
+    hipMemset(params.sum, 0, params.N * sizeof(int));
     warp_reduce_launcher<32>(params);
     }
 
@@ -222,7 +222,7 @@ void warp_scan_launcher(const scan_params& params)
     if (tpp == params.tpp)
         {
         dim3 grid((params.N*tpp+BLOCK_SIZE-1)/BLOCK_SIZE);
-        warp_scan_kernel<tpp><<<grid, BLOCK_SIZE>>>(params.data, params.scan, params.sum, params.N, params.width, params.scan_idx);
+        hipLaunchKernelGGL((warp_scan_kernel<tpp>), dim3(grid), dim3(BLOCK_SIZE), 0, 0, params.data, params.scan, params.sum, params.N, params.width, params.scan_idx);
         }
     else
         {
@@ -242,7 +242,7 @@ void warp_scan_launcher<0>(const scan_params& params)
  */
 void warp_scan(const scan_params& params)
     {
-    cudaMemset(params.scan, 0, params.scan_idx.getNumElements() * sizeof(int));
-    cudaMemset(params.sum, 0, params.N * sizeof(int));
+    hipMemset(params.scan, 0, params.scan_idx.getNumElements() * sizeof(int));
+    hipMemset(params.sum, 0, params.N * sizeof(int));
     warp_scan_launcher<32>(params);
     }

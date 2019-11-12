@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -286,18 +287,18 @@ void gpu_assign_particles(const uint3 mesh_dim,
                          int order,
                          const BoxDim& box,
                          unsigned int block_size,
-                         const cudaDeviceProp& dev_prop,
+                         const hipDeviceProp_t& dev_prop,
                          const GPUPartition &gpu_partition
                          )
     {
-    cudaMemset(d_mesh, 0, sizeof(cufftComplex)*grid_dim.x*grid_dim.y*grid_dim.z);
+    hipMemset(d_mesh, 0, sizeof(cufftComplex)*grid_dim.x*grid_dim.y*grid_dim.z);
     Scalar V_cell = box.getVolume()/(Scalar)(mesh_dim.x*mesh_dim.y*mesh_dim.z);
 
     static unsigned int max_block_size = UINT_MAX;
-    static cudaFuncAttributes attr;
+    static hipFuncAttributes attr;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncGetAttributes(&attr, (const void*)gpu_assign_particles_kernel);
+        hipFuncGetAttributes(&attr, (const void*)gpu_assign_particles_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -317,13 +318,13 @@ void gpu_assign_particles(const uint3 mesh_dim,
         if (ngpu > 1)
             {
             // zero the temporary mesh array
-            cudaMemsetAsync(d_mesh_scratch + idev*mesh_elements, 0, sizeof(cufftComplex)*mesh_elements);
+            hipMemsetAsync(d_mesh_scratch + idev*mesh_elements, 0, sizeof(cufftComplex)*mesh_elements);
             }
 
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork/run_block_size+1;
 
-        gpu_assign_particles_kernel<<<n_blocks,run_block_size>>>(
+        hipLaunchKernelGGL((gpu_assign_particles_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0, 
               mesh_dim,
               n_ghost_bins,
               nwork,
@@ -346,7 +347,7 @@ void gpu_reduce_meshes(const unsigned int mesh_elements,
     const unsigned int block_size)
     {
     // reduce meshes on GPU 0
-    gpu_reduce_meshes<<<mesh_elements/block_size + 1, block_size>>>(
+    hipLaunchKernelGGL((gpu_reduce_meshes), dim3(mesh_elements/block_size + 1), dim3(block_size), 0, 0, 
         mesh_elements,
         d_mesh_scratch,
         d_mesh,
@@ -409,7 +410,7 @@ void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
 
     dim3 grid(n_wave_vectors/block_size + 1, 1, 1);
 
-    gpu_compute_mesh_virial_kernel<<<grid, block_size>>>(n_wave_vectors,
+    hipLaunchKernelGGL((gpu_compute_mesh_virial_kernel), dim3(grid), dim3(block_size), 0, 0, n_wave_vectors,
                                                           d_fourier_mesh,
                                                           d_inf_f,
                                                           d_virial_mesh,
@@ -472,15 +473,15 @@ void gpu_update_meshes(const unsigned int n_wave_vectors,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)gpu_update_meshes_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void*)gpu_update_meshes_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     unsigned int run_block_size = min(max_block_size, block_size);
     dim3 grid(n_wave_vectors/run_block_size + 1, 1, 1);
 
-    gpu_update_meshes_kernel<<<grid, run_block_size>>>(n_wave_vectors,
+    hipLaunchKernelGGL((gpu_update_meshes_kernel), dim3(grid), dim3(run_block_size), 0, 0, n_wave_vectors,
                                                       d_fourier_mesh,
                                                       d_fourier_mesh_G_x,
                                                       d_fourier_mesh_G_y,
@@ -637,8 +638,8 @@ void gpu_compute_forces(const unsigned int N,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)gpu_compute_forces_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void*)gpu_compute_forces_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -650,7 +651,7 @@ void gpu_compute_forces(const unsigned int N,
         auto range = all_gpu_partition.getRangeAndSetGPU(idev);
 
         // reset force array for ALL particles
-        cudaMemsetAsync(d_force+range.first, 0, sizeof(Scalar4)*(range.second-range.first));
+        hipMemsetAsync(d_force+range.first, 0, sizeof(Scalar4)*(range.second-range.first));
         }
 
     // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
@@ -661,7 +662,7 @@ void gpu_compute_forces(const unsigned int N,
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork/run_block_size+1;
 
-        gpu_compute_forces_kernel<<<n_blocks,run_block_size>>>(nwork,
+        hipLaunchKernelGGL((gpu_compute_forces_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0, nwork,
                  d_postype,
                  d_force,
                  grid_dim,
@@ -684,7 +685,7 @@ __global__ void kernel_calculate_pe_partial(
             const Scalar *d_inf_f,
             const bool exclude_dc)
     {
-    extern __shared__ Scalar sdata[];
+    HIP_DYNAMIC_SHARED( Scalar, sdata)
 
     unsigned int tidx = threadIdx.x;
 
@@ -727,7 +728,7 @@ __global__ void kernel_final_reduce_pe(Scalar* sum_partial,
                                        unsigned int nblocks,
                                        Scalar *sum)
     {
-    extern __shared__ Scalar smem[];
+    HIP_DYNAMIC_SHARED( Scalar, smem)
 
     if (threadIdx.x == 0)
        *sum = Scalar(0.0);
@@ -774,7 +775,7 @@ void gpu_compute_pe(unsigned int n_wave_vectors,
 
     dim3 grid(n_blocks, 1, 1);
 
-    kernel_calculate_pe_partial<<<grid, block_size, shared_size>>>(
+    hipLaunchKernelGGL((kernel_calculate_pe_partial), dim3(grid), dim3(block_size), shared_size, 0, 
                n_wave_vectors,
                d_sum_partial,
                d_fourier_mesh,
@@ -784,7 +785,7 @@ void gpu_compute_pe(unsigned int n_wave_vectors,
     // calculate final sum of mesh values
     const unsigned int final_block_size = 512;
     shared_size = final_block_size*sizeof(Scalar);
-    kernel_final_reduce_pe<<<1, final_block_size,shared_size>>>(d_sum_partial,
+    hipLaunchKernelGGL((kernel_final_reduce_pe), dim3(1), dim3(final_block_size), shared_size, 0, d_sum_partial,
                                                                 n_blocks,
                                                                 d_sum);
     }
@@ -794,7 +795,7 @@ __global__ void kernel_calculate_virial_partial(
             Scalar *sum_virial_partial,
             const Scalar *d_mesh_virial)
     {
-    extern __shared__ Scalar sdata[];
+    HIP_DYNAMIC_SHARED( Scalar, sdata)
 
     unsigned int j;
 
@@ -862,7 +863,7 @@ __global__ void kernel_final_reduce_virial(Scalar* sum_virial_partial,
                                            unsigned int nblocks,
                                            Scalar *sum_virial)
     {
-    extern __shared__ Scalar smem[];
+    HIP_DYNAMIC_SHARED( Scalar, smem)
 
     if (threadIdx.x == 0)
         {
@@ -939,7 +940,7 @@ void gpu_compute_virial(unsigned int n_wave_vectors,
 
     dim3 grid(n_blocks, 1, 1);
 
-    kernel_calculate_virial_partial<<<grid, block_size, shared_size>>>(
+    hipLaunchKernelGGL((kernel_calculate_virial_partial), dim3(grid), dim3(block_size), shared_size, 0, 
                n_wave_vectors,
                d_sum_virial_partial,
                d_mesh_virial);
@@ -947,7 +948,7 @@ void gpu_compute_virial(unsigned int n_wave_vectors,
     // calculate final virial values
     const unsigned int final_block_size = 512;
     shared_size = 6*final_block_size*sizeof(Scalar);
-    kernel_final_reduce_virial<<<1, final_block_size,shared_size>>>(d_sum_virial_partial,
+    hipLaunchKernelGGL((kernel_final_reduce_virial), dim3(1), dim3(final_block_size), shared_size, 0, d_sum_virial_partial,
                                                                   n_blocks,
                                                                   d_sum_virial);
     }
@@ -1144,8 +1145,8 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<true>);
+            hipFuncAttributes attr;
+            hipFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<true>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1156,7 +1157,7 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
 
         dim3 grid(n_blocks, 1, 1);
 
-        gpu_compute_influence_function_kernel<true><<<grid, run_block_size>>>(mesh_dim,
+        hipLaunchKernelGGL((gpu_compute_influence_function_kernel<true>), dim3(grid), dim3(run_block_size), 0, 0, mesh_dim,
                                                                               num_wave_vectors,
                                                                               global_dim,
                                                                               d_inf_f,
@@ -1180,8 +1181,8 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<false>);
+            hipFuncAttributes attr;
+            hipFuncGetAttributes(&attr, (const void*)gpu_compute_influence_function_kernel<false>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1192,7 +1193,7 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
 
         dim3 grid(n_blocks, 1, 1);
 
-        gpu_compute_influence_function_kernel<false><<<grid,run_block_size>>>(mesh_dim,
+        hipLaunchKernelGGL((gpu_compute_influence_function_kernel<false>), dim3(grid), dim3(run_block_size), 0, 0, mesh_dim,
                                                                              num_wave_vectors,
                                                                              global_dim,
                                                                              d_inf_f,
@@ -1310,7 +1311,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
     }
 
 //! The developer has chosen not to document this function
-cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
+hipError_t gpu_fix_exclusions(Scalar4 *d_force,
                            Scalar *d_virial,
                            const unsigned int virial_pitch,
                            const unsigned int Nmax,
@@ -1329,7 +1330,7 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
     dim3 grid( group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
+    hipLaunchKernelGGL((gpu_fix_exclusions_kernel), dim3(grid), dim3(threads ), 0, 0, d_force,
                                                       d_virial,
                                                       virial_pitch,
                                                       d_pos,
@@ -1342,7 +1343,7 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
                                                       alpha,
                                                       d_group_members,
                                                       group_size);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 void gpu_initialize_coeff(
@@ -1356,6 +1357,6 @@ void gpu_initialize_coeff(
         {
         gpu_partition.getRangeAndSetGPU(idev);
 
-        cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(Scalar));
+        hipMemcpyToSymbol(HIP_SYMBOL(GPU_rho_coeff), &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(Scalar));
         }
     }

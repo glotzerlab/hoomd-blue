@@ -20,7 +20,7 @@ HOOMD_UP_MAIN()
 #include "hoomd/md/TwoStepNVE.h"
 #include "hoomd/md/IntegratorTwoStep.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/CommunicatorGPU.h"
 #endif
 
@@ -40,7 +40,7 @@ typedef std::function<std::shared_ptr<Communicator> (std::shared_ptr<SystemDefin
 std::shared_ptr<Communicator> base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                          std::shared_ptr<DomainDecomposition> decomposition);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 std::shared_ptr<Communicator> gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                   std::shared_ptr<DomainDecomposition> decomposition);
 #endif
@@ -3450,7 +3450,7 @@ std::shared_ptr<Communicator> base_class_communicator_creator(std::shared_ptr<Sy
     return std::shared_ptr<Communicator>(new Communicator(sysdef, decomposition) );
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 std::shared_ptr<Communicator> gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                   std::shared_ptr<DomainDecomposition> decomposition)
     {
@@ -3668,7 +3668,7 @@ UP_TEST( communicator_ghost_layer_per_type_test)
 
 UP_SUITE_END();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 UP_SUITE_BEGIN(gpu_tests);
 

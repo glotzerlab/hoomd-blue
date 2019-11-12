@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -20,8 +21,8 @@
 */
 
 //! Shared memory for body force and torque reduction, required allocation when the kernel is called
-extern __shared__ char sum[];
-extern __shared__ Scalar sum_virial[];
+HIP_DYNAMIC_SHARED( char, sum)
+HIP_DYNAMIC_SHARED( Scalar, sum_virial)
 
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed sliding window size
 /*  Compute the force and torque sum on all bodies in the system from their constituent particles. n_bodies_per_block
@@ -424,7 +425,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
 
 /*!
 */
-cudaError_t gpu_rigid_force(Scalar4* d_force,
+hipError_t gpu_rigid_force(Scalar4* d_force,
                  Scalar4* d_torque,
                  const unsigned int *d_molecule_len,
                  const unsigned int *d_molecule_list,
@@ -446,7 +447,7 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  unsigned int N,
                  unsigned int n_bodies_per_block,
                  unsigned int block_size,
-                 const cudaDeviceProp& dev_prop,
+                 const hipDeviceProp_t& dev_prop,
                  bool zero_force,
                  const GPUPartition &gpu_partition)
     {
@@ -459,10 +460,10 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
         dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
 
         static unsigned int max_block_size = UINT_MAX;
-        static cudaFuncAttributes attr;
+        static hipFuncAttributes attr;
         if (max_block_size == UINT_MAX)
             {
-            cudaFuncGetAttributes(&attr, (const void *) gpu_rigid_force_sliding_kernel);
+            hipFuncGetAttributes(&attr, (const void *) gpu_rigid_force_sliding_kernel);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -489,7 +490,7 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
             thread_mask = window_size - 1;
             }
 
-        gpu_rigid_force_sliding_kernel<<< force_grid, run_block_size, shared_bytes >>>(
+        hipLaunchKernelGGL((gpu_rigid_force_sliding_kernel), dim3(force_grid), dim3(run_block_size), shared_bytes , 0, 
             d_force,
             d_torque,
             d_molecule_len,
@@ -517,10 +518,10 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
             range.first,
             nwork);
         }
-    return cudaSuccess;
+    return hipSuccess;
     }
 
-cudaError_t gpu_rigid_virial(Scalar* d_virial,
+hipError_t gpu_rigid_virial(Scalar* d_virial,
                  const unsigned int *d_molecule_len,
                  const unsigned int *d_molecule_list,
                  const unsigned int *d_molecule_idx,
@@ -541,7 +542,7 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  unsigned int net_virial_pitch,
                  unsigned int virial_pitch,
                  unsigned int block_size,
-                 const cudaDeviceProp& dev_prop,
+                 const hipDeviceProp_t& dev_prop,
                  const GPUPartition &gpu_partition)
     {
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
@@ -553,10 +554,10 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
         dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
 
         static unsigned int max_block_size = UINT_MAX;
-        static cudaFuncAttributes attr;
+        static hipFuncAttributes attr;
         if (max_block_size == UINT_MAX)
             {
-            cudaFuncGetAttributes(&attr, (const void *) gpu_rigid_virial_sliding_kernel);
+            hipFuncGetAttributes(&attr, (const void *) gpu_rigid_virial_sliding_kernel);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -583,7 +584,7 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
             thread_mask = window_size - 1;
             }
 
-        gpu_rigid_virial_sliding_kernel<<< force_grid, run_block_size, shared_bytes >>>(
+        hipLaunchKernelGGL((gpu_rigid_virial_sliding_kernel), dim3(force_grid), dim3(run_block_size), shared_bytes , 0, 
             d_virial,
             d_molecule_len,
             d_molecule_list,
@@ -610,7 +611,7 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
             nwork);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 
@@ -729,10 +730,10 @@ void gpu_update_composite(unsigned int N,
     unsigned int run_block_size = block_size;
 
     static unsigned int max_block_size = UINT_MAX;
-    static cudaFuncAttributes attr;
+    static hipFuncAttributes attr;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncGetAttributes(&attr, (const void *) gpu_update_composite_kernel);
+        hipFuncGetAttributes(&attr, (const void *) gpu_update_composite_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -753,7 +754,7 @@ void gpu_update_composite(unsigned int N,
             nwork += n_ghost;
 
         unsigned int n_blocks = nwork/run_block_size + 1;
-        gpu_update_composite_kernel<<<n_blocks,run_block_size>>>(N,
+        hipLaunchKernelGGL((gpu_update_composite_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0, N,
             nwork,
             range.first,
             n_ghost,
@@ -798,7 +799,7 @@ struct lookup_op : thrust::unary_function<unsigned int, unsigned int>
     };
 
 
-cudaError_t gpu_find_rigid_centers(const unsigned int *d_body,
+hipError_t gpu_find_rigid_centers(const unsigned int *d_body,
                                 const unsigned int *d_tag,
                                 const unsigned int *d_rtag,
                                 const unsigned int N,
@@ -827,5 +828,5 @@ cudaError_t gpu_find_rigid_centers(const unsigned int *d_body,
         lookup_center,
         lookup_op(d_rtag));
 
-    return cudaSuccess;
+    return hipSuccess;
     }

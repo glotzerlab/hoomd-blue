@@ -22,7 +22,7 @@ void gpu_assign_particles(const uint3 mesh_dim,
                          int order,
                          const BoxDim& box,
                          unsigned int block_size,
-                         const cudaDeviceProp& dev_prop,
+                         const hipDeviceProp_t& dev_prop,
                          const GPUPartition& gpu_partition);
 
 void gpu_reduce_meshes(const unsigned int mesh_elements,
@@ -97,7 +97,7 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
                                     int order,
                                     unsigned int block_size);
 
-cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
+hipError_t gpu_fix_exclusions(Scalar4 *d_force,
                            Scalar *d_virial,
                            const unsigned int virial_pitch,
                            const unsigned int N,
