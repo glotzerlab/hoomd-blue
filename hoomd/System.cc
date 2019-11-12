@@ -346,14 +346,14 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         // execute analyzers
         for (auto &analyzer_trigger_pair: m_analyzers)
             {
-            if (analyzer_trigger_pair.second(m_cur_tstep))
+            if ((*analyzer_trigger_pair.second)(m_cur_tstep))
                 analyzer_trigger_pair.first->analyze(m_cur_tstep);
             }
 
         // execute updaters
         for (auto &updater_trigger_pair: m_updaters)
             {
-            if (updater_trigger_pair.second(m_cur_tstep))
+            if ((*updater_trigger_pair.second)(m_cur_tstep))
                 updater_trigger_pair.first->update(m_cur_tstep);
             }
 
@@ -615,13 +615,13 @@ PDataFlags System::determineFlags(unsigned int tstep)
 
     for (auto &analyzer_trigger_pair: m_analyzers)
         {
-        if (analyzer_trigger_pair.second(tstep))
+        if ((*analyzer_trigger_pair.second)(tstep))
             flags |= analyzer_trigger_pair.first->getRequestedPDataFlags();
         }
 
     for (auto &updater_trigger_pair: m_updaters)
         {
-        if (updater_trigger_pair.second(tstep))
+        if ((*updater_trigger_pair.second)(tstep))
             flags |= updater_trigger_pair.first->getRequestedPDataFlags();
         }
 

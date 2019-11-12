@@ -54,6 +54,7 @@ set(_hoomd_sources Analyzer.cc
                    SnapshotSystemData.cc
                    System.cc
                    SystemDefinition.cc
+                   Trigger.cc
                    Updater.cc
                    Variant.cc
                    extern/BVLSSolver.cc
@@ -145,6 +146,7 @@ set(_hoomd_headers
     SnapshotSystemData.h
     SystemDefinition.h
     System.h
+    Trigger.h
     TextureTools.h
     Updater.h
     Variant.h

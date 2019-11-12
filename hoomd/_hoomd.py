@@ -67,3 +67,9 @@ __version__ = "bogus"
 
 def is_MPI_available():
     pass
+
+class Trigger:
+    pass
+
+class PeriodicTrigger:
+    pass

@@ -36,6 +36,7 @@
 #include "SFCPackUpdater.h"
 #include "BoxResizeUpdater.h"
 #include "System.h"
+#include "Trigger.h"
 #include "Variant.h"
 #include "Messenger.h"
 #include "SnapshotSystemData.h"
@@ -396,6 +397,9 @@ PYBIND11_MODULE(_hoomd, m)
 
     // system
     export_System(m);
+
+    // trigger
+    export_Trigger(m);
 
     // variant
     export_Variant(m);
