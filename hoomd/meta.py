@@ -137,6 +137,11 @@ class _TriggeredOperation(_Operation):
                     triggered_ops[index][1] = new_trigger
         self._trigger = new_trigger
 
+    def attach(self, simulation):
+        self._simulation = simulation
+        sys = simulation._cpp_sys
+        getattr(sys, self._cpp_list_name).append(self._cpp_obj, self.trigger)
+
 
 class _Updater(_TriggeredOperation):
     _cpp_list_name = 'updaters'
