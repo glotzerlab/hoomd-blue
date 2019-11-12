@@ -569,7 +569,7 @@ class mode_hpmc(_integrator):
         return self.cpp_integrator.getSweepRadius();
 
 
-class sphere(mode_hpmc):
+class Sphere(mode_hpmc):
     R""" HPMC integration for spheres (2D/3D).
 
     Args:

@@ -741,7 +741,7 @@ class remove_drift(_updater):
         self.setupUpdater(period);
 
 
-class clusters(_Updater):
+class Clusters(_Updater):
     R""" Equilibrate the system according to the geometric cluster algorithm (GCA).
 
     The GCA as described in Liu and Lujten (2004),
