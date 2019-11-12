@@ -147,7 +147,7 @@ class _Updater(_TriggeredOperation):
     _cpp_list_name = 'updaters'
 
 
-class _Analyzers(_TriggeredOperation):
+class _Analyzer(_TriggeredOperation):
     _cpp_list_name = 'analyzers'
 
 
