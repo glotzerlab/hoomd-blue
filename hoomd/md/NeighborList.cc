@@ -63,7 +63,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_r_cut.swap(r_cut);
     TAG_ALLOCATION(m_r_cut);
 
-    #ifdef ENABLE_HIP
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -76,7 +76,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_rcut_max.swap(rcut_max);
     TAG_ALLOCATION(m_rcut_max);
 
-    #ifdef ENABLE_HIP
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -90,7 +90,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_r_listsq.swap(r_listsq);
     TAG_ALLOCATION(m_r_listsq);
 
-    #ifdef ENABLE_HIP
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_listsq.get(), m_r_listsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -130,7 +130,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
             }
         }
 
-    #ifdef ENABLE_HIP
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_Nmax.get(), m_Nmax.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
@@ -143,7 +143,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_conditions.swap(conditions);
     TAG_ALLOCATION(m_conditions);
 
-    #ifdef ENABLE_HIP
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -242,7 +242,7 @@ void NeighborList::reallocateTypes()
     m_typpair_idx = Index2D(m_pdata->getNTypes());
     m_r_cut.resize(m_typpair_idx.getNumElements());
 
-    #ifdef ENABLE_HIP
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -252,7 +252,7 @@ void NeighborList::reallocateTypes()
 
     m_rcut_max.resize(m_pdata->getNTypes());
 
-    #ifdef ENABLE_HIP
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -276,7 +276,7 @@ void NeighborList::reallocateTypes()
 
     m_conditions.resize(m_pdata->getNTypes());
 
-    #ifdef ENABLE_HIP
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -1580,6 +1580,7 @@ bool NeighborList::peekUpdate(unsigned int timestep)
 //! Update GPU memory locality
 void NeighborList::updateMemoryMapping()
     {
+    #ifdef _HIP_PLATFORM_NVCC__
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -1628,6 +1629,7 @@ void NeighborList::updateMemoryMapping()
             }
         CHECK_CUDA_ERROR();
         }
+    #endif // __HIP_PLATFORM_NVCC__
     }
 #endif
 

@@ -269,9 +269,9 @@ endif()
 # link the library to its dependencies
 if (CUSOLVER_AVAILABLE)
     # CUDA 8.0 requires that we link in gomp
-    target_link_libraries(_md PUBLIC _hoomd CUDA::cusolver CUDA::cusparse gomp)
+    target_link_libraries(_md PUBLIC _hoomd CUDA::cusolver CUDA::cusparse HIP::hipsparse HIP::hiprand gomp)
 else()
-    target_link_libraries(_md PUBLIC _hoomd)
+    target_link_libraries(_md PUBLIC _hoomd HIP::hipsparse HIP::hiprand)
 endif()
 
 fix_cudart_rpath(_md)

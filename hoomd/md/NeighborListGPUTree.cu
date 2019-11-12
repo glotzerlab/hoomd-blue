@@ -7,7 +7,7 @@
 #include "NeighborListGPUTree.cuh"
 #include "hoomd/TextureTools.h"
 
-#include "hoomd/extern/cub/cub/cub.cuh"
+#include <hipcub/hipcub.hpp>
 
 #define MORTON_CODE_BITS   30       //!< Length of the Morton code in bits (k = 10 bits per direction)
 #define MORTON_CODE_N_BINS 1024     //!< Number of bins (2^10) per direction to generate 30 bit Morton codes
@@ -239,12 +239,12 @@ hipError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
                                   const unsigned int n_type_bits)
     {
     // initialize memory as "double buffered"
-    cub::DoubleBuffer<uint64_t> d_keys(d_morton_types, d_morton_types_alt);
-    cub::DoubleBuffer<unsigned int> d_vals(d_map_tree_pid, d_map_tree_pid_alt);
+    hipcub::DoubleBuffer<uint64_t> d_keys(d_morton_types, d_morton_types_alt);
+    hipcub::DoubleBuffer<unsigned int> d_vals(d_map_tree_pid, d_map_tree_pid_alt);
 
     // on the first pass, this just sizes the temporary storage
     // on the second pass, it actually does the radix sort
-    cub::DeviceRadixSort::SortPairs(d_tmp_storage,
+    hipcub::DeviceRadixSort::SortPairs(d_tmp_storage,
                                     tmp_storage_bytes,
                                     d_keys,
                                     d_vals,
@@ -1224,7 +1224,7 @@ hipError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<0>);
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(&gpu_nlist_traverse_tree_kernel<0>));
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1259,7 +1259,7 @@ hipError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<1>);
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(&gpu_nlist_traverse_tree_kernel<1>));
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1294,7 +1294,7 @@ hipError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<2>);
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(&gpu_nlist_traverse_tree_kernel<2>));
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1329,7 +1329,7 @@ hipError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<3>);
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(gpu_nlist_traverse_tree_kernel<3>));
             max_block_size = attr.maxThreadsPerBlock;
             }
 

@@ -5,12 +5,12 @@
 #ifndef __DFFT_CUFFT_SINGLE_INTERFACE_H__
 #define __DFFT_CUFFT_SINGLE_INTERFACE_H__
 
-#include <cufft.h>
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
+#include <hipfft.h>
 
 typedef float cuda_scalar_t;
-typedef cufftComplex cuda_cpx_t;
-typedef cufftHandle cuda_plan_t;
+typedef hipfftComplex cuda_cpx_t;
+typedef hipfftHandle cuda_plan_t;
 
 #define CUDA_RE(X) X.x
 #define CUDA_IM(X) X.y

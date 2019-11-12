@@ -228,7 +228,7 @@ template<class T> void GPUFlags<T>::allocate()
             hipHostMalloc(&h_data, sizeof(T), hipHostMallocMapped);
             #endif
             CHECK_CUDA_ERROR();
-            hipHostGetDevicePointer(&d_data, h_data, 0);
+            hipHostGetDevicePointer((void **)&d_data, h_data, 0);
             CHECK_CUDA_ERROR();
             }
         else

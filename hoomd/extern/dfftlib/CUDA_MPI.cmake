@@ -2,7 +2,7 @@
 
 ##################################
 ## Find MPI
-if (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
+if (ENABLE_HIP AND NOT DEFINED ENABLE_MPI_CUDA)
     if (MPI_LIBRARY MATCHES mpich)
         # find out if this is MVAPICH2
         get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
@@ -42,4 +42,4 @@ if (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
        message(STATUS "Enabling MPI.")
        option(ENABLE_MPI_CUDA "CUDA-aware MPI" off)
     endif(MPI_CUDA)
-endif (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
+endif (ENABLE_HIP AND NOT DEFINED ENABLE_MPI_CUDA)

@@ -19,7 +19,7 @@
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 
-#include "hoomd/extern/cub/cub/cub.cuh"
+#include <hipcub/hipcub.hpp>
 
 #include <exception>
 #include <string>
@@ -90,7 +90,7 @@ gpu_sort_by_molecule(unsigned int nptl,
     // Determine temporary device storage requirements
     void *d_temp_storage = NULL;
     size_t temp_storage_bytes = 0;
-    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
         temp_storage_bytes,
         d_tag,
         d_sorted_by_tag,
@@ -100,7 +100,7 @@ gpu_sort_by_molecule(unsigned int nptl,
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
     // key-value sort
-    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
         temp_storage_bytes,
         d_tag,
         d_sorted_by_tag,
@@ -129,7 +129,7 @@ gpu_sort_by_molecule(unsigned int nptl,
     // sort local particle indices by global molecule tag, keeping tag order (radix sort is stable)
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
-    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
         temp_storage_bytes,
         d_molecule_by_idx,
         d_local_molecule_tags,
@@ -139,7 +139,7 @@ gpu_sort_by_molecule(unsigned int nptl,
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
     // key-value sort
-    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
         temp_storage_bytes,
         d_molecule_by_idx,
         d_local_molecule_tags,
@@ -167,7 +167,7 @@ gpu_sort_by_molecule(unsigned int nptl,
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
 
-    cub::DeviceReduce::ReduceByKey(d_temp_storage,
+    hipcub::DeviceReduce::ReduceByKey(d_temp_storage,
         temp_storage_bytes,
         d_local_molecule_tags,
         d_local_unique_molecule_tags_tmp,
@@ -179,7 +179,7 @@ gpu_sort_by_molecule(unsigned int nptl,
 
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
-    cub::DeviceReduce::ReduceByKey(d_temp_storage,
+    hipcub::DeviceReduce::ReduceByKey(d_temp_storage,
         temp_storage_bytes,
         d_local_molecule_tags,
         d_local_unique_molecule_tags_tmp,
@@ -220,13 +220,13 @@ gpu_sort_by_molecule(unsigned int nptl,
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
     unsigned int *d_max = (unsigned int *) alloc.allocate(sizeof(unsigned int));
-    cub::DeviceReduce::Max(d_temp_storage,
+    hipcub::DeviceReduce::Max(d_temp_storage,
         temp_storage_bytes,
         d_molecule_length_tmp,
         d_max,
         n_local_molecules);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
-    cub::DeviceReduce::Max(d_temp_storage,
+    hipcub::DeviceReduce::Max(d_temp_storage,
         temp_storage_bytes,
         d_molecule_length_tmp,
         d_max,
@@ -239,7 +239,7 @@ gpu_sort_by_molecule(unsigned int nptl,
 
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
-    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
         temp_storage_bytes,
         d_lowest_idx,
         d_lowest_idx_sort,
@@ -249,7 +249,7 @@ gpu_sort_by_molecule(unsigned int nptl,
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
     // key-value sort
-    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
         temp_storage_bytes,
         d_lowest_idx,
         d_lowest_idx_sort,
@@ -260,7 +260,7 @@ gpu_sort_by_molecule(unsigned int nptl,
 
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
-    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
         temp_storage_bytes,
         d_lowest_idx,
         d_lowest_idx_sort,
@@ -270,7 +270,7 @@ gpu_sort_by_molecule(unsigned int nptl,
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
     // key-value sort
-    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
         temp_storage_bytes,
         d_lowest_idx,
         d_lowest_idx_sort,
@@ -312,7 +312,7 @@ gpu_sort_by_molecule(unsigned int nptl,
     // radix sort is stable
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
-    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
         temp_storage_bytes,
         d_local_molecules_lowest_idx_unsorted,
         d_local_molecules_lowest_idx,
@@ -321,7 +321,7 @@ gpu_sort_by_molecule(unsigned int nptl,
         n_local_ptls_in_molecules);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
-    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
         temp_storage_bytes,
         d_local_molecules_lowest_idx_unsorted,
         d_local_molecules_lowest_idx,

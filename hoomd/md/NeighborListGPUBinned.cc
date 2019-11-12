@@ -168,6 +168,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         throw std::runtime_error("Error updating neighborlist bins");
         }
 
+    #ifdef __HIP_PLATFORM_NVCC__
     auto& gpu_map = m_exec_conf->getGPUIds();
 
     // prefetch some cell list arrays
@@ -182,6 +183,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    #endif
 
     m_exec_conf->beginMultiGPU();
 

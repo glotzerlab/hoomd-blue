@@ -165,6 +165,7 @@ void MolecularForceCompute::initMoleculesGPU()
     m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     m_gpu_partition.setN(n_local_molecules);
 
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -211,6 +212,7 @@ void MolecularForceCompute::initMoleculesGPU()
 
         CHECK_CUDA_ERROR();
         }
+    #endif
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }

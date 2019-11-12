@@ -1,10 +1,10 @@
-#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 // Maintainer: joaander
 
+#include "hip/hip_runtime.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
@@ -266,7 +266,7 @@ hipError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     if (max_block_size == UINT_MAX)
         {
         hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, gpu_compute_bond_forces_kernel<evaluator>);
+        hipFuncGetAttributes(&attr,reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator>));
         max_block_size = attr.maxThreadsPerBlock;
         }
 

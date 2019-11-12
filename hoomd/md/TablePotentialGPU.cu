@@ -238,7 +238,7 @@ hipError_t gpu_compute_table_forces(Scalar4* d_force,
         if (max_block_size == UINT_MAX)
             {
             hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr, gpu_compute_table_forces_kernel);
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(gpu_compute_table_forces_kernel));
             max_block_size = attr.maxThreadsPerBlock;
             }
 

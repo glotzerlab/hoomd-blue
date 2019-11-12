@@ -9,7 +9,7 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/BoxDim.h"
 
-#include <cusparse.h>
+#include <hipsparse.h>
 
 #ifndef __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
 #define __FORCE_DISTANCE_CONSTRAINT_GPU_CUH__
@@ -39,14 +39,14 @@ hipError_t gpu_count_nnz(unsigned int n_constraint,
                            double *d_matrix,
                            int *d_nnz,
                            int &nnz,
-                           cusparseHandle_t cusparse_handle,
-                           cusparseMatDescr_t cusparse_mat_descr);
+                           hipsparseHandle_t hipsparse_handle,
+                           hipsparseMatDescr_t hipsparse_mat_descr);
 
 hipError_t gpu_dense2sparse(unsigned int n_constraint,
                                double *d_matrix,
                                int *d_nnz,
-                               cusparseHandle_t cusparse_handle,
-                               cusparseMatDescr_t cusparse_mat_descr,
+                               hipsparseHandle_t hipsparse_handle,
+                               hipsparseMatDescr_t hipsparse_mat_descr,
                                int *d_csr_rowptr,
                                int *d_csr_colind,
                                double *d_csr_val);

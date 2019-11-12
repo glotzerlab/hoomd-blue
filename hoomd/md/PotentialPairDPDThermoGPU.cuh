@@ -169,7 +169,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     HIP_DYNAMIC_SHARED( char, s_data)
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
-    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
+    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(typename evaluator::param_type)]);
 
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)

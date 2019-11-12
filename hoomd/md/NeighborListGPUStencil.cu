@@ -8,7 +8,7 @@
 #include "NeighborListGPUStencil.cuh"
 #include "hoomd/TextureTools.h"
 #include "hoomd/WarpTools.cuh"
-#include "hoomd/extern/cub/cub/cub.cuh"
+#include <hipcub/hipcub.hpp>
 
 /*! \file NeighborListGPUStencil.cu
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU with multiple bin stencils
@@ -653,9 +653,9 @@ void gpu_compute_nlist_stencil_sort_types(unsigned int *d_pids,
                                           bool &swap,
                                           const unsigned int N)
     {
-    cub::DoubleBuffer<unsigned int> d_keys(d_types, d_types_alt);
-    cub::DoubleBuffer<unsigned int> d_vals(d_pids, d_pids_alt);
-    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N);
+    hipcub::DoubleBuffer<unsigned int> d_keys(d_types, d_types_alt);
+    hipcub::DoubleBuffer<unsigned int> d_vals(d_pids, d_pids_alt);
+    hipcub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N);
     if (d_tmp_storage != NULL)
         {
         swap = (d_vals.selector == 1);

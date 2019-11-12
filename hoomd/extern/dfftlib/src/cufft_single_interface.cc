@@ -1,5 +1,5 @@
 /*
- * CUFFT (single precision) backend for distributed FFT, implementation
+ * hipfft (single precision) backend for distributed FFT, implementation
  */
 
 #include "cufft_single_interface.h"
@@ -36,10 +36,10 @@ int dfft_cuda_create_1d_plan(
     int dims[1];
     dims[0] = dim;
 
-    cufftResult res;
-    res = cufftPlanMany(plan, 1, dims, dims, istride, idist, dims,
-        ostride, odist, CUFFT_C2C, howmany);
-    if (res != CUFFT_SUCCESS)
+    hipfftResult res;
+    res = hipfftPlanMany(plan, 1, dims, dims, istride, idist, dims,
+        ostride, odist, HIPFFT_C2C, howmany);
+    if (res != HIPFFT_SUCCESS)
         {
         printf("CUFFT Error: %d\n", res);
         return 1;
@@ -64,10 +64,10 @@ int dfft_cuda_create_nd_plan(
     int odist,
     int dir)
     {
-    cufftResult res;
-    res = cufftPlanMany(plan, ndim, dim, iembed, istride, idist, oembed,
-        ostride, odist, CUFFT_C2C, howmany);
-    if (res != CUFFT_SUCCESS)
+    hipfftResult res;
+    res = hipfftPlanMany(plan, ndim, dim, iembed, istride, idist, oembed,
+        ostride, odist, HIPFFT_C2C, howmany);
+    if (res != HIPFFT_SUCCESS)
         {
         printf("CUFFT Error: %d\n", res);
         return 1;
@@ -78,22 +78,22 @@ int dfft_cuda_create_nd_plan(
 
 int dfft_cuda_allocate_aligned_memory(cuda_cpx_t **ptr, size_t size)
     {
-    cudaMalloc((void **) ptr,size);
+    hipMalloc((void **) ptr,size);
     return 0;
     }
 
 void dfft_cuda_free_aligned_memory(cuda_cpx_t *ptr)
     {
-    cudaFree(ptr);
+    hipFree(ptr);
     }
 
 /* Destroy a 1d plan */
 int dfft_cuda_destroy_local_plan(cuda_plan_t *p)
     {
-    cufftResult res = cufftDestroy(*p);
-    if (res != CUFFT_SUCCESS)
+    hipfftResult res = hipfftDestroy(*p);
+    if (res != HIPFFT_SUCCESS)
         {
-        printf("cufftDestroy error: %d\n", res);
+        printf("hipfftDestroy error: %d\n", res);
         return res;
         }
     return 0;
@@ -108,8 +108,8 @@ int dfft_cuda_local_fft(
     cuda_plan_t p,
     int dir)
     {
-    cufftResult res;
-    res = cufftExecC2C(p, in, out, dir ? CUFFT_INVERSE : CUFFT_FORWARD);
+    hipfftResult res;
+    res = hipfftExecC2C(p, in, out, dir ? HIPFFT_BACKWARD : HIPFFT_FORWARD);
     return res;
     }
 

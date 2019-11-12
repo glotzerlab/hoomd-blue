@@ -20,16 +20,23 @@ namespace hoomd
 namespace detail
 {
 
+//! Test if a data type is empty
+template <typename T>
+struct is_empty {
+    struct helper_ : T { int x; };
+    static bool const value = sizeof(helper_) == sizeof(int);
+};
+
 //! Computes warp-level reduction using shuffle instructions
 /*!
  * Reduction operations are performed at the warp or sub-warp level using shuffle instructions. The sub-warp is defined as
  * a consecutive group of threads that is (1) smaller than the hardware warp size (32 threads) and (2) a power of 2.
  * For additional details about any operator, refer to the CUB documentation.
  *
- * This class is a thin wrapper around cub::WarpReduceShfl. The CUB scan classes nominally request "temporary" memory,
+ * This class is a thin wrapper around hipcub::WarpReduce. The CUB scan classes nominally request "temporary" memory,
  * which is shared memory for non-shuffle scans. However, the shuffle-based scan does not use any shared memory,
  * and so this temporary variable is put unused into a register. The compiler can then optimize this out.
- * Care must be taken to monitor the CUB implementation in future to ensure the temporary memory is never used.
+ * We explicitly ensure that the storage type is an empty date type.
  *
  * \tparam T data type to scan
  * \tparam LOGICAL_WARP_THREADS number of threads in a "logical" warp, must be a multiple of 2.
@@ -41,7 +48,9 @@ class WarpReduce
     public:
         DEVICE WarpReduce()
             {
+			#ifdef __HIP_PLATFORM_NVCC__
             static_assert(PTX_ARCH >= 300, "PTX architecture must be >= 300");
+			#endif
             static_assert(LOGICAL_WARP_THREADS <= HIPCUB_WARP_THREADS, "Logical warp size cannot exceed hardware warp size");
             static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS-1)), "Logical warp size must be a power of 2");
             }
@@ -56,7 +65,7 @@ class WarpReduce
          */
         DEVICE T Sum(T input)
             {
-            return Reduce(input, cub::Sum());
+            return Reduce(input, hipcub::Sum());
             }
 
         //! Sum reduction over valid items.
@@ -71,7 +80,7 @@ class WarpReduce
          */
         DEVICE T Sum(T input, int valid_items)
             {
-            return Reduce(input, cub::Sum(), valid_items);
+            return Reduce(input, hipcub::Sum(), valid_items);
             }
 
         //! Custom reduction.
@@ -89,7 +98,7 @@ class WarpReduce
             {
             // shuffle-based reduce does not need temporary space, so we let the compiler optimize this dummy variable out
             TempStorage tmp;
-            return WarpReduceShfl(tmp).template Reduce<true>(input, LOGICAL_WARP_THREADS, reduce_op);
+            return MyWarpReduce(tmp).template Reduce(input, reduce_op);
             }
 
         //! Custom reduction over valid items.
@@ -108,12 +117,13 @@ class WarpReduce
             {
             // shuffle-based reduce does not need temporary space, so we let the compiler optimize this dummy variable out
             TempStorage tmp;
-            return WarpReduceShfl(tmp).template Reduce<false>(input, valid_items, reduce_op);
+            return MyWarpReduce(tmp).template Reduce(input, reduce_op, valid_items);
             }
 
     private:
-        typedef hipcub::WarpReduceShfl<T,LOGICAL_WARP_THREADS,PTX_ARCH> WarpReduceShfl;    //!< CUB shuffle-based reduce
-        typedef typename WarpReduceShfl::TempStorage TempStorage;                       //!< Nominal data type for CUB temporary storage
+        typedef hipcub::WarpReduce<T,LOGICAL_WARP_THREADS,PTX_ARCH> MyWarpReduce;       //!< CUB shuffle-based reduce
+        typedef typename MyWarpReduce::TempStorage TempStorage;                           //!< Nominal data type for CUB temporary storage
+		static_assert(is_empty<TempStorage>::value, "WarpReduce requires temp storage");
     };
 
 //! Computes warp-level scan (prefix sum) using shuffle instructions
@@ -122,7 +132,7 @@ class WarpReduce
  * a consecutive group of threads that is (1) smaller than the hardware warp size (32 threads) and (2) a power of 2.
  * For additional details about any operator, refer to the CUB documentation.
  *
- * This class is a thin wrapper around cub::WarpScanShfl. The CUB scan classes nominally request "temporary" memory,
+ * This class is a thin wrapper around hipcub::WarpScan. The CUB scan classes nominally request "temporary" memory,
  * which is shared memory for non-shuffle scans. However, the shuffle-based scan does not use any shared memory,
  * and so this temporary variable is put unused into a register. The compiler can then optimize this out.
  * Care must be taken to monitor the CUB implementation in future to ensure the temporary memory is never used.
@@ -137,7 +147,9 @@ class WarpScan
     public:
         DEVICE WarpScan()
             {
+			#ifdef __HIP_PLATFORM_NVCC__
             static_assert(PTX_ARCH >= 300, "PTX architecture must be >= 300");
+			#endif
             static_assert(LOGICAL_WARP_THREADS <= HIPCUB_WARP_THREADS, "Logical warp size cannot exceed hardware warp size");
             static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS-1)), "Logical warp size must be a power of 2");
             }
@@ -151,7 +163,7 @@ class WarpScan
          */
         DEVICE void InclusiveSum(T input, T& output)
             {
-            InclusiveScan(input, output, cub::Sum());
+            InclusiveScan(input, output, hipcub::Sum());
             }
 
         //! Inclusive sum for each thread in logical warp, plus accumulation for all.
@@ -165,7 +177,7 @@ class WarpScan
          */
         DEVICE void InclusiveSum(T input, T& output, T& aggregate)
             {
-            InclusiveScan(input, output, cub::Sum(), aggregate);
+            InclusiveScan(input, output, hipcub::Sum(), aggregate);
             }
 
         //! Inclusive scan with a custom scan operator.
@@ -174,7 +186,7 @@ class WarpScan
          * \param output Result of scan for this thread.
          * \param scan_op Binary scan operator.
          *
-         * This operator is equivalent to InclusiveSum if \a scan_op were cub::Sum().
+         * This operator is equivalent to InclusiveSum if \a scan_op were hipcub::Sum().
          *
          * \tparam ScanOpT <b>inferred</b> Binary scan operator type.
          */
@@ -183,7 +195,7 @@ class WarpScan
             {
             // shuffle-based scan does not need temporary space, so we let the compiler optimize this dummy variable out
             TempStorage tmp;
-            WarpScanShfl(tmp).InclusiveScan(input, output, scan_op);
+            MyWarpScan(tmp).InclusiveScan(input, output, scan_op);
             }
 
         //! Inclusive scan with a custom scan operator, plus accumulation for all.
@@ -193,7 +205,7 @@ class WarpScan
          * \param scan_op Binary scan operator.
          * \param aggregate Total scan of all threads.
          *
-         * This operator is equivalent to InclusiveSum if \a scan_op were cub::Sum().
+         * This operator is equivalent to InclusiveSum if \a scan_op were hipcub::Sum().
          *
          * \tparam ScanOpT <b>inferred</b> Binary scan operator type.
          */
@@ -202,7 +214,7 @@ class WarpScan
             {
             // shuffle-based scan does not need temporary space, so we let the compiler optimize this dummy variable out
             TempStorage tmp;
-            WarpScanShfl(tmp).InclusiveScan(input, output, scan_op, aggregate);
+            MyWarpScan(tmp).InclusiveScan(input, output, scan_op, aggregate);
             }
 
         //! Exclusive sum for each thread in logical warp.
@@ -216,7 +228,7 @@ class WarpScan
         DEVICE void ExclusiveSum(T input, T& output)
             {
             T initial = 0;
-            ExclusiveScan(input, output, initial, cub::Sum());
+            ExclusiveScan(input, output, initial, hipcub::Sum());
             }
 
         //! Exclusive sum for each thread in logical warp, plus accumulation for all.
@@ -231,7 +243,7 @@ class WarpScan
         DEVICE void ExclusiveSum(T input, T& output, T& aggregate)
             {
             T initial = 0;
-            ExclusiveScan(input, output, initial, cub::Sum(), aggregate);
+            ExclusiveScan(input, output, initial, hipcub::Sum(), aggregate);
             }
 
         //! Exclusive scan with a custom scan operator.
@@ -240,7 +252,7 @@ class WarpScan
          * \param output Result of scan for this thread.
          * \param scan_op Binary scan operator.
          *
-         * This operator is equivalent to ExclusiveSum if \a scan_op were cub::Sum().
+         * This operator is equivalent to ExclusiveSum if \a scan_op were hipcub::Sum().
          *
          * \tparam ScanOpT <b>inferred</b> Binary scan operator type.
          */
@@ -249,11 +261,8 @@ class WarpScan
             {
             // shuffle-based scan does not need temporary space, so we let the compiler optimize this dummy variable out
             TempStorage tmp;
-            WarpScanShfl scan(tmp);
-            // first compute inclusive scan, then update to make exclusive
-            T inclusive;
-            scan.InclusiveScan(input, inclusive, scan_op);
-            scan.Update(input, inclusive, output, scan_op, cub::Int2Type<IS_INTEGER>());
+            MyWarpScan scan(tmp);
+            scan.ExclusiveScan(input, output, scan_op);
             }
 
         //! Exclusive scan with a custom scan operator and initial value.
@@ -263,7 +272,7 @@ class WarpScan
          * \param initial Initial value for exclusive sum within logical warp.
          * \param scan_op Binary scan operator.
          *
-         * This operator is equivalent to ExclusiveSum if \a scan_op were cub::Sum() and \a initial were zero.
+         * This operator is equivalent to ExclusiveSum if \a scan_op were hipcub::Sum() and \a initial were zero.
          *
          * \tparam ScanOpT <b>inferred</b> Binary scan operator type.
          */
@@ -272,11 +281,8 @@ class WarpScan
             {
             // shuffle-based scan does not need temporary space, so we let the compiler optimize this dummy variable out
             TempStorage tmp;
-            WarpScanShfl scan(tmp);
-            // first compute inclusive scan, then update to make exclusive
-            T inclusive;
-            scan.InclusiveScan(input, inclusive, scan_op);
-            scan.Update(input, inclusive, output, scan_op, initial, cub::Int2Type<IS_INTEGER>());
+            MyWarpScan scan(tmp);
+            scan.ExclusiveScan(input, output, initial, scan_op);
             }
 
         //! Exclusive scan with a custom scan operator, plus accumulation for all.
@@ -286,7 +292,7 @@ class WarpScan
          * \param scan_op Binary scan operator.
          * \param aggregate Total scan of all threads.
          *
-         * This operator is equivalent to ExclusiveSum if \a scan_op were cub::Sum().
+         * This operator is equivalent to ExclusiveSum if \a scan_op were hipcub::Sum().
          *
          * \tparam ScanOpT <b>inferred</b> Binary scan operator type.
          */
@@ -295,11 +301,8 @@ class WarpScan
             {
             // shuffle-based scan does not need temporary space, so we let the compiler optimize this dummy variable out
             TempStorage tmp;
-            WarpScanShfl scan(tmp);
-            // first compute inclusive scan, then update to make exclusive
-            T inclusive;
-            scan.InclusiveScan(input, inclusive, scan_op);
-            scan.Update(input, inclusive, output, aggregate, scan_op, cub::Int2Type<IS_INTEGER>());
+            MyWarpScan scan(tmp);
+            scan.ExclusiveScan(input, output, scan_op, aggregate);
             }
 
         //! Exclusive scan with a custom scan operator and initial value, plus accumulation for all.
@@ -310,7 +313,7 @@ class WarpScan
          * \param scan_op Binary scan operator.
          * \param aggregate Total scan of all threads.
          *
-         * This operator is equivalent to ExclusiveSum if \a scan_op were cub::Sum() and \a initial were zero.
+         * This operator is equivalent to ExclusiveSum if \a scan_op were hipcub::Sum() and \a initial were zero.
          *
          * \tparam ScanOpT <b>inferred</b> Binary scan operator type.
          */
@@ -319,11 +322,8 @@ class WarpScan
             {
             // shuffle-based scan does not need temporary space, so we let the compiler optimize this dummy variable out
             TempStorage tmp;
-            WarpScanShfl scan(tmp);
-            // first compute inclusive scan, then update to make exclusive
-            T inclusive;
-            scan.InclusiveScan(input, inclusive, scan_op);
-            scan.Update(input, inclusive, output, aggregate, scan_op, initial, cub::Int2Type<IS_INTEGER>());
+            MyWarpScan scan(tmp);
+            scan.ExclusiveScan(input, output, initial, scan_op, aggregate);
             }
 
         //! Broadcast a value to logical warp.
@@ -338,17 +338,13 @@ class WarpScan
             {
             // shuffle-based broadcast does not need temporary space, so we let the compiler optimize this dummy variable out
             TempStorage tmp;
-            return WarpScanShfl(tmp).Broadcast(input, src_lane);
+            return MyWarpScan(tmp).Broadcast(input, src_lane);
             }
 
     private:
-        typedef hipcub::WarpScanShfl<T,LOGICAL_WARP_THREADS,PTX_ARCH> WarpScanShfl;    //!< CUB shuffle-based scan
-        typedef typename WarpScanShfl::TempStorage TempStorage;                     //!< Nominal data type for CUB temporary storage
-
-        enum
-            {
-            IS_INTEGER = ((cub::Traits<T>::CATEGORY == cub::SIGNED_INTEGER) || (cub::Traits<T>::CATEGORY == cub::UNSIGNED_INTEGER))
-            };
+        typedef hipcub::WarpScan<T,LOGICAL_WARP_THREADS,PTX_ARCH> MyWarpScan;    //!< CUB shuffle-based scan
+        typedef typename MyWarpScan::TempStorage TempStorage;                     //!< Nominal data type for CUB temporary storage
+		static_assert(is_empty<TempStorage>::value, "WarpScan requires temp storage");
     };
 
 } // end namespace detail

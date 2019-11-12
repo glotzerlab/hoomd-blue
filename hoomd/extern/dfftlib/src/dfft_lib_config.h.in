@@ -9,7 +9,7 @@
 // global settings
 #define LOCAL_FFT_LIB @LOCAL_FFT_LIB@
 #cmakedefine ENABLE_HOST
-//#cmakedefine ENABLE_CUDA
+//#cmakedefine ENABLE_HIP
 //#cmakedefine ENABLE_MPI_CUDA
 
 #endif

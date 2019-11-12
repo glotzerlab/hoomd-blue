@@ -55,7 +55,7 @@ void bitrev_init(int n, int *rho)
 int dfft_create_execution_flow(dfft_plan *plan)
     {
     /* compute depth of parallel fft (number of redistributions/dimension) */
-    plan->depth = malloc(sizeof(int)*plan->ndim);
+    plan->depth = (int *)malloc(sizeof(int)*plan->ndim);
     plan->max_depth = 0;
     int i,d,j;
     for (i=0; i< plan->ndim; ++i)
@@ -78,7 +78,7 @@ int dfft_create_execution_flow(dfft_plan *plan)
     /* we always decompose into 1d FFTs when the backend doesn't support
      * multidimensional */
     int decompose_1d = 1 ;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (plan->device)
         {
         #ifdef CUDA_FFT_SUPPORTS_MULTI
@@ -99,7 +99,7 @@ int dfft_create_execution_flow(dfft_plan *plan)
         }
 
     /* allocate plans */
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (plan->device)
         {
         if (plan->max_depth)
@@ -127,7 +127,7 @@ int dfft_create_execution_flow(dfft_plan *plan)
             plan->n_fft[d] = plan->ndim;
 
             /* allocate ndim plans */
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (plan->device)
                 {
                 plan->cuda_plans_multi_fw[d] =
@@ -143,7 +143,7 @@ int dfft_create_execution_flow(dfft_plan *plan)
                  * dimension, just proceed  */
                 if (plan->depth[i] > d)
                     {
-                    #ifdef ENABLE_CUDA
+                    #ifdef ENABLE_HIP
                     int dim;
                     int istride = plan->size_in/plan->inembed[i];
                     int ostride = 1;
@@ -173,7 +173,7 @@ int dfft_create_execution_flow(dfft_plan *plan)
             plan->n_fft[d] = 1;
 
             /* allocate plan */
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (plan->device)
                 {
                 plan->cuda_plans_multi_fw[d] =
@@ -183,12 +183,12 @@ int dfft_create_execution_flow(dfft_plan *plan)
                 }
             #endif
 
-            int *dim = malloc(sizeof(int)*plan->ndim);
+            int *dim = (int *)malloc(sizeof(int)*plan->ndim);
             for (i = 0; i < plan->ndim; ++i)
                 dim[i] = plan->gdim[i]/plan->pdim[i];
 
             /* create multidimensional forward and backward plans */
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             int howmany = 1;
                         
             if (plan->device)
@@ -231,7 +231,7 @@ int dfft_create_execution_flow(dfft_plan *plan)
          * in between we have to transpose */
 
         /* allocate plans */
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         if (plan->device)
             {
             plan->cuda_plans_final_fw =
@@ -244,7 +244,7 @@ int dfft_create_execution_flow(dfft_plan *plan)
         int size = plan->size_in;
         for (i = 0; i < plan->ndim; ++i)
             {
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             int s = size/plan->inembed[i] *(plan->gdim[i]/plan->pdim[i]);
             int dim = plan->k0[i];
             int howmany = s/(plan->k0[i]);
@@ -271,7 +271,7 @@ int dfft_create_execution_flow(dfft_plan *plan)
         {
         /* the final stage is a multidimensional transform */
         /* allocate plan */
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         if (plan->device)
             {
             plan->cuda_plans_final_fw =
@@ -281,12 +281,12 @@ int dfft_create_execution_flow(dfft_plan *plan)
             }
         #endif
 
-        int *dim = malloc(sizeof(int)*plan->ndim);
+        int *dim = (int *)malloc(sizeof(int)*plan->ndim);
         for (i = 0; i < plan->ndim; ++i)
             dim[i] = plan->gdim[i]/plan->pdim[i];
 
         /* create multidimensional forward and backward plans */
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         int howmany = 1;
                 
         if (plan->device)
@@ -326,15 +326,15 @@ int dfft_create_plan_common(dfft_plan *p,
     if (nump & (nump-1)) return 4;
 
     /* Allocate memory for processor map and copy over */
-    p->proc_map = malloc(sizeof(int)*nump);
+    p->proc_map = (int *)malloc(sizeof(int)*nump);
     memcpy(p->proc_map, proc_map, sizeof(int)*nump);
 
-    p->pdim = malloc(ndim*sizeof(int));
-    p->gdim = malloc(ndim*sizeof(int));
-    p->pidx = malloc(ndim*sizeof(int));
+    p->pdim = (int *)malloc(ndim*sizeof(int));
+    p->gdim = (int *)malloc(ndim*sizeof(int));
+    p->pidx = (int *)malloc(ndim*sizeof(int));
 
-    p->inembed = malloc(ndim*sizeof(int));
-    p->oembed = malloc(ndim*sizeof(int));
+    p->inembed = (int *)malloc(ndim*sizeof(int));
+    p->oembed = (int *)malloc(ndim*sizeof(int));
 
     p->ndim = ndim;
 
@@ -379,10 +379,10 @@ int dfft_create_plan_common(dfft_plan *p,
     if (!device)
         {
         #ifdef ENABLE_HOST
-        p->plans_short_forward = malloc(sizeof(plan_t)*ndim);
-        p->plans_long_forward = malloc(sizeof(plan_t)*ndim);
-        p->plans_short_inverse = malloc(sizeof(plan_t)*ndim);
-        p->plans_long_inverse = malloc(sizeof(plan_t)*ndim);
+        p->plans_short_forward = (plan_t *)malloc(sizeof(plan_t)*ndim);
+        p->plans_long_forward = (plan_t *)malloc(sizeof(plan_t)*ndim);
+        p->plans_short_inverse = (plan_t *)malloc(sizeof(plan_t)*ndim);
+        p->plans_long_inverse = (plan_t *)malloc(sizeof(plan_t)*ndim);
         #else
         return 3;
         #endif
@@ -407,7 +407,7 @@ int dfft_create_plan_common(dfft_plan *p,
     p->size_out = size_out;
 
     /* find length k0 of last stage of butterflies */
-    p->k0 = malloc(sizeof(int)*ndim);
+    p->k0 = (int *)malloc(sizeof(int)*ndim);
 
     for (i = 0; i< ndim; ++i)
         {
@@ -458,7 +458,7 @@ int dfft_create_plan_common(dfft_plan *p,
         }
     else
         {
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         res = dfft_cuda_init_local_fft();
         #else
         return 2;
@@ -550,7 +550,7 @@ int dfft_create_plan_common(dfft_plan *p,
         }
     else
         {
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         dfft_cuda_allocate_aligned_memory(&(p->d_scratch),sizeof(cuda_cpx_t)*scratch_size);
         dfft_cuda_allocate_aligned_memory(&(p->d_scratch_2),sizeof(cuda_cpx_t)*scratch_size);
         dfft_cuda_allocate_aligned_memory(&(p->d_scratch_3),sizeof(cuda_cpx_t)*scratch_size);
@@ -562,7 +562,7 @@ int dfft_create_plan_common(dfft_plan *p,
     p->input_cyclic = input_cyclic;
     p->output_cyclic = output_cyclic;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     #ifndef NDEBUG
     p->check_cuda_errors = 1;
     #else
@@ -632,7 +632,7 @@ void dfft_destroy_plan_common(dfft_plan p, int device)
         }
     else
         {
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         dfft_cuda_free_aligned_memory(p.d_scratch);
         dfft_cuda_free_aligned_memory(p.d_scratch_2);
         dfft_cuda_free_aligned_memory(p.d_scratch_3);
@@ -650,7 +650,7 @@ void dfft_destroy_plan_common(dfft_plan p, int device)
                 {
                 if (p.device && d < p.depth[j])
                     {
-                    #ifdef ENABLE_CUDA
+                    #ifdef ENABLE_HIP
                     dfft_cuda_destroy_local_plan(&p.cuda_plans_multi_fw[d][j]);
                     dfft_cuda_destroy_local_plan(&p.cuda_plans_multi_bw[d][j]);
                     #endif
@@ -678,7 +678,7 @@ void dfft_destroy_plan_common(dfft_plan p, int device)
             {
             if (p.device)
                 {
-                #ifdef ENABLE_CUDA
+                #ifdef ENABLE_HIP
                 dfft_cuda_destroy_local_plan(&p.cuda_plans_final_fw[i]);
                 dfft_cuda_destroy_local_plan(&p.cuda_plans_final_bw[i]);
                 #endif

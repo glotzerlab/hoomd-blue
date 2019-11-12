@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -44,7 +43,7 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
                                                     Scalar *d_f_actMag,
                                                     Scalar3 *d_t_actVec,
                                                     Scalar *d_t_actMag,
-                                                    const Scalar3& P,
+                                                    const Scalar3 P,
                                                     Scalar rx,
                                                     Scalar ry,
                                                     Scalar rz,
@@ -129,7 +128,7 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
                                                    const Scalar4 *d_pos,
                                                    Scalar3 *d_f_actVec,
                                                    Scalar3 *d_t_actVec,
-                                                   const Scalar3& P,
+                                                   const Scalar3 P,
                                                    Scalar rx,
                                                    Scalar ry,
                                                    Scalar rz)
@@ -198,7 +197,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
                                                    const Scalar4 *d_pos,
                                                    Scalar3 *d_f_actVec,
                                                    Scalar3 *d_t_actVec,
-                                                   const Scalar3& P,
+                                                   const Scalar3 P,
                                                    Scalar rx,
                                                    Scalar ry,
                                                    Scalar rz,

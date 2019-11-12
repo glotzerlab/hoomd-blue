@@ -4,6 +4,7 @@
 
 // Maintainer: joaander
 
+#include "hip/hip_runtime.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 

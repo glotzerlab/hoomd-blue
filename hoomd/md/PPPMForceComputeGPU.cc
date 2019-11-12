@@ -30,7 +30,7 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
     if (m_local_fft)
-        cufftDestroy(m_cufft_plan);
+        hipfftDestroy(m_hipfft_plan);
     #ifdef ENABLE_MPI
     else
         {
@@ -101,7 +101,7 @@ void PPPMForceComputeGPU::initializeFFT()
 
     if (m_local_fft)
         {
-        cufftPlan3d(&m_cufft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, HIPFFT_C2C);
+        hipfftPlan3d(&m_hipfft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, HIPFFT_C2C);
         }
 
     // allocate mesh and transformed mesh
@@ -111,82 +111,86 @@ void PPPMForceComputeGPU::initializeFFT()
     if (ngpu > 1)
         {
         unsigned int mesh_elements = (m_n_cells+m_ghost_offset);
-        GlobalArray<cufftComplex> mesh_scratch(mesh_elements*ngpu,m_exec_conf);
+        GlobalArray<hipfftComplex> mesh_scratch(mesh_elements*ngpu,m_exec_conf);
         m_mesh_scratch.swap(mesh_scratch);
 
+        #ifdef __HIP_PLATFORM_NVCC__
         auto gpu_map = m_exec_conf->getGPUIds();
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
             cudaMemAdvise(m_mesh_scratch.get()+idev*mesh_elements,
-                mesh_elements*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemPrefetchAsync(m_mesh_scratch.get()+idev*mesh_elements, mesh_elements*sizeof(cufftComplex), gpu_map[idev]);
+                mesh_elements*sizeof(hipfftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_mesh_scratch.get()+idev*mesh_elements, mesh_elements*sizeof(hipfftComplex), gpu_map[idev]);
             CHECK_CUDA_ERROR();
             }
 
         // accessed by GPU 0
         cudaMemAdvise(m_mesh_scratch.get(), mesh_elements*ngpu, cudaMemAdviseSetAccessedBy, gpu_map[0]);
         CHECK_CUDA_ERROR();
+        #endif
         }
 
     // pad with offset
-    GlobalArray<cufftComplex> mesh(m_n_cells+m_ghost_offset,m_exec_conf);
+    GlobalArray<hipfftComplex> mesh(m_n_cells+m_ghost_offset,m_exec_conf);
     m_mesh.swap(mesh);
 
-    GlobalArray<cufftComplex> fourier_mesh(m_n_inner_cells, m_exec_conf);
+    GlobalArray<hipfftComplex> fourier_mesh(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh.swap(fourier_mesh);
 
-    GlobalArray<cufftComplex> fourier_mesh_G_x(m_n_inner_cells, m_exec_conf);
+    GlobalArray<hipfftComplex> fourier_mesh_G_x(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_x.swap(fourier_mesh_G_x);
 
-    GlobalArray<cufftComplex> fourier_mesh_G_y(m_n_inner_cells, m_exec_conf);
+    GlobalArray<hipfftComplex> fourier_mesh_G_y(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_y.swap(fourier_mesh_G_y);
 
-    GlobalArray<cufftComplex> fourier_mesh_G_z(m_n_inner_cells, m_exec_conf);
+    GlobalArray<hipfftComplex> fourier_mesh_G_z(m_n_inner_cells, m_exec_conf);
     m_fourier_mesh_G_z.swap(fourier_mesh_G_z);
 
     // pad with offset
     unsigned int inv_mesh_elements = m_n_cells+m_ghost_offset;
-    GlobalArray<cufftComplex> inv_fourier_mesh_x(ngpu*inv_mesh_elements, m_exec_conf);
+    GlobalArray<hipfftComplex> inv_fourier_mesh_x(ngpu*inv_mesh_elements, m_exec_conf);
     m_inv_fourier_mesh_x.swap(inv_fourier_mesh_x);
 
-    GlobalArray<cufftComplex> inv_fourier_mesh_y(ngpu*inv_mesh_elements, m_exec_conf);
+    GlobalArray<hipfftComplex> inv_fourier_mesh_y(ngpu*inv_mesh_elements, m_exec_conf);
     m_inv_fourier_mesh_y.swap(inv_fourier_mesh_y);
 
-    GlobalArray<cufftComplex> inv_fourier_mesh_z(ngpu*inv_mesh_elements, m_exec_conf);
+    GlobalArray<hipfftComplex> inv_fourier_mesh_z(ngpu*inv_mesh_elements, m_exec_conf);
     m_inv_fourier_mesh_z.swap(inv_fourier_mesh_z);
 
+    #ifdef __HIP_PLATFORM_NVCC__
     if (m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaMemAdvise(m_inv_fourier_mesh_x.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_inv_fourier_mesh_y.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_inv_fourier_mesh_z.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_inv_fourier_mesh_x.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(hipfftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_inv_fourier_mesh_y.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(hipfftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_inv_fourier_mesh_z.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(hipfftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             CHECK_CUDA_ERROR();
 
-            cudaMemPrefetchAsync(m_inv_fourier_mesh_x.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), gpu_map[idev]);
-            cudaMemPrefetchAsync(m_inv_fourier_mesh_y.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), gpu_map[idev]);
-            cudaMemPrefetchAsync(m_inv_fourier_mesh_z.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(cufftComplex), gpu_map[idev]);
+            cudaMemPrefetchAsync(m_inv_fourier_mesh_x.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(hipfftComplex), gpu_map[idev]);
+            cudaMemPrefetchAsync(m_inv_fourier_mesh_y.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(hipfftComplex), gpu_map[idev]);
+            cudaMemPrefetchAsync(m_inv_fourier_mesh_z.get()+idev*inv_mesh_elements, inv_mesh_elements*sizeof(hipfftComplex), gpu_map[idev]);
             CHECK_CUDA_ERROR();
             }
 
          for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaMemAdvise(m_fourier_mesh_G_x.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-            cudaMemAdvise(m_fourier_mesh_G_y.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-            cudaMemAdvise(m_fourier_mesh_G_z.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_fourier_mesh_G_x.get(), m_n_inner_cells*sizeof(hipfftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_fourier_mesh_G_y.get(), m_n_inner_cells*sizeof(hipfftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_fourier_mesh_G_z.get(), m_n_inner_cells*sizeof(hipfftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             CHECK_CUDA_ERROR();
             }
 
         // pin to GPU 0
-        cudaMemAdvise(m_fourier_mesh_G_x.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
-        cudaMemPrefetchAsync(m_fourier_mesh_G_x.get(), m_n_inner_cells*sizeof(cufftComplex), gpu_map[0]);
-        cudaMemAdvise(m_fourier_mesh_G_y.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
-        cudaMemPrefetchAsync(m_fourier_mesh_G_z.get(), m_n_inner_cells*sizeof(cufftComplex), gpu_map[0]);
-        cudaMemAdvise(m_fourier_mesh_G_z.get(), m_n_inner_cells*sizeof(cufftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
-        cudaMemPrefetchAsync(m_fourier_mesh_G_y.get(), m_n_inner_cells*sizeof(cufftComplex), gpu_map[0]);
+        cudaMemAdvise(m_fourier_mesh_G_x.get(), m_n_inner_cells*sizeof(hipfftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+        cudaMemPrefetchAsync(m_fourier_mesh_G_x.get(), m_n_inner_cells*sizeof(hipfftComplex), gpu_map[0]);
+        cudaMemAdvise(m_fourier_mesh_G_y.get(), m_n_inner_cells*sizeof(hipfftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+        cudaMemPrefetchAsync(m_fourier_mesh_G_z.get(), m_n_inner_cells*sizeof(hipfftComplex), gpu_map[0]);
+        cudaMemAdvise(m_fourier_mesh_G_z.get(), m_n_inner_cells*sizeof(hipfftComplex), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+        cudaMemPrefetchAsync(m_fourier_mesh_G_y.get(), m_n_inner_cells*sizeof(hipfftComplex), gpu_map[0]);
         }
+    #endif
 
     unsigned int n_blocks = (m_mesh_points.x*m_mesh_points.y*m_mesh_points.z)/m_block_size+1;
     GlobalArray<Scalar> sum_partial(n_blocks,m_exec_conf);
@@ -217,8 +221,8 @@ void PPPMForceComputeGPU::assignParticles()
     if (m_prof) m_prof->push(m_exec_conf, "assign");
 
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::overwrite);
-    ArrayHandle<cufftComplex> d_mesh_scratch(m_mesh_scratch, access_location::device, access_mode::overwrite);
+    ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::overwrite);
+    ArrayHandle<hipfftComplex> d_mesh_scratch(m_mesh_scratch, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
     // access the group
@@ -275,10 +279,10 @@ void PPPMForceComputeGPU::updateMeshes()
         {
         if (m_prof) m_prof->push(m_exec_conf,"FFT");
         // locally transform the particle mesh
-        ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
-        ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
+        ArrayHandle<hipfftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
 
-        CHECK_HIPFFT_ERROR(cufftExecC2C(m_cufft_plan, d_mesh.data, d_fourier_mesh.data, HIPFFT_FORWARD));
+        CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan, d_mesh.data, d_fourier_mesh.data, HIPFFT_FORWARD));
         if (m_prof) m_prof->pop(m_exec_conf);
         }
     #ifdef ENABLE_MPI
@@ -294,8 +298,8 @@ void PPPMForceComputeGPU::updateMeshes()
         m_exec_conf->msg->notice(8) << "charge.pppm: Distributed FFT mesh" << std::endl;
         if (m_prof) m_prof->push(m_exec_conf,"FFT");
         #ifndef USE_HOST_DFFT
-        ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
-        ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
+        ArrayHandle<hipfftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             dfft_cuda_check_errors(&m_dfft_plan_forward, 1);
@@ -304,8 +308,8 @@ void PPPMForceComputeGPU::updateMeshes()
 
         dfft_cuda_execute(d_mesh.data+m_ghost_offset, d_fourier_mesh.data, 0, &m_dfft_plan_forward);
         #else
-        ArrayHandle<cufftComplex> h_mesh(m_mesh, access_location::host, access_mode::read);
-        ArrayHandle<cufftComplex> h_fourier_mesh(m_fourier_mesh, access_location::host, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> h_mesh(m_mesh, access_location::host, access_mode::read);
+        ArrayHandle<hipfftComplex> h_fourier_mesh(m_fourier_mesh, access_location::host, access_mode::overwrite);
 
         dfft_execute((cpx_t *)(h_mesh.data+m_ghost_offset), (cpx_t *)h_fourier_mesh.data, 0,m_dfft_plan_forward);
         #endif
@@ -316,10 +320,10 @@ void PPPMForceComputeGPU::updateMeshes()
     if (m_prof) m_prof->push(m_exec_conf,"update");
 
         {
-        ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::readwrite);
-        ArrayHandle<cufftComplex> d_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::device, access_mode::overwrite);
-        ArrayHandle<cufftComplex> d_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::device, access_mode::overwrite);
-        ArrayHandle<cufftComplex> d_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::device, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::readwrite);
+        ArrayHandle<hipfftComplex> d_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::device, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> d_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::device, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> d_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::device, access_mode::overwrite);
 
         ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_k(m_k, access_location::device, access_mode::read);
@@ -348,12 +352,12 @@ void PPPMForceComputeGPU::updateMeshes()
         if (m_prof) m_prof->push(m_exec_conf, "FFT");
 
         // do local inverse transform of all three components of the force mesh
-        ArrayHandle<cufftComplex> d_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::device, access_mode::read);
-        ArrayHandle<cufftComplex> d_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::device, access_mode::read);
-        ArrayHandle<cufftComplex> d_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::device, access_mode::read);
-        ArrayHandle<cufftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::device, access_mode::overwrite);
-        ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::overwrite);
-        ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> d_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::device, access_mode::read);
+        ArrayHandle<hipfftComplex> d_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::device, access_mode::read);
+        ArrayHandle<hipfftComplex> d_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::device, access_mode::read);
+        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::device, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::overwrite);
 
         // do inverse FFT on every GPU
 
@@ -363,18 +367,18 @@ void PPPMForceComputeGPU::updateMeshes()
         for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev>=0; idev--)
             {
             hipSetDevice(m_exec_conf->getGPUIds()[idev]);
-            CHECK_HIPFFT_ERROR(cufftExecC2C(m_cufft_plan,
+            CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
                          d_fourier_mesh_G_x.data,
                          d_inv_fourier_mesh_x.data+idev*inv_mesh_elements,
-                         HIPFFT_INVERSE));
-            CHECK_HIPFFT_ERROR(cufftExecC2C(m_cufft_plan,
+                         HIPFFT_BACKWARD));
+            CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
                          d_fourier_mesh_G_y.data,
                          d_inv_fourier_mesh_y.data+idev*inv_mesh_elements,
-                         HIPFFT_INVERSE));
-            CHECK_HIPFFT_ERROR(cufftExecC2C(m_cufft_plan,
+                         HIPFFT_BACKWARD));
+            CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
                          d_fourier_mesh_G_z.data,
                          d_inv_fourier_mesh_z.data+idev*inv_mesh_elements,
-                         HIPFFT_INVERSE));
+                         HIPFFT_BACKWARD));
             }
         m_exec_conf->endMultiGPU();
 
@@ -388,12 +392,12 @@ void PPPMForceComputeGPU::updateMeshes()
         // Distributed inverse transform of force mesh
         m_exec_conf->msg->notice(8) << "charge.pppm: Distributed iFFT" << std::endl;
         #ifndef USE_HOST_DFFT
-        ArrayHandle<cufftComplex> d_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::device, access_mode::read);
-        ArrayHandle<cufftComplex> d_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::device, access_mode::read);
-        ArrayHandle<cufftComplex> d_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::device, access_mode::read);
-        ArrayHandle<cufftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::device, access_mode::overwrite);
-        ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::overwrite);
-        ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> d_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::device, access_mode::read);
+        ArrayHandle<hipfftComplex> d_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::device, access_mode::read);
+        ArrayHandle<hipfftComplex> d_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::device, access_mode::read);
+        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::device, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::overwrite);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             dfft_cuda_check_errors(&m_dfft_plan_inverse, 1);
@@ -404,12 +408,12 @@ void PPPMForceComputeGPU::updateMeshes()
         dfft_cuda_execute(d_fourier_mesh_G_y.data, d_inv_fourier_mesh_y.data+m_ghost_offset, 1, &m_dfft_plan_inverse);
         dfft_cuda_execute(d_fourier_mesh_G_z.data, d_inv_fourier_mesh_z.data+m_ghost_offset, 1, &m_dfft_plan_inverse);
         #else
-        ArrayHandle<cufftComplex> h_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::host, access_mode::read);
-        ArrayHandle<cufftComplex> h_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::host, access_mode::read);
-        ArrayHandle<cufftComplex> h_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::host, access_mode::read);
-        ArrayHandle<cufftComplex> h_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::host, access_mode::overwrite);
-        ArrayHandle<cufftComplex> h_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::host, access_mode::overwrite);
-        ArrayHandle<cufftComplex> h_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::host, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> h_fourier_mesh_G_x(m_fourier_mesh_G_x, access_location::host, access_mode::read);
+        ArrayHandle<hipfftComplex> h_fourier_mesh_G_y(m_fourier_mesh_G_y, access_location::host, access_mode::read);
+        ArrayHandle<hipfftComplex> h_fourier_mesh_G_z(m_fourier_mesh_G_z, access_location::host, access_mode::read);
+        ArrayHandle<hipfftComplex> h_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::host, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> h_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::host, access_mode::overwrite);
+        ArrayHandle<hipfftComplex> h_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::host, access_mode::overwrite);
         dfft_execute((cpx_t *)h_fourier_mesh_G_x.data, (cpx_t *)h_inv_fourier_mesh_x.data+m_ghost_offset, 1, m_dfft_plan_inverse);
         dfft_execute((cpx_t *)h_fourier_mesh_G_y.data, (cpx_t *)h_inv_fourier_mesh_y.data+m_ghost_offset, 1, m_dfft_plan_inverse);
         dfft_execute((cpx_t *)h_fourier_mesh_G_z.data, (cpx_t *)h_inv_fourier_mesh_z.data+m_ghost_offset, 1, m_dfft_plan_inverse);
@@ -437,9 +441,9 @@ void PPPMForceComputeGPU::interpolateForces()
     if (m_prof) m_prof->push(m_exec_conf,"forces");
 
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<cufftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::device, access_mode::read);
-    ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::read);
-    ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::read);
+    ArrayHandle<hipfftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::device, access_mode::read);
+    ArrayHandle<hipfftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::read);
+    ArrayHandle<hipfftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
@@ -483,7 +487,7 @@ void PPPMForceComputeGPU::computeVirial()
     {
     if (m_prof) m_prof->push(m_exec_conf,"virial");
 
-    ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::read);
+    ArrayHandle<hipfftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
     ArrayHandle<Scalar3> d_k(m_k, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_virial_mesh(m_virial_mesh, access_location::device, access_mode::overwrite);
@@ -537,7 +541,7 @@ Scalar PPPMForceComputeGPU::computePE()
     {
     if (m_prof) m_prof->push(m_exec_conf,"sum");
 
-    ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::read);
+    ArrayHandle<hipfftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
 
     ArrayHandle<Scalar> d_sum_partial(m_sum_partial, access_location::device, access_mode::overwrite);

@@ -171,7 +171,7 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
     HIP_DYNAMIC_SHARED( char, s_data)
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
-    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
+    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(typename evaluator::param_type)]);
 
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -414,7 +414,8 @@ struct AnisoPairForceComputeKernel
             hipFuncAttributes attr;
             if (max_block_size == UINT_MAX)
                 {
-                hipFuncGetAttributes(&attr, gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>);
+                hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(
+                    &gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>));
                 int max_threads = attr.maxThreadsPerBlock;
                 // number of threads has to be multiple of warp size
                 max_block_size = max_threads - max_threads % gpu_aniso_pair_force_max_tpp;

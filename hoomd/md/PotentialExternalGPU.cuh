@@ -177,7 +177,7 @@ hipError_t gpu_cpef(const external_potential_args_t& external_potential_args,
         if (max_block_size == UINT_MAX)
             {
             hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr, gpu_compute_external_forces_kernel<evaluator>);
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(&gpu_compute_external_forces_kernel<evaluator>));
             max_block_size = attr.maxThreadsPerBlock;
             }
 

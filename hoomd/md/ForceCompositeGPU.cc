@@ -366,12 +366,14 @@ void ForceCompositeGPU::findRigidCenters()
     unsigned int old_size = m_lookup_center.getNumElements();
     m_lookup_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
+    #ifdef __HIP_PLATFORM_NVCC__
     if (m_exec_conf->allConcurrentManagedAccess() && m_lookup_center.getNumElements() != old_size)
         {
         // set memory hints
         cudaMemAdvise(m_lookup_center.get(), sizeof(unsigned int)*m_lookup_center.getNumElements(), cudaMemAdviseSetReadMostly, 0);
         CHECK_CUDA_ERROR();
         }
+    #endif
 
     ArrayHandle<unsigned int> d_rigid_center(m_rigid_center, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_lookup_center(m_lookup_center, access_location::device, access_mode::overwrite);
@@ -409,6 +411,7 @@ void ForceCompositeGPU::lazyInitMem()
         TAG_ALLOCATION(m_lookup_center);
         }
 
+    #ifdef __HIP_PLATFORM_NVCC__
     if (m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), cudaMemAdviseSetReadMostly, 0);
@@ -417,6 +420,7 @@ void ForceCompositeGPU::lazyInitMem()
         cudaMemAdvise(m_body_types.get(), sizeof(unsigned int)*m_body_types.getNumElements(), cudaMemAdviseSetReadMostly, 0);
         CHECK_CUDA_ERROR();
         }
+    #endif
     }
 
 void export_ForceCompositeGPU(py::module& m)

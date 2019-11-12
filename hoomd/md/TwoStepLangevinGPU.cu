@@ -401,10 +401,9 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_langevin_angular_step_two_kernel<<< grid, threads, max( (unsigned int)(sizeof(Scalar3)*langevin_args.n_types),
-                                                                (unsigned int)(langevin_args.block_size*sizeof(Scalar))
-                                                              ) >>>
-                                       (d_pos,
+    hipLaunchKernelGGL(gpu_langevin_angular_step_two_kernel, grid, threads, max( (unsigned int)(sizeof(Scalar3)*langevin_args.n_types),
+                                                                (unsigned int)(langevin_args.block_size*sizeof(Scalar))), 0,
+                                        d_pos,
                                         d_orientation,
                                         d_angmom,
                                         d_inertia,
@@ -461,7 +460,8 @@ hipError_t gpu_langevin_step_two(const Scalar4 *d_pos,
     dim3 threads1(256, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_langevin_step_two_kernel), dim3(grid), dim3(threads), max((unsigned int)(sizeof(Scalar)*langevin_args.n_types), (unsigned int)(langevin_args.block_size*sizeof(Scalar))), d_pos,
+    hipLaunchKernelGGL((gpu_langevin_step_two_kernel), grid, threads, max((unsigned int)(sizeof(Scalar)*langevin_args.n_types), (unsigned int)(langevin_args.block_size*sizeof(Scalar))), 0,
+                                d_pos,
                                  d_vel,
                                  d_accel,
                                  d_diameter,

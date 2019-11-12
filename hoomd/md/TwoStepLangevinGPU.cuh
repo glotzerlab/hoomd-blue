@@ -8,6 +8,7 @@
     \brief Declares GPU kernel code for Langevin dynamics on the GPU. Used by TwoStepLangevinGPU.
 */
 
+#include <hip/hip_runtime.h>
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
 
