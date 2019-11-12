@@ -21,7 +21,7 @@ class Operations:
             raise ValueError("Operation is not of the correct type to add to"
                              " Operations.")
         if self._auto_schedule:
-            self.schedule([op])
+            self._schedule([op])
 
     @property
     def _operations(self):
@@ -39,7 +39,10 @@ class Operations:
         else:
             return True
 
-    def schedule(self, ops=None):
+    def schedule(self):
+        self._schedule()
+
+    def _schedule(self, ops=None):
         if not self._sys_init:
             raise RuntimeError("System not initialized yet")
         sim = self.simulation
