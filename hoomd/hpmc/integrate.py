@@ -609,7 +609,7 @@ class Sphere(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
 
         # initialize base class
-        super(mode_hpmc, self).__init__()
+        super().__init__()
         self._param_dict = dict(seed=seed,
                                 move_ratio=move_ratio,
                                 nselect=nselect)
@@ -663,7 +663,7 @@ class Sphere(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        return super(sphere, self)._return_type_shapes()
+        return super()._return_type_shapes()
 
 class convex_polygon(mode_hpmc):
     R""" HPMC integration for convex polygons (2D).
