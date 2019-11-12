@@ -12,7 +12,7 @@ from hoomd import _hoomd
 import math
 
 from hoomd.update import _updater
-from hoomd.meta import _Updater, _TriggeredOperation
+from hoomd.meta import _Updater
 import hoomd
 
 
@@ -752,13 +752,13 @@ class Clusters(_Updater):
     criterion. Two particles belong to the same cluster if the circumspheres of
     the depletant-excluded volumes overlap.
 
-    Supported moves include pivot moves (point reflection), line reflections (pi
-    rotation around an axis), and type swaps.  Only the pivot move is rejection
-    free. With anisotropic particles, the pivot move cannot be used because it
-    would create a chiral mirror image of the particle, and only line
-    reflections are employed. Line reflections are not rejection free because of
-    periodic boundary conditions, as discussed in Sinkovits et al. (2012),
-    http://doi.org/10.1063/1.3694271 .
+    Supported moves include pivot moves (point reflection), line reflections
+    (pi rotation around an axis), and type swaps.  Only the pivot move is
+    rejection free. With anisotropic particles, the pivot move cannot be used
+    because it would create a chiral mirror image of the particle, and only
+    line reflections are employed. Line reflections are not rejection free
+    because of periodic boundary conditions, as discussed in Sinkovits et al.
+    (2012), http://doi.org/10.1063/1.3694271 .
 
     The type swap move works between two types of spherical particles and
     exchanges their identities.
@@ -789,9 +789,9 @@ class Clusters(_Updater):
 
     def __init__(self, seed, swap_types, move_ratio=0.5,
                  flip_probability=0.5, swap_move_ratio=0.5, trigger=1):
-        super(_Updater, self).__init__(trigger)
+        super().__init__(trigger)
         try:
-            if len(swap_types) != 2 or len(swap_types) != 0:
+            if len(swap_types) != 2 and len(swap_types) != 0:
                 raise ValueError
         except (TypeError, ValueError):
             raise ValueError("swap_types must be an iterable of length "
@@ -807,7 +807,7 @@ class Clusters(_Updater):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
         integrator_pairs = [
-                (integrate.sphere,
+                (integrate.Sphere,
                     _hpmc.UpdaterClustersSphere),
                 (integrate.convex_polygon,
                     _hpmc.UpdaterClustersConvexPolygon),
@@ -847,21 +847,21 @@ class Clusters(_Updater):
         self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
                                 integrator._cpp_obj,
                                 int(self.seed))
-        super(_TriggeredOperation, self).attach(simulation)
+        super().attach(simulation)
 
     @property
     def counter(self):
-        R""" Get the average acceptance ratio for cluster moves.
+        R""" Get the number of accepted and rejected cluster moves.
 
         Returns:
             A counter object with pivot, reflection, and swap properties. Each
-            property is a list of accepted moves and total moves since the last
-            run.
+            property is a list of accepted moves and rejected moves since the
+            last run.
 
         Note::
             if the updater is not attached None will be returned.
         """
-        if self._is_attached:
+        if not self.is_attached:
             return None
         else:
             return self._cpp_obj.getCounters(1)
