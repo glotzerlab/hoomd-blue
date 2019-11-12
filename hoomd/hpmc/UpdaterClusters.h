@@ -383,18 +383,21 @@ class UpdaterClusters : public Updater
                 }
             else if (l_size == 2)
                 {
+                std::string type_A = l[0].cast<std::string>();
+                std::string type_B = l[1].cast<std::string>();
+
                 unsigned int id_A = m_pdata->getTypeByName(type_A);
                 unsigned int id_B = m_pdata->getTypeByName(type_B);
                 setSwapTypePair(id_A, id_B);
                 }
             else
                 {
-                throw runtime_error("swap_types must be a list of length 0 or 2");
+                throw std::runtime_error("swap_types must be a list of length 0 or 2");
                 }
             }
 
         //! Get the swap pair types as a python list
-        pybind11::list getSwapTypePairSty()
+        pybind11::list getSwapTypePairStr()
             {
             pybind11::list result;
             if (m_ab_types.size() == 0)
@@ -403,12 +406,13 @@ class UpdaterClusters : public Updater
                 }
             else if (m_ab_types.size() == 2)
                 {
-                result.append(pybind11::str(m_pdata->getNameByType(m_ab_types[0]),
-                                            m_pdata->getNameByType(m_ab_types[1])));
+                result.append(m_pdata->getNameByType(m_ab_types[0]));
+                result.append(m_pdata->getNameByType(m_ab_types[1]));
+                return result;
                 }
             else
                 {
-                throw runtime_error("invalid m_ab_types");
+                throw std::runtime_error("invalid m_ab_types");
                 }
             }
 
@@ -2235,11 +2239,33 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
 inline void export_hpmc_clusters_counters(pybind11::module &m)
     {
     pybind11::class_< hpmc_clusters_counters_t >(m, "hpmc_clusters_counters_t")
-        .def("getPivotAcceptance", &hpmc_clusters_counters_t::getPivotAcceptance)
-        .def("getReflectionAcceptance", &hpmc_clusters_counters_t::getReflectionAcceptance)
-        .def("getSwapAcceptance", &hpmc_clusters_counters_t::getSwapAcceptance)
-        .def("getNParticlesMoved", &hpmc_clusters_counters_t::getNParticlesMoved)
-        .def("getNParticlesInClusters", &hpmc_clusters_counters_t::getNParticlesInClusters);
+        .def_property_readonly("pivot", [](const hpmc_clusters_counters_t &a)
+                                              {
+                                              pybind11::list result;
+                                              result.append(a.pivot_accept_count);
+                                              result.append(a.pivot_reject_count);
+                                              return result;
+                                              }
+                              )
+        .def_property_readonly("reflection", [](const hpmc_clusters_counters_t &a)
+                                                   {
+                                                   pybind11::list result;
+                                                   result.append(a.reflection_accept_count);
+                                                   result.append(a.reflection_reject_count);
+                                                   return result;
+                                                   }
+                              )
+        .def_property_readonly("swap", [](const hpmc_clusters_counters_t &a)
+                                            {
+                                            pybind11::list result;
+                                            result.append(a.swap_accept_count);
+                                            result.append(a.swap_reject_count);
+                                            return result;
+                                            }
+                              )
+        .def_readonly("clusters", &hpmc_clusters_counters_t::n_clusters)
+        .def_readonly("particles", &hpmc_clusters_counters_t::n_particles_in_clusters)
+        ;
     }
 
 } // end namespace hpmc
