@@ -91,8 +91,14 @@ PYBIND11_MODULE(_hpmc, m)
         .def("asDict", &poly2d_verts::asDict)
         ;
     py::class_<poly3d_data, std::shared_ptr<poly3d_data> >(m, "poly3d_data");
-    py::class_< poly3d_verts, std::shared_ptr< poly3d_verts > >(m, "poly3d_verts");
-    py::class_<faceted_ellipsoid_params, std::shared_ptr<faceted_ellipsoid_params> >(m, "faceted_ellipsoid_params");
+    py::class_< poly3d_verts, std::shared_ptr< poly3d_verts > >(m, "poly3d_verts")
+        .def(pybind11::init< pybind11::dict >())
+        .def("asDict", &poly3d_verts::asDict)
+        ;
+    py::class_<faceted_ellipsoid_params, std::shared_ptr<faceted_ellipsoid_params> >(m, "faceted_ellipsoid_params")
+        .def(pybind11::init< pybind11::dict >())
+        .def("asDict", &faceted_ellipsoid_params::asDict)
+        ;
     py::class_<sphinx3d_params, std::shared_ptr<sphinx3d_params> >(m, "sphinx3d_params")
         .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter)
         .def(pybind11::init< pybind11::dict >())

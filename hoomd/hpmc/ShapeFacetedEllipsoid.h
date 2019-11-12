@@ -53,13 +53,66 @@ struct faceted_ellipsoid_params : param_base
         : a(1.0), b(1.0), c(1.0), N(0), ignore(1)
         { }
 
-    #ifndef NVCC
     faceted_ellipsoid_params(unsigned int n_facet, bool managed )
         : a(1.0), b(1.0), c(1.0), N(n_facet), ignore(0)
         {
         n = ManagedArray<vec3<OverlapReal> >(n_facet, managed);
         offset = ManagedArray<OverlapReal> (n_facet, managed);
         }
+        
+    #ifndef NVCC
+    faceted_ellipsoid_params(pybind11::dict v)
+    : faceted_ellipsoid_params(pybind11::len(v["normals"]), false)
+    {
+        std::shared_ptr<ExecutionConfiguration> exec_conf;
+        pybind11::list normals = v["normals"].cast<pybind11::list>();
+        pybind11::list offsets = v["offsets"].cast<pybind11::list>();
+        pybind11::list vertices = v["vertices"].cast<pybind11::list>();
+        a = v["a"].cast<OverlapReal>();
+        b = v["b"].cast<OverlapReal>();
+        c = v["c"].cast<OverlapReal>();
+        pybind11::tuple origin_tuple = v["origin"].cast<pybind11::tuple>();
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+        
+        if (pybind11::len(offsets) != pybind11::len(normals))
+            throw std::runtime_error("Number of normals unequal number of offsets");
+
+
+        // extract the normals from the python list
+        for (unsigned int i = 0; i < len(normals); i++)
+            {
+            pybind11::list normals_i = pybind11::cast<pybind11::list>(normals[i]);
+            n[i] = vec3<OverlapReal>(pybind11::cast<OverlapReal>(normals_i[0]), pybind11::cast<OverlapReal>(normals_i[1]), pybind11::cast<OverlapReal>(normals_i[2]));
+            offset[i] = pybind11::cast<OverlapReal>(offsets[i]);
+            }
+
+        // extract the vertices from the python list
+        pybind11::dict verts_dict;
+        verts_dict["vertices"] = vertices;
+        verts=poly3d_verts(verts_dict);
+
+        // scale vertices onto unit sphere
+        for (unsigned int i = 0; i < verts.N; ++i)
+            {
+            verts.x[i] /= a;
+            verts.y[i] /= b;
+            verts.z[i] /= c;
+            }
+
+
+        // set the origin
+        origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_tuple[0]), pybind11::cast<OverlapReal>(origin_tuple[1]), pybind11::cast<OverlapReal>(origin_tuple[2]));
+
+        // add the edge-sphere vertices
+        //ShapeFacetedEllipsoid::initializeVertices(result, exec_conf->isCUDAEnabled());
+
+    }
+    pybind11::dict asDict()
+            {
+            pybind11::dict v;
+            v["one"] = 1;
+            return v;
+            }
     #endif
 
     poly3d_verts verts;           //!< Vertices of the polyhedron

@@ -45,9 +45,16 @@ namespace detail
 //! Data structure for polyhedron vertices
 //! Note that vectorized methods using this struct will assume unused coordinates are set to zero.
 /*! \ingroup hpmc_data_structs */
-struct poly3d_verts : param_base
+    struct poly3d_verts : param_base
 
     {
+        /*
+    poly3d_verts make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, bool ignore_stats,
+                                        std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    
+    }
+    */
     //! Default constructor initializes zero values.
     DEVICE poly3d_verts()
         : n_hull_verts(0),
@@ -57,11 +64,11 @@ struct poly3d_verts : param_base
           ignore(0)
         { }
 
-    #ifndef NVCC
     //! Shape constructor
     poly3d_verts(unsigned int _N, bool _managed)
         : n_hull_verts(0), N(_N), diameter(0.0), sweep_radius(0.0), ignore(0)
         {
+            
         unsigned int align_size = 8; //for AVX
         unsigned int N_align =((N + align_size - 1)/align_size)*align_size;
         x = ManagedArray<OverlapReal>(N_align,_managed, 32); // 32byte alignment for AVX
@@ -72,6 +79,82 @@ struct poly3d_verts : param_base
             x[i] = y[i] = z[i] = OverlapReal(0.0);
             }
         }
+    #ifndef NVCC
+    poly3d_verts(pybind11::dict v)
+        : poly3d_verts(pybind11::len(v["vertices"]), false)
+        {
+        std::shared_ptr<ExecutionConfiguration> exec_conf;
+        pybind11::list verts = v["vertices"];
+        N = len(verts);
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+
+        // extract the verts from the python list and compute the radius on the way
+        OverlapReal radius_sq = OverlapReal(0.0);
+        for (unsigned int i = 0; i < pybind11::len(verts); i++)
+            {
+            pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
+            vec3<OverlapReal> vert = vec3<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]), pybind11::cast<OverlapReal>(verts_i[1]), pybind11::cast<OverlapReal>(verts_i[2]));
+            x[i] = vert.x;
+            y[i] = vert.y;
+            z[i] = vert.z;
+            radius_sq = max(radius_sq, dot(vert, vert));
+            }
+        for (unsigned int i = len(verts); i < N; i++)
+            {
+            x[i] = 0;
+            y[i] = 0;
+            z[i] = 0;
+            }
+
+        // set the diameter
+        diameter = 2*(sqrt(radius_sq) + sweep_radius);
+
+        if (pybind11::len(verts) >= 3)
+            {
+            // compute convex hull of vertices
+            typedef quickhull::Vector3<OverlapReal> vec;
+
+            std::vector<vec> qh_pts;
+            for (unsigned int i = 0; i < pybind11::len(verts); i++)
+                {
+                pybind11::list v = pybind11::cast<pybind11::list>(verts[i]);
+                vec vert;
+                vert.x = pybind11::cast<OverlapReal>(v[0]);
+                vert.y = pybind11::cast<OverlapReal>(v[1]);
+                vert.z = pybind11::cast<OverlapReal>(v[2]);
+                qh_pts.push_back(vert);
+                }
+
+            quickhull::QuickHull<OverlapReal> qh;
+            // argument 2: CCW orientation of triangles viewed from outside
+            // argument 3: use existing vertex list
+            auto hull = qh.getConvexHull(qh_pts, false, true);
+            auto indexBuffer = hull.getIndexBuffer();
+
+            hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), exec_conf->isCUDAEnabled());
+            n_hull_verts = indexBuffer.size();
+
+            for (unsigned int i = 0; i < indexBuffer.size(); i++)
+                 hull_verts[i] = indexBuffer[i];
+            }
+
+        if (N >= 1)
+            {
+            std::vector<OverlapReal> vertex_radii(N, sweep_radius);
+            std::vector<vec3<OverlapReal> > pts(N);
+            for (unsigned int i = 0; i < N; ++i)
+                pts[i] = vec3<OverlapReal>(x[i], y[i],z[i]);
+
+            obb = detail::compute_obb(pts, vertex_radii, false);
+            }
+        }
+        pybind11::dict asDict()
+            {
+            pybind11::dict v;
+            v["one"] = 1;
+            return v;
+            }
+        
     #endif
 
     //! Load dynamic data members into shared memory and increase pointer
@@ -123,7 +206,7 @@ struct poly3d_verts : param_base
                                             //   First bit is ignore overlaps, Second bit is ignore statistics
 
     detail::OBB obb;                        //!< Tight fitting bounding box
-    } __attribute__((aligned(32)));
+    }__attribute__((aligned(32)));
 
 //! Support function for ShapePolyhedron
 /*! SupportFuncPolyhedron is a functor that computes the support function for ShapePolyhedron. For a given
