@@ -12,13 +12,13 @@
 #include <assert.h>
 
 //! Shared memory used in reducing the sums
-HIP_DYNAMIC_SHARED(Scalar3, compute_thermo_sdata);
+__shared__ Scalar3 *compute_thermo_sdata;
 //! Shared memory used in final reduction
-HIP_DYNAMIC_SHARED(Scalar4, compute_thermo_final_sdata);
+__shared__ Scalar4 *compute_thermo_final_sdata;
 //! Shared memory used in reducing the sums of the pressure tensor
-HIP_DYNAMIC_SHARED(double, compute_pressure_tensor_sdata);
+__shared__ double *compute_pressure_tensor_sdata;
 //! Shared memory used in reducing the sum of the rotational kinetic energy
-HIP_DYNAMIC_SHARED(double, compute_ke_rot_sdata);
+__shared__ double *compute_ke_rot_sdata;
 
 /*! \file ComputeThermoGPU.cu
     \brief Defines GPU kernel code for computing thermodynamic properties on the GPU. Used by ComputeThermoGPU.

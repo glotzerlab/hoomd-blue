@@ -519,6 +519,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 
         // exclude a GPU if it's compute version is not high enough
         int compoundComputeVer = prop.minor + prop.major * 10;
+        #ifdef __HIP_PLATFORM_NVCC__
         if (m_gpu_available[dev] && compoundComputeVer < CUDA_ARCH)
             {
             m_gpu_available[dev] = false;
@@ -531,6 +532,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             msg->notice(2) << "This build of hoomd was compiled for a minimum capability of of " << min_major << "."
                            << min_minor << " but the GPU is only " << prop.major << "." << prop.minor << endl;
             }
+        #endif
 
         #ifdef __HIP_PLATFORM_NVCC__
         // ignore the display gpu if that was requested

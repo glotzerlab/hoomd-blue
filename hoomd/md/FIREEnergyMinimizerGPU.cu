@@ -19,7 +19,7 @@
 */
 
 //! Shared memory used in reducing sums
-HIP_DYNAMIC_SHARED( Scalar, fire_sdata)
+__shared__ Scalar *fire_sdata;
 
 //! The kernel function to zeros velocities, called by gpu_fire_zero_v()
 /*! \param d_vel device array of particle velocities

@@ -21,8 +21,8 @@
 */
 
 //! Shared memory for body force and torque reduction, required allocation when the kernel is called
-HIP_DYNAMIC_SHARED( char, sum)
-HIP_DYNAMIC_SHARED( Scalar, sum_virial)
+__shared__ char *sum;
+__shared__ Scalar *sum_virial;
 
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed sliding window size
 /*  Compute the force and torque sum on all bodies in the system from their constituent particles. n_bodies_per_block

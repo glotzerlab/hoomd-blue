@@ -20,12 +20,25 @@ if(ENABLE_HIP)
         if (${_hip_compiler} MATCHES nvcc)
             set(HIP_PLATFORM nvcc)
         elseif(${_hip_compiler} MATCHES hcc)
-            set(HIP_PLATFORM hcc)
+            message(ERROR "Deprecaterd hcc backend for HIP is unsupported" ${_hip_compiler})
+        elseif(${_hip_compiler} MATCHES clang)
+            # fixme
+            set(HIP_PLATFORM hip-clang)
         else()
             message(ERROR "Unknown HIP backend " ${_hip_compiler})
         endif()
 
+        # use hipcc as C++ linker for shared libraries
         SET(CMAKE_CUDA_COMPILER ${HIP_HIPCC_EXECUTABLE})
+        string(REPLACE "<CMAKE_CXX_COMPILER>" "${HIP_HIPCC_EXECUTABLE}" _link_exec ${CMAKE_CXX_CREATE_SHARED_LIBRARY})
+        SET(CMAKE_CXX_CREATE_SHARED_LIBRARY ${_link_exec})
+
+        # use hipcc as C++ linker for executables
+        SET(CMAKE_CUDA_COMPILER ${HIP_HIPCC_EXECUTABLE})
+        string(REPLACE "<CMAKE_CXX_COMPILER>" "${HIP_HIPCC_EXECUTABLE}" _link_exec ${CMAKE_CXX_LINK_EXECUTABLE})
+        SET(CMAKE_CXX_LINK_EXECUTABLE ${_link_exec})
+
+
         # this is hack to set the right options on hipcc, may not be portable
         include(hipcc)
 
@@ -74,6 +87,12 @@ if(ENABLE_HIP)
             INTERFACE_INCLUDE_DIRECTORIES "${HIP_INCLUDE_DIR}")
 #        target_compile_options(HIP::hip INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:${HIP_NVCC_FLAGS}>)
         target_compile_definitions(HIP::hip INTERFACE ENABLE_HIP)
+
+        if(HIP_PLATFORM STREQUAL "hip-clang")
+            # needed with hip-clang
+            target_compile_definitions(HIP::hip INTERFACE __HIP_PLATFORM_HCC__)
+        endif()
+
         target_compile_definitions(HIP::hip INTERFACE HIP_PLATFORM=${HIP_PLATFORM})
 
         # set HIP_VERSION_* on non-CUDA targets (the version is already defined on CUDA targets through HIP_NVCC_FLAGS)
@@ -84,7 +103,7 @@ if(ENABLE_HIP)
         # branch upon HCC or NVCC target
         if(${HIP_PLATFORM} STREQUAL "nvcc")
             target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_NVCC__>)
-        elseif(${HIP_PLATFORM} STREQUAL "hcc")
+        elseif(${HIP_PLATFORM} STREQUAL "hip-clang")
             target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_HCC__>)
         endif()
     endif()
