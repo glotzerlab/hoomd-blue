@@ -51,16 +51,11 @@ class PYBIND11_EXPORT ParticleSelector
     {
     public:
         //! constructs a ParticleSelector
-        ParticleSelector(std::shared_ptr<SystemDefinition> sysdef);
+        ParticleSelector();
         virtual ~ParticleSelector() {}
 
         //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags() const;
-
-    protected:
-        std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
-        std::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
-        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     };
 
 //! Select all particles
@@ -68,11 +63,11 @@ class PYBIND11_EXPORT ParticleSelectorAll : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorAll(std::shared_ptr<SystemDefinition> sysdef);
+        ParticleSelectorAll();
         virtual ~ParticleSelectorAll() {}
 
         //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags() const;
+        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     };
 
 
@@ -81,11 +76,11 @@ class PYBIND11_EXPORT ParticleSelectorTag : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorTag(std::shared_ptr<SystemDefinition> sysdef, unsigned int tag_min, unsigned int tag_max);
+        ParticleSelectorTag(unsigned int tag_min, unsigned int tag_max);
         virtual ~ParticleSelectorTag() {}
 
         //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags() const;
+        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     protected:
         unsigned int m_tag_min;     //!< Minimum tag to select
         unsigned int m_tag_max;     //!< Maximum tag to select (inclusive)
@@ -96,11 +91,11 @@ class PYBIND11_EXPORT ParticleSelectorType : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorType(std::shared_ptr<SystemDefinition> sysdef, unsigned int typ_min, unsigned int typ_max);
+        ParticleSelectorType(unsigned int typ_min, unsigned int typ_max);
         virtual ~ParticleSelectorType() {}
 
         //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags() const;
+        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     protected:
         unsigned int m_typ_min;     //!< Minimum type to select
         unsigned int m_typ_max;     //!< Maximum type to select (inclusive)
@@ -111,11 +106,11 @@ class PYBIND11_EXPORT ParticleSelectorCuboid : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorCuboid(std::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max);
+        ParticleSelectorCuboid(Scalar3 min, Scalar3 max);
         virtual ~ParticleSelectorCuboid() {}
 
         //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags() const;
+        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     protected:
         Scalar3 m_min;     //!< Minimum type to select (inclusive)
         Scalar3 m_max;     //!< Maximum type to select (exclusive)
@@ -126,11 +121,11 @@ class PYBIND11_EXPORT ParticleSelectorRigid : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorRigid(std::shared_ptr<SystemDefinition> sysdef, bool rigid);
+        ParticleSelectorRigid(bool rigid);
         virtual ~ParticleSelectorRigid() {}
 
         //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags() const;
+        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     protected:
         bool m_rigid;   //!< true if we should select particles in rigid bodies, false if we should select non-rigid particles
     };
@@ -140,11 +135,11 @@ class PYBIND11_EXPORT ParticleSelectorBody : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorBody(std::shared_ptr<SystemDefinition> sysdef, bool body);
+        ParticleSelectorBody(bool body);
         virtual ~ParticleSelectorBody() {}
 
         //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags() const;
+        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     protected:
         bool m_body;   //!< true if we should select particles in a body, false if we should select non-body particles
     };
@@ -154,11 +149,11 @@ class PYBIND11_EXPORT ParticleSelectorFloppy : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorFloppy(std::shared_ptr<SystemDefinition> sysdef, bool molecule);
+        ParticleSelectorFloppy(bool molecule);
         virtual ~ParticleSelectorFloppy() {}
 
         //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags() const;
+        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     protected:
         bool m_floppy;   //!< true if we should select particles in floppy bodies, false if we should select non-floppy particles
     };
@@ -167,11 +162,11 @@ class PYBIND11_EXPORT ParticleSelectorRigidCenter : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorRigidCenter(std::shared_ptr<SystemDefinition> sysdef);
+        ParticleSelectorRigidCenter();
         virtual ~ParticleSelectorRigidCenter() {}
 
         //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags() const;
+        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     };
 
 
