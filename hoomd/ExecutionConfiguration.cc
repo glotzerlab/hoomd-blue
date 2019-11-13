@@ -86,7 +86,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             exec_mode = CPU;
         }
 
+    #ifdef __HIP_PLATFORM_NVCC__
     m_concurrent = exec_mode==GPU;
+    #else
+    m_concurrent = false;
+    #endif
+
     m_in_multigpu_block = false;
 
     // now, exec_mode should be either CPU or GPU - proceed with initialization
