@@ -20,10 +20,6 @@
     \brief Defines GPU kernel code for the composite particle integration on the GPU.
 */
 
-//! Shared memory for body force and torque reduction, required allocation when the kernel is called
-__shared__ char *sum;
-__shared__ Scalar *sum_virial;
-
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed sliding window size
 /*  Compute the force and torque sum on all bodies in the system from their constituent particles. n_bodies_per_block
     bodies are handled within each block of execution on the GPU. The reason for this is to decrease
@@ -73,6 +69,8 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                  unsigned int first_body,
                                                  unsigned int nwork)
     {
+    extern __shared__ char sum[];
+
     // determine which body (0 ... n_bodies_per_block-1) this thread is working on
     // assign threads 0, 1, 2, ... to body 0, n, n+1, n+2, ... to body 1, and so on.
     unsigned int m = threadIdx.x / (blockDim.x / n_bodies_per_block);
@@ -259,6 +257,8 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                                                 unsigned int first_body,
                                                 unsigned int nwork)
     {
+    extern __shared__ Scalar sum_virial[];
+
     // determine which body (0 ... n_bodies_per_block-1) this thread is working on
     // assign threads 0, 1, 2, ... to body 0, n, n+1, n+2, ... to body 1, and so on.
     unsigned int m = threadIdx.x / (blockDim.x / n_bodies_per_block);

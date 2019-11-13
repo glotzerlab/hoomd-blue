@@ -22,7 +22,7 @@ else()
     add_library(CUDA::cudart UNKNOWN IMPORTED)
 endif()
 
-if (HIP_PLATFORM STREQUAL "hip-clang")
+if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
     # find libraries that go with this compiler
     find_library(HIP_hip_hcc_LIBRARY hip_hcc
         PATHS
@@ -32,20 +32,30 @@ if (HIP_PLATFORM STREQUAL "hip-clang")
         /opt/rocm
         PATH_SUFFIXES lib
         NO_DEFAULT_PATH)
-
-    find_library(HIP_hip_hcc_LIBRARY hip_hcc HINTS ${HIP_LIB_PATH} NO_DEFAULT_PATH)
     mark_as_advanced(HIP_hip_hcc_LIBRARY)
-    if(HIP_hip_hcc_LIBRARY AND NOT TARGET HIP::hip_hcc)
-      add_library(HIP::hip_hcc UNKNOWN IMPORTED)
-      set_target_properties(HIP::hip_hcc PROPERTIES
+    find_library(HIP_hiprtc_LIBRARY hiprtc
+        PATHS
+        "${HIP_ROOT_DIR}"
+        ENV ROCM_PATH
+        ENV HIP_PATH
+        /opt/rocm
+        PATH_SUFFIXES lib
+        NO_DEFAULT_PATH)
+    mark_as_advanced(HIP_hiprtc_LIBRARY)
+ 
+    if(HIP_hip_hcc_LIBRARY AND NOT TARGET HIP::hiprt)
+      add_library(HIP::hiprt UNKNOWN IMPORTED)
+      set_target_properties(HIP::hiprt PROPERTIES
         IMPORTED_LOCATION "${HIP_hip_hcc_LIBRARY}"
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_HIP_TOOLKIT_INCLUDE_DIRECTORIES}"
+        INTERFACE_LINK_LIBRARIES ${HIP_hiprtc_LIBRARY}
       )
     endif()
     list(APPEND REQUIRED_HIP_LIB_VARS "HIP_hip_hcc_LIBRARY")
+    list(APPEND REQUIRED_HIP_LIB_VARS "HIP_hiprtc_LIBRARY")
 else()
     # define empty target
-    add_library(HIP::hip_hcc UNKNOWN IMPORTED)
+    add_library(HIP::hiprt UNKNOWN IMPORTED)
 endif()
 
 
@@ -158,7 +168,7 @@ if(HIP_hiprand_LIBRARY AND NOT TARGET HIP::hiprand)
     )
 endif()
 
-if(HIP_PLATFORM STREQUAL "hip-clang")
+if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
     find_library(HIP_rocrand_LIBRARY rocrand
         PATHS
         "${HIP_ROOT_DIR}"
@@ -199,7 +209,7 @@ find_path(HIP_hipfft_INCLUDE_DIR
 
 list(APPEND REQUIRED_CUDA_LIB_VARS HIP_hipfft_INCLUDE_DIR)
 
-if(HIP_PLATFORM STREQUAL "hip-clang")
+if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
     find_library(HIP_rocfft_LIBRARY rocfft
         PATHS
         "${HIP_ROOT_DIR}"
@@ -260,7 +270,7 @@ if(HIP_hipsparse_LIBRARY AND NOT TARGET HIP::hipsparse)
     )
 endif()
 
-if(HIP_PLATFORM STREQUAL "hip-clang")
+if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
     find_library(HIP_rocsparse_LIBRARY rocsparse
         PATHS
         "${HIP_ROOT_DIR}"

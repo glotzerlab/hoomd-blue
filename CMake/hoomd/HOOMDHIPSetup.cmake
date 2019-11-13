@@ -20,9 +20,10 @@ if(ENABLE_HIP)
         if (${_hip_compiler} MATCHES nvcc)
             set(HIP_PLATFORM nvcc)
         elseif(${_hip_compiler} MATCHES hcc)
-            message(ERROR "Deprecaterd hcc backend for HIP is unsupported" ${_hip_compiler})
+            set(HIP_PLATFORM hcc)
         elseif(${_hip_compiler} MATCHES clang)
             # fixme
+            message(ERROR "hip-clang backend not supported")
             set(HIP_PLATFORM hip-clang)
         else()
             message(ERROR "Unknown HIP backend " ${_hip_compiler})
@@ -37,7 +38,6 @@ if(ENABLE_HIP)
         SET(CMAKE_CUDA_COMPILER ${HIP_HIPCC_EXECUTABLE})
         string(REPLACE "<CMAKE_CXX_COMPILER>" "${HIP_HIPCC_EXECUTABLE}" _link_exec ${CMAKE_CXX_LINK_EXECUTABLE})
         SET(CMAKE_CXX_LINK_EXECUTABLE ${_link_exec})
-
 
         # this is hack to set the right options on hipcc, may not be portable
         include(hipcc)
@@ -93,6 +93,7 @@ if(ENABLE_HIP)
             target_compile_definitions(HIP::hip INTERFACE __HIP_PLATFORM_HCC__)
         endif()
 
+        #set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fgpu-rdc")
         target_compile_definitions(HIP::hip INTERFACE HIP_PLATFORM=${HIP_PLATFORM})
 
         # set HIP_VERSION_* on non-CUDA targets (the version is already defined on CUDA targets through HIP_NVCC_FLAGS)
@@ -103,7 +104,7 @@ if(ENABLE_HIP)
         # branch upon HCC or NVCC target
         if(${HIP_PLATFORM} STREQUAL "nvcc")
             target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_NVCC__>)
-        elseif(${HIP_PLATFORM} STREQUAL "hip-clang")
+        elseif(${HIP_PLATFORM} STREQUAL "hcc")
             target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_HCC__>)
         endif()
     endif()

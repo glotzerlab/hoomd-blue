@@ -5,6 +5,8 @@ set(CMAKE_CUDA_VERBOSE_COMPILE_FLAG "-v")
 if(NOT "x${CMAKE_CUDA_SIMULATE_ID}" STREQUAL "xMSVC")
   set(CMAKE_CUDA_COMPILE_OPTIONS_PIE -fPIE)
   set(CMAKE_CUDA_COMPILE_OPTIONS_PIC -fPIC)
+
+  # hipcc targets should have default visibility
   set(CMAKE_CUDA_COMPILE_OPTIONS_VISIBILITY -fvisibility=)
   # CMAKE_SHARED_LIBRARY_CUDA_FLAGS is sent to the host linker so we
   # don't need to forward it through nvcc.

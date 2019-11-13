@@ -215,7 +215,7 @@ endif(SINGLE_PRECISION)
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
-    target_link_libraries(_hoomd PUBLIC HIP::hiprand HIP::hipfft HIP::hip_hcc)
+    target_link_libraries(_hoomd PUBLIC HIP::hiprand HIP::hipfft)
     if (NOT ENABLE_HIP)
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
@@ -237,7 +237,7 @@ if (ENABLE_HIP)
 endif()
 
 if(ENABLE_HIP)
-    target_link_libraries(_hoomd PUBLIC HIP::hip)
+    target_link_libraries(_hoomd PUBLIC HIP::hip HIP::hiprt)
 endif()
 
 # Libraries and compile definitions for TBB enabled builds

@@ -11,15 +11,6 @@
 
 #include <assert.h>
 
-//! Shared memory used in reducing the sums
-__shared__ Scalar3 *compute_thermo_sdata;
-//! Shared memory used in final reduction
-__shared__ Scalar4 *compute_thermo_final_sdata;
-//! Shared memory used in reducing the sums of the pressure tensor
-__shared__ double *compute_pressure_tensor_sdata;
-//! Shared memory used in reducing the sum of the rotational kinetic energy
-__shared__ double *compute_ke_rot_sdata;
-
 /*! \file ComputeThermoGPU.cu
     \brief Defines GPU kernel code for computing thermodynamic properties on the GPU. Used by ComputeThermoGPU.
 */
@@ -60,6 +51,8 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
                                                 unsigned int offset,
                                                 unsigned int block_offset)
     {
+    extern __shared__ Scalar3 compute_thermo_sdata[];
+
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -153,6 +146,8 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
                                                 unsigned int block_offset,
                                                 unsigned int num_blocks)
     {
+    extern __shared__ double compute_pressure_tensor_sdata[];
+
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -237,6 +232,8 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
                                                         unsigned int offset,
                                                         unsigned int block_offset)
     {
+    extern __shared__ double compute_ke_rot_sdata[];
+
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -329,6 +326,8 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
                                               Scalar external_energy
                                               )
     {
+    extern __shared__ Scalar4 compute_thermo_final_sdata[];
+
     Scalar4 final_sum = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0),Scalar(0.0));
 
     // sum up the values in the partial sum via a sliding window
@@ -439,6 +438,8 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
                                               Scalar external_virial_zz,
                                               bool twod)
     {
+    extern __shared__ Scalar compute_pressure_tensor_sdata[];
+
     Scalar final_sum[6];
 
     final_sum[0] = external_virial_xx;

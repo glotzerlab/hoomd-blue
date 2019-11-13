@@ -101,7 +101,7 @@ void gpu_generate_sorted_order(unsigned int N,
         {
         thrust::device_ptr<unsigned int> particle_bins(d_particle_bins);
         thrust::device_ptr<unsigned int> sorted_order(d_sorted_order);
-        thrust::sort_by_key(thrust::cuda::par(alloc),
+        thrust::sort_by_key(thrust::hip::par(alloc),
             particle_bins,
             particle_bins+N,
             sorted_order);

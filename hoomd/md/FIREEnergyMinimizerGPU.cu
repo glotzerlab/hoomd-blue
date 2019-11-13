@@ -18,9 +18,6 @@
     minimization iteration on the GPU. Used by FIREEnergyMinimizerGPU.
 */
 
-//! Shared memory used in reducing sums
-__shared__ Scalar *fire_sdata;
-
 //! The kernel function to zeros velocities, called by gpu_fire_zero_v()
 /*! \param d_vel device array of particle velocities
     \param d_group_members Device array listing the indices of the members of the group to zero
@@ -125,6 +122,8 @@ extern "C" __global__
                                            Scalar4* d_net_force,
                                            Scalar* d_partial_sum_pe)
     {
+    extern __shared__ Scalar fire_sdata[];
+
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -174,6 +173,8 @@ extern "C" __global__
                                             Scalar* d_partial_sum,
                                             unsigned int num_blocks)
     {
+    extern __shared__ Scalar fire_sdata[];
+
     Scalar sum = Scalar(0.0);
 
     // sum up the values in the partial sum via a sliding window
@@ -256,6 +257,8 @@ extern "C" __global__
                                           unsigned int group_size,
                                           Scalar* d_partial_sum_P)
     {
+    extern __shared__ Scalar fire_sdata[];
+
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -298,6 +301,8 @@ __global__ void gpu_fire_reduce_Pr_partial_kernel(const Scalar4 *d_angmom,
                                           unsigned int group_size,
                                           Scalar* d_partial_sum_Pr)
     {
+    extern __shared__ Scalar fire_sdata[];
+
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -357,6 +362,8 @@ __global__ void gpu_fire_reduce_wnorm_partial_kernel(const Scalar4 *d_angmom,
                                           unsigned int group_size,
                                           Scalar* d_partial_sum_w)
     {
+    extern __shared__ Scalar fire_sdata[];
+
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -404,6 +411,8 @@ extern "C" __global__
                                             unsigned int group_size,
                                             Scalar* d_partial_sum_vsq)
     {
+    extern __shared__ Scalar fire_sdata[];
+
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -448,6 +457,8 @@ extern "C" __global__
                                             unsigned int group_size,
                                             Scalar* d_partial_sum_asq)
     {
+    extern __shared__ Scalar fire_sdata[];
+
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -487,6 +498,8 @@ __global__ void gpu_fire_reduce_tsq_partial_kernel(const Scalar4 *d_net_torque,
                                             unsigned int group_size,
                                             Scalar* d_partial_sum_tsq)
     {
+    extern __shared__ Scalar fire_sdata[];
+
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 

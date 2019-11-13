@@ -500,6 +500,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         // get the device properties
         hipDeviceProp_t prop;
         hipError_t error = hipGetDeviceProperties(&prop, dev);
+
         if (error != hipSuccess)
             {
             msg->error() << "Error calling hipGetDeviceProperties()" << endl;
