@@ -1,8 +1,34 @@
 #include "Trigger.h"
 
+//* Method to enable unit testing of C++ trigger calls from pytest
+bool testTriggerCall(std::shared_ptr<Trigger> t, uint64_t step)
+    {
+    return (*t)(step);
+    }
+
+//* Trampoline for classes inherited in python
+class TriggerPy : public Trigger
+    {
+    public:
+        //* Inherit the constructors
+        using Trigger::Trigger;
+
+        //* trampoline method
+        bool operator()(uint64_t timestep) override
+            {
+            PYBIND11_OVERLOAD_NAME(bool,         // Return type
+                                   Trigger,      // Parent class
+                                   "__call__",   // name of function in python
+                                   operator(),   // Name of function in C++
+                                   timestep      // Argument(s)
+                              );
+        }
+    };
+
 void export_Trigger(pybind11::module& m)
     {
-    pybind11::class_<Trigger, std::shared_ptr<Trigger> >(m,"Trigger")
+    pybind11::class_<Trigger, TriggerPy, std::shared_ptr<Trigger> >(m,"Trigger")
+        .def(pybind11::init<>())
         .def("__call__", &Trigger::operator())
         ;
 
@@ -12,4 +38,6 @@ void export_Trigger(pybind11::module& m)
         .def_property("phase", &PeriodicTrigger::getPhase, &PeriodicTrigger::setPhase)
         .def_property("period", &PeriodicTrigger::getPeriod, &PeriodicTrigger::setPeriod)
         ;
+
+    m.def("_test_trigger_call", &testTriggerCall);
     }
