@@ -143,7 +143,12 @@ class managed_deleter
                 oss << std::endl;
                 this->m_exec_conf->msg->notice(10) << oss.str();
 
+                #if __HIP_PLATFORM_NVCC__
                 hipFree(m_allocation_ptr);
+                #else
+                // HIP doesn't yet support hipFree on managed memory
+                hipFreeHost(m_allocation_ptr);
+                #endif
                 CHECK_CUDA_ERROR();
                 }
             else
