@@ -649,8 +649,10 @@ void export_System(py::module& m)
     {
     walltimeLimitExceptionTypeObj = createExceptionClass(m,"WalltimeLimitReached");
 
-	py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>, py::object> > >(m, "AnalyzerTriggerList");
-	py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>, py::object> > >(m, "UpdaterTriggerList");
+	py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>,
+		std::shared_ptr<Trigger> > > >(m, "AnalyzerTriggerList");
+	py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>,
+		std::shared_ptr<Trigger> > > >(m, "UpdaterTriggerList");
     py::class_< System, std::shared_ptr<System> > (m,"System")
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
     .def("addCompute", &System::addCompute)
