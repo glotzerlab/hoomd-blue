@@ -146,7 +146,7 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
                                                 unsigned int block_offset,
                                                 unsigned int num_blocks)
     {
-    extern __shared__ double compute_pressure_tensor_sdata[];
+    extern __shared__ Scalar compute_pressure_tensor_sdata[];
 
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -232,7 +232,7 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
                                                         unsigned int offset,
                                                         unsigned int block_offset)
     {
-    extern __shared__ double compute_ke_rot_sdata[];
+    extern __shared__ Scalar compute_ke_rot_sdata[];
 
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
