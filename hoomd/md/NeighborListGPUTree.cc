@@ -31,13 +31,14 @@ NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysde
     m_pdata->getBoxChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
     m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);
 
-    m_tuner_morton.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_morton_codes", this->m_exec_conf));
-    m_tuner_merge.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_merge_particles", this->m_exec_conf));
-    m_tuner_hierarchy.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_gen_hierarchy", this->m_exec_conf));
-    m_tuner_bubble.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_bubble_aabbs", this->m_exec_conf));
-    m_tuner_move.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_move_particles", this->m_exec_conf));
-    m_tuner_map.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_map_particles", this->m_exec_conf));
-    m_tuner_traverse.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_traverse_tree", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner_morton.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "nlist_morton_codes", this->m_exec_conf));
+    m_tuner_merge.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "nlist_merge_particles", this->m_exec_conf));
+    m_tuner_hierarchy.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "nlist_gen_hierarchy", this->m_exec_conf));
+    m_tuner_bubble.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "nlist_bubble_aabbs", this->m_exec_conf));
+    m_tuner_move.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "nlist_move_particles", this->m_exec_conf));
+    m_tuner_map.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "nlist_map_particles", this->m_exec_conf));
+    m_tuner_traverse.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "nlist_traverse_tree", this->m_exec_conf));
 
     allocateTree();
 

@@ -31,7 +31,8 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(std::shared_ptr
     GPUArray<Scalar4> params(m_dihedral_data->getNTypes(),m_exec_conf);
     m_params.swap(params);
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "harmonic_dihedral", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_dihedral", this->m_exec_conf));
     }
 
 HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU()

@@ -23,7 +23,12 @@
 #define __ANISO_POTENTIAL_PAIR_GPU_CUH__
 
 //! Maximum number of threads (width of a warp)
-const unsigned int gpu_aniso_pair_force_max_tpp = 32;
+// currently this is hardcoded, we should set it to the max of platforms
+#if defined(__HIP_PLATFORM_NVCC__)
+const int gpu_aniso_pair_force_max_tpp = 32;
+#elif defined(__HIP_PLATFORM_HCC__)
+const int gpu_aniso_pair_force_max_tpp = 64;
+#endif
 
 //! Wraps arguments to gpu_cgpf
 struct a_pair_args_t

@@ -88,7 +88,8 @@ PotentialSpecialPairGPU< evaluator, gpu_cgbf >::PotentialSpecialPairGPU(std::sha
     ArrayHandle<unsigned int> h_flags(m_flags,access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "special_pair_"+evaluator::getName(), this->m_exec_conf));
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "special_pair_"+evaluator::getName(), this->m_exec_conf));
     }
 
 template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,

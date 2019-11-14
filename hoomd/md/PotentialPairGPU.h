@@ -58,7 +58,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
 
         //! Set the number of threads per particle to execute on the GPU
         /*! \param threads_per_particl Number of threads per particle
-            \a threads_per_particle must be a power of two and smaller than 32.
+            \a threads_per_particle must be a power of two and smaller than the warp size.
          */
         void setTuningParam(unsigned int param)
             {
@@ -105,9 +105,10 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(std::shared_ptr<System
     // the full block size and threads_per_particle matrix is searched,
     // encoded as block_size*10000 + threads_per_particle
     std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    const unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
-        for (auto s : Autotuner::getTppListPow2(this->m_exec_conf->dev_prop.warpSize))
+        for (auto s : Autotuner::getTppListPow2(warp_size))
             {
             valid_params.push_back(block_size*10000 + s);
             }

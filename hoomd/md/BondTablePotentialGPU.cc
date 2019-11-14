@@ -37,7 +37,8 @@ BondTablePotentialGPU::BondTablePotentialGPU(std::shared_ptr<SystemDefinition> s
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "table_bond", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "table_bond", this->m_exec_conf));
     }
 
 BondTablePotentialGPU::~BondTablePotentialGPU()

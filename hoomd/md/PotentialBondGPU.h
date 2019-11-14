@@ -75,11 +75,11 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<System
         throw std::runtime_error("Error initializing PotentialBondGPU");
         }
 
-     // allocate and zero device memory
+    // allocate and zero device memory
     GPUArray<typename evaluator::param_type> params(this->m_bond_data->getNTypes(), this->m_exec_conf);
     this->m_params.swap(params);
 
-     // allocate flags storage on the GPU
+    // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
@@ -87,7 +87,8 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<System
     ArrayHandle<unsigned int> h_flags(m_flags,access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "harmonic_bond", this->m_exec_conf));
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(64, 1024, 64, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
 
 template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,

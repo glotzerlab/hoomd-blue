@@ -43,7 +43,8 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
         {
         // initialize autotuner
         std::vector<unsigned int> valid_params;
-        for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+        unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+        for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
             valid_params.push_back(block_size);
 
         m_tuner_fill.reset(new Autotuner(valid_params, 5, 100000, "fill_molecule_table", this->m_exec_conf));

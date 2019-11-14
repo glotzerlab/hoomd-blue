@@ -82,11 +82,11 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<
     // initialize autotuner
     // the full block size and threads_per_particle matrix is searched,
     // encoded as block_size*10000 + threads_per_particle
-    unsigned int max_tpp = 1;
-    max_tpp = this->m_exec_conf->dev_prop.warpSize;
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    unsigned int max_tpp = warp_size;
 
     std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
         unsigned int s=1;
 

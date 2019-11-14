@@ -47,12 +47,12 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
     // encoded as block_size*10000 + threads_per_particle
     std::vector<unsigned int> valid_params;
 
-    const unsigned int max_tpp = m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    const unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
         unsigned int s=1;
 
-        while (s <= max_tpp)
+        while (s <= warp_size)
             {
             valid_params.push_back(block_size*10000 + s);
             s = s * 2;

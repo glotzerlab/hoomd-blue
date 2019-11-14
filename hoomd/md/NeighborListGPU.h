@@ -74,8 +74,9 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
             #endif
 
             // create cuda event
-            m_tuner_filter.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_filter", this->m_exec_conf));
-            m_tuner_head_list.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_head_list", this->m_exec_conf));
+            unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+            m_tuner_filter.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "nlist_filter", this->m_exec_conf));
+            m_tuner_head_list.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "nlist_head_list", this->m_exec_conf));
             }
 
         //! Destructor

@@ -29,8 +29,9 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(std::shared_ptr<SystemDef
         m_nnz(m_exec_conf), m_nnz_tot(0)
 #endif
     {
-    m_tuner_fill.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_fill_matrix_vec", this->m_exec_conf));
-    m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_force", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner_fill.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "dist_constraint_fill_matrix_vec", this->m_exec_conf));
+    m_tuner_force.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "dist_constraint_force", this->m_exec_conf));
 
     #ifdef CUSOLVER_AVAILABLE
     // initialize cuSPARSE

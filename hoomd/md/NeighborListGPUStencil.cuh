@@ -17,7 +17,12 @@
     \brief Declares GPU kernel code for neighbor list generation on the GPU
 */
 
+#if defined(__HIP_PLATFORM_NVCC__)
 #define WARP_SIZE 32
+#elif defined(__HIP_PLATFORM_HCC__)
+#define WARP_SIZE 64
+#endif
+
 const unsigned int min_threads_per_particle=1;
 const unsigned int max_threads_per_particle=WARP_SIZE;
 

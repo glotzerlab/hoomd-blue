@@ -20,11 +20,12 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
       m_sum(m_exec_conf),
       m_block_size(256)
     {
-    m_tuner_assign.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_assign", this->m_exec_conf));
-    m_tuner_reduce_mesh.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_reduce_mesh", this->m_exec_conf));
-    m_tuner_update.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_update_mesh", this->m_exec_conf));
-    m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_force", this->m_exec_conf));
-    m_tuner_influence.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_influence", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner_assign.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pppm_assign", this->m_exec_conf));
+    m_tuner_reduce_mesh.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pppm_reduce_mesh", this->m_exec_conf));
+    m_tuner_update.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pppm_update_mesh", this->m_exec_conf));
+    m_tuner_force.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pppm_force", this->m_exec_conf));
+    m_tuner_influence.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pppm_influence", this->m_exec_conf));
     }
 
 PPPMForceComputeGPU::~PPPMForceComputeGPU()

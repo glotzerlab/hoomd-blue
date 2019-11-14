@@ -27,7 +27,12 @@
 #define __POTENTIAL_PAIR_GPU_CUH__
 
 //! Maximum number of threads (width of a warp)
+// currently this is hardcoded, we should set it to the max of platforms
+#if defined(__HIP_PLATFORM_NVCC__)
 const int gpu_pair_force_max_tpp = 32;
+#elif defined(__HIP_PLATFORM_HCC__)
+const int gpu_pair_force_max_tpp = 64;
+#endif
 
 
 //! Wraps arguments to gpu_cgpf
