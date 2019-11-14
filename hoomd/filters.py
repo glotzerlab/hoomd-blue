@@ -21,8 +21,20 @@ class ParticleFilter:
     def __eq__(self, other):
         return self._id == other._id
 
+    def __call__(self, state):
+        '''Needs to interact with state to get particles across MPI rank.'''
+        raise NotImplementedError
 
-class All(ParticleFilterID, _hoomd.ParticleFilterAll):
+
+class All(ParticleFilter, _hoomd.ParticleFilterAll):
     def __init__(self):
-        ParticleFilterID.__init__(self)
-        _hoomd.ParticleFilterAll(self)
+        ParticleFilter.__init__(self)
+        _hoomd.ParticleFilterAll.__init__(self)
+
+
+class Tags(ParticleFilter, _hoomd.ParticleFilterTags):
+    def __init__(self, tags):
+        if isinstance(tags, np.ndarray):
+            tags = tags.astype(np.uint32)
+        ParticleFilter.__init__(self, tags)
+        _hoomd.ParticleFilterTags.__init__(self, tags)
