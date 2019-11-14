@@ -1013,6 +1013,7 @@ void export_GSDDumpWriter(py::module& m)
         .def_readonly("log", &GSDDumpWriter::m_user_log)
         .def_property_readonly("filename", &GSDDumpWriter::getFilename)
         .def_property_readonly("overwrite", &GSDDumpWriter::getOverwrite)
+        .def_property_readonly("dynamic", &GSDDumpWriter::getDynamic)
         .def_property_readonly("truncate", &GSDDumpWriter::getTruncate)
         .def_property_readonly("filter", [](const std::shared_ptr<GSDDumpWriter> gsd)
                                              {

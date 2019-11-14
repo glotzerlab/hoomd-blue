@@ -588,35 +588,36 @@ class GSD(hoomd.meta._Analyzer):
 
         super().__init__(trigger)
 
-       self._param_dict = dict(filename=filename,
-                               filter=filter_,
-                               overwrite=overwrite,
-                               truncate=truncate,
-                               dynamic=dynamic,
-                               log=dict())
+        self._param_dict = dict(filename=filename,
+                                filter=filter_,
+                                overwrite=overwrite,
+                                truncate=truncate,
+                                dynamic=dynamic,
+                                log=dict())
 
     def attach(self, simulation):
-        self._cpp_obj = _hoomd.GSDDumpWriter(simulation.state._cpp_sys_def,
-                                             self._filename,
-                                             simulation.state.add_group(self._filter)
-                                             self._overwrite,
-                                             self._truncate)
-
         # validate dynamic property
         categories = ['attribute', 'property', 'momentum', 'topology'];
         dynamic_quantities = ['property']
 
-        if dynamic is not None:
-            for v in dynamic:
+        if self.dynamic is not None:
+            for v in self.dynamic:
                 if v not in categories:
                     raise RuntimeError("GSD: dynamic quantity " + v + " is not valid")
 
-            dynamic_quantities = ['property'] + dynamic
+            dynamic_quantities = ['property'] + self.dynamic
+
+        self._cpp_obj = _hoomd.GSDDumpWriter(simulation.state._cpp_sys_def,
+                                             self.filename,
+                                             simulation.state.add_group(self.filter),
+                                             self.overwrite,
+                                             self.truncate)
 
         self._cpp_obj.setWriteAttribute('attribute' in dynamic_quantities)
         self._cpp_obj.setWriteProperty('property' in dynamic_quantities)
         self._cpp_obj.setWriteMomentum('momentum' in dynamic_quantities)
         self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
+        super().attach(simulation)
 
     def dump_state(self, obj):
         """Write state information for a hoomd object.
