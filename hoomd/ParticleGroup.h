@@ -228,6 +228,11 @@ class PYBIND11_EXPORT ParticleGroup
         //! Destructor
         ~ParticleGroup();
 
+        std::shared_ptr<ParticleFilter> getFilter()
+            {
+            return m_selector;
+            }
+
         //! Updates the members tags of a particle group according to a selection
         void updateMemberTags(bool force_update) const;
 

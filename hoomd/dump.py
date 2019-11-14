@@ -482,7 +482,7 @@ class getar(hoomd.analyze._analyzer):
         """Closes the trajectory if it is open. Finalizes any IO beforehand."""
         self.cpp_analyzer.close();
 
-class gsd(hoomd.analyze._analyzer):
+class GSD(hoomd.meta._Analyzer):
     R""" Writes simulation snapshots in the GSD format
 
     Args:
@@ -580,58 +580,43 @@ class gsd(hoomd.analyze._analyzer):
     """
     def __init__(self,
                  filename,
-                 period,
-                 group,
+                 filter_,
+                 trigger,
                  overwrite=False,
                  truncate=False,
-                 phase=0,
-                 time_step=None,
                  dynamic=None):
 
+        super().__init__(trigger)
+
+       self._param_dict = dict(filename=filename,
+                               filter=filter_,
+                               overwrite=overwrite,
+                               truncate=truncate,
+                               dynamic=dynamic,
+                               log=dict())
+
+    def attach(self, simulation):
+        self._cpp_obj = _hoomd.GSDDumpWriter(simulation.state._cpp_sys_def,
+                                             self._filename,
+                                             simulation.state.add_group(self._filter)
+                                             self._overwrite,
+                                             self._truncate)
+
+        # validate dynamic property
         categories = ['attribute', 'property', 'momentum', 'topology'];
         dynamic_quantities = ['property']
 
         if dynamic is not None:
             for v in dynamic:
                 if v not in categories:
-                    hoomd.context.current.device.cpp_msg.warning("dump.gsd: dynamic quantity " + v + " is not recognized\n");
+                    raise RuntimeError("GSD: dynamic quantity " + v + " is not valid")
 
-            dynamic_quantities = ['property'] + dynamic;
+            dynamic_quantities = ['property'] + dynamic
 
-        # initialize base class
-        hoomd.analyze._analyzer.__init__(self);
-
-        self.cpp_analyzer = _hoomd.GSDDumpWriter(hoomd.context.current.system_definition, filename, group.cpp_group, overwrite, truncate);
-
-        self.cpp_analyzer.setWriteAttribute('attribute' in dynamic_quantities);
-        self.cpp_analyzer.setWriteProperty('property' in dynamic_quantities);
-        self.cpp_analyzer.setWriteMomentum('momentum' in dynamic_quantities);
-        self.cpp_analyzer.setWriteTopology('topology' in dynamic_quantities);
-
-        if period is not None:
-            self.setupAnalyzer(period, phase);
-        else:
-            if time_step is None:
-                time_step = hoomd.context.current.system.getCurrentTimeStep()
-            self.cpp_analyzer.analyze(time_step);
-
-        # store metadata
-        self.filename = filename
-        self.period = period
-        self.group = group
-        self.phase = phase
-        self.metadata_fields = ['filename','period','group', 'phase']
-
-    def write_restart(self):
-        """ Write a restart file at the current time step.
-
-        Call :py:meth:`write_restart` at the end of a simulation where are writing a gsd restart file with
-        ``truncate=True`` to ensure that you have the final frame of the simulation written before exiting.
-        See :ref:`restartable-jobs` for examples.
-        """
-
-        time_step = hoomd.context.current.system.getCurrentTimeStep()
-        self.cpp_analyzer.analyze(time_step);
+        self._cpp_obj.setWriteAttribute('attribute' in dynamic_quantities)
+        self._cpp_obj.setWriteProperty('property' in dynamic_quantities)
+        self._cpp_obj.setWriteMomentum('momentum' in dynamic_quantities)
+        self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
 
     def dump_state(self, obj):
         """Write state information for a hoomd object.
@@ -641,10 +626,13 @@ class gsd(hoomd.analyze._analyzer):
 
         .. versionadded:: 2.2
         """
+        if self._cpp_obj is None:
+            raise RuntimeError("GSD must be scheduled first");
+
         if hasattr(obj, '_connect_gsd') and type(getattr(obj, '_connect_gsd')) == types.MethodType:
-            obj._connect_gsd(self);
+            obj._connect_gsd(self)
         else:
-            hoomd.context.current.device.cpp_msg.warning("GSD is not currently support for {name}".format(obj.__class__.__name__));
+            raise RuntimeError("GSD.dump_shape does not support {}".format(obj.__class__.__name__))
 
     def dump_shape(self, obj):
         """Writes particle shape information stored by a hoomd object.
@@ -671,32 +659,38 @@ class gsd(hoomd.analyze._analyzer):
 
         .. versionadded:: 2.7
         """
+        if self._cpp_obj is None:
+            raise RuntimeError("GSD must be scheduled first")
+
         if hasattr(obj, '_connect_gsd_shape_spec') and type(getattr(obj, '_connect_gsd_shape_spec')) == types.MethodType:
-            obj._connect_gsd_shape_spec(self);
+            obj._connect_gsd_shape_spec(self)
         else:
-            hoomd.context.current.device.cpp_msg.warning("GSD is not currently support for {}".format(obj.__class__.__name__));
+            raise RuntimeError("GSD.dump_shape does not support {}".format(obj.__class__.__name__))
 
-    @property
-    def log(self):
-        """Dictionary mapping user-defined names to callbacks.
+    # @property
+    # def log(self):
+    #     """Dictionary mapping user-defined names to callbacks.
 
-        Add an item to :py:attr:`log` to save user-defined data in the gsd file. The key provides the name of the data
-        chunk in the gsd file (e.g. ``particles/lj_potential_energy``). The value is a callable python object that takes
-        the current time step as an argument and returns a numpy array that has 1 or 2 dimensions and has a data type
-        supported by `gsd <https://gsd.readthedocs.io>`_.
+    #     Add an item to :py:attr:`log` to save user-defined data in the gsd file. The key provides the name of the data
+    #     chunk in the gsd file (e.g. ``particles/lj_potential_energy``). The value is a callable python object that takes
+    #     the current time step as an argument and returns a numpy array that has 1 or 2 dimensions and has a data type
+    #     supported by `gsd <https://gsd.readthedocs.io>`_.
 
-        Delete a key from :py:attr:`log` to stop logging that quantity.
+    #     Delete a key from :py:attr:`log` to stop logging that quantity.
 
-        .. note::
+    #     .. note::
 
-            All logged data chunks must be present in the first frame in the gsd file to provide the default value. Some
-            (or all) chunks may be omitted on later frames:
+    #         All logged data chunks must be present in the first frame in the gsd file to provide the default value. Some
+    #         (or all) chunks may be omitted on later frames:
 
-        .. note::
+    #     .. note::
 
-            In MPI parallel simulations, the callback will be called on all ranks. :py:class:`gsd` will write the data
-            returned by the root rank. Return values from all other ranks are ignored (and may be None).
+    #         In MPI parallel simulations, the callback will be called on all ranks. :py:class:`gsd` will write the data
+    #         returned by the root rank. Return values from all other ranks are ignored (and may be None).
 
-        .. versionadded:: 2.7
-        """
-        return self.cpp_analyzer.user_log;
+    #     .. versionadded:: 2.7
+    #     """
+    #     if self._cpp_obj is None:
+    #         raise RuntimeError("GSD must be scheduled first")
+
+    #     return self._cpp_obj.user_log
