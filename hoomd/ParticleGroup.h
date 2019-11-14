@@ -18,6 +18,7 @@
 #include <memory>
 #include <vector>
 #include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
 #include "GlobalArray.h"
 
@@ -32,7 +33,7 @@
 /*! \b Overview
 
     In order to flexibly specify the particles that belong to a given ParticleGroup, it will simple take a
-    ParticleSelector as a parameter in its constructor. The selector will provide a true/false membership test that will
+    ParticleFilter as a parameter in its constructor. The selector will provide a true/false membership test that will
     be applied to each particle tag, selecting those that belong in the group. As it is specified via a virtual class,
     the group definition can be expanded to include any conceivable selection criteria.
 
@@ -47,24 +48,24 @@
     The base class getSelectedTags() method will simply return an empty list.
     selection semantics.
 */
-class PYBIND11_EXPORT ParticleSelector
+class PYBIND11_EXPORT ParticleFilter
     {
     public:
-        //! constructs a ParticleSelector
-        ParticleSelector();
-        virtual ~ParticleSelector() {}
+        //! constructs a ParticleFilter
+        ParticleFilter();
+        virtual ~ParticleFilter() {}
 
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     };
 
 //! Select all particles
-class PYBIND11_EXPORT ParticleSelectorAll : public ParticleSelector
+class PYBIND11_EXPORT ParticleFilterAll : public ParticleFilter
     {
     public:
         //! Constructs the selector
-        ParticleSelectorAll();
-        virtual ~ParticleSelectorAll() {}
+        ParticleFilterAll();
+        virtual ~ParticleFilterAll() {}
 
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
@@ -72,27 +73,26 @@ class PYBIND11_EXPORT ParticleSelectorAll : public ParticleSelector
 
 
 //! Select particles based on their tag
-class PYBIND11_EXPORT ParticleSelectorTag : public ParticleSelector
+class PYBIND11_EXPORT ParticleFilterTags : public ParticleFilter
     {
     public:
         //! Constructs the selector
-        ParticleSelectorTag(unsigned int tag_min, unsigned int tag_max);
-        virtual ~ParticleSelectorTag() {}
+        ParticleFilterTags(pybind11::array_t<unsigned int, pybind11::array::c_style> tags);
+        virtual ~ParticleFilterTags() {}
 
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     protected:
-        unsigned int m_tag_min;     //!< Minimum tag to select
-        unsigned int m_tag_max;     //!< Maximum tag to select (inclusive)
+        pybind11::array_t<unsigned int, pybind11::array::c_style> m_tags;     //!< Maximum tag to select (inclusive)
     };
 
 //! Select particles based on their type
-class PYBIND11_EXPORT ParticleSelectorType : public ParticleSelector
+class PYBIND11_EXPORT ParticleFilterType : public ParticleFilter
     {
     public:
         //! Constructs the selector
-        ParticleSelectorType(unsigned int typ_min, unsigned int typ_max);
-        virtual ~ParticleSelectorType() {}
+        ParticleFilterType(unsigned int typ_min, unsigned int typ_max);
+        virtual ~ParticleFilterType() {}
 
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
@@ -102,12 +102,12 @@ class PYBIND11_EXPORT ParticleSelectorType : public ParticleSelector
     };
 
 //! Select particles in the space defined by a cuboid
-class PYBIND11_EXPORT ParticleSelectorCuboid : public ParticleSelector
+class PYBIND11_EXPORT ParticleFilterCuboid : public ParticleFilter
     {
     public:
         //! Constructs the selector
-        ParticleSelectorCuboid(Scalar3 min, Scalar3 max);
-        virtual ~ParticleSelectorCuboid() {}
+        ParticleFilterCuboid(Scalar3 min, Scalar3 max);
+        virtual ~ParticleFilterCuboid() {}
 
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
@@ -117,12 +117,12 @@ class PYBIND11_EXPORT ParticleSelectorCuboid : public ParticleSelector
     };
 
 //! Select particles based on their rigid body
-class PYBIND11_EXPORT ParticleSelectorRigid : public ParticleSelector
+class PYBIND11_EXPORT ParticleFilterRigid : public ParticleFilter
     {
     public:
         //! Constructs the selector
-        ParticleSelectorRigid(bool rigid);
-        virtual ~ParticleSelectorRigid() {}
+        ParticleFilterRigid(bool rigid);
+        virtual ~ParticleFilterRigid() {}
 
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
@@ -131,12 +131,12 @@ class PYBIND11_EXPORT ParticleSelectorRigid : public ParticleSelector
     };
 
 //! Select particles based on their body
-class PYBIND11_EXPORT ParticleSelectorBody : public ParticleSelector
+class PYBIND11_EXPORT ParticleFilterBody : public ParticleFilter
     {
     public:
         //! Constructs the selector
-        ParticleSelectorBody(bool body);
-        virtual ~ParticleSelectorBody() {}
+        ParticleFilterBody(bool body);
+        virtual ~ParticleFilterBody() {}
 
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
@@ -145,12 +145,12 @@ class PYBIND11_EXPORT ParticleSelectorBody : public ParticleSelector
     };
 
 //! Select particles based on their floppy body
-class PYBIND11_EXPORT ParticleSelectorFloppy : public ParticleSelector
+class PYBIND11_EXPORT ParticleFilterFloppy : public ParticleFilter
     {
     public:
         //! Constructs the selector
-        ParticleSelectorFloppy(bool molecule);
-        virtual ~ParticleSelectorFloppy() {}
+        ParticleFilterFloppy(bool molecule);
+        virtual ~ParticleFilterFloppy() {}
 
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
@@ -158,12 +158,12 @@ class PYBIND11_EXPORT ParticleSelectorFloppy : public ParticleSelector
         bool m_floppy;   //!< true if we should select particles in floppy bodies, false if we should select non-floppy particles
     };
 
-class PYBIND11_EXPORT ParticleSelectorRigidCenter : public ParticleSelector
+class PYBIND11_EXPORT ParticleFilterRigidCenter : public ParticleFilter
     {
     public:
         //! Constructs the selector
-        ParticleSelectorRigidCenter();
-        virtual ~ParticleSelectorRigidCenter() {}
+        ParticleFilterRigidCenter();
+        virtual ~ParticleFilterRigidCenter() {}
 
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
@@ -183,7 +183,7 @@ class PYBIND11_EXPORT ParticleSelectorRigidCenter : public ParticleSelector
        tag order is required)
      - O(1) test if a particular particle index is in the group
 
-    Membership in the group is determined through a generic ParticleSelector class. See its documentation for details.
+    Membership in the group is determined through a generic ParticleFilter class. See its documentation for details.
 
     Group membership is determined once at the instantiation of the group. Thus ParticleGroup only supports static
     groups where membership does not change over the course of a simulation. Dynamic groups, if they are needed,
@@ -219,7 +219,7 @@ class PYBIND11_EXPORT ParticleGroup
         ParticleGroup() : m_num_local_members(0) {};
 
         //! Constructs a particle group of all particles that meet the given selection
-        ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleSelector> selector,
+        ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleFilter> selector,
             bool update_tags = true);
 
         //! Constructs a particle group given a list of tags
@@ -366,7 +366,7 @@ class PYBIND11_EXPORT ParticleGroup
         mutable bool m_global_ptl_num_change;           //!< True if the global particle number changed
 
         mutable GlobalArray<unsigned int> m_is_member_tag;  //!< One byte per particle, == 1 if tag is a member of the group
-        std::shared_ptr<ParticleSelector> m_selector; //!< The associated particle selector
+        std::shared_ptr<ParticleFilter> m_selector; //!< The associated particle selector
 
         bool m_update_tags;                             //!< True if tags should be updated when global number of particles changes
         mutable bool m_warning_printed;                         //!< True if warning about static groups has been printed
