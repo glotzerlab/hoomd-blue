@@ -2823,10 +2823,10 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 //    std::shared_ptr<ConstForceCompute> fc_1(new ConstForceCompute(sysdef_1, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
 //    std::shared_ptr<ConstForceCompute> fc_2(new ConstForceCompute(sysdef_2, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
 
-    std::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    std::shared_ptr<ParticleFilter> selector_all_1(new ParticleFilterTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
     std::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
-    std::shared_ptr<ParticleSelector> selector_all_2(new ParticleSelectorTag(sysdef_2, 0, pdata_2->getNGlobal()-1));
+    std::shared_ptr<ParticleFilter> selector_all_2(new ParticleFilterTag(sysdef_2, 0, pdata_2->getNGlobal()-1));
     std::shared_ptr<ParticleGroup> group_all_2(new ParticleGroup(sysdef_2, selector_all_2));
 
     std::shared_ptr<TwoStepNVE> two_step_nve_1(new TwoStepNVE(sysdef_1, group_all_1));

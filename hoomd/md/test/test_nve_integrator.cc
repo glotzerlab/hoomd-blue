@@ -51,7 +51,7 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, std::shared_ptr
     // don't come into play
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     {
@@ -124,7 +124,7 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, std::shared_ptr<Exe
     // create a simple 1 particle system
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     {
@@ -197,7 +197,7 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, std::shared_ptr<
     // build a 6 particle system with particles set to move across each boundary
     std::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_6, 0, pdata_6->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef_6, 0, pdata_6->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_6, selector_all));
 
     {
@@ -263,12 +263,12 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
 
     std::shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all1(new ParticleSelectorTag(sysdef1, 0, pdata1->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all1(new ParticleFilterTag(sysdef1, 0, pdata1->getN()-1));
     std::shared_ptr<ParticleGroup> group_all1(new ParticleGroup(sysdef1, selector_all1));
 
     std::shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all2(new ParticleSelectorTag(sysdef2, 0, pdata2->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all2(new ParticleFilterTag(sysdef2, 0, pdata2->getN()-1));
     std::shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
 
     std::shared_ptr<NeighborListTree> nlist1(new NeighborListTree(sysdef1, Scalar(3.0), Scalar(0.8)));
@@ -354,7 +354,7 @@ void nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration> exec_conf, t
 
     std::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    std::shared_ptr<ParticleFilter> selector_all_1(new ParticleFilterTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
     std::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
     Scalar r_cut = Scalar(3.0);

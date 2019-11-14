@@ -245,7 +245,7 @@ void cell_thermo_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
 
     std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector(new ParticleSelectorAll(sysdef));
+    std::shared_ptr<ParticleFilter> selector(new ParticleFilterAll(sysdef));
     std::shared_ptr<ParticleGroup> group(new ParticleGroup(sysdef, selector));
 
     std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();

@@ -73,7 +73,7 @@ void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // add an embedded group
     std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector(new ParticleSelectorAll(sysdef));
+    std::shared_ptr<ParticleFilter> selector(new ParticleFilterAll(sysdef));
     std::shared_ptr<ParticleGroup> group(new ParticleGroup(sysdef, selector));
     mpcd_sys->getCellList()->setEmbeddedGroup(group);
 

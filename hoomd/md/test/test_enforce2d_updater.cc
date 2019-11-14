@@ -49,7 +49,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
 
     sysdef->setNDimensions(2);
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     RandomGenerator rng(11, 21, 33);

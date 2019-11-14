@@ -46,7 +46,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, std::shared_ptr<ExecutionC
     // at P with radius r. Use a huge box so boundary conditions don't come into play
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, BoxDim(1000000.0), 1, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     {
