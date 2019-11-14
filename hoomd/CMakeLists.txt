@@ -311,6 +311,8 @@ set(files analyze.py
 	  parameterdicts.py
 	  typeparam.py
 	  triggers.py
+	  filters.py
+	  groups.py
     )
 
 install(FILES ${files}
