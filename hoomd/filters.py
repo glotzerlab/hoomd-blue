@@ -1,11 +1,15 @@
 import hoomd._hoomd as _hoomd
+import numpy as np
 
 
-class ParticleFilterID:
+class ParticleFilter:
 
     def __init__(self, *args, **kwargs):
-        args_str = ''.join([str(arg) for arg in args])
-        kwargs_str = ''.join([str(value)for value in kwargs.values()])
+        args_str = ''.join([repr(arg) if not isinstance(arg, np.ndarray)
+                            else repr(list(arg)) for arg in args])
+        kwargs_str = ''.join([repr(value) if not isinstance(value, np.ndarray)
+                             else repr(list(value))
+                             for value in kwargs.values()])
         self.args_str = args_str
         self.kwargs_str = kwargs_str
         _id = hash(self.__class__.__name__ + args_str + kwargs_str)
