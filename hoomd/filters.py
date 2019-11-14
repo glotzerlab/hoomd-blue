@@ -1,7 +1,7 @@
 import hoomd._hoomd as _hoomd
 
 
-class ParticleSelector:
+class ParticleFilterID:
 
     def __init__(self, *args, **kwargs):
         args_str = ''.join([str(arg) for arg in args])
@@ -17,18 +17,8 @@ class ParticleSelector:
     def __eq__(self, other):
         return self._id == other._id
 
-    def __call__(self, state):
-        raise NotImplementedError
 
-    @property
-    def _selector(self):
-        raise NotImplementedError
-
-
-class All(ParticleSelector):
+class All(ParticleFilterID, _hoomd.ParticleFilterAll):
     def __init__(self):
-        super().__init__()
-
-    @property
-    def _selector(self):
-        return _hoomd.ParticleSelectorAll()
+        ParticleFilterID.__init__(self)
+        _hoomd.ParticleFilterAll(self)
