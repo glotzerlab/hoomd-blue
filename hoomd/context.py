@@ -18,7 +18,7 @@ from hoomd import cite
 # The following global variables keep track of the walltime and processing time since the import of hoomd
 import time
 TIME_START = time.time()
-CLOCK_START = time.clock()
+CLOCK_START = time.process_time()
 
 ## Global bibliography
 bib = None;
