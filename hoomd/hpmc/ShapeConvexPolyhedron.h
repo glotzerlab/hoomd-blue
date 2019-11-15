@@ -83,7 +83,6 @@ namespace detail
     poly3d_verts(pybind11::dict v)
         : poly3d_verts(pybind11::len(v["vertices"]), false)
         {
-        std::shared_ptr<ExecutionConfiguration> exec_conf;
         pybind11::list verts = v["vertices"];
         N = len(verts);
         ignore = v["ignore_statistics"].cast<unsigned int>();
@@ -131,7 +130,7 @@ namespace detail
             auto hull = qh.getConvexHull(qh_pts, false, true);
             auto indexBuffer = hull.getIndexBuffer();
 
-            hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), exec_conf->isCUDAEnabled());
+            hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), false);
             n_hull_verts = indexBuffer.size();
 
             for (unsigned int i = 0; i < indexBuffer.size(); i++)
@@ -151,7 +150,18 @@ namespace detail
         pybind11::dict asDict()
             {
             pybind11::dict v;
-            v["one"] = 1;
+            pybind11::list verts;
+            for(unsigned int i = 0; i < N; i++)
+            {
+                pybind11::list vert;
+                vert.append(x[i]);
+                vert.append(y[i]);
+                vert.append(z[i]);
+                pybind11::tuple vert_tuple = pybind11::tuple(vert);
+                verts.append(vert_tuple);
+            }
+            v["vertices"] = verts;
+            v["ignore_statistics"] = ignore;
             return v;
             }
         

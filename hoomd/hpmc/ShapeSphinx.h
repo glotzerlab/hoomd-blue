@@ -118,7 +118,8 @@ struct sphinx3d_params : param_base
             xyz.append(x);
             xyz.append(y);
             xyz.append(z);
-            centers.append(xyz);
+            pybind11::tuple xyz_tuple = pybind11::tuple(xyz);
+            centers.append(xyz_tuple);
             diameters.append(diameter[i]);
         }
         v["centers"] = centers;

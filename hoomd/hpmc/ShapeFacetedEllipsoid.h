@@ -64,7 +64,6 @@ struct faceted_ellipsoid_params : param_base
     faceted_ellipsoid_params(pybind11::dict v)
     : faceted_ellipsoid_params(pybind11::len(v["normals"]), false)
     {
-        std::shared_ptr<ExecutionConfiguration> exec_conf;
         pybind11::list normals = v["normals"].cast<pybind11::list>();
         pybind11::list offsets = v["offsets"].cast<pybind11::list>();
         pybind11::list vertices = v["vertices"].cast<pybind11::list>();
@@ -73,7 +72,7 @@ struct faceted_ellipsoid_params : param_base
         c = v["c"].cast<OverlapReal>();
         pybind11::tuple origin_tuple = v["origin"].cast<pybind11::tuple>();
         ignore = v["ignore_statistics"].cast<unsigned int>();
-        
+
         if (pybind11::len(offsets) != pybind11::len(normals))
             throw std::runtime_error("Number of normals unequal number of offsets");
 
@@ -89,6 +88,7 @@ struct faceted_ellipsoid_params : param_base
         // extract the vertices from the python list
         pybind11::dict verts_dict;
         verts_dict["vertices"] = vertices;
+        verts_dict["ignore_statistics"] = ignore;
         verts=poly3d_verts(verts_dict);
 
         // scale vertices onto unit sphere
@@ -108,9 +108,53 @@ struct faceted_ellipsoid_params : param_base
 
     }
     pybind11::dict asDict()
-            {
+        {
             pybind11::dict v;
-            v["one"] = 1;
+            pybind11::dict poly3d_verts_dict = verts.asDict();
+            pybind11::list vertices = poly3d_verts_dict["vertices"];
+            pybind11::list offsets;
+            pybind11::list normals;
+            
+            for (unsigned int i = 0; i < pybind11::len(vertices); i++)
+            {
+                pybind11::list vert_i = vertices[i];
+                pybind11::list vert;
+                OverlapReal x = vert_i[0].cast<OverlapReal>();
+                OverlapReal y = vert_i[1].cast<OverlapReal>();
+                OverlapReal z = vert_i[2].cast<OverlapReal>();
+                vert.append(x*a);
+                vert.append(y*b);
+                vert.append(z*c);
+                pybind11::tuple vert_tuple = pybind11::tuple(vert);
+                vertices[i] = vert_tuple;
+            }
+            
+            for (unsigned int i = 0; i < offset.size(); i++)
+            {
+                offsets.append(offset[i]);
+                
+                vec3<OverlapReal> normal_i = n[i];
+                pybind11::list normal_i_list;
+                normal_i_list.append(normal_i.x);
+                normal_i_list.append(normal_i.y);
+                normal_i_list.append(normal_i.z);
+                pybind11::tuple normal_tuple = pybind11::tuple(normal_i_list);
+                normals.append(normal_tuple);
+                
+            }
+            pybind11::list origin_list;
+            origin_list.append(origin.x);
+            origin_list.append(origin.y);
+            origin_list.append(origin.z);
+            
+            v["vertices"] = vertices;
+            v["normals"] = normals;
+            v["offsets"] = offsets;
+            v["a"] = a;
+            v["b"] = b;
+            v["c"] = c;
+            v["origin"] = origin_list;
+            v["ignore_statistics"] = ignore;
             return v;
             }
     #endif

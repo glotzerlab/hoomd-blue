@@ -109,23 +109,18 @@ struct poly2d_verts : param_base
         pybind11::dict asDict()
             {
             pybind11::dict v;
-            v["one"] = 1;
-            return v;
-                /*
-            pybind11::dict v;
             pybind11::list verts;
             for(unsigned int i = 0; i < N; i++)
             {
-                vec2<OverlapReal> vert;
-                vert.x = x[i];
-                vert.y = y[i];
-                verts.append(vert);
+                pybind11::list vert;
+                vert.append(x[i]);
+                vert.append(y[i]);
+                pybind11::tuple vert_tuple = pybind11::tuple(vert);
+                verts.append(vert_tuple);
             }    
             v["vertices"] = verts;
             v["ignore_statistics"] = ignore;
             return v;
-
-            */
             }
     #endif
     } __attribute__((aligned(32)));
