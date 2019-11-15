@@ -58,6 +58,19 @@ struct poly3d_verts : param_base
         { }
 
     #ifndef NVCC
+    //! Default constructor initializes zero values.
+    DEVICE poly3d_verts(bool _managed)
+        : n_hull_verts(0),
+          N(0),
+          diameter(OverlapReal(0)),
+          sweep_radius(OverlapReal(0)),
+          ignore(0),
+          x(0,_managed,32),
+          y(0,_managed,32),
+          z(0,_managed,32),
+          hull_verts(0,_managed,32)
+        { }
+
     //! Shape constructor
     poly3d_verts(unsigned int _N, bool _managed)
         : n_hull_verts(0), N(_N), diameter(0.0), sweep_radius(0.0), ignore(0)

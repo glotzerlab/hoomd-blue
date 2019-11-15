@@ -52,9 +52,9 @@ struct poly2d_verts : param_base
     OverlapReal sweep_radius;           //!< Radius of the sphere sweep (used for spheropolygons)
     unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                         //   First bit is ignore overlaps, Second bit is ignore statistics
-    
+
     //! Default constructor initializes zero values.
-    DEVICE poly2d_verts()
+    DEVICE poly2d_verts(bool _managed=false)
         : N(0),
           diameter(OverlapReal(0)),
           sweep_radius(OverlapReal(0)),
@@ -65,7 +65,7 @@ struct poly2d_verts : param_base
             x[i] = y[i] = OverlapReal(0);
             }
         }
-    
+
     #ifdef ENABLE_CUDA
     //! Set CUDA memory hint
     void set_memory_hint() const
@@ -104,7 +104,7 @@ struct poly2d_verts : param_base
             // set the diameter
             diameter = 2*(sqrt(radius_sq)+sweep_radius);
             }
-            
+
 
         pybind11::dict asDict()
             {
@@ -120,7 +120,7 @@ struct poly2d_verts : param_base
                 vert.x = x[i];
                 vert.y = y[i];
                 verts.append(vert);
-            }    
+            }
             v["vertices"] = verts;
             v["ignore_statistics"] = ignore;
             return v;
