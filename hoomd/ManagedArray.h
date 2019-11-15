@@ -88,9 +88,8 @@ class ManagedArray
             #endif
 
             N = other.N;
-            // Keep out starting managed and alignment settings. This allows non-managed arrays to be created by methods
-            // exposed to Python. When these arrays are copied into IntegratorHPMCMono (for example) they are copied
-            // in with the proper values for managed and align.
+            managed = other.managed;
+            align = other.align;
 
             #ifndef NVCC
             if (N > 0)
@@ -106,6 +105,30 @@ class ManagedArray
 
             return *this;
             }
+
+
+        #ifndef NVCC
+
+        //! Copy data from other array
+        /*! Copy data from the other array, but keep our own alignment and managed flags. HPMC uses this when copying
+            non-managed python-constructed shape parameters into its own managed data structures.
+         */
+        DEVICE void copyDataFrom(const ManagedArray<T>& other)
+            {
+            deallocate();
+
+            N = other.N;
+            // keep our values for managed and align
+
+            if (N > 0)
+                {
+                allocate();
+
+                std::copy(other.ptr, other.ptr+N, ptr);
+                }
+            }
+
+        #endif
 
         //! random access operator
         HOSTDEVICE inline T& operator[](unsigned int i)

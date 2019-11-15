@@ -255,7 +255,7 @@ UP_TEST( overlap_faceted_twofacets )
     p.offset[0] = -0.9*1/(2*sqrt(2));
     p.n[1] = vec3<OverlapReal>(1/sqrt(2),-1/sqrt(2),0);
     p.offset[1] = -0.9*1/(2*sqrt(2));
-    ShapeFacetedEllipsoid::initializeVertices(p,false);
+    ShapeFacetedEllipsoid::initializeVertices(p);
     ShapeFacetedEllipsoid a(o, p);
 
     detail::faceted_ellipsoid_params p2(0, false);
@@ -314,7 +314,7 @@ UP_TEST( overlap_faceted_threefacets )
     p.verts.y[0] = 0;
     p.verts.z[0] = 0.9/2/p.c;
 
-    ShapeFacetedEllipsoid::initializeVertices(p,false);
+    ShapeFacetedEllipsoid::initializeVertices(p);
 
     ShapeFacetedEllipsoid a(o, p);
 
@@ -434,7 +434,7 @@ UP_TEST( random_support_test )
     //p.n[n] = vec3<OverlapReal>(0,0,1);
     //p.offset[n] = -0.35;
 
-    ShapeFacetedEllipsoid::initializeVertices(p,false);
+    ShapeFacetedEllipsoid::initializeVertices(p);
 
     hoomd::RandomGenerator rng;
 
@@ -475,7 +475,7 @@ UP_TEST( random_support_test_2 )
     //p.n[n] = vec3<OverlapReal>(0,0,1);
     //p.offset[n] = -0.35;
 
-    ShapeFacetedEllipsoid::initializeVertices(p,false);
+    ShapeFacetedEllipsoid::initializeVertices(p);
 
     hoomd::RandomGenerator rng;
 
@@ -517,7 +517,7 @@ UP_TEST( overlap_special_case )
         p.offset[i] = 0;
         }
 
-    ShapeFacetedEllipsoid::initializeVertices(p,false);
+    ShapeFacetedEllipsoid::initializeVertices(p);
 
     // place test spheres
     ShapeFacetedEllipsoid a(quat<Scalar>(.3300283551216,vec3<Scalar>(0.01934501715004,-0.9390037059784, 0.09475778788328)),p);
