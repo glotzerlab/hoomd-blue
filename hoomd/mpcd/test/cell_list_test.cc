@@ -419,7 +419,7 @@ void celllist_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // now we include the half embedded group
     std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleFilter> selector_B(new ParticleFilterType(sysdef, 1,1));
+    std::shared_ptr<ParticleFilter> selector_B(new ParticleFilterType(1,1));
     std::shared_ptr<ParticleGroup> group_B(new ParticleGroup(sysdef, selector_B));
 
     cl->setEmbeddedGroup(group_B);

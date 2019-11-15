@@ -480,7 +480,7 @@ void fire_twoparticle_test(fire_creator fire_creator1, nve_creator nve_creator1,
     pdata->setPosition(1,make_scalar3(2.0,0.0,0.0));
     pdata->setType(1,0);
 
-    std::shared_ptr<ParticleFilter> selector_one(new ParticleFilterTags(std::vector<unsigned int>({1}));
+    std::shared_ptr<ParticleFilter> selector_one(new ParticleFilterTags(std::vector<unsigned int>({1})));
     std::shared_ptr<ParticleGroup> group_one(new ParticleGroup(sysdef, selector_one));
 
     std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.3)));
