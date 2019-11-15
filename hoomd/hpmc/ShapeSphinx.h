@@ -53,47 +53,47 @@ struct sphinx3d_params : param_base
         // default implementation does nothing
         }
     #endif
-        
+
     #ifndef NVCC
-    sphinx3d_params() { }
-    
+    sphinx3d_params(bool _managed=false) { }
+
     sphinx3d_params(pybind11::dict v)
     {
         pybind11::list centers = v["centers"];
         pybind11::list diameters = v["diameters"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
-        
-        
+
+
         N = pybind11::len(diameters);
         int N_centers = pybind11::len(centers);
-        
+
         if (N_centers > MAX_SPHERE_CENTERS)
             throw std::runtime_error("Too many spheres");
-        
+
         if (N != N_centers)
             {
             throw std::runtime_error("Number of centers not equal to number of diameters");
             }
-        
+
         OverlapReal radius = OverlapReal(0.0);
         for (unsigned int i = 0; i < N_centers; i++)
             {
             pybind11::list center_i = centers[i];
-            
+
             OverlapReal center_x = center_i[0].cast<OverlapReal>();
             OverlapReal center_y = center_i[1].cast<OverlapReal>();
             OverlapReal center_z = center_i[2].cast<OverlapReal>();
-            
+
             vec3<OverlapReal> center_vec;
             center_vec.x = center_x;
             center_vec.y = center_y;
             center_vec.z = center_z;
-            
+
             center[i] = center_vec;
-            
+
             OverlapReal d = diameters[i].cast<OverlapReal>();
             diameter[i] = d;
-            
+
             OverlapReal n = sqrt(center_x*center_x + center_y*center_y + center_z*center_z);
             radius = max(radius, (n+d/OverlapReal(2.0)));
             }
@@ -102,7 +102,7 @@ struct sphinx3d_params : param_base
         circumsphereDiameter = 2.0*radius;
 
     }
-    
+
     pybind11::dict asDict()
         {
         pybind11::list centers;

@@ -289,7 +289,7 @@ void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exe
     collide->setRotationAngle(rot_angle);
 
     // embed the particle group into the mpcd system
-    std::shared_ptr<ParticleSelector> selector_one(new ParticleSelectorAll(sysdef));
+    std::shared_ptr<ParticleFilter> selector_one(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_one));
     collide->setEmbeddedGroup(group_all);
 

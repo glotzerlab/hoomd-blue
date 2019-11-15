@@ -49,8 +49,12 @@ namespace detail
 struct faceted_ellipsoid_params : param_base
     {
     //! Empty constructor
-    faceted_ellipsoid_params()
-        : a(1.0), b(1.0), c(1.0), N(0), ignore(1)
+    faceted_ellipsoid_params(bool _managed=false)
+        : a(1.0), b(1.0), c(1.0), N(0), ignore(1),
+          verts(_managed),
+          additional_verts(_managed),
+          n(0, _managed),
+          offset(0, _managed)
         { }
 
     faceted_ellipsoid_params(unsigned int n_facet, bool managed )
@@ -158,6 +162,11 @@ struct faceted_ellipsoid_params : param_base
             return v;
             }
     #endif
+
+    bool isManaged()
+        {
+        return n.isManaged();
+        }
 
     poly3d_verts verts;           //!< Vertices of the polyhedron
     poly3d_verts additional_verts;//!< Vertices of the polyhedron edge-sphere intersection
@@ -457,8 +466,10 @@ struct ShapeFacetedEllipsoid
     /*!
      * Generate the intersections points of polyhedron edges with the sphere
      */
-    DEVICE static void initializeVertices(param_type& _params, bool managed)
+    DEVICE static void initializeVertices(param_type& _params)
         {
+        bool managed = _params.isManaged();
+
         #ifndef NVCC
         _params.additional_verts = detail::poly3d_verts(2*_params.N*_params.N, managed);
         _params.additional_verts.diameter = OverlapReal(2.0); // for unit sphere

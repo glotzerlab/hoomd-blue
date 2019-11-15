@@ -36,6 +36,7 @@
 #include "SFCPackUpdater.h"
 #include "BoxResizeUpdater.h"
 #include "System.h"
+#include "Trigger.h"
 #include "Variant.h"
 #include "Messenger.h"
 #include "SnapshotSystemData.h"
@@ -147,6 +148,17 @@ bool is_MPI_available()
    {
    return
 #ifdef ENABLE_MPI
+       true;
+#else
+       false;
+#endif
+    }
+
+//! Determine availability of CUDA support
+bool isCUDAAvailable()
+   {
+   return
+#ifdef ENABLE_CUDA
        true;
 #else
        false;
@@ -302,6 +314,7 @@ PYBIND11_MODULE(_hoomd, m)
 
     m.def("is_MPI_available", &is_MPI_available);
     m.def("is_TBB_available", &is_TBB_available);
+    m.def("isCUDAAvailable", &isCUDAAvailable);
 
     pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector_scalar");
     pybind11::bind_vector< std::vector<string> >(m,"std_vector_string");
@@ -384,6 +397,9 @@ PYBIND11_MODULE(_hoomd, m)
 
     // system
     export_System(m);
+
+    // trigger
+    export_Trigger(m);
 
     // variant
     export_Variant(m);

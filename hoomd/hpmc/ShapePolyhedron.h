@@ -59,7 +59,11 @@ namespace detail
 
 struct poly3d_data : param_base
     {
-    poly3d_data() : n_faces(0), ignore(0) {};
+    poly3d_data(bool _managed=false)
+        : n_faces(0), ignore(0), convex_hull_verts(_managed), verts(0, _managed), face_offs(0, _managed),
+          face_verts(0, _managed), face_overlap(0, _managed)
+        {
+        };
 
     //! Constructor
     poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, unsigned int n_hull_verts, bool _managed)

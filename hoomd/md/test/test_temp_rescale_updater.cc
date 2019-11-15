@@ -48,7 +48,7 @@ UP_TEST( ComputeThermo_basic )
     }
 
     // construct a TempCompute and see that everything is set properly
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     std::shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
 
@@ -77,7 +77,7 @@ UP_TEST( ComputeThermoGPU_basic )
     }
 
     // construct a TempCompute and see that everything is set properly
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     std::shared_ptr<ComputeThermoGPU> tc(new ComputeThermoGPU(sysdef, group_all));
 
@@ -107,7 +107,7 @@ UP_TEST( TempRescaleUpdater_basic )
     }
 
     // construct a ComputeThermo for the updater
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     std::shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
 

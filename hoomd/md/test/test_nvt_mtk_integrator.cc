@@ -75,7 +75,7 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf, 
 
     std::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    std::shared_ptr<ParticleFilter> selector_all_1(new ParticleFilterTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
     std::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
     Scalar r_cut = Scalar(3.0);
@@ -180,7 +180,7 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
 
     std::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    std::shared_ptr<ParticleFilter> selector_all_1(new ParticleFilterTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
     std::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
     Scalar r_cut = Scalar(3.0);
@@ -299,12 +299,12 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
 
     std::shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all1(new ParticleSelectorTag(sysdef1, 0, pdata1->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all1(new ParticleFilterTag(sysdef1, 0, pdata1->getN()-1));
     std::shared_ptr<ParticleGroup> group_all1(new ParticleGroup(sysdef1, selector_all1));
 
     std::shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all2(new ParticleSelectorTag(sysdef2, 0, pdata2->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all2(new ParticleFilterTag(sysdef2, 0, pdata2->getN()-1));
     std::shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
 
     std::shared_ptr<NeighborListTree> nlist1(new NeighborListTree(sysdef1, Scalar(3.0), Scalar(0.8)));

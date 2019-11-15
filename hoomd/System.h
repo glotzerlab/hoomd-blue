@@ -9,6 +9,7 @@
 #include "Compute.h"
 #include "Integrator.h"
 #include "Logger.h"
+#include "Trigger.h"
 
 #include <string>
 #include <vector>
@@ -64,46 +65,6 @@ class PYBIND11_EXPORT System
     public:
         //! Constructor
         System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep);
-
-        // -------------- Analyzer get/set methods
-
-        //! Adds an Analyzer
-        void addAnalyzer(std::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period, int phase);
-
-        //! Removes an Analyzer
-        void removeAnalyzer(const std::string& name);
-
-        //! Access a stored Analyzer by name
-        std::shared_ptr<Analyzer> getAnalyzer(const std::string& name);
-
-        //! Change the period of an Analyzer
-        void setAnalyzerPeriod(const std::string& name, unsigned int period, int phase);
-
-        //! Change the period of an Analyzer to be variable
-        void setAnalyzerPeriodVariable(const std::string& name, pybind11::object update_func);
-
-        //! Get the period of an Analyzer
-        unsigned int getAnalyzerPeriod(const std::string& name);
-
-        // -------------- Updater get/set methods
-
-        //! Adds an Updater
-        void addUpdater(std::shared_ptr<Updater> updater, const std::string& name, unsigned int period, int phase);
-
-        //! Removes an Updater
-        void removeUpdater(const std::string& name);
-
-        //! Access a stored Updater by name
-        std::shared_ptr<Updater> getUpdater(const std::string& name);
-
-        //! Change the period of an Updater
-        void setUpdaterPeriod(const std::string& name, unsigned int period, int phase);
-
-        //! Change the period of an Updater to be variable
-        void setUpdaterPeriodVariable(const std::string& name, pybind11::object update_func);
-
-        //! Get the period of on Updater
-        unsigned int getUpdaterPeriod(const std::string& name);
 
         // -------------- Compute get/set methods
 
@@ -185,219 +146,22 @@ class PYBIND11_EXPORT System
         //! Set autotuner parameters
         void setAutotunerParams(bool enable, unsigned int period);
 
+        std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger> > >& getAnalyzers()
+			{
+			return m_analyzers;
+			}
+
+        std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger> > >& getUpdaters()
+			{
+			return m_updaters;
+			}
+
     private:
-        //! Holds an item in the list of analyzers
-        struct analyzer_item
-            {
-            //! Constructor
-            /*! \param analyzer the Analyzer shared pointer to store
-                \param name user defined name of the analyzer
-                \param period number of time steps between calls to Analyzer::analyze() for this analyzer
-                \param created_tstep time step the analyzer was created on
-                \param next_execute_tstep time step to first execute the analyzer
-            */
-            analyzer_item(std::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period,
-                          unsigned int created_tstep, unsigned int next_execute_tstep)
-                    : m_analyzer(analyzer), m_name(name), m_period(period), m_created_tstep(created_tstep), m_next_execute_tstep(next_execute_tstep), m_is_variable_period(false), m_n(1)
-                {
-                }
+        std::vector<std::pair<std::shared_ptr<Analyzer>,
+                    std::shared_ptr<Trigger> > > m_analyzers; //!< List of analyzers belonging to this System
 
-            //! Test if this analyzer should be executed
-            /*! \param tstep Current simulation step
-                \returns true if the Analyzer should be executed this \a tstep
-                \note This function maintains state and should only be called once per time step
-            */
-            bool shouldExecute(unsigned int tstep)
-                {
-                if (tstep == m_next_execute_tstep)
-                    {
-                    if (m_is_variable_period)
-                        {
-                        pybind11::object pynext = m_update_func(m_n);
-                        int next = (int)pybind11::cast<float>(pynext) + m_created_tstep;
-
-                        if (next < 0)
-                            {
-                            m_analyzer->getExecConf()->msg->warning() << "Variable period returned a negative value. Increasing to 1 to prevent inconsistencies" << std::endl;
-                            next = 1;
-                            }
-
-                        if ((unsigned int)next <= tstep)
-                            {
-                            m_analyzer->getExecConf()->msg->warning() << "Variable period returned a value equal to the current timestep. Increasing by 1 to prevent inconsistencies" << std::endl;
-                            next = tstep+1;
-                            }
-
-                        m_next_execute_tstep = next;
-                        m_n++;
-                        }
-                    else
-                        {
-                        m_next_execute_tstep += m_period;
-                        }
-                    return true;
-                    }
-                else
-                    return false;
-                }
-
-            //! Peek if this analyzer will execute on the given step
-            /*! \param tstep Requested simulation step
-                \returns true if the Analyze will be executed on \a tstep
-
-                peekExecute will return true for the same step that shouldExecute will. However, peekExecute does not
-                update any internal state. It offers a way to peek and determine if a given step will be the very next
-                step that the analyzer is to be called.
-            */
-            bool peekExecute(unsigned int tstep)
-                {
-                return (tstep == m_next_execute_tstep);
-                }
-
-
-            //! Changes the period
-            /*! \param period New period to set
-                \param tstep current time step
-            */
-            void setPeriod(unsigned int period, unsigned int tstep)
-                {
-                m_period = period;
-                m_next_execute_tstep = tstep;
-                m_is_variable_period = false;
-                }
-
-            //! Changes to a variable period
-            /*! \param update_func A python callable function. \a update_func(n) should return a positive integer which is the time step to update at frame n
-                \param tstep current time step
-
-                \a n is initialized to 1 when the period func is changed. Each time a new output is made, \a period_func is evaluated to
-                calculate the period to the next time step to make an output. \a n is then incremented by one.
-            */
-            void setVariablePeriod(pybind11::object update_func, unsigned int tstep)
-                {
-                m_update_func = update_func;
-                m_next_execute_tstep = tstep;
-                m_is_variable_period = true;
-                }
-
-            std::shared_ptr<Analyzer> m_analyzer; //!< The analyzer
-            std::string m_name;                     //!< Its name
-            unsigned int m_period;                  //!< The period between analyze() calls
-            unsigned int m_created_tstep;           //!< The timestep when the analyzer was added
-            unsigned int m_next_execute_tstep;      //!< The next time step we will execute on
-            bool m_is_variable_period;              //!< True if the variable period should be used
-
-            unsigned int m_n;                       //!< Current value of n for the variable period func
-            pybind11::object m_update_func;    //!< Python lambda function to evaluate time steps to update at
-            };
-
-        std::vector<analyzer_item> m_analyzers; //!< List of analyzers belonging to this System
-
-        //! Holds an item in the list of updaters
-        struct updater_item
-            {
-            //! Constructor
-            /*! \param updater the Updater shared pointer to store
-                \param name user defined name of the updater
-                \param period number of time steps between calls to Updater::update() for this updater
-                \param created_tstep time step the analyzer was created on
-                \param next_execute_tstep time step to first execute the analyzer
-            */
-            updater_item(std::shared_ptr<Updater> updater, const std::string& name, unsigned int period,
-                         unsigned int created_tstep, unsigned int next_execute_tstep)
-                    : m_updater(updater), m_name(name), m_period(period), m_created_tstep(created_tstep), m_next_execute_tstep(next_execute_tstep), m_is_variable_period(false), m_n(1)
-                {
-                }
-
-            //! Test if this updater should be executed
-            /*! \param tstep Current simulation step
-                \returns true if the Updater should be executed this \a tstep
-                \note This function maintains state and should only be called once per time step
-            */
-            bool shouldExecute(unsigned int tstep)
-                {
-                if (tstep == m_next_execute_tstep)
-                    {
-                    if (m_is_variable_period)
-                        {
-                        pybind11::object pynext = m_update_func(m_n);
-                        int next = (int)pybind11::cast<float>(pynext) + m_created_tstep;
-
-                        if (next < 0)
-                            {
-                            m_updater->getExecConf()->msg->warning() << "Variable period returned a negative value. Increasing to 1 to prevent inconsistencies" << std::endl;
-                            next = 1;
-                            }
-
-                        if ((unsigned int)next <= tstep)
-                            {
-                            m_updater->getExecConf()->msg->warning() << "Variable period returned a value equal to the current timestep. Increasing by 1 to prevent inconsistencies" << std::endl;
-                            next = tstep+1;
-                            }
-
-                        m_next_execute_tstep = next;
-                        m_n++;
-                        }
-                    else
-                        {
-                        m_next_execute_tstep += m_period;
-                        }
-                    return true;
-                    }
-                else
-                    return false;
-                }
-
-            //! Peek if this updater will execute on the given step
-            /*! \param tstep Requested simulation step
-                \returns true if the Analyze will be executed on \a tstep
-
-                peekExecute will return true for the same step that shouldExecute will. However, peekExecute does not
-                update any internal state. It offers a way to peek and determine if a given step will be the very next
-                step that the analyzer is to be called.
-            */
-            bool peekExecute(unsigned int tstep)
-                {
-                return (tstep == m_next_execute_tstep);
-                }
-
-            //! Changes the period
-            /*! \param period New period to set
-                \param tstep current time step
-            */
-            void setPeriod(unsigned int period, unsigned int tstep)
-                {
-                m_period = period;
-                m_next_execute_tstep = tstep;
-                m_is_variable_period = false;
-                }
-
-            //! Changes to a variable period
-            /*! \param update_func A python callable function. \a update_func(n) should return a positive integer which is the time step to update at frame n
-                \param tstep current time step
-
-                \a n is initialized to 1 when the period func is changed. Each time a new output is made, \a period_func is evaluated to
-                calculate the period to the next time step to make an output. \a n is then incremented by one.
-            */
-            void setVariablePeriod(pybind11::object update_func, unsigned int tstep)
-                {
-                m_update_func = update_func;
-                m_next_execute_tstep = tstep;
-                m_is_variable_period = true;
-                }
-
-            std::shared_ptr<Updater> m_updater;   //!< The analyzer
-            std::string m_name;                     //!< Its name
-            unsigned int m_period;                  //!< The period between analyze() calls
-            unsigned int m_created_tstep;           //!< The timestep when the analyzer was added
-            unsigned int m_next_execute_tstep;      //!< The next time step we will execute on
-            bool m_is_variable_period;              //!< True if the variable period should be used
-
-            unsigned int m_n;                       //!< Current value of n for the variable period func
-            pybind11::object m_update_func;    //!< Python lambda function to evaluate time steps to update at
-            };
-
-        std::vector<updater_item> m_updaters;   //!< List of updaters belonging to this System
+        std::vector<std::pair<std::shared_ptr<Updater>,
+                    std::shared_ptr<Trigger> > > m_updaters; //!< List of updaters belonging to this System
 
         std::map< std::string, std::shared_ptr<Compute> > m_computes; //!< Named list of Computes belonging to this System
 
@@ -438,12 +202,6 @@ class PYBIND11_EXPORT System
 
         //! Get the flags needed for a particular step
         PDataFlags determineFlags(unsigned int tstep);
-
-        // --------- Helper function for handling lists
-        //! Search for an Analyzer by name
-        std::vector<analyzer_item>::iterator findAnalyzerItem(const std::string &name);
-        //! Search for an Updater by name
-        std::vector<updater_item>::iterator findUpdaterItem(const std::string &name);
 
         Scalar m_last_TPS;  //!< Stores the average TPS from the last run
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration

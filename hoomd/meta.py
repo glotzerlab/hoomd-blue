@@ -16,8 +16,9 @@ Example::
 
 """
 
-import hoomd;
-import json, collections;
+import hoomd
+from hoomd.triggers import PeriodicTrigger
+import json
 import time
 import datetime
 import copy
@@ -30,27 +31,55 @@ class _Operation:
 
     _cpp_obj = None
     _param_dict = dict()
+    _typeparam_dict = dict()
 
     def __getattr__(self, attr):
+        if attr in self._param_dict.keys():
+            return self._getattr_param(attr)
+        elif attr in self._typeparam_dict.keys():
+            return self._getattr_typeparam(attr)
+        else:
+            raise AttributeError("Object {} has no attribute {}"
+                                 "".format(self, attr))
+
+    def _getattr_param(self, attr):
         if self._cpp_obj is not None:
             return getattr(self._cpp_obj, attr)
         else:
             return self._param_dict[attr]
 
+    def _getattr_typeparam(self, attr):
+        return self._typeparam_dict[attr]
+
+
     def __setattr__(self, attr, value):
         if attr in self._param_dict.keys():
-            if self._cpp_obj is not None:
-                try:
-                    setattr(self._cpp_obj, attr, value)
-                except (AttributeError):
-                    raise AttributeError("{} cannot be set after cpp"
-                                         " initialization".format(attr))
-            self._param_dict[attr] = value
+            self._setattr_param(attr, value)
+        elif attr in self._typeparam_dict.keys():
+            self._setattr_typeparam(attr, value)
         else:
             self.__dict__[attr] = value
 
+    def _setattr_param(self, attr, value):
+        if self._cpp_obj is not None:
+            try:
+                setattr(self._cpp_obj, attr, value)
+            except (AttributeError):
+                raise AttributeError("{} cannot be set after cpp"
+                                        " initialization".format(attr))
+        self._param_dict[attr] = value
+
+    def _setattr_typeparam(self, attr, value):
+        try:
+            for k, v in value.items():
+                self._typeparam_dict[attr][k] = v
+        except TypeError:
+            raise ValueError("To set {}, you must use a dictionary "
+                             "with types as keys.".format(attr))
+
     def detach(self):
-        raise NotImplementedError
+        self._unapply_typeparam_dict()
+        self._cpp_obj = None
 
     def attach(self):
         raise NotImplementedError
@@ -65,6 +94,61 @@ class _Operation:
                 setattr(self, attr, value)
             except AttributeError:
                 pass
+
+    def _apply_typeparam_dict(self, cpp_obj, sim):
+        for typeparam in self._typeparam_dict.values():
+            try:
+                typeparam.attach(cpp_obj, sim)
+            except ValueError as verr:
+                raise ValueError("TypeParameter {}:"
+                                 " ".format(typeparam.name) + verr.args[0])
+
+    def _unapply_typeparam_dict(self):
+        for typeparam in self._typeparam_dict.values():
+            typeparam.detach()
+
+    def _add_typeparam(self, typeparam):
+        self._typeparam_dict[typeparam.name] = typeparam
+
+    def _extend_typeparam(self, typeparams):
+        for typeparam in typeparams:
+            self._add_typeparam(typeparam)
+
+
+class _TriggeredOperation(_Operation):
+    _cpp_list_name = None
+
+    def __init__(self, trigger):
+        if isinstance(trigger, int):
+            trigger = PeriodicTrigger(period=trigger, phase=0)
+        self._trigger = trigger
+
+    @property
+    def trigger(self):
+        return self._trigger
+
+    @trigger.setter
+    def trigger(self, new_trigger):
+        if self.is_attached:
+            sys = self._simulation._cpp_sys
+            triggered_ops = getattr(sys, self._cpp_list_name)
+            for index in range(len(triggered_ops)):
+                if triggered_ops[index][0] == self._cpp_obj:
+                    triggered_ops[index][1] = new_trigger
+        self._trigger = new_trigger
+
+    def attach(self, simulation):
+        self._simulation = simulation
+        sys = simulation._cpp_sys
+        getattr(sys, self._cpp_list_name).append((self._cpp_obj, self.trigger))
+
+
+class _Updater(_TriggeredOperation):
+    _cpp_list_name = 'updaters'
+
+
+class _Analyzer(_TriggeredOperation):
+    _cpp_list_name = 'analyzers'
 
 
 # \brief A Mixin to facilitate storage of simulation metadata
@@ -124,7 +208,7 @@ def dump_metadata(filename=None,user=None,indent=4):
     metadata = dict()
 
     if user is not None:
-        if not isinstance(user, collections.Mapping):
+        if not isinstance(user, Mapping):
             hoomd.context.current.device.cpp_msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
         else:
             metadata['user'] = _metadata_from_dict(user);

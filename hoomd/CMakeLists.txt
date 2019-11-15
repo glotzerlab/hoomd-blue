@@ -54,6 +54,7 @@ set(_hoomd_sources Analyzer.cc
                    SnapshotSystemData.cc
                    System.cc
                    SystemDefinition.cc
+                   Trigger.cc
                    Updater.cc
                    Variant.cc
                    extern/BVLSSolver.cc
@@ -145,6 +146,7 @@ set(_hoomd_headers
     SnapshotSystemData.h
     SystemDefinition.h
     System.h
+    Trigger.h
     TextureTools.h
     Updater.h
     Variant.h
@@ -303,10 +305,14 @@ set(files analyze.py
           variant.py
           lattice.py
           hdf5.py
-	  _simulation.py
-	  _state.py
-	  _operations.py
+	  simulation.py
+	  state.py
+	  operations.py
 	  parameterdicts.py
+	  typeparam.py
+	  triggers.py
+	  filters.py
+	  groups.py
     )
 
 install(FILES ${files}

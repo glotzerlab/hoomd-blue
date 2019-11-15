@@ -67,6 +67,41 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
             m_write_topology = b;
             }
 
+        std::string getFilename()
+            {
+            return m_fname;
+            }
+
+        bool getOverwrite()
+            {
+            return m_overwrite;
+            }
+
+        bool getTruncate()
+            {
+            return m_truncate;
+            }
+
+        std::shared_ptr<ParticleGroup> getGroup()
+            {
+            return m_group;
+            }
+
+        pybind11::tuple getDynamic()
+            {
+            pybind11::list result;
+            if (m_write_attribute)
+                result.append("attribute");
+            if (m_write_property)
+                result.append("property");
+            if (m_write_momentum)
+                result.append("momentum");
+            if (m_write_topology)
+                result.append("topology");
+
+            return pybind11::tuple(result);
+            }
+
         //! Destructor
         ~GSDDumpWriter();
 

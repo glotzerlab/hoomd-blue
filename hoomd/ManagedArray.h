@@ -78,7 +78,7 @@ class ManagedArray
 
         //! Assignment operator
         /*! \warn the copy assignment constructor reads from the other array and assumes that array is available on the
-                  host. If the GPU isn't synced up, this can lead to erros, so proper multi-GPU synchronization
+                  host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU synchronization
                   needs to be ensured
          */
         DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
@@ -105,6 +105,30 @@ class ManagedArray
 
             return *this;
             }
+
+
+        #ifndef NVCC
+
+        //! Copy data from other array
+        /*! Copy data from the other array, but keep our own alignment and managed flags. HPMC uses this when copying
+            non-managed python-constructed shape parameters into its own managed data structures.
+         */
+        DEVICE void copyDataFrom(const ManagedArray<T>& other)
+            {
+            deallocate();
+
+            N = other.N;
+            // keep our values for managed and align
+
+            if (N > 0)
+                {
+                allocate();
+
+                std::copy(other.ptr, other.ptr+N, ptr);
+                }
+            }
+
+        #endif
 
         //! random access operator
         HOSTDEVICE inline T& operator[](unsigned int i)

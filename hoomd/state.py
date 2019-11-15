@@ -1,4 +1,5 @@
 from . import _hoomd
+from hoomd.groups import Groups
 from .data import boxdim
 
 
@@ -23,6 +24,7 @@ class State:
         else:
             self._cpp_sys_def = _hoomd.SystemDefinition(
                 snapshot, simulation.device.cpp_exec_conf)
+        self._groups = Groups()
 
     @property
     def snapshot(self):
@@ -148,3 +150,8 @@ class State:
 
     def scale_system(self):
         raise NotImplementedError
+
+    def add_group(self, filter_):
+        group = self._groups[filter_] = _hoomd.ParticleGroup(
+            self._cpp_sys_def, filter_)
+        return group

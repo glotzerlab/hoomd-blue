@@ -382,7 +382,7 @@ faceted_ellipsoid_params make_faceted_ellipsoid(pybind11::list normals, pybind11
     result.origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin[0]), pybind11::cast<OverlapReal>(origin[1]), pybind11::cast<OverlapReal>(origin[2]));
 
     // add the edge-sphere vertices
-    ShapeFacetedEllipsoid::initializeVertices(result, exec_conf->isCUDAEnabled());
+    ShapeFacetedEllipsoid::initializeVertices(result);
 
     return result;
     }

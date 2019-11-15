@@ -4,6 +4,7 @@
 from hoomd import _hoomd
 from hoomd.parameterdicts import TypeParameterDict, AttachedTypeParameterDict
 from hoomd.parameterdicts import RequiredArg
+from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import data
 from hoomd.integrate import _integrator
@@ -567,41 +568,8 @@ class mode_hpmc(_integrator):
         """
         return self.cpp_integrator.getSweepRadius();
 
-    @property
-    def d(self):
-        return self._d
 
-    @d.setter
-    def d(self, value):
-        if not isinstance(value, 'dict'):
-            raise TypeError("Type must be a subclass of dict.")
-        for key, val in value.items():
-            self._d[key] = val
-
-    @property
-    def a(self):
-        return self._a
-
-    @a.setter
-    def a(self, value):
-        if not isinstance(value, 'dict'):
-            raise TypeError("Type must be a subclass of dict.")
-        for key, val in value.items():
-            self._a[key] = val
-
-    @property
-    def shape(self):
-        return self._shape
-
-    @shape.setter
-    def shape(self, value):
-        if not isinstance(value, 'dict'):
-            raise TypeError("Type must be a subclass of dict.")
-        for key, val in value.items():
-            self._shape[key] = val
-
-
-class sphere(mode_hpmc):
+class Sphere(mode_hpmc):
     R""" HPMC integration for spheres (2D/3D).
 
     Args:
@@ -641,17 +609,26 @@ class sphere(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
 
         # initialize base class
-        super(mode_hpmc, self).__init__()
+        super().__init__()
         self._param_dict = dict(seed=seed,
                                 move_ratio=move_ratio,
                                 nselect=nselect)
 
-        self._d = TypeParameterDict(d, len_keys=1)
-        self._a = TypeParameterDict(a, len_keys=1)
-        self._shape = TypeParameterDict(diameter=RequiredArg,
-                                        ignore_statistics=False,
-                                        orientable=False,
-                                        len_keys=1)
+        typeparam_d = TypeParameter('d', type_kind='particle_types',
+                                    param_dict=TypeParameterDict(d, len_keys=1)
+                                    )
+        typeparam_a = TypeParameter('a', type_kind='particle_types',
+                                    param_dict=TypeParameterDict(a, len_keys=1)
+                                    )
+        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            diameter=RequiredArg,
+                                            ignore_statistics=False,
+                                            orientable=False,
+                                            len_keys=1)
+                                        )
+        for tp in [typeparam_d, typeparam_a, typeparam_shape]:
+            self._add_typeparam(tp)
 
 
     def attach(self, simulation):
@@ -666,38 +643,11 @@ class sphere(mode_hpmc):
                                                               cl_c,
                                                               self.seed)
 
-        # set the default parameters
+        # set the non type specfic parameters
         self._apply_param_dict()
 
         # Deal with type specific properties
-        try:
-            self._d = AttachedTypeParameterDict(self._cpp_obj, 'd',
-                                                'particle_types',
-                                                self.d,
-                                                simulation)
-        except ValueError as verr:
-            raise ValueError("{} had an error with attribute {}:"
-                             " ".format(type(self), 'd') + verr.args[0])
-
-        try:
-            self._a = AttachedTypeParameterDict(self._cpp_obj,
-                                                'a',
-                                                'particle_types',
-                                                self.a,
-                                                simulation)
-        except ValueError as verr:
-            raise ValueError("{} had an error with attribute {}:"
-                             " ".format(type(self), 'a') + verr.args[0])
-
-        try:
-            self._shape = AttachedTypeParameterDict(self._cpp_obj,
-                                                    'shape',
-                                                    'particle_types',
-                                                    self.shape,
-                                                    simulation)
-        except ValueError as verr:
-            raise ValueError("{} had an error with attribute {}:"
-                             " ".format(type(self), 'shape') + verr.args[0])
+        self._apply_typeparam_dict(self._cpp_obj, simulation)
 
         return [cl_c] if cl_c is not None else None
 
@@ -713,7 +663,7 @@ class sphere(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        return super(sphere, self)._return_type_shapes()
+        return super()._return_type_shapes()
 
 class convex_polygon(mode_hpmc):
     R""" HPMC integration for convex polygons (2D).

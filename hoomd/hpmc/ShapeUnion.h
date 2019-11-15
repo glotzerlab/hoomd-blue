@@ -45,8 +45,9 @@ struct union_params : param_base
     typedef typename Shape::param_type mparam_type;
 
     //! Default constructor
-    DEVICE union_params()
-        : diameter(0.0), N(0), ignore(0)
+    DEVICE union_params(bool _managed=false)
+        : diameter(0.0), N(0), ignore(0), mpos(0,_managed), morientation(0,_managed), mparams(0,_managed),
+          moverlap(0,_managed)
         { }
 
     //! Load dynamic data members into shared memory and increase pointer

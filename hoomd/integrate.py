@@ -69,7 +69,7 @@ class _integrator(hoomd.meta._Operation):
         self.supports_methods = False
 
         # base class constructor
-        super(hoomd.meta._Operation, self)
+        super().__init__()
 
     ## \var supports_methods
     # \internal
