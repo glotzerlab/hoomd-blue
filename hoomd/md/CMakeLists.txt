@@ -274,6 +274,11 @@ else()
     target_link_libraries(_md PUBLIC _hoomd HIP::hipsparse HIP::hip HIP::hiprt HIP::hiprand)
 endif()
 
+if (ENABLE_HIP)
+    # no device linking
+    set_property(TARGET _md  PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
+endif()
+
 fix_cudart_rpath(_md)
 
 # install the library
