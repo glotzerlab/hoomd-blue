@@ -78,7 +78,7 @@ class ManagedArray
 
         //! Assignment operator
         /*! \warn the copy assignment constructor reads from the other array and assumes that array is available on the
-                  host. If the GPU isn't synced up, this can lead to erros, so proper multi-GPU synchronization
+                  host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU synchronization
                   needs to be ensured
          */
         DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
@@ -88,8 +88,9 @@ class ManagedArray
             #endif
 
             N = other.N;
-            managed = other.managed;
-            align = other.align;
+            // Keep out starting managed and alignment settings. This allows non-managed arrays to be created by methods
+            // exposed to Python. When these arrays are copied into IntegratorHPMCMono (for example) they are copied
+            // in with the proper values for managed and align.
 
             #ifndef NVCC
             if (N > 0)

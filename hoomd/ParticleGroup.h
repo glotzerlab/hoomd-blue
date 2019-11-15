@@ -76,14 +76,13 @@ class PYBIND11_EXPORT ParticleFilterAll : public ParticleFilter
 class PYBIND11_EXPORT ParticleFilterTags : public ParticleFilter
     {
     public:
-        //! Constructs the selector
+        ParticleFilterTags(std::vector<unsigned int> tags);
         ParticleFilterTags(pybind11::array_t<unsigned int, pybind11::array::c_style> tags);
         virtual ~ParticleFilterTags() {}
 
-        //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     protected:
-        pybind11::array_t<unsigned int, pybind11::array::c_style> m_tags;     //!< Maximum tag to select (inclusive)
+        std::vector<unsigned int> m_tags;      //!< Tags to select
     };
 
 //! Select particles based on their type

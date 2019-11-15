@@ -59,12 +59,22 @@ std::vector<unsigned int> ParticleFilterAll::getSelectedTags(std::shared_ptr<Sys
 //////////////////////////////////////////////////////////////////////////////
 // ParticleFilterTags
 
-/*! \param tag_min Minimum tag to select (inclusive)
-    \param tag_max Maximum tag to select (inclusive)
+/** Args:
+        tags: numpy array of tags to select
 */
-ParticleFilterTags::ParticleFilterTags(pybind11::array_t<unsigned int, pybind11::array::c_style> tags)
+ParticleFilterTags::ParticleFilterTags(std::vector<unsigned int> tags)
     : ParticleFilter(), m_tags(tags)
     {
+    }
+
+/** Args:
+        tags: numpy array of tags to select
+*/
+ParticleFilterTags::ParticleFilterTags(pybind11::array_t<unsigned int, pybind11::array::c_style> tags)
+    : ParticleFilter()
+    {
+	unsigned int* tags_ptr = (unsigned int*)m_tags.data();
+    m_tags.assign(tags_ptr, tags_ptr+m_tags.size());
     }
 
 /*! \param tag Tag of the particle to check
@@ -72,9 +82,7 @@ ParticleFilterTags::ParticleFilterTags(pybind11::array_t<unsigned int, pybind11:
 */
 std::vector<unsigned int> ParticleFilterTags::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
     {
-	unsigned int* tags_ptr = (unsigned int*)m_tags.data();
-    std::vector<unsigned int> member_tags(tags_ptr, tags_ptr+m_tags.size());
-	return member_tags;
+	return m_tags;
     }
 
 /*! \param typ_min Minimum type id to select (inclusive)
