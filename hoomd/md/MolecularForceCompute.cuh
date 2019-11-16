@@ -13,7 +13,7 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/CachedAllocator.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 const unsigned int NO_MOLECULE = (unsigned int)0xffffffff;
 #endif
 

@@ -11,7 +11,6 @@
 #include <thrust/sort.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
-#include <hipcub/hipcub.hpp>
 
 /*! \file BondedGroupData.cu
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables
@@ -35,7 +34,6 @@ __global__ void gpu_count_groups_kernel(
 
     group_t g = d_group_table[group_idx];
 
-    #pragma unroll
     for (unsigned int i = 0; i < group_size; ++i)
         {
         unsigned int tag_i = g.tag[i];
@@ -105,7 +103,6 @@ __global__ void gpu_group_scatter_kernel(
     // position in group
     unsigned int gpos = 0;
 
-    #pragma unroll
     for (unsigned int k = 0; k < group_size; ++k)
         {
         unsigned int tag_k = g.tag[k];
@@ -146,7 +143,7 @@ void gpu_update_group_table(
     )
     {
     // construct scratch table by expanding the group table by particle index
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned n_blocks = n_groups / block_size + 1;
 
     // reset number of groups
@@ -164,18 +161,18 @@ void gpu_update_group_table(
         next_flag);
 
     // read back flag
-    hipMemcpyAsync(&flag, d_condition, sizeof(unsigned int), hipMemcpyDeviceToHost);
-    hipDeviceSynchronize();
+    hipMemcpy(&flag, d_condition, sizeof(unsigned int), hipMemcpyDeviceToHost);
 
     if (! (flag >= next_flag) && n_groups)
         {
         // we are good, fill group table
         // sort groups by particle idx
         thrust::device_ptr<unsigned int> scratch_idx(d_scratch_idx);
+        thrust::device_ptr<unsigned int> scratch_g(d_scratch_g);
         thrust::sort_by_key(thrust::hip::par(alloc),
             scratch_idx,
             scratch_idx + group_size*n_groups,
-            thrust::device_ptr<unsigned int>(d_scratch_g));
+            scratch_g);
 
         // perform a segmented scan of d_scratch_idx
         thrust::device_ptr<unsigned int> offsets(d_offsets);
@@ -187,10 +184,10 @@ void gpu_update_group_table(
             offsets);
 
         // scatter groups to destinations
-        block_size = 512;
-        n_blocks = group_size*n_groups/block_size + 1;
+        block_size = 256;
+        n_blocks = (group_size*n_groups)/block_size + 1;
 
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_group_scatter_kernel<group_size>), dim3(n_blocks), dim3(block_size), 0, 0,
+        hipLaunchKernelGGL(gpu_group_scatter_kernel<group_size>, dim3(n_blocks), dim3(block_size), 0, 0,
             n_groups*group_size,
             d_scratch_g,
             d_scratch_idx,

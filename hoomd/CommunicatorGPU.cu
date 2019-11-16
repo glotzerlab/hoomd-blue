@@ -25,7 +25,7 @@
 #include <thrust/binary_search.h>
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
-#include <thrust/system/cuda/execution_policy.h>
+#include <thrust/execution_policy.h>
 
 using namespace thrust;
 
@@ -137,7 +137,7 @@ void gpu_stage_particles(const unsigned int N,
                          const BoxDim& box,
                          const unsigned int comm_mask)
     {
-    unsigned int block_size=512;
+    unsigned int block_size=256;
     unsigned int n_blocks = N/block_size + 1;
 
     hipLaunchKernelGGL(gpu_select_particle_migrate, dim3(n_blocks), dim3(block_size), 0, 0, 
@@ -198,7 +198,7 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
     // sort buffer by neighbors
     if (nsend)
         {
-        thrust::sort_by_key(thrust::cuda::par(alloc),
+        thrust::sort_by_key(thrust::hip::par(alloc),
             keys_ptr,
             keys_ptr + nsend,
             tmp_ptr);
@@ -210,14 +210,14 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
     thrust::device_ptr<unsigned int> begin_ptr(d_begin);
     thrust::device_ptr<unsigned int> end_ptr(d_end);
 
-    thrust::lower_bound(thrust::cuda::par(alloc),
+    thrust::lower_bound(
         keys_ptr,
         keys_ptr + nsend,
         neighbors_ptr,
         neighbors_ptr + nneigh,
         begin_ptr);
 
-    thrust::upper_bound(thrust::cuda::par(alloc),
+    thrust::upper_bound(
         keys_ptr,
         keys_ptr + nsend,
         neighbors_ptr,
@@ -372,7 +372,7 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   unsigned int ntypes,
                                   unsigned int mask)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
     unsigned int shared_bytes = 2 *sizeof(Scalar3) * ntypes;
 
@@ -459,7 +459,7 @@ void gpu_make_ghost_group_exchange_plan(unsigned int *d_ghost_group_plan,
                                    const unsigned int *d_plans,
                                    unsigned int n_local)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 
     hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_make_ghost_group_exchange_plan_kernel<group_size>), dim3(n_blocks), dim3(block_size), 0, 0,
@@ -541,7 +541,7 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
     unsigned int nneigh,
     CachedAllocator& alloc)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 
     // compute neighbor counts
@@ -624,8 +624,8 @@ void gpu_exchange_ghosts_make_indices(
     const unsigned int *d_tag,
     const unsigned int *d_adj,
     const unsigned int *d_unique_neighbors,
-    const unsigned int *d_scan,
     const unsigned int *d_counts,
+    const unsigned int *d_scan,
     uint2 *d_ghost_idx_adj,
     unsigned int *d_ghost_neigh,
     unsigned int *d_ghost_begin,
@@ -647,7 +647,12 @@ void gpu_exchange_ghosts_make_indices(
 		thrust::device_ptr<const unsigned int> scan(d_scan);
         unsigned int *d_output_indices = alloc.getTemporaryBuffer<unsigned int>(n_out);
         thrust::device_ptr<unsigned int> output_indices(d_output_indices);
-		thrust::scatter_if(thrust::cuda::par(alloc),
+        thrust::fill(thrust::hip::par(alloc),
+            output_indices,
+            output_indices + n_out,
+            0);
+
+        thrust::scatter_if(thrust::hip::par(alloc),
 			 thrust::counting_iterator<unsigned int>(0),
 			 thrust::counting_iterator<unsigned int>(N),
 			 scan,
@@ -660,46 +665,43 @@ void gpu_exchange_ghosts_make_indices(
 			 output_indices + n_out,
 			 output_indices,
 			 thrust::maximum<unsigned int>());
-
 		// output_indices now contains the source particle index, replicated by the number of ghosts
 
         // fill destination arrays
-        unsigned int block_size = 512;
+        unsigned int block_size = 256;
         unsigned int n_blocks = n_out/block_size + 1;
 
         hipLaunchKernelGGL(gpu_expand_neighbors_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_output_indices, d_scan, d_ghost_plan,
             d_ghost_idx_adj, d_unique_neighbors, d_adj,
             n_unique_neigh, d_ghost_neigh);
-
         alloc.deallocate((char *)d_output_indices);
 
         // sort by neighbor
         thrust::device_ptr<unsigned int> ghost_neigh(d_ghost_neigh);
         thrust::device_ptr<uint2> ghost_idx_adj(d_ghost_idx_adj);
-        thrust::sort_by_key(thrust::cuda::par(alloc),
+        thrust::sort_by_key(thrust::hip::par(alloc),
             ghost_neigh,
             ghost_neigh + n_out,
             ghost_idx_adj);
- 
+
         thrust::device_ptr<const unsigned int> unique_neighbors(d_unique_neighbors);
         thrust::device_ptr<unsigned int> ghost_begin(d_ghost_begin);
         thrust::device_ptr<unsigned int> ghost_end(d_ghost_end);
 
-        thrust::lower_bound(thrust::cuda::par(alloc),
+        thrust::lower_bound(
             ghost_neigh,
             ghost_neigh + n_out,
             unique_neighbors,
             unique_neighbors + n_unique_neigh,
             ghost_begin);
 
-        thrust::upper_bound(thrust::cuda::par(alloc),
+        thrust::upper_bound(
             ghost_neigh,
             ghost_neigh + n_out,
             unique_neighbors,
             unique_neighbors + n_unique_neigh,
             ghost_end);
-
         }
     else
         {
@@ -1397,7 +1399,7 @@ void gpu_mark_groups(
     bool incomplete,
     CachedAllocator& alloc)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = n_groups/block_size + 1;
 
     hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_mark_groups_kernel<group_size>), dim3(n_blocks), dim3(block_size), 0, 0,
@@ -1516,7 +1518,7 @@ void gpu_scatter_ranks_and_mark_send_groups(
     rank_element_t *d_out_ranks,
     CachedAllocator& alloc)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = n_groups/block_size + 1;
 
     hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_scatter_ranks_and_mark_send_groups_kernel<group_size>), dim3(n_blocks), dim3(block_size), 0, 0,
@@ -1612,7 +1614,7 @@ void gpu_update_ranks_table(
     const rank_element_t *d_ranks_recvbuf
     )
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = n_recv/block_size + 1;
 
     hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_update_ranks_table_kernel<group_size>), dim3(n_blocks), dim3(block_size), 0, 0,
@@ -1705,7 +1707,7 @@ void gpu_scatter_and_mark_groups_for_removal(
     unsigned int *d_out_rank_mask,
     bool local_multiple)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = n_groups/block_size + 1;
 
     hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_scatter_and_mark_groups_for_removal_kernel<group_size>), dim3(n_blocks), dim3(block_size), 0, 0,
@@ -1816,7 +1818,7 @@ void gpu_remove_groups(unsigned int n_groups,
         new_ngroups = 0;
         }
 
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = n_groups/block_size + 1;
 
     hipLaunchKernelGGL(gpu_remove_groups_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
@@ -1926,7 +1928,7 @@ void gpu_add_groups(unsigned int n_groups,
     unsigned int myrank,
     CachedAllocator& alloc)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = n_recv/block_size + 1;
 
     // update locally existing groups
@@ -2107,7 +2109,7 @@ void gpu_mark_bonded_ghosts(
     unsigned int my_rank,
     unsigned int mask)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = n_groups/block_size + 1;
 
     hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_mark_bonded_ghosts_kernel<group_size>), dim3(n_blocks), dim3(block_size), 0, 0,

@@ -67,7 +67,7 @@ gpu_cpef(const external_potential_args_t& external_potential_args,
                      const typename evaluator::param_type *d_params,
                      const typename evaluator::field_type *d_field);
 
-#ifdef NVCC
+#ifdef __HIPCC__
 //! Kernel for calculating external forces
 /*! This kernel is called to calculate the external forces on all N particles. Actual evaluation of the potentials and
     forces for each particle is handled via the template class \a evaluator.
@@ -202,5 +202,5 @@ hipError_t gpu_cpef(const external_potential_args_t& external_potential_args,
 
         return hipSuccess;
     };
-#endif // NVCC
+#endif // __HIPCC__
 #endif // __POTENTIAL_PAIR_GPU_CUH__

@@ -5,7 +5,7 @@
 #ifndef __PAIR_EVALUATOR_ZBL__
 #define __PAIR_EVALUATOR_ZBL__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -16,7 +16,7 @@
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -105,7 +105,7 @@ class EvaluatorPairZBL
                 return false;
         }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
         /*! \returns The potential name.  Must be short and all lowercase, as this is the name
             energies will be logged as via analyze.log.

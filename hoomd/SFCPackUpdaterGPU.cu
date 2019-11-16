@@ -88,7 +88,7 @@ void gpu_generate_sorted_order(unsigned int N,
         CachedAllocator& alloc) 
     {
     // maybe need to autotune, but SFCPackUpdater is called infrequently
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 
     if (twod)
@@ -216,7 +216,7 @@ void gpu_apply_sorted_order(
         unsigned int *d_rtag
         )
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = (N+n_ghost)/block_size + 1;
 
     hipLaunchKernelGGL(gpu_apply_sorted_order_kernel, dim3(n_blocks), dim3(block_size), 0, 0, N,

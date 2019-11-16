@@ -7,9 +7,9 @@
 #include "hoomd/TextureTools.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#ifdef NVCC
+#ifdef __HIPCC__
 #include "hoomd/WarpTools.cuh"
-#endif // NVCC
+#endif // __HIPCC__
 #include <assert.h>
 
 /*! \file PotentialTersoffGPU.cuh
@@ -91,7 +91,7 @@ struct tersoff_args_t
     };
 
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 #if !defined(SINGLE_PRECISION)
 

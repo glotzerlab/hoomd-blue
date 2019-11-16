@@ -31,7 +31,7 @@
     members of a molecule even if only a single particle member falls into the ghost layer.
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

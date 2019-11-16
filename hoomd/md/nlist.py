@@ -6,11 +6,11 @@
 R""" Neighbor list acceleration structures.
 
 Neighbor lists accelerate pair force calculation by maintaining a list of particles within a cutoff radius.
-Multiple pair forces can utilize the same neighbor list. Neighbors are included using a pairwise cutoff
+ultiple pair forces can utilize the same neighbor list. Neighbors are included using a pairwise cutoff
 :math:`r_\mathrm{cut}(i,j)` that is the maximum of all :math:`r_\mathrm{cut}(i,j)` set for the pair forces attached
 to the list.
 
-Multiple neighbor lists can be created to accelerate simulations where there is significant disparity in
+ultiple neighbor lists can be created to accelerate simulations where there is significant disparity in
 :math:`r_\mathrm{cut}(i,j)` between pair potentials. If one pair force has a cutoff radius much smaller than
 another pair force, the pair force calculation for the short cutoff will be slowed down considerably because many
 particles in the neighbor list will have to be read and skipped because they lie outside the shorter cutoff.

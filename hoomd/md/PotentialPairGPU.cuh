@@ -12,9 +12,9 @@
 
 #include "hoomd/GPUPartition.cuh"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #include "hoomd/WarpTools.cuh"
-#endif // NVCC
+#endif // __HIPCC__
 
 #include <assert.h>
 #include <type_traits>
@@ -107,7 +107,7 @@ struct pair_args_t
     const GPUPartition& gpu_partition;      //!< The load balancing partition of particles between GPUs
     };
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and

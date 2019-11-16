@@ -11,7 +11,7 @@
 
 #ifdef ENABLE_HIP
 //Above this line shared constructs can be declared.
-#ifndef NVCC
+#ifndef __HIPCC__
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
 #include "hoomd/Variant.h"
@@ -73,6 +73,6 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
 //! Exports the MuellerPlatheFlow class to python
 void export_MuellerPlatheFlowGPU(pybind11::module& m);
 
-#endif//NVCC
+#endif// __HIPCC__
 #endif//__MUELLER_PLATHE_FLOW_GPU_H__
 #endif// ENABLE_HIP

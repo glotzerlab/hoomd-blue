@@ -645,7 +645,7 @@ hipError_t gpu_compute_thermo_final(Scalar *d_properties,
 
 
     // setup the grid to run the final kernel
-    int final_block_size = 512;
+    int final_block_size = 256;
     dim3 grid = dim3(1, 1, 1);
     dim3 threads = dim3(final_block_size, 1, 1);
 

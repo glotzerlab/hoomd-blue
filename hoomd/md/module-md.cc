@@ -134,26 +134,6 @@ inline pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
     return retval;
     }
 
-//! Function to make the Gay-Berne parameter type
-inline pair_gb_params make_pair_gb_params(Scalar epsilon, Scalar lperp, Scalar lpar)
-    {
-    pair_gb_params retval;
-    retval.epsilon = epsilon;
-    retval.lperp = lperp;
-    retval.lpar = lpar;
-    return retval;
-    }
-
-//! Function to make the dipole parameter type
-inline pair_dipole_params make_pair_dipole_params(Scalar mu, Scalar A, Scalar kappa)
-    {
-    pair_dipole_params retval;
-    retval.mu = mu;
-    retval.A = A;
-    retval.kappa = kappa;
-    return retval;
-    }
-
 //! Function to export the fourier parameter type to python
 void export_pair_params(py::module& m)
 {

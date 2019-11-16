@@ -405,7 +405,7 @@ void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
                              Scalar kappa)
 
     {
-    const unsigned int block_size = 512;
+    const unsigned int block_size = 256;
 
     dim3 grid(n_wave_vectors/block_size + 1, 1, 1);
 
@@ -782,7 +782,7 @@ void gpu_compute_pe(unsigned int n_wave_vectors,
                exclude_dc);
 
     // calculate final sum of mesh values
-    const unsigned int final_block_size = 512;
+    const unsigned int final_block_size = 256;
     shared_size = final_block_size*sizeof(Scalar);
     hipLaunchKernelGGL((kernel_final_reduce_pe), dim3(1), dim3(final_block_size), shared_size, 0, d_sum_partial,
                                                                 n_blocks,
@@ -945,7 +945,7 @@ void gpu_compute_virial(unsigned int n_wave_vectors,
                d_mesh_virial);
 
     // calculate final virial values
-    const unsigned int final_block_size = 512;
+    const unsigned int final_block_size = 256;
     shared_size = 6*final_block_size*sizeof(Scalar);
     hipLaunchKernelGGL((kernel_final_reduce_virial), dim3(1), dim3(final_block_size), shared_size, 0, d_sum_virial_partial,
                                                                   n_blocks,

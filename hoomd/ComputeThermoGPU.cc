@@ -39,7 +39,7 @@ ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing ComputeThermoGPU");
         }
 
-    m_block_size = 512;
+    m_block_size = 256;
 
     hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
     }

@@ -318,7 +318,7 @@ hipError_t gpu_update_exclusion_list(const unsigned int *d_tag,
                                 const Index2D& ex_list_indexer,
                                 const unsigned int N)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
 
     hipLaunchKernelGGL((gpu_update_exclusion_list_kernel), dim3(N/block_size + 1), dim3(block_size), 0, 0, d_tag,
                                                                        d_rtag,

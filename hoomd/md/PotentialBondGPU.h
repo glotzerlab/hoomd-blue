@@ -18,7 +18,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -88,7 +88,7 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<System
     h_flags.data[0] = 0;
 
     unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(new Autotuner(64, 1024, 64, 5, 100000, "harmonic_bond", this->m_exec_conf));
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
 
 template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,

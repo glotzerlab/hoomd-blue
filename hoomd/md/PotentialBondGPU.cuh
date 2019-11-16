@@ -72,7 +72,7 @@ struct bond_args_t
     const unsigned int block_size;     //!< Block size to execute
     };
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 //! Kernel for calculating bond forces
 /*! This kernel is called to calculate the bond forces on all N particles. Actual evaluation of the potentials and
@@ -118,7 +118,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     // shared array for per bond type parameters
-    HIP_DYNAMIC_SHARED( char, s_data)
+    extern __shared__ char s_data[];
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
 
@@ -280,7 +280,7 @@ hipError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
                                 bond_args.n_bond_types;
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator>), dim3(grid), dim3(threads), shared_bytes, 0, 
+    hipLaunchKernelGGL(gpu_compute_bond_forces_kernel<evaluator>, grid, threads, shared_bytes, 0,
         bond_args.d_force, bond_args.d_virial, bond_args.virial_pitch, bond_args.N,
         bond_args.d_pos, bond_args.d_charge, bond_args.d_diameter, bond_args.box, bond_args.d_gpu_bondlist,
         bond_args.gpu_table_indexer, bond_args.d_gpu_n_bonds, bond_args.n_bond_types, d_params, d_flags);

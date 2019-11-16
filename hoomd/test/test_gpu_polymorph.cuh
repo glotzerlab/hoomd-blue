@@ -8,7 +8,7 @@
 
 #include <hip/hip_runtime.h>
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE

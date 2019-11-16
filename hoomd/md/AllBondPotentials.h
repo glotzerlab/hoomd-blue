@@ -20,7 +20,7 @@
     \brief Handy list of typedefs for all of the templated pair potentials in hoomd
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

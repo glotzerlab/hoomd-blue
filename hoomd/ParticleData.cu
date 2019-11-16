@@ -207,7 +207,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     unsigned int n_out;
 
     // partition particle data into local and removed particles
-    unsigned int block_size =512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size+1;
 
     // select nonzero communication flags
@@ -258,7 +258,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             unsigned int nwork = range.second - range.first;
             unsigned int offset = range.first;
 
-            unsigned int block_size =512;
+            unsigned int block_size = 256;
             unsigned int n_blocks = nwork/block_size+1;
 
             hipLaunchKernelGGL(gpu_scatter_particle_data_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
@@ -397,7 +397,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     const pdata_element *d_in,
                     unsigned int *d_comm_flags)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = num_add_ptls/block_size + 1;
 
     hipLaunchKernelGGL(gpu_pdata_add_particles_kernel, dim3(n_blocks), dim3(block_size), 0, 0,

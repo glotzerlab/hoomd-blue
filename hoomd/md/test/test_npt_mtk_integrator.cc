@@ -14,6 +14,7 @@
 #endif
 #include "hoomd/md/IntegratorTwoStep.h"
 
+#include "hoomd/SnapshotSystemData.h"
 #include "hoomd/CellList.h"
 #include "hoomd/md/NeighborList.h"
 #include "hoomd/md/NeighborListBinned.h"
@@ -588,7 +589,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     Scalar epsilon = Scalar(1.0);
     Scalar lperp = Scalar(0.3);
     Scalar lpar = Scalar(0.5);
-    fc->setParams(0,0,make_scalar3(epsilon,lperp,lpar));
+    fc->setParams(0,0,make_pair_gb_params(epsilon,lperp,lpar));
 
     // If we want accurate calculation of potential energy, we need to apply the
     // energy shift

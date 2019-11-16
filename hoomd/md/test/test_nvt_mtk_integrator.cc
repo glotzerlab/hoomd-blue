@@ -196,7 +196,7 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
     Scalar epsilon = Scalar(1.0);
     Scalar lperp = Scalar(0.45);
     Scalar lpar = Scalar(0.5);
-    fc_1->setParams(0,0,make_scalar3(epsilon,lperp,lpar));
+    fc_1->setParams(0,0,make_pair_gb_params(epsilon,lperp,lpar));
     // If we want accurate calculation of potential energy, we need to apply the
     // energy shift
     fc_1->setShiftMode(AnisoPotentialPairGB::shift);

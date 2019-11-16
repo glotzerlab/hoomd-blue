@@ -9,7 +9,7 @@
 #ifndef __PAIR_EVALUATOR_DIPOLE_H__
 #define __PAIR_EVALUATOR_DIPOLE_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -22,7 +22,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 //! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
@@ -30,19 +30,19 @@
 
 // call different optimized sqrt functions on the host / device
 //! RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define RSQRT(x) rsqrtf( (x) )
 #else
 #define RSQRT(x) Scalar(1.0) / sqrt( (x) )
 #endif
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define _POW powf
 #else
 #define _POW pow
 #endif
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define _SQRT sqrtf
 #else
 #define _SQRT sqrt
@@ -221,7 +221,7 @@ class EvaluatorPairDipole
             }
 
 
-       #ifndef NVCC
+       #ifndef __HIPCC__
         //! Get the name of the potential
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
             via analyze.log.
@@ -245,5 +245,14 @@ class EvaluatorPairDipole
         const param_type &params;   //!< The pair potential parameters
     };
 
+//! Function to make the dipole parameter type
+inline pair_dipole_params make_pair_dipole_params(Scalar mu, Scalar A, Scalar kappa)
+    {
+    pair_dipole_params retval;
+    retval.mu = mu;
+    retval.A = A;
+    retval.kappa = kappa;
+    return retval;
+    }
 
 #endif // __PAIR_EVALUATOR_DIPOLE_H__

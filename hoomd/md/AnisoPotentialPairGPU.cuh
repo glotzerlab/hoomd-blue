@@ -11,9 +11,9 @@
 #include "hoomd/TextureTools.h"
 #include "hoomd/GPUPartition.cuh"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #include "hoomd/WarpTools.cuh"
-#endif // NVCC
+#endif // __HIPCC__
 
 /*! \file AnisoPotentialPairGPU.cuh
     \brief Defines templated GPU kernel code for calculating the anisotropic ptl pair forces and torques
@@ -109,7 +109,7 @@ struct a_pair_args_t
     bool update_shape_param;          //!< If true, update size of shape param and synchronize GPU execution stream
     };
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and

@@ -16,9 +16,9 @@
 #include "hoomd/ParticleData.cuh"
 #include "EvaluatorPairDPDThermo.h"
 #include "hoomd/Index1D.h"
-#ifdef NVCC
+#ifdef __HIPCC__
 #include "hoomd/WarpTools.cuh"
-#endif // NVCC
+#endif // __HIPCC__
 #include <cassert>
 
 // currently this is hardcoded, we should set it to the max of platforms
@@ -106,7 +106,7 @@ struct dpd_pair_args_t
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 32==1 warp)
     };
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and

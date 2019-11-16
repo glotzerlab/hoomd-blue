@@ -61,7 +61,7 @@ hipError_t gpu_rebuild_index_list(unsigned int N,
     assert(d_is_member_tag);
     assert(d_tag);
 
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 
     hipLaunchKernelGGL(gpu_rebuild_index_list_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
@@ -107,7 +107,7 @@ hipError_t gpu_compact_index_list(unsigned int N,
         is_member + N);
 
     // fill member_idx array
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 
     hipLaunchKernelGGL(gpu_scatter_member_indices, dim3(n_blocks), dim3(block_size), 0, 0,

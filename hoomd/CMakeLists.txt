@@ -223,7 +223,6 @@ if (ENABLE_HIP)
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
     target_compile_definitions(_hoomd PUBLIC ENABLE_HIP CUDA_ARCH=${_cuda_min_arch})
-    target_compile_definitions(_hoomd PUBLIC "$<$<COMPILE_LANGUAGE:CUDA>:NVCC>")
 
     if(ALWAYS_USE_MANAGED_MEMORY)
         target_compile_definitions(_hoomd PUBLIC ALWAYS_USE_MANAGED_MEMORY)

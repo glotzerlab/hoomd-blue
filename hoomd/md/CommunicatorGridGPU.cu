@@ -66,7 +66,7 @@ void gpu_gridcomm_scatter_send_cells(
     const T *d_grid,
     T *d_send_buf)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = n_send_cells/block_size + 1;
 
     hipLaunchKernelGGL((gpu_gridcomm_scatter_send_cells_kernel<T>), dim3(n_blocks), dim3(block_size), 0, 0, 
@@ -87,7 +87,7 @@ void gpu_gridcomm_scatter_add_recv_cells(
     const unsigned int *d_recv_idx,
     bool add_outer)
     {
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = n_unique_recv_cells/block_size + 1;
 
     if (add_outer)
