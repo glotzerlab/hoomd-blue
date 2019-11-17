@@ -984,7 +984,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
             {
             nuxx = nuyy = nuzz;
             }
-        else
+        else if (couple != couple_none)
             {
             m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl << std::endl;
             throw std::runtime_error("Error in NPT integration");

@@ -1,0 +1,245 @@
+trigger:
+  batch: true
+  branches:
+    include:
+    - '*'
+
+variables:
+  image_root: glotzerlab/ci:2019.08
+
+  # default build parameters, will override as needed with job matrix values
+  enable_cuda: off
+  enable_mpi: off
+  enable_tbb: off
+  build_validation: off
+  build_jit: off
+  omp_num_threads: '2'
+  llvm_version: '6.0'
+  build_testing: on
+  always_use_managed_memory: off
+  ctest_start: 1
+  ctest_stride: 1
+  mpiexec_timeout: 300
+  suite_name: $(Agent.JobName)
+
+stages:
+- stage: build_test_cpu
+  displayName: Unit test (CPU)
+  dependsOn: []
+
+  jobs:
+  - job: linux_cpu
+    displayName: Linux
+    timeoutInMinutes: 75
+
+    strategy:
+      matrix:
+        clang8_py37_mpi_tbb_llvm8:
+          container_image: ubuntu19.04
+          cc: clang-8
+          cxx: clang++-8
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '8'
+
+        clang7_py37_mpi_tbb_llvm7:
+          container_image: ubuntu19.04
+          cc: clang-7
+          cxx: clang++-7
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '7'
+
+        gcc9_py37_mpi_tbb_llvm8:
+          container_image: ubuntu19.04
+          cc: gcc-9
+          cxx: g++-9
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '8'
+
+        gcc9_py37_mpi_tbb_llvm7:
+          container_image: ubuntu19.04
+          cc: gcc-9
+          cxx: g++-9
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '7'
+
+        gcc8_py36_mpi_tbb_llvm6:
+          container_image: ubuntu18.04
+          cc: gcc-8
+          cxx: g++-8
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '6.0'
+
+        gcc7_py36_tbb:
+          container_image: ubuntu18.04
+          cc: gcc-7
+          cxx: g++-7
+          enable_tbb: on
+
+        gcc6_py36_mpi:
+          container_image: ubuntu18.04
+          cc: gcc-6
+          cxx: g++-6
+          enable_mpi: on
+
+        clang6_py36_mpi_tbb_llvm6:
+          container_image: ubuntu18.04
+          cc: clang-6.0
+          cxx: clang++-6.0
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '6.0'
+
+        clang5_py36_tbb_llvm5:
+          container_image: ubuntu18.04
+          cc: clang-5.0
+          cxx: clang++-5.0
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '5.0'
+
+        gcc5_py36:
+          container_image: ubuntu18.04
+          cc: gcc-5
+          cxx: g++-5
+
+        gcc48_py36_mpi_tbb:
+          container_image: ubuntu18.04
+          cc: gcc-4.8
+          cxx: g++-4.8
+          enable_mpi: on
+          enable_tbb: on
+
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    container:
+      image: $(image_root)-$(container_image)
+      options: -u 0
+
+    steps:
+    - template: templates/build_test.yml
+
+  - job: mac_cpu
+    displayName: macOS
+    timeoutInMinutes: 75
+
+    strategy:
+      matrix:
+        10_13:
+          mac_image: macOS-10.13
+        10_14_mpi_tbb:
+          mac_image: macOS-10.14
+          enable_mpi: on
+          enable_tbb: on
+
+    pool:
+      vmImage: '$(mac_image)'
+
+    steps:
+    - script: brew install cereal cmake eigen ninja open-mpi python numpy
+      displayName: Brew install prereqs
+    # work around broken homebrew pybind11 package
+    - script: |
+        curl -sSL https://github.com/pybind/pybind11/archive/v2.4.2.tar.gz | tar -xzC ./ \
+        && cd pybind11-2.4.2 \
+        && mkdir build && cd build \
+        && cmake ../ -DCMAKE_INSTALL_PREFIX=/usr/local -DPYBIND11_TEST=off -DPYTHON_EXECUTABLE=/usr/local/bin/python3 \
+        && make install
+      displayName: Manually install pybind11
+      workingDirectory: $(Pipeline.Workspace)
+    # Install Intel's provided TBB builds, homebrew's tbb does not support exception translation
+    - script: |
+        curl -sLO https://github.com/intel/tbb/releases/download/2019_U8/tbb2019_20190605oss_mac.tgz &&
+        tar -xzf tbb2019_20190605oss_mac.tgz &&
+        cp -R tbb2019_20190605oss/include/tbb /usr/local/include &&
+        cp -a tbb2019_20190605oss/lib/*.dylib /usr/local/lib
+      displayName: Install TBB
+      workingDirectory: $(Pipeline.Workspace)
+
+    - script: python3 -m pip install pytest
+      displayName: Pip install prereqs
+
+    - template: templates/build_test.yml
+
+- stage: build_test_gpu
+  displayName: Unit test (GPU)
+  dependsOn: []
+  variables:
+    enable_cuda: on
+
+  jobs:
+  - job: linux_gpu
+    displayName: Linux
+    timeoutInMinutes: 75
+
+    strategy:
+      matrix:
+        gcc7_py36_cuda10_mng_mpi:
+          cc: gcc
+          cxx: g++
+          container_image: cuda10
+          always_use_managed_memory: on
+          enable_mpi: on
+
+        gcc7_py36_cuda9_mpi:
+          cc: gcc
+          cxx: g++
+          container_image: cuda9
+          enable_mpi: on
+
+        gcc7_py36_cuda9:
+          cc: gcc
+          cxx: g++
+          container_image: cuda9
+
+    pool:
+      name: 'GPU'
+      demands: short_jobs
+
+    container:
+       image: $(image_root)-$(container_image)
+       options: -u 0 --gpus=all --cpus=4 --memory=8g -e CUDA_VISIBLE_DEVICES
+
+    workspace:
+      clean: all
+
+    steps:
+    - template: templates/build_test.yml
+
+- stage: doc
+  displayName: Documentation
+  dependsOn: []
+
+  jobs:
+  - job: sphinx_doc
+    displayName: Sphinx
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    container:
+      image: $(image_root)-ubuntu18.04
+      options: -u 0
+
+    workspace:
+      clean: all
+
+    steps:
+    - checkout: self
+      submodules: true
+    - script: sphinx-build -b html -d _build/doctrees -W -n . _build/html
+      displayName: (HTML)
+      workingDirectory: sphinx-doc
+    - script: sphinx-build -b latex -d _build/doctrees -W -n . _build/latex
+      displayName: (LaTeX)
+      workingDirectory: sphinx-doc
