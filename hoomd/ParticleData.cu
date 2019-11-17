@@ -204,6 +204,42 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     CachedAllocator& alloc,
                     GPUPartition& gpu_partition)
     {
+    if (!N) return 0;
+
+    assert(d_pos);
+    assert(d_vel);
+    assert(d_accel);
+    assert(d_charge);
+    assert(d_diameter);
+    assert(d_image);
+    assert(d_body);
+    assert(d_orientation);
+    assert(d_angmom);
+    assert(d_inertia);
+    assert(d_net_force);
+    assert(d_net_torque);
+    assert(d_net_virial);
+    assert(d_tag);
+    assert(d_rtag);
+    assert(d_pos_alt);
+    assert(d_vel_alt);
+    assert(d_accel_alt);
+    assert(d_charge_alt);
+    assert(d_diameter_alt);
+    assert(d_image_alt);
+    assert(d_body_alt);
+    assert(d_orientation_alt);
+    assert(d_angmom_alt);
+    assert(d_inertia_alt);
+    assert(d_net_force_alt);
+    assert(d_net_torque_alt);
+    assert(d_net_virial_alt);
+    assert(d_tag_alt);
+    assert(d_out);
+    assert(d_comm_flags);
+    assert(d_comm_flags_out);
+    assert(d_tmp);
+
     unsigned int n_out;
 
     // partition particle data into local and removed particles
@@ -222,6 +258,8 @@ unsigned int gpu_pdata_remove(const unsigned int N,
 
     // determine size of temporary storage
     unsigned int *d_scan = alloc.getTemporaryBuffer<unsigned int>(N);
+    assert(d_scan);
+
     hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
@@ -231,7 +269,8 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     // determine total number of sent particles
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
-    unsigned int *d_n_out = (unsigned int *) alloc.allocate(sizeof(unsigned int));
+    unsigned int *d_n_out = (unsigned int *) alloc.getTemporaryBuffer<unsigned int>(1);
+    assert(d_n_out);
     hipcub::DeviceReduce::Sum(d_temp_storage,
         temp_storage_bytes,
         d_tmp,
@@ -397,6 +436,23 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     const pdata_element *d_in,
                     unsigned int *d_comm_flags)
     {
+    assert(d_pos);
+    assert(d_vel);
+    assert(d_accel);
+    assert(d_charge);
+    assert(d_diameter);
+    assert(d_image);
+    assert(d_body);
+    assert(d_orientation);
+    assert(d_angmom);
+    assert(d_inertia);
+    assert(d_net_force);
+    assert(d_net_torque);
+    assert(d_net_virial);
+    assert(d_tag);
+    assert(d_rtag);
+    assert(d_in);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = num_add_ptls/block_size + 1;
 

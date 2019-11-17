@@ -9,10 +9,10 @@
 */
 
 #ifdef ENABLE_MPI
+#include <hip/hip_runtime.h>
+
 #include "CommunicatorGPU.cuh"
 #include "ParticleData.cuh"
-
-#include <hip/hip_runtime.h>
 
 #include <hipcub/hipcub.hpp>
 
@@ -27,7 +27,7 @@
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/execution_policy.h>
 
-using namespace thrust;
+#include <cassert>
 
 //! Select a particle for migration
 __global__ void gpu_select_particle_migrate(
@@ -69,7 +69,7 @@ struct get_migrate_key_gpu : public thrust::unary_function<const unsigned int, u
     //! Constructor
     /*!
      */
-    get_migrate_key_gpu(const uint3 _my_pos, const Index3D _di,
+    __host__ __device__ get_migrate_key_gpu(const uint3 _my_pos, const Index3D _di,
         const unsigned int _mask, const unsigned int *_d_cart_ranks)
         : my_pos(_my_pos), di(_di), mask(_mask), d_cart_ranks(_d_cart_ranks)
         { }
@@ -122,7 +122,6 @@ struct get_migrate_key_gpu : public thrust::unary_function<const unsigned int, u
 
      };
 
-
 /*! \param N Number of local particles
     \param d_pos Device array of particle positions
     \param d_tag Device array of particle tags
@@ -137,10 +136,13 @@ void gpu_stage_particles(const unsigned int N,
                          const BoxDim& box,
                          const unsigned int comm_mask)
     {
-    unsigned int block_size=256;
+    assert(d_pos);
+    assert(d_comm_flag);
+
+    unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 
-    hipLaunchKernelGGL(gpu_select_particle_migrate, dim3(n_blocks), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_select_particle_migrate), dim3(n_blocks), dim3(block_size), 0, 0, 
         N,
         d_pos,
         d_comm_flag,
@@ -176,6 +178,17 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    pdata_element *d_in_copy,
                    CachedAllocator& alloc)
     {
+    assert(d_in);
+    assert(d_comm_flags);
+    assert(d_cart_ranks);
+    assert(d_keys);
+    assert(d_begin);
+    assert(d_end);
+    assert(d_neighbors);
+
+    if (!nsend)
+        return;
+
     // Wrap input & output
     thrust::device_ptr<pdata_element> in_ptr(d_in);
     thrust::device_ptr<const unsigned int> comm_flags_ptr(d_comm_flags);
@@ -196,13 +209,13 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
         thrust::make_zip_iterator(thrust::make_tuple(tmp_ptr, in_copy_ptr)));
 
     // sort buffer by neighbors
-    if (nsend)
-        {
-        thrust::sort_by_key(thrust::hip::par(alloc),
-            keys_ptr,
-            keys_ptr + nsend,
-            tmp_ptr);
-        }
+    assert(d_tmp);
+    assert(d_in_copy);
+
+    thrust::sort_by_key(thrust::hip::par(alloc),
+        keys_ptr,
+        keys_ptr + nsend,
+        tmp_ptr);
 
     // reorder send buf
     thrust::gather(tmp_ptr, tmp_ptr + nsend, in_copy_ptr, in_ptr);
@@ -233,7 +246,7 @@ struct wrap_particle_op_gpu : public thrust::unary_function<const pdata_element,
     //! Constructor
     /*!
      */
-    wrap_particle_op_gpu(const BoxDim _box)
+    __host__ __device__ wrap_particle_op_gpu(const BoxDim _box)
         : box(_box)
         {
         }
@@ -259,6 +272,8 @@ void gpu_wrap_particles(const unsigned int n_recv,
                         pdata_element *d_in,
                         const BoxDim& box)
     {
+    assert(d_in);
+
     // Wrap device ptr
     thrust::device_ptr<pdata_element> in_ptr(d_in);
 
@@ -275,6 +290,9 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
                      unsigned int *d_delete_tags,
                      unsigned int *d_rtag)
     {
+    assert(d_delete_tags);
+    assert(d_rtag);
+
     thrust::device_ptr<unsigned int> delete_tags_ptr(d_delete_tags);
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
@@ -372,6 +390,12 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   unsigned int ntypes,
                                   unsigned int mask)
     {
+    assert(d_plan);
+    assert(d_pos);
+    assert(d_body);
+    assert(d_r_ghost);
+    assert(d_r_ghost_body);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
     unsigned int shared_bytes = 2 *sizeof(Scalar3) * ntypes;
@@ -459,6 +483,11 @@ void gpu_make_ghost_group_exchange_plan(unsigned int *d_ghost_group_plan,
                                    const unsigned int *d_plans,
                                    unsigned int n_local)
     {
+    assert(d_ghost_group_plan);
+    assert(d_groups);
+    assert(d_rtag);
+    assert(d_plans);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 
@@ -541,6 +570,12 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
     unsigned int nneigh,
     CachedAllocator& alloc)
     {
+    if (!N) return 0;
+
+    assert(d_ghost_plan);
+    assert(d_adj);
+    assert(d_counts);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 
@@ -553,39 +588,40 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
         nneigh);
 
     // determine output size
-    unsigned int total = 0;
-    if (N)
-        {
-        void     *d_temp_storage = NULL;
-        size_t   temp_storage_bytes = 0;
+    unsigned int total;
+    assert(d_scan);
 
-        // determine size of temporary storage
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_counts, d_scan, N);
+    void     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
 
-        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_counts, d_scan, N);
-        alloc.deallocate((char *)d_temp_storage);
+    // determine size of temporary storage
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_counts, d_scan, N);
 
-        // determine total number of ghosts
-        d_temp_storage = NULL;
-        temp_storage_bytes = 0;
-        unsigned int *d_total = alloc.getTemporaryBuffer<unsigned int>(1);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_counts,
-            d_total,
-            N);
-        d_temp_storage = alloc.allocate(temp_storage_bytes);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_counts,
-            d_total,
-            N);
-        alloc.deallocate((char *) d_temp_storage);
-     
-        hipMemcpy(&total, d_total, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        alloc.deallocate((char *)d_total);
-        }
+    d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_counts, d_scan, N);
+    alloc.deallocate((char *)d_temp_storage);
+
+    // determine total number of ghosts
+    d_temp_storage = NULL;
+    temp_storage_bytes = 0;
+    unsigned int *d_total = alloc.getTemporaryBuffer<unsigned int>(1);
+    assert(d_total);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_counts,
+        d_total,
+        N);
+    d_temp_storage = alloc.allocate(temp_storage_bytes);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_counts,
+        d_total,
+        N);
+    alloc.deallocate((char *) d_temp_storage);
+ 
+    hipMemcpy(&total, d_total, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    alloc.deallocate((char *)d_total);
+
     return total;
     }
 
@@ -635,6 +671,17 @@ void gpu_exchange_ghosts_make_indices(
     unsigned int mask,
     CachedAllocator& alloc)
     {
+    assert(d_ghost_plan);
+    assert(d_tag);
+    assert(d_adj);
+    assert(d_unique_neighbors);
+    assert(d_counts);
+    assert(d_scan);
+    assert(d_ghost_idx_adj);
+    assert(d_ghost_neigh);
+    assert(d_ghost_begin);
+    assert(d_ghost_end);
+
     /*
      * expand each tag by the number of neighbors to send the corresponding ptl to
      * and assign each copy to a different neighbor
@@ -646,6 +693,8 @@ void gpu_exchange_ghosts_make_indices(
 		thrust::device_ptr<const unsigned int> counts(d_counts);
 		thrust::device_ptr<const unsigned int> scan(d_scan);
         unsigned int *d_output_indices = alloc.getTemporaryBuffer<unsigned int>(n_out);
+        assert(d_output_indices);
+
         thrust::device_ptr<unsigned int> output_indices(d_output_indices);
         thrust::fill(thrust::hip::par(alloc),
             output_indices,
@@ -841,40 +890,57 @@ void gpu_exchange_ghosts_pack(
     uint3 my_pos,
     const BoxDim& box)
     {
+    assert(d_ghost_idx_adj);
+    assert(d_tag);
+    assert(d_pos);
+    assert(d_img);
+    assert(d_vel);
+    assert(d_charge);
+    assert(d_diameter);
+    assert(d_body);
+    assert(d_orientation);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = n_out/block_size + 1;
     if (send_tag)
         {
+        assert(d_tag_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_tag, d_tag_sendbuf);
         }
     if (send_pos)
         {
+        assert(d_pos_sendbuf);
         hipLaunchKernelGGL(gpu_pack_wrap_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_pos, d_img, d_pos_sendbuf, send_image ? d_img_sendbuf : 0, di, my_pos, box);
         }
     if (send_vel)
         {
+        assert(d_vel_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
            n_out, d_ghost_idx_adj, d_vel, d_vel_sendbuf);
         }
     if (send_charge)
         {
+        assert(d_charge_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_charge, d_charge_sendbuf);
         }
     if (send_diameter)
         {
+        assert(d_diameter_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_diameter, d_diameter_sendbuf);
         }
     if (send_body)
         {
+        assert(d_body_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_body, d_body_sendbuf);
         }
     if (send_orientation)
         {
+        assert(d_orientation_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_orientation, d_orientation_sendbuf);
         }
@@ -886,6 +952,10 @@ void gpu_exchange_ghosts_pack_netforce(
     const Scalar4 *d_netforce,
     Scalar4 *d_netforce_sendbuf)
     {
+    assert(d_ghost_idx_adj);
+    assert(d_netforce);
+    assert(d_netforce_sendbuf);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = n_out/block_size + 1;
     hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
@@ -919,6 +989,10 @@ void gpu_exchange_ghosts_pack_netvirial(
     Scalar *d_netvirial_sendbuf,
     unsigned int pitch_in)
     {
+    assert(d_ghost_idx_adj);
+    assert(d_netvirial);
+    assert(d_netvirial_sendbuf);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = n_out/block_size + 1;
     hipLaunchKernelGGL(gpu_pack_netvirial_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
@@ -960,6 +1034,13 @@ void gpu_exchange_ghost_groups_pack(
     const ranks_t *d_group_ranks,
     group_element_t *d_groups_sendbuf)
     {
+    assert(d_ghost_idx_adj);
+    assert(d_group_tag);
+    assert(d_groups);
+    assert(d_group_typeval);
+    assert(d_group_ranks);
+    assert(d_groups_sendbuf);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = n_out/block_size + 1;
 
@@ -1055,6 +1136,9 @@ void gpu_exchange_ghosts_copy_netforce_buf(
     const Scalar4 *d_netforce_recvbuf,
     Scalar4 *d_netforce)
     {
+    assert(d_netforce_recvbuf);
+    assert(d_netforce);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = n_recv/block_size + 1;
     hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<Scalar4>), dim3(n_blocks), dim3(block_size), 0, 0,
@@ -1083,6 +1167,9 @@ void gpu_exchange_ghosts_copy_netvirial_buf(
     Scalar *d_netvirial,
     unsigned int pitch_out)
     {
+    assert(d_netvirial_recvbuf);
+    assert(d_netvirial);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = n_recv/block_size + 1;
     hipLaunchKernelGGL(gpu_unpack_netvirial_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
@@ -1175,6 +1262,16 @@ void gpu_exchange_ghost_groups_copy_buf(
     unsigned int &n_keep,
     CachedAllocator& alloc)
     {
+    n_keep = 0;
+    if (!nrecv) return;
+
+    assert(d_groups_recvbuf);
+    assert(d_group_tag);
+    assert(d_groups);
+    assert(d_keep);
+    assert(d_group_rtag);
+    assert(d_rtag);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = nrecv/block_size + 1;
 
@@ -1188,38 +1285,38 @@ void gpu_exchange_ghost_groups_copy_buf(
         d_rtag,
         max_n_local);
 
-    if (nrecv)
-        {
-        void     *d_temp_storage = NULL;
-        size_t   temp_storage_bytes = 0;
+    assert(d_scan);
 
-        // determine size of temporary storage
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_keep, d_scan, nrecv);
+    void     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
 
-        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_keep, d_scan, nrecv);
-        alloc.deallocate((char *)d_temp_storage);
+    // determine size of temporary storage
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_keep, d_scan, nrecv);
 
-        // determine total number of received groups
-        d_temp_storage = NULL;
-        temp_storage_bytes = 0;
-        unsigned int *d_n_keep = alloc.getTemporaryBuffer<unsigned int>(1);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_keep,
-            d_n_keep,
-            nrecv);
-        d_temp_storage = alloc.allocate(temp_storage_bytes);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_keep,
-            d_n_keep,
-            nrecv);
-        alloc.deallocate((char *) d_temp_storage);
-     
-        hipMemcpy(&n_keep, d_n_keep, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        alloc.deallocate((char *)d_n_keep);
-        }
+    d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_keep, d_scan, nrecv);
+    alloc.deallocate((char *)d_temp_storage);
+
+    // determine total number of received groups
+    d_temp_storage = NULL;
+    temp_storage_bytes = 0;
+    unsigned int *d_n_keep = alloc.getTemporaryBuffer<unsigned int>(1);
+    assert(d_n_keep);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_keep,
+        d_n_keep,
+        nrecv);
+    d_temp_storage = alloc.allocate(temp_storage_bytes);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_keep,
+        d_n_keep,
+        nrecv);
+    alloc.deallocate((char *) d_temp_storage);
+ 
+    hipMemcpy(&n_keep, d_n_keep, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    alloc.deallocate((char *)d_n_keep);
 
     hipLaunchKernelGGL(gpu_unpack_groups_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
         nrecv,
@@ -1239,6 +1336,9 @@ void gpu_compute_ghost_rtags(
      const unsigned int *d_tag,
      unsigned int *d_rtag)
     {
+    assert(d_tag);
+    assert(d_rtag);
+
     thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
@@ -1399,6 +1499,15 @@ void gpu_mark_groups(
     bool incomplete,
     CachedAllocator& alloc)
     {
+    n_out = 0;
+    if (!n_groups) return;
+
+    assert(d_comm_flags);
+    assert(d_members);
+    assert(d_group_ranks);
+    assert(d_rank_mask);
+    assert(d_rtag);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups/block_size + 1;
 
@@ -1417,42 +1526,36 @@ void gpu_mark_groups(
         incomplete);
 
     // scan over marked groups
-    if (n_groups)
-        {
-        void     *d_temp_storage = NULL;
-        size_t   temp_storage_bytes = 0;
+    void     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
 
-        // determine size of temporary storage
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
+    // determine size of temporary storage
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
 
-        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
-        alloc.deallocate((char *)d_temp_storage);
+    d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
+    alloc.deallocate((char *)d_temp_storage);
 
-        // determine total number of sent groups
-        d_temp_storage = NULL;
-        temp_storage_bytes = 0;
-        unsigned int *d_n_out = alloc.getTemporaryBuffer<unsigned int>(1);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_marked_groups,
-            d_n_out,
-            n_groups);
-        d_temp_storage = alloc.allocate(temp_storage_bytes);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_marked_groups,
-            d_n_out,
-            n_groups);
-        alloc.deallocate((char *) d_temp_storage);
-     
-        hipMemcpy(&n_out, d_n_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        alloc.deallocate((char *)d_n_out);
-        }
-    else
-        {
-        n_out = 0;
-        }
+    // determine total number of sent groups
+    d_temp_storage = NULL;
+    temp_storage_bytes = 0;
+    unsigned int *d_n_out = alloc.getTemporaryBuffer<unsigned int>(1);
+    assert(d_n_out);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_marked_groups,
+        d_n_out,
+        n_groups);
+    d_temp_storage = alloc.allocate(temp_storage_bytes);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_marked_groups,
+        d_n_out,
+        n_groups);
+    alloc.deallocate((char *) d_temp_storage);
+ 
+    hipMemcpy(&n_out, d_n_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    alloc.deallocate((char *)d_n_out);
     }
 
 template<unsigned int group_size, typename group_t, typename ranks_t, typename rank_element_t>
@@ -1518,6 +1621,19 @@ void gpu_scatter_ranks_and_mark_send_groups(
     rank_element_t *d_out_ranks,
     CachedAllocator& alloc)
     {
+    n_send = 0;
+    if (!n_groups) return;
+
+    assert(d_group_tag);
+    assert(d_group_ranks);
+    assert(d_rank_mask);
+    assert(d_groups);
+    assert(d_rtag);
+    assert(d_comm_flags);
+    assert(d_marked_send_groups);
+    assert(d_scan);
+    assert(d_out_ranks);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups/block_size + 1;
 
@@ -1534,42 +1650,36 @@ void gpu_scatter_ranks_and_mark_send_groups(
         d_out_ranks);
 
     // scan over groups marked for sending
-    if (n_groups)
-        {
-        void     *d_temp_storage = NULL;
-        size_t   temp_storage_bytes = 0;
+    void     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
 
-        // determine size of temporary storage
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_send_groups, d_scan, n_groups);
+    // determine size of temporary storage
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_send_groups, d_scan, n_groups);
 
-        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_send_groups, d_scan, n_groups);
-        alloc.deallocate((char *)d_temp_storage);
+    d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_send_groups, d_scan, n_groups);
+    alloc.deallocate((char *)d_temp_storage);
 
-        // determine total number of sent groups
-        d_temp_storage = NULL;
-        temp_storage_bytes = 0;
-        unsigned int *d_n_send = alloc.getTemporaryBuffer<unsigned int>(1);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_marked_send_groups,
-            d_n_send,
-            n_groups);
-        d_temp_storage = alloc.allocate(temp_storage_bytes);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_marked_send_groups,
-            d_n_send,
-            n_groups);
-        alloc.deallocate((char *) d_temp_storage);
-     
-        hipMemcpy(&n_send, d_n_send, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        alloc.deallocate((char *)d_n_send);
-        }
-    else
-        {
-        n_send = 0;
-        }
+    // determine total number of sent groups
+    d_temp_storage = NULL;
+    temp_storage_bytes = 0;
+    unsigned int *d_n_send = alloc.getTemporaryBuffer<unsigned int>(1);
+    assert(d_n_send);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_marked_send_groups,
+        d_n_send,
+        n_groups);
+    d_temp_storage = alloc.allocate(temp_storage_bytes);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_marked_send_groups,
+        d_n_send,
+        n_groups);
+    alloc.deallocate((char *) d_temp_storage);
+ 
+    hipMemcpy(&n_send, d_n_send, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    alloc.deallocate((char *)d_n_send);
     }
 
 template<unsigned int group_size, typename ranks_t, typename rank_element_t>
@@ -1614,6 +1724,9 @@ void gpu_update_ranks_table(
     const rank_element_t *d_ranks_recvbuf
     )
     {
+    assert(d_group_ranks);
+    assert(d_group_rtag);
+    assert(d_ranks_recvbuf);
     unsigned int block_size = 256;
     unsigned int n_blocks = n_recv/block_size + 1;
 
@@ -1707,6 +1820,19 @@ void gpu_scatter_and_mark_groups_for_removal(
     unsigned int *d_out_rank_mask,
     bool local_multiple)
     {
+    assert(d_groups);
+    assert(d_group_typeval);
+    assert(d_group_tag);
+    assert(d_group_rtag);
+    assert(d_group_ranks);
+    assert(d_rank_mask);
+    assert(d_rtag);
+    assert(d_comm_flags);
+    assert(d_scan);
+    assert(d_marked_groups);
+    assert(d_out_groups);
+    assert(d_out_rank_mask);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups/block_size + 1;
 
@@ -1780,43 +1906,52 @@ void gpu_remove_groups(unsigned int n_groups,
     unsigned int *d_scan,
     CachedAllocator& alloc)
     {
+    new_ngroups = 0;
+    if (!n_groups) return;
+
+    assert(d_groups);
+    assert(d_groups_alt);
+    assert(d_group_typeval);
+    assert(d_group_typeval_alt);
+    assert(d_group_tag);
+    assert(d_group_tag_alt);
+    assert(d_group_ranks);
+    assert(d_group_ranks_alt);
+    assert(d_group_rtag);
+    assert(d_marked_groups);
+    assert(d_scan);
+
     // scan over marked groups
-    if (n_groups)
-        {
-        void     *d_temp_storage = NULL;
-        size_t   temp_storage_bytes = 0;
+    void     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
 
-        // determine size of temporary storage
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
+    // determine size of temporary storage
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
 
-        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
-        alloc.deallocate((char *)d_temp_storage);
+    d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_scan, n_groups);
+    alloc.deallocate((char *)d_temp_storage);
 
-        // determine new_ngroups number of ghosts
-        d_temp_storage = NULL;
-        temp_storage_bytes = 0;
-        unsigned int *d_new_ngroups = alloc.getTemporaryBuffer<unsigned int>(1);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_marked_groups,
-            d_new_ngroups,
-            n_groups);
-        d_temp_storage = alloc.allocate(temp_storage_bytes);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_marked_groups,
-            d_new_ngroups,
-            n_groups);
-        alloc.deallocate((char *) d_temp_storage);
-     
-        hipMemcpy(&new_ngroups, d_new_ngroups, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        alloc.deallocate((char *)d_new_ngroups);
-        }
-    else
-        {
-        new_ngroups = 0;
-        }
+    // determine new_ngroups number of ghosts
+    d_temp_storage = NULL;
+    temp_storage_bytes = 0;
+    unsigned int *d_new_ngroups = alloc.getTemporaryBuffer<unsigned int>(1);
+    assert(d_new_ngroups);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_marked_groups,
+        d_new_ngroups,
+        n_groups);
+    d_temp_storage = alloc.allocate(temp_storage_bytes);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_marked_groups,
+        d_new_ngroups,
+        n_groups);
+    alloc.deallocate((char *) d_temp_storage);
+ 
+    hipMemcpy(&new_ngroups, d_new_ngroups, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    alloc.deallocate((char *)d_new_ngroups);
 
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups/block_size + 1;
@@ -1928,6 +2063,17 @@ void gpu_add_groups(unsigned int n_groups,
     unsigned int myrank,
     CachedAllocator& alloc)
     {
+    new_ngroups = n_groups;
+    if (!n_recv) return;
+
+    assert(d_groups_in);
+    assert(d_groups);
+    assert(d_group_typeval);
+    assert(d_group_tag);
+    assert(d_group_rtag);
+    assert(d_marked_groups);
+    assert(d_tmp);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = n_recv/block_size + 1;
 
@@ -1943,44 +2089,39 @@ void gpu_add_groups(unsigned int n_groups,
     unsigned int n_unique;
 
     // scan over input groups, select those which are not already local
-    if (n_recv)
-        {
-        void     *d_temp_storage = NULL;
-        size_t   temp_storage_bytes = 0;
+    void     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
 
-        // determine size of temporary storage
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_tmp, n_recv);
+    // determine size of temporary storage
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_tmp, n_recv);
 
-        d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-        hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_tmp, n_recv);
-        alloc.deallocate((char *)d_temp_storage);
+    d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_tmp, n_recv);
+    alloc.deallocate((char *)d_temp_storage);
 
-        // determine n_unique number of ghosts
-        d_temp_storage = NULL;
-        temp_storage_bytes = 0;
-        unsigned int *d_n_unique = alloc.getTemporaryBuffer<unsigned int>(1);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_marked_groups,
-            d_n_unique,
-            n_recv);
-        d_temp_storage = alloc.allocate(temp_storage_bytes);
-        hipcub::DeviceReduce::Sum(d_temp_storage,
-            temp_storage_bytes,
-            d_marked_groups,
-            d_n_unique,
-            n_recv);
-        alloc.deallocate((char *) d_temp_storage);
-     
-        hipMemcpy(&n_unique, d_n_unique, sizeof(unsigned int), hipMemcpyDeviceToHost);
-        alloc.deallocate((char *)d_n_unique);
-        }
-    else
-        {
-        n_unique = 0;
-        }
+    // determine n_unique number of ghosts
+    d_temp_storage = NULL;
+    temp_storage_bytes = 0;
+    unsigned int *d_n_unique = alloc.getTemporaryBuffer<unsigned int>(1);
+    assert(d_n_unique);
 
-    new_ngroups = n_groups + n_unique;
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_marked_groups,
+        d_n_unique,
+        n_recv);
+    d_temp_storage = alloc.allocate(temp_storage_bytes);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_marked_groups,
+        d_n_unique,
+        n_recv);
+    alloc.deallocate((char *) d_temp_storage);
+ 
+    hipMemcpy(&n_unique, d_n_unique, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    alloc.deallocate((char *)d_n_unique);
+
+    new_ngroups += n_unique;
 
     // add new groups at the end
     hipLaunchKernelGGL(gpu_add_groups_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
@@ -2109,6 +2250,13 @@ void gpu_mark_bonded_ghosts(
     unsigned int my_rank,
     unsigned int mask)
     {
+    assert(d_groups);
+    assert(d_ranks);
+    assert(d_postype);
+    assert(d_rtag);
+    assert(d_plan);
+    assert(d_cart_ranks_inv);
+
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups/block_size + 1;
 

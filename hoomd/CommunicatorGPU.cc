@@ -1491,7 +1491,7 @@ void CommunicatorGPU::migrateParticles()
         uint3 mypos = m_decomposition->getGridPos();
 
         /* We need some better heuristics to decide whether to take the GPU or CPU code path */
-        #if defined(ENABLE_MPI_CUDA) && 0
+        #if 1
             {
             // resize keys
             m_send_keys.resize(m_gpu_sendbuf.size());

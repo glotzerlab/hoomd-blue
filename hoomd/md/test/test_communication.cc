@@ -2021,6 +2021,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     // migrate particles
     comm->migrateParticles();
 
+    std::cout << "Here" << std::endl;
     switch(exec_conf->getRank())
         {
         case 0:
@@ -2320,10 +2321,13 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             break;
         }
 
+    std::cout << "Here-a" << std::endl;
     // move particle back
     pdata->setPosition(0, make_scalar3(-.4, -0.4, -0.4),false);
 
+    std::cout << "Here-b" << std::endl;
     comm->migrateParticles();
+    std::cout << "Here-c" << std::endl;
 
     // check that old state has been restored
     UP_ASSERT_EQUAL(pdata->getN(), 1);
@@ -2584,7 +2588,6 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
                 }
             break;
         }
-
 
     }
 

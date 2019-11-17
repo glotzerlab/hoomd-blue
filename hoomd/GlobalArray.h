@@ -147,7 +147,7 @@ class managed_deleter
                 hipFree(m_allocation_ptr);
                 #else
                 // HIP doesn't yet support hipFree on managed memory
-                hipFreeHost(m_allocation_ptr);
+                hipHostFree(m_allocation_ptr);
                 #endif
                 CHECK_CUDA_ERROR();
                 }
