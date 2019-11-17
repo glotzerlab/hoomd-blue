@@ -1009,14 +1009,16 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
     if (m_exec_conf)
         m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB device->host " <<
            (async ? std::string("async") : std::string()) << std::endl;
+    #ifdef ENABLE_HIP
     if (async)
-        #ifdef ENABLE_HIP
+        {
         hipMemcpyAsync(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, hipMemcpyDeviceToHost);
-        #endif
+        }
     else
-        #ifdef ENABLE_HIP
+        {
         hipMemcpy(h_data.get(), d_data.get(), sizeof(T)*m_num_elements, hipMemcpyDeviceToHost);
-        #endif
+        }
+    #endif
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     }

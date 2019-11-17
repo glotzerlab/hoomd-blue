@@ -20,7 +20,6 @@ namespace py = pybind11;
 ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
         : ForceComposite(sysdef)
     {
-
     // power of two block sizes
     const hipDeviceProp_t& dev_prop = m_exec_conf->dev_prop;
     std::vector<unsigned int> valid_params;
