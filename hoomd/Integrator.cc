@@ -272,7 +272,7 @@ void Integrator::computeAccelerations(unsigned int timestep)
 Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     {
     // grab access to the particle data
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
 
     // sum up the kinetic energy
     double p_tot_x = 0.0;
@@ -289,9 +289,9 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        MPI_Allreduce(MPI_IN_PLACE, &p_tot_x, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &p_tot_y, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &p_tot_z, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_x, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_y, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_z, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
         }
     #endif
 
