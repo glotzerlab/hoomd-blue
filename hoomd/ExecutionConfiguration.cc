@@ -141,7 +141,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         {
         if (! m_concurrent && gpu_id.size() > 1)
             {
-            msg->error() << "Multi-GPU execution requested, but not all GPUs support concurrent managed access" << endl;
+            msg->errorAllRanks() << "Multi-GPU execution requested, but not all GPUs support concurrent managed access" << endl;
             throw runtime_error("Error initializing execution configuration");
             }
 
@@ -325,8 +325,8 @@ void ExecutionConfiguration::handleHIPError(hipError_t err, const char *file, un
             file += strlen(HOOMD_SOURCE_DIR);
 
         // print an error message
-        msg->error() << string(hipGetErrorString(err)) << " before "
-                     << file << ":" << line << endl;
+        msg->errorAllRanks() << string(hipGetErrorString(err)) << " before "
+                             << file << ":" << line << endl;
 
         // throw an error exception
         throw(runtime_error("HIP Error"));
@@ -347,26 +347,26 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
     int capable_count = getNumCapableGPUs();
     if (capable_count == 0)
         {
-        msg->error() << "No capable GPUs were found!" << endl;
+        msg->errorAllRanks() << "No capable GPUs were found!" << endl;
         throw runtime_error("Error initializing execution configuration");
         }
 
     if (gpu_id < -1)
         {
-        msg->error() << "The specified GPU id (" << gpu_id << ") is invalid." << endl;
+        msg->errorAllRanks() << "The specified GPU id (" << gpu_id << ") is invalid." << endl;
         throw runtime_error("Error initializing execution configuration");
         }
 
     if (gpu_id >= (int)getNumTotalGPUs())
         {
-        msg->error() << "The specified GPU id (" << gpu_id << ") is not present in the system." << endl;
-        msg->error() << "CUDA reports only " << getNumTotalGPUs() << endl;
+        msg->errorAllRanks() << "The specified GPU id (" << gpu_id << ") is not present in the system." << endl;
+        msg->errorAllRanks() << "CUDA reports only " << getNumTotalGPUs() << endl;
         throw runtime_error("Error initializing execution configuration");
         }
 
     if (!isGPUAvailable(gpu_id))
         {
-        msg->error() << "The specified GPU id (" << gpu_id << ") is not available for executing HOOMD." << endl;
+        msg->errorAllRanks() << "The specified GPU id (" << gpu_id << ") is not available for executing HOOMD." << endl;
         throw runtime_error("Error initializing execution configuration");
         }
 
@@ -508,7 +508,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 
         if (error != hipSuccess)
             {
-            msg->error() << "Error calling hipGetDeviceProperties()" << endl;
+            msg->errorAllRanks() << "Error calling hipGetDeviceProperties()" << endl;
             throw runtime_error("Error initializing execution configuration");
             }
 
@@ -573,7 +573,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             hipError_t error = hipGetDeviceProperties(&prop, dev);
             if (error != hipSuccess)
                 {
-                msg->error() << "Error calling hipGetDeviceProperties()" << endl;
+                msg->errorAllRanks() << "Error calling hipGetDeviceProperties()" << endl;
                 throw runtime_error("Error initializing execution configuration");
                 }
 

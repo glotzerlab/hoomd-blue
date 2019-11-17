@@ -196,7 +196,7 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # link the library to its dependencies
-target_link_libraries(_hoomd PUBLIC quickhull Eigen3::Eigen)
+target_link_libraries(_hoomd PUBLIC pybind11::pybind11 quickhull Eigen3::Eigen)
 
 # specify required include directories
 target_include_directories(_hoomd PUBLIC

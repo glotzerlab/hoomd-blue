@@ -103,7 +103,7 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
         std::unique_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function
 
-        hipfftHandle m_hipfft_plan;          //!< The FFT plan
+        std::vector<hipfftHandle> m_hipfft_plan;          //!< The FFT plan
         bool m_local_fft;                  //!< True if we are only doing local FFTs (not distributed)
 
         #ifdef ENABLE_MPI

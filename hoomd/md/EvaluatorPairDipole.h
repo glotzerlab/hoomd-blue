@@ -70,10 +70,29 @@ struct pair_dipole_params
         }
     };
 
+// Nullary structure required by AnisoPotentialPair.
+struct dipole_shape_params
+    {
+    HOSTDEVICE dipole_shape_params() {}
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const {}
+    #endif
+    };
+
 class EvaluatorPairDipole
     {
     public:
         typedef pair_dipole_params param_type;
+        typedef dipole_shape_params shape_param_type;
+
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centers of mass
             \param _rcutsq Squared distance at which the potential goes to 0
@@ -95,11 +114,17 @@ class EvaluatorPairDipole
             return false;
             }
 
-        //! Accept the optional diameter values
-        /*! \param di Diameter of particle i
-            \param dj Diameter of particle j
-        */
-        HOSTDEVICE void setDiameter(Scalar di, Scalar dj){}
+        //! Whether the pair potential uses shape.
+        HOSTDEVICE static bool needsShape()
+            {
+            return false;
+            }
+
+        //! Whether the pair potential needs particle tags.
+        HOSTDEVICE static bool needsTags()
+            {
+            return false;
+            }
 
         //! whether pair potential requires charges
         HOSTDEVICE static bool needsCharge()
@@ -108,7 +133,24 @@ class EvaluatorPairDipole
             }
 
         //! Accept the optional diameter values
-        //! This function is pure virtual
+        /*! \param di Diameter of particle i
+            \param dj Diameter of particle j
+        */
+        HOSTDEVICE void setDiameter(Scalar di, Scalar dj){}
+
+        //! Accept the optional shape values
+        /*! \param shape_i Shape of particle i
+            \param shape_j Shape of particle j
+        */
+        HOSTDEVICE void setShape(const shape_param_type *shapei, const shape_param_type *shapej) {}
+
+        //! Accept the optional tags
+        /*! \param tag_i Tag of particle i
+            \param tag_j Tag of particle j
+        */
+        HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) {}
+
+        //! Accept the optional charge values
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */

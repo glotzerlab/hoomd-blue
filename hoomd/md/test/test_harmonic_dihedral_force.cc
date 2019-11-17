@@ -52,7 +52,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
 
     // create the dihedral force compute to check
     std::shared_ptr<HarmonicDihedralForceCompute> fc_4 = tf_creator(sysdef_4);
-    fc_4->setParams(0, Scalar(30.0), -1, 3); // type=0, K=30.0,sign=-1,multiplicity=3
+    fc_4->setParams(0, Scalar(30.0), -1, 3, Scalar(0)); // type=0, K=30.0,sign=-1,multiplicity=3, phaseoffset=0
 
     // compute the force and check the results
     fc_4->compute(0);
@@ -199,8 +199,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     }
 
     std::shared_ptr<HarmonicDihedralForceCompute> fc_8 = tf_creator(sysdef_8);
-    fc_8->setParams(0, 50.0, -1, 3);
-    fc_8->setParams(1, 30.0,  1, 4);
+    fc_8->setParams(0, 50.0, -1, 3, 0.0);
+    fc_8->setParams(1, 30.0,  1, 4, 0.0);
 
     sysdef_8->getDihedralData()->addBondedGroup(Dihedral(0, 0,1,2,3));
     sysdef_8->getDihedralData()->addBondedGroup(Dihedral(1, 4,5,6,7));
@@ -309,7 +309,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
 
     // build the dihedral force compute and try it out
     std::shared_ptr<HarmonicDihedralForceCompute> fc_5 = tf_creator(sysdef_5);
-    fc_5->setParams(0, 15.0, -1, 4);
+    fc_5->setParams(0, 15.0, -1, 4, 0.0);
 
     sysdef_5->getDihedralData()->addBondedGroup(Dihedral(0, 0,1,2,3));
     sysdef_5->getDihedralData()->addBondedGroup(Dihedral(0, 1,2,3,4));
@@ -365,6 +365,107 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     }
     }
 
+//! Perform tests for harmonic dihedrals with phase shift
+void dihedral_force_phase_shift(dihedralforce_creator tf_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    /////////////////////////////////////////////////////////
+    // start with the simplest possible test: 4 particles in a huge box with only one dihedral type !!!! NO DIHEDRALS
+    std::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 1, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+
+    pdata_4->setPosition(0,make_scalar3(0.0,1.0,0.0));
+    pdata_4->setPosition(1,make_scalar3(0.0,0.0,0.0));
+    pdata_4->setPosition(2,make_scalar3(1.0,0.0,0.0));
+    pdata_4->setPosition(3,make_scalar3(0.0,0.0,1.0));
+
+    // create the dihedral force compute to check
+    std::shared_ptr<HarmonicDihedralForceCompute> fc_4 = tf_creator(sysdef_4);
+    fc_4->setParams(0, Scalar(10.0), 1, 1, Scalar(0.5*M_PI)); // type=0, K=30.0,sign=-1,multiplicity=3, phaseoffset=0, i think the ref angle is 0.240454
+
+    // compute the force and check the results
+    fc_4->compute(0);
+
+    {
+    GlobalArray<Scalar4>& force_array_1 =  fc_4->getForceArray();
+    GlobalArray<Scalar>& virial_array_1 =  fc_4->getVirialArray();
+
+    ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
+    ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
+
+    unsigned int pitch = 0;
+    // check that the force is correct, it should be 0 since we haven't created any dihedrals yet
+    MY_CHECK_SMALL(h_force_1.data[0].x, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].y, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].z, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].w, tol);
+    MY_CHECK_SMALL(h_virial_1.data[0*pitch], tol);
+    MY_CHECK_SMALL(h_virial_1.data[1*pitch], tol);
+    MY_CHECK_SMALL(h_virial_1.data[2*pitch], tol);
+    MY_CHECK_SMALL(h_virial_1.data[3*pitch], tol);
+    MY_CHECK_SMALL(h_virial_1.data[4*pitch], tol);
+    MY_CHECK_SMALL(h_virial_1.data[5*pitch], tol);
+    }
+
+
+    // add dihedral 
+    sysdef_4->getDihedralData()->addBondedGroup(Dihedral(0,0,1,2,3)); // add type 0 dihedral between atoms 0-1-2-3
+    fc_4->compute(1);
+
+    {
+    // this time there should be a force (but they're 0 because eq)
+    GlobalArray<Scalar4>& force_array_2 =  fc_4->getForceArray();
+    GlobalArray<Scalar>& virial_array_2 =  fc_4->getVirialArray();
+    unsigned int pitch = virial_array_2.getPitch();
+    ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
+    ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
+    /*
+    printf(" Particle 1: x = %f  y = %f  z = %f w = %f \n", h_force_2.data[0].x, h_force_2.data[0].y, h_force_2.data[0].z, h_force_2.data[0].w);
+    printf(" Particle 2: x = %f  y = %f  z = %f w = %f \n", h_force_2.data[1].x, h_force_2.data[1].y, h_force_2.data[1].z, h_force_2.data[1].w);
+    printf(" Particle 3: x = %f  y = %f  z = %f w = %f \n", h_force_2.data[2].x, h_force_2.data[2].y, h_force_2.data[2].z, h_force_2.data[2].w);
+    printf(" Particle 4: x = %f  y = %f  z = %f w = %f \n", h_force_2.data[3].x, h_force_2.data[3].y, h_force_2.data[3].z, h_force_2.data[3].w);
+    printf( "Virial: %f %f %f %f %f %f \n", h_virial_2.data[0*pitch], h_virial_2.data[1*pitch], h_virial_2.data[2*pitch], h_virial_2.data[3*pitch], h_virial_2.data[4*pitch], h_virial_2.data[5*pitch]);
+    printf("\n");
+    */
+
+
+    MY_CHECK_SMALL(h_force_2.data[0].x, tol);
+    MY_CHECK_SMALL(h_force_2.data[0].y, tol);
+    MY_CHECK_SMALL(h_force_2.data[0].z, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].w, 2.5, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+0]
+                        +h_virial_2.data[3*pitch+0]
+                        +h_virial_2.data[5*pitch+0], tol);
+
+    MY_CHECK_SMALL(h_force_2.data[1].x, tol);
+    MY_CHECK_SMALL(h_force_2.data[1].y, tol);
+    MY_CHECK_SMALL(h_force_2.data[1].z, tol);
+    MY_CHECK_CLOSE(h_force_2.data[1].w, 2.5, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+1]
+                        +h_virial_2.data[3*pitch+1]
+                        +h_virial_2.data[5*pitch+1], tol);
+
+    MY_CHECK_SMALL(h_force_2.data[2].x, tol);
+    MY_CHECK_SMALL(h_force_2.data[2].y, tol);
+    MY_CHECK_SMALL(h_force_2.data[2].z, tol);
+    MY_CHECK_CLOSE(h_force_2.data[2].w, 2.5, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+2]
+                        +h_virial_2.data[3*pitch+2]
+                        +h_virial_2.data[5*pitch+2], tol);
+
+    MY_CHECK_SMALL(h_force_2.data[3].x, tol);
+    MY_CHECK_SMALL(h_force_2.data[3].y, tol);
+    MY_CHECK_SMALL(h_force_2.data[3].z, tol);
+    MY_CHECK_CLOSE(h_force_2.data[3].w, 2.5, tol);
+    MY_CHECK_SMALL(h_virial_2.data[0*pitch+3]
+                        +h_virial_2.data[3*pitch+3]
+                        +h_virial_2.data[5*pitch+3], tol);
+    }
+
+    
+    }
+
+    
+
 //! Compares the output of two HarmonicDihedralForceComputes
 void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
                                      dihedralforce_creator tf_creator2,
@@ -381,8 +482,8 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
 
     std::shared_ptr<HarmonicDihedralForceCompute> fc1 = tf_creator1(sysdef);
     std::shared_ptr<HarmonicDihedralForceCompute> fc2 = tf_creator2(sysdef);
-    fc1->setParams(0, Scalar(3.0), -1, 3);
-    fc2->setParams(0, Scalar(3.0), -1, 3);
+    fc1->setParams(0, Scalar(3.0), -1, 3, Scalar(0.0));
+    fc2->setParams(0, Scalar(3.0), -1, 3, Scalar(0.0));
 
     // add dihedrals
     for (unsigned int i = 0; i < N-3; i++)
@@ -440,6 +541,7 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
     }
     }
 
+
 //! HarmonicDihedralForceCompute creator for dihedral_force_basic_tests()
 std::shared_ptr<HarmonicDihedralForceCompute> base_class_tf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -460,6 +562,7 @@ UP_TEST( HarmonicDihedralForceCompute_basic )
     printf(" IN UP_TEST: CPU \n");
     dihedralforce_creator tf_creator = bind(base_class_tf_creator, _1);
     dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    dihedral_force_phase_shift(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_HIP
@@ -469,6 +572,7 @@ UP_TEST( HarmonicDihedralForceComputeGPU_basic )
     printf(" IN UP_TEST: GPU \n");
     dihedralforce_creator tf_creator = bind(gpu_tf_creator, _1);
     dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    dihedral_force_phase_shift(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! test case for comparing bond GPU and CPU BondForceComputes

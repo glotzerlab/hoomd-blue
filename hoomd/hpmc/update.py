@@ -618,11 +618,11 @@ class muvt(_updater):
             type (str): Particle type to set parameters for
             fugacity (float): Fugacity of this particle type (dimension of volume^-1)
 
-        Example:
+        Example::
 
-            muvt = hpmc.update.muvt(mc, period = 10)
-            muvt.set_fugacity(type='A',fugacity=1.23)
-            variant = hoomd.variant.linear_interp(points= [(0,1e1), (1e5, 4.56)])
+            muvt = hpmc.update.muvt(mc, period=10)
+            muvt.set_fugacity(type='A', fugacity=1.23)
+            variant = hoomd.variant.linear_interp(points=[(0,1e1), (1e5, 4.56)])
             muvt.set_fugacity(type='A', fugacity=variant)
 
         """

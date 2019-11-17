@@ -118,6 +118,9 @@ class PYBIND11_EXPORT Messenger
         //! Get the error stream
         std::ostream& error();
 
+        //! Get the error stream on all ranks
+        std::ostream& errorAllRanks();
+
         //! Alternate method to print error strings
         void errorStr(const std::string& msg);
 
@@ -262,28 +265,10 @@ class PYBIND11_EXPORT Messenger
 
             openSharedFile();
             }
-
-        //! Returns true if this if this rank has exclusive stdout access for error messages
-        bool hasLock() const
-            {
-            return m_has_lock;
-            }
-
-        //! Returns true if any process has locked the output
-        bool isLocked() const
-            {
-            int flag;
-            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0,0, m_mpi_win);
-            MPI_Get(&flag, 1, MPI_INT, 0, 0, 1, MPI_INT, m_mpi_win);
-            MPI_Win_unlock(0, m_mpi_win);
-            return flag;
-            }
 #endif
 
         //! Open stdout and stderr again, closing any open file
         void openStd();
-
-        void close();
 
     private:
         std::shared_ptr<MPIConfiguration> m_mpi_config; //!< The MPI configuration
@@ -305,25 +290,15 @@ class PYBIND11_EXPORT Messenger
         unsigned int m_notice_level;    //!< Notice level
 
         bool m_python_open=false;       //!< True when the python output stream is open
-        bool m_is_closed=false;
         pybind11::module m_sys;         //!< sys module
         pybind11::object m_pystdout;    //!< Currently bound python sys.stdout
         pybind11::object m_pystderr;    //!< Currently bound python sys.stderr
 
 #ifdef ENABLE_MPI
         std::string m_shared_filename;  //!< Filename of shared log file
-        MPI_Win m_mpi_win;              //!< MPI Window for atomic printing of error messages
-        int *m_error_flag;              //!< Flag on (on processor 0) to lock stdout
-        mutable bool m_has_lock;        //!< True if this rank has exclusive access to stdout
 
         //! Open a shared file for error, warning, and notice streams
         void openSharedFile();
-
-        //! Initialize RMA
-        void initializeSharedMem();
-
-        //! Free RMA
-        void releaseSharedMem();
 #endif
     };
 

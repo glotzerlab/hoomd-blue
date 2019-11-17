@@ -107,7 +107,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
 
         if (h_flags.data[0])
             {
-            m_exec_conf->msg->error() << endl << "***Error! << Table bond out of bounds" << endl << endl;
+            m_exec_conf->msg->errorAllRanks() << endl << "Table bond out of bounds" << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
         }

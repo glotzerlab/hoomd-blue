@@ -31,7 +31,13 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
     if (m_local_fft)
-        hipfftDestroy(m_hipfft_plan);
+        {
+        for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
+            {
+            hipSetDevice(m_exec_conf->getGPUIds()[idev]);
+            CHECK_HIPFFT_ERROR(hipfftDestroy(m_hipfft_plan[idev]));
+            }
+        }
     #ifdef ENABLE_MPI
     else
         {
@@ -102,7 +108,13 @@ void PPPMForceComputeGPU::initializeFFT()
 
     if (m_local_fft)
         {
-        hipfftPlan3d(&m_hipfft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, HIPFFT_C2C);
+        // create plan on every device
+        m_hipfft_plan.resize(m_exec_conf->getNumActiveGPUs());
+        for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
+            {
+            hipSetDevice(m_exec_conf->getGPUIds()[idev]);
+            CHECK_HIPFFT_ERROR(hipfftPlan3d(&m_hipfft_plan[idev], m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, HIPFFT_C2C));
+            }
         }
 
     // allocate mesh and transformed mesh
@@ -283,7 +295,7 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
         ArrayHandle<hipfftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
 
-        CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan, d_mesh.data, d_fourier_mesh.data, HIPFFT_FORWARD));
+        CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan[0], d_mesh.data, d_fourier_mesh.data, HIPFFT_FORWARD));
         if (m_prof) m_prof->pop(m_exec_conf);
         }
     #ifdef ENABLE_MPI
@@ -368,15 +380,15 @@ void PPPMForceComputeGPU::updateMeshes()
         for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev>=0; idev--)
             {
             hipSetDevice(m_exec_conf->getGPUIds()[idev]);
-            CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
+            CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan[idev],
                          d_fourier_mesh_G_x.data,
                          d_inv_fourier_mesh_x.data+idev*inv_mesh_elements,
                          HIPFFT_BACKWARD));
-            CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
+            CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan[idev],
                          d_fourier_mesh_G_y.data,
                          d_inv_fourier_mesh_y.data+idev*inv_mesh_elements,
                          HIPFFT_BACKWARD));
-            CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
+            CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan[idev],
                          d_fourier_mesh_G_z.data,
                          d_inv_fourier_mesh_z.data+idev*inv_mesh_elements,
                          HIPFFT_BACKWARD));

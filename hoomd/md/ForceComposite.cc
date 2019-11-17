@@ -854,8 +854,8 @@ void ForceComposite::computeForces(unsigned int timestep)
                 // if the central particle is local, the molecule should be complete
                 if (len != h_body_len.data[type] + 1)
                     {
-                    m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << central_tag << " incomplete"
-                        << std::endl << std::endl;
+                    m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body tag "
+                                                      << central_tag << " incomplete" << std::endl << std::endl;
                     throw std::runtime_error("Error computing composite particle forces.\n");
                     }
 
@@ -969,8 +969,8 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
 
         if (central_idx == NOT_LOCAL)
             {
-            m_exec_conf->msg->error() << "constrain.rigid(): Missing central particle tag " << central_tag << "!"
-                << std::endl << std::endl;
+            m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Missing central particle tag " << central_tag
+                                              << "!" << std::endl << std::endl;
             throw std::runtime_error("Error updating composite particles.\n");
             }
 
@@ -994,8 +994,8 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
             if (iptl < m_pdata->getN())
                 {
                 // if the molecule is incomplete and has local members, this is an error
-                m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << central_tag << " incomplete"
-                    << std::endl << std::endl;
+                m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body tag "
+                                                  << central_tag << " incomplete" << std::endl << std::endl;
                 throw std::runtime_error("Error while updating constituent particles.\n");
                 }
 
