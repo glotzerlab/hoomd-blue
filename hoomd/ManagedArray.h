@@ -181,7 +181,7 @@ class ManagedArray
             if (! ptr_align)
                 return false;
 
-            #ifdef __CUDA_ARCH__
+            #ifdef __HIP_DEVICE_COMPILE__
             // only in GPU code
             unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
             unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;

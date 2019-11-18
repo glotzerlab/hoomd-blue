@@ -388,7 +388,7 @@ namespace fast
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE float rsqrt(float x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return ::rsqrtf(x);
     #else
     return 1.0f / ::sqrtf(x);
@@ -398,7 +398,7 @@ inline HOSTDEVICE float rsqrt(float x)
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE double rsqrt(double x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return ::rsqrt(x);
     #else
     return 1.0 / ::sqrt(x);
@@ -408,7 +408,7 @@ inline HOSTDEVICE double rsqrt(double x)
 //! Compute the sin of x
 inline HOSTDEVICE float sin(float x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return __sinf(x);
     #else
     return ::sinf(x);
@@ -424,7 +424,7 @@ inline HOSTDEVICE double sin(double x)
 //! Compute the cos of x
 inline HOSTDEVICE float cos(float x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return __cosf(x);
     #else
     return ::cosf(x);
@@ -440,7 +440,7 @@ inline HOSTDEVICE double cos(double x)
 //! Compute both of sin of x and cos of x with float precision
 inline HOSTDEVICE void sincos(float x, float& s, float& c)
     {
-    #if  defined(__CUDA_ARCH__) || defined(__APPLE__)
+    #if  defined(__HIP_DEVICE_COMPILE__) || defined(__APPLE__)
     __sincosf(x, &s, &c);
     #else
     ::sincosf(x, &s, &c);
@@ -450,7 +450,7 @@ inline HOSTDEVICE void sincos(float x, float& s, float& c)
 //! Compute both of sin of x and cos of x with double precision
 inline HOSTDEVICE void sincos(double x, double& s, double& c)
     {
-    #if defined(__CUDA_ARCH__)
+    #if defined(__HIP_DEVICE_COMPILE__)
     ::sincos(x, &s, &c);
     #elif defined(__APPLE__)
     ::__sincos(x, &s, &c);
@@ -462,7 +462,7 @@ inline HOSTDEVICE void sincos(double x, double& s, double& c)
 //! Compute both of sin of x and cos of PI * x with float precision
 inline HOSTDEVICE void sincospi(float x, float& s, float& c)
     {
-    #if  defined(__CUDA_ARCH__)
+    #if  defined(__HIP_DEVICE_COMPILE__)
     ::sincospif(x, &s, &c);
     #elif defined(__APPLE__)
     __sincospif(x, &s, &c);
@@ -474,7 +474,7 @@ inline HOSTDEVICE void sincospi(float x, float& s, float& c)
 //! Compute both of sin of x and cos of x with dobule precision
 inline HOSTDEVICE void sincospi(double x, double& s, double& c)
     {
-    #if defined(__CUDA_ARCH__)
+    #if defined(__HIP_DEVICE_COMPILE__)
     ::sincospi(x, &s, &c);
     #elif defined(__APPLE__)
     ::__sincospi(x, &s, &c);
@@ -486,7 +486,7 @@ inline HOSTDEVICE void sincospi(double x, double& s, double& c)
 //! Compute the pow of x,y
 inline HOSTDEVICE float pow(float x, float y)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return __powf(x, y);
     #else
     return ::powf(x, y);
@@ -502,7 +502,7 @@ inline HOSTDEVICE double pow(double x, double y)
 //! Compute the exp of x
 inline HOSTDEVICE float exp(float x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return __expf(x);
     #else
     return ::expf(x);
@@ -518,7 +518,7 @@ inline HOSTDEVICE double exp(double x)
 //! Compute the natural log of x
 inline HOSTDEVICE float log(float x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return __logf(x);
     #else
     return ::log(x);
@@ -581,7 +581,7 @@ namespace slow
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE float rsqrt(float x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return ::rsqrtf(x);
     #else
     return 1.0f / ::sqrtf(x);
@@ -591,7 +591,7 @@ inline HOSTDEVICE float rsqrt(float x)
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE double rsqrt(double x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return ::rsqrt(x);
     #else
     return 1.0 / ::sqrt(x);
@@ -601,7 +601,7 @@ inline HOSTDEVICE double rsqrt(double x)
 //! Compute the sin of x
 inline HOSTDEVICE float sin(float x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return sinf(x);
     #else
     return ::sinf(x);
@@ -617,7 +617,7 @@ inline HOSTDEVICE double sin(double x)
 //! Compute the cos of x
 inline HOSTDEVICE float cos(float x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return cosf(x);
     #else
     return ::cosf(x);
@@ -645,7 +645,7 @@ inline HOSTDEVICE double tan(double x)
 //! Compute the pow of x,y
 inline HOSTDEVICE float pow(float x, float y)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return powf(x, y);
     #else
     return ::powf(x, y);
@@ -661,7 +661,7 @@ inline HOSTDEVICE double pow(double x, double y)
 //! Compute the exp of x
 inline HOSTDEVICE float exp(float x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return expf(x);
     #else
     return ::expf(x);
@@ -677,7 +677,7 @@ inline HOSTDEVICE double exp(double x)
 //! Compute the natural log of x
 inline HOSTDEVICE float log(float x)
     {
-    #ifdef __CUDA_ARCH__
+    #ifdef __HIP_DEVICE_COMPILE__
     return logf(x);
     #else
     return ::log(x);
