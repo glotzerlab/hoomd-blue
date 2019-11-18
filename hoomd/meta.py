@@ -81,12 +81,12 @@ class _Operation:
         self._unapply_typeparam_dict()
         self._cpp_obj = None
 
-    def attach(self):
+    def attach(self, sim):
         raise NotImplementedError
 
     @property
     def is_attached(self):
-        return hasattr(self, '_cpp_obj')
+        return self._cpp_obj is not None
 
     def _apply_param_dict(self):
         for attr, value in self._param_dict.items():
