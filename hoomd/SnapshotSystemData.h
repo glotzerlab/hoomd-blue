@@ -53,31 +53,11 @@ struct SnapshotSystemData {
     ImproperData::Snapshot improper_data;    //!< The improper data
     ConstraintData::Snapshot constraint_data;//!< The constraint data
     PairData::Snapshot pair_data;            //!< The pair data
-    std::vector<IntegratorVariables> integrator_data;  //!< The integrator data
-
-    bool has_particle_data;                //!< True if snapshot contains particle data
-    bool has_bond_data;                    //!< True if snapshot contains bond data
-    bool has_angle_data;                   //!< True if snapshot contains angle data
-    bool has_dihedral_data;                //!< True if snapshot contains dihedral data
-    bool has_improper_data;                //!< True if snapshot contains improper data
-    bool has_constraint_data;              //!< True if snapshot contains constraint data
-    bool has_pair_data;                    //!< True if snapshot contains pair data
-    bool has_integrator_data;              //!< True if snapshot contains integrator data
 
     //! Constructor
     SnapshotSystemData()
         {
         dimensions = 3;
-
-        //! By default, all fields are used for initialization (even if they are empty)
-        has_particle_data = true;
-        has_bond_data = true;
-        has_angle_data = true;
-        has_dihedral_data = true;
-        has_improper_data = true;
-        has_constraint_data = true;
-        has_pair_data = true;
-        has_integrator_data = true;
         }
 
     // Replicate the system along three spatial dimensions

@@ -65,7 +65,7 @@ struct sphinx3d_params : param_base
 
 
         N = pybind11::len(diameters);
-        int N_centers = pybind11::len(centers);
+        unsigned int N_centers = pybind11::len(centers);
 
         if (N_centers > MAX_SPHERE_CENTERS)
             throw std::runtime_error("Too many spheres");

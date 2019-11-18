@@ -60,8 +60,8 @@ namespace detail
 struct poly3d_data : param_base
     {
     poly3d_data(bool _managed=false)
-        : n_faces(0), ignore(0), convex_hull_verts(_managed), verts(0, _managed), face_offs(0, _managed),
-          face_verts(0, _managed), face_overlap(0, _managed)
+        : convex_hull_verts(_managed), verts(0, _managed), face_offs(0, _managed),
+          face_verts(0, _managed), face_overlap(0, _managed), n_faces(0), ignore(0)
         {
         };
 
@@ -80,7 +80,7 @@ struct poly3d_data : param_base
     poly3d_data(pybind11::dict v)
     : poly3d_data(pybind11::len(v["vertices"]), pybind11::len(v["faces"]), pybind11::len(v["faces"])*3, pybind11::len(v["vertices"]), false)
     {
-    
+
     pybind11::list verts_list = v["vertices"];
     pybind11::list face_verts_list = v["faces"];
     pybind11::list face_offs_list = v["face_offs"];
@@ -151,7 +151,7 @@ struct poly3d_data : param_base
         verts[i] = vert;
         radius_sq = max(radius_sq, dot(vert, vert));
         }
-    
+
     unsigned int array_i = 0;
     for (unsigned int i = 0; i < pybind11::len(face_verts_list); i++)
         {
@@ -203,7 +203,7 @@ struct poly3d_data : param_base
     pybind11::dict asDict()
             {
             pybind11::dict v;
-            
+
             pybind11::list faces_list;
             pybind11::list face_vert;
             for (unsigned int i = 0; i < face_verts.size(); i++)
@@ -214,9 +214,9 @@ struct poly3d_data : param_base
                     faces_list.append(face_vert);
                     face_vert = pybind11::list();
                 }
-                
+
             }
-            
+
             pybind11::list verts_list;
             for(unsigned int i = 0; i < n_verts; i++)
             {
@@ -227,25 +227,25 @@ struct poly3d_data : param_base
                 pybind11::tuple vert_tuple = pybind11::tuple(vert);
                 verts_list.append(vert_tuple);
             }
-            
+
             pybind11::list face_offs_list;
             for (unsigned int i = 0; i < face_offs.size(); i++)
             {
                 face_offs_list.append(face_offs[i]);
             }
-            
+
             pybind11::list overlap_list;
             for (unsigned int i = 0; i < face_overlap.size(); i++)
             {
                 overlap_list.append(face_overlap[i]);
             }
-            
+
             pybind11::list origin_list;
             origin_list.append(origin.x);
             origin_list.append(origin.y);
             origin_list.append(origin.z);
             pybind11::tuple origin_tuple = pybind11::tuple(origin_list);
-            
+
             v["vertices"] = verts_list;
             v["faces"] = faces_list;
             v["face_offs"] = face_offs_list;

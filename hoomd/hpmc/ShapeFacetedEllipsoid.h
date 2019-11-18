@@ -18,7 +18,7 @@
     \brief Defines the faceted ellipsoid shape
 */
 
-/*! The faceted ellipoid is defined by the intersection of an ellipsoid of half axes a,b,c with
+/*! The faceted ellipsoid is defined by the intersection of an ellipsoid of half axes a,b,c with
  * planes given by the face normals n and offsets b, obeying the equation:
  *
  * r.n + b <= 0
@@ -50,11 +50,11 @@ struct faceted_ellipsoid_params : param_base
     {
     //! Empty constructor
     faceted_ellipsoid_params(bool _managed=false)
-        : a(1.0), b(1.0), c(1.0), N(0), ignore(1),
-          verts(_managed),
+        : verts(_managed),
           additional_verts(_managed),
           n(0, _managed),
-          offset(0, _managed)
+          offset(0, _managed),
+          a(1.0), b(1.0), c(1.0), N(0), ignore(1)
         { }
 
     faceted_ellipsoid_params(unsigned int n_facet, bool managed )
@@ -63,7 +63,7 @@ struct faceted_ellipsoid_params : param_base
         n = ManagedArray<vec3<OverlapReal> >(n_facet, managed);
         offset = ManagedArray<OverlapReal> (n_facet, managed);
         }
-        
+
     #ifndef NVCC
     faceted_ellipsoid_params(pybind11::dict v)
     : faceted_ellipsoid_params(pybind11::len(v["normals"]), false)
@@ -118,7 +118,7 @@ struct faceted_ellipsoid_params : param_base
             pybind11::list vertices = poly3d_verts_dict["vertices"];
             pybind11::list offsets;
             pybind11::list normals;
-            
+
             for (unsigned int i = 0; i < pybind11::len(vertices); i++)
             {
                 pybind11::list vert_i = vertices[i];
@@ -132,11 +132,11 @@ struct faceted_ellipsoid_params : param_base
                 pybind11::tuple vert_tuple = pybind11::tuple(vert);
                 vertices[i] = vert_tuple;
             }
-            
+
             for (unsigned int i = 0; i < offset.size(); i++)
             {
                 offsets.append(offset[i]);
-                
+
                 vec3<OverlapReal> normal_i = n[i];
                 pybind11::list normal_i_list;
                 normal_i_list.append(normal_i.x);
@@ -144,13 +144,13 @@ struct faceted_ellipsoid_params : param_base
                 normal_i_list.append(normal_i.z);
                 pybind11::tuple normal_tuple = pybind11::tuple(normal_i_list);
                 normals.append(normal_tuple);
-                
+
             }
             pybind11::list origin_list;
             origin_list.append(origin.x);
             origin_list.append(origin.y);
             origin_list.append(origin.z);
-            
+
             v["vertices"] = vertices;
             v["normals"] = normals;
             v["offsets"] = offsets;
@@ -364,7 +364,7 @@ class SupportFuncFacetedEllipsoid
 
 
 //! Faceted sphere shape template
-/*! ShapeFacetedEllipsoid implements IntegratorHPMC's shape protocol for a sphere that is truncated
+/*! ShapeFacetedEllipsoid implements IntegratorHPMC 's shape protocol for a sphere that is truncated
     by a set of planes, defined through their plane equations n_i*x = n_i^2.
 
     The parameter defining the sphere is just a single Scalar, the sphere radius.
@@ -607,14 +607,6 @@ DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(co
                            DaDb/2.0,
                            err);
 
-    /*
-    return detail::gjke_3d(detail::SupportFuncFacetedEllipsoid(a.params),
-                           detail::SupportFuncFacetedEllipsoid(b.params),
-                           rotate(conj(quat<OverlapReal>(a.orientation)), dr),
-                           conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
-                           DaDb/2.0,
-                           err);
-    */
     }
 
 }; // end namespace hpmc

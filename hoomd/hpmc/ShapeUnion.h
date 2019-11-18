@@ -46,8 +46,8 @@ struct union_params : param_base
 
     //! Default constructor
     DEVICE union_params(bool _managed=false)
-        : diameter(0.0), N(0), ignore(0), mpos(0,_managed), morientation(0,_managed), mparams(0,_managed),
-          moverlap(0,_managed)
+        : mpos(0,_managed), morientation(0,_managed), mparams(0,_managed),
+          moverlap(0,_managed), diameter(0.0), N(0), ignore(0)
         { }
 
     //! Load dynamic data members into shared memory and increase pointer
@@ -82,7 +82,7 @@ struct union_params : param_base
             }
         }
 
-    //! Determine size of the shared memory allocaation
+    //! Determine size of the shared memory allocation
     /*! \param ptr Pointer to increment
         \param available_bytes Size of remaining shared memory allocation
      */
@@ -116,7 +116,7 @@ struct union_params : param_base
         }
     #endif
 
-    
+
     //! Shape constructor
     union_params(unsigned int _N, bool _managed)
         : N(_N)
@@ -223,7 +223,7 @@ struct union_params : param_base
         v["ignore_statistics"] = ignore;
         for (unsigned int i = 0; i < N; i++)
         {
-            
+
         }
         pybind11::list _members = v["members"];
         pybind11::list positions = v["positions"];

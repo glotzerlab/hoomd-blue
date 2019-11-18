@@ -28,11 +28,11 @@ class State:
 
     @property
     def snapshot(self):
-        return self._cpp_sys_def.takeSnapshot_double(*([True] * 8))
+        return self._cpp_sys_def.takeSnapshot_double()
 
     @property
     def light_snapshot(self):
-        return self._cpp_sys_def.takeSnapshot_float(*([True] * 8))
+        return self._cpp_sys_def.takeSnapshot_float()
 
     @snapshot.setter
     def snapshot(self, snapshot):
@@ -68,27 +68,21 @@ class State:
         """
 
         if self._simulation.device.comm.rank == 0:
-            if snapshot.has_particle_data and \
-                    len(snapshot.particles.types) != len(self.particle_types):
+            if len(snapshot.particles.types) != len(self.particle_types):
                 raise RuntimeError(
                     "Number of particle types must remain the same")
-            if snapshot.has_bond_data and \
-                    len(snapshot.bonds.types) != len(self.bond_types):
+            if len(snapshot.bonds.types) != len(self.bond_types):
                 raise RuntimeError("Number of bond types must remain the same")
-            if snapshot.has_angle_data and \
-                    len(snapshot.angles.types) != len(self.angles_types):
+            if len(snapshot.angles.types) != len(self.angles_types):
                 raise RuntimeError(
                     "Number of angle types must remain the same")
-            if snapshot.has_dihedral_data and \
-                    len(snapshot.dihedrals.types) != len(self.dihedral_types):
+            if len(snapshot.dihedrals.types) != len(self.dihedral_types):
                 raise RuntimeError(
                     "Number of dihedral types must remain the same")
-            if snapshot.has_improper_data and \
-                    len(snapshot.impropers.types) != len(self.improper_types):
+            if len(snapshot.impropers.types) != len(self.improper_types):
                 raise RuntimeError(
                     "Number of dihedral types must remain the same")
-            if snapshot.has_pair_data and \
-                    len(snapshot.pairs.types) != len(self.special_pair_types):
+            if len(snapshot.pairs.types) != len(self.special_pair_types):
                 raise RuntimeError("Number of pair types must remain the same")
 
         self._cpp_sys_def.initializeFromSnapshot(snapshot)

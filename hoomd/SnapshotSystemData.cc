@@ -31,20 +31,13 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
     unsigned int n = nx * ny *nz;
 
     // replicate snapshots
-    if (has_particle_data)
-        particle_data.replicate(nx, ny, nz, old_box, global_box);
-    if (has_bond_data)
-        bond_data.replicate(n,old_n);
-    if (has_angle_data)
-        angle_data.replicate(n,old_n);
-    if (has_dihedral_data)
-        dihedral_data.replicate(n,old_n);
-    if (has_improper_data)
-        improper_data.replicate(n,old_n);
-    if (has_constraint_data)
-        constraint_data.replicate(n,old_n);
-    if (has_pair_data)
-        pair_data.replicate(n,old_n);
+    particle_data.replicate(nx, ny, nz, old_box, global_box);
+    bond_data.replicate(n,old_n);
+    angle_data.replicate(n,old_n);
+    dihedral_data.replicate(n,old_n);
+    improper_data.replicate(n,old_n);
+    constraint_data.replicate(n,old_n);
+    pair_data.replicate(n,old_n);
     }
 
 template <class Real>
@@ -66,27 +59,15 @@ void SnapshotSystemData<Real>::broadcast(unsigned int root, std::shared_ptr<Exec
         {
         bcast(global_box, root, exec_conf->getMPICommunicator());
         bcast(dimensions, root, exec_conf->getMPICommunicator());
-        bcast(has_particle_data, root, exec_conf->getMPICommunicator());
-        bcast(has_bond_data, root, exec_conf->getMPICommunicator());
-        bcast(has_angle_data, root, exec_conf->getMPICommunicator());
-        bcast(has_dihedral_data, root, exec_conf->getMPICommunicator());
-        bcast(has_improper_data, root, exec_conf->getMPICommunicator());
-        bcast(has_constraint_data, root, exec_conf->getMPICommunicator());
-        bcast(has_pair_data, root, exec_conf->getMPICommunicator());
-        bcast(has_integrator_data, root, exec_conf->getMPICommunicator());
 
-        if (has_particle_data)
-            {
-            particle_data.bcast(root, exec_conf->getMPICommunicator());
-            bcast(map, root, exec_conf->getMPICommunicator());
-            }
-        if (has_bond_data) bond_data.bcast(root, exec_conf->getMPICommunicator());
-        if (has_angle_data) angle_data.bcast(root, exec_conf->getMPICommunicator());
-        if (has_dihedral_data) dihedral_data.bcast(root, exec_conf->getMPICommunicator());
-        if (has_improper_data) improper_data.bcast(root, exec_conf->getMPICommunicator());
-        if (has_constraint_data) constraint_data.bcast(root, exec_conf->getMPICommunicator());
-        if (has_pair_data) pair_data.bcast(root, exec_conf->getMPICommunicator());
-        if (has_integrator_data) bcast(integrator_data, root, exec_conf->getMPICommunicator());
+        particle_data.bcast(root, exec_conf->getMPICommunicator());
+        bcast(map, root, exec_conf->getMPICommunicator());
+        bond_data.bcast(root, exec_conf->getMPICommunicator());
+        angle_data.bcast(root, exec_conf->getMPICommunicator());
+        dihedral_data.bcast(root, exec_conf->getMPICommunicator());
+        improper_data.bcast(root, exec_conf->getMPICommunicator());
+        constraint_data.bcast(root, exec_conf->getMPICommunicator());
+        pair_data.bcast(root, exec_conf->getMPICommunicator());
         }
     #endif
     }
@@ -102,27 +83,16 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root, std::shared_ptr<
         {
         bcast(global_box, root, hoomd_world);
         bcast(dimensions, root, hoomd_world);
-        bcast(has_particle_data, root, hoomd_world);
-        bcast(has_bond_data, root, hoomd_world);
-        bcast(has_angle_data, root, hoomd_world);
-        bcast(has_dihedral_data, root, hoomd_world);
-        bcast(has_improper_data, root, hoomd_world);
-        bcast(has_constraint_data, root, hoomd_world);
-        bcast(has_pair_data, root, hoomd_world);
-        bcast(has_integrator_data, root, hoomd_world);
 
-        if (has_particle_data)
-            {
-            particle_data.bcast(root, hoomd_world);
-            bcast(map, root, hoomd_world);
-            }
-        if (has_bond_data) bond_data.bcast(root, hoomd_world);
-        if (has_angle_data) angle_data.bcast(root, hoomd_world);
-        if (has_dihedral_data) dihedral_data.bcast(root, hoomd_world);
-        if (has_improper_data) improper_data.bcast(root, hoomd_world);
-        if (has_constraint_data) constraint_data.bcast(root, hoomd_world);
-        if (has_pair_data) pair_data.bcast(root, hoomd_world);
-        if (has_integrator_data) bcast(integrator_data, root, hoomd_world);
+        particle_data.bcast(root, hoomd_world);
+        bcast(map, root, hoomd_world);
+
+        bond_data.bcast(root, hoomd_world);
+        angle_data.bcast(root, hoomd_world);
+        dihedral_data.bcast(root, hoomd_world);
+        improper_data.bcast(root, hoomd_world);
+        constraint_data.bcast(root, hoomd_world);
+        pair_data.bcast(root, hoomd_world);
         }
     #endif
     }
@@ -144,13 +114,6 @@ void export_SnapshotSystemData(py::module& m)
     .def_readonly("impropers", &SnapshotSystemData<float>::improper_data)
     .def_readonly("constraints", &SnapshotSystemData<float>::constraint_data)
     .def_readonly("pairs", &SnapshotSystemData<float>::pair_data)
-    .def_readonly("has_particle_data", &SnapshotSystemData<float>::has_particle_data)
-    .def_readonly("has_bond_data", &SnapshotSystemData<float>::has_bond_data)
-    .def_readonly("has_angle_data", &SnapshotSystemData<float>::has_angle_data)
-    .def_readonly("has_dihedral_data", &SnapshotSystemData<float>::has_dihedral_data)
-    .def_readonly("has_improper_data", &SnapshotSystemData<float>::has_improper_data)
-    .def_readonly("has_constraint_data", &SnapshotSystemData<float>::has_constraint_data)
-    .def_readonly("has_pair_data", &SnapshotSystemData<float>::has_pair_data)
     .def("replicate", &SnapshotSystemData<float>::replicate)
     .def("_broadcast_box", &SnapshotSystemData<float>::broadcast_box)
     .def("_broadcast", &SnapshotSystemData<float>::broadcast)
@@ -168,13 +131,6 @@ void export_SnapshotSystemData(py::module& m)
     .def_readonly("impropers", &SnapshotSystemData<double>::improper_data)
     .def_readonly("constraints", &SnapshotSystemData<double>::constraint_data)
     .def_readonly("pairs", &SnapshotSystemData<double>::pair_data)
-    .def_readonly("has_particle_data", &SnapshotSystemData<double>::has_particle_data)
-    .def_readonly("has_bond_data", &SnapshotSystemData<double>::has_bond_data)
-    .def_readonly("has_angle_data", &SnapshotSystemData<double>::has_angle_data)
-    .def_readonly("has_dihedral_data", &SnapshotSystemData<double>::has_dihedral_data)
-    .def_readonly("has_improper_data", &SnapshotSystemData<double>::has_improper_data)
-    .def_readonly("has_constraint_data", &SnapshotSystemData<double>::has_constraint_data)
-    .def_readonly("has_pair_data", &SnapshotSystemData<double>::has_pair_data)
     .def("replicate", &SnapshotSystemData<double>::replicate)
     .def("_broadcast_box", &SnapshotSystemData<double>::broadcast_box)
     .def("_broadcast", &SnapshotSystemData<double>::broadcast)

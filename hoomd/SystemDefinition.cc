@@ -95,7 +95,6 @@ SystemDefinition::SystemDefinition(std::shared_ptr< SnapshotSystemData<Real> > s
 
     m_constraint_data = std::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, snapshot->constraint_data));
     m_pair_data = std::shared_ptr<PairData>(new PairData(m_particle_data, snapshot->pair_data));
-    m_integrator_data = std::shared_ptr<IntegratorData>(new IntegratorData(snapshot->integrator_data));
     }
 
 /*! Sets the dimensionality of the system.  When quantities involving the dof of
@@ -124,84 +123,20 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
  *  \param pairs True if pair data should be saved
  */
 template <class Real>
-std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool particles,
-                                                   bool bonds,
-                                                   bool angles,
-                                                   bool dihedrals,
-                                                   bool impropers,
-                                                   bool constraints,
-                                                   bool integrators,
-                                                   bool pairs)
+std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot()
     {
     std::shared_ptr< SnapshotSystemData<Real> > snap(new SnapshotSystemData<Real>);
 
-    // always save dimensions and global box
     snap->dimensions = m_n_dimensions;
     snap->global_box = m_particle_data->getGlobalBox();
 
-    if (particles)
-        {
-        snap->map = m_particle_data->takeSnapshot(snap->particle_data);
-        snap->has_particle_data = true;
-        }
-    else
-        snap->has_particle_data = false;
-
-    if (bonds)
-        {
-        m_bond_data->takeSnapshot(snap->bond_data);
-        snap->has_bond_data = true;
-        }
-    else
-        snap->has_bond_data = false;
-
-    if (angles)
-        {
-        m_angle_data->takeSnapshot(snap->angle_data);
-        snap->has_angle_data = true;
-        }
-    else
-        snap->has_angle_data = false;
-
-    if (dihedrals)
-        {
-        m_dihedral_data->takeSnapshot(snap->dihedral_data);
-        snap->has_dihedral_data = true;
-        }
-    else
-        snap->has_dihedral_data = false;
-
-    if (impropers)
-        {
-        m_improper_data->takeSnapshot(snap->improper_data);
-        snap->has_improper_data = true;
-        }
-    else
-        snap->has_improper_data = false;
-
-    if (constraints)
-        {
-        m_constraint_data->takeSnapshot(snap->constraint_data);
-        snap->has_constraint_data = true;
-        }
-    else
-        snap->has_constraint_data = false;
-
-    if (pairs)
-        {
-        m_pair_data->takeSnapshot(snap->pair_data);
-        snap->has_pair_data = true;
-        }
-    else
-        snap->has_pair_data = false;
-
-    if (integrators)
-        {
-        for (unsigned int i = 0; i < m_integrator_data->getNumIntegrators(); ++i)
-            snap->integrator_data.push_back(m_integrator_data->getIntegratorVariables(i));
-        }
-    else
-        snap->has_integrator_data = false;
+    snap->map = m_particle_data->takeSnapshot(snap->particle_data);
+    m_bond_data->takeSnapshot(snap->bond_data);
+    m_angle_data->takeSnapshot(snap->angle_data);
+    m_dihedral_data->takeSnapshot(snap->dihedral_data);
+    m_improper_data->takeSnapshot(snap->improper_data);
+    m_constraint_data->takeSnapshot(snap->constraint_data);
+    m_pair_data->takeSnapshot(snap->pair_data);
 
     return snap;
     }
@@ -220,74 +155,27 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr< SnapshotSystemDat
         bcast(m_n_dimensions, 0,exec_conf->getMPICommunicator());
     #endif
 
-    if (snapshot->has_particle_data)
-        {
-        m_particle_data->setGlobalBox(snapshot->global_box);
-        m_particle_data->initializeFromSnapshot(snapshot->particle_data);
-        }
-
-    if (snapshot->has_bond_data)
-        m_bond_data->initializeFromSnapshot(snapshot->bond_data);
-
-    if (snapshot->has_angle_data)
-        m_angle_data->initializeFromSnapshot(snapshot->angle_data);
-
-    if (snapshot->has_dihedral_data)
-        m_dihedral_data->initializeFromSnapshot(snapshot->dihedral_data);
-
-    if (snapshot->has_improper_data)
-        m_improper_data->initializeFromSnapshot(snapshot->improper_data);
-
-    if (snapshot->has_constraint_data)
-        m_constraint_data->initializeFromSnapshot(snapshot->constraint_data);
-
-    if (snapshot->has_pair_data)
-        m_pair_data->initializeFromSnapshot(snapshot->pair_data);
-
-    // it is an error to load variables for more integrators than are
-    // currently registered
-    if (snapshot->has_integrator_data)
-        {
-        unsigned int n_integrators = m_integrator_data->getNumIntegrators();
-        if (n_integrators != snapshot->integrator_data.size())
-            {
-            exec_conf->msg->error() << "init.restart_from_snapshot: Snapshot contains data for "
-                                    << snapshot->integrator_data.size() << " integrators," << std::endl
-                                    << "but " << n_integrators << " are currently registered."
-                                    << std::endl << std::endl;
-            throw std::runtime_error("Error initializing from snapshot");
-            }
-
-        for (unsigned int i = 0; i < n_integrators; ++i)
-            m_integrator_data->setIntegratorVariables(i, snapshot->integrator_data[i]);
-        }
+    m_particle_data->setGlobalBox(snapshot->global_box);
+    m_particle_data->initializeFromSnapshot(snapshot->particle_data);
+    m_bond_data->initializeFromSnapshot(snapshot->bond_data);
+    m_angle_data->initializeFromSnapshot(snapshot->angle_data);
+    m_dihedral_data->initializeFromSnapshot(snapshot->dihedral_data);
+    m_improper_data->initializeFromSnapshot(snapshot->improper_data);
+    m_constraint_data->initializeFromSnapshot(snapshot->constraint_data);
+    m_pair_data->initializeFromSnapshot(snapshot->pair_data);
     }
 
 // instantiate both float and double methods
 template SystemDefinition::SystemDefinition(std::shared_ptr< SnapshotSystemData<float> > snapshot,
                                                    std::shared_ptr<ExecutionConfiguration> exec_conf,
                                                    std::shared_ptr<DomainDecomposition> decomposition);
-template std::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSnapshot<float>(bool particles,
-                                                                                              bool bonds,
-                                                                                              bool angles,
-                                                                                              bool dihedrals,
-                                                                                              bool impropers,
-                                                                                              bool constraints,
-                                                                                              bool integrators,
-                                                                                              bool pairs);
+template std::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSnapshot<float>();
 template void SystemDefinition::initializeFromSnapshot<float>(std::shared_ptr< SnapshotSystemData<float> > snapshot);
 
 template SystemDefinition::SystemDefinition(std::shared_ptr< SnapshotSystemData<double> > snapshot,
                                                    std::shared_ptr<ExecutionConfiguration> exec_conf,
                                                    std::shared_ptr<DomainDecomposition> decomposition);
-template std::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeSnapshot<double>(bool particles,
-                                                                                              bool bonds,
-                                                                                              bool angles,
-                                                                                              bool dihedrals,
-                                                                                              bool impropers,
-                                                                                              bool constraints,
-                                                                                              bool integrators,
-                                                                                              bool pairs);
+template std::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeSnapshot<double>();
 template void SystemDefinition::initializeFromSnapshot<double>(std::shared_ptr< SnapshotSystemData<double> > snapshot);
 
 void export_SystemDefinition(py::module& m)

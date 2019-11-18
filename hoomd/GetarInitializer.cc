@@ -118,8 +118,7 @@ namespace getardump{
     void GetarInitializer::restore(shared_ptr<SystemDefinition> &sysdef,
         const map<set<Record>, string> &modes)
         {
-        shared_ptr<SystemSnapshot> snap(
-            takeSystemSnapshot(sysdef, true, true, true, true, true, true, true, true));
+        shared_ptr<SystemSnapshot> snap(takeSystemSnapshot(sysdef));
         restoreSnapshot(snap, modes);
 
         sysdef->initializeFromSnapshot(snap);
@@ -556,7 +555,7 @@ namespace getardump{
 
                 data = vector<unsigned int>(begin, end);
                 // TODO make sure body -1's here still turn into -1's?
-                // maybe should just store body ID's as int's?
+                // maybe should just store body ID's as integers?
                 }
             else if(rec.getFormat() == UInt64)
                 {

@@ -52,7 +52,7 @@ namespace detail
     poly3d_verts make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, bool ignore_stats,
                                         std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    
+
     }
     */
     //! Default constructor initializes zero values.
@@ -64,28 +64,25 @@ namespace detail
           ignore(0)
         { }
 
-<<<<<<< HEAD
-=======
     #ifndef NVCC
     //! Default constructor initializes zero values.
     DEVICE poly3d_verts(bool _managed)
-        : n_hull_verts(0),
+        : x(0,_managed,32),
+          y(0,_managed,32),
+          z(0,_managed,32),
+          hull_verts(0,_managed,32),
+          n_hull_verts(0),
           N(0),
           diameter(OverlapReal(0)),
           sweep_radius(OverlapReal(0)),
-          ignore(0),
-          x(0,_managed,32),
-          y(0,_managed,32),
-          z(0,_managed,32),
-          hull_verts(0,_managed,32)
+          ignore(0)
         { }
 
->>>>>>> 170c10742ccb288102c602fc7fd5138ccbaa905e
     //! Shape constructor
     poly3d_verts(unsigned int _N, bool _managed)
         : n_hull_verts(0), N(_N), diameter(0.0), sweep_radius(0.0), ignore(0)
         {
-            
+
         unsigned int align_size = 8; //for AVX
         unsigned int N_align =((N + align_size - 1)/align_size)*align_size;
         x = ManagedArray<OverlapReal>(N_align,_managed, 32); // 32byte alignment for AVX
@@ -96,7 +93,7 @@ namespace detail
             x[i] = y[i] = z[i] = OverlapReal(0.0);
             }
         }
-    #ifndef NVCC
+
     poly3d_verts(pybind11::dict v)
         : poly3d_verts(pybind11::len(v["vertices"]), false)
         {
@@ -181,7 +178,7 @@ namespace detail
             v["ignore_statistics"] = ignore;
             return v;
             }
-        
+
     #endif
 
     //! Load dynamic data members into shared memory and increase pointer
