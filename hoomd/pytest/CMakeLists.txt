@@ -14,6 +14,8 @@ set(files __init__.py
           test_device.py
           test_example.py
           test_trigger.py
+	  test_type_parameter_dict.py
+	  dummy.py
     )
 
 install(FILES ${files}
