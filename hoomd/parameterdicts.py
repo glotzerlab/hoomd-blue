@@ -193,7 +193,11 @@ class TypeParameterDict(_ValidatedDefaultDict):
             self._dict[key] = val
 
     def keys(self):
-        yield from self._dict.keys()
+        if self._len_keys == 1:
+            yield from self._dict.keys()
+        else:
+            for key in self._dict.keys():
+                yield tuple(sorted(list(key)))
 
 
 class AttachedTypeParameterDict(_ValidatedDefaultDict):
@@ -258,7 +262,9 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
     def keys(self):
         single_keys = getattr(self._sim.state, self._type_kind)
-        if self._len_keys == 2:
-            return combinations_with_replacement(single_keys, 2)
+        if self._len_keys == 1:
+            yield from single_keys
         else:
-            return single_keys
+            for key in combinations_with_replacement(single_keys,
+                                                     self._len_keys):
+                yield tuple(sorted(list(key)))
