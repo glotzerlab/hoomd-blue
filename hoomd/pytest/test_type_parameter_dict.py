@@ -1,25 +1,15 @@
-from hoomd.meta import _Operation
 from hoomd.parameterdicts import TypeParameterDict, RequiredArg
 from hoomd.parameterdicts import AttachedTypeParameterDict
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
 from pytest import fixture, raises
 
 
-@fixture(scope='module')
+@fixture(scope='function')
 def typedict_singleton_keys():
     return TypeParameterDict(**dict(foo=1,
                                     bar=RequiredArg,
                                     baz='hello'),
                              len_keys=1
-                             )
-
-
-@fixture(scope='module')
-def typedict_pair_keys():
-    return TypeParameterDict(**dict(foo=1,
-                                    bar=RequiredArg,
-                                    baz='hello'),
-                             len_keys=2
                              )
 
 
@@ -48,6 +38,15 @@ def test_typeparamdict_key_validation_single(typedict_singleton_keys,
     for invalid_key in invalid_keys:
         with raises(KeyError) as err_info:
             typedict_singleton_keys._validate_and_split_key(invalid_key)
+
+
+@fixture(scope='function')
+def typedict_pair_keys():
+    return TypeParameterDict(**dict(foo=1,
+                                    bar=RequiredArg,
+                                    baz='hello'),
+                             len_keys=2
+                             )
 
 
 @fixture(scope='module')
@@ -80,15 +79,6 @@ def expanded_single_keys():
     return [['A'], ['A', 'B']]
 
 
-@fixture(scope='module')
-def expanded_pair_keys():
-    return [[('A', 'B')], [('A', 'B'), ('B', 'B')],
-            [('A', 'B'), ('B', 'B')],
-            [('A', 'B'), ('A', 'A')],
-            [('A', 'B'), ('A', 'D'), ('B', 'C'), ('C', 'D')]
-            ]
-
-
 def test_key_expansion_single(typedict_singleton_keys,
                               valid_single_keys,
                               expanded_single_keys):
@@ -102,6 +92,15 @@ def test_key_expansion_single(typedict_singleton_keys,
             if expected_key != given_key:
                 raise Exception("Key {} != Key {}".format(expected_key,
                                                           given_key))
+
+
+@fixture(scope='module')
+def expanded_pair_keys():
+    return [[('A', 'B')], [('A', 'B'), ('B', 'B')],
+            [('A', 'B'), ('B', 'B')],
+            [('A', 'B'), ('A', 'A')],
+            [('A', 'B'), ('A', 'D'), ('B', 'C'), ('C', 'D')]
+            ]
 
 
 def test_key_expansion_pair(typedict_pair_keys,
@@ -167,6 +166,24 @@ def test_invalid_value_setting(typedict_with_int, typedict_singleton_keys):
 def test_defaults(typedict_singleton_keys):
     assert dict(foo=1, bar=RequiredArg, baz='hello') == \
         typedict_singleton_keys.default
+    assert typedict_singleton_keys['FAKETYPE'] == \
+        typedict_singleton_keys.default
+
+
+def test_singleton_keys(typedict_singleton_keys, valid_single_keys,
+                        expanded_single_keys):
+    '''Test the keys function.'''
+    assert list(typedict_singleton_keys.keys()) == []
+    typedict_singleton_keys[valid_single_keys[-1]] = dict(bar=2)
+    assert list(typedict_singleton_keys.keys()) == expanded_single_keys[-1]
+
+
+def test_pair_keys(typedict_pair_keys, valid_pair_keys,
+                   expanded_pair_keys):
+    '''Test the keys function.'''
+    assert list(typedict_pair_keys.keys()) == []
+    typedict_pair_keys[valid_pair_keys[-1]] = dict(bar=2)
+    assert list(typedict_pair_keys.keys()) == expanded_pair_keys[-1]
 
 
 def test_changing_defaults(typedict_singleton_keys):
@@ -187,7 +204,7 @@ def test_attaching(typedict_singleton_keys):
         sim=sim)
 
 
-@fixture(scope='module')
+@fixture(scope='function')
 def attached_param_dict(typedict_singleton_keys):
     return test_attaching(typedict_singleton_keys)
 
@@ -206,7 +223,7 @@ def test_attached_values(attached_param_dict):
 
 
 def test_attached_keys(attached_param_dict):
-    assert attached_param_dict.keys() == ['A', 'B']
+    assert list(attached_param_dict.keys()) == ['A', 'B']
 
 
 def test_attached_type_error_raising(attached_param_dict):
