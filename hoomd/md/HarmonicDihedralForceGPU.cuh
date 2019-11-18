@@ -4,6 +4,7 @@
 
 // Maintainer: dnlebard
 
+#include "hip/hip_runtime.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BondedGroupData.cuh"
@@ -28,6 +29,7 @@ hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                  const unsigned int *n_dihedrals_list,
                                                  Scalar4 *d_params,
                                                  unsigned int n_dihedral_types,
-                                                 int block_size);
+                                                 int block_size,
+                                                 int warp_size);
 
 #endif

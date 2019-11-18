@@ -70,7 +70,8 @@ void OPLSDihedralForceComputeGPU::computeForces(unsigned int timestep)
                                          d_n_dihedrals.data,
                                          d_params.data,
                                          m_dihedral_data->getNTypes(),
-                                         this->m_tuner->getParam());
+                                         this->m_tuner->getParam(),
+                                         m_exec_conf->dev_prop.warpSize);
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     this->m_tuner->end();

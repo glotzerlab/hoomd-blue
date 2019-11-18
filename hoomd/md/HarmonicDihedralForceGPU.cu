@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -324,7 +323,8 @@ hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                  const unsigned int *n_dihedrals_list,
                                                  Scalar4 *d_params,
                                                  unsigned int n_dihedral_types,
-                                                 int block_size)
+                                                 int block_size,
+                                                 int warp_size)
     {
     assert(d_params);
 
@@ -334,6 +334,9 @@ hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
         hipFuncAttributes attr;
         hipFuncGetAttributes(&attr, (const void *)gpu_compute_harmonic_dihedral_forces_kernel);
         max_block_size = attr.maxThreadsPerBlock;
+        if (max_block_size % warp_size)
+            // handle non-sensical return values from hipFuncGetAttributes
+            max_block_size = (max_block_size/warp_size-1)*warp_size;
         }
 
     unsigned int run_block_size = min(block_size, max_block_size);
@@ -343,7 +346,8 @@ hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
     dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_harmonic_dihedral_forces_kernel), dim3(grid), dim3(threads), 0, 0, d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
+    hipLaunchKernelGGL((gpu_compute_harmonic_dihedral_forces_kernel), grid, threads, 0, 0,
+        d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
 
     return hipSuccess;
     }
