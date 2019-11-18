@@ -11,10 +11,7 @@
 #define __scalar2int_rd __double2int_rd
 #endif
 
-// Constant memory for gridpoint weighting
-#define CONSTANT_SIZE 2048
-//! The developer has chosen not to document this variable
-__device__ __constant__ Scalar GPU_rho_coeff[CONSTANT_SIZE];
+#define GPU_PPPM_MAX_ORDER 7
 
 //! GPU implementation of sinc(x)==sin(x)/x
 __device__ Scalar gpu_sinc(Scalar x)
@@ -105,8 +102,22 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
                                             Scalar V_cell,
                                             int order,
                                             unsigned int offset,
-                                            BoxDim box)
+                                            BoxDim box,
+                                            const Scalar *d_rho_coeff)
     {
+    extern __shared__ Scalar s_coeff[];
+
+    // load in interpolation coefficients
+    unsigned int ncoeffs = order*(2*order+1);
+    for (unsigned int cur_offset = 0; cur_offset < ncoeffs; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < ncoeffs)
+            {
+            s_coeff[cur_offset + threadIdx.x] = d_rho_coeff[cur_offset + threadIdx.x];
+            }
+        }
+    __syncthreads();
+
     unsigned int work_idx = blockIdx.x*blockDim.x+threadIdx.x;
 
     if (work_idx >= work_size) return;
@@ -148,7 +159,7 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
 
     int mult_fact = 2*order + 1;
 
-    Scalar x0 = qi/V_cell;
+    Scalar x0 = qi;
 
     bool ignore_x = false;
     bool ignore_y = false;
@@ -161,7 +172,7 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
         result = Scalar(0.0);
         for (int iorder = order-1; iorder >= 0; iorder--)
             {
-            result = GPU_rho_coeff[l-nlower + iorder*mult_fact] + result * dr.x;
+            result = s_coeff[l-nlower + iorder*mult_fact] + result * dr.x;
             }
         Scalar y0 = x0 * result;
 
@@ -187,7 +198,7 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
             result = Scalar(0.0);
             for (int iorder = order-1; iorder >= 0; iorder--)
                 {
-                result = GPU_rho_coeff[m-nlower + iorder*mult_fact] + result * dr.y;
+                result = s_coeff[m-nlower + iorder*mult_fact] + result * dr.y;
                 }
             Scalar z0 = y0 * result;
 
@@ -213,7 +224,7 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
                 result = Scalar(0.0);
                 for (int iorder = order-1; iorder >= 0; iorder--)
                     {
-                    result = GPU_rho_coeff[n-nlower + iorder*mult_fact] + result * dr.z;
+                    result = s_coeff[n-nlower + iorder*mult_fact] + result * dr.z;
                     }
 
                 int neighk = k + n;
@@ -240,7 +251,7 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
 
                     // compute fraction of particle density assigned to cell
                     // from particles in this bin
-                    atomicAdd(&d_mesh[cell_idx].x, z0*result);
+                    atomicAdd(&d_mesh[cell_idx].x, z0*result/V_cell);
                     }
 
                 ignore_z = false;
@@ -286,11 +297,12 @@ void gpu_assign_particles(const uint3 mesh_dim,
                          int order,
                          const BoxDim& box,
                          unsigned int block_size,
+                         const Scalar *d_rho_coeff,
                          const hipDeviceProp_t& dev_prop,
                          const GPUPartition &gpu_partition
                          )
     {
-    hipMemset(d_mesh, 0, sizeof(hipfftComplex)*grid_dim.x*grid_dim.y*grid_dim.z);
+    hipMemsetAsync(d_mesh, 0, sizeof(hipfftComplex)*grid_dim.x*grid_dim.y*grid_dim.z);
     Scalar V_cell = box.getVolume()/(Scalar)(mesh_dim.x*mesh_dim.y*mesh_dim.z);
 
     static unsigned int max_block_size = UINT_MAX;
@@ -322,8 +334,9 @@ void gpu_assign_particles(const uint3 mesh_dim,
 
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork/run_block_size+1;
+        unsigned int shared_bytes = order*(2*order+1)*sizeof(Scalar);
 
-        hipLaunchKernelGGL((gpu_assign_particles_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0, 
+        hipLaunchKernelGGL((gpu_assign_particles_kernel), dim3(n_blocks), dim3(run_block_size), shared_bytes, 0, 
               mesh_dim,
               n_ghost_bins,
               nwork,
@@ -334,7 +347,8 @@ void gpu_assign_particles(const uint3 mesh_dim,
               V_cell,
               order,
               range.first,
-              box);
+              box,
+              d_rho_coeff);
         }
     }
 
@@ -502,8 +516,22 @@ __global__ void gpu_compute_forces_kernel(const unsigned int work_size,
                                           const hipfftComplex *inv_fourier_mesh_x,
                                           const hipfftComplex *inv_fourier_mesh_y,
                                           const hipfftComplex *inv_fourier_mesh_z,
+                                          const Scalar *d_rho_coeff,
                                           const unsigned int offset)
     {
+    extern __shared__ Scalar s_coeff[];
+
+    // load in interpolation coefficients
+    unsigned int ncoeffs = order*(2*order+1);
+    for (unsigned int cur_offset = 0; cur_offset < ncoeffs; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < ncoeffs)
+            {
+            s_coeff[cur_offset + threadIdx.x] = d_rho_coeff[cur_offset + threadIdx.x];
+            }
+        }
+    __syncthreads();
+
     unsigned int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (work_idx >= work_size) return;
@@ -549,7 +577,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int work_size,
         result = Scalar(0.0);
         for (int k = order-1; k >= 0; k--)
             {
-            result = GPU_rho_coeff[l-nlower + k*mult_fact] + result * dr.x;
+            result = s_coeff[l-nlower + k*mult_fact] + result * dr.x;
             }
         Scalar x0 = result;
 
@@ -558,7 +586,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int work_size,
             result = Scalar(0.0);
             for (int k = order-1; k >= 0; k--)
                 {
-                result = GPU_rho_coeff[m-nlower + k*mult_fact] + result * dr.y;
+                result = s_coeff[m-nlower + k*mult_fact] + result * dr.y;
                 }
             Scalar y0 = x0*result;
 
@@ -567,7 +595,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int work_size,
                 result = Scalar(0.0);
                 for (int k = order-1; k >= 0; k--)
                     {
-                    result = GPU_rho_coeff[n-nlower + k*mult_fact] + result * dr.z;
+                    result = s_coeff[n-nlower + k*mult_fact] + result * dr.z;
                     }
                 Scalar z0 = y0*result;
 
@@ -630,6 +658,7 @@ void gpu_compute_forces(const unsigned int N,
                         const unsigned int *d_index_array,
                         const GPUPartition& gpu_partition,
                         const GPUPartition& all_gpu_partition,
+                        const Scalar *d_rho_coeff,
                         unsigned int block_size,
                         bool local_fft,
                         unsigned int inv_mesh_elements)
@@ -660,8 +689,9 @@ void gpu_compute_forces(const unsigned int N,
 
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork/run_block_size+1;
+        unsigned int shared_bytes = order*(2*order+1)*sizeof(Scalar);
 
-        hipLaunchKernelGGL((gpu_compute_forces_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0, nwork,
+        hipLaunchKernelGGL((gpu_compute_forces_kernel), dim3(n_blocks), dim3(run_block_size), shared_bytes, 0, nwork,
                  d_postype,
                  d_force,
                  grid_dim,
@@ -673,6 +703,7 @@ void gpu_compute_forces(const unsigned int N,
                  local_fft ? d_inv_fourier_mesh_x + idev*inv_mesh_elements : d_inv_fourier_mesh_x,
                  local_fft ? d_inv_fourier_mesh_y + idev*inv_mesh_elements : d_inv_fourier_mesh_y,
                  local_fft ? d_inv_fourier_mesh_z + idev*inv_mesh_elements : d_inv_fourier_mesh_z,
+                 d_rho_coeff,
                  range.first);
         }
     }
@@ -1343,19 +1374,4 @@ hipError_t gpu_fix_exclusions(Scalar4 *d_force,
                                                       d_group_members,
                                                       group_size);
     return hipSuccess;
-    }
-
-void gpu_initialize_coeff(
-    Scalar *CPU_rho_coeff,
-    int order,
-    const GPUPartition& gpu_partition)
-    {
-    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
-    unsigned int ngpu = gpu_partition.getNumActiveGPUs();
-    for (int idev = ngpu - 1; idev >= 0; --idev)
-        {
-        gpu_partition.getRangeAndSetGPU(idev);
-
-        hipMemcpyToSymbol(HIP_SYMBOL(GPU_rho_coeff), &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(Scalar));
-        }
     }

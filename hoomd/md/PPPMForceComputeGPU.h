@@ -61,9 +61,6 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         //! Helper function to setup FFT and allocate the mesh arrays
         virtual void initializeFFT();
 
-        //! Setup coefficient tables
-        virtual void setupCoeffs();
-
         //! Helper function to assign particle coordinates to mesh
         virtual void assignParticles();
 
@@ -103,7 +100,7 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
         std::unique_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function
 
-        std::vector<hipfftHandle> m_hipfft_plan;          //!< The FFT plan
+        hipfftHandle m_hipfft_plan;        //!< The FFT plan
         bool m_local_fft;                  //!< True if we are only doing local FFTs (not distributed)
 
         #ifdef ENABLE_MPI
@@ -117,10 +114,6 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
 
         GlobalArray<hipfftComplex> m_mesh;                 //!< The particle density mesh
         GlobalArray<hipfftComplex> m_mesh_scratch;         //!< The particle density mesh per GPU, staging array
-        GlobalArray<hipfftComplex> m_fourier_mesh;         //!< The fourier transformed mesh
-        GlobalArray<hipfftComplex> m_fourier_mesh_G_x;       //!< Fourier transformed mesh times the influence function, x component
-        GlobalArray<hipfftComplex> m_fourier_mesh_G_y;       //!< Fourier transformed mesh times the influence function, y component
-        GlobalArray<hipfftComplex> m_fourier_mesh_G_z;       //!< Fourier transformed mesh times the influence function, z component
         GlobalArray<hipfftComplex> m_inv_fourier_mesh_x;     //!< The inverse-fourier transformed force mesh
         GlobalArray<hipfftComplex> m_inv_fourier_mesh_y;     //!< The inverse-fourier transformed force mesh
         GlobalArray<hipfftComplex> m_inv_fourier_mesh_z;     //!< The inverse-fourier transformed force mesh

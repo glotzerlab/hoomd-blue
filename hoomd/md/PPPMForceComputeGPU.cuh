@@ -23,6 +23,7 @@ void gpu_assign_particles(const uint3 mesh_dim,
                          int order,
                          const BoxDim& box,
                          unsigned int block_size,
+                         const Scalar *d_rho_coeff,
                          const hipDeviceProp_t& dev_prop,
                          const GPUPartition& gpu_partition);
 
@@ -64,6 +65,7 @@ void gpu_compute_forces(const unsigned int N,
                         const unsigned int *d_index_array,
                         const GPUPartition& gpu_partition,
                         const GPUPartition& all_gpu_partition,
+                        const Scalar *d_rho_coeff,
                         unsigned int block_size,
                         bool local_fft,
                         unsigned int inv_mesh_elements);
