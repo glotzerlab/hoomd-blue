@@ -181,7 +181,10 @@ class TypeParameterDict(_ValidatedDefaultDict):
     def __getitem__(self, key):
         vals = dict()
         for key in self._yield_keys(key):
-            vals[key] = self._dict[key]
+            try:
+                vals[key] = self._dict[key]
+            except KeyError:
+                vals[key] = self.default
         return proper_type_return(vals)
 
     def __setitem__(self, key, val):
