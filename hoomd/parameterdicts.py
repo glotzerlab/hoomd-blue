@@ -1,89 +1,49 @@
-from collections import defaultdict
 from itertools import product, combinations_with_replacement
-from functools import partial
 from copy import deepcopy
+from numpy import array, ndarray
 
 # Psudonym for None that states an argument is required to be supplied by the
 # user
 RequiredArg = None
 
 
-# Checks if a value is iterable and not a string
 def is_iterable(obj):
-    return hasattr(obj, '__iter__') and not isinstance(obj, str)
+    '''Returns True if object is iterable and not a str or dict.'''
+    return hasattr(obj, '__iter__') and not bad_iterable_type(obj)
+
+
+def bad_iterable_type(obj):
+    '''Returns True if str or dict.'''
+    return isinstance(obj, str) or isinstance(obj, dict)
 
 
 def has_str_elems(obj):
+    '''Returns True if all elements of iterable are str.'''
     return all([isinstance(elem, str) for elem in obj])
 
 
-def is_bad_iterable(obj):
-    return is_iterable(obj) and not has_str_elems(obj)
-
-
-def partial_dict(**kwargs):
-    return partial(dict, **kwargs)
-
-
-def const(val):
-    return lambda: val
+def is_good_iterable(obj):
+    '''Returns True if object is iterable with respect to types.'''
+    return is_iterable(obj) and has_str_elems(obj)
 
 
 def to_camel_case(string):
     return string.replace('_', ' ').title().replace(' ', '')
 
 
-class _ValidateDict:
-
-    def _validate_and_split_key(self, key):
-        if self._len_keys == 1:
-            return self._validate_and_split_len_one(key)
-        elif self._len_keys == 2:
-            return self._validate_and_split_len_two(key)
-        else:
-            return None
-
-    def _validate_and_split_len_one(self, key):
-        if isinstance(key, str):
-            return [key]
-        elif is_iterable(key) and has_str_elems(key):
-            return list(key)
-        else:
-            raise KeyError("The key {} is not valid.".format(key))
-
-    def _validate_and_split_len_two(self, key):
-        if isinstance(key, tuple) and len(key) == 2:
-            fst, snd = key
-            if is_bad_iterable(fst) or is_bad_iterable(snd):
-                raise KeyError("The key {} is not valid.".format(key))
-            if isinstance(fst, str):
-                fst = [fst]
-            if isinstance(snd, str):
-                snd = [snd]
-            return product(fst, snd)
-        elif is_iterable(key):
-            keys = []
-            for k in key:
-                if isinstance(k, tuple) and len(k) == 2 and has_str_elems(k):
-                    keys.append(k)
-                else:
-                    raise KeyError("The key {} is not valid.".format(k))
-            return keys
-        else:
-            raise KeyError("The key {} is not valid.".format(key))
+def proper_type_return(val):
+    '''Expects and requires a dictionary with type keys.'''
+    if len(val) == 0:
+        return None
+    elif len(val) == 1:
+        return list(val.values())[0]
+    else:
+        return val
 
 
-class TypeParameterDict(_ValidateDict):
+class _ValidatedDefaultDict:
 
-    def __init__(self, *args, len_keys, **kwargs):
-
-        # Validate proper key constraint
-        if len_keys > 2:
-            raise ValueError("TypeParameterDict does not support keys larger "
-                             "than 2 types.")
-        self._len_keys = len_keys
-
-        # Create default dictionary
+    def __init__(self, *args, **kwargs):
         if len(kwargs) != 0 and len(args) != 0:
             raise ValueError("An unnamed argument and keyword arguments "
                              "cannot both be specified.")
@@ -93,84 +53,160 @@ class TypeParameterDict(_ValidateDict):
         if len(args) > 1:
             raise ValueError("Only one unnamed argument allowed.")
         if len(kwargs) > 0:
-            self._dict = defaultdict(partial_dict(**kwargs))
-            self._is_kw = True
+            self._default = kwargs
+            self._dft_constructor = dict
         else:
-            self._dict = defaultdict(const(args[0]))
-            self._is_kw = False
-
-    def __getitem__(self, key):
-        keys = self._validate_and_split_key(key)
-        if len(keys) == 1:
-            key = keys[0]
-            if self._len_keys > 1:
-                key = tuple(sorted(key))
-            return self._dict[key]
-        vals = dict()
-        for key in keys:
-            if self._len_keys > 1:
-                key = tuple(sorted(key))
-            vals[key] = self._dict[key]
-        return vals
-
-    def __setitem__(self, key, val):
-        keys = self._validate_and_split_key(key)
-        val = self._validate_values(val)
-        for key in keys:
-            if self._len_keys > 1:
-                key = tuple(sorted(key))
-            self._setkey(key, val)
-
-    def _setkey(self, key, val):
-        if self._is_kw:
-            if key in self._dict:
-                self._dict[key] = self._dict.default_factory()
-                self._dict[key].update(val)
+            dft = args[0]
+            self._default = dft
+            if isinstance(dft, ndarray):
+                self._dft_constructor = array
             else:
-                self._dict[key].update(val)
+                self._dft_constructor = type(dft)
+
+    def _cast_to_dft(self, val):
+        '''Attempts to convert val to expected value type.'''
+        try:
+            val = self._dft_constructor(val)
+        except TypeError:
+            raise TypeError("Provided type {} cannot be cast to initialized "
+                            "required type {}".format(type(val),
+                                                      type(self._default))
+                            )
         else:
-            self._dict[key] = val
+            return val
 
     def _validate_values(self, val):
-        curr_dft = self._dict.default_factory()
-        if self._is_kw:
-            if not isinstance(val, dict):
-                raise ValueError("Cannot set type to non-dictionary value.")
-            dft_keys = set(curr_dft.keys())
+        val = self._cast_to_dft(val)
+        if type(self._default) == dict:
+            dft_copy = self.default
+            dft_keys = set(dft_copy)
             if len(dft_keys.intersection(val.keys())) != len(val.keys()):
                 raise ValueError("Keys must be a subset of available keys ")
+            dft_copy.update(val)
+            val = dft_copy
         return val
+
+    # Add function to validate dictionary keys' value types as well
+    # Could follow current model on the args based type checking
+
+    def _validate_and_split_key(self, key):
+        '''Validate key given regardless of key length.'''
+        if self._len_keys == 1:
+            return self._validate_and_split_len_one(key)
+        else:
+            return self._validate_and_split_len(key)
+
+    def _validate_and_split_len_one(self, key):
+        '''Validate single type keys.
+
+        Accepted input is a type string, and arbitrarily nested interators that
+        culminate in str types.
+        '''
+        if isinstance(key, str):
+            return [key]
+        elif is_iterable(key):
+            keys = []
+            for k in key:
+                keys.extend(self._validate_and_split_len_one(k))
+            return keys
+        else:
+            raise KeyError("The key {} is not valid.".format(key))
+
+    def _validate_and_split_len(self, key):
+        '''Validate all key lengths greater than one, N.
+
+        Valid input is an arbitrarily deep series of iterables that culminate
+        in N length tuples, this includes an iterable depth of zero. The N
+        length tuples can contain for each member either a type string or an
+        iterable of type strings.
+        '''
+        if isinstance(key, tuple) and len(key) == self._len_keys:
+            fst, snd = key
+            if any([not is_good_iterable(v) and not isinstance(v, str)
+                    for v in key]):
+                raise KeyError("The key {} is not valid.".format(key))
+            key = list(key)
+            for ind in range(len(key)):
+                if isinstance(key[ind], str):
+                    key[ind] = [key[ind]]
+            return list(product(*key))
+        elif is_iterable(key):
+            keys = []
+            for k in key:
+                keys.extend(self._validate_and_split_len(k))
+            return keys
+        else:
+            raise KeyError("The key {} is not valid.".format(key))
+
+    def _yield_keys(self, key):
+        '''Returns the generated keys in proper sorted order.
+
+        The order is necessary so ('A', 'B') is equivalent to ('B', A').
+        '''
+        if self._len_keys > 1:
+            keys = self._validate_and_split_key(key)
+            for key in keys:
+                yield tuple(sorted(list(key)))
+        else:
+            yield from self._validate_and_split_key(key)
 
     @property
     def default(self):
-        return self._dict.default_factory()
+        return deepcopy(self._default)
 
     @default.setter
-    def default(self, val):
-        curr_dft = self.default
-        if not isinstance(val, type(curr_dft)):
-            raise ValueError("New default expected type {} "
-                             "but received type {}".format(type(curr_dft),
-                                                           type(val)))
-        if isinstance(val, dict):
-            if curr_dft.keys() != val.keys():
-                raise ValueError("New default must contain the same keys.")
-            self._dict.default_factory = partial_dict(**val)
+    def default(self, new_default):
+        new_default = self._cast_to_dft(new_default)
+        if isinstance(new_default, dict):
+            keys = set(self._default.keys())
+            provided_keys = set(new_default.keys())
+            if keys.intersection(provided_keys) != provided_keys:
+                raise ValueError("New default must a subset of current keys.")
+            self._default.update(new_default)
         else:
-            self._dict.default_factory = const(val)
+            self._default = new_default
 
 
-class AttachedTypeParameterDict(_ValidateDict):
+class TypeParameterDict(_ValidatedDefaultDict):
+
+    def __init__(self, *args, len_keys, **kwargs):
+
+        # Validate proper key constraint
+        if len_keys < 1 or len_keys != int(len_keys):
+            raise ValueError("len_keys must be a positive integer.")
+        self._len_keys = len_keys
+        super().__init__(*args, **kwargs)
+        self._dict = dict()
+
+    def __getitem__(self, key):
+        vals = dict()
+        for key in self._yield_keys(key):
+            vals[key] = self._dict[key]
+        return proper_type_return(vals)
+
+    def __setitem__(self, key, val):
+        val = self._validate_values(val)
+        for key in self._yield_keys(key):
+            self._dict[key] = val
+
+    def keys(self):
+        yield from self._dict.keys()
+
+
+class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
     def __init__(self, cpp_obj, param_name,
                  type_kind, type_param_dict, sim):
-        # add all types to c++
+        # store info to communicate with c++
         self._cpp_obj = cpp_obj
         self._param_name = param_name
         self._sim = sim
-        self._default = type_param_dict.default
-        self._len_keys = type_param_dict._len_keys
         self._type_kind = type_kind
+        self._len_keys = type_param_dict._len_keys
+        # Get default data
+        self._default = type_param_dict.default
+        self._dft_constructor = type_param_dict._dft_constructor
+        # add all types to c++
         for key in self.keys():
             try:
                 self[key] = type_param_dict[key]
@@ -178,70 +214,36 @@ class AttachedTypeParameterDict(_ValidateDict):
                 raise ValueError("Type {} ".format(key) + verr.args[0])
 
     def to_dettached(self):
-        default = self._default
-        if isinstance(default, dict):
-            type_param_dict = TypeParameterDict(**default,
+        if isinstance(self.default, dict):
+            type_param_dict = TypeParameterDict(**self.default,
                                                 len_keys=self._len_keys)
         else:
-            type_param_dict = TypeParameterDict(default,
+            type_param_dict = TypeParameterDict(self.default,
                                                 len_keys=self._len_keys)
         for key in self.keys():
             type_param_dict[key] = self[key]
         return type_param_dict
 
     def __getitem__(self, key):
-        keys = self._validate_and_split_key(key)
-        curr_keys = self.keys()
-        if len(keys) == 1:
-            key = keys[0]
-            if key not in curr_keys:
-                raise KeyError("Type {} does not exist in the "
-                               "system.".format(key))
-            return getattr(self._cpp_obj, self._getter)(key)
-        else:
-            vals = {}
-            for key in keys:
-                if self._len_keys > 1:
-                    key = tuple(sorted(key))
-                if key not in curr_keys:
-                    raise KeyError("Type {} does not exist in the "
-                                   "system.".format(key))
-                vals[key] = getattr(self._cpp_obj, self._getter)(key)
-            return vals
+        vals = dict()
+        for key in self._yield_keys(key):
+            vals[key] = getattr(self._cpp_obj, self._getter)(key)
+        return proper_type_return(vals)
 
     def __setitem__(self, key, val):
-        keys = self._validate_and_split_key(key)
-        val = self._validate_and_default_values(val)
+        val = self._validate_values(val)
+        for key in self._yield_keys(key):
+            getattr(self._cpp_obj, self._setter)(key, val)
+
+    def _yield_keys(self, key):
+        '''Includes key check for existing simulation keys.'''
         curr_keys = self.keys()
-        for key in keys:
+        for key in super()._yield_keys(key):
             if key not in curr_keys:
                 raise KeyError("Type {} does not exist in the "
                                "system.".format(key))
-            getattr(self._cpp_obj, self._setter)(key, val)
-
-    def _validate_and_default_values(self, val):
-        if isinstance(self._default, dict):
-            neccessary_keys = set([key for key, value in self._default.items()
-                                   if value is None])
-            try:
-                given_keys = set(val.keys())
-            except AttributeError:
-                raise ValueError("Expected a subclass of dict. "
-                                 "Got {}".format(type(val)))
-            none_keys = []
-            for key in given_keys:
-                if val[key] is None:
-                    none_keys.append(key)
-            given_keys = given_keys.difference(none_keys)
-            keys_missing = neccessary_keys - given_keys
-            if keys_missing != set():
-                raise ValueError(
-                    "Missing keys {}.".format(tuple(keys_missing)))
-            new_val = deepcopy(self._default)
-            new_val.update(val)
-        else:
-            new_val = val
-        return new_val
+            else:
+                yield key
 
     @property
     def _setter(self):
@@ -257,21 +259,3 @@ class AttachedTypeParameterDict(_ValidateDict):
             return combinations_with_replacement(single_keys, 2)
         else:
             return single_keys
-
-    @property
-    def default(self):
-        return self._default
-
-    @default.setter
-    def default(self, val):
-        curr_dft = self.default
-        if not isinstance(val, type(curr_dft)):
-            raise ValueError("New default expected type {} "
-                             "but received type {}".format(type(curr_dft),
-                                                           type(val)))
-        if isinstance(val, dict):
-            if curr_dft.keys() != val.keys():
-                raise ValueError("New default must contain the same keys.")
-            self._default = deepcopy(val)
-        else:
-            self._default = deepcopy(val)
