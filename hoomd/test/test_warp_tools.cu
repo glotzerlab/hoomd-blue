@@ -11,7 +11,7 @@
 #include "test_warp_tools.cuh"
 #include "hoomd/WarpTools.cuh"
 
-#define BLOCK_SIZE 32
+#define BLOCK_SIZE 64
 
 //! Performs an iterative warp reduction on a data set using \a tpp threads per row.
 /*!
@@ -95,7 +95,7 @@ __global__ void warp_reduce_kernel(const int* d_data,
  * \param params Reduction parameters.
  * \tparam tpp Number of threads to try to launch.
  *
- * This recursive template compiles the kernel for all valid threads per particle (powers of 2 from 1 to 32), and only
+ * This recursive template compiles the kernel for all valid threads per particle (powers of 2 from 1 to 64), and only
  * executes the kernel for the number of threads that is equal to the value specified in \a params.
  */
 template<int tpp>
@@ -126,7 +126,7 @@ void warp_reduce(const reduce_params& params)
     {
     hipMemset(params.reduce, 0, params.reduce_idx.getNumElements() * sizeof(int));
     hipMemset(params.sum, 0, params.N * sizeof(int));
-    warp_reduce_launcher<32>(params);
+    warp_reduce_launcher<64>(params);
     }
 
 //! Performs an iterative warp scan on a data set using \a tpp threads per row.
@@ -213,7 +213,7 @@ __global__ void warp_scan_kernel(const int* d_data,
  * \param params Scan parameters.
  * \tparam tpp Number of threads to try to launch.
  *
- * This recursive template compiles the kernel for all valid threads per particle (powers of 2 from 1 to 32), and only
+ * This recursive template compiles the kernel for all valid threads per particle (powers of 2 from 1 to 64) and only
  * executes the kernel for the number of threads that is equal to the value specified in \a params.
  */
 template<int tpp>
@@ -244,5 +244,5 @@ void warp_scan(const scan_params& params)
     {
     hipMemset(params.scan, 0, params.scan_idx.getNumElements() * sizeof(int));
     hipMemset(params.sum, 0, params.N * sizeof(int));
-    warp_scan_launcher<32>(params);
+    warp_scan_launcher<64>(params);
     }
