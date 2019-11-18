@@ -21,6 +21,9 @@ class ParticleFilter:
     def __eq__(self, other):
         return self._id == other._id
 
+    def __str__(self):
+        return "ParticleFilter.{}".format(self.__class__.__name__)
+
     def __call__(self, state):
         '''Needs to interact with state to get particles across MPI rank.'''
         raise NotImplementedError
