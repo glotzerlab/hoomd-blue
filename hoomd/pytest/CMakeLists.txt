@@ -15,6 +15,7 @@ set(files __init__.py
           test_example.py
           test_trigger.py
 	  test_type_parameter_dict.py
+	  test_typeparam.py
 	  dummy.py
     )
 
