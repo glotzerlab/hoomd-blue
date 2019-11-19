@@ -302,7 +302,7 @@ __device__ inline unsigned int computeParticleCell(const Scalar3& p,
 
 
 //! Propose trial moves
-template< class Shape >
+template< class Shape, unsigned int dim >
 __global__ void hpmc_gen_moves(Scalar4 *d_postype,
                            Scalar4 *d_orientation,
                            const unsigned int N,
@@ -315,7 +315,6 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
                            const Scalar* d_a,
                            const unsigned int move_ratio,
                            const unsigned int timestep,
-                           const unsigned int dim,
                            const BoxDim box,
                            const unsigned int select,
                            const Scalar3 ghost_fraction,
@@ -408,7 +407,7 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
             }
         else
             {
-            move_rotate(shape_i.orientation, rng, s_a[typ_i], dim);
+            move_rotate<dim>(shape_i.orientation, rng, s_a[typ_i]);
             }
         }
 
@@ -1348,52 +1347,105 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
     assert(args.d_d);
     assert(args.d_a);
 
-    // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    static hipFuncAttributes attr;
-    if (max_block_size == -1)
+    if (args.dim == 2)
         {
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape>));
-        max_block_size = attr.maxThreadsPerBlock;
-        if (max_block_size % args.devprop.warpSize)
-            // handle non-sensical return values from hipFuncGetAttributes
-            max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
+        // determine the maximum block size and clamp the input block size down
+        static int max_block_size = -1;
+        static hipFuncAttributes attr;
+        if (max_block_size == -1)
+            {
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape,2>));
+            max_block_size = attr.maxThreadsPerBlock;
+            if (max_block_size % args.devprop.warpSize)
+                // handle non-sensical return values from hipFuncGetAttributes
+                max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
+            }
+
+        // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
+        unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
+        unsigned int shared_bytes = args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar));
+
+        if (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
+            throw std::runtime_error("hpmc::kernel::gen_moves() exceeds shared memory limits");
+
+        // setup the grid to run the kernel
+        dim3 threads( block_size, 1, 1);
+        dim3 grid((args.N+block_size-1)/block_size,1,1);
+
+        hipLaunchKernelGGL(kernel::hpmc_gen_moves<Shape,2>, grid, threads, shared_bytes, 0,
+                                                                     args.d_postype,
+                                                                     args.d_orientation,
+                                                                     args.N,
+                                                                     args.ci,
+                                                                     args.cell_dim,
+                                                                     args.ghost_width,
+                                                                     args.num_types,
+                                                                     args.seed,
+                                                                     args.d_d,
+                                                                     args.d_a,
+                                                                     args.move_ratio,
+                                                                     args.timestep,
+                                                                     args.box,
+                                                                     args.select,
+                                                                     args.ghost_fraction,
+                                                                     args.domain_decomposition,
+                                                                     args.d_trial_postype,
+                                                                     args.d_trial_orientation,
+                                                                     args.d_trial_move_type,
+                                                                     args.d_reject_out_of_cell,
+                                                                     params
+                                                                );
         }
+    else
+        {
+        // determine the maximum block size and clamp the input block size down
+        static int max_block_size = -1;
+        static hipFuncAttributes attr;
+        if (max_block_size == -1)
+            {
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape,3>));
+            max_block_size = attr.maxThreadsPerBlock;
+            if (max_block_size % args.devprop.warpSize)
+                // handle non-sensical return values from hipFuncGetAttributes
+                max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
+            }
 
-    // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
-    unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-    unsigned int shared_bytes = args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar));
+        // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
+        unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
+        unsigned int shared_bytes = args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar));
 
-    if (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
-        throw std::runtime_error("hpmc::kernel::gen_moves() exceeds shared memory limits");
+        if (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
+            throw std::runtime_error("hpmc::kernel::gen_moves() exceeds shared memory limits");
 
-    // setup the grid to run the kernel
-    dim3 threads( block_size, 1, 1);
-    dim3 grid((args.N+block_size-1)/block_size,1,1);
+        // setup the grid to run the kernel
+        dim3 threads( block_size, 1, 1);
+        dim3 grid((args.N+block_size-1)/block_size,1,1);
 
-    hipLaunchKernelGGL(kernel::hpmc_gen_moves<Shape>, dim3(grid), dim3(threads), shared_bytes, 0, args.d_postype,
-                                                                 args.d_orientation,
-                                                                 args.N,
-                                                                 args.ci,
-                                                                 args.cell_dim,
-                                                                 args.ghost_width,
-                                                                 args.num_types,
-                                                                 args.seed,
-                                                                 args.d_d,
-                                                                 args.d_a,
-                                                                 args.move_ratio,
-                                                                 args.timestep,
-                                                                 args.dim,
-                                                                 args.box,
-                                                                 args.select,
-                                                                 args.ghost_fraction,
-                                                                 args.domain_decomposition,
-                                                                 args.d_trial_postype,
-                                                                 args.d_trial_orientation,
-                                                                 args.d_trial_move_type,
-                                                                 args.d_reject_out_of_cell,
-                                                                 params
-                                                            );
+        hipLaunchKernelGGL(kernel::hpmc_gen_moves<Shape,3>, grid, threads, shared_bytes, 0,
+                                                                     args.d_postype,
+                                                                     args.d_orientation,
+                                                                     args.N,
+                                                                     args.ci,
+                                                                     args.cell_dim,
+                                                                     args.ghost_width,
+                                                                     args.num_types,
+                                                                     args.seed,
+                                                                     args.d_d,
+                                                                     args.d_a,
+                                                                     args.move_ratio,
+                                                                     args.timestep,
+                                                                     args.box,
+                                                                     args.select,
+                                                                     args.ghost_fraction,
+                                                                     args.domain_decomposition,
+                                                                     args.d_trial_postype,
+                                                                     args.d_trial_orientation,
+                                                                     args.d_trial_move_type,
+                                                                     args.d_reject_out_of_cell,
+                                                                     params
+                                                                );
+ 
+        }
     }
 
 //! Kernel driver for kernel::hpmc_narrow_phase

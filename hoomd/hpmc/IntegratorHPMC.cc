@@ -213,7 +213,7 @@ bool IntegratorHPMC::checkParticleOrientations()
         quat<Scalar> o(h_orientation.data[i]);
         if (fabs(Scalar(1.0) - norm2(o)) > 1e-3)
             {
-            m_exec_conf->msg->notice(2) << "Particle " << h_tag.data[i] << " has an unnormalized orientation" << " " << norm2(o) << endl;
+            m_exec_conf->msg->notice(2) << "Particle " << h_tag.data[i] << " has an unnormalized orientation" << endl;
             result = false;
             }
         }

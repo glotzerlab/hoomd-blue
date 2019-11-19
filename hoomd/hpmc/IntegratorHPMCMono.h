@@ -909,7 +909,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     continue;
                     }
 
-                move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
+                if (ndim == 2)
+                    move_rotate<2>(shape_i.orientation, rng_i, h_a.data[typ_i]);
+                else
+                    move_rotate<3>(shape_i.orientation, rng_i, h_a.data[typ_i]);
                 }
 
 
