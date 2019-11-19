@@ -1,4 +1,5 @@
-from hoomd.meta import _Operation
+from hoomd.triggers import Trigger
+from hoomd.meta import _Operation, _TriggeredOperation
 from hoomd.parameterdicts import TypeParameterDict, RequiredArg
 from hoomd.typeparam import TypeParameter
 
@@ -7,6 +8,12 @@ class DummySimulation:
     def __init__(self):
         self.state = DummyState()
         self.operations = DummyOperations()
+        self._cpp_sys = DummySystem()
+
+
+class DummySystem:
+    def __init__(self):
+        self.dummy_list = []
 
 
 class DummyState:
@@ -55,3 +62,12 @@ class DummyOperation(_Operation):
     This is for testing purposes.
     '''
     pass
+
+
+class DummyTriggeredOp(_TriggeredOperation):
+    _cpp_list_name = 'dummy_list'
+
+
+class DummyTrigger(Trigger):
+    def __call__(self, ts):
+        return True
