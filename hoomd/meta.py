@@ -45,7 +45,7 @@ class _Operation:
                                  "".format(self, attr))
 
     def _getattr_param(self, attr):
-        if self._cpp_obj is not None:
+        if self.is_attached:
             return getattr(self._cpp_obj, attr)
         else:
             return self._param_dict[attr]
@@ -64,12 +64,12 @@ class _Operation:
             self.__dict__[attr] = value
 
     def _setattr_param(self, attr, value):
-        if self._cpp_obj is not None:
+        if self.is_attached:
             try:
                 setattr(self._cpp_obj, attr, value)
             except (AttributeError):
                 raise AttributeError("{} cannot be set after cpp"
-                                        " initialization".format(attr))
+                                     " initialization".format(attr))
         self._param_dict[attr] = value
 
     def _setattr_typeparam(self, attr, value):
@@ -83,6 +83,7 @@ class _Operation:
     def detach(self):
         self._unapply_typeparam_dict()
         self._cpp_obj = None
+        return self
 
     def attach(self, sim):
         raise NotImplementedError
