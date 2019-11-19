@@ -18,7 +18,7 @@ from hoomd import cite
 # The following global variables keep track of the walltime and processing time since the import of hoomd
 import time
 TIME_START = time.time()
-CLOCK_START = time.clock()
+CLOCK_START = time.perf_counter()
 
 ## Global bibliography
 bib = None;
@@ -212,7 +212,7 @@ def initialize(args=None, device=None):
 
 # band-aid
 def _create_device():
-    
+
     if options.mode == "gpu":
         dev = hoomd.device.GPU()
         dev.gpu_error_checking = options.gpu_error_checking

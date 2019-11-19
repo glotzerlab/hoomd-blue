@@ -5,7 +5,7 @@
 trigger: none
 
 variables:
-  image_root: glotzerlab/ci:2019.08
+  image_root: glotzerlab/ci:2019.11
 
   # default build parameters, will override as needed with job matrix values
   enable_cuda: off
@@ -33,126 +33,102 @@ stages:
 
     strategy:
       matrix:
-        gcc8_py36_mpi_tbb2_llvm6_1:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_tbb2_llvm6_1:
+          container_image: clang9_py38
           enable_mpi: on
           enable_tbb: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           ctest_start: 1
           suite_name: CPU tbb2
-        gcc8_py36_mpi_tbb2_llvm6_2:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_tbb2_llvm6_2:
+          container_image: clang9_py38
           enable_mpi: on
           enable_tbb: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           ctest_start: 2
           suite_name: CPU tbb2
-        gcc8_py36_mpi_tbb2_llvm6_3:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_tbb2_llvm6_3:
+          container_image: clang9_py38
           enable_mpi: on
           enable_tbb: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           ctest_start: 3
           suite_name: CPU tbb2
-        gcc8_py36_mpi_tbb2_llvm6_4:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_tbb2_llvm6_4:
+          container_image: clang9_py38
           enable_mpi: on
           enable_tbb: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           ctest_start: 4
           suite_name: CPU tbb2
 
-        gcc8_py36_mpi_tbb1_llvm6_1:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_tbb1_llvm6_1:
+          container_image: clang9_py38
           enable_mpi: on
           enable_tbb: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           omp_num_threads: '1'
           ctest_start: 1
           suite_name: CPU tbb1
-        gcc8_py36_mpi_tbb1_llvm6_2:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_tbb1_llvm6_2:
+          container_image: clang9_py38
           enable_mpi: on
           enable_tbb: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           omp_num_threads: '1'
           ctest_start: 2
           suite_name: CPU tbb1
-        gcc8_py36_mpi_tbb1_llvm6_3:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_tbb1_llvm6_3:
+          container_image: clang9_py38
           enable_mpi: on
           enable_tbb: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           omp_num_threads: '1'
           ctest_start: 3
           suite_name: CPU tbb1
-        gcc8_py36_mpi_tbb1_llvm6_4:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_tbb1_llvm6_4:
+          container_image: clang9_py38
           enable_mpi: on
           enable_tbb: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           omp_num_threads: '1'
           ctest_start: 4
           suite_name: CPU tbb1
 
-        gcc8_py36_mpi_llvm6_1:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_llvm6_1:
+          container_image: clang9_py38
           enable_mpi: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           ctest_start: 1
           suite_name: CPU no-tbb
-        gcc8_py36_mpi_llvm6_2:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_llvm6_2:
+          container_image: clang9_py38
           enable_mpi: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           ctest_start: 2
           suite_name: CPU no-tbb
-        gcc8_py36_mpi_llvm6_3:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_llvm6_3:
+          container_image: clang9_py38
           enable_mpi: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           ctest_start: 3
           suite_name: CPU no-tbb
-        gcc8_py36_mpi_llvm6_4:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
+        clang9_py38_mpi_llvm6_4:
+          container_image: clang9_py38
           enable_mpi: on
           build_jit: on
-          llvm_version: '6.0'
+          llvm_version: '9.0'
           ctest_start: 4
           suite_name: CPU no-tbb
 
@@ -179,31 +155,26 @@ stages:
 
     strategy:
       matrix:
-        gcc7_py36_cuda10_mpi_1:
-          cc: gcc
-          cxx: g++
-          container_image: cuda10
+        cuda10_py37_cuda10_mpi_1:
+          container_image: cuda10_py37
           enable_mpi: on
           ctest_start: 1
           suite_name: GPU cuda10
-        gcc7_py36_cuda10_mpi_2:
-          cc: gcc
-          cxx: g++
-          container_image: cuda10
+
+        cuda10_py37_cuda10_mpi_2:
+          container_image: cuda10_py37
           enable_mpi: on
           ctest_start: 2
           suite_name: GPU cuda10
-        gcc7_py36_cuda10_mpi_3:
-          cc: gcc
-          cxx: g++
-          container_image: cuda10
+
+        cuda10_py37_cuda10_mpi_3:
+          container_image: cuda10_py37
           enable_mpi: on
           ctest_start: 3
           suite_name: GPU cuda10
-        gcc7_py36_cuda10_mpi_4:
-          cc: gcc
-          cxx: g++
-          container_image: cuda10
+
+        cuda10_py37_cuda10_mpi_4:
+          container_image: cuda10_py37
           enable_mpi: on
           ctest_start: 4
           suite_name: GPU cuda10
