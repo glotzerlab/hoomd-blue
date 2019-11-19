@@ -330,8 +330,9 @@ install(FILES ${_hoomd_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd
        )
 
+add_subdirectory(pytest)
+
 if (BUILD_TESTING)
-    add_subdirectory(pytest)
     add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
