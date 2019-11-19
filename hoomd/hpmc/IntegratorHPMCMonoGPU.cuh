@@ -142,7 +142,7 @@ struct hpmc_args_t
     unsigned int maxn;                //!< Width of neighbor list
     unsigned int *d_overflow;         //!< Overflow condition for neighbor list
     const bool update_shape_param;    //!< True if shape parameters have changed
-    const hipDeviceProp_t devprop;     //!< CUDA device properties
+    const hipDeviceProp_t& devprop;     //!< CUDA device properties
     const GPUPartition& gpu_partition; //!< Multi-GPU partition
     };
 
@@ -1465,10 +1465,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
         unsigned int available_bytes = max_extra_bytes;
         for (unsigned int i = 0; i < args.num_types; ++i)
             {
-            printf("type %d\n", i);
-            printf("Before allocate_shared %p\n",&params[i]);
             params[i].allocate_shared(ptr, available_bytes);
-            printf("After allocate_shared\n");
             }
         extra_bytes = max_extra_bytes - available_bytes;
         }
@@ -1476,10 +1473,8 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
     shared_bytes += extra_bytes;
     dim3 thread(tpp, n_groups, 1);
     
-    printf("before loop\n");
     for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
-        printf("idev %d\n", idev);
         auto range = args.gpu_partition.getRangeAndSetGPU(idev);
 
         unsigned int nwork = range.second - range.first;
@@ -1487,7 +1482,6 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 
         dim3 grid(num_blocks, 1, 1);
 
-        printf("hipLaunchKernelGGL narrow %d %d %d\n", grid.x, thread.x, thread.y);
         hipLaunchKernelGGL(kernel::hpmc_narrow_phase<Shape>, grid, thread, shared_bytes, 0, 
             args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
             args.d_excell_idx, args.d_excell_size, args.excli,

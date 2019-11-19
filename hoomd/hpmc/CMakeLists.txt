@@ -69,11 +69,6 @@ set(_hpmc_headers
     XenoCollide3D.h
     )
 
-# if (ENABLE_HIP)
-# list(APPEND _hpmc_sources
-#                            )
-# endif()
-
 set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      all_kernels_sphere.cu
                      all_kernels_convex_polygon.cu
