@@ -627,9 +627,7 @@ class Sphere(mode_hpmc):
                                             orientable=False,
                                             len_keys=1)
                                         )
-        for tp in [typeparam_d, typeparam_a, typeparam_shape]:
-            self._add_typeparam(tp)
-
+        self._extend_typeparam([typeparam_a, typeparam_d, typeparam_shape])
 
     def attach(self, simulation):
         # initialize the reflected c++ class
