@@ -416,7 +416,7 @@ def _ensure_global_bib():
                         author = ['J Glaser',
                                   'T D Nguyen',
                                   'J A Anderson',
-                                  'P Liu',
+                                  'P Lui',
                                   'F Spiga',
                                   'J A Millan',
                                   'D C Morse',
