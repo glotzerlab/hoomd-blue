@@ -17,7 +17,7 @@ Example::
 """
 
 import hoomd
-from hoomd.triggers import PeriodicTrigger
+from hoomd.triggers import PeriodicTrigger, Trigger
 import json
 import time
 import datetime
@@ -55,13 +55,13 @@ class _Operation:
 
     def __setattr__(self, attr, value):
         if attr in self._reserved_attrs_with_dft.keys():
-            self.__dict__[attr] = value
+            super().__setattr__(attr, value)
         elif attr in self._param_dict.keys():
             self._setattr_param(attr, value)
         elif attr in self._typeparam_dict.keys():
             self._setattr_typeparam(attr, value)
         else:
-            self.__dict__[attr] = value
+            super().__setattr__(attr, value)
 
     def _setattr_param(self, attr, value):
         if self.is_attached:
