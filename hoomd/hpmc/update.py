@@ -783,7 +783,7 @@ class Clusters(_Updater):
 
     Example::
 
-        hpmc.update.clusters(seed=123, swap_types=['A', 'B'])
+        cluster = hpmc.update.clusters(seed=123, swap_types=['A', 'B'])
 
     """
 
