@@ -16,7 +16,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -130,7 +130,7 @@ struct ShapeSphinx
         return Scalar(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this shape class.");

@@ -194,8 +194,8 @@ void hpmc_excell(unsigned int *d_excell_idx,
     static int max_block_size = -1;
     if (max_block_size == -1)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, kernel::hpmc_excell);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_excell));
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -203,7 +203,7 @@ void hpmc_excell(unsigned int *d_excell_idx,
     dim3 threads(min(block_size, (unsigned int)max_block_size), 1, 1);
     dim3 grid(ci.getNumElements() / block_size + 1, 1, 1);
 
-    kernel::hpmc_excell<<<grid, threads>>>(d_excell_idx,
+    hipLaunchKernelGGL(kernel::hpmc_excell, dim3(grid), dim3(threads), 0, 0, d_excell_idx,
                                            d_excell_size,
                                            excli,
                                            d_cell_idx,
@@ -231,14 +231,14 @@ void hpmc_shift(Scalar4 *d_postype,
     dim3 threads_shift(block_size, 1, 1);
     dim3 grid_shift(N / block_size + 1, 1, 1);
 
-    kernel::hpmc_shift<<<grid_shift, threads_shift>>>(d_postype,
+    hipLaunchKernelGGL(kernel::hpmc_shift, dim3(grid_shift), dim3(threads_shift), 0, 0, d_postype,
                                                       d_image,
                                                       N,
                                                       box,
                                                       shift);
 
     // after this kernel we return control of cuda managed memory to the host
-    cudaDeviceSynchronize();
+    hipDeviceSynchronize();
     }
 
 
@@ -257,14 +257,14 @@ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                  const unsigned int block_size)
     {
     // launch kernel in a single thread
-    cudaMemset(d_condition, 0, sizeof(unsigned int));
+    hipMemset(d_condition, 0, sizeof(unsigned int));
 
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
     if (max_block_size == -1)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, kernel::hpmc_accept);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_accept));
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -272,7 +272,7 @@ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
     dim3 threads(min(block_size, (unsigned int)max_block_size), 1, 1);
     dim3 grid((N+block_size-1)/block_size,1,1);
 
-    kernel::hpmc_accept<<<grid,threads>>>(d_ptl_by_update_order,
+    hipLaunchKernelGGL(kernel::hpmc_accept, dim3(grid), dim3(threads), 0, 0, d_ptl_by_update_order,
         d_update_order_by_ptl,
         d_trial_move_type,
         d_reject_out_of_cell,
@@ -286,7 +286,7 @@ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
         d_condition);
 
     // update reject flags
-    cudaMemcpyAsync(d_reject, d_reject_out, sizeof(unsigned int)*N, cudaMemcpyDeviceToDevice);
+    hipMemcpyAsync(d_reject, d_reject_out, sizeof(unsigned int)*N, hipMemcpyDeviceToDevice);
     }
 
 } // end namespace gpu

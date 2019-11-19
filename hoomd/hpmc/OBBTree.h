@@ -22,7 +22,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -40,7 +40,7 @@ namespace detail
 
 const unsigned int OBB_INVALID_NODE = 0xffffffff;   //!< Invalid node index sentinel
 
-#ifndef NVCC
+#ifndef __HIPCC__
 
 //! Node in an OBBTree
 /*! Stores data for a node in the OBB tree
@@ -472,7 +472,7 @@ inline unsigned int OBBTree::allocateNode()
 // end group overlap
 /*! @}*/
 
-#endif // NVCC
+#endif // __HIPCC__
 
 }; // end namespace detail
 

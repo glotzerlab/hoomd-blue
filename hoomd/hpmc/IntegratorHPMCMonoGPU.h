@@ -13,15 +13,14 @@
 
 #include "hoomd/GPUPartition.cuh"
 
-
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 /*! \file IntegratorHPMCMonoGPU.h
     \brief Defines the template class for HPMC on the GPU
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -40,7 +39,7 @@ namespace detail
     NOTE: this should supersede UpdateOrder
 
     \note we use GPUArrays instead of GlobalArrays currently to allow host access to the shuffled order without an
-          unnecessary cudaDeviceSynchronize()
+          unnecessary hipDeviceSynchronize()
 
     \ingroup hpmc_data_structs
 */
@@ -252,7 +251,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     m_last_dim = make_uint3(0xffffffff, 0xffffffff, 0xffffffff);
     m_last_nmax = 0xffffffff;
 
-    cudaDeviceProp dev_prop = this->m_exec_conf->dev_prop;
+    hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
     m_tuner_moves.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_moves", this->m_exec_conf));
     m_tuner_update_pdata.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_update_pdata", this->m_exec_conf));
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_excell_block_size", this->m_exec_conf));
@@ -316,6 +315,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     GlobalArray<hpmc_counters_t>(pitch, this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_counters);
     TAG_ALLOCATION(m_counters);
 
+    #ifdef ____HIP_PLATFORM_NVCC__
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // set memory hints
@@ -326,6 +326,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
             cudaMemPrefetchAsync(m_counters.get()+idev*m_counters.getPitch(), sizeof(hpmc_counters_t)*m_counters.getPitch(), gpu_map[idev]);
             }
         }
+    #endif
 
     // ntypes counters per GPU, separated by at least a memory page
     pitch = (getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t);
@@ -333,6 +334,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
         this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_implicit_counters);
     TAG_ALLOCATION(m_implicit_counters);
 
+    #ifdef ____HIP_PLATFORM_NVCC__
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // set memory hints
@@ -345,6 +347,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
                 sizeof(hpmc_implicit_counters_t)*m_implicit_counters.getPitch(), gpu_map[idev]);
             }
         }
+    #endif
 
         {
         ArrayHandle<unsigned int> h_overflow(m_overflow, access_location::host, access_mode::overwrite);
@@ -357,12 +360,14 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     m_lambda.swap(lambda);
     TAG_ALLOCATION(m_lambda);
 
+    #ifdef ____HIP_PLATFORM_NVCC__
     // memory hint for overlap matrix
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(this->m_overlaps.get(), sizeof(unsigned int)*this->m_overlaps.getNumElements(), cudaMemAdviseSetReadMostly, 0);
         CHECK_CUDA_ERROR();
         }
+    #endif
     }
 
 template< class Shape >
@@ -373,6 +378,7 @@ IntegratorHPMCMonoGPU< Shape >::~IntegratorHPMCMonoGPU()
 template< class Shape >
 void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
     {
+    #ifdef ____HIP_PLATFORM_NVCC__
     // update memory hints
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
@@ -405,6 +411,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
             CHECK_CUDA_ERROR();
             }
         }
+    #endif
     }
 
 template< class Shape >
@@ -500,11 +507,11 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             {
             // reset per-device counters
             ArrayHandle<hpmc_counters_t> d_counters_per_device(this->m_counters, access_location::device, access_mode::overwrite);
-            cudaMemset(d_counters_per_device.data, 0, sizeof(hpmc_counters_t)*this->m_counters.getNumElements());
+            hipMemset(d_counters_per_device.data, 0, sizeof(hpmc_counters_t)*this->m_counters.getNumElements());
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
 
             ArrayHandle<hpmc_implicit_counters_t> d_implicit_counters_per_device(this->m_implicit_counters, access_location::device, access_mode::overwrite);
-            cudaMemset(d_implicit_counters_per_device.data, 0, sizeof(hpmc_implicit_counters_t)*this->m_implicit_counters.getNumElements());
+            hipMemset(d_implicit_counters_per_device.data, 0, sizeof(hpmc_implicit_counters_t)*this->m_implicit_counters.getNumElements());
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
@@ -988,6 +995,7 @@ bool IntegratorHPMCMonoGPU< Shape >::checkReallocate()
         m_nlist.swap(nlist);
         TAG_ALLOCATION(m_nlist);
 
+        #ifdef ____HIP_PLATFORM_NVCC__
         // update memory hints
         if (this->m_exec_conf->allConcurrentManagedAccess())
             {
@@ -1006,6 +1014,7 @@ bool IntegratorHPMCMonoGPU< Shape >::checkReallocate()
                 CHECK_CUDA_ERROR();
                 }
             }
+        #endif
         }
     return reallocate || maxn_changed;
     }
@@ -1028,6 +1037,7 @@ void IntegratorHPMCMonoGPU< Shape >::initializeExcellMem()
     m_excell_idx.resize(m_excell_list_indexer.getNumElements());
     m_excell_size.resize(num_cells);
 
+    #ifdef ____HIP_PLATFORM_NVCC__
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // set memory hints
@@ -1039,6 +1049,7 @@ void IntegratorHPMCMonoGPU< Shape >::initializeExcellMem()
             CHECK_CUDA_ERROR();
             }
         }
+    #endif
     }
 
 template< class Shape >
@@ -1064,12 +1075,14 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
             this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_implicit_counters);
         TAG_ALLOCATION(m_implicit_counters);
 
+        #ifdef ____HIP_PLATFORM_NVCC__
         if (this->m_exec_conf->allConcurrentManagedAccess())
             {
             // memory hint for overlap matrix
             cudaMemAdvise(this->m_overlaps.get(), sizeof(unsigned int)*this->m_overlaps.getNumElements(), cudaMemAdviseSetReadMostly, 0);
             CHECK_CUDA_ERROR();
             }
+        #endif
         }
 
     // call base class method
@@ -1085,12 +1098,14 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
     // update the cell list
     this->m_cl->setNominalWidth(this->m_nominal_width);
 
+    #ifdef ____HIP_PLATFORM_NVCC__
     // set memory hints
     cudaMemAdvise(this->m_params.data(), this->m_params.size()*sizeof(typename Shape::param_type), cudaMemAdviseSetReadMostly, 0);
     CHECK_CUDA_ERROR();
+    #endif
 
     // sync up so we can access the parameters
-    cudaDeviceSynchronize();
+    hipDeviceSynchronize();
 
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
         {

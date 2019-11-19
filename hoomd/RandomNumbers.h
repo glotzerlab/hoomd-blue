@@ -15,19 +15,8 @@
 
 #include "HOOMDMath.h"
 
-#ifdef __HIP__
-// random123 doesn't know HIP yet, fake a CUDA compiler
-#define __CUDACC__
-#define CUDART_VERSION 8000
-#define __CUDA_ARCH__
-#endif
-
 #ifdef ENABLE_HIP
-// ensure that hiprand is included before random123. This avoids multiple defiintion issues
-// unfortunately, at the cost of random123 using the coefficients provided by curand
-// for now, they are the same
 #include <hip/hip_runtime.h>
-#include <hiprand.h>
 #endif
 
 #include <math.h>
@@ -611,11 +600,5 @@ class PoissonDistribution
     };
 
 } // end namespace hoomd
-
-#ifdef __HIP__
-#undef __CUDACC__
-#undef CUDART_VERSION
-#undef __CUDA_ARCH__
-#endif
 
 #endif // #define HOOMD_RANDOM_NUMBERS_H_

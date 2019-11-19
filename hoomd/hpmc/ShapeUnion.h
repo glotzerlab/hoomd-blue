@@ -20,7 +20,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -62,7 +62,7 @@ struct union_params : param_base
         morientation.load_shared(ptr, available_bytes);
 
         // load all member parameters
-        #if defined (__CUDA_ARCH__)
+        #if defined (__HIP_DEVICE_COMPILE__)
         __syncthreads();
         #endif
 
@@ -115,7 +115,7 @@ struct union_params : param_base
         }
     #endif
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     //! Shape constructor
     union_params(unsigned int _N, bool _managed)
         : N(_N)
@@ -197,7 +197,7 @@ struct ShapeUnion
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this shape class.");
@@ -441,7 +441,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     bool ignore_mask = sweep_radius_a != Scalar(0.0) || sweep_radius_b != Scalar(0.0);
 
     #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
-    #ifdef NVCC
+    #ifdef __HIPCC__
     // Parallel tree traversal
     unsigned int offset = threadIdx.x;
     unsigned int stride = blockDim.x;

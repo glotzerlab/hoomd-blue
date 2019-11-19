@@ -1,5 +1,6 @@
 #pragma once
 
+#include <hip/hip_runtime.h>
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/Index1D.h"
@@ -13,10 +14,6 @@
 #include "hoomd/hpmc/HPMCCounters.h"
 
 #include <cassert>
-
-#ifdef NVCC
-#include <cuda_runtime.h>
-#endif
 
 namespace hpmc {
 
@@ -64,7 +61,7 @@ struct hpmc_args_t
                 const unsigned int _maxn,
                 unsigned int *_d_overflow,
                 const bool _update_shape_param,
-                const cudaDeviceProp &_devprop,
+                const hipDeviceProp_t &_devprop,
                 const GPUPartition& _gpu_partition)
                 : d_postype(_d_postype),
                   d_orientation(_d_orientation),
@@ -145,7 +142,7 @@ struct hpmc_args_t
     unsigned int maxn;                //!< Width of neighbor list
     unsigned int *d_overflow;         //!< Overflow condition for neighbor list
     const bool update_shape_param;    //!< True if shape parameters have changed
-    const cudaDeviceProp devprop;     //!< CUDA device properties
+    const hipDeviceProp_t devprop;     //!< CUDA device properties
     const GPUPartition& gpu_partition; //!< Multi-GPU partition
     };
 
@@ -270,7 +267,7 @@ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                  unsigned int *d_condition,
                  const unsigned int block_size);
 
-#ifdef NVCC
+#ifdef __HIPCC__
 namespace kernel
 {
 
@@ -330,7 +327,7 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
                            const typename Shape::param_type *d_params)
     {
     // load the per type pair parameters into shared memory
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
 
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
     Scalar *s_d = (Scalar *)(s_params + num_types);
@@ -477,7 +474,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     unsigned int n_groups = blockDim.y;
 
     // load the per type pair parameters into shared memory
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
 
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
     Scalar4 *s_orientation_group = (Scalar4*)(s_params + num_types);
@@ -826,7 +823,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     __shared__ unsigned int s_nneigh;
 
     // load the per type pair parameters into shared memory
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
     Scalar4 *s_orientation_group = (Scalar4*)(s_params + num_types);
     Scalar3 *s_pos_group = (Scalar3*)(s_orientation_group + n_groups);
@@ -1353,11 +1350,14 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
 
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
-    static cudaFuncAttributes attr;
+    static hipFuncAttributes attr;
     if (max_block_size == -1)
         {
-        cudaFuncGetAttributes(&attr, kernel::hpmc_gen_moves<Shape>);
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape>));
         max_block_size = attr.maxThreadsPerBlock;
+        if (max_block_size % args.devprop.warpSize)
+            // handle non-sensical return values from hipFuncGetAttributes
+            max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
         }
 
     // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
@@ -1371,7 +1371,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
     dim3 threads( block_size, 1, 1);
     dim3 grid((args.N+block_size-1)/block_size,1,1);
 
-    kernel::hpmc_gen_moves<Shape><<<grid, threads, shared_bytes>>>(args.d_postype,
+    hipLaunchKernelGGL(kernel::hpmc_gen_moves<Shape>, dim3(grid), dim3(threads), shared_bytes, 0, args.d_postype,
                                                                  args.d_orientation,
                                                                  args.N,
                                                                  args.ci,
@@ -1406,11 +1406,14 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
-    static cudaFuncAttributes attr;
+    static hipFuncAttributes attr;
     if (max_block_size == -1)
         {
-        cudaFuncGetAttributes(&attr, kernel::hpmc_narrow_phase<Shape>);
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_narrow_phase<Shape>));
         max_block_size = attr.maxThreadsPerBlock;
+        if (max_block_size % args.devprop.warpSize)
+            // handle non-sensical return values from hipFuncGetAttributes
+            max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
         }
 
     // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
@@ -1455,23 +1458,28 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
     if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
         {
         // required for memory coherency
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 
         // determine dynamically requested shared memory
         char *ptr = (char *)nullptr;
         unsigned int available_bytes = max_extra_bytes;
         for (unsigned int i = 0; i < args.num_types; ++i)
             {
+            printf("type %d\n", i);
+            printf("Before allocate_shared %p\n",&params[i]);
             params[i].allocate_shared(ptr, available_bytes);
+            printf("After allocate_shared\n");
             }
         extra_bytes = max_extra_bytes - available_bytes;
         }
 
     shared_bytes += extra_bytes;
     dim3 thread(tpp, n_groups, 1);
-
+    
+    printf("before loop\n");
     for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
+        printf("idev %d\n", idev);
         auto range = args.gpu_partition.getRangeAndSetGPU(idev);
 
         unsigned int nwork = range.second - range.first;
@@ -1479,7 +1487,8 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 
         dim3 grid(num_blocks, 1, 1);
 
-        kernel::hpmc_narrow_phase<Shape><<<grid, thread, shared_bytes>>>(
+        printf("hipLaunchKernelGGL narrow %d %d %d\n", grid.x, thread.x, thread.y);
+        hipLaunchKernelGGL(kernel::hpmc_narrow_phase<Shape>, grid, thread, shared_bytes, 0, 
             args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
             args.d_excell_idx, args.d_excell_size, args.excli,
             args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
@@ -1513,11 +1522,14 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
         {
         // determine the maximum block size and clamp the input block size down
         static int max_block_size = -1;
-        static cudaFuncAttributes attr;
+        static hipFuncAttributes attr;
         if (max_block_size == -1)
             {
-            cudaFuncGetAttributes(&attr, kernel::hpmc_insert_depletants<Shape, false>);
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::hpmc_insert_depletants<Shape, false>));
             max_block_size = attr.maxThreadsPerBlock;
+            if (max_block_size % args.devprop.warpSize)
+                // handle non-sensical return values from hipFuncGetAttributes
+                max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
             }
 
         // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
@@ -1564,7 +1576,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
         if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
             {
             // required for memory coherency
-            cudaDeviceSynchronize();
+            hipDeviceSynchronize();
 
             // determine dynamically requested shared memory
             char *ptr = (char *) nullptr;
@@ -1588,7 +1600,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             // 1 block per particle
             dim3 grid( range.second-range.first, 1, 1);
 
-            kernel::hpmc_insert_depletants<Shape, false><<<grid, threads, shared_bytes>>>(args.d_trial_postype,
+            hipLaunchKernelGGL(kernel::hpmc_insert_depletants<Shape, false>, dim3(grid), dim3(threads), shared_bytes, 0, args.d_trial_postype,
                                                                          args.d_trial_orientation,
                                                                          args.d_trial_move_type,
                                                                          args.d_postype,
@@ -1631,11 +1643,14 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
         {
         // determine the maximum block size and clamp the input block size down
         static int max_block_size = -1;
-        static cudaFuncAttributes attr;
+        static hipFuncAttributes attr;
         if (max_block_size == -1)
             {
-            cudaFuncGetAttributes(&attr, kernel::hpmc_insert_depletants<Shape, true>);
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_insert_depletants<Shape, true>));
             max_block_size = attr.maxThreadsPerBlock;
+            if (max_block_size % args.devprop.warpSize)
+                // handle non-sensical return values from hipFuncGetAttributes
+                max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
             }
 
         // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
@@ -1682,7 +1697,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
         if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
             {
             // required for memory coherency
-            cudaDeviceSynchronize();
+            hipDeviceSynchronize();
 
             // determine dynamically requested shared memory
             char *ptr = (char *) nullptr;
@@ -1706,7 +1721,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             // 1 block per particle
             dim3 grid( range.second-range.first, 1, 1);
 
-            kernel::hpmc_insert_depletants<Shape, true><<<grid, threads, shared_bytes>>>(args.d_trial_postype,
+            hipLaunchKernelGGL(kernel::hpmc_insert_depletants<Shape, true>, dim3(grid), dim3(threads), shared_bytes, 0, args.d_trial_postype,
                                                                          args.d_trial_orientation,
                                                                          args.d_trial_move_type,
                                                                          args.d_postype,
@@ -1753,16 +1768,16 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
     {
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
-    static cudaFuncAttributes attr;
+    static hipFuncAttributes attr;
     if (max_block_size == -1)
         {
-        cudaFuncGetAttributes(&attr, kernel::hpmc_update_pdata<Shape>);
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_update_pdata<Shape>));
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
     unsigned int num_blocks = (args.N + block_size - 1)/block_size;
-    kernel::hpmc_update_pdata<Shape> <<<num_blocks, block_size>>>(
+    hipLaunchKernelGGL(kernel::hpmc_update_pdata<Shape>, dim3(num_blocks), dim3(block_size), 0, 0, 
         args.d_postype,
         args.d_orientation,
         args.d_counters,

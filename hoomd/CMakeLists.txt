@@ -218,7 +218,7 @@ if (ENABLE_HIP)
     # no device linking
     set_property(TARGET _hoomd PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
 
-    target_link_libraries(_hoomd PUBLIC HIP::hiprand HIP::hipfft)
+    target_link_libraries(_hoomd PUBLIC HIP::hipfft)
     if (NOT ENABLE_HIP)
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()

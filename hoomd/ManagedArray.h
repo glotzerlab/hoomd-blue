@@ -136,7 +136,7 @@ class ManagedArray
             {
             if (managed && ptr)
                 {
-                #if (CUDART_VERSION >= 8000)
+                #if defined(__HIP_PLATFORM_NVCC__) && (CUDART_VERSION >= 8000)
                 cudaMemAdvise(ptr, sizeof(T)*N, cudaMemAdviseSetReadMostly, 0);
                 #endif
                 }

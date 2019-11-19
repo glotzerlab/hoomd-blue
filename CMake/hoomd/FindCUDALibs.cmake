@@ -139,64 +139,6 @@ else()
     add_library(CUDA::cusparse UNKNOWN IMPORTED)
 endif()
 
-find_library(HIP_hiprand_LIBRARY hiprand
-    PATHS
-    "${HIP_ROOT_DIR}"
-    ENV ROCM_PATH
-    ENV HIP_PATH
-    /opt/rocm
-    /opt/rocm/hiprand
-    PATH_SUFFIXES lib
-    NO_DEFAULT_PATH)
-find_path(HIP_hiprand_INCLUDE_DIR
-    NAMES hiprand.h
-    PATHS
-    ${HIP_ROOT_DIR}/hiprand/include
-    $ENV{ROCM_PATH}/hiprand/include
-    $ENV{HIP_PATH}/hiprand/include
-    /opt/rocm/include
-    /opt/rocm/hiprand/include
-    NO_DEFAULT_PATH)
-mark_as_advanced(HIP_hiprand_LIBRARY)
-list(APPEND REQUIRED_CUDA_LIB_VARS HIP_hiprand_LIBRARY)
-list(APPEND _hiprand_includes ${HIP_hiprand_INCLUDE_DIR})
-
-if(HIP_hiprand_LIBRARY AND NOT TARGET HIP::hiprand)
-  add_library(HIP::hiprand UNKNOWN IMPORTED)
-  set_target_properties(HIP::hiprand PROPERTIES
-    IMPORTED_LOCATION "${HIP_hiprand_LIBRARY}"
-    )
-endif()
-
-if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
-    find_library(HIP_rocrand_LIBRARY rocrand
-        PATHS
-        "${HIP_ROOT_DIR}"
-        ENV ROCM_PATH
-        ENV HIP_PATH
-        /opt/rocm
-        /opt/rocm/rocrand
-        PATH_SUFFIXES lib
-        NO_DEFAULT_PATH)
-    find_path(HIP_rocrand_INCLUDE_DIR
-        NAMES rocrand.h
-        PATHS
-        ${HIP_ROOT_DIR}/rocrand/include
-        $ENV{ROCM_PATH}/rocrand/include
-        $ENV{HIP_PATH}/rocrand/include
-        /opt/rocm/include
-        /opt/rocm/rocrand/include
-        NO_DEFAULT_PATH)
-
-    list(APPEND _hiprand_includes ${HIP_rocrand_INCLUDE_DIR})
-    mark_as_advanced(HIP_rocrand_LIBRARY)
-    set_target_properties(HIP::hiprand PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${_hiprand_includes}"
-        INTERFACE_LINK_LIBRARIES "${HIP_rocrand_LIBRARY}"
-        )
-    list(APPEND REQUIRED_CUDA_LIB_VARS HIP_rocrand_LIBRARY)
-endif()
-
 find_path(HIP_hipfft_INCLUDE_DIR
     NAMES hipfft.h
     PATHS

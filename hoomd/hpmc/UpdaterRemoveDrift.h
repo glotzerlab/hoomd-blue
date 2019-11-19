@@ -21,7 +21,7 @@
 #include "ExternalFieldLattice.h"
 #include "IntegratorHPMCMono.h"
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 

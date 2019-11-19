@@ -30,7 +30,7 @@
  */
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -53,7 +53,7 @@ struct faceted_ellipsoid_params : param_base
         : a(1.0), b(1.0), c(1.0), N(0), ignore(1)
         { }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     faceted_ellipsoid_params(unsigned int n_facet, bool managed )
         : a(1.0), b(1.0), c(1.0), N(n_facet), ignore(0)
         {
@@ -294,7 +294,7 @@ struct ShapeFacetedEllipsoid
         return 0.0;
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this shape class.");
@@ -362,7 +362,7 @@ struct ShapeFacetedEllipsoid
      */
     DEVICE static void initializeVertices(param_type& _params, bool managed)
         {
-        #ifndef NVCC
+        #ifndef __HIPCC__
         _params.additional_verts = detail::poly3d_verts(2*_params.N*_params.N, managed);
         _params.additional_verts.diameter = OverlapReal(2.0); // for unit sphere
         _params.additional_verts.N = 0;

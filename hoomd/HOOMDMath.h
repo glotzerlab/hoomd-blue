@@ -389,7 +389,11 @@ namespace fast
 inline HOSTDEVICE float rsqrt(float x)
     {
     #ifdef __HIP_DEVICE_COMPILE__
+    #ifdef __HIP_PLATFORM_NVCC__
     return ::rsqrtf(x);
+    #elif defined(__HIP_PLATFORM_HCC__)
+    return ::__frsqrt_rn(x);
+    #endif
     #else
     return 1.0f / ::sqrtf(x);
     #endif
@@ -398,7 +402,7 @@ inline HOSTDEVICE float rsqrt(float x)
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE double rsqrt(double x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+    #if defined(__HIP_DEVICE_COMPILE_) && defined(__HIP_PLATFORM_NVCC__)
     return ::rsqrt(x);
     #else
     return 1.0 / ::sqrt(x);
@@ -424,7 +428,7 @@ inline HOSTDEVICE double sin(double x)
 //! Compute the cos of x
 inline HOSTDEVICE float cos(float x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+    #if __HIP_DEVICE_COMPILE__
     return __cosf(x);
     #else
     return ::cosf(x);
@@ -534,7 +538,11 @@ inline HOSTDEVICE double log(double x)
 //! Compute the sqrt of x
 inline HOSTDEVICE float sqrt(float x)
     {
+    #if defined(__HIP_DEVICE_COMPILE__) && defined(__HIP_PLATFORM_HCC__)
+    return ::__fsqrt_rn(x);
+    #else 
     return ::sqrtf(x);
+    #endif
     }
 
 //! Compute the sqrt of x

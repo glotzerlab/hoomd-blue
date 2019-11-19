@@ -105,7 +105,12 @@ set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
 endif()
 
 # link the library to its dependencies
-target_link_libraries(_hpmc PUBLIC _hoomd)
+target_link_libraries(_hpmc PUBLIC _hoomd HIP::hip)
+
+if (ENABLE_HIP)
+    # no device linking
+    set_property(TARGET _hpmc PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
+endif()
 
 fix_cudart_rpath(_hpmc)
 

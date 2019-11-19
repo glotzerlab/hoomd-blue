@@ -172,7 +172,11 @@ class managed_allocator
             #ifdef ENABLE_HIP
             if (m_use_device)
                 {
+                #ifdef __HIP_PLATFORM_NVCC__
                 hipError_t error = hipFree(ptr);
+                #elif __HIP_PLATFORM_HCC__
+                hipError_t error = hipHostFree(ptr);
+                #endif
                 if (error != hipSuccess)
                     {
                     std::cerr << hipGetErrorString(error) << std::endl;
@@ -216,7 +220,11 @@ class managed_allocator
             #ifdef ENABLE_HIP
             if (use_device)
                 {
+                #ifdef __HIP_PLATFORM_NVCC__
                 hipError_t error = hipFree(allocation_ptr);
+                #elif __HIP_PLATFORM_HCC__
+                hipError_t error = hipHostFree(allocation_ptr);
+                #endif
                 if (error != hipSuccess)
                     {
                     std::cerr << hipGetErrorString(error) << std::endl;
