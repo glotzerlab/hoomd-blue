@@ -50,17 +50,8 @@ class DummyCppObj:
 
 
 class DummyOperation(_Operation):
-    def __init__(self):
-        super().__init__(self)
-        self._param_dict = dict(param1=1, param2=2)
-        tp1 = TypeParameter(name='type_param', type_kind='particle_types',
-                            param_dict=TypeParameterDict(foo=1,
-                                                         bar=RequiredArg,
-                                                         baz='hello')
-                            )
-        self._add_typeparam(tp1)
+    '''Requires that user manually add param_dict and typeparam_dict items.
 
-    def attach(self, sim):
-        self._cpp_obj = DummyCppObj()
-        self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, sim)
+    This is for testing purposes.
+    '''
+    pass
