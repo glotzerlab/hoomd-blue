@@ -509,7 +509,7 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     {
     // allocate the parameter storage, setting the managed flag
     m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(),
-                                                                       param_type(m_exec_conf->isCUDAEnabled()),
+                                                                       param_type(),
                                                                        managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
     m_overlap_idx = Index2D(m_pdata->getNTypes());
@@ -739,7 +739,7 @@ template <class Shape>
 void IntegratorHPMCMono<Shape>::slotNumTypesChange()
     {
     // re-allocate the parameter storage, setting the managed flag on new members
-    m_params.resize(m_pdata->getNTypes(), param_type(m_exec_conf->isCUDAEnabled()));
+    m_params.resize(m_pdata->getNTypes(), param_type());
 
     // skip the reallocation if the number of types does not change
     // this keeps old potential coefficients when restoring a snapshot

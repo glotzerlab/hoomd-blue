@@ -55,7 +55,7 @@ struct sphinx3d_params : param_base
     #endif
 
     #ifndef NVCC
-    sphinx3d_params(bool _managed=false) { }
+    sphinx3d_params() { }
 
     sphinx3d_params(pybind11::dict v)
     {

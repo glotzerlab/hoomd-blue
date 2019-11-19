@@ -54,7 +54,7 @@ struct poly2d_verts : param_base
                                         //   First bit is ignore overlaps, Second bit is ignore statistics
 
     //! Default constructor initializes zero values.
-    DEVICE poly2d_verts(bool _managed=false)
+    DEVICE poly2d_verts()
         : N(0),
           diameter(OverlapReal(0)),
           sweep_radius(OverlapReal(0)),
@@ -117,7 +117,7 @@ struct poly2d_verts : param_base
                 vert.append(y[i]);
                 pybind11::tuple vert_tuple = pybind11::tuple(vert);
                 verts.append(vert_tuple);
-            }    
+            }
 
             v["vertices"] = verts;
             v["ignore_statistics"] = ignore;
