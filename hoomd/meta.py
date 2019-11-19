@@ -26,15 +26,17 @@ import copy
 from collections import OrderedDict
 from collections import Mapping
 
-## \internal
-class _Operation:
 
-    _cpp_obj = None
-    _param_dict = dict()
-    _typeparam_dict = dict()
+class _Operation:
+    _reserved_attrs_with_dft = {'_cpp_obj': lambda: None,
+                                '_param_dict': dict,
+                                '_typeparam_dict': dict}
 
     def __getattr__(self, attr):
-        if attr in self._param_dict.keys():
+        if attr in self._reserved_attrs_with_dft.keys():
+            setattr(self, attr, self._reserved_attrs_with_dft[attr]())
+            return self.__dict__[attr]
+        elif attr in self._param_dict.keys():
             return self._getattr_param(attr)
         elif attr in self._typeparam_dict.keys():
             return self._getattr_typeparam(attr)
@@ -51,9 +53,10 @@ class _Operation:
     def _getattr_typeparam(self, attr):
         return self._typeparam_dict[attr]
 
-
     def __setattr__(self, attr, value):
-        if attr in self._param_dict.keys():
+        if attr in self._reserved_attrs_with_dft.keys():
+            self.__dict__[attr] = value
+        elif attr in self._param_dict.keys():
             self._setattr_param(attr, value)
         elif attr in self._typeparam_dict.keys():
             self._setattr_typeparam(attr, value)
@@ -157,7 +160,7 @@ class _metadata(object):
         # No metadata provided per default
         self.metadata_fields = []
 
-    ## \internal
+    # \internal
     # \brief Return the metadata
     def get_metadata(self):
         data = OrderedDict()

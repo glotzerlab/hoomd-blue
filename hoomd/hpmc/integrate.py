@@ -187,7 +187,7 @@ class mode_hpmc(_integrator):
     #
     # \post the member shape_param is created
     def __init__(self):
-        _integrator.__init__(self)
+        super().__init__()
 
         self.overlap_checks = interaction_matrix()
 
