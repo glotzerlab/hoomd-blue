@@ -42,12 +42,11 @@ if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
         PATH_SUFFIXES lib
         NO_DEFAULT_PATH)
     mark_as_advanced(HIP_hiprtc_LIBRARY)
- 
+
     if(HIP_hip_hcc_LIBRARY AND NOT TARGET HIP::hiprt)
       add_library(HIP::hiprt UNKNOWN IMPORTED)
       set_target_properties(HIP::hiprt PROPERTIES
         IMPORTED_LOCATION "${HIP_hip_hcc_LIBRARY}"
-        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_HIP_TOOLKIT_INCLUDE_DIRECTORIES}"
         INTERFACE_LINK_LIBRARIES ${HIP_hiprtc_LIBRARY}
       )
     endif()
