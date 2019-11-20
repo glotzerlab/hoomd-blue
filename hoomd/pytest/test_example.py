@@ -13,6 +13,12 @@ def test_typical(device):
     print(device.mode)
     assert True
 
+@pytest.mark.serial
+def test_serial(device):
+    """ Some tests will not run in MPI. Skip these with the `serial` mark.
+    """
+    assert True
+
 def test_cpu_only(device_cpu):
     """ Some tests need a device but only operate correctly on the CPU. Use the ``device_cpu`` fixture to get only
     CPU devices.

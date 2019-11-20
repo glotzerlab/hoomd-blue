@@ -25,3 +25,14 @@ def device_gpu():
         return hoomd.device.GPU()
     else:
         pytest.skip("GPU support not available")
+
+@pytest.fixture(autouse=True)
+def skip_mpi(request, device):
+    if request.node.get_closest_marker('serial'):
+        if device.comm.num_ranks > 1:
+            pytest.skip('Test does not support MPI execution')
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "serial: Tests that will not execute with more than 1 MPI process")
+    config.addinivalue_line("markers", "validation: Long running tests that validate simulation output")
