@@ -320,6 +320,7 @@ __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
     d_virial[5*virial_pitch+idx] = virialzz;
     }
 
+#ifdef CUSOLVER_AVAILABLE
 hipError_t gpu_count_nnz(unsigned int n_constraint,
                            double *d_matrix,
                            int *d_nnz,
@@ -344,15 +345,15 @@ hipError_t gpu_dense2sparse(unsigned int n_constraint,
                            int *d_csr_colind,
                            double *d_csr_val)
     {
-    #ifdef CUSOLVER_AVAILABLE
     // convert dense matrix to compressed sparse row
 
     // update values in CSR format
     hipsparseDdense2csr(hipsparse_handle, n_constraint, n_constraint, hipsparse_mat_descr, d_matrix, n_constraint, d_nnz,
         d_csr_val, d_csr_rowptr, d_csr_colind);
-    #endif
+
     return hipSuccess;
     }
+#endif
 
 hipError_t gpu_compute_constraint_forces(const Scalar4 *d_pos,
                                    const group_storage<2> *d_gpu_clist,

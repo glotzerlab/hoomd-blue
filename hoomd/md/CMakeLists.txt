@@ -271,7 +271,7 @@ if (CUSOLVER_AVAILABLE)
     # CUDA 8.0 requires that we link in gomp
     target_link_libraries(_md PUBLIC _hoomd CUDA::cusolver CUDA::cusparse HIP::hipsparse HIP::hip gomp)
 else()
-    target_link_libraries(_md PUBLIC _hoomd HIP::hipsparse HIP::hip HIP::hiprt)
+    target_link_libraries(_md PUBLIC _hoomd HIP::hip HIP::hiprt)
 endif()
 
 if (ENABLE_HIP)

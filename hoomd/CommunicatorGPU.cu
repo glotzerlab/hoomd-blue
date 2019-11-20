@@ -9,8 +9,6 @@
 */
 
 #ifdef ENABLE_MPI
-#include <hip/hip_runtime.h>
-
 #include "CommunicatorGPU.cuh"
 #include "ParticleData.cuh"
 
