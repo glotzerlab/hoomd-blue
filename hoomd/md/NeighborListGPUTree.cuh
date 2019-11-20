@@ -17,9 +17,9 @@
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 
-#include "hoomd/neighbor/BoundingVolumes.h"
-#include "hoomd/neighbor/InsertOps.h"
-#include "hoomd/neighbor/TransformOps.h"
+#include "hoomd/extern/neighbor/neighbor/BoundingVolumes.h"
+#include "hoomd/extern/neighbor/neighbor/InsertOps.h"
+#include "hoomd/extern/neighbor/neighbor/TransformOps.h"
 
 #ifdef NVCC
 #define DEVICE __device__ __forceinline__

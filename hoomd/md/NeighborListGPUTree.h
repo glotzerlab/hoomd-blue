@@ -8,8 +8,8 @@
 #include "NeighborListGPUTree.cuh"
 
 #include "hoomd/Autotuner.h"
-#include "hoomd/neighbor/LBVH.h"
-#include "hoomd/neighbor/LBVHTraverser.h"
+#include "hoomd/extern/neighbor/neighbor/LBVH.h"
+#include "hoomd/extern/neighbor/neighbor/LBVHTraverser.h"
 
 /*! \file NeighborListGPUTree.h
     \brief Declares the NeighborListGPUTree class

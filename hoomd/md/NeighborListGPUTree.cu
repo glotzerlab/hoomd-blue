@@ -5,8 +5,8 @@
 
 #include "NeighborListGPUTree.cuh"
 
-#include "hoomd/neighbor/LBVH.cuh"
-#include "hoomd/neighbor/LBVHTraverser.cuh"
+#include "hoomd/extern/neighbor/neighbor/LBVH.cuh"
+#include "hoomd/extern/neighbor/neighbor/LBVHTraverser.cuh"
 
 #include <thrust/execution_policy.h>
 #include <thrust/fill.h>

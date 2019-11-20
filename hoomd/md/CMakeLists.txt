@@ -266,9 +266,9 @@ endif()
 # link the library to its dependencies
 if (CUSOLVER_AVAILABLE)
     # CUDA 8.0 requires that we link in gomp
-    target_link_libraries(_md PRIVATE _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY} gomp)
+    target_link_libraries(_md PRIVATE _hoomd neighbor ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY} gomp)
 else()
-    target_link_libraries(_md PRIVATE _hoomd ${HOOMD_COMMON_LIBS})
+    target_link_libraries(_md PRIVATE _hoomd neighbor ${HOOMD_COMMON_LIBS})
 endif()
 
 # if we are compiling with MPI support built in, set appropriate

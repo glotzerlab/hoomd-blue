@@ -194,20 +194,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
 endif()
 
-# add neighbor library
-if (ENABLE_CUDA)
-    add_subdirectory(neighbor)
-    foreach(cxx_src ${NEIGHBOR_CXX_SRCS})
-        list(APPEND _hoomd_sources neighbor/${cxx_src})
-    endforeach(cxx_src)
-    foreach(cu_src ${NEIGHBOR_CU_SRCS})
-        list(APPEND _hoomd_cu_sources neighbor/${cu_src})
-    endforeach(cu_src)
-    foreach(header ${NEIGHBOR_HEADERS})
-        list(APPEND _hoomd_headers neighbor/${header})
-    endforeach(header)
-endif (ENABLE_CUDA)
-
 if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hoomd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
@@ -321,9 +307,6 @@ endif()
 if (BUILD_TESTING)
     add_subdirectory(test-py)
     add_subdirectory(test)
-    if (ENABLE_CUDA)
-        add_subdirectory(neighbor/test)
-    endif (ENABLE_CUDA)
 endif()
 
 if (BUILD_MD)
@@ -331,6 +314,11 @@ if (BUILD_MD)
         # add the distributed FFT library
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/dfftlib)
     endif()
+
+    if (ENABLE_CUDA)
+        # add the neighbor library
+        add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
+    endif (ENABLE_CUDA)
 
     add_subdirectory(md)
 endif()
@@ -366,7 +354,7 @@ endif()
 file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
 
 # explicitly remove packages which are already explicitly dealt with
-list(REMOVE_ITEM _directory_contents test test-py extern md hpmc deprecated cgcmm metal dem mpcd neighbor jit)
+list(REMOVE_ITEM _directory_contents test test-py extern md hpmc deprecated cgcmm metal dem mpcd jit)
 
 foreach(entry ${_directory_contents})
     if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})

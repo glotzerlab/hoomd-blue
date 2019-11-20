@@ -740,7 +740,7 @@ Random123 is used to generate random numbers and is used under the following lic
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 A CUDA [neighbor](https://github.com/mphoward/neighbor) search library is
-extended under the Modified BSD license::
+used under the Modified BSD license::
 
     Copyright (c) 2018, Michael P. Howard. All rights reserved.
 
