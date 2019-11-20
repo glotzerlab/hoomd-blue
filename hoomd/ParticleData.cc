@@ -2579,6 +2579,26 @@ void SnapshotParticleData<Real>::resize(unsigned int N)
     }
 
 template <class Real>
+void SnapshotParticleData<Real>::insert(unsigned int i, unsigned int n)
+    {
+    assert(i <= size);
+    pos.insert(pos.begin()+i,n,vec3<Real>(0.0,0.0,0.0));
+    vel.insert(vel.begin()+i,n,vec3<Real>(0.0,0.0,0.0));
+    accel.insert(accel.begin()+i,n,vec3<Real>(0.0,0.0,0.0));
+    type.insert(type.begin()+i,n,0);
+    mass.insert(mass.begin()+i,n,Scalar(1.0));
+    charge.insert(charge.begin()+i,n,Scalar(0.0));
+    diameter.insert(diameter.begin()+i,n,Scalar(1.0));
+    image.insert(image.begin()+i,n,make_int3(0,0,0));
+    body.insert(body.begin()+i,n,NO_BODY);
+    orientation.insert(orientation.begin()+i,n,quat<Real>(1.0,vec3<Real>(0.0,0.0,0.0)));
+    angmom.insert(angmom.begin()+i,n,quat<Real>(0.0,vec3<Real>(0.0,0.0,0.0)));
+    inertia.insert(inertia.begin()+i,n,vec3<Real>(0.0,0.0,0.0));
+    size += n;
+    is_accel_set = false;
+    }
+
+template <class Real>
 bool SnapshotParticleData<Real>::validate() const
     {
     // Check that a type mapping exists
