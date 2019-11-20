@@ -279,10 +279,8 @@ uint16_t __gsd_get_id(struct gsd_handle *handle, const char *name, uint8_t appen
 
         handle->namelist_num_entries++;
 
-        // sync the expanded namelist
-        int retval = fsync(handle->fd);
-        if (retval != 0)
-            return UINT16_MAX;
+        // mark that synchronization is needed
+        handle->needs_sync = true;
 
         return handle->namelist_num_entries-1;
         }
@@ -630,7 +628,7 @@ uint32_t gsd_make_version(unsigned int major, unsigned int minor)
 int gsd_create(const char *fname, const char *application, const char *schema, uint32_t schema_version)
     {
     int extra_flags = 0;
-    #ifdef WIN32
+    #ifdef _WIN32
     extra_flags = _O_BINARY;
     #endif
 
@@ -672,7 +670,7 @@ int gsd_create_and_open(struct gsd_handle* handle,
                         int exclusive_create)
     {
     int extra_flags = 0;
-    #ifdef WIN32
+    #ifdef _WIN32
     extra_flags = _O_BINARY;
     #endif
 
@@ -737,7 +735,7 @@ int gsd_open(struct gsd_handle* handle, const char *fname, const enum gsd_open_f
     handle->cur_frame = 0;
 
     int extra_flags = 0;
-    #ifdef WIN32
+    #ifdef _WIN32
     extra_flags = _O_BINARY;
     #endif
 
@@ -918,6 +916,15 @@ int gsd_end_frame(struct gsd_handle* handle)
             return -1;
 
         handle->index_written_entries += entries_to_write;
+        }
+
+    // this sync is triggered by the namelist update
+    if (handle->needs_sync)
+        {
+        int retval = fsync(handle->fd);
+        if (retval != 0)
+            return -1;
+        handle->needs_sync = false;
         }
 
     return 0;

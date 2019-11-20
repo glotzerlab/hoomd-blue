@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -104,6 +105,7 @@ struct gsd_handle
     uint64_t cur_frame;
     int64_t file_size;                  //!< File size (in bytes)
     enum gsd_open_flag open_flags;      //!< Flags passed to gsd_open()
+    bool needs_sync; //!< Whether the handle requires an fsync call (new data was written)
     };
 
 //! Specify a version
