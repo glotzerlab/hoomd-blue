@@ -236,31 +236,19 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
         end_ptr);
     }
 
-//! Wrap a particle in a pdata_element
-struct wrap_particle_op_gpu : public thrust::unary_function<const pdata_element, pdata_element>
+__global__ void gpu_wrap_particles_kernel(
+    const unsigned int n_recv,
+    pdata_element *d_recv,
+    const BoxDim box)
     {
-    const BoxDim box; //!< The box for which we are applying boundary conditions
+    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
 
-    //! Constructor
-    /*!
-     */
-    __host__ __device__ wrap_particle_op_gpu(const BoxDim _box)
-        : box(_box)
-        {
-        }
+    if (idx >= n_recv) return;
 
-    //! Wrap position information inside particle data element
-    /*! \param p Particle data element
-     * \returns The particle data element with wrapped coordinates
-     */
-    __device__ pdata_element operator()(const pdata_element p)
-        {
-        pdata_element ret = p;
-        box.wrap(ret.pos, ret.image);
-        return ret;
-        }
-     };
-
+    pdata_element p = d_recv[idx];
+    box.wrap(p.pos,p.image);
+    d_recv[idx] = p;
+    }
 
 /*! \param n_recv Number of particles in buffer
     \param d_in Buffer of particle data elements
@@ -272,11 +260,13 @@ void gpu_wrap_particles(const unsigned int n_recv,
     {
     assert(d_in);
 
-    // Wrap device ptr
-    thrust::device_ptr<pdata_element> in_ptr(d_in);
+    unsigned int block_size = 256;
+    unsigned int n_blocks = n_recv/block_size + 1;
 
-    // Apply box wrap to input buffer
-    thrust::transform(in_ptr, in_ptr + n_recv, in_ptr, wrap_particle_op_gpu(box));
+    hipLaunchKernelGGL(gpu_wrap_particles_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
+        n_recv,
+        d_in,
+        box);
     }
 
 //! Reset reverse lookup tags of particles we are removing
