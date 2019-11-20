@@ -334,7 +334,7 @@ install(FILES ${_hoomd_headers}
 add_subdirectory(pytest)
 
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 
