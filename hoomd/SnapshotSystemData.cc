@@ -41,12 +41,13 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
     }
 
 template <class Real>
-void SnapshotSystemData<Real>::broadcast_box(std::shared_ptr<ExecutionConfiguration> exec_conf)
+void SnapshotSystemData<Real>::broadcast_box(std::shared_ptr<MPIConfiguration> mpi_conf)
     {
     #ifdef ENABLE_MPI
-    if (exec_conf->getNRanks() > 1)
+    if (mpi_conf->getNRanks() > 1)
         {
-        bcast(global_box, 0, exec_conf->getMPICommunicator());
+        bcast(global_box, 0, mpi_conf->getCommunicator());
+        bcast(dimensions, 0, mpi_conf->getCommunicator());
         }
     #endif
     }

@@ -14,11 +14,13 @@ set(files __init__.py
           test_device.py
           test_example.py
           test_trigger.py
-	  test_type_parameter_dict.py
-	  test_typeparam.py
-	  test_operation.py
-	  test_triggeredops.py
-	  dummy.py
+          test_type_parameter_dict.py
+          test_typeparam.py
+          test_operation.py
+          test_triggeredops.py
+          dummy.py
+          test_snapshot.py
+          test_state.py
     )
 
 install(FILES ${files}
