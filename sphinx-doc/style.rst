@@ -6,9 +6,9 @@ We provide configuration files for linters (specified below) so that developers
 can automatically validate and format files.
 
 At this time, the codebase is in a transition period to strict style
-guidelines. New code that does not adhere to these guidelines will not be
-accepted. However, **DO NOT** re-style code unrelated to your changes. Please
-ignore any linter errors in areas of a file that you do not modify.
+guidelines. New code should follow these guidelines. However, **DO NOT**
+re-style code unrelated to your changes. Please ignore any linter errors in
+areas of a file that you do not modify.
 
 Python
 ------
@@ -39,7 +39,7 @@ Other file types
 ----------------
 
 Use your best judgment and follow existing patterns when styling CMake,
-restructured text, markdown, and other files. The following general guidlines
+restructured text, markdown, and other files. The following general guidelines
 apply:
 
 * 100 character line with.
