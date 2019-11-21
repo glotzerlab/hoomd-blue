@@ -7,8 +7,12 @@ steps:
     cmakeArgs: $(Build.SourcesDirectory) -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_CUDA=$(enable_cuda) -DENABLE_MPI=$(enable_mpi) -DENABLE_TBB=$(enable_tbb) -DBUILD_VALIDATION=$(build_validation) -DBUILD_TESTING=$(build_testing) -DBUILD_JIT=$(build_jit) -DLLVM_DIR=/usr/lib/llvm-$(llvm_version)/cmake -DBUILD_DEPRECATED=off -DALWAYS_USE_MANAGED_MEMORY=$(always_use_managed_memory) -DTEST_CPU_IN_GPU_BUILDS=off -GNinja
     workingDirectory: $(Build.BinariesDirectory)
 
-- script: nice -n 19 ninja -j 4
+- script: ninja -j 4
   displayName: Compile
+  workingDirectory: $(Build.BinariesDirectory)
+
+- script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH python3 -m pytest -o junit_suite_name="${AGENT_JOBNAME}-pytest-serial" --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
+  displayName: Run pytest (serial)
   workingDirectory: $(Build.BinariesDirectory)
 
 - script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH ctest -I $(ctest_start),,$(ctest_stride) --no-compress-output -T test --output-on-failure --test-output-size-failed 1048576 --test-output-size-passed 1048576
@@ -24,17 +28,15 @@ steps:
     # workaround issues on Mac
     TMPDIR: /tmp
 
-- script: cp $(Build.BinariesDirectory)/Testing/**/Test.xml $(Common.TestResultsDirectory)
-  displayName: Copy test results
-  condition: always()
-
-- script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH python3 -m pytest -o junit_suite_name="${AGENT_JOBNAME}-serial" --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
-  displayName: Run pytest (serial)
-  workingDirectory: $(Build.BinariesDirectory)
-
 - task: PublishTestResults@2
   condition: always()
   inputs:
     testResultsFormat: 'cTest'
-    testResultsFiles: '$(Common.TestResultsDirectory)/*.xml'
+    testResultsFiles: '$(Build.BinariesDirectory)/Testing/**/Test.xml'
     testRunTitle: $(suite_name)
+
+- task: PublishTestResults@2
+  condition: always()
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: '$(Common.TestResultsDirectory)/pytest-*.xml'
