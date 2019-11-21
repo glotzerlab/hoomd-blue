@@ -162,6 +162,11 @@ class BondedGroupData
                 resize(n_groups);
                 }
 
+            unsigned int getSize()
+                {
+                return size;
+                }
+
             //! Resize the snapshot
             /*! \param n_groups Number of groups in the snapshot
              */

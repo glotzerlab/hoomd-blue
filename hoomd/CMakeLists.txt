@@ -305,14 +305,15 @@ set(files analyze.py
           variant.py
           lattice.py
           hdf5.py
-	  simulation.py
-	  state.py
-	  operations.py
-	  parameterdicts.py
-	  typeparam.py
-	  triggers.py
-	  filters.py
-	  groups.py
+          simulation.py
+          state.py
+          operations.py
+          parameterdicts.py
+          typeparam.py
+          triggers.py
+          filters.py
+          groups.py
+          snapshot.py
     )
 
 install(FILES ${files}
@@ -333,7 +334,7 @@ install(FILES ${_hoomd_headers}
 add_subdirectory(pytest)
 
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 

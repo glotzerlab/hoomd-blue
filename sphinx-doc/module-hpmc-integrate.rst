@@ -19,7 +19,7 @@ hpmc.integrate
     hpmc.integrate.mode_hpmc
     hpmc.integrate.polyhedron
     hpmc.integrate.simple_polygon
-    hpmc.integrate.sphere
+    hpmc.integrate.Sphere
     hpmc.integrate.sphere_union
     hpmc.integrate.sphinx
 

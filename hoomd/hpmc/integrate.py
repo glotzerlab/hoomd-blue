@@ -162,7 +162,7 @@ class mode_hpmc(_integrator):
         * Shape parameters for all types.
 
     State data are *not* written by default. You must explicitly request that state data for an mc integrator
-    is written to a gsd file (see :py:meth:`hoomd.dump.gsd.dump_state`).
+    is written to a gsd file (see :py:meth:`hoomd.dump.GSD.dump_state`).
 
     .. code::
 
@@ -187,7 +187,7 @@ class mode_hpmc(_integrator):
     #
     # \post the member shape_param is created
     def __init__(self):
-        _integrator.__init__(self)
+        super().__init__()
 
         self.overlap_checks = interaction_matrix()
 
@@ -627,9 +627,7 @@ class Sphere(mode_hpmc):
                                             orientable=False,
                                             len_keys=1)
                                         )
-        for tp in [typeparam_d, typeparam_a, typeparam_shape]:
-            self._add_typeparam(tp)
-
+        self._extend_typeparam([typeparam_a, typeparam_d, typeparam_shape])
 
     def attach(self, simulation):
         # initialize the reflected c++ class

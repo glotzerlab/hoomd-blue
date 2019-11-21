@@ -27,7 +27,7 @@ v3.0.0 (not yet released)
 
 - Type swap moves in ``hpmc.update.muvt()`` are no longer supported (``transfer_ratio`` option to ``muvt.set_params()``)
 - The option ``implicit=True`` to ``hpmc.integrate.*`` is no longer available (use ``set_fugacity``).
-- ``static`` parameter in :py:class:`dump.gsd <hoomd.dump.gsd>`.
+- ``static`` parameter in ``hoomd.dump.gsd``.
 - ``util.quiet_status`` and ``util.unquiet_status``.
 - ``deprecated.analyze.msd``.
 - ``deprecated.dump.xml``.

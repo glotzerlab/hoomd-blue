@@ -122,7 +122,7 @@ struct sph_params : param_base
     #endif
 
     #ifndef NVCC
-    sph_params(bool _managed=false) { }
+    sph_params() { }
 
     sph_params(pybind11::dict v)
         {
