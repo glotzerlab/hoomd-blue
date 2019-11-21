@@ -117,8 +117,8 @@ class unitcell(object):
         orientation (list): List of particle orientations.
 
     A unit cell is a box definition (*a1*, *a2*, *a3*, *dimensions*), and particle properties for *N* particles.
-    You do not need to specify all particle properties. Any property omitted will be initialized to defaults (see
-    :py:func:`hoomd.data.make_snapshot`). :py:class:`hoomd.init.create_lattice` initializes the system with many
+    You do not need to specify all particle properties. Any property omitted will be initialized to defaults.
+    :py:class:`hoomd.init.create_lattice` initializes the system with many
     copies of a unit cell.
 
     :py:class:`unitcell` is a completely generic unit cell representation. See other classes in the :py:mod:`hoomd.lattice`

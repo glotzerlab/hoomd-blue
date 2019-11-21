@@ -60,7 +60,7 @@ To store trajectories of DEM systems, use a format that knows about
 anisotropic particles, such as:
 
   * :py:class:`hoomd.dump.getar`
-  * :py:class:`hoomd.dump.gsd`
+  * :py:class:`hoomd.dump.GSD`
 
 .. rubric:: Stability
 

@@ -26,7 +26,7 @@ Relevant methods:
   constant.
 * :py:meth:`hoomd.data.system_data.restore_snapshot()` replaces the current system state with the state stored in
   a snapshot.
-* :py:meth:`hoomd.data.make_snapshot()` creates an empty snapshot that you can populate with custom data.
+* ``hoomd.data.make_snapshot()`` creates an empty snapshot that you can populate with custom data.
 * :py:func:`hoomd.init.read_snapshot()` initializes a simulation from a snapshot.
 
 Examples::
@@ -2221,7 +2221,7 @@ def gsd_snapshot(filename, frame=0):
 class SnapshotParticleData:
     R""" Snapshot of particle data properties.
 
-    Users should not create SnapshotParticleData directly. Use :py:func:`hoomd.data.make_snapshot()`
+    Users should not create SnapshotParticleData directly. Use ``hoomd.data.make_snapshot()``
     or :py:meth:`hoomd.data.system_data.take_snapshot()` to make snapshots.
 
     Attributes:

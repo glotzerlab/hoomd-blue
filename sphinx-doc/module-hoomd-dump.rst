@@ -14,7 +14,7 @@ hoomd.dump
 
 .. automodule:: hoomd.dump
     :synopsis: Write system configurations to files.
-    :exclude-members: dcd, getar, gsd
+    :exclude-members: dcd, getar, GSD
 
     .. autoclass:: dcd
 
@@ -31,4 +31,4 @@ hoomd.dump
 
         .. automethod:: getar.__init__
 
-    .. autoclass:: gsd
+    .. autoclass:: GSD

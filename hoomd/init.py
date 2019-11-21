@@ -252,7 +252,7 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
 
     All particles, bonds, angles, dihedrals, impropers, constraints, and box information
     are read from the given GSD file at the given frame index. To read and write GSD files
-    outside of hoomd, see http://gsd.readthedocs.io/. :py:class:`hoomd.dump.gsd` writes GSD files.
+    outside of hoomd, see http://gsd.readthedocs.io/. :py:class:`hoomd.dump.GSD` writes GSD files.
 
     For restartable jobs, specify the initial condition in *filename* and the restart file in *restart*.
     :py:func:`hoomd.init.read_gsd` will read the restart file if it exists, otherwise it will read *filename*.
@@ -265,7 +265,7 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     change particle properties later in the script. See :py:mod:`hoomd.data` for more information.
 
     See Also:
-        :py:class:`hoomd.dump.gsd`
+        :py:class:`hoomd.dump.GSD`
     """
     hoomd.context._verify_init();
 

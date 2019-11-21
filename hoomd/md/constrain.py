@@ -341,7 +341,7 @@ class rigid(_constraint_force):
 
     .. rubric:: Restarting simulations with rigid bodies.
 
-    To restart, use :py:class:`hoomd.dump.gsd` to write restart files. GSD stores all of the particle data fields
+    To restart, use :py:class:`hoomd.dump.GSD` to write restart files. GSD stores all of the particle data fields
     needed to reconstruct the state of the system, including the body tag, rotational momentum, and orientation
     of the body. Restarting from a gsd file is equivalent to manual constituent particle creation. You still need to
     specify the same local body space environment to :py:class:`rigid` as you did in the earlier simulation.

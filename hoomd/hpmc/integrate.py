@@ -162,7 +162,7 @@ class mode_hpmc(_integrator):
         * Shape parameters for all types.
 
     State data are *not* written by default. You must explicitly request that state data for an mc integrator
-    is written to a gsd file (see :py:meth:`hoomd.dump.gsd.dump_state`).
+    is written to a gsd file (see :py:meth:`hoomd.dump.GSD.dump_state`).
 
     .. code::
 
