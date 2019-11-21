@@ -95,7 +95,7 @@ ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefini
     // encoded as block_size*1000000 + stride*100 + group_size.
     std::vector<unsigned int> valid_params;
     unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = warp_size; block_size <= this->m_exec_conf->dev_prop.maxThreadsPerBlock; block_size += warp_size)
+    for (unsigned int block_size = warp_size; block_size <= (unsigned int) this->m_exec_conf->dev_prop.maxThreadsPerBlock; block_size += warp_size)
         {
         for (auto s : Autotuner::getTppListPow2(warp_size))
             {
