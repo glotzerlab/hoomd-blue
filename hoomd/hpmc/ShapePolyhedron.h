@@ -77,186 +77,193 @@ struct poly3d_data : param_base
         std::fill(face_overlap.get(), face_overlap.get()+_n_faces, 1);
         }
     #ifndef NVCC
-    poly3d_data(pybind11::dict v)
-    : poly3d_data(pybind11::len(v["vertices"]), pybind11::len(v["faces"]), pybind11::len(v["faces"])*3, pybind11::len(v["vertices"]), false)
-    {
-
-    pybind11::list verts_list = v["vertices"];
-    pybind11::list face_verts_list = v["faces"];
-    pybind11::list face_offs_list = v["face_offs"];
-    pybind11::list overlap_list = v["overlap"];
-    OverlapReal R = v["sweep_radius"].cast<OverlapReal>();
-    ignore = v["ignore_statistics"].cast<unsigned int>();
-    hull_only = v["hull_only"].cast<unsigned int>();
-    pybind11::list origin_list = v["origin"];
-    unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
-
-    // compute convex hull of vertices
-    typedef quickhull::Vector3<OverlapReal> vec;
-
-    std::vector<vec> qh_pts;
-    for (unsigned int i = 0; i < pybind11::len(verts_list); i++)
+    poly3d_data(pybind11::dict v, bool _managed=false)
+        : poly3d_data(_managed)
         {
-        pybind11::list vert_list = pybind11::cast<pybind11::list>(verts_list[i]);
-        vec vert;
-        vert.x = pybind11::cast<OverlapReal>(vert_list[0]);
-        vert.y = pybind11::cast<OverlapReal>(vert_list[1]);
-        vert.z = pybind11::cast<OverlapReal>(vert_list[2]);
-        qh_pts.push_back(vert);
-        }
 
-    quickhull::QuickHull<OverlapReal> qh;
-    auto hull = qh.getConvexHull(qh_pts, true, false);
-    auto vertexBuffer = hull.getVertexBuffer();
+        pybind11::list verts_list = v["vertices"];
+        pybind11::list face_verts_list = v["faces"];
+        pybind11::list face_offs_list = v["face_offs"];
+        pybind11::list overlap_list = v["overlap"];
+        OverlapReal R = v["sweep_radius"].cast<OverlapReal>();
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+        hull_only = v["hull_only"].cast<unsigned int>();
+        pybind11::list origin_list = v["origin"];
+        unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
 
-    sweep_radius = convex_hull_verts.sweep_radius = R;
-    n_verts = pybind11::len(verts_list);
-    n_faces = len(face_offs_list)-1;
-    origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_list[0]), pybind11::cast<OverlapReal>(origin_list[1]), pybind11::cast<OverlapReal>(origin_list[2]));
+        // compute convex hull of vertices
+        typedef quickhull::Vector3<OverlapReal> vec;
 
-    if (pybind11::len(overlap_list) != n_faces)
-        {
-        throw std::runtime_error("Number of member overlap flags must be equal to number faces");
-        }
-
-    unsigned int k = 0;
-    for (auto it = vertexBuffer.begin(); it != vertexBuffer.end(); ++it)
-        {
-        convex_hull_verts.x[k] = it->x;
-        convex_hull_verts.y[k] = it->y;
-        convex_hull_verts.z[k] = it->z;
-        k++;
-        }
-
-    for (unsigned int i = 0; i < pybind11::len(face_offs_list); i++)
-        {
-        unsigned int offs = pybind11::cast<unsigned int>(face_offs_list[i]);
-        face_offs[i] = offs;
-        }
-
-    for (unsigned int i = 0; i < n_faces; i++)
-        {
-        face_overlap[i] = pybind11::cast<unsigned int>(overlap_list[i]);
-        }
-
-    // extract the verts from the python list and compute the radius on the way
-    OverlapReal radius_sq = OverlapReal(0.0);
-    for (unsigned int i = 0; i < pybind11::len(verts_list); i++)
-        {
-        pybind11::list vert_list = pybind11::cast<pybind11::list>(verts_list[i]);
-        vec3<OverlapReal> vert;
-        vert.x = pybind11::cast<OverlapReal>(vert_list[0]);
-        vert.y = pybind11::cast<OverlapReal>(vert_list[1]);
-        vert.z = pybind11::cast<OverlapReal>(vert_list[2]);
-        verts[i] = vert;
-        radius_sq = max(radius_sq, dot(vert, vert));
-        }
-
-    unsigned int array_i = 0;
-    for (unsigned int i = 0; i < pybind11::len(face_verts_list); i++)
-        {
-            pybind11::list face_verts_i = face_verts_list[i];
-            for (unsigned int j = 0; j < pybind11::len(face_verts_i); j++)
+        std::vector<vec> qh_pts;
+        for (unsigned int i = 0; i < pybind11::len(verts_list); i++)
             {
-                unsigned int k = pybind11::cast<unsigned int>(face_verts_i[j]);
-                if (k >= n_verts)
+            pybind11::list vert_list = pybind11::cast<pybind11::list>(verts_list[i]);
+            vec vert;
+            vert.x = pybind11::cast<OverlapReal>(vert_list[0]);
+            vert.y = pybind11::cast<OverlapReal>(vert_list[1]);
+            vert.z = pybind11::cast<OverlapReal>(vert_list[2]);
+            qh_pts.push_back(vert);
+            }
+
+        quickhull::QuickHull<OverlapReal> qh;
+        auto hull = qh.getConvexHull(qh_pts, true, false);
+        auto vertexBuffer = hull.getVertexBuffer();
+        
+        convex_hull_verts = poly3d_verts(vertexBuffer.size(), _managed);
+        verts = ManagedArray<vec3<OverlapReal> >(pybind11::len(verts_list), _managed);
+        face_offs = ManagedArray<unsigned int>(pybind11::len(face_offs_list),_managed);
+        face_verts = ManagedArray<unsigned int>(pybind11::len(face_verts_list), _managed);
+        face_overlap = ManagedArray<unsigned int>(pybind11::len(face_offs_list)-1, _managed);
+        std::fill(face_overlap.get(), face_overlap.get()+(pybind11::len(face_offs_list)-1), 1);
+
+        sweep_radius = convex_hull_verts.sweep_radius = R;
+        n_verts = pybind11::len(verts_list);
+        n_faces = len(face_offs_list)-1;
+        origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_list[0]), pybind11::cast<OverlapReal>(origin_list[1]), pybind11::cast<OverlapReal>(origin_list[2]));
+
+        if (pybind11::len(overlap_list) != n_faces)
+            {
+            throw std::runtime_error("Number of member overlap flags must be equal to number faces");
+            }
+
+        unsigned int k = 0;
+        for (auto it = vertexBuffer.begin(); it != vertexBuffer.end(); ++it)
+            {
+            convex_hull_verts.x[k] = it->x;
+            convex_hull_verts.y[k] = it->y;
+            convex_hull_verts.z[k] = it->z;
+            k++;
+            }
+
+        for (unsigned int i = 0; i < pybind11::len(face_offs_list); i++)
+            {
+            unsigned int offs = pybind11::cast<unsigned int>(face_offs_list[i]);
+            face_offs[i] = offs;
+            }
+
+        for (unsigned int i = 0; i < n_faces; i++)
+            {
+            face_overlap[i] = pybind11::cast<unsigned int>(overlap_list[i]);
+            }
+
+        // extract the verts from the python list and compute the radius on the way
+        OverlapReal radius_sq = OverlapReal(0.0);
+        for (unsigned int i = 0; i < pybind11::len(verts_list); i++)
+            {
+            pybind11::list vert_list = pybind11::cast<pybind11::list>(verts_list[i]);
+            vec3<OverlapReal> vert;
+            vert.x = pybind11::cast<OverlapReal>(vert_list[0]);
+            vert.y = pybind11::cast<OverlapReal>(vert_list[1]);
+            vert.z = pybind11::cast<OverlapReal>(vert_list[2]);
+            verts[i] = vert;
+            radius_sq = max(radius_sq, dot(vert, vert));
+            }
+
+        unsigned int array_i = 0;
+        for (unsigned int i = 0; i < pybind11::len(face_verts_list); i++)
+            {
+                pybind11::list face_verts_i = face_verts_list[i];
+                for (unsigned int j = 0; j < pybind11::len(face_verts_i); j++)
                     {
-                    std::ostringstream oss;
-                    oss << "Invalid vertex index " << k << " specified" << std::endl;
-                    throw std::runtime_error(oss.str());
+                        unsigned int k = pybind11::cast<unsigned int>(face_verts_i[j]);
+                        if (k >= n_verts)
+                            {
+                            std::ostringstream oss;
+                            oss << "Invalid vertex index " << k << " specified" << std::endl;
+                            throw std::runtime_error(oss.str());
+                            }
+                        face_verts[array_i] = k;
+                        array_i++;
                     }
-                face_verts[array_i] = k;
-                array_i++;
-            }
-        }
-
-    hpmc::detail::OBB *obbs = new hpmc::detail::OBB[pybind11::len(face_offs_list)];
-    std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
-
-    // construct bounding box tree
-    for (unsigned int i = 0; i < pybind11::len(face_offs_list)-1; ++i)
-        {
-        std::vector<vec3<OverlapReal> > face_vec;
-
-        unsigned int n_vert = 0;
-        for (unsigned int j = face_offs_list[i].cast<unsigned int>(); j < face_offs_list[i+1].cast<unsigned int>(); ++j)
-            {
-            vec3<OverlapReal> v_3 = verts[face_verts[j]];
-            face_vec.push_back(v_3);
-            n_vert++;
             }
 
-        std::vector<OverlapReal> vertex_radii(n_vert, sweep_radius);
-        obbs[i] = hpmc::detail::compute_obb(face_vec, vertex_radii, false);
-        obbs[i].mask = face_overlap[i];
-        internal_coordinates.push_back(face_vec);
-        }
+        hpmc::detail::OBB *obbs = new hpmc::detail::OBB[pybind11::len(face_offs_list)];
+        std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
 
-    OBBTree tree_obb;
-    tree_obb.buildTree(obbs, internal_coordinates, sweep_radius, pybind11::len(face_offs_list)-1, leaf_capacity);
-    tree = GPUTree(tree_obb, false);
-    delete [] obbs;
-
-    // set the diameter
-    convex_hull_verts.diameter = 2*(sqrt(radius_sq)+sweep_radius);
-    }
-    pybind11::dict asDict()
+        // construct bounding box tree
+        for (unsigned int i = 0; i < pybind11::len(face_offs_list)-1; ++i)
             {
-            pybind11::dict v;
+            std::vector<vec3<OverlapReal> > face_vec;
 
-            pybind11::list faces_list;
-            pybind11::list face_vert;
-            for (unsigned int i = 0; i < face_verts.size(); i++)
-            {
-                face_vert.append(face_verts[i]);
-                if ((i + 1) % 3 == 0)
+            unsigned int n_vert = 0;
+            for (unsigned int j = face_offs_list[i].cast<unsigned int>(); j < face_offs_list[i+1].cast<unsigned int>(); ++j)
                 {
-                    faces_list.append(face_vert);
-                    face_vert = pybind11::list();
+                vec3<OverlapReal> v_3 = verts[face_verts[j]];
+                face_vec.push_back(v_3);
+                n_vert++;
                 }
 
+            std::vector<OverlapReal> vertex_radii(n_vert, sweep_radius);
+            obbs[i] = hpmc::detail::compute_obb(face_vec, vertex_radii, false);
+            obbs[i].mask = face_overlap[i];
+            internal_coordinates.push_back(face_vec);
             }
 
-            pybind11::list verts_list;
-            for(unsigned int i = 0; i < n_verts; i++)
+        OBBTree tree_obb;
+        tree_obb.buildTree(obbs, internal_coordinates, sweep_radius, pybind11::len(face_offs_list)-1, leaf_capacity);
+        tree = GPUTree(tree_obb, false);
+        delete [] obbs;
+
+        // set the diameter
+        convex_hull_verts.diameter = 2*(sqrt(radius_sq)+sweep_radius);
+        }
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+
+        pybind11::list faces_list;
+        pybind11::list face_vert;
+        for (unsigned int i = 0; i < face_verts.size(); i++)
+        {
+            face_vert.append(face_verts[i]);
+            if ((i + 1) % 3 == 0)
             {
-                pybind11::list vert;
-                vert.append(verts[i].x);
-                vert.append(verts[i].y);
-                vert.append(verts[i].z);
-                pybind11::tuple vert_tuple = pybind11::tuple(vert);
-                verts_list.append(vert_tuple);
+                faces_list.append(face_vert);
+                face_vert = pybind11::list();
             }
 
-            pybind11::list face_offs_list;
-            for (unsigned int i = 0; i < face_offs.size(); i++)
-            {
-                face_offs_list.append(face_offs[i]);
-            }
+        }
 
-            pybind11::list overlap_list;
-            for (unsigned int i = 0; i < face_overlap.size(); i++)
-            {
-                overlap_list.append(face_overlap[i]);
-            }
+        pybind11::list verts_list;
+        for(unsigned int i = 0; i < n_verts; i++)
+        {
+            pybind11::list vert;
+            vert.append(verts[i].x);
+            vert.append(verts[i].y);
+            vert.append(verts[i].z);
+            pybind11::tuple vert_tuple = pybind11::tuple(vert);
+            verts_list.append(vert_tuple);
+        }
 
-            pybind11::list origin_list;
-            origin_list.append(origin.x);
-            origin_list.append(origin.y);
-            origin_list.append(origin.z);
-            pybind11::tuple origin_tuple = pybind11::tuple(origin_list);
+        pybind11::list face_offs_list;
+        for (unsigned int i = 0; i < face_offs.size(); i++)
+        {
+            face_offs_list.append(face_offs[i]);
+        }
 
-            v["vertices"] = verts_list;
-            v["faces"] = faces_list;
-            v["face_offs"] = face_offs_list;
-            v["overlap"] = overlap_list;
-            v["origin"] = origin_tuple;
-            v["sweep_radius"] = sweep_radius;
-            v["hull_only"] = hull_only;
-            v["ignore_statistics"] = ignore;
-            v["capacity"] = tree.getLeafNodeCapacity();
-            return v;
-            }
+        pybind11::list overlap_list;
+        for (unsigned int i = 0; i < face_overlap.size(); i++)
+        {
+            overlap_list.append(face_overlap[i]);
+        }
+
+        pybind11::list origin_list;
+        origin_list.append(origin.x);
+        origin_list.append(origin.y);
+        origin_list.append(origin.z);
+        pybind11::tuple origin_tuple = pybind11::tuple(origin_list);
+
+        v["vertices"] = verts_list;
+        v["faces"] = faces_list;
+        v["face_offs"] = face_offs_list;
+        v["overlap"] = overlap_list;
+        v["sweep_radius"] = sweep_radius;
+        v["ignore_statistics"] = ignore;
+        v["capacity"] = tree.getLeafNodeCapacity();
+        v["origin"] = origin_tuple;
+        v["hull_only"] = hull_only;
+        return v;
+        }
     #endif
 
     GPUTree tree;                                   //!< Tree for fast locality lookups

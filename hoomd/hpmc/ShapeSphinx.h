@@ -58,7 +58,7 @@ struct sphinx3d_params : param_base
     sphinx3d_params(bool _managed=false) { }
 
     sphinx3d_params(pybind11::dict v)
-    {
+        {
         pybind11::list centers = v["centers"];
         pybind11::list diameters = v["diameters"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
@@ -101,7 +101,7 @@ struct sphinx3d_params : param_base
         // set the diameter
         circumsphereDiameter = 2.0*radius;
 
-    }
+        }
 
     pybind11::dict asDict()
         {
@@ -109,7 +109,7 @@ struct sphinx3d_params : param_base
         pybind11::dict v;
         pybind11::list diameters;
         for (unsigned int i = 0; i < N; i++)
-        {
+            {
             vec3<OverlapReal> center_i = center[i];
             OverlapReal x = center_i.x;
             OverlapReal y = center_i.y;
@@ -121,9 +121,9 @@ struct sphinx3d_params : param_base
             pybind11::tuple xyz_tuple = pybind11::tuple(xyz);
             centers.append(xyz_tuple);
             diameters.append(diameter[i]);
-        }
-        v["centers"] = centers;
+            }
         v["diameters"] = diameters;
+        v["centers"] = centers;
         v["ignore_statistics"] = ignore;
         return v;
         }

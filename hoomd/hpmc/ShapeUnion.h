@@ -128,111 +128,139 @@ struct union_params : param_base
         }
     #ifndef NVCC
     union_params(pybind11::dict v)
-    : union_params(pybind11::len(v["members"]), false)
-    {
-    pybind11::list _members = v["members"];
-    pybind11::list positions = v["positions"];
-    pybind11::list orientations = v["orientations"];
-    pybind11::list overlap = v["overlap"];
-    ignore = v["ignore_statistics"].cast<unsigned int>();
-    unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
-
-    if (pybind11::len(positions) != pybind11::len(_members))
+        : union_params(pybind11::len(v["members"]), false)
         {
-        throw std::runtime_error("Number of member positions not equal to number of members");
-        }
-    if (pybind11::len(orientations) != pybind11::len(_members))
-        {
-        throw std::runtime_error("Number of member orientations not equal to number of members");
-        }
-
-    if (pybind11::len(overlap) != pybind11::len(_members))
-        {
-        throw std::runtime_error("Number of member overlap flags not equal to number of members");
-        }
-
-
-    hpmc::detail::OBB *obbs = new hpmc::detail::OBB[pybind11::len(_members)];
-
-    std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
-
-    // extract member parameters, positions, and orientations and compute the radius along the way
-    diameter = OverlapReal(0.0);
-
-    // compute a tight fitting AABB in the body frame
-    detail::AABB local_aabb(vec3<OverlapReal>(0,0,0),OverlapReal(0.0));
-
-    for (unsigned int i = 0; i < pybind11::len(_members); i++)
-        {
-        typename Shape::param_type param = pybind11::cast<typename Shape::param_type>(_members[i]);
-        pybind11::list positions_i = pybind11::cast<pybind11::list>(positions[i]);
-        vec3<OverlapReal> pos = vec3<OverlapReal>(pybind11::cast<OverlapReal>(positions_i[0]), pybind11::cast<OverlapReal>(positions_i[1]), pybind11::cast<OverlapReal>(positions_i[2]));
-        pybind11::list orientations_i = pybind11::cast<pybind11::list>(orientations[i]);
-        OverlapReal s = pybind11::cast<OverlapReal>(orientations_i[0]);
-        OverlapReal x = pybind11::cast<OverlapReal>(orientations_i[1]);
-        OverlapReal y = pybind11::cast<OverlapReal>(orientations_i[2]);
-        OverlapReal z = pybind11::cast<OverlapReal>(orientations_i[3]);
-        quat<OverlapReal> orientation(s, vec3<OverlapReal>(x,y,z));
-        mparams[i] = param;
-        mpos[i] = pos;
-        morientation[i] = orientation;
-        moverlap[i] = pybind11::cast<unsigned int>(overlap[i]);
-
-        Shape dummy(orientation, param);
-        Scalar d = sqrt(dot(pos,pos));
-        diameter = max(diameter, OverlapReal(2*d + dummy.getCircumsphereDiameter()));
-
-        if (dummy.hasOrientation())
-            {
-            // construct OBB
-            obbs[i] = dummy.getOBB(pos);
-            }
-        else
-            {
-            // construct bounding sphere
-            obbs[i] = detail::OBB(pos, OverlapReal(0.5)*dummy.getCircumsphereDiameter());
-            }
-
-        obbs[i].mask = moverlap[i];
-
-        detail::AABB my_aabb = dummy.getAABB(pos);
-        local_aabb = merge(local_aabb, my_aabb);
-        }
-
-    // set the diameter
-
-    // build tree and store GPU accessible version in parameter structure
-    //typedef typename ShapeUnion<Shape>::param_type::gpu_tree_type gpu_tree_type;
-    OBBTree tree_obb;
-    tree_obb.buildTree(obbs, pybind11::len(_members), leaf_capacity, false);
-    delete [] obbs;
-    tree = gpu_tree_type(tree_obb, false);
-
-    // store local AABB
-    lower = local_aabb.getLower();
-    upper = local_aabb.getUpper();
-
-    }
-    pybind11::dict asDict()
-    {
-        pybind11::dict v;
-        v["one"] = 1;
-        return v;
-        /*
-        pybind11::dict v;
-        v["ignore_statistics"] = ignore;
-        for (unsigned int i = 0; i < N; i++)
-        {
-
-        }
         pybind11::list _members = v["members"];
         pybind11::list positions = v["positions"];
         pybind11::list orientations = v["orientations"];
         pybind11::list overlap = v["overlap"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
         unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
-        */
-    }
+
+        if (pybind11::len(positions) != pybind11::len(_members))
+            {
+            throw std::runtime_error("Number of member positions not equal to number of members");
+            }
+        if (pybind11::len(orientations) != pybind11::len(_members))
+            {
+            throw std::runtime_error("Number of member orientations not equal to number of members");
+            }
+
+        if (pybind11::len(overlap) != pybind11::len(_members))
+            {
+            throw std::runtime_error("Number of member overlap flags not equal to number of members");
+            }
+
+
+        hpmc::detail::OBB *obbs = new hpmc::detail::OBB[pybind11::len(_members)];
+
+        std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
+
+        // extract member parameters, positions, and orientations and compute the radius along the way
+        diameter = OverlapReal(0.0);
+
+        // compute a tight fitting AABB in the body frame
+        detail::AABB local_aabb(vec3<OverlapReal>(0,0,0),OverlapReal(0.0));
+
+        for (unsigned int i = 0; i < pybind11::len(_members); i++)
+            {
+            typename Shape::param_type param = pybind11::cast<typename Shape::param_type>(_members[i]);
+            pybind11::list positions_i = pybind11::cast<pybind11::list>(positions[i]);
+            vec3<OverlapReal> pos = vec3<OverlapReal>(pybind11::cast<OverlapReal>(positions_i[0]), pybind11::cast<OverlapReal>(positions_i[1]), pybind11::cast<OverlapReal>(positions_i[2]));
+            pybind11::list orientations_i = pybind11::cast<pybind11::list>(orientations[i]);
+            OverlapReal s = pybind11::cast<OverlapReal>(orientations_i[0]);
+            OverlapReal x = pybind11::cast<OverlapReal>(orientations_i[1]);
+            OverlapReal y = pybind11::cast<OverlapReal>(orientations_i[2]);
+            OverlapReal z = pybind11::cast<OverlapReal>(orientations_i[3]);
+            quat<OverlapReal> orientation(s, vec3<OverlapReal>(x,y,z));
+            mparams[i] = param;
+            mpos[i] = pos;
+            morientation[i] = orientation;
+            moverlap[i] = pybind11::cast<unsigned int>(overlap[i]);
+
+            Shape dummy(orientation, param);
+            Scalar d = sqrt(dot(pos,pos));
+            diameter = max(diameter, OverlapReal(2*d + dummy.getCircumsphereDiameter()));
+
+            if (dummy.hasOrientation())
+                {
+                // construct OBB
+                obbs[i] = dummy.getOBB(pos);
+                }
+            else
+                {
+                // construct bounding sphere
+                obbs[i] = detail::OBB(pos, OverlapReal(0.5)*dummy.getCircumsphereDiameter());
+                }
+
+            obbs[i].mask = moverlap[i];
+
+            detail::AABB my_aabb = dummy.getAABB(pos);
+            local_aabb = merge(local_aabb, my_aabb);
+            }
+
+        // set the diameter
+
+        // build tree and store GPU accessible version in parameter structure
+        OBBTree tree_obb;
+        tree_obb.buildTree(obbs, pybind11::len(_members), leaf_capacity, false);
+        delete [] obbs;
+        tree = gpu_tree_type(tree_obb, false);
+
+        // store local AABB
+        lower = local_aabb.getLower();
+        upper = local_aabb.getUpper();
+
+        }
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        
+        pybind11::list positions;
+        pybind11::list orientations;
+        pybind11::list overlaps;
+        pybind11::list members;
+        
+        for (unsigned int i = 0; i < N; i++)
+            {
+            pybind11::list pos_i;
+            pos_i.append(mpos[i].x);
+            pos_i.append(mpos[i].y);
+            pos_i.append(mpos[i].z);
+            pybind11::tuple pos_tuple = pybind11::tuple(pos_i);
+            positions.append(pos_tuple);
+            
+           // quat<OverlapReal> orientation_i = morientation[i];
+            //QuatIterator<OverlapReal> begin = orientation_i.begin();
+            //QuatIterator<OverlapReal> end = orientation_i.end();
+            //OverlapReal s = quat<OverlapReal>(begin, begin);
+           // vec3<OverlapReal> orientation_vec = quat<OverlapReal>(end, end);
+            pybind11::list orientation_list;
+            //orientation_list.append(s);
+            //orientation_list.append(orientation_vec.x);
+            //orientation_list.append(orientation_vec.y);
+            //orientation_list.append(orientation_vec.z);
+            orientation_list.append(morientation[i].s);
+            //orientation_vec = morientation[i].v;
+            orientation_list.append(morientation[i].v.x);
+            orientation_list.append(morientation[i].v.y);
+            orientation_list.append(morientation[i].v.z);
+            pybind11::tuple orientation_tuple = pybind11::tuple(orientation_list);
+            orientations.append(orientation_tuple);
+
+            overlaps.append(moverlap[i]);
+            members.append(mparams[i].asDict());
+            //members.append(mparams[i]);
+            }
+        v["members"] = members;
+        v["orientations"] = orientations;
+        v["positions"] = positions;
+        v["overlap"] = overlaps;
+        v["ignore_statistics"] = ignore;
+        v["capacity"] = tree.getLeafNodeCapacity();
+
+        return v;
+        }
     #endif
 
     gpu_tree_type tree;                      //!< OBB tree for constituent shapes

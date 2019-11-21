@@ -11,7 +11,14 @@ MACRO(copy_file file)
 ENDMACRO(copy_file)
 
 set(files __init__.py
-
+    	test_sphere.py
+	test_ellipsoid.py
+    test_convex_polygon.py
+    test_convex_polyhedron.py
+    test_polyhedron.py
+    test_sphinx.py
+    test_faceted_ellipsoid.py
+    test_union.py
     )
 
 install(FILES ${files}

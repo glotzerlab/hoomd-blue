@@ -77,52 +77,52 @@ struct poly2d_verts : param_base
     #ifndef NVCC
 
     poly2d_verts(pybind11::dict v)
+        {
+        pybind11::list verts = v["vertices"];
+        if (len(verts) > MAX_POLY2D_VERTS)
+            throw std::runtime_error("Too many polygon vertices");
+
+        N = len(verts);
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+
+        // extract the verts from the python list and compute the radius on the way
+        OverlapReal radius_sq = OverlapReal(0.0);
+        for (unsigned int i = 0; i < len(verts); i++)
             {
-            pybind11::list verts = v["vertices"];
-            if (len(verts) > MAX_POLY2D_VERTS)
-                throw std::runtime_error("Too many polygon vertices");
-
-            N = len(verts);
-            ignore = v["ignore_statistics"].cast<unsigned int>();
-
-            // extract the verts from the python list and compute the radius on the way
-            OverlapReal radius_sq = OverlapReal(0.0);
-            for (unsigned int i = 0; i < len(verts); i++)
-                {
-                pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
-                vec2<OverlapReal> vert = vec2<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]), pybind11::cast<OverlapReal>(verts_i[1]));
-                x[i] = vert.x;
-                y[i] = vert.y;
-                radius_sq = max(radius_sq, dot(vert, vert));
-                }
-            for (unsigned int i = len(verts); i < MAX_POLY2D_VERTS; i++)
-                {
-                x[i] = 0;
-                y[i] = 0;
-                }
-
-            // set the diameter
-            diameter = 2*(sqrt(radius_sq)+sweep_radius);
+            pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
+            vec2<OverlapReal> vert = vec2<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]), pybind11::cast<OverlapReal>(verts_i[1]));
+            x[i] = vert.x;
+            y[i] = vert.y;
+            radius_sq = max(radius_sq, dot(vert, vert));
+            }
+        for (unsigned int i = len(verts); i < MAX_POLY2D_VERTS; i++)
+            {
+            x[i] = 0;
+            y[i] = 0;
             }
 
+        // set the diameter
+        diameter = 2*(sqrt(radius_sq)+sweep_radius);
+        }
 
-        pybind11::dict asDict()
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        pybind11::list verts;
+        for(unsigned int i = 0; i < N; i++)
             {
-            pybind11::dict v;
-            pybind11::list verts;
-            for(unsigned int i = 0; i < N; i++)
-            {
-                pybind11::list vert;
-                vert.append(x[i]);
-                vert.append(y[i]);
-                pybind11::tuple vert_tuple = pybind11::tuple(vert);
-                verts.append(vert_tuple);
+            pybind11::list vert;
+            vert.append(x[i]);
+            vert.append(y[i]);
+            pybind11::tuple vert_tuple = pybind11::tuple(vert);
+            verts.append(vert_tuple);
             }    
 
-            v["vertices"] = verts;
-            v["ignore_statistics"] = ignore;
-            return v;
-            }
+        v["vertices"] = verts;
+        v["ignore_statistics"] = ignore;
+        return v;
+        }
     #endif
     } __attribute__((aligned(32)));
 

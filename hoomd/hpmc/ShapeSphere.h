@@ -134,9 +134,9 @@ struct sph_params : param_base
     pybind11::dict asDict()
         {
         pybind11::dict v;
-        v["ignore_statistics"] = ignore;
         v["diameter"] =  radius * OverlapReal(2.0);
         v["orientable"] = isOriented;
+        v["ignore_statistics"] = ignore;
         return v;
         }
 

@@ -80,10 +80,10 @@ struct ell_params : param_base
     pybind11::dict asDict()
         {
         pybind11::dict v;
-        v["ignore_statistics"] = ignore;
         v["a"] = x;
         v["b"] = y;
         v["c"] = z;
+        v["ignore_statistics"] = ignore;
         return v;
         }
     #endif

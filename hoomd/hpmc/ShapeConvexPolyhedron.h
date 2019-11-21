@@ -166,14 +166,14 @@ namespace detail
             pybind11::dict v;
             pybind11::list verts;
             for(unsigned int i = 0; i < N; i++)
-            {
+                {
                 pybind11::list vert;
                 vert.append(x[i]);
                 vert.append(y[i]);
                 vert.append(z[i]);
                 pybind11::tuple vert_tuple = pybind11::tuple(vert);
                 verts.append(vert_tuple);
-            }
+                }
             v["vertices"] = verts;
             v["ignore_statistics"] = ignore;
             return v;
