@@ -122,8 +122,9 @@ void export_tersoff_params(py::module& m)
     m.def("make_tersoff_params", &make_tersoff_params);
 }
 
-//! Function to make the parameter type
-pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
+
+//! Function to make the Fourier parameter type
+inline pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
     {
     pair_fourier_params retval;
     for (int i = 0; i < 3; ++i)
@@ -134,14 +135,37 @@ pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
     return retval;
     }
 
-// ! Function to export the fourier parameter type to python
-void export_pair_fourier_params(py::module& m)
-{
-    py::class_<pair_fourier_params>(m, "pair_fourier_params")
-        .def(py::init<>())
-        ;
+//! Function to make the Gay-Berne parameter type
+inline pair_gb_params make_pair_gb_params(Scalar epsilon, Scalar lperp, Scalar lpar)
+    {
+    pair_gb_params retval;
+    retval.epsilon = epsilon;
+    retval.lperp = lperp;
+    retval.lpar = lpar;
+    return retval;
+    }
 
+//! Function to make the dipole parameter type
+inline pair_dipole_params make_pair_dipole_params(Scalar mu, Scalar A, Scalar kappa)
+    {
+    pair_dipole_params retval;
+    retval.mu = mu;
+    retval.A = A;
+    retval.kappa = kappa;
+    return retval;
+    }
+
+//! Function to export the fourier parameter type to python
+void export_pair_params(py::module& m)
+{
+    py::class_<pair_fourier_params>(m, "pair_fourier_params").def(py::init<>());
     m.def("make_pair_fourier_params", &make_pair_fourier_params);
+
+    py::class_<pair_dipole_params>(m, "pair_dipole_params").def(py::init<>());
+    m.def("make_pair_dipole_params", &make_pair_dipole_params);
+
+    py::class_<pair_gb_params>(m, "pair_gb_params").def(py::init<>());
+    m.def("make_pair_gb_params", &make_pair_gb_params);
 }
 
 //! Helper function for converting python wall group structure to wall_type
@@ -246,7 +270,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_tersoff_params(m);
-    export_pair_fourier_params(m);
+    export_pair_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");

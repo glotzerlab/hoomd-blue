@@ -258,6 +258,7 @@ void NeighborListGPUTree::buildTree()
 
         const BoxDim lbvh_box = getLBVHBox();
 
+        cudaDeviceSynchronize();
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
             const unsigned int first = h_type_first.data[i];
@@ -429,8 +430,8 @@ void NeighborListGPUTree::traverseTree()
                 }
             }
         }
-        // wait for all traversals to finish
-        cudaDeviceSynchronize();
+    // wait for all traversals to finish
+    cudaDeviceSynchronize();
     }
 
 /*!

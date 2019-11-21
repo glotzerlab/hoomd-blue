@@ -1,11 +1,11 @@
-// Copyright (c) 2016-2017 The Regents of the University of Michigan
+// Copyright (c) 2016-2019 The Regents of the University of Michigan
 // This file is part of the General Simulation Data (GSD) project, released under the BSD 2-Clause License.
 
+#include <sys/stat.h>
 #ifdef _WIN32
 
 #define GSD_USE_MMAP 0
 #include <io.h>
-#include <sys/stat.h>
 
 #else // linux / mac
 
@@ -16,10 +16,15 @@
 
 #endif
 
+#ifdef __APPLE__
+#include <limits.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <stddef.h>
 
 #include "gsd.h"
 
@@ -30,35 +35,97 @@
 // define windows wrapper functions
 #ifdef _WIN32
 #define lseek _lseeki64
-#define write _write
-#define read _read
 #define open _open
 #define ftruncate _chsize
+#define fsync _commit
+typedef int64_t ssize_t;
 
 int S_IRUSR = _S_IREAD;
 int S_IWUSR = _S_IWRITE;
 int S_IRGRP = _S_IREAD;
 int S_IWGRP = _S_IWRITE;
 
-size_t pread(int fd, void *buf, size_t count, int64_t offset)
+ssize_t pread(int fd, void *buf, size_t count, int64_t offset)
     {
+    // Note: _read only accepts unsigned int values
+    if (count > UINT_MAX)
+        return -1;
+
     int64_t oldpos = _telli64(fd);
     _lseeki64(fd, offset, SEEK_SET);
-    size_t result = _read(fd, buf, count);  // Note: does not support >4GB reads
+    ssize_t result = _read(fd, buf, (unsigned int)count);
     _lseeki64(fd, oldpos, SEEK_SET);
     return result;
     }
 
-size_t pwrite(int fd, void *buf, size_t count, int64_t offset)
+ssize_t pwrite(int fd, const void *buf, size_t count, int64_t offset)
     {
+    // Note: _write only accepts unsigned int values
+    if (count > UINT_MAX)
+        return -1;
+
     int64_t oldpos = _telli64(fd);
     _lseeki64(fd, offset, SEEK_SET);
-    size_t result = _write(fd, buf, count);  // Note: does not support >4GB writes
+    ssize_t result = _write(fd, buf, (unsigned int)count);
     _lseeki64(fd, oldpos, SEEK_SET);
     return result;
     }
 
 #endif
+
+static ssize_t __pwrite_retry(int fd, const void *buf, size_t count, int64_t offset)
+    {
+    size_t total_bytes_written = 0;
+    const char *ptr = (char *)buf;
+
+    // perform multiple pwrite calls to complete a large write successfully
+    while (total_bytes_written < count)
+        {
+        size_t to_write = count - total_bytes_written;
+        #if defined(_WIN32) || defined(__APPLE__)
+        // win32 and apple raise an error for writes greater than INT_MAX
+        if (to_write > INT_MAX/2) to_write = INT_MAX/2;
+        #endif
+
+        errno = 0;
+        ssize_t bytes_written = pwrite(fd, ptr + total_bytes_written, to_write, offset + total_bytes_written);
+        if (bytes_written == -1 || (bytes_written == 0 && errno != 0))
+            return -1;
+
+        total_bytes_written += bytes_written;
+        }
+
+    return total_bytes_written;
+    }
+
+static ssize_t __pread_retry(int fd, void *buf, size_t count, int64_t offset)
+    {
+    size_t total_bytes_read = 0;
+    char *ptr = (char *)buf;
+
+    // perform multiple pread calls to complete a large write successfully
+    while (total_bytes_read < count)
+        {
+        size_t to_read = count - total_bytes_read;
+        #if defined(_WIN32) || defined(__APPLE__)
+        // win32 and apple raise errors for reads greater than INT_MAX
+        if (to_read > INT_MAX/2) to_read = INT_MAX/2;
+        #endif
+
+        errno = 0;
+        ssize_t bytes_read = pread(fd, ptr + total_bytes_read, to_read, offset + total_bytes_read);
+        if (bytes_read == -1 || (bytes_read == 0 && errno != 0))
+            return -1;
+
+        total_bytes_read += bytes_read;
+
+        // handle end of file
+        if (bytes_read == 0)
+            return total_bytes_read;
+        }
+
+    return total_bytes_read;
+    }
 
 /*! \internal
     \brief Utility function to expand the memory space for the index block
@@ -86,8 +153,12 @@ static int __gsd_expand_index(struct gsd_handle *handle)
 
         // now, put the new larger index at the end of the file
         handle->header.index_location = lseek(handle->fd, 0, SEEK_END);
-        size_t bytes_written = write(handle->fd, handle->index, sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries);
-        if (bytes_written != sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries)
+        ssize_t bytes_written = __pwrite_retry(handle->fd,
+                                               handle->index,
+                                               sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries,
+                                               handle->header.index_location);
+
+        if (bytes_written == -1 || bytes_written != sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries)
             return -1;
 
         // set the new file size
@@ -110,12 +181,20 @@ static int __gsd_expand_index(struct gsd_handle *handle)
             if (old_index_bytes - total_bytes_written < buf_size)
                 bytes_to_copy = old_index_bytes - total_bytes_written;
 
-            size_t bytes_read = pread(handle->fd, buf, bytes_to_copy, old_index_location + total_bytes_written);
-            if (bytes_read != bytes_to_copy)
+            ssize_t bytes_read = __pread_retry(handle->fd,
+                                               buf,
+                                               bytes_to_copy,
+                                               old_index_location + total_bytes_written);
+
+            if (bytes_read == -1 || bytes_read != bytes_to_copy)
                 return -1;
 
-            size_t bytes_written = pwrite(handle->fd, buf, bytes_to_copy, new_index_location + total_bytes_written);
-            if (bytes_written != bytes_to_copy)
+            ssize_t bytes_written = __pwrite_retry(handle->fd,
+                                                   buf,
+                                                   bytes_to_copy,
+                                                   new_index_location + total_bytes_written);
+
+            if (bytes_written == -1 || bytes_written != bytes_to_copy)
                 return -1;
             total_bytes_written += bytes_written;
             }
@@ -129,8 +208,12 @@ static int __gsd_expand_index(struct gsd_handle *handle)
             if (new_index_bytes - total_bytes_written < buf_size)
                 bytes_to_copy = new_index_bytes - total_bytes_written;
 
-            size_t bytes_written = pwrite(handle->fd, buf, bytes_to_copy, new_index_location + total_bytes_written);
-            if (bytes_written != bytes_to_copy)
+            ssize_t bytes_written = __pwrite_retry(handle->fd,
+                                                   buf,
+                                                   bytes_to_copy,
+                                                   new_index_location + total_bytes_written);
+
+            if (bytes_written == -1 || bytes_written != bytes_to_copy)
                 return -1;
             total_bytes_written += bytes_written;
             }
@@ -140,10 +223,19 @@ static int __gsd_expand_index(struct gsd_handle *handle)
         handle->file_size = handle->header.index_location + total_bytes_written;
         }
 
+    // sync the expanded index
+    int retval = fsync(handle->fd);
+    if (retval != 0)
+        return -1;
+
     // write the new header out
-    lseek(handle->fd, 0, SEEK_SET);
-    size_t bytes_written = write(handle->fd, &(handle->header), sizeof(struct gsd_header));
-    if (bytes_written != sizeof(struct gsd_header))
+    ssize_t bytes_written = __pwrite_retry(handle->fd, &(handle->header), sizeof(struct gsd_header), 0);
+    if (bytes_written == -1 || bytes_written != sizeof(struct gsd_header))
+        return -1;
+
+    // sync the updated header
+    retval = fsync(handle->fd);
+    if (retval != 0)
         return -1;
 
     return 0;
@@ -176,14 +268,20 @@ uint16_t __gsd_get_id(struct gsd_handle *handle, const char *name, uint8_t appen
         handle->namelist[handle->namelist_num_entries].name[sizeof(struct gsd_namelist_entry)-1] = 0;
 
         // update the namelist on disk
-        lseek(handle->fd,
-              handle->header.namelist_location + sizeof(struct gsd_namelist_entry)*handle->namelist_num_entries,
-              SEEK_SET);
-        size_t bytes_written = write(handle->fd, &(handle->namelist[handle->namelist_num_entries]), sizeof(struct gsd_namelist_entry));
-        if (bytes_written != sizeof(struct gsd_namelist_entry))
+        ssize_t bytes_written = __pwrite_retry(handle->fd,
+                                               &(handle->namelist[handle->namelist_num_entries]),
+                                               sizeof(struct gsd_namelist_entry),
+                                               handle->header.namelist_location
+                                                   + sizeof(struct gsd_namelist_entry)*handle->namelist_num_entries);
+
+        if (bytes_written == -1 || bytes_written != sizeof(struct gsd_namelist_entry))
             return UINT16_MAX;
 
         handle->namelist_num_entries++;
+
+        // mark that synchronization is needed
+        handle->needs_sync = true;
+
         return handle->namelist_num_entries-1;
         }
     else
@@ -204,7 +302,6 @@ int __gsd_initialize_file(int fd, const char *application, const char *schema, u
         return -1;
 
     int retval = ftruncate(fd, 0);
-    lseek(fd, 0, SEEK_SET);
     if (retval != 0)
         return retval;
 
@@ -226,8 +323,8 @@ int __gsd_initialize_file(int fd, const char *application, const char *schema, u
     memset(header.reserved, 0, sizeof(header.reserved));
 
     // write the header out
-    size_t bytes_written = write(fd, &header, sizeof(header));
-    if (bytes_written != sizeof(header))
+    ssize_t bytes_written = __pwrite_retry(fd, &header, sizeof(header), 0);
+    if (bytes_written == -1 || bytes_written != sizeof(header))
         return -1;
 
     // allocate and zero default index memory
@@ -235,8 +332,8 @@ int __gsd_initialize_file(int fd, const char *application, const char *schema, u
     memset(index, 0, sizeof(index));
 
     // write the empty index out
-    bytes_written = write(fd, index, sizeof(index));
-    if (bytes_written != sizeof(index))
+    bytes_written = __pwrite_retry(fd, index, sizeof(index), sizeof(header));
+    if (bytes_written == -1 || bytes_written != sizeof(index))
         return -1;
 
     // allocate and zero the namelist memory
@@ -244,11 +341,61 @@ int __gsd_initialize_file(int fd, const char *application, const char *schema, u
     memset(namelist, 0, sizeof(namelist));
 
     // write the namelist out
-    bytes_written = write(fd, namelist, sizeof(namelist));
-    if (bytes_written != sizeof(namelist))
+    bytes_written = __pwrite_retry(fd, namelist, sizeof(namelist), sizeof(header)+sizeof(index));
+    if (bytes_written == -1 || bytes_written != sizeof(namelist))
+        return -1;
+
+    // sync file
+    retval = fsync(fd);
+    if (retval != 0)
         return -1;
 
     return 0;
+    }
+
+/*! \internal
+    \brief Utility function to validate index entry
+    \param handle handle to the open gsd file
+    \param idx index of entry to validate
+
+    \returns 1 if the entry is valid, 0 if it is not
+*/
+static int __is_entry_valid(struct gsd_handle *handle, size_t idx)
+    {
+    const struct gsd_index_entry entry = handle->index[idx];
+
+    // check for valid type
+    if (gsd_sizeof_type((enum gsd_type)entry.type) == 0)
+        {
+        return 0;
+        }
+
+    // validate that we don't read past the end of the file
+    size_t size = entry.N * entry.M * gsd_sizeof_type((enum gsd_type)entry.type);
+    if ((entry.location + size) > handle->file_size)
+        {
+        return 0;
+        }
+
+    // check for valid frame (frame cannot be more than the number of index entries)
+    if (entry.frame >= handle->header.index_allocated_entries)
+        {
+        return 0;
+        }
+
+    // check for valid id
+    if (entry.id >= handle->namelist_num_entries)
+        {
+        return 0;
+        }
+
+    // check for valid flags
+    if (entry.flags != 0)
+        {
+        return 0;
+        }
+
+    return 1;
     }
 
 /*! \param handle Handle to read the header
@@ -265,14 +412,14 @@ int __gsd_read_header(struct gsd_handle* handle)
         return -1;
 
     // read the header
-    lseek(handle->fd, 0, SEEK_SET);
-    size_t bytes_read = read(handle->fd, &handle->header, sizeof(struct gsd_header));
+    ssize_t bytes_read = __pread_retry(handle->fd, &handle->header, sizeof(struct gsd_header), 0);
+    if (bytes_read == -1)
+        {
+        return -1;
+        }
     if (bytes_read != sizeof(struct gsd_header))
         {
-        if (errno != 0)
-            return -1;
-        else
-            return -2;
+        return -2;
         }
 
     // validate the header
@@ -291,13 +438,14 @@ int __gsd_read_header(struct gsd_handle* handle)
     #if GSD_USE_MMAP
     if (handle->open_flags == GSD_OPEN_READONLY)
         {
-        handle->mapped_data = mmap(NULL, handle->file_size, PROT_READ, MAP_SHARED, handle->fd, 0);
+        size_t page_size = getpagesize();
+        size_t index_size = sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries;
+        size_t offset = (handle->header.index_location / page_size) * page_size;
+        handle->mapped_data = mmap(NULL, index_size+(handle->header.index_location - offset), PROT_READ, MAP_SHARED, handle->fd, offset);
+        handle->index = (struct gsd_index_entry *) (((char *)handle->mapped_data) + (handle->header.index_location - offset));
 
         if (handle->mapped_data == MAP_FAILED)
             return -1;
-
-        handle->index = (struct gsd_index_entry *) (((char *)handle->mapped_data) + handle->header.index_location);
-        handle->namelist = (struct gsd_namelist_entry *) (((char *)handle->mapped_data) + handle->header.namelist_location);
         }
     else if (handle->open_flags == GSD_OPEN_READWRITE)
     #endif
@@ -314,9 +462,12 @@ int __gsd_read_header(struct gsd_handle* handle)
         if (handle->index == NULL)
             return -5;
 
-        lseek(handle->fd, handle->header.index_location, SEEK_SET);
-        bytes_read = read(handle->fd, handle->index, sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries);
-        if (bytes_read != sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries)
+        bytes_read = __pread_retry(handle->fd,
+                                   handle->index,
+                                   sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries,
+                                   handle->header.index_location);
+
+        if (bytes_read == -1 || bytes_read != sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries)
             return -1;
         }
     #if GSD_USE_MMAP
@@ -325,30 +476,58 @@ int __gsd_read_header(struct gsd_handle* handle)
         // in append mode, we want to avoid reading the entire index in memory, but we also don't want to bother
         // keeping the mapping up to date. Map the index for now to determine index_num_entries, but then
         // unmap it and use different logic to manage a cache of only unwritten index entries
-        handle->mapped_data = mmap(NULL, handle->file_size, PROT_READ, MAP_SHARED, handle->fd, 0);
+
+        // mmap may fail if offset is not a multiple of the page size, so we
+        // always memory map from the beginning of the file and then access the
+        // index pointer by its offset.
+        size_t page_size = getpagesize();
+        size_t index_size = sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries;
+        size_t offset = (handle->header.index_location / page_size) * page_size;
+        handle->mapped_data = mmap(NULL, index_size+(handle->header.index_location - offset), PROT_READ, MAP_SHARED, handle->fd, offset);
+        handle->index = (struct gsd_index_entry *) (((char *)handle->mapped_data) + (handle->header.index_location - offset));
 
         if (handle->mapped_data == MAP_FAILED)
             return -1;
-
-        handle->index = (struct gsd_index_entry *) (((char *)handle->mapped_data) + handle->header.index_location);
         }
     #endif
 
-    if (handle->open_flags == GSD_OPEN_READWRITE || handle->open_flags == GSD_OPEN_APPEND || !GSD_USE_MMAP)
+    // since the namelist is small, we always allocate memory for it rather than memory mapping
+    // validate that the namelist block exists inside the file
+    if (handle->header.namelist_location + sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries > handle->file_size)
+        return -4;
+
+    // read the namelist block
+    handle->namelist = (struct gsd_namelist_entry *)malloc(sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries);
+    if (handle->namelist == NULL)
+        return -5;
+
+    bytes_read = __pread_retry(handle->fd,
+                               handle->namelist,
+                               sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries,
+                               handle->header.namelist_location);
+
+    if (bytes_read == -1 || bytes_read != sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries)
+        return -1;
+
+    // determine the number of namelist entries (marked by an empty string)
+    // base case: the namelist is full
+    handle->namelist_num_entries = handle->header.namelist_allocated_entries;
+
+    // general case, find the first namelist entry that is the empty string
+    size_t i;
+    for (i = 0; i < handle->header.namelist_allocated_entries; i++)
         {
-        // validate that the namelist block exists inside the file
-        if (handle->header.namelist_location + sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries > handle->file_size)
-            return -4;
+        if (handle->namelist[i].name[0] == 0)
+            {
+            handle->namelist_num_entries = i;
+            break;
+            }
+        }
 
-        // read the namelist block
-        handle->namelist = (struct gsd_namelist_entry *)malloc(sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries);
-        if (handle->namelist == NULL)
-            return -5;
-
-        lseek(handle->fd, handle->header.namelist_location, SEEK_SET);
-        bytes_read = read(handle->fd, handle->namelist, sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries);
-        if (bytes_read != sizeof(struct gsd_namelist_entry) * handle->header.namelist_allocated_entries)
-            return -1;
+    // file is corrupt if first index entry is invalid
+    if (handle->index[0].location != 0 && !__is_entry_valid(handle, 0))
+        {
+        return -4;
         }
 
     if (handle->index[0].location == 0)
@@ -367,6 +546,13 @@ int __gsd_read_header(struct gsd_handle* handle)
             {
             size_t m = (L+R)/2;
 
+            // file is corrupt if any index entry is invalid or frame does not increase monotonically
+            if (handle->index[m].location != 0 &&
+                (!__is_entry_valid(handle, m) || handle->index[m].frame < handle->index[L].frame))
+                {
+                return -4;
+                }
+
             if (handle->index[m].location != 0)
                 L = m;
             else
@@ -376,22 +562,6 @@ int __gsd_read_header(struct gsd_handle* handle)
         // this finds R = the first index entry with location = 0
         handle->index_num_entries = R;
         }
-
-    // determine the number of namelist entries (marked by location = 0)
-    // base case: the namelist is full
-    handle->namelist_num_entries = handle->header.namelist_allocated_entries;
-
-    // general case, find the first namelist entry that is the empty string
-    size_t i;
-    for (i = 0; i < handle->header.namelist_allocated_entries; i++)
-        {
-        if (handle->namelist[i].name[0] == 0)
-            {
-            handle->namelist_num_entries = i;
-            break;
-            }
-        }
-
 
     // determine the current frame counter
     if (handle->index_num_entries == 0)
@@ -411,7 +581,12 @@ int __gsd_read_header(struct gsd_handle* handle)
         #if GSD_USE_MMAP
         // in append mode, we need to tear down the temporary mapping and allocate a temporary buffer
         // to hold indices for a single frame
-        int retval = munmap(handle->mapped_data, handle->file_size);
+        size_t page_size = getpagesize();
+        size_t index_size = sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries;
+        size_t offset = (handle->header.index_location / page_size) * page_size;
+        int retval = munmap(handle->mapped_data, index_size+(handle->header.index_location - offset));
+        handle->index = NULL;
+
         if (retval != 0)
             return -1;
         #else
@@ -453,7 +628,7 @@ uint32_t gsd_make_version(unsigned int major, unsigned int minor)
 int gsd_create(const char *fname, const char *application, const char *schema, uint32_t schema_version)
     {
     int extra_flags = 0;
-    #ifdef WIN32
+    #ifdef _WIN32
     extra_flags = _O_BINARY;
     #endif
 
@@ -476,6 +651,8 @@ int gsd_create(const char *fname, const char *application, const char *schema, u
 
     Open the generated gsd file in *handle*.
 
+    The file descriptor is closed if there when an error opening the file.
+
     \return 0 on success. Negative value on failure:
         * -1: IO error (check errno)
         * -2: Not a GSD file
@@ -493,7 +670,7 @@ int gsd_create_and_open(struct gsd_handle* handle,
                         int exclusive_create)
     {
     int extra_flags = 0;
-    #ifdef WIN32
+    #ifdef _WIN32
     extra_flags = _O_BINARY;
     #endif
 
@@ -519,9 +696,17 @@ int gsd_create_and_open(struct gsd_handle* handle,
     handle->fd = open(fname, O_RDWR | O_CREAT | O_TRUNC | extra_flags,  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     int retval = __gsd_initialize_file(handle->fd, application, schema, schema_version);
     if (retval != 0)
+        {
+        close(handle->fd);
         return retval;
+        }
 
-    return __gsd_read_header(handle);
+    retval = __gsd_read_header(handle);
+    if (retval != 0)
+        {
+        close(handle->fd);
+        }
+    return retval;
     }
 
 /*! \param handle Handle to open
@@ -531,6 +716,8 @@ int gsd_create_and_open(struct gsd_handle* handle,
     \pre The file name \a fname is a GSD file.
 
     \post Open a GSD file and populates the handle for use by API calls.
+
+    The file descriptor is closed if there when an error opening the file.
 
     \return 0 on success. Negative value on failure:
         * -1: IO error (check errno)
@@ -548,7 +735,7 @@ int gsd_open(struct gsd_handle* handle, const char *fname, const enum gsd_open_f
     handle->cur_frame = 0;
 
     int extra_flags = 0;
-    #ifdef WIN32
+    #ifdef _WIN32
     extra_flags = _O_BINARY;
     #endif
 
@@ -569,7 +756,12 @@ int gsd_open(struct gsd_handle* handle, const char *fname, const enum gsd_open_f
         handle->open_flags = GSD_OPEN_APPEND;
         }
 
-    return __gsd_read_header(handle);
+    int retval = __gsd_read_header(handle);
+    if (retval != 0)
+        {
+        close(handle->fd);
+        }
+    return retval;
     }
 
 /*! \param handle Handle to an open GSD file
@@ -644,39 +836,40 @@ int gsd_close(struct gsd_handle* handle)
     #if GSD_USE_MMAP
     if (handle->mapped_data != NULL)
         {
-        munmap(handle->mapped_data, handle->file_size);
+        size_t page_size = getpagesize();
+        size_t index_size = sizeof(struct gsd_index_entry) * handle->header.index_allocated_entries;
+        size_t offset = (handle->header.index_location / page_size) * page_size;
+        int retval = munmap(handle->mapped_data, index_size+(handle->header.index_location - offset));
+        handle->mapped_data = NULL;
         handle->index = NULL;
-        handle->namelist = NULL;
 
-        memset(handle, 0, sizeof(struct gsd_handle));
-
-        // close the file
-        int retval = close(fd);
         if (retval != 0)
             return -1;
+
+        memset(handle, 0, sizeof(struct gsd_handle));
         }
     else
     #endif
         {
-        if (handle->namelist != NULL)
-            {
-            free(handle->namelist);
-            handle->namelist = NULL;
-            }
-
         if (handle->index != NULL)
             {
             free(handle->index);
             handle->index = NULL;
 
             memset(handle, 0, sizeof(struct gsd_handle));
-
-            // close the file
-            int retval = close(fd);
-            if (retval != 0)
-                return -1;
             }
         }
+
+    if (handle->namelist != NULL)
+        {
+        free(handle->namelist);
+        handle->namelist = NULL;
+        }
+
+    // close the file
+    int retval = close(fd);
+    if (retval != 0)
+        return -1;
 
     return 0;
     }
@@ -714,15 +907,24 @@ int gsd_end_frame(struct gsd_handle* handle)
         if (handle->open_flags != GSD_OPEN_APPEND)
             data += handle->index_written_entries;
 
-        size_t bytes_written = pwrite(handle->fd,
-                                     data,
-                                     sizeof(struct gsd_index_entry)*entries_to_write,
-                                     write_pos);
+        ssize_t bytes_written = __pwrite_retry(handle->fd,
+                                              data,
+                                              sizeof(struct gsd_index_entry)*entries_to_write,
+                                              write_pos);
 
-        if (bytes_written != sizeof(struct gsd_index_entry) * entries_to_write)
+        if (bytes_written == -1 || bytes_written != sizeof(struct gsd_index_entry)*entries_to_write)
             return -1;
 
         handle->index_written_entries += entries_to_write;
+        }
+
+    // this sync is triggered by the namelist update
+    if (handle->needs_sync)
+        {
+        int retval = fsync(handle->fd);
+        if (retval != 0)
+            return -1;
+        handle->needs_sync = false;
         }
 
     return 0;
@@ -742,7 +944,7 @@ int gsd_end_frame(struct gsd_handle* handle)
 
     \post The given data chunk is written to the end of the file and its location is updated in the in-memory index.
 
-    \return 0 on success, -1 on a file IO failure - see errno for details, and -2 on invalid input
+    \return 0 on success, -1 on a file IO failure - see errno for details, -2 on invalid input, and -3 when out of names
 */
 int gsd_write_chunk(struct gsd_handle* handle,
                     const char *name,
@@ -765,6 +967,8 @@ int gsd_write_chunk(struct gsd_handle* handle,
     memset(&index_entry, 0, sizeof(index_entry));
     index_entry.frame = handle->cur_frame;
     index_entry.id = __gsd_get_id(handle, name, 1);
+    if (index_entry.id == UINT16_MAX)
+        return -3;
     index_entry.type = (uint8_t)type;
     index_entry.N = N;
     index_entry.M = M;
@@ -774,8 +978,8 @@ int gsd_write_chunk(struct gsd_handle* handle,
     index_entry.location = handle->file_size;
 
     // write the data
-    size_t bytes_written = pwrite(handle->fd, data, size, index_entry.location);
-    if (bytes_written != size)
+    ssize_t bytes_written = __pwrite_retry(handle->fd, data, size, index_entry.location);
+    if (bytes_written == -1 || bytes_written != size)
         return -1;
 
     // update the file_size in the handle
@@ -901,7 +1105,7 @@ int gsd_read_chunk(struct gsd_handle* handle, void* data, const struct gsd_index
     if (handle->open_flags == GSD_OPEN_APPEND)
         return -2;
 
-    size_t size = chunk->N * chunk->M * gsd_sizeof_type(chunk->type);
+    size_t size = chunk->N * chunk->M * gsd_sizeof_type((enum gsd_type)chunk->type);
     if (size == 0)
         return -3;
     if (chunk->location == 0)
@@ -913,8 +1117,8 @@ int gsd_read_chunk(struct gsd_handle* handle, void* data, const struct gsd_index
         return -3;
         }
 
-    size_t bytes_read = pread(handle->fd, data, size, chunk->location);
-    if (bytes_read != size)
+    ssize_t bytes_read = __pread_retry(handle->fd, data, size, chunk->location);
+    if (bytes_read == -1 || bytes_read != size)
         {
         return -1;
         }
@@ -951,6 +1155,58 @@ size_t gsd_sizeof_type(enum gsd_type type)
     else
         return 0;
     }
+
+/*! \param handle Handle to an open GSD file
+    \param match String to match
+    \param prev Search starting point
+
+    \pre \a handle was opened by gsd_open()
+    \pre \a prev was returned by a previous call to gsd_find_matching_chunk_name
+
+    To find the first matching chunk name, pass NULL for prev. Pass in the previous found string to find the next
+    after that, and so on. Chunk names match if they begin with the string in \a match. Chunk names returned
+    by this function may be present in at least one frame.
+
+    \return Pointer to a string, NULL if no more matching chunks are found found, or NULL if \a prev is invalid
+*/
+const char *gsd_find_matching_chunk_name(struct gsd_handle* handle, const char* match, const char *prev)
+    {
+    if (handle == NULL)
+        return NULL;
+    if (match == NULL)
+        return NULL;
+    if (handle->namelist_num_entries == 0)
+        return NULL;
+
+    // determine search start index
+    size_t start;
+    if (prev == NULL)
+        {
+        start = 0;
+        }
+    else
+        {
+        if (prev < handle->namelist[0].name)
+            return NULL;
+
+        ptrdiff_t d = prev - handle->namelist[0].name;
+        if (d % sizeof(struct gsd_namelist_entry) != 0)
+            return NULL;
+        start = d / sizeof(struct gsd_namelist_entry) + 1;
+        }
+
+    size_t match_len = strnlen(match, sizeof(handle->namelist[0].name));
+    size_t i;
+    for (i = start; i < handle->namelist_num_entries; i++)
+        {
+        if (0 == strncmp(match, handle->namelist[i].name, match_len))
+            return handle->namelist[i].name;
+        }
+
+    // searched past the end of the list, return NULL
+    return NULL;
+    }
+
 
 // undefine windows wrapper macros
 #ifdef _WIN32

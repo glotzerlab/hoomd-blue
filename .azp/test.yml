@@ -1,11 +1,5 @@
-trigger:
-  batch: true
-  branches:
-    include:
-    - '*'
-
 variables:
-  image_root: glotzerlab/ci:2019.08
+  image_root: glotzerlab/ci:2019.11
 
   # default build parameters, will override as needed with job matrix values
   enable_cuda: off
@@ -34,91 +28,68 @@ stages:
 
     strategy:
       matrix:
-        clang8_py37_mpi_tbb_llvm8:
-          container_image: ubuntu19.04
-          cc: clang-8
-          cxx: clang++-8
+        gcc9_py38_mpi_tbb:
+          container_image: gcc9_py38
+          enable_mpi: on
+          enable_tbb: on
+
+        clang9_py38_mpi_tbb:
+          container_image: clang9_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '9'
+
+        clang8_py38_mpi_tbb:
+          container_image: clang8_py38
           enable_mpi: on
           enable_tbb: on
           build_jit: on
           llvm_version: '8'
 
-        clang7_py37_mpi_tbb_llvm7:
-          container_image: ubuntu19.04
-          cc: clang-7
-          cxx: clang++-7
+        clang7_py38_mpi_tbb:
+          container_image: clang7_py38
           enable_mpi: on
           enable_tbb: on
           build_jit: on
           llvm_version: '7'
 
-        gcc9_py37_mpi_tbb_llvm8:
-          container_image: ubuntu19.04
-          cc: gcc-9
-          cxx: g++-9
+        gcc8_py37_mpi_tbb:
+          container_image: gcc8_py37
           enable_mpi: on
           enable_tbb: on
-          build_jit: on
-          llvm_version: '8'
 
-        gcc9_py37_mpi_tbb_llvm7:
-          container_image: ubuntu19.04
-          cc: gcc-9
-          cxx: g++-9
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '7'
-
-        gcc8_py36_mpi_tbb_llvm6:
-          container_image: ubuntu18.04
-          cc: gcc-8
-          cxx: g++-8
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '6.0'
-
-        gcc7_py36_tbb:
-          container_image: ubuntu18.04
-          cc: gcc-7
-          cxx: g++-7
+        gcc7_py37_tbb:
+          container_image: gcc7_py37
           enable_tbb: on
 
-        gcc6_py36_mpi:
-          container_image: ubuntu18.04
-          cc: gcc-6
-          cxx: g++-6
+        gcc6_py37_mpi:
+          container_image: gcc6_py37
           enable_mpi: on
 
-        clang6_py36_mpi_tbb_llvm6:
-          container_image: ubuntu18.04
-          cc: clang-6.0
-          cxx: clang++-6.0
+        gcc5_py37:
+          container_image: gcc5_py37
+
+        gcc48_py37_mpi_tbb:
+          container_image: gcc48_py37
+          enable_mpi: on
+          enable_tbb: on
+
+        clang6_py37_mpi_tbb:
+          container_image: clang6_py37
           enable_mpi: on
           enable_tbb: on
           build_jit: on
           llvm_version: '6.0'
 
-        clang5_py36_tbb_llvm5:
-          container_image: ubuntu18.04
-          cc: clang-5.0
-          cxx: clang++-5.0
+        clang5_py37_tbb_llvm5:
+          container_image: clang5_py37
           enable_tbb: on
           build_jit: on
           llvm_version: '5.0'
 
-        gcc5_py36:
-          container_image: ubuntu18.04
-          cc: gcc-5
-          cxx: g++-5
-
-        gcc48_py36_mpi_tbb:
-          container_image: ubuntu18.04
-          cc: gcc-4.8
-          cxx: g++-4.8
-          enable_mpi: on
-          enable_tbb: on
+        gcc7_py36:
+          container_image: gcc7_py36
 
     pool:
       vmImage: 'ubuntu-16.04'
@@ -147,9 +118,8 @@ stages:
       vmImage: '$(mac_image)'
 
     steps:
-    - script: brew install cereal cmake eigen ninja open-mpi pybind11 python numpy
+    - script: brew install cereal cmake eigen ninja open-mpi python numpy pybind11
       displayName: Brew install prereqs
-
     # Install Intel's provided TBB builds, homebrew's tbb does not support exception translation
     - script: |
         curl -sLO https://github.com/intel/tbb/releases/download/2019_U8/tbb2019_20190605oss_mac.tgz &&
@@ -177,23 +147,17 @@ stages:
 
     strategy:
       matrix:
-        gcc7_py36_cuda10_mng_mpi:
-          cc: gcc
-          cxx: g++
-          container_image: cuda10
+        cuda10_py37_mng_mpi:
+          container_image: cuda10_py37
           always_use_managed_memory: on
           enable_mpi: on
 
-        gcc7_py36_cuda9_mpi:
-          cc: gcc
-          cxx: g++
-          container_image: cuda9
+        cuda9_py37_mpi:
+          container_image: cuda9_py37
           enable_mpi: on
 
-        gcc7_py36_cuda9:
-          cc: gcc
-          cxx: g++
-          container_image: cuda9
+        cuda9_py37:
+          container_image: cuda9_py37
 
     pool:
       name: 'GPU'
@@ -220,7 +184,7 @@ stages:
       vmImage: 'ubuntu-16.04'
 
     container:
-      image: $(image_root)-ubuntu18.04
+      image: $(image_root)-gcc7_py37
       options: -u 0
 
     workspace:

@@ -28,6 +28,7 @@ set(_mpcd_sources
 
 set(_mpcd_headers
     ATCollisionMethod.h
+    BounceBackNVE.h
     BoundaryCondition.h
     BulkGeometry.h
     CellCommunicator.h
@@ -69,6 +70,8 @@ list(APPEND _mpcd_sources
 list(APPEND _mpcd_headers
     ATCollisionMethodGPU.cuh
     ATCollisionMethodGPU.h
+    BounceBackNVEGPU.cuh
+    BounceBackNVEGPU.h
     CellCommunicator.cuh
     CellThermoComputeGPU.cuh
     CellThermoComputeGPU.h
@@ -92,6 +95,7 @@ endif()
 
 set(_mpcd_cu_sources
     ATCollisionMethodGPU.cu
+    BounceBackNVEGPU.cu
     CellThermoComputeGPU.cu
     CellListGPU.cu
     ConfinedStreamingMethodGPU.cu
@@ -164,6 +168,7 @@ set(files
     data.py
     force.py
     init.py
+    integrate.py
     stream.py
     update.py
     )
@@ -207,3 +212,6 @@ if (BUILD_TESTING)
     add_subdirectory(test-py)
 endif()
 add_subdirectory(test)
+if (BUILD_VALIDATION)
+    add_subdirectory(validation)
+endif (BUILD_VALIDATION)

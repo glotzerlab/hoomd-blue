@@ -17,6 +17,9 @@ Resolves: #???
 
 <!--- Please describe in detail how you tested your changes. -->
 
+<!--- Please build the sphinx documentation and check that any changes to
+      documentation display properly. -->
+
 ## Change log
 
 <!-- Propose a change log entry. -->
@@ -29,4 +32,3 @@ Resolves: #???
 - [ ] I have reviewed the [**Contributor Guidelines**](https://github.com/glotzerlab/hoomd-blue/blob/master/CONTRIBUTING.md).
 - [ ] I agree with the terms of the [**HOOMD-blue Contributor Agreement**](https://github.com/glotzerlab/hoomd-blue/blob/master/ContributorAgreement.md).
 - [ ] My name is on the [list of contributors](https://github.com/glotzerlab/hoomd-blue/blob/master/sphinx-doc/credits.rst).
-- [ ] (Glotzer group members): I am a member of the [hoomd-contributors team](https://github.com/orgs/glotzerlab/teams/hoomd-contributors/members).

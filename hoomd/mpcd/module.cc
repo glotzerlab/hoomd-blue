@@ -41,6 +41,12 @@
 #include "ConfinedStreamingMethodGPU.h"
 #endif // ENABLE_CUDA
 
+// integration methods
+#include "BounceBackNVE.h"
+#ifdef ENABLE_CUDA
+#include "BounceBackNVEGPU.h"
+#endif
+
 // virtual particle fillers
 #include "VirtualParticleFiller.h"
 #include "SlitGeometryFiller.h"
@@ -143,6 +149,13 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_ConfinedStreamingMethodGPU<mpcd::detail::BulkGeometry>(m);
     mpcd::detail::export_ConfinedStreamingMethodGPU<mpcd::detail::SlitGeometry>(m);
     mpcd::detail::export_ConfinedStreamingMethodGPU<mpcd::detail::SlitPoreGeometry>(m);
+    #endif // ENABLE_CUDA
+
+    mpcd::detail::export_BounceBackNVE<mpcd::detail::SlitGeometry>(m);
+    mpcd::detail::export_BounceBackNVE<mpcd::detail::SlitPoreGeometry>(m);
+    #ifdef ENABLE_CUDA
+    mpcd::detail::export_BounceBackNVEGPU<mpcd::detail::SlitGeometry>(m);
+    mpcd::detail::export_BounceBackNVEGPU<mpcd::detail::SlitPoreGeometry>(m);
     #endif // ENABLE_CUDA
 
     mpcd::detail::export_VirtualParticleFiller(m);
