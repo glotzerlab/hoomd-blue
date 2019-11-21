@@ -49,14 +49,15 @@ namespace detail
 struct faceted_ellipsoid_params : param_base
     {
     //! Empty constructor
-    faceted_ellipsoid_params(bool _managed=false)
-        : verts(_managed),
-          additional_verts(_managed),
-          n(0, _managed),
-          offset(0, _managed),
+    faceted_ellipsoid_params()
+        : verts(),
+          additional_verts(),
+          n(),
+          offset(),
           a(1.0), b(1.0), c(1.0), N(0), ignore(1)
         { }
 
+    #ifndef NVCC
     faceted_ellipsoid_params(unsigned int n_facet, bool managed )
         : a(1.0), b(1.0), c(1.0), N(n_facet), ignore(0)
         {
@@ -64,7 +65,7 @@ struct faceted_ellipsoid_params : param_base
         offset = ManagedArray<OverlapReal> (n_facet, managed);
         }
 
-    #ifndef NVCC
+
     faceted_ellipsoid_params(pybind11::dict v)
         : faceted_ellipsoid_params(pybind11::len(v["normals"]), false)
         {

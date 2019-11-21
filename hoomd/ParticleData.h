@@ -165,6 +165,11 @@ struct PYBIND11_EXPORT SnapshotParticleData {
      */
     void resize(unsigned int N);
 
+    unsigned int getSize()
+        {
+        return size;
+        }
+
     //! Insert n elements at position i
     void insert(unsigned int i, unsigned int n);
 

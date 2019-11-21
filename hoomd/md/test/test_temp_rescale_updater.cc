@@ -77,7 +77,7 @@ UP_TEST( ComputeThermoGPU_basic )
     }
 
     // construct a TempCompute and see that everything is set properly
-    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     std::shared_ptr<ComputeThermoGPU> tc(new ComputeThermoGPU(sysdef, group_all));
 

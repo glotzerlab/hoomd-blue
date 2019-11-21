@@ -66,6 +66,22 @@ class Simulation:
         self._cpp_sys.enableQuietRun(not self.verbose_run)
         self.operations._store_reader(reader)
 
+    def create_state_from_snapshot(self, snapshot):
+        # initialize the system
+        # Error checking
+        if self.state is not None:
+            raise RuntimeError("Cannot initialize more than once\n")
+
+        self._state = State(self, snapshot)
+
+        step = 0
+        if self.timestep is not None:
+            step = self.timestep
+
+        # Store System and Reader for Operations
+        self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
+        self._cpp_sys.enableQuietRun(not self.verbose_run)
+
     @property
     def state(self):
         return self._state

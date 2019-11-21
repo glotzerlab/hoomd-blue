@@ -95,6 +95,7 @@ SystemDefinition::SystemDefinition(std::shared_ptr< SnapshotSystemData<Real> > s
 
     m_constraint_data = std::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, snapshot->constraint_data));
     m_pair_data = std::shared_ptr<PairData>(new PairData(m_particle_data, snapshot->pair_data));
+    m_integrator_data = std::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
 /*! Sets the dimensionality of the system.  When quantities involving the dof of

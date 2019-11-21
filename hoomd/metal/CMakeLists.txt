@@ -76,6 +76,6 @@ install(FILES ${_${PACKAGE_NAME}_headers}
        )
 
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
     # add_subdirectory(test)
 endif()

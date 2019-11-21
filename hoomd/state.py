@@ -1,6 +1,7 @@
 from . import _hoomd
 from hoomd.groups import Groups
 from .data import boxdim
+from hoomd.snapshot import Snapshot
 
 
 class State:
@@ -14,25 +15,23 @@ class State:
 
     def __init__(self, simulation, snapshot):
         self._simulation = simulation
-        snapshot._broadcast_box(simulation.device.cpp_exec_conf)
+        snapshot._broadcast_box()
         # my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
         if False:  # my_domain_decomposition is not None:
             self._cpp_sys_def = _hoomd.SystemDefinition(
-                snapshot, simulation.device.cpp_exec_conf,
+                snapshot._cpp_obj, simulation.device.cpp_exec_conf,
                 my_domain_decomposition)
         else:
             self._cpp_sys_def = _hoomd.SystemDefinition(
-                snapshot, simulation.device.cpp_exec_conf)
+                snapshot._cpp_obj, simulation.device.cpp_exec_conf)
         self._groups = Groups()
 
     @property
     def snapshot(self):
-        return self._cpp_sys_def.takeSnapshot_double()
-
-    @property
-    def light_snapshot(self):
-        return self._cpp_sys_def.takeSnapshot_float()
+        result = Snapshot(self._simulation.device.comm)
+        result._cpp_obj = self._cpp_sys_def.takeSnapshot_double()
+        return result
 
     @snapshot.setter
     def snapshot(self, snapshot):
@@ -73,7 +72,7 @@ class State:
                     "Number of particle types must remain the same")
             if len(snapshot.bonds.types) != len(self.bond_types):
                 raise RuntimeError("Number of bond types must remain the same")
-            if len(snapshot.angles.types) != len(self.angles_types):
+            if len(snapshot.angles.types) != len(self.angle_types):
                 raise RuntimeError(
                     "Number of angle types must remain the same")
             if len(snapshot.dihedrals.types) != len(self.dihedral_types):
@@ -85,13 +84,13 @@ class State:
             if len(snapshot.pairs.types) != len(self.special_pair_types):
                 raise RuntimeError("Number of pair types must remain the same")
 
-        self._cpp_sys_def.initializeFromSnapshot(snapshot)
+        self._cpp_sys_def.initializeFromSnapshot(snapshot._cpp_obj)
 
     @property
     def types(self):
         return dict(particle_types=self.particle_types,
                     bond_types=self.bond_types,
-                    angles_types=self.angles_types,
+                    angle_types=self.angles_types,
                     dihedral_types=self.dihedral_types,
                     improper_types=self.improper_types,
                     special_pair_types=self.special_pair_types
@@ -106,7 +105,7 @@ class State:
         return self._cpp_sys_def.getBondData().getTypes()
 
     @property
-    def angles_types(self):
+    def angle_types(self):
         return self._cpp_sys_def.getAngleData().getTypes()
 
     @property

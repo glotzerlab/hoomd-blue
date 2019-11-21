@@ -48,7 +48,7 @@ With patch energies defined, the following quantities are available:
 - ``hpmc_muvt_remove_acceptance`` - Fraction of particle removals accepted (averaged from start of run)
 - ``hpmc_muvt_volume_acceptance`` - Fraction of particle removals accepted (averaged from start of run)
 
-:py:class:`update.clusters()` provides the following loggable quantities.
+:py:class:`update.Clusters()` provides the following loggable quantities.
 
 - ``hpmc_clusters_moves`` - Fraction of cluster moves divided by the number of particles
 - ``hpmc_clusters_pivot_acceptance`` - Fraction of pivot moves accepted

@@ -68,9 +68,6 @@ class _integrator(hoomd.meta._Operation):
 
         self.supports_methods = False
 
-        # base class constructor
-        super().__init__()
-
     ## \var supports_methods
     # \internal
     # \brief True if this integrator supports integration methods

@@ -15,7 +15,6 @@ hoomd.data
     hoomd.data.force_data_proxy
     hoomd.data.gsd_snapshot
     hoomd.data.particle_data_proxy
-    hoomd.data.make_snapshot
     hoomd.data.system_data
 
 .. rubric:: Details

@@ -17,7 +17,7 @@ Example::
 """
 
 import hoomd
-from hoomd.triggers import PeriodicTrigger
+from hoomd.triggers import PeriodicTrigger, Trigger
 import json
 import time
 import datetime
@@ -26,15 +26,17 @@ import copy
 from collections import OrderedDict
 from collections import Mapping
 
-## \internal
-class _Operation:
 
-    _cpp_obj = None
-    _param_dict = dict()
-    _typeparam_dict = dict()
+class _Operation:
+    _reserved_attrs_with_dft = {'_cpp_obj': lambda: None,
+                                '_param_dict': dict,
+                                '_typeparam_dict': dict}
 
     def __getattr__(self, attr):
-        if attr in self._param_dict.keys():
+        if attr in self._reserved_attrs_with_dft.keys():
+            setattr(self, attr, self._reserved_attrs_with_dft[attr]())
+            return self.__dict__[attr]
+        elif attr in self._param_dict.keys():
             return self._getattr_param(attr)
         elif attr in self._typeparam_dict.keys():
             return self._getattr_typeparam(attr)
@@ -43,7 +45,7 @@ class _Operation:
                                  "".format(self, attr))
 
     def _getattr_param(self, attr):
-        if self._cpp_obj is not None:
+        if self.is_attached:
             return getattr(self._cpp_obj, attr)
         else:
             return self._param_dict[attr]
@@ -51,22 +53,23 @@ class _Operation:
     def _getattr_typeparam(self, attr):
         return self._typeparam_dict[attr]
 
-
     def __setattr__(self, attr, value):
-        if attr in self._param_dict.keys():
+        if attr in self._reserved_attrs_with_dft.keys():
+            super().__setattr__(attr, value)
+        elif attr in self._param_dict.keys():
             self._setattr_param(attr, value)
         elif attr in self._typeparam_dict.keys():
             self._setattr_typeparam(attr, value)
         else:
-            self.__dict__[attr] = value
+            super().__setattr__(attr, value)
 
     def _setattr_param(self, attr, value):
-        if self._cpp_obj is not None:
+        if self.is_attached:
             try:
                 setattr(self._cpp_obj, attr, value)
             except (AttributeError):
                 raise AttributeError("{} cannot be set after cpp"
-                                        " initialization".format(attr))
+                                     " initialization".format(attr))
         self._param_dict[attr] = value
 
     def _setattr_typeparam(self, attr, value):
@@ -80,6 +83,7 @@ class _Operation:
     def detach(self):
         self._unapply_typeparam_dict()
         self._cpp_obj = None
+        return self
 
     def attach(self, sim):
         raise NotImplementedError
@@ -129,13 +133,20 @@ class _TriggeredOperation(_Operation):
 
     @trigger.setter
     def trigger(self, new_trigger):
+        if type(new_trigger) == int:
+            new_trigger = PeriodicTrigger(period=new_trigger, phase=0)
+        elif not isinstance(new_trigger, Trigger):
+            raise ValueError("Trigger of type {} must be a subclass of "
+                             "hoomd.triggers.Trigger".format(type(new_trigger))
+                             )
+        self._trigger = new_trigger
         if self.is_attached:
             sys = self._simulation._cpp_sys
             triggered_ops = getattr(sys, self._cpp_list_name)
             for index in range(len(triggered_ops)):
                 if triggered_ops[index][0] == self._cpp_obj:
-                    triggered_ops[index][1] = new_trigger
-        self._trigger = new_trigger
+                    new_tuple = (self._cpp_obj, new_trigger)
+                    triggered_ops[index] = new_tuple
 
     def attach(self, simulation):
         self._simulation = simulation
@@ -157,7 +168,7 @@ class _metadata(object):
         # No metadata provided per default
         self.metadata_fields = []
 
-    ## \internal
+    # \internal
     # \brief Return the metadata
     def get_metadata(self):
         data = OrderedDict()

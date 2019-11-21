@@ -68,10 +68,10 @@ struct SnapshotSystemData {
     void replicate(unsigned int nx, unsigned int ny, unsigned int nz);
 
     // Broadcast information from rank 0 to all ranks
-    /*! \param exec_conf The execution configuration
+    /*! \param mpi_conf The MPI configuration
         Broadcasts the box and other metadata. Large particle data arrays are left on rank 0.
     */
-    void broadcast_box(std::shared_ptr<ExecutionConfiguration> exec_conf);
+    void broadcast_box(std::shared_ptr<MPIConfiguration> mpi_conf);
 
     // Broadcast snapshot from root to all ranks
     /*! \param exec_conf The execution configuration

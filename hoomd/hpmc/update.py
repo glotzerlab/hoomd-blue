@@ -763,27 +763,25 @@ class Clusters(_Updater):
     The type swap move works between two types of spherical particles and
     exchanges their identities.
 
-    The :py:class:`clusters` updater support TBB execution on multiple CPU
+    The :py:class:`Clusters` updater support TBB execution on multiple CPU
     cores. See :doc:`installation` for more information on how to compile HOOMD
     with TBB support.
 
     Args:
-        seed (int): The seed of the pseudo-random number generator (Needs to be
-        the same across partitions of the same Gibbs ensemble)
-        swap_types(list): A pair of two types whose identities are swapped
-        move_ratio(float): Set the ratio between pivot and reflection moves
-        (default 0.5)
+        seed (int): Random number seed.
+        swap_types(list): A pair of two types whose identities may be swapped.
+        move_ratio(float): Set the ratio between pivot and reflection moves.
         flip_probability(float): Set the probability for transforming an
-        individual cluster(default 0.5)
+                                 individual cluster.
         swap_move_ratio(float): Set the ratio between type swap moves and
-        geometric moves(default 0.5)
+                                geometric moves.
         delta_mu(float): The chemical potential difference between types to
-        be swapped
+                         be swapped.
         trigger (int): Number of timesteps between histogram evaluations.
 
-    Example::
+    Examples::
 
-        hpmc.update.clusters(seed=123, swap_types=['A', 'B'])
+        TODO: link to example notebooks
 
     """
 

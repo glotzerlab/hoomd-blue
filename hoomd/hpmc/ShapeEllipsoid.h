@@ -67,7 +67,7 @@ struct ell_params : param_base
     #endif
 
     #ifndef NVCC
-    ell_params(bool _managed=false) { }
+    ell_params() { }
 
     ell_params(pybind11::dict v)
         {
