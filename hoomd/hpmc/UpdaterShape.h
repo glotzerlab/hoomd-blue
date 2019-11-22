@@ -1,4 +1,4 @@
-/ifndef _UPDATER_SHAPE_H
+#ifndef _UPDATER_SHAPE_H
 #define _UPDATER_SHAPE_H
 
 #include <numeric>
@@ -9,7 +9,7 @@
 
 #include "ShapeUtils.h"
 #include "ShapeMoves.h"
-#include "hoomd/GSDState.h"
+// #include "hoomd/GSDState.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
@@ -549,7 +549,10 @@ int UpdaterShape<Shape>::slotWriteGSD(gsd_handle& handle, std::string name) cons
 template< typename Shape>
 void UpdaterShape<Shape>::connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name)
     {
-    _connectGSDSignal(this, writer, name); // call through to the helper function.
+    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    auto func = std::bind(&UpdaterShape<Shape>::slotWriteGSD, this, std::placeholders::_1, name);
+    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    addSlot(pslot);
     }
 
 template< typename Shape>

@@ -192,7 +192,7 @@ public:
         pybind11::object shape_data = m_python_callback(m_params[type_id]);
         shape = pybind11::cast< typename Shape::param_type >(shape_data);
         detail::mass_properties<Shape> mp(shape);
-        m_determinantInertiaTensor = mp.getDeterminant();
+        this->m_determinantInertiaTensor = mp.getDeterminant();
         }
 
     void retreat(unsigned int timestep)
@@ -285,7 +285,7 @@ public:
                    hoomd::RandomGenerator& rng)
         {
         shape = m_shapeMoves[type_id];
-        m_determinantInertiaTensor = m_determinants[type_id];
+        this->m_determinantInertiaTensor = m_determinants[type_id];
         }
 
     void retreat(unsigned int timestep)
@@ -299,16 +299,16 @@ private:
 };
 
 
-class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedronType>
+class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedron>
 {
 public:
     ConvexPolyhedronVertexShapeMove(unsigned int ntypes,
                                              Scalar stepsize,
                                              Scalar mixratio,
                                              Scalar volume)
-        : ShapeMoveBase<ShapeConvexPolyhedronType>(ntypes), m_volume(volume)
+        : ShapeMoveBase<ShapeConvexPolyhedron>(ntypes), m_volume(volume)
         {
-        m_determinantInertiaTensor = 1.0;
+        this->m_determinantInertiaTensor = 1.0;
         m_scale = 1.0;
         std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
         m_calculated.resize(ntypes, false);
@@ -324,14 +324,14 @@ public:
 
     void construct(const unsigned int& timestep,
                    const unsigned int& type_id,
-                   typename ShapeConvexPolyhedronType::param_type& shape,
+                   typename ShapeConvexPolyhedron::param_type& shape,
                    hoomd::RandomGenerator& rng)
         {
         if(!m_calculated[type_id])
             {
             detail::ConvexHull convex_hull(shape); // compute the convex_hull.
             convex_hull.compute();
-            detail::mass_properties<ShapeConvexPolyhedronType> mp(convex_hull.getPoints(), convex_hull.getFaces());
+            detail::mass_properties<ShapeConvexPolyhedron> mp(convex_hull.getPoints(), convex_hull.getFaces());
             m_centroids[type_id] = mp.getCenterOfMass();
             m_calculated[type_id] = true;
             }
@@ -350,7 +350,7 @@ public:
 
         detail::ConvexHull convex_hull(shape); // compute the convex_hull.
         convex_hull.compute();
-        detail::mass_properties<ShapeConvexPolyhedronType> mp(convex_hull.getPoints(), convex_hull.getFaces());
+        detail::mass_properties<ShapeConvexPolyhedron> mp(convex_hull.getPoints(), convex_hull.getFaces());
         Scalar volume = mp.getVolume();
         vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
         m_scale = pow(m_volume/volume, 1.0/3.0);
@@ -368,8 +368,8 @@ public:
             rsq = fmax(rsq, dot(vert, vert));
             points[i] = vert;
             }
-        detail::mass_properties<ShapeConvexPolyhedronType> mp2(points, convex_hull.getFaces());
-        m_determinantInertiaTensor = mp2.getDeterminant();
+        detail::mass_properties<ShapeConvexPolyhedron> mp2(points, convex_hull.getFaces());
+        this->m_determinantInertiaTensor = mp2.getDeterminant();
         m_isoperimetric_quotient = mp2.getIsoperimetricQuotient();
         shape.diameter = 2.0*sqrt(rsq);
         m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
@@ -445,11 +445,11 @@ public:
                                 ) : ShapeMoveBase<Shape>(ntypes), m_mass_props(ntypes)
         {
         m_select_ratio = fmin(move_ratio, 1.0)*65535;
-        m_step_size.resize(ntypes, stepsize);
+        this->m_step_size.resize(ntypes, stepsize);
         m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
         m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
-        std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
-        m_determinantInertiaTensor = 1.0;
+        std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
+        this->m_determinantInertiaTensor = 1.0;
         }
 
     void prepare(unsigned int timestep)
@@ -467,7 +467,7 @@ public:
         Matrix3d transform;
         if( hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio ) // perform a scaling move
             {
-            generate_scale(transform, rng, m_step_size[type_id]+1.0);
+            generate_scale(transform, rng, this->m_step_size[type_id]+1.0);
             }
         else                                        // perform a rotation-scale-rotation move
             {
@@ -477,7 +477,7 @@ public:
             Eigen::Quaternion<double> eq(q.s, q.v.x, q.v.y, q.v.z);
             rot = eq.toRotationMatrix();
             rot_inv = rot.transpose();
-            generate_scale(scale, rng, m_step_size[type_id]+1.0);
+            generate_scale(scale, rng, this->m_step_size[type_id]+1.0);
             transform = rot*scale*rot_inv;
             }
 
@@ -494,11 +494,11 @@ public:
             }
         param.diameter = 2.0*sqrt(dsq);
         m_mass_props[type_id].updateParam(param, false); // update allows caching since for some shapes a full compute is not necessary.
-        m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant();
+        this->m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant();
         #ifdef DEBUG
             detail::mass_properties<Shape> mp(param);
-            m_determinantInertiaTensor = mp.getDeterminant();
-            assert(fabs(m_determinantInertiaTensor-mp.getDeterminant()) < 1e-5);
+            this->m_determinantInertiaTensor = mp.getDeterminant();
+            assert(fabs(this->m_determinantInertiaTensor-mp.getDeterminant()) < 1e-5);
         #endif
         }
 
@@ -624,12 +624,12 @@ public:
 template<class Shape>
 class ShapeSpring : public ShapeSpringBase< Shape >
 {
-    using ShapeSpringBase< Shape >::m_reference_shape;
-    using ShapeSpringBase< Shape >::m_volume;
-    std::shared_ptr<ElasticShapeMove<Shape, hoomd::RandomGenerator> > m_shape_move;
+    std::shared_ptr<ElasticShapeMove<Shape> > m_shape_move;
 public:
-    using ShapeSpringBase< Shape >::m_k;
-    ShapeSpring(std::shared_ptr<Variant> k, typename Shape::param_type ref, std::shared_ptr<ElasticShapeMove<Shape, hoomd::RandomGenerator> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
+    ShapeSpring(std::shared_ptr<Variant> k,
+                typename Shape::param_type ref,
+                std::shared_ptr<ElasticShapeMove<Shape> > P)
+        : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
         {
         }
 
@@ -648,18 +648,18 @@ public:
                  eps_last(1,0)*eps_last(0,1) + eps_last(1,1)*eps_last(1,1) + eps_last(1,2)*eps_last(2,1) +
                  eps_last(2,0)*eps_last(0,2) + eps_last(2,1)*eps_last(1,2) + eps_last(2,2)*eps_last(2,2) ;
         // TODO: To make this more correct we need to calculate the previous volume and multiply accodingly.
-        return N*stiff*(e_ddot_e_last-e_ddot_e)*m_volume + fn(timestep, N, type_id, shape_new, inew, shape_old, iold); // -\beta dH
+        return N*stiff*(e_ddot_e_last-e_ddot_e)*this->m_volume + fn(timestep, N, type_id, shape_new, inew, shape_old, iold); // -\beta dH
         }
 
     Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
         {
-        Scalar stiff = m_k->getValue(timestep);
+        Scalar stiff = this->m_k->getValue(timestep);
         Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
         Scalar e_ddot_e = 0.0;
         e_ddot_e = eps(0,0)*eps(0,0) + eps(0,1)*eps(1,0) + eps(0,2)*eps(2,0) +
                  eps(1,0)*eps(0,1) + eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) +
                  eps(2,0)*eps(0,2) + eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2);
-        return N*stiff*e_ddot_e*m_volume;
+        return N*stiff*e_ddot_e*this->m_volume;
         }
 };
 
