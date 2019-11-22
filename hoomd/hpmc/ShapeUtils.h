@@ -153,7 +153,7 @@ inline void sortFaces(const std::vector< vec3<Scalar> >& points, std::vector< st
 class ConvexHull
 {
     static const unsigned int invalid_index;
-    static const Scalar       zero;
+    static const Scalar       epsilon;
 public:
     ConvexHull() { m_ravg = vec3<Scalar>(0.0,0.0,0.0); }
 
@@ -219,7 +219,7 @@ public:
                 if(outside[out] == faceid)
                     {
                     Scalar sd = signed_distance(out, faceid);
-                    assert(sd > zero);
+                    assert(sd > epsilon);
                     if( sd > dist)
                         {
                         dist = sd;
@@ -304,7 +304,7 @@ public:
             }
         remove_deleted_faces(); // actually remove the deleted faces.
         build_edge_list();
-        sortFaces(m_points, m_faces, zero);
+        sortFaces(m_points, m_faces, epsilon);
         }
         catch(const shape_util_error &e){
             write_pos_frame(inside);
@@ -356,7 +356,7 @@ private:
 
     Scalar signed_distance(const unsigned int& i, const unsigned int& faceid)
         {
-        vec3<Scalar> n = getOutwardNormal(m_points, m_ravg, m_faces, faceid, zero); // unit normal
+        vec3<Scalar> n = getOutwardNormal(m_points, m_ravg, m_faces, faceid, epsilon); // unit normal
         vec3<Scalar> dx = m_points[i] -  m_points[m_faces[faceid][0]];              //
         return dot(dx, n); // signed distance. either in the plane or outside.
         }
@@ -365,7 +365,7 @@ private:
         {
         if(i == m_faces[faceid][0] || i == m_faces[faceid][1] || i == m_faces[faceid][2])
             return false;
-        return (signed_distance(i, faceid) > zero); // signed distance. either in the plane or outside.
+        return (signed_distance(i, faceid) > epsilon); // signed distance. either in the plane or outside.
         }
 
     bool is_coplanar(const unsigned int& i, const unsigned int& j, const unsigned int& k, const unsigned int& l)
@@ -375,10 +375,10 @@ private:
 
         const vec3<Scalar>& x1 = m_points[i], x2 = m_points[j],x3 = m_points[k],x4 = m_points[l];
         Scalar d = dot(x3-x1, cross(x2-x1, x4-x3));
-        // std::cout << "is_coplanar: " << d << " <= " << zero << std::boolalpha << (fabs(d) <= zero) << std::endl;
+        // std::cout << "is_coplanar: " << d << " <= " << epsilon << std::boolalpha << (fabs(d) <= epsilon) << std::endl;
         // TODO: Note I have seen that this will often times return false for nearly coplanar points!!
         //       How do we choose a good threshold. (an absolute threshold is not good)
-        return fabs(d) <= zero;
+        return fabs(d) <= epsilon;
         }
 
     void edges_from_face(const unsigned int& faceid, std::vector< std::vector<unsigned int> >& edges)
@@ -423,7 +423,7 @@ private:
         vec3<Scalar> x3;
         x3 = x2-x1;
         denom = dot(x3,x3);
-        if(denom <= zero)
+        if(denom <= epsilon)
             return a;
         for(unsigned int p = 0; p < m_points.size(); p++)
             {
@@ -450,7 +450,7 @@ private:
         vec3<Scalar> n;
         n = cross(x2-x1, x3-x1);
         denom = dot(n,n);
-        if(denom <= zero)
+        if(denom <= epsilon)
             return a;
         normalize_inplace(n);
         for(unsigned int p = 0; p < m_points.size(); p++)
@@ -833,7 +833,7 @@ class mass_properties< ShapeSpheropolyhedron > : public mass_properties < ShapeC
 {
 using mass_properties< ShapeConvexPolyhedron >::m_inertia;
 public:
-    mass_properties(const typename ShapeSpheropolyhedron::param_type& param) 
+    mass_properties(const typename ShapeSpheropolyhedron::param_type& param)
         // Prevent computation on construction of the parent so we can first check if it's possible.
         : mass_properties< ShapeConvexPolyhedron >(param, false)
         {
@@ -841,7 +841,7 @@ public:
             {
             throw std::runtime_error("The ShapeSpheropolyhedra class currently only supports the calculation of mass properties for spheres or convex polyhedra");
             }
-    
+
         // Explicit typecast required here
         m_sweep_radius = param.sweep_radius;
         compute();

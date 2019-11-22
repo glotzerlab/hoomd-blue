@@ -88,7 +88,7 @@ public:
 private:
     unsigned int                m_seed;               //!< Random number seed
     int                         m_global_partition;   //!< Random number seed
-    unsigned int                m_nselect;
+    unsigned int                n_type_select;
     unsigned int                m_nsweeps;
     std::vector<unsigned int>   m_count_accepted;
     std::vector<unsigned int>   m_count_total;
@@ -129,7 +129,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  bool multiphase,
                                  unsigned int numphase,
                                  Scalar kappa_iq)
-    : Updater(sysdef), m_seed(seed), m_global_partition(0), m_nselect(nselect), m_nsweeps(nsweeps),
+    : Updater(sysdef), m_seed(seed), m_global_partition(0), n_type_select(nselect), m_nsweeps(nsweeps),
       m_move_ratio(move_ratio*65535), m_kappa_iq(kappa_iq), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf), m_iq(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
@@ -140,7 +140,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_count_total.resize(m_pdata->getNTypes(), 0);
     m_box_accepted.resize(m_pdata->getNTypes(), 0);
     m_box_total.resize(m_pdata->getNTypes(), 0);
-    m_nselect = (m_pdata->getNTypes() < m_nselect) ? m_pdata->getNTypes() : m_nselect;
+    n_type_select = (m_pdata->getNTypes() < n_type_select) ? m_pdata->getNTypes() : n_type_select;
     m_ProvidedQuantities.push_back("shape_move_acceptance_ratio");
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
     m_ProvidedQuantities.push_back("shape_move_multi_phase_box");
@@ -270,7 +270,9 @@ template < class Shape >
 void UpdaterShape<Shape>::update(unsigned int timestep)
     {
     typedef std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > param_vector;
-    m_exec_conf->msg->notice(4) << "UpdaterShape update: " << timestep << ", initialized: "<< std::boolalpha << m_initialized << " @ " << std::hex << this << std::dec << std::endl;
+    m_exec_conf->msg->notice(4) << "UpdaterShape update: " << timestep << ", initialized: "
+                                << std::boolalpha << m_initialized << " @ "
+                                << std::hex << this << std::dec << std::endl;
     bool warn = !m_initialized;
     if(!m_initialized)
         initialize();
@@ -295,7 +297,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             this->m_prof->push(this->m_exec_conf, "UpdaterShape setup");
         // Shuffle the order of particles for this sweep
         // TODO: should these be better random numbers?
-        m_update_order.choose(timestep+40591, m_nselect, sweep+91193); // order of the list doesn't matter the probability of each combination is the same.
+        m_update_order.shuffle(timestep+40591); // order of the list doesn't matter the probability of each combination is the same.
         if (this->m_prof)
             this->m_prof->pop();
 
@@ -305,8 +307,8 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             this->m_prof->push(this->m_exec_conf, "UpdaterShape copy param");
 
         param_vector& params = m_mc->getParams();
-        param_vector param_copy(m_nselect);
-        for (unsigned int i = 0; i < m_nselect; i++)
+        param_vector param_copy(n_type_select);
+        for (unsigned int i = 0; i < n_type_select; i++)
             {
             param_copy[i] = params[m_update_order[i]];
             }
@@ -319,7 +321,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         GPUArray< Scalar > iq_backup(m_iq);
         m_move_function->prepare(timestep);
 
-        for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+        for (unsigned int cur_type = 0; cur_type < n_type_select; cur_type++)
             {
             // make a trial move for i
             int typ_i = m_update_order[cur_type];
@@ -343,7 +345,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             ArrayHandle<Scalar> h_iq_backup(iq_backup, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
 
-            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterShapeConstruct, m_seed, timestep, typ_i, m_nselect);
+            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterShapeConstruct, m_seed, timestep, typ_i, n_type_select);
             m_move_function->construct(timestep, typ_i, param, rng_i);
             h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
             h_iq.data[typ_i] = m_move_function->getIsoperimetricQuotient();
@@ -363,7 +365,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             // add the bias for the isoperimetric quotient;
             // useful for biasing away from spherical shapes
             log_boltz += -m_kappa_iq * (h_iq.data[typ_i] - h_iq_backup.data[typ_i]);
-            m_mc->setParam(typ_i, param, cur_type == (m_nselect-1));
+            m_mc->setParam(typ_i, param, cur_type == (n_type_select-1));
             }  // end loop over particle types
         if (this->m_prof)
             this->m_prof->pop();
@@ -376,7 +378,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         Scalar p = hoomd::detail::generate_canonical<Scalar>(rng);
         Scalar Z = fast::exp(log_boltz);
         m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
-        
+
     if(m_multi_phase)
         {
         #ifdef ENABLE_MPI
@@ -390,7 +392,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         unsigned int overlaps = 1;
         if(m_pdata->getNTypes() == m_pdata->getNGlobal())
             {
-            overlaps = m_mc->countOverlapsEx(timestep, true, m_update_order.begin(), m_update_order.begin()+m_nselect);
+            overlaps = m_mc->countOverlapsEx(timestep, true, m_update_order.begin(), m_update_order.begin()+n_type_select);
             }
         else
             {
@@ -404,7 +406,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             // make sure random seeds are equal
             if(accept)
                 {
-                for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                for (unsigned int cur_type = 0; cur_type < n_type_select; cur_type++)
                     {
                     int typ_i = m_update_order[cur_type];
                     m_box_accepted[typ_i]++;
@@ -427,7 +429,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             {
             m_exec_conf->msg->notice(5) << " UpdaterShape move accepted -- pretend mode" << std::endl;
             m_move_function->retreat(timestep);
-            for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+            for (unsigned int cur_type = 0; cur_type < n_type_select; cur_type++)
                 {
                 int typ_i = m_update_order[cur_type];
                 m_count_accepted[typ_i]++;
@@ -436,7 +438,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         else    // actually accept the move.
             {
             m_exec_conf->msg->notice(5) << " UpdaterShape move accepted" << std::endl;
-            for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+            for (unsigned int cur_type = 0; cur_type < n_type_select; cur_type++)
                 {
                 int typ_i = m_update_order[cur_type];
                 m_count_accepted[typ_i]++;
@@ -452,9 +454,9 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             m_iq.swap(iq_backup);
             // m_mc->swapParams(param_copy);
             // ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
-            for(size_t typ = 0; typ < m_nselect; typ++)
+            for(size_t typ = 0; typ < n_type_select; typ++)
                 {
-                m_mc->setParam(m_update_order[typ], param_copy[typ], typ == (m_nselect-1)); // set the params.
+                m_mc->setParam(m_update_order[typ], param_copy[typ], typ == (n_type_select-1)); // set the params.
                 }
             }
         if (this->m_prof)

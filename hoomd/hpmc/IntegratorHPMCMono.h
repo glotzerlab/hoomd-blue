@@ -76,7 +76,7 @@ class UpdateOrder
             \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
             timestep.
         */
-        void shuffle(unsigned int timestep, unsigned int select = 0)
+        void setRandomDirection(unsigned int timestep, unsigned int select = 0)
             {
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShuffle, m_seed, timestep, select);
 
@@ -95,34 +95,16 @@ class UpdateOrder
                 }
             }
 
-        //! randomly choose a subset of the list
-        /*! \param timestep Current timestep of the simulation
-            \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
-            timestep.
-            \param k The number of elements to choose
-            the first k elements are the ones chosen.
-        */
-        void choose(unsigned int timestep, unsigned int k, unsigned int select = 0)
+        void shuffle(unsigned int timestep, unsigned int select = 0)
             {
-            // this is an implementation of the classic reservoir sampling
-            // algorithm.
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoChoose, m_seed, timestep, select);
-            std::vector<unsigned int>::iterator next, iter, end, last;
-            next = m_update_order.begin();
-            iter = next;
-            end = next+k;
-            last = m_update_order.end();
-            while(next != end && end <= last)
+            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShuffle, m_seed, timestep, select);
+            for (unsigned int i=m_update_order.size()-1; i>=1; i--)
                 {
-                Scalar p = hoomd::detail::generate_canonical<Scalar>(rng);
-                if(p < Scalar(std::distance(next,end))/Scalar(std::distance(iter, last)))
-                    {
-                    std::swap((*next), (*iter));
-                    next++;
-                    }
-                iter++;
+                unsigned int j = hoomd::UniformIntDistribution(i)(rng);
+                std::swap(m_update_order[i], m_update_order[j]);
                 }
             }
+
         std::vector<unsigned int>::iterator begin() { return m_update_order.begin(); } // TODO: make const?
         std::vector<unsigned int>::iterator end() { return m_update_order.end(); }
         //! Access element of the shuffled order
@@ -593,7 +575,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
     // Shuffle the order of particles for this step
     m_update_order.resize(m_pdata->getN());
-    m_update_order.shuffle(timestep);
+    m_update_order.setRandomDirection(timestep);
 
     // update the AABB Tree
     buildAABBTree();
