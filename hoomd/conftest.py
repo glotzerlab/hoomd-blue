@@ -2,6 +2,9 @@ import pytest
 import hoomd
 import sys
 import atexit
+import numpy
+from hoomd.snapshot import Snapshot
+from hoomd.simulation import Simulation
 
 devices = [hoomd.device.CPU]
 if hoomd.device.GPU.is_available():
@@ -27,6 +30,24 @@ def device_gpu():
         return hoomd.device.GPU()
     else:
         pytest.skip("GPU support not available")
+
+
+@pytest.fixture(scope='session')
+def dummy_simulation(device):
+    s = Snapshot(device.comm)
+    N = 10
+
+    if s.exists:
+        s.configuration.box = [20, 20, 20, 0, 0, 0]
+
+        s.particles.N = N
+        s.particles.position[:] = numpy.random.uniform(-10, 10, size=(N, 3))
+        s.particles.types = ['A', 'B']
+
+    sim = Simulation(device)
+    sim.create_state_from_snapshot(s)
+    return sim
+
 
 @pytest.fixture(autouse=True)
 def skip_mpi(request, device):

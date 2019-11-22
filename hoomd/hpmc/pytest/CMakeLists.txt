@@ -19,6 +19,7 @@ set(files __init__.py
     test_sphinx.py
     test_faceted_ellipsoid.py
     test_union.py
+    test_simple_polygon.py
     )
 
 install(FILES ${files}
