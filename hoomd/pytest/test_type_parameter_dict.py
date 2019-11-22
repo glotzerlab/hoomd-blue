@@ -233,6 +233,13 @@ def test_attached_type_error_raising(attached_param_dict):
         attached_param_dict['C'] = dict(bar='third')
 
 
+def test_attached_set_error_raising(attached_param_dict):
+    with raises(ValueError):
+        attached_param_dict['A'] = dict(foo=2.)
+    with raises(ValueError):
+        attached_param_dict['A'] = dict(foo='third')
+
+
 def test_attached_value_setting(attached_param_dict):
     attached_param_dict['A'] = dict(bar='new')
     assert attached_param_dict['A']['bar'] == 'new'

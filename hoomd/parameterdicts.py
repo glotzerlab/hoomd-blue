@@ -252,6 +252,17 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
             else:
                 yield key
 
+    def _validate_values(self, val):
+        val = super()._validate_values(val)
+        if isinstance(val, dict):
+            not_set_keys = []
+            for k, v in val.items():
+                if v is None:
+                    not_set_keys.append(k)
+            if not_set_keys != []:
+                raise ValueError("{} were not set.".format(not_set_keys))
+        return val
+
     @property
     def _setter(self):
         return 'set' + to_camel_case(self._param_name)
