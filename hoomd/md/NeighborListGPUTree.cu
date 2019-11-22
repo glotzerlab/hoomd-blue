@@ -13,6 +13,28 @@
 #include <thrust/remove.h>
 #include "hoomd/extern/cub/cub/cub.cuh"
 
+//! Kernel to mark particles by type
+/*!
+ * \param d_types Type of each particle.
+ * \param d_indexes Index of each particle.
+ * \param d_lbvh_errors Error flag for particles.
+ * \param d_last_pos Last position of particles at neighbor list update.
+ * \param d_pos Current position of particles.
+ * \param N Number of locally owned particles.
+ * \param nghosts Number of ghost particles.
+ * \param box Simulation box for the local rank.
+ * \param ghost_width Size of the ghost layer.
+ *
+ * Using one thread each, the positions of all particles (local + ghosts) are first
+ * loaded. The particle coordinates are made into a fraction inside the box + ghost layer.
+ * If a local particle lies outside this box, an error is marked. If a ghost particle is
+ * outside this box, it is silently flagged as being off rank by setting its type to a sentinel.
+ * The particle type (or this sentinel) is then stored along with the particle index for subsequent
+ * sorting.
+ *
+ * The last position of each particle is also saved during this kernel, which is used to later
+ * check for when the neighbor list should be rebuilt.
+ */
 __global__ void gpu_nlist_mark_types_kernel(unsigned int *d_types,
                                             unsigned int *d_indexes,
                                             unsigned int *d_lbvh_errors,
@@ -68,6 +90,20 @@ __global__ void gpu_nlist_mark_types_kernel(unsigned int *d_types,
         }
     }
 
+/*!
+ * \param d_types Type of each particle.
+ * \param d_indexes Index of each particle.
+ * \param d_lbvh_errors Error flag for particles.
+ * \param d_last_pos Last position of particles at neighbor list update.
+ * \param d_pos Current position of particles.
+ * \param N Number of locally owned particles.
+ * \param nghosts Number of ghost particles.
+ * \param box Simulation box for the local rank.
+ * \param ghost_width Size of the ghost layer.
+ * \param block_size Number of CUDA threads per block.
+ *
+ * \sa gpu_nlist_mark_types_kernel
+ */
 cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
                                  unsigned int *d_indexes,
                                  unsigned int *d_lbvh_errors,
@@ -101,6 +137,22 @@ cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
     return cudaSuccess;
     }
 
+/*!
+ * \param d_tmp Temporary memory for sorting.
+ * \param tmp_bytes Number of temporary bytes for sorting.
+ * \param d_types The particle types to sort.
+ * \param d_sorted_types The sorted particle types.
+ * \param d_indexes The particle indexes to sort.
+ * \param d_sorted_indexes The sorted particle indexes.
+ * \param N Number of particle types to sort.
+ * \param num_bits Number of bits required to sort the type (usually a small number).
+ * \returns A pair of flags saying if the output data needs to be swapped with the input.
+ *
+ * The sorting is done using CUB with the DoubleBuffer. On the first call, the temporary memory
+ * is sized. On the second call, the sorting is actually performed. The sorted data may not actually
+ * lie in \a d_sorted_* because of the double buffers, but this sorting seems to be more efficient.
+ * The user should accordingly swap the input and output arrays if the returned values are true.
+ */
 uchar2 gpu_nlist_sort_types(void *d_tmp,
                             size_t &tmp_bytes,
                             unsigned int *d_types,
@@ -126,6 +178,23 @@ uchar2 gpu_nlist_sort_types(void *d_tmp,
     return swap;
     }
 
+//! Kernel to count the number of each particle type.
+/*!
+ * \param d_first First index of particles of a given type.
+ * \param d_last Last index of particles of a given type.
+ * \param d_types Type of each particle.
+ * \param ntypes Number of particle types.
+ * \param N Number of particles.
+ *
+ * This kernel actually marks the beginning (first) and end (last) range of the
+ * particles of each type. Counting can then be done by taking the difference between
+ * first and last. This demarcations are done by looking left/right from the current
+ * particle, using appropriate sentinels for the end of each run.
+ *
+ * The kernel relies on the data being prefilled correctly. These fillings should be
+ * NeighborListTypeSentinel for \a d_first and 0 for \a d_last so that the default (if no
+ * particle of a given type is found) is that there are 0 of them in the list.
+ */
 __global__ void gpu_nlist_count_types_kernel(unsigned int *d_first,
                                              unsigned int *d_last,
                                              const unsigned int *d_types,
@@ -158,6 +227,16 @@ __global__ void gpu_nlist_count_types_kernel(unsigned int *d_first,
         }
     }
 
+/*!
+ * \param d_first First index of particles of a given type.
+ * \param d_last Last index of particles of a given type.
+ * \param d_types Type of each particle.
+ * \param ntypes Number of particle types.
+ * \param N Number of particles.
+ * \param block_size Number of CUDA threads per block.
+ *
+ * \sa gpu_nlist_count_types_kernel
+ */
 cudaError_t gpu_nlist_count_types(unsigned int *d_first,
                                   unsigned int *d_last,
                                   const unsigned int *d_types,
@@ -166,7 +245,7 @@ cudaError_t gpu_nlist_count_types(unsigned int *d_first,
                                   const unsigned int block_size)
 
     {
-    // initially, fill all cells as empty
+    // initially, fill all types as empty
     thrust::fill(thrust::device, d_first, d_first+ntypes, NeighborListTypeSentinel);
     cudaMemset(d_last, 0, sizeof(unsigned int)*ntypes);
 
@@ -187,6 +266,16 @@ cudaError_t gpu_nlist_count_types(unsigned int *d_first,
     return cudaSuccess;
     }
 
+//! Kernel to copy the particle indexes into traversal order
+/*!
+ * \param d_traverse_order List of particle indexes in traversal order.
+ * \param d_indexes Original indexes of the sorted primitives.
+ * \param d_primitives List of the primitives (sorted in LBVH order).
+ * \param N Number of primitives.
+ *
+ * The primitive index for this thread is first loaded. It is then mapped back
+ * to its original particle index, which is stored for subsequent traversal.
+ */
 __global__ void gpu_nlist_copy_primitives_kernel(unsigned int *d_traverse_order,
                                                  const unsigned int *d_indexes,
                                                  const unsigned int *d_primitives,
@@ -201,6 +290,15 @@ __global__ void gpu_nlist_copy_primitives_kernel(unsigned int *d_traverse_order,
     d_traverse_order[idx] = __ldg(d_indexes + primitive);
     }
 
+/*!
+ * \param d_traverse_order List of particle indexes in traversal order.
+ * \param d_indexes Original indexes of the sorted primitives.
+ * \param d_primitives List of the primitives (sorted in LBVH order).
+ * \param N Number of primitives.
+ * \param block_size Number of CUDA threads per block.
+ *
+ * \sa gpu_nlist_copy_primitives_kernel
+ */
 cudaError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
                                       const unsigned int *d_indexes,
                                       const unsigned int *d_primitives,
@@ -223,7 +321,7 @@ cudaError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
     return cudaSuccess;
     }
 
-// explicit templates for neighbor::LBVH with PointMapInsertOp and NullOp
+// explicit templates for neighbor::LBVH with PointMapInsertOp
 template void neighbor::gpu::lbvh_gen_codes(unsigned int *, unsigned int *, const PointMapInsertOp&,
     const Scalar3, const Scalar3, const unsigned int, const unsigned int, cudaStream_t);
 template void neighbor::gpu::lbvh_bubble_aabbs(const neighbor::gpu::LBVHData, const PointMapInsertOp&,

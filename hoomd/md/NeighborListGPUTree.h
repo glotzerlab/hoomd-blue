@@ -26,7 +26,16 @@
 
 //! Efficient neighbor list build on the GPU using BVH trees
 /*!
- * GPU kernel methods are defined in NeighborListGPUTree.cuh and implemented in NeighborListGPUTree.cu.
+ * GPU methods mostly make use of the neighbor library to do the traversal.
+ * This class acts as a wrapper around those library calls. The general idea is to
+ * build one LBVH per particle type. Then, one traversal is done per-type (N^2) traversals
+ * to construct the neighbor lists. To support large numbers of types, this traversal is
+ * done using one CUDA stream per type to try to improve concurrency.
+ *
+ * The other jobs of this class are then to preprocess the particle data into a format suitable
+ * for building one LBVH per-type. This mainly means sorting the particles by type. In MPI simulations,
+ * this sorting can also be used to efficiently filter out ghosts that lie outside the neighbor search
+ * range (e.g., those participating in bonds).
  *
  * \ingroup computes
  */
@@ -64,31 +73,32 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         virtual void buildNlist(unsigned int timestep);
 
     private:
-        std::unique_ptr<Autotuner> m_mark_tuner;
-        std::unique_ptr<Autotuner> m_count_tuner;
-        std::unique_ptr<Autotuner> m_copy_tuner;
+        std::unique_ptr<Autotuner> m_mark_tuner;    //!< Tuner for the type mark kernel
+        std::unique_ptr<Autotuner> m_count_tuner;   //!< Tuner for the type-count kernel
+        std::unique_ptr<Autotuner> m_copy_tuner;    //!< Tuner for the primitive-copy kernel
 
-        GPUArray<unsigned int> m_types;
-        GPUArray<unsigned int> m_sorted_types;
-        GPUArray<unsigned int> m_indexes;
-        GPUArray<unsigned int> m_sorted_indexes;
+        GPUArray<unsigned int> m_types;             //!< Particle types (for sorting)
+        GPUArray<unsigned int> m_sorted_types;      //!< Sorted particle types
+        GPUArray<unsigned int> m_indexes;           //!< Particle indexes (for sorting)
+        GPUArray<unsigned int> m_sorted_indexes;    //!< Sorted particle indexes
 
-        unsigned int m_type_bits;
-        GPUArray<unsigned int> m_type_first;
-        GPUArray<unsigned int> m_type_last;
+        unsigned int m_type_bits;                   //!< Number of bits to sort based on largest type index
+        GPUArray<unsigned int> m_type_first;        //!< First index of each particle type in sorted list
+        GPUArray<unsigned int> m_type_last;         //!< Last index of each particle type in sorted list
 
-        GPUFlags<unsigned int> m_lbvh_errors;
-        std::vector< std::unique_ptr<neighbor::LBVH> > m_lbvhs;
-        std::vector< std::unique_ptr<neighbor::LBVHTraverser> > m_traversers;
-        std::vector<cudaStream_t> m_streams;
+        GPUFlags<unsigned int> m_lbvh_errors;       //!< Error flags during particle marking (e.g., off rank)
+        std::vector< std::unique_ptr<neighbor::LBVH> > m_lbvhs;                 //!< Array of LBVHs per-type
+        std::vector< std::unique_ptr<neighbor::LBVHTraverser> > m_traversers;   //!< Array of LBVH traverers per-type
+        std::vector<cudaStream_t> m_streams;                                    //!< Array of CUDA streams per-type
 
-        GlobalVector<Scalar3> m_image_list; //!< List of translation vectors
-        unsigned int m_n_images;        //!< Number of translation vectors
+        GlobalVector<Scalar3> m_image_list; //!< List of translation vectors for traversal
+        unsigned int m_n_images;            //!< Number of translation vectors for traversal
+        GPUArray<unsigned int> m_traverse_order;    //!< Order to traverse primitives
 
-        GPUArray<unsigned int> m_traverse_order;
-
+        //! Build the LBVHs using the neighbor library
         void buildTree();
 
+        //! Traverse the LBVHs using the neighbor library
         void traverseTree();
 
         //! Computes the image vectors to query for
@@ -141,6 +151,6 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         // @}
     };
 
-//! Exports NeighborListGPUBinned to python
+//! Exports NeighborListGPUTree to python
 void export_NeighborListGPUTree(pybind11::module& m);
 #endif //__NEIGHBORLISTGPUTREE_H__

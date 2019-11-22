@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: mphoward
 
 #ifndef __NEIGHBORLISTGPUTREE_CUH__
@@ -29,17 +28,39 @@
 #define HOSTDEVICE
 #endif
 
+//! A bounding sphere that can skip traversal
+/*!
+ * Extends the base neighbor::BoundingSphere to be skipped if the input
+ * radius is negative. This is useful for the traversal when a particle is
+ * a ghost so that we don't have to do an extra sort to filter them out.
+ */
 struct SkippableBoundingSphere : public neighbor::BoundingSphere
     {
+    //! Default constructor, always skip
     HOSTDEVICE SkippableBoundingSphere() : skip(true) {}
 
     #ifdef NVCC
+    //! Constructor
+    /*!
+     * \param o Center of sphere.
+     * \param r Radius of sphere.
+     *
+     * The sphere is made to be skipped if \a r is negative. This
+     * is stored in a separate variable because the base class squares
+     * the radius.
+     */
     DEVICE SkippableBoundingSphere(const Scalar3& o, const Scalar r)
         : neighbor::BoundingSphere(o,r)
         {
         skip = !(r > Scalar(0));
         }
 
+    //! Overlap test
+    /*!
+     * \param box Box to test overlap with.
+     * \returns True if the sphere overlaps the \a box, and the sphere is
+     *          not made to be skipped.
+     */
     DEVICE bool overlap(const neighbor::BoundingBox& box) const
         {
         if (!skip)
@@ -53,16 +74,34 @@ struct SkippableBoundingSphere : public neighbor::BoundingSphere
         }
     #endif
 
-    bool skip;
+    bool skip;  //!< Flag to skip traversal of sphere
     };
 
+//! Insert operation for a point under a mapping.
+/*!
+ * Extends the base neighbor::PointInsertOp to insert a point primitive
+ * subject to a mapping of the indexes. This is useful for reading from
+ * the array of particles that is pre-sorted by type so that the original
+ * particle data does not need to be shuffled.
+ */
 struct PointMapInsertOp : public neighbor::PointInsertOp
     {
+    //! Constructor
+    /*!
+     * \param points_ List of points to insert (w entry is unused).
+     * \param map_ Map of the nominal index to the index in \a points_.
+     * \param N_ Number of primitives to insert.
+     */
     PointMapInsertOp(const Scalar4 *points_, const unsigned int *map_, unsigned int N_)
         : neighbor::PointInsertOp(points_, N_), map(map_)
         {}
 
     #ifdef NVCC
+    //! Construct bounding box
+    /*!
+     * \param idx Nominal index of the primitive [0,N).
+     * \returns A neighbor::BoundingBox corresponding to the point at map[idx].
+     */
     DEVICE neighbor::BoundingBox get(const unsigned int idx) const
         {
         const Scalar4 point = points[map[idx]];
@@ -73,12 +112,41 @@ struct PointMapInsertOp : public neighbor::PointInsertOp
         }
     #endif
 
-    const unsigned int *map;
+    const unsigned int *map;    //!< Map of particle indexes.
     };
 
+//! Neighbor list particle query operation.
+/*!
+ * \tparam use_body If true, use the body fields during query.
+ * \tparam use_diam If true, use the diameter fields during query.
+ *
+ * This operation specifies the neighbor list traversal scheme. The
+ * query is between a SkippableBoundingSphere and the bounding boxes in
+ * the LBVH. The template parameters can be activated to engage body-filtering
+ * or diameter-shifting, which are defined elsewhere in HOOMD.
+ *
+ * All spheres in the traversal are given the same search radius. This is compatible
+ * with a traversal-per-type-per-type scheme. It was found that passing this radius
+ * as a constant to the traversal program decreased register pressure in the kernel
+ * from a traversal-per-type scheme.
+ *
+ * The particles are traversed using a \a map. Ghost particles can be included
+ * in this map, and they will be neglected during traversal.
+ */
 template<bool use_body, bool use_diam>
 struct ParticleQueryOp
     {
+    //! Constructor
+    /*!
+     * \param positions_ Particle positions.
+     * \param bodies_ Particle body tags.
+     * \param diams_ Particle diameters.
+     * \param map_ Map of the particle indexes to traverse.
+     * \param N_ Number of particles (total).
+     * \param Nown_ Number of locally owned particles.
+     * \param rcut_ Cutoff radius for the spheres.
+     * \param rlist_ Total search radius for the spheres (differs under shifting).
+     */
     ParticleQueryOp(const Scalar4 *positions_,
                     const unsigned int *bodies_,
                     const Scalar *diams_,
@@ -92,6 +160,12 @@ struct ParticleQueryOp
           {}
 
     #ifdef NVCC
+    //! Data stored per thread for traversal
+    /*!
+     * The body tag and diameter are only actually set if these are specified
+     * by the template parameters. The compiler might be able to optimize them
+     * out if they are unused.
+     */
     struct ThreadData
         {
         HOSTDEVICE ThreadData(Scalar3 position_,
@@ -101,13 +175,24 @@ struct ParticleQueryOp
             : position(position_), idx(idx_), body(body_), diam(diam_)
             {}
 
-        Scalar3 position;
-        int idx;
-        unsigned int body;
-        Scalar diam;
+        Scalar3 position;   //!< Particle position
+        int idx;            //!< True particle index
+        unsigned int body;  //!< Particle body tag (may be invalid)
+        Scalar diam;        //!< Particle diameter (may be invalid)
         };
+
+    // specify that the traversal Volume is a bounding sphere
     typedef SkippableBoundingSphere Volume;
 
+    //! Loads the per-thread data
+    /*!
+     * \param idx Nominal primitive index.
+     * \returns The ThreadData required for traversal.
+     *
+     * The ThreadData is loaded subject to a mapping. The particle position
+     * is always loaded. The body and diameter are only loaded if the template
+     * parameter requires it.
+     */
     DEVICE ThreadData setup(const unsigned int idx) const
         {
         const unsigned int pidx = map[idx];
@@ -129,16 +214,45 @@ struct ParticleQueryOp
         return ThreadData(r, pidx, body, diam);
         }
 
+    //! Return the traversal volume subject to a translation
+    /*!
+     * \param q The current thread data.
+     * \param image The image vector for traversal.
+     * \returns The traversal bounding volume.
+     *
+     * The ThreadData is converted to a search volume. The search sphere is
+     * made to be skipped if this is a ghost particle.
+     */
     DEVICE Volume get(const ThreadData& q, const Scalar3& image) const
         {
         return Volume(q.position+image, (q.idx < Nown) ? rlist : -1.0);
         }
 
+    //! Perform the overlap test with the LBVH
+    /*!
+     * \param v Traversal volume.
+     * \param box Box in LBVH to intersect with.
+     * \returns True if the volume and box overlap.
+     *
+     * The overlap test is implemented by the sphere.
+     */
     DEVICE bool overlap(const Volume& v, const neighbor::BoundingBox& box) const
         {
         return v.overlap(box);
         }
 
+    //! Refine the rough overlap test with a primitive
+    /*!
+     * \param q The current thread data.
+     * \param primitive Index of the intersected primitive.
+     * \returns True If the volumes still overlap after refinement.
+     *
+     * HOOMD's neighbor lists require additional filtering. This first ensures
+     * that the overlap is not with itself. If body filtering is enabled,
+     * particles in the same body do not overlap. If diameter shifting is
+     * enabled, the cutoff radius is adjusted based on the diameters of the
+     * particles.
+     */
     DEVICE bool refine(const ThreadData& q, const int primitive) const
         {
         bool exclude = (q.idx == primitive);
@@ -174,23 +288,41 @@ struct ParticleQueryOp
         }
     #endif
 
+    //! Get the number of primitives
     HOSTDEVICE unsigned int size() const
         {
         return N;
         }
 
-    const Scalar4 *positions;
-    const unsigned int *bodies;
-    const Scalar *diams;
-    const unsigned int *map;
-    unsigned int N;
-    unsigned int Nown;
-    Scalar rcut;
-    Scalar rlist;
+    const Scalar4 *positions;   //!< Particle positions
+    const unsigned int *bodies; //!< Particle bodies
+    const Scalar *diams;        //!< Particle diameters
+    const unsigned int *map;    //!< Mapping of particles to read
+    unsigned int N;             //!< Total number of particles in map
+    unsigned int Nown;          //!< Number of particles owned by the local rank
+    Scalar rcut;                //!< True cutoff radius + buffer
+    Scalar rlist;               //!< Maximum cutoff (may include shifting)
     };
 
+//! Operation to write the neighbor list
+/*!
+ * The neighbor list is assumed to be aligned to multiples of 4. This enables
+ * coalescing writes into packets of 4 neighbors without adding much register pressure.
+ * This object maintains an internal stack to do this, and it can restart from a previous
+ * traversal without losing information.
+ */
 struct NeighborListOp
     {
+    //! Constructor
+    /*!
+     * \param neigh_list_ Neighbor list (aligned to multiple of 4)
+     * \param nneigh_ Neighbor of neighbors per particle
+     * \param new_max_neigh_ Maximum number of neighbors to allocate if overflow occurs.
+     * \param first_neigh_ First index for the current particle index in the neighbor list.
+     * \param max_neigh_ Maximum number of neighbors to allow per particle.
+     *
+     * The \a neigh_list_ pointer is internally cast into a uint4 for coalescing.
+     */
     NeighborListOp(unsigned int* neigh_list_,
                    unsigned int* nneigh_,
                    unsigned int* new_max_neigh_,
@@ -204,8 +336,19 @@ struct NeighborListOp
 
     #ifdef NVCC
     //! Thread-local data
+    /*!
+     * The thread-local data constitutes a stack of neighbors to write, the index of the current
+     * primitive, the first index to write into, and the current number of neighbors found for this thread.
+     */
     struct ThreadData
         {
+        //! Constructor
+        /*!
+         * \param idx_ The index of this particle.
+         * \param first_ The first neighbor index of this particle.
+         * \param num_neigh_ The current number of neighbors of this particle.
+         * \param stack_ The initial values for the stack (can be all 0s if \a num_neigh_ is aligned to 4).
+         */
         DEVICE ThreadData(const unsigned int idx_,
                           const unsigned int first_,
                           const unsigned int num_neigh_,
@@ -221,9 +364,20 @@ struct NeighborListOp
         unsigned int idx;       //!< Index of primitive
         unsigned int first;     //!< First index to use for writing neighbors
         unsigned int num_neigh; //!< Number of neighbors for this thread
-        unsigned int stack[4];
+        unsigned int stack[4];  //!< Internal stack of neighbors
         };
 
+    //! Setup the thread data
+    /*!
+     * \param idx Index of this thread.
+     * \param q Thread-local query data.
+     * \returns The ThreadData for output.
+     *
+     * \tparam Type of QueryData.
+     *
+     * This setup function can poach data from the query data in order to save loads.
+     * In this case, it makes use of the particle index mapping.
+     */
     template<class QueryDataT>
     DEVICE ThreadData setup(const unsigned int idx, const QueryDataT& q) const
         {
@@ -240,6 +394,15 @@ struct NeighborListOp
         return ThreadData(q.idx, first, num_neigh, stack);
         }
 
+    //! Processes a newly intersected primitive.
+    /*!
+     * \param t My output thread data.
+     * \param primitive The index of the primitive to process.
+     *
+     * If the neighbor will fit into the allocated memory, it is pushed onto the stack.
+     * The stack is written to memory if it is full. The number of neighbors found for this
+     * thread is incremented, regardless.
+     */
     DEVICE void process(ThreadData& t, const int primitive) const
         {
         if (t.num_neigh < max_neigh)
@@ -256,6 +419,15 @@ struct NeighborListOp
         ++t.num_neigh;
         }
 
+    //! Finish the output job once the thread is ready to terminate.
+    /*!
+     * \param t My output thread data
+     *
+     * The number of neighbors found for this thread is written. If this value
+     * exceeds the current allocation, this value is atomically maximized for
+     * reallocation. Any values remaining on the stack are written to ensure the
+     * list is complete.
+     */
     DEVICE void finalize(const ThreadData& t) const
         {
         nneigh[t.idx] = t.num_neigh;
@@ -279,6 +451,7 @@ struct NeighborListOp
     unsigned int max_neigh;             //!< Maximum number of neighbors allocated
     };
 
+//! Sentinel for an invalid particle (e.g., ghost)
 const unsigned int NeighborListTypeSentinel = 0xffffffff;
 
 //! Kernel driver to generate morton code-type keys for particles and reorder by type
@@ -293,6 +466,7 @@ cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
                                  const Scalar3 ghost_width,
                                  const unsigned int block_size);
 
+//! Kernel driver to sort particles by type
 uchar2 gpu_nlist_sort_types(void *d_tmp,
                             size_t &tmp_bytes,
                             unsigned int *d_types,
@@ -302,6 +476,7 @@ uchar2 gpu_nlist_sort_types(void *d_tmp,
                             const unsigned int N,
                             const unsigned int num_bits);
 
+//! Kernel driver to count particles by type
 cudaError_t gpu_nlist_count_types(unsigned int *d_first,
                                   unsigned int *d_last,
                                   const unsigned int *d_types,
@@ -309,6 +484,7 @@ cudaError_t gpu_nlist_count_types(unsigned int *d_first,
                                   const unsigned int N,
                                   const unsigned int block_size);
 
+//! Kernel driver to rearrange primitives for faster traversal
 cudaError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
                                       const unsigned int *d_indexes,
                                       const unsigned int *d_primitives,

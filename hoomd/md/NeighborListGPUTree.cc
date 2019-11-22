@@ -17,6 +17,11 @@ namespace py = pybind11;
 #include "hoomd/Communicator.h"
 #endif
 
+/*!
+ * \param sysdef System definition.
+ * \param r_cut The default cutoff.
+ * \param r_buff The buffer radius.
+ */
 NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
@@ -34,6 +39,9 @@ NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysde
     m_copy_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_tree_copy", m_exec_conf));
     }
 
+/*!
+ * Any existing CUDA streams are destroyed with the object.
+ */
 NeighborListGPUTree::~NeighborListGPUTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUTree" << std::endl;
@@ -48,6 +56,14 @@ NeighborListGPUTree::~NeighborListGPUTree()
         }
     }
 
+/*!
+ * \param timestep Current timestep
+ *
+ * First, memory is reallocated based on the number of particles and types.
+ * The traversal images are also updated if the box has changed. One LBVH is then
+ * built for each particle type using buildTree(), and these LBVHs are traversed in
+ * traverseTree().
+ */
 void NeighborListGPUTree::buildNlist(unsigned int timestep)
     {
     if (!m_pdata->getN()) return;
@@ -133,6 +149,21 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
+/*!
+ * Builds the LBVHs by first sorting the particles by type (to make one LBVH per type).
+ * This method also puts the particles into the right order for traversal, and it prepares
+ * each LBVH traverser so that subsequent calls to traverse can safely use the cached version
+ * of the traverser internal data.
+ *
+ * The builds and the traverser setup are done in CUDA streams. I believe that the build has
+ * a blocking call for a single CPU thread because of a stream synchronize due to CUB's use of the
+ * double buffer. (It must report which buffer holds the sorted data.) However, benchmarks showed that
+ * using the CUB API that should be non-blocking had significantly worse performance.
+ *
+ * I also note that the use of autotuners in neighbor should break concurrency, since these CUDA timing
+ * events are placed in the default stream. This might be reconsidered in future if HOOMD makes more use
+ * of CUDA streams anywhere.
+ */
 void NeighborListGPUTree::buildTree()
     {
     // set the data by type
@@ -317,6 +348,16 @@ void NeighborListGPUTree::buildTree()
         }
     }
 
+/*!
+ * Traversal is performed for each particle type against all LBVHs. This is done using one CUDA stream for
+ * each particle type, and traversal of each LBVH is loaded into the stream so that there are no race conditions.
+ * The traversal should have good concurrency, as there are no blocking calls on the host. For efficiency,
+ * body filtering and diameter shifting are templated out, and the correct template is selected at dispatch.
+ *
+ * As for the build, I note that the use of autotuners in neighbor should break concurrency, since these CUDA
+ * timing events are placed in the default stream. This might be reconsidered in future if HOOMD makes more
+ * use of CUDA streams anywhere.
+ */
 void NeighborListGPUTree::traverseTree()
     {
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
@@ -435,11 +476,11 @@ void NeighborListGPUTree::traverseTree()
     }
 
 /*!
- * (Re-)computes the translation vectors for traversing the BVH tree. At most, there are 27 translation vectors
- * when the simulation box is 3D periodic. In 2D, there are at most 9 translation vectors. In MPI runs, a ghost layer
- * of particles is added from adjacent ranks, so there is no need to perform any translations in this direction.
- * The translation vectors are determined by linear combination of the lattice vectors, and must be recomputed any
- * time that the box resizes.
+ * (Re-)computes the translation vectors for traversing the BVH tree. At most, there are 26 translation vectors
+ * when the simulation box is 3D periodic (the self-image is excluded). In 2D, there are at most 8 translation vectors.
+ * In MPI runs, a ghost layer of particles is added from adjacent ranks, so there is no need to perform any translations
+ * in this direction. The translation vectors are determined by linear combination of the lattice vectors, and must be
+ * recomputed any time that the box resizes.
  */
 void NeighborListGPUTree::updateImageVectors()
     {
