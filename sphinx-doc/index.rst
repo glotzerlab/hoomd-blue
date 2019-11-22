@@ -128,6 +128,7 @@ containers).
     :caption: Developer guide
 
     style
+    testing
 
 .. toctree::
    :maxdepth: 3
