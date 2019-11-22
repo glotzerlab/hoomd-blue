@@ -57,7 +57,7 @@
  //! Data structure for general polytopes
  /*! \ingroup hpmc_data_structs */
 
- struct poly3d_data : param_base
+struct poly3d_data : param_base
      {
      poly3d_data()
          : convex_hull_verts(), verts(), face_offs(),
@@ -113,7 +113,7 @@
          convex_hull_verts = poly3d_verts(vertexBuffer.size(), _managed);
          verts = ManagedArray<vec3<OverlapReal> >(pybind11::len(verts_list), _managed);
          face_offs = ManagedArray<unsigned int>(pybind11::len(face_offs_list),_managed);
-         face_verts = ManagedArray<unsigned int>(pybind11::len(face_verts_list), _managed);
+         face_verts = ManagedArray<unsigned int>(pybind11::len(face_verts_list)*3, _managed);
          face_overlap = ManagedArray<unsigned int>(pybind11::len(face_offs_list)-1, _managed);
          std::fill(face_overlap.get(), face_overlap.get()+(pybind11::len(face_offs_list)-1), 1);
 
@@ -121,11 +121,6 @@
          n_verts = pybind11::len(verts_list);
          n_faces = len(face_offs_list)-1;
          origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_list[0]), pybind11::cast<OverlapReal>(origin_list[1]), pybind11::cast<OverlapReal>(origin_list[2]));
-
-         if (pybind11::len(overlap_list) != n_faces)
-             {
-             throw std::runtime_error("Number of member overlap flags must be equal to number faces");
-             }
 
          unsigned int k = 0;
          for (auto it = vertexBuffer.begin(); it != vertexBuffer.end(); ++it)
@@ -142,11 +137,26 @@
              face_offs[i] = offs;
              }
 
-         for (unsigned int i = 0; i < n_faces; i++)
+         if (overlap_list.is(pybind11::none()))
              {
-             face_overlap[i] = pybind11::cast<unsigned int>(overlap_list[i]);
+             for (unsigned int i = 0; i < n_faces; i++)
+                 {
+                 face_overlap[i] = 1;
+                 }
              }
+        else
+            {
+             if (pybind11::len(overlap_list) != n_faces)
+                 {
+                 throw std::runtime_error("Number of member overlap flags must be equal to number faces");
+                 }
 
+             for (unsigned int i = 0; i < n_faces; i++)
+                 {
+                 face_overlap[i] = pybind11::cast<unsigned int>(overlap_list[i]);
+                 }            
+            }
+                 
          // extract the verts from the python list and compute the radius on the way
          OverlapReal radius_sq = OverlapReal(0.0);
          for (unsigned int i = 0; i < pybind11::len(verts_list); i++)
@@ -163,19 +173,20 @@
          unsigned int array_i = 0;
          for (unsigned int i = 0; i < pybind11::len(face_verts_list); i++)
              {
-                 pybind11::list face_verts_i = face_verts_list[i];
-                 for (unsigned int j = 0; j < pybind11::len(face_verts_i); j++)
+             pybind11::list face_verts_i = face_verts_list[i];
+             //TODO check for 3
+             for (unsigned int j = 0; j < pybind11::len(face_verts_i); j++)
+                 {
+                 unsigned int k = pybind11::cast<unsigned int>(face_verts_i[j]);
+                 if (k >= n_verts)
                      {
-                         unsigned int k = pybind11::cast<unsigned int>(face_verts_i[j]);
-                         if (k >= n_verts)
-                             {
-                             std::ostringstream oss;
-                             oss << "Invalid vertex index " << k << " specified" << std::endl;
-                             throw std::runtime_error(oss.str());
-                             }
-                         face_verts[array_i] = k;
-                         array_i++;
+                     std::ostringstream oss;
+                     oss << "Invalid vertex index " << k << " specified" << std::endl;
+                     throw std::runtime_error(oss.str());
                      }
+                 face_verts[array_i] = k;
+                 array_i++;
+                 }
              }
 
          hpmc::detail::OBB *obbs = new hpmc::detail::OBB[pybind11::len(face_offs_list)];

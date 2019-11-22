@@ -48,7 +48,6 @@ def dummy_simulation(device):
     sim.create_state_from_snapshot(s)
     return sim
 
-
 @pytest.fixture(autouse=True)
 def skip_mpi(request, device):
     if request.node.get_closest_marker('serial'):
