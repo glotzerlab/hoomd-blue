@@ -539,6 +539,21 @@ class faceted_ellipsoid_union_params(_hpmc.faceted_ellipsoid_union_param_proxy,_
 
 
 class sphinx_union_params(_hpmc.sphinx_union_param_proxy,_param):
+    
+    ## Parameters for sphinx_union
+    ## 'centers' : centers of each member of union
+    ## 'sub_centers' : Each element is list of centers of spheres of a member (this includes center of the member itself). 
+    ##                 Each element is the same parameter with 'centers' in single sphinx shape class
+    ## 'diameters' : Each element is list of diameters of spheres of a member (this includes diameter of the member itself). This could be positive and negative. 
+    ##               Each element is the same parameter with 'diameters' in single sphinx shape class.
+    ## 'orientations' : Orientation of each member
+    ##
+    ## Example (dimer of sphinx. Each member has one dimple) : 
+    ## centers = [[0,0,0],[1,0,0]] 
+    ## sub_centers = [ [[0,0,0],[-0.5,0,0]], [[0,0,0],[0.5,0,0]] ]
+    ## diameters= [ [1,-0.5], [1,-0.5] ]
+    ## orientations = [[1.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0]]
+    ##
     def __init__(self, mc, index):
         _hpmc.sphinx_union_param_proxy.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size templated
         _param.__init__(self, mc, index);
@@ -579,9 +594,4 @@ class sphinx_union_params(_hpmc.sphinx_union_param_proxy,_param):
                             ignore_statistics,
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
-
-
-
-
-
 
