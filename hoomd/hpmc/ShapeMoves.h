@@ -15,17 +15,17 @@ class not_implemented_error : std::exception {
   const char* what() const noexcept {return "Error: Function called that has not been implemented.\n";}
 };
 
-template < typename Shape, typename RNG>
-class shape_move_function
+template <typename Shape>
+class ShapeMoveBase
 {
 public:
-    shape_move_function(unsigned int ntypes) :
+    ShapeMoveBase(unsigned int ntypes) :
         m_determinantInertiaTensor(0),
         m_step_size(ntypes)
         {
         }
 
-    shape_move_function(const shape_move_function& src) :
+    ShapeMoveBase(const ShapeMoveBase& src) :
         m_determinantInertiaTensor(src.getDeterminantInertiaTensor()),
         m_step_size(src.getStepSizeArray())
         {
@@ -152,19 +152,19 @@ protected:
 
 // TODO: make this class more general and make python function a spcialization.
 template < typename Shape, typename RNG >
-class python_callback_parameter_shape_move : public shape_move_function<Shape, RNG>
+class PythonShapeMove : public ShapeMoveBase<Shape, RNG>
 {
-    using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
-    using shape_move_function<Shape, RNG>::m_step_size;
-    using shape_move_function<Shape, RNG>::m_ProvidedQuantities;
+    using ShapeMoveBase<Shape, RNG>::m_determinantInertiaTensor;
+    using ShapeMoveBase<Shape, RNG>::m_step_size;
+    using ShapeMoveBase<Shape, RNG>::m_ProvidedQuantities;
 public:
-    python_callback_parameter_shape_move(   unsigned int ntypes,
+    PythonShapeMove(   unsigned int ntypes,
                                             pybind11::object python_function,
                                             std::vector< std::vector<Scalar> > params,
                                             std::vector<Scalar> stepsize,
                                             Scalar mixratio
                                         )
-        :  shape_move_function<Shape, RNG>(ntypes), m_num_params(0), m_params(params), m_python_callback(python_function)
+        :  ShapeMoveBase<Shape, RNG>(ntypes), m_num_params(0), m_params(params), m_python_callback(python_function)
         {
         if(m_step_size.size() != stepsize.size())
             throw std::runtime_error("must provide a stepsize for each type");
@@ -266,11 +266,11 @@ private:
 };
 
 template< typename Shape, typename RNG >
-class constant_shape_move : public shape_move_function<Shape, RNG>
+class constant_shape_move : public ShapeMoveBase<Shape, RNG>
 {
-    using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
+    using ShapeMoveBase<Shape, RNG>::m_determinantInertiaTensor;
 public:
-    constant_shape_move(const unsigned int& ntypes, const std::vector< typename Shape::param_type >& shape_move) : shape_move_function<Shape, RNG>(ntypes), m_shapeMoves(shape_move)
+    constant_shape_move(const unsigned int& ntypes, const std::vector< typename Shape::param_type >& shape_move) : ShapeMoveBase<Shape, RNG>(ntypes), m_shapeMoves(shape_move)
         {
         if(ntypes != m_shapeMoves.size())
             throw std::runtime_error("Must supply a shape move for each type");
@@ -300,18 +300,18 @@ private:
 };
 
 template < typename ShapeConvexPolyhedronType, typename RNG >
-class convex_polyhedron_generalized_shape_move : public shape_move_function<ShapeConvexPolyhedronType, RNG>
+class convex_polyhedron_generalized_shape_move : public ShapeMoveBase<ShapeConvexPolyhedronType, RNG>
 {
-    using shape_move_function<ShapeConvexPolyhedronType, RNG>::m_determinantInertiaTensor;
-    using shape_move_function<ShapeConvexPolyhedronType, RNG>::m_step_size;
-    using shape_move_function<ShapeConvexPolyhedronType, RNG>::m_isoperimetric_quotient;
+    using ShapeMoveBase<ShapeConvexPolyhedronType, RNG>::m_determinantInertiaTensor;
+    using ShapeMoveBase<ShapeConvexPolyhedronType, RNG>::m_step_size;
+    using ShapeMoveBase<ShapeConvexPolyhedronType, RNG>::m_isoperimetric_quotient;
 public:
     convex_polyhedron_generalized_shape_move(
                                             unsigned int ntypes,
                                             Scalar stepsize,
                                             Scalar mixratio,
                                             Scalar volume
-                                        ) : shape_move_function<ShapeConvexPolyhedronType, RNG>(ntypes), m_volume(volume)
+                                        ) : ShapeMoveBase<ShapeConvexPolyhedronType, RNG>(ntypes), m_volume(volume)
         {
         // if(m_step_size.size() != stepsize.size())
         //     throw std::runtime_error("must provide a stepsize for each type");
@@ -439,19 +439,19 @@ inline void generate_scale(Eigen::Matrix3d& S, RNG& rng, Scalar alpha)
         0.0, 0.0, z;
     }
 
-template<class Shape, class RNG>
-class elastic_shape_move_function : public shape_move_function<Shape, RNG>
-{  // Derived class from shape_move_function base class
-    using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
-    using shape_move_function<Shape, RNG>::m_step_size;
+template<class Shape>
+class ElasticShapeMove : public ShapeMoveBase<Shape, RNG>
+{  // Derived class from ShapeMoveBase base class
+    using ShapeMoveBase<Shape, RNG>::m_determinantInertiaTensor;
+    using ShapeMoveBase<Shape, RNG>::m_step_size;
     std::vector <Eigen::Matrix3d> m_Fbar_last;
     std::vector <Eigen::Matrix3d> m_Fbar;
 public:
-    elastic_shape_move_function(
+    ElasticShapeMove(
                                     unsigned int ntypes,
                                     const Scalar& stepsize,
                                     Scalar move_ratio
-                                ) : shape_move_function<Shape, RNG>(ntypes), m_mass_props(ntypes)
+                                ) : ShapeMoveBase<Shape, RNG>(ntypes), m_mass_props(ntypes)
         {
         m_select_ratio = fmin(move_ratio, 1.0)*65535;
         m_step_size.resize(ntypes, stepsize);
@@ -632,10 +632,10 @@ class ShapeSpring : public ShapeSpringBase< Shape >
 {
     using ShapeSpringBase< Shape >::m_reference_shape;
     using ShapeSpringBase< Shape >::m_volume;
-    std::shared_ptr<elastic_shape_move_function<Shape, hoomd::RandomGenerator> > m_shape_move;
+    std::shared_ptr<ElasticShapeMove<Shape, hoomd::RandomGenerator> > m_shape_move;
 public:
     using ShapeSpringBase< Shape >::m_k;
-    ShapeSpring(std::shared_ptr<Variant> k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, hoomd::RandomGenerator> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
+    ShapeSpring(std::shared_ptr<Variant> k, typename Shape::param_type ref, std::shared_ptr<ElasticShapeMove<Shape, hoomd::RandomGenerator> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
         {
         }
 
