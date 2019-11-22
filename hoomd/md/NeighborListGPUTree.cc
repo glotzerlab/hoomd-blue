@@ -440,9 +440,9 @@ void NeighborListGPUTree::calcMortonCodes()
         Scalar4 post_i = h_pos.data[morton_conditions-1];
         Scalar3 pos_i = make_scalar3(post_i.x, post_i.y, post_i.z);
         Scalar3 f = box.makeFraction(pos_i);
-        m_exec_conf->msg->error() << "nlist.tree(): Particle " << h_tag.data[morton_conditions-1] << " is out of bounds "
-                                  << "(x: " << post_i.x << ", y: " << post_i.y << ", z: " << post_i.z
-                                  << ", fx: "<< f.x <<", fy: "<<f.y<<", fz:"<<f.z<<")"<<endl;
+        m_exec_conf->msg->errorAllRanks() << "nlist.tree(): Particle " << h_tag.data[morton_conditions-1] << " is out of bounds "
+                                          << "(x: " << post_i.x << ", y: " << post_i.y << ", z: " << post_i.z
+                                          << ", fx: "<< f.x <<", fy: "<<f.y<<", fz:"<<f.z<<")"<<endl;
         throw runtime_error("Error updating neighborlist");
         }
 

@@ -310,11 +310,6 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
         }
     #endif
 
-    if (m_sysdef->getNDimensions() == 2)
-        {
-        throw std::runtime_error("2D runs not supported with update.muvt().");
-        }
-
     // initialize list of tags per type
     mapTypes();
 
@@ -643,14 +638,28 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     Scalar3 f;
                     f.x = rng.template s<Scalar>();
                     f.y = rng.template s<Scalar>();
-                    f.z = rng.template s<Scalar>();
+                    if (m_sysdef->getNDimensions() == 2)
+                        {
+                        f.z = Scalar(0.5);
+                        }
+                    else
+                        {
+                        f.z = rng.template s<Scalar>();
+                        }
                     vec3<Scalar> pos_test = vec3<Scalar>(m_pdata->getGlobalBox().makeCoordinates(f));
 
                     Shape shape_test(quat<Scalar>(), param);
                     if (shape_test.hasOrientation())
                         {
                         // set particle orientation
-                        shape_test.orientation = generateRandomOrientation(rng);
+                        if (m_sysdef->getNDimensions() == 2)
+                            {
+                            shape_test.orientation = generateRandomOrientation2D(rng);
+                            }
+                        else
+                            {
+                            shape_test.orientation = generateRandomOrientation(rng);
+                            }
                         }
 
                     if (m_gibbs)
@@ -1179,7 +1188,16 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
         BoxDim global_box_new = m_pdata->getGlobalBox();
         Scalar3 L_old = global_box_new.getL();
         Scalar3 L_new = global_box_new.getL();
-        L_new = L_old * pow(V_new/V,Scalar(1.0/3.0));
+        Scalar power(0.0);
+        if (m_sysdef->getNDimensions() == 2)
+            {
+            power = Scalar(1.0/2.0);
+            }
+        else
+            {
+            power = Scalar(1.0/3.0);
+            }
+        L_new = L_old * pow(V_new/V,power);
         global_box_new.setL(L_new);
 
         m_postype_backup.resize(m_pdata->getN());
