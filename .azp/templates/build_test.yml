@@ -11,23 +11,28 @@ steps:
   displayName: Compile
   workingDirectory: $(Build.BinariesDirectory)
 
-- script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH python3 -m pytest --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
+- script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH python3 -m pytest -v -ra --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
   displayName: Run pytest (serial)
   workingDirectory: $(Build.BinariesDirectory)
 
-# - script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH mpirun -n 2 python3 -m pytest --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
-#   displayName: Run pytest (mpi)
-#   workingDirectory: $(Build.BinariesDirectory)
-#   condition: and(succeeded(), eq(variables['enable_mpi'], 'on'))
-#   env:
-#     # allow openmpi to oversubscribe cores
-#     OMPI_MCA_rmaps_base_oversubscribe: 1
-#     # prevent errors from mis-configured openib systems
-#     OMPI_MCA_btl: "vader,self"
-#     # prevent deadlocked MPI tests from causing the job to cancel
-#     MPIEXEC_TIMEOUT: $(mpiexec_timeout)
-#     # workaround issues on Mac
-#     TMPDIR: /tmp
+- script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH mpirun -n 2 hoomd/pytest/pytest-openmpi.sh -v -x -ra --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
+  displayName: Run pytest (mpi)
+  workingDirectory: $(Build.BinariesDirectory)
+  condition: and(succeeded(), eq(variables['enable_mpi'], 'on'))
+  env:
+    # allow openmpi to oversubscribe cores
+    OMPI_MCA_rmaps_base_oversubscribe: 1
+    # prevent errors from mis-configured openib systems
+    OMPI_MCA_btl: "vader,self"
+    # prevent deadlocked MPI tests from causing the job to cancel
+    MPIEXEC_TIMEOUT: $(mpiexec_timeout)
+    # workaround issues on Mac
+    TMPDIR: /tmp
+
+- script: cat pytest.out.1
+  displayName: Display rank 1 output
+  workingDirectory: $(Build.BinariesDirectory)
+  condition: and(succeeded(), eq(variables['enable_mpi'], 'on'))
 
 - script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH ctest -I $(ctest_start),,$(ctest_stride) --no-compress-output -T test --output-on-failure --test-output-size-failed 1048576 --test-output-size-passed 1048576
   displayName: Run ctest
@@ -56,9 +61,9 @@ steps:
     testResultsFiles: '$(Common.TestResultsDirectory)/pytest-serial.xml'
     testRunTitle: '$(suite_name) [pytest-serial]'
 
-# - task: PublishTestResults@2
-#   condition: eq(variables['enable_mpi'], 'on')
-#   inputs:
-#     testResultsFormat: 'JUnit'
-#     testResultsFiles: '$(Common.TestResultsDirectory)/pytest-mpi.xml'
-#     testRunTitle: '$(suite_name) [pytest-mpi]'
+- task: PublishTestResults@2
+  condition: eq(variables['enable_mpi'], 'on')
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: '$(Common.TestResultsDirectory)/pytest-mpi.xml'
+    testRunTitle: '$(suite_name) [pytest-mpi]'

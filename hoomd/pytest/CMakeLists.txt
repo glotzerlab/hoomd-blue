@@ -21,6 +21,7 @@ set(files __init__.py
           dummy.py
           test_snapshot.py
           test_state.py
+          pytest-openmpi.sh
     )
 
 install(FILES ${files}

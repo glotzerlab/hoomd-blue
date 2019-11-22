@@ -3,6 +3,30 @@ from hoomd.groups import Groups
 from .data import boxdim
 from hoomd.snapshot import Snapshot
 
+def _create_domain_decomposition(device, box):
+    """ Create a default domain decomposition.
+
+    This method is a quick hack to get basic MPI simulations working with
+    the new API. We will need to consider designing an appropriate user-facing
+    API to set the domain decomposition.
+    """
+    if not _hoomd.is_MPI_available():
+        return None
+
+    # if we are only running on one processor, we use optimized code paths
+    # for single-GPU execution
+    if device.comm.num_ranks == 1:
+        return None
+
+    # create a default domain decomposition
+    result = _hoomd.DomainDecomposition(device.cpp_exec_conf,
+                                        box.getL(),
+                                        0,
+                                        0,
+                                        0,
+                                        False)
+
+    return result
 
 class State:
     R"""
@@ -16,12 +40,14 @@ class State:
     def __init__(self, simulation, snapshot):
         self._simulation = simulation
         snapshot._broadcast_box()
-        # my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
+        domain_decomp = _create_domain_decomposition(
+            simulation.device,
+            snapshot._cpp_obj._global_box)
 
-        if False:  # my_domain_decomposition is not None:
+        if domain_decomp is not None:
             self._cpp_sys_def = _hoomd.SystemDefinition(
                 snapshot._cpp_obj, simulation.device.cpp_exec_conf,
-                my_domain_decomposition)
+                domain_decomp)
         else:
             self._cpp_sys_def = _hoomd.SystemDefinition(
                 snapshot._cpp_obj, simulation.device.cpp_exec_conf)
