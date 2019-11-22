@@ -22,8 +22,6 @@ def test_after_attaching(device, dummy_simulation):
     sim.operations.add(poly)
     sim.operations.schedule()
     
-    print(poly._cpp_obj.getShape('A'))
-    print(poly.shape['A'])
     assert not poly.shape['A']['ignore_statistics']
     assert poly.shape['B']['ignore_statistics']
     np.testing.assert_allclose(poly.shape['A']['vertices'], verts)    
