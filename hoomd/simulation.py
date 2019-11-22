@@ -1,5 +1,6 @@
 import hoomd._hoomd as _hoomd
 from hoomd.state import State
+from hoomd.snapshot import Snapshot
 from hoomd.operations import Operations
 
 
@@ -55,7 +56,8 @@ class Simulation:
         # Grab snapshot and timestep
         reader = _hoomd.GSDReader(self.device.cpp_exec_conf,
                                   filename, abs(frame), frame < 0)
-        snapshot = reader.getSnapshot()
+        snapshot = Snapshot._from_cpp_snapshot(reader.getSnapshot(),
+                                               self.device.comm)
 
         step = reader.getTimeStep() if self.timestep is None else self.timestep
         self._state = State(self, snapshot)
