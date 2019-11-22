@@ -1,4 +1,4 @@
-#ifndef _UPDATER_SHAPE_H
+/ifndef _UPDATER_SHAPE_H
 #define _UPDATER_SHAPE_H
 
 #include <numeric>
@@ -60,7 +60,7 @@ public:
 
     void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
 
-    void registerShapeMove(std::shared_ptr<shape_move_function<Shape, hoomd::RandomGenerator> > move);
+    void registerShapeMove(std::shared_ptr< ShapeMoveBase<Shape> > move);
 
     Scalar getStepSize(unsigned int typ)
         {
@@ -97,7 +97,7 @@ private:
     unsigned int                m_move_ratio;
     Scalar                      m_kappa_iq;
 
-    std::shared_ptr< shape_move_function<Shape, hoomd::RandomGenerator> >   m_move_function;
+    std::shared_ptr< ShapeMoveBase<Shape> >   m_move_function;
     std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
     std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function;
 
@@ -494,7 +494,7 @@ void UpdaterShape<Shape>::registerLogBoltzmannFunction(std::shared_ptr< ShapeLog
     }
 
 template< typename Shape>
-void UpdaterShape<Shape>::registerShapeMove(std::shared_ptr<shape_move_function<Shape, hoomd::RandomGenerator> > move)
+void UpdaterShape<Shape>::registerShapeMove(std::shared_ptr<ShapeMoveBase<Shape> > move)
     {
     if(m_move_function) // if it exists I do not want to reset it.
         return;

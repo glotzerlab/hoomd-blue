@@ -144,7 +144,7 @@ protected:
     Scalar                          m_determinantInertiaTensor;     // TODO: REMOVE?
     Scalar                          m_isoperimetric_quotient;
     std::vector<Scalar>             m_step_size;                    // maximum stepsize. input/output
-};
+};   // end class ShapeMoveBase
 
 
 // TODO: make this class more general and make python function a spcialization.
@@ -159,22 +159,21 @@ public:
                     Scalar mixratio)
         :  ShapeMoveBase<Shape>(ntypes), m_num_params(0), m_params(params), m_python_callback(python_function)
         {
-        if(m_step_size.size() != stepsize.size())
+        if(this->m_step_size.size() != stepsize.size())
             throw std::runtime_error("must provide a stepsize for each type");
 
-        m_step_size = stepsize;
+        this->m_step_size = stepsize;
         m_select_ratio = fmin(mixratio, 1.0)*65535;
-        m_determinantInertiaTensor = 0.0;
+        this->m_determinantInertiaTensor = 0.0;
         for(size_t i = 0; i < getNumParam(); i++)
             {
-            m_ProvidedQuantities.push_back(getParamName(i));
+            this->m_ProvidedQuantities.push_back(getParamName(i));
             }
         }
 
     void prepare(unsigned int timestep)
         {
         m_params_backup = m_params;
-        // m_step_size_backup = m_step_size;
         }
 
     void construct(const unsigned int& timestep,
@@ -185,8 +184,8 @@ public:
         for(size_t i = 0; i < m_params[type_id].size(); i++)
             {
             hoomd::UniformDistribution<Scalar> uniform(
-                    fmax(-m_step_size[type_id], -(m_params[type_id][i])),
-                    fmin(m_step_size[type_id], (1.0-m_params[type_id][i])));
+                    fmax(-this->m_step_size[type_id], -(m_params[type_id][i])),
+                    fmin(this->m_step_size[type_id], (1.0-m_params[type_id][i])));
             Scalar x = (hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio) ? uniform(rng) : 0.0;
             m_params[type_id][i] += x;
             }
@@ -299,10 +298,11 @@ private:
     std::vector< Scalar >                       m_determinants;
 };
 
+
 class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedronType>
 {
 public:
-    convex_polyhedron_generalized_shape_move(unsigned int ntypes,
+    ConvexPolyhedronVertexShapeMove(unsigned int ntypes,
                                              Scalar stepsize,
                                              Scalar mixratio,
                                              Scalar volume)
@@ -388,7 +388,7 @@ private:
     Scalar                  m_volume;
     std::vector< vec3<Scalar> > m_centroids;
     std::vector<bool>       m_calculated;
-};
+};   // end class ConvexPolyhedronVertexShapeMove
 
 //TODO: put the following functions in a class
 inline bool isIn(Scalar x, Scalar y, Scalar alpha)
