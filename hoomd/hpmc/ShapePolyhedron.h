@@ -59,26 +59,27 @@
 
  struct poly3d_data : param_base
      {
-     poly3d_data(bool _managed=false)
-         : convex_hull_verts(_managed), verts(0, _managed), face_offs(0, _managed),
-           face_verts(0, _managed), face_overlap(0, _managed), n_faces(0), ignore(0)
+     poly3d_data()
+         : convex_hull_verts(), verts(), face_offs(),
+           face_verts(), face_overlap(), n_faces(0), ignore(0)
          {
          };
 
+     #ifndef NVCC
      //! Constructor
      poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, unsigned int n_hull_verts, bool _managed)
          : n_verts(nverts), n_faces(_n_faces), hull_only(0)
          {
-         convex_hull_verts = poly3d_verts(n_hull_verts, _managed);
+         convex_hull_verts = poly3d_verts(n_hull_verts);
          verts = ManagedArray<vec3<OverlapReal> >(nverts, _managed);
          face_offs = ManagedArray<unsigned int>(n_faces+1,_managed);
          face_verts = ManagedArray<unsigned int>(_n_face_verts, _managed);
          face_overlap = ManagedArray<unsigned int>(_n_faces, _managed);
          std::fill(face_overlap.get(), face_overlap.get()+_n_faces, 1);
          }
-     #ifndef NVCC
+
      poly3d_data(pybind11::dict v, bool _managed=false)
-         : poly3d_data(_managed)
+         : poly3d_data()
          {
 
          pybind11::list verts_list = v["vertices"];
