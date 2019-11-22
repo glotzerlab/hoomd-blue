@@ -69,6 +69,7 @@ set(TEST_LIST_CPU
     test_clusters.py
     test_overlap.py
     get_type_shapes.py
+    test_hpmc_shape_spec.py
     )
 
 if (BUILD_JIT)

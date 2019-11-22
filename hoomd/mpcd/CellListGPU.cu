@@ -192,7 +192,7 @@ __global__ void cell_check_migrate_embed(unsigned int *d_migrate_flag,
          (!periodic.y && (pos.y >= hi.y || pos.y < lo.y)) ||
          (!periodic.z && num_dim == 3 && (pos.z >= hi.z || pos.z < lo.z)))
          {
-         atomicMax(d_migrate_flag, 0xffffffff);
+         atomicMax(d_migrate_flag, 1);
          }
     }
 

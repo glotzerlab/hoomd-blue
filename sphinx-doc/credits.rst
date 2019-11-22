@@ -211,6 +211,7 @@ Vyas Ramasubramani, University of Michigan
  * Reverse communication for MPI
  * Enable simulation of floppy bodies that can be integrated separately but are ignored by the NeighborList
  * Enabled use of shared memory for Evaluator structs
+ * Added per-type shape information to anisotropic pair potentials
 
 Nathan Horst
 
@@ -280,6 +281,11 @@ Patrick Lawton, University of Michigan
 Luis Rivera-Rivera, University of Michigan
 
   * ``hoomd.dump.gsd.dump_shape`` implementation
+
+
+Alex Yang, Vanderbilt University
+
+  * ``hoomd.md.dihedral.harmonic`` update for phase shift
 
 HPMC developers
 ---------------
