@@ -1,12 +1,12 @@
 from hoomd.typeparam import TypeParameter
-from hoomd.parameterdicts import TypeParameterDict, RequiredArg
+from hoomd.parameterdicts import TypeParameterDict
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
 from pytest import fixture, raises
 
 
 @fixture(scope='function')
 def typedict():
-    return TypeParameterDict(foo=1, bar=RequiredArg, len_keys=1)
+    return TypeParameterDict(foo=1, bar=4, len_keys=1)
 
 
 def test_instantiation(typedict):
@@ -63,6 +63,7 @@ def test_default(all_):
     all_.default = dict(bar=10.)
     assert all_.default == all_.param_dict.default
     assert all_.default['bar'] == 10.
+    assert all_.default['foo'] == 1
 
 
 def test_type_checking(all_):

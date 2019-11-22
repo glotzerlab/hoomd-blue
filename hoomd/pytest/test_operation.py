@@ -82,10 +82,11 @@ def test_setattr(full_op):
 def test_apply_typeparam_dict(full_op):
     '''Tests _apply_typeparam_dict and by necessity getattr.'''
     full_op.type_param['B'] = dict(bar='hello')
+    full_op.type_param['A'] = dict(bar='world')
     cpp_obj = DummyCppObj()
     full_op._cpp_obj = cpp_obj
     full_op._apply_typeparam_dict(cpp_obj, DummySimulation())
-    assert cpp_obj.getTypeParam('A') == dict(foo=1, bar=None)
+    assert cpp_obj.getTypeParam('A') == dict(foo=1, bar='world')
     assert cpp_obj.getTypeParam('B') == dict(foo=1, bar='hello')
     return full_op
 
@@ -119,7 +120,7 @@ def test_is_attached(full_op, attached):
 
 def test_detach(attached):
     detached = attached.detach()
-    assert detached.type_param['A'] == dict(foo=1, bar=None)
+    assert detached.type_param['A'] == dict(foo=1, bar='world')
     assert detached.type_param['B'] == dict(foo=1, bar='hello')
     assert detached.param1 == 1
     assert detached.param2 == 2
