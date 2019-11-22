@@ -4,16 +4,13 @@
 #include "ShapeUtils.h"
 #include <hoomd/Variant.h>
 #include "Moves.h"
-#include "hoomd/GSDState.h"
+// #include "hoomd/GSDState.h"
+#include "GSDHPMCSchema.h"
 #include <hoomd/extern/Eigen/Eigen/Dense>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc {
 
-
-class not_implemented_error : std::exception {
-  const char* what() const noexcept {return "Error: Function called that has not been implemented.\n";}
-};
 
 template <typename Shape>
 class ShapeMoveBase
@@ -34,19 +31,19 @@ public:
     //! prepare is called at the beginning of every update()
     virtual void prepare(unsigned int timestep)
         {
-        throw not_implemented_error();
+        throw std::runtime_error("Shape move function not implemented.");
         }
 
     //! construct is called for each particle type that will be changed in update()
-    virtual void construct(const unsigned int&, const unsigned int&, typename Shape::param_type&, RNG&)
+    virtual void construct(const unsigned int&, const unsigned int&, typename Shape::param_type&, hoomd::RandomGenerator&)
         {
-        throw not_implemented_error();
+        throw std::runtime_error("Shape move function not implemented.");
         }
 
     //! retreat whenever the proposed move is rejected.
     virtual void retreat(const unsigned int)
         {
-        throw not_implemented_error();
+        throw std::runtime_error("Shape move function not implemented.");
         }
 
     // TODO: remove this?
@@ -151,20 +148,16 @@ protected:
 
 
 // TODO: make this class more general and make python function a spcialization.
-template < typename Shape, typename RNG >
-class PythonShapeMove : public ShapeMoveBase<Shape, RNG>
+template < typename Shape >
+class PythonShapeMove : public ShapeMoveBase<Shape>
 {
-    using ShapeMoveBase<Shape, RNG>::m_determinantInertiaTensor;
-    using ShapeMoveBase<Shape, RNG>::m_step_size;
-    using ShapeMoveBase<Shape, RNG>::m_ProvidedQuantities;
 public:
-    PythonShapeMove(   unsigned int ntypes,
-                                            pybind11::object python_function,
-                                            std::vector< std::vector<Scalar> > params,
-                                            std::vector<Scalar> stepsize,
-                                            Scalar mixratio
-                                        )
-        :  ShapeMoveBase<Shape, RNG>(ntypes), m_num_params(0), m_params(params), m_python_callback(python_function)
+    PythonShapeMove(unsigned int ntypes,
+                    pybind11::object python_function,
+                    std::vector< std::vector<Scalar> > params,
+                    std::vector<Scalar> stepsize,
+                    Scalar mixratio)
+        :  ShapeMoveBase<Shape>(ntypes), m_num_params(0), m_params(params), m_python_callback(python_function)
         {
         if(m_step_size.size() != stepsize.size())
             throw std::runtime_error("must provide a stepsize for each type");
@@ -184,7 +177,10 @@ public:
         // m_step_size_backup = m_step_size;
         }
 
-    void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng)
+    void construct(const unsigned int& timestep,
+                   const unsigned int& type_id,
+                   typename Shape::param_type& shape,
+                   hoomd::RandomGenerator& rng)
         {
         for(size_t i = 0; i < m_params[type_id].size(); i++)
             {
@@ -265,12 +261,13 @@ private:
     // bool                                    m_normalized;       // if true all parameters are restricted to (0,1)
 };
 
-template< typename Shape, typename RNG >
-class constant_shape_move : public ShapeMoveBase<Shape, RNG>
+template< typename Shape >
+class constant_shape_move : public ShapeMoveBase<Shape>
 {
-    using ShapeMoveBase<Shape, RNG>::m_determinantInertiaTensor;
 public:
-    constant_shape_move(const unsigned int& ntypes, const std::vector< typename Shape::param_type >& shape_move) : ShapeMoveBase<Shape, RNG>(ntypes), m_shapeMoves(shape_move)
+    constant_shape_move(const unsigned int& ntypes,
+                        const std::vector< typename Shape::param_type >& shape_move)
+        : ShapeMoveBase<Shape>(ntypes), m_shapeMoves(shape_move)
         {
         if(ntypes != m_shapeMoves.size())
             throw std::runtime_error("Must supply a shape move for each type");
@@ -283,7 +280,10 @@ public:
 
     void prepare(unsigned int timestep) {}
 
-    void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng)
+    void construct(const unsigned int& timestep,
+                   const unsigned int& type_id,
+                   typename Shape::param_type& shape,
+                   hoomd::RandomGenerator& rng)
         {
         shape = m_shapeMoves[type_id];
         m_determinantInertiaTensor = m_determinants[type_id];
@@ -299,23 +299,15 @@ private:
     std::vector< Scalar >                       m_determinants;
 };
 
-template < typename ShapeConvexPolyhedronType, typename RNG >
-class convex_polyhedron_generalized_shape_move : public ShapeMoveBase<ShapeConvexPolyhedronType, RNG>
+class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedronType>
 {
-    using ShapeMoveBase<ShapeConvexPolyhedronType, RNG>::m_determinantInertiaTensor;
-    using ShapeMoveBase<ShapeConvexPolyhedronType, RNG>::m_step_size;
-    using ShapeMoveBase<ShapeConvexPolyhedronType, RNG>::m_isoperimetric_quotient;
 public:
-    convex_polyhedron_generalized_shape_move(
-                                            unsigned int ntypes,
-                                            Scalar stepsize,
-                                            Scalar mixratio,
-                                            Scalar volume
-                                        ) : ShapeMoveBase<ShapeConvexPolyhedronType, RNG>(ntypes), m_volume(volume)
+    convex_polyhedron_generalized_shape_move(unsigned int ntypes,
+                                             Scalar stepsize,
+                                             Scalar mixratio,
+                                             Scalar volume)
+        : ShapeMoveBase<ShapeConvexPolyhedronType>(ntypes), m_volume(volume)
         {
-        // if(m_step_size.size() != stepsize.size())
-        //     throw std::runtime_error("must provide a stepsize for each type");
-
         m_determinantInertiaTensor = 1.0;
         m_scale = 1.0;
         std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
@@ -330,7 +322,10 @@ public:
         m_step_size_backup = m_step_size;
         }
 
-    void construct(const unsigned int& timestep, const unsigned int& type_id, typename ShapeConvexPolyhedronType::param_type& shape, RNG& rng)
+    void construct(const unsigned int& timestep,
+                   const unsigned int& type_id,
+                   typename ShapeConvexPolyhedronType::param_type& shape,
+                   hoomd::RandomGenerator& rng)
         {
         if(!m_calculated[type_id])
             {
@@ -405,8 +400,7 @@ inline bool isIn(Scalar x, Scalar y, Scalar alpha)
     }
 
 
-template <class RNG>
-inline void generate_scale_R(Scalar& x, Scalar& y, RNG& rng, Scalar alpha)
+inline void generate_scale_R(Scalar& x, Scalar& y, hoomd::RandomGenerator& rng, Scalar alpha)
     {
     hoomd::UniformDistribution<Scalar> uniform(Scalar(1)/alpha, alpha);
     do
@@ -415,8 +409,8 @@ inline void generate_scale_R(Scalar& x, Scalar& y, RNG& rng, Scalar alpha)
         y = uniform(rng);
         }while(!isIn(x,y,alpha));
     }
-template <class RNG>
-inline void generate_scale_S(Scalar& x, Scalar& y, RNG& rng, Scalar alpha)
+
+inline void generate_scale_S(Scalar& x, Scalar& y, hoomd::RandomGenerator& rng, Scalar alpha)
     {
     Scalar sigma_max = 0.0, sigma = 0.0, U = 0.0;
     sigma_max = sqrt(pow(alpha, 4) + pow(alpha, 2) + 1);
@@ -428,8 +422,7 @@ inline void generate_scale_S(Scalar& x, Scalar& y, RNG& rng, Scalar alpha)
         }while(U > sigma/sigma_max);
     }
 
-template <class RNG>
-inline void generate_scale(Eigen::Matrix3d& S, RNG& rng, Scalar alpha)
+inline void generate_scale(Eigen::Matrix3d& S, hoomd::RandomGenerator& rng, Scalar alpha)
     {
     Scalar x = 0.0, y = 0.0, z = 0.0;
     generate_scale_S(x, y, rng, alpha);
@@ -440,10 +433,8 @@ inline void generate_scale(Eigen::Matrix3d& S, RNG& rng, Scalar alpha)
     }
 
 template<class Shape>
-class ElasticShapeMove : public ShapeMoveBase<Shape, RNG>
+class ElasticShapeMove : public ShapeMoveBase<Shape>
 {  // Derived class from ShapeMoveBase base class
-    using ShapeMoveBase<Shape, RNG>::m_determinantInertiaTensor;
-    using ShapeMoveBase<Shape, RNG>::m_step_size;
     std::vector <Eigen::Matrix3d> m_Fbar_last;
     std::vector <Eigen::Matrix3d> m_Fbar;
 public:
@@ -451,7 +442,7 @@ public:
                                     unsigned int ntypes,
                                     const Scalar& stepsize,
                                     Scalar move_ratio
-                                ) : ShapeMoveBase<Shape, RNG>(ntypes), m_mass_props(ntypes)
+                                ) : ShapeMoveBase<Shape>(ntypes), m_mass_props(ntypes)
         {
         m_select_ratio = fmin(move_ratio, 1.0)*65535;
         m_step_size.resize(ntypes, stepsize);
@@ -466,8 +457,11 @@ public:
         m_Fbar_last = m_Fbar;
         }
 
-    //! construct is called at the beginning of every update()                                            # param was shape - Luis
-    void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& param, RNG& rng)
+    //! construct is called at the beginning of every update()
+    void construct(const unsigned int& timestep,
+            const unsigned int& type_id,
+            typename Shape::param_type& param,
+            hoomd::RandomGenerator& rng)
         {
         using Eigen::Matrix3d;
         Matrix3d transform;
