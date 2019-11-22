@@ -733,7 +733,6 @@ class ConvexPolygon(mode_hpmc):
             cl_c = None
         else:
             cl_c = _hoomd.CellListGPU(sys_def);
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUConvexPolygon(sys_def, cl_c, self.seed);
 
         # set the non type specfic parameters
@@ -753,9 +752,9 @@ class ConvexPolygon(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        return super(convex_polygon, self)._return_type_shapes()
+        return super(ConvexPolygon, self)._return_type_shapes()
 
-class convex_spheropolygon(mode_hpmc):
+class ConvexSpheropolygon(mode_hpmc):
     R""" HPMC integration for convex spheropolygons (2D).
 
     Args:
@@ -798,27 +797,44 @@ class convex_spheropolygon(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self);
+        super(ConvexSpheropolygon, self).__init__(self)
+        
+        self._param_dict = dict(seed=seed,
+                                move_ratio=move_ratio,
+                                nselect=nselect)
+
+        typeparam_d = TypeParameter('d', type_kind='particle_types',
+                                    param_dict=TypeParameterDict(d, len_keys=1)
+                                    )
+        typeparam_a = TypeParameter('a', type_kind='particle_types',
+                                    param_dict=TypeParameterDict(a, len_keys=1)
+                                    )
+        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            vertices=RequiredArg,
+                                            ignore_statistics=False,
+                                            len_keys=1)
+                                        )
+        self._extend_typeparam([typeparam_a, typeparam_d, typeparam_shape])
+
+    def attach(self, simulation):
 
         # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolygon(hoomd.context.current.system_definition, seed);
+        sys_def = simulation.state._cpp_sys_def
+        if not simulation.device.mode == "GPU":
+            cl_c = None
+            self._cpp_obj = _hpmc.IntegratorHPMCMonoSpheropolygon(sys_def, self.seed);
         else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolygon(hoomd.context.current.system_definition, cl_c, seed);
+            cl_c = _hoomd.CellListGPU(sys_def);
+            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUSpheropolygon(sys_def, cl_c, self.seed);
 
-        # set default parameters
-        setD(self.cpp_integrator,d);
-        setA(self.cpp_integrator,a);
-        self.cpp_integrator.setMoveRatio(move_ratio)
-        self.cpp_integrator.setNSelect(nselect);
+        # set the non type specfic parameters
+        self._apply_param_dict()
 
-        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.initialize_shape_params();
+        # Deal with type specific properties
+        self._apply_typeparam_dict(self._cpp_obj, simulation)
 
-        if restore_state:
-            self.restore_state()
+        return [cl_c] if cl_c is not None else None
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -831,7 +847,7 @@ class convex_spheropolygon(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        return super(convex_spheropolygon, self)._return_type_shapes()
+        return super(ConvexSpheropolygon, self)._return_type_shapes()
 
 class SimplePolygon(mode_hpmc):
     R""" HPMC integration for simple polygons (2D).
@@ -902,8 +918,7 @@ class SimplePolygon(mode_hpmc):
             cl_c = None
             self._cpp_obj = _hpmc.IntegratorHPMCMonoSimplePolygon(sys_def, self.seed);
         else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
+            cl_c = _hoomd.CellListGPU(sys_def);
             self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUSimplePolygon(sys_def, cl_c, self.seed);
 
         # set the non type specfic parameters
