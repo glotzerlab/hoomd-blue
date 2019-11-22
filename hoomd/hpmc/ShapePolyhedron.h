@@ -70,7 +70,7 @@
      poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, unsigned int n_hull_verts, bool _managed)
          : n_verts(nverts), n_faces(_n_faces), hull_only(0)
          {
-         convex_hull_verts = poly3d_verts(n_hull_verts);
+         convex_hull_verts = poly3d_verts(n_hull_verts, _managed);
          verts = ManagedArray<vec3<OverlapReal> >(nverts, _managed);
          face_offs = ManagedArray<unsigned int>(n_faces+1,_managed);
          face_verts = ManagedArray<unsigned int>(_n_face_verts, _managed);
