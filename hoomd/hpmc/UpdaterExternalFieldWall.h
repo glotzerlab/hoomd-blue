@@ -62,20 +62,46 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         //! Destructor
         virtual ~UpdaterExternalFieldWall(){}
 
-        //! Sets parameters
-        /*! \param move_ratio Probability of attempting external field update move
-        */
+        //! Get the seed
+        unsigned int getSeed()
+            {
+            return m_seed;
+            }
+
+        //! Set the move ratio
         void setMoveRatio(Scalar move_ratio)
             {
             m_move_ratio = move_ratio;
-            };
+            }
 
-        //! Get move_ratio parameter
-        /*! \returns move_ratio parameter
-        */
+        //! Get the move ratio
         Scalar getMoveRatio()
             {
             return m_move_ratio;
+            }
+
+        //! Get the python call back for external field update
+        pybind11::object getPyUpdater()
+            {
+            return m_py_updater;
+            }
+
+        //! Set the python call back for external field update
+        void setPyUpdater(pybind11::object py_updater)
+            {
+            m_py_updater=py_updater;
+            }
+
+        //! Get the field wall object
+        std::shared_ptr< ExternalFieldWall<Shape> > getWalls()
+            {
+            return m_external;
+            }
+
+        //! Set the field wall object
+        void setWalls(std::shared_ptr< ExternalFieldWall<Shape> > external)
+            {
+            m_external=external;
             }
 
         //! Print statistics
@@ -177,7 +203,7 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
     private:
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc;      //!< Integrator
         std::shared_ptr< ExternalFieldWall<Shape> > m_external; //!< External field wall object
-        pybind11::object m_py_updater;                       //!< Python call back for external field update
+        pybind11::object m_py_updater;                          //!< Python call back for external field update
         Scalar m_move_ratio;                                      //!< Ratio of lattice vector length versus shearing move
         unsigned int m_count_accepted_rel;                        //!< Accepted moves count, relative to start of run
         unsigned int m_count_total_rel;                           //!< Accept/reject total count, relative to start of run
@@ -197,6 +223,10 @@ void export_UpdaterExternalFieldWall(pybind11::module& m, std::string name)
     .def("getAcceptedCount", &UpdaterExternalFieldWall<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterExternalFieldWall<Shape>::getTotalCount)
     .def("resetStats", &UpdaterExternalFieldWall<Shape>::resetStats)
+    .def_property("walls", &UpdaterExternalFieldWall<Shape>::getWalls, &UpdaterExternalFieldWall<Shape>::setWalls)
+    .def_property("py_updater", &UpdaterExternalFieldWall<Shape>::getPyUpdater, &UpdaterExternalFieldWall<Shape>::setPyUpdater)
+    .def_property("move_ratio", &UpdaterExternalFieldWall<Shape>::getMoveRatio, &UpdaterExternalFieldWall<Shape>::setMoveRatio)
+    .def_property_readonly("seed", &UpdaterExternalFieldWall<Shape>::getSeed)
     ;
     }
 } // namespace
