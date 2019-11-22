@@ -163,9 +163,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Set the pair parameters for a single type
         virtual void setParam(unsigned int typ, const param_type& param, bool update=true);
 
-        //! Set the pair parameters for a single type
-        // virtual void swapParams(GPUArray<param_type>& swp) { m_params.swap(swp); updateCellWidth(); }
-
         //! Set elements of the interaction matrix
         virtual void setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps);
 
