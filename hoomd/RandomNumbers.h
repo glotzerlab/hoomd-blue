@@ -359,7 +359,7 @@ class SpherePointGenerator
 
             // project onto the sphere surface
             const Real sqrtu = fast::sqrt(one_minus_u2);
-            fast::sincos(theta, point.y, point.x);
+            fast::sincos(theta, (Real &) point.y, (Real& ) point.x);
             point.x *= sqrtu;
             point.y *= sqrtu;
             point.z = u;

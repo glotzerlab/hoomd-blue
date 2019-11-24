@@ -581,7 +581,7 @@ void CellList::computeCellList()
             }
         else
             {
-            conditions.x = max(conditions.x, offset+1);
+            conditions.x = max((unsigned int)conditions.x, offset+1);
             }
 
         // increment the cell occupancy counter

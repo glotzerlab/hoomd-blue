@@ -73,6 +73,84 @@ typedef double3 Scalar3;
 typedef double4 Scalar4;
 #endif
 
+
+#ifdef ENABLE_MPI
+#ifdef ENABLE_HIP
+//! HIP uses non-standard data types for their vector type members
+namespace cereal
+    {
+    template<class Archive>
+    void serialize(Archive& archive, decltype(uchar3::x)& s)
+        {
+        archive(s);
+        }
+    template<class Archive>
+    void serialize(Archive& archive, decltype(uchar3::y)& s)
+        {
+        archive(s);
+        }
+    template<class Archive>
+    void serialize(Archive& archive, decltype(uchar3::z)& s)
+        {
+        archive(s);
+        }
+ 
+    template<class Archive>
+    void serialize(Archive& archive, decltype(int3::x)& s)
+        {
+        archive(s);
+        }
+    template<class Archive>
+    void serialize(Archive& archive, decltype(int3::y)& s)
+        {
+        archive(s);
+        }
+    template<class Archive>
+    void serialize(Archive& archive, decltype(int3::z)& s)
+        {
+        archive(s);
+        }
+ 
+    template<class Archive>
+    void serialize(Archive& archive, decltype(Scalar3::x)& s)
+        {
+        archive(s);
+        }
+    template<class Archive>
+    void serialize(Archive& archive, decltype(Scalar3::y)& s)
+        {
+        archive(s);
+        }
+    template<class Archive>
+    void serialize(Archive& archive, decltype(Scalar3::z)& s)
+        {
+        archive(s);
+        }
+ 
+    template<class Archive>
+    void serialize(Archive& archive, decltype(Scalar4::x)& s)
+        {
+        archive(s);
+        }
+    template<class Archive>
+    void serialize(Archive& archive, decltype(Scalar4::y)& s)
+        {
+        archive(s);
+        }
+    template<class Archive>
+    void serialize(Archive& archive, decltype(Scalar4::z)& s)
+        {
+        archive(s);
+        }
+    template<class Archive>
+    void serialize(Archive& archive, decltype(Scalar4::w)& s)
+        {
+        archive(s);
+        }
+    }
+#endif
+#endif
+
 //! make a scalar2 value
 HOSTDEVICE inline Scalar2 make_scalar2(Scalar x, Scalar y)
     {

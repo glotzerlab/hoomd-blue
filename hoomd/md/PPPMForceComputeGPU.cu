@@ -13,6 +13,30 @@
 
 #define GPU_PPPM_MAX_ORDER 7
 
+// workaround for HIP bug
+#ifdef __HIP_PLATFORM_HCC__
+inline __device__ float myAtomicAdd(float* address, float val)
+    {
+    unsigned  int* address_as_uint = (unsigned  int*)address;
+    unsigned  int old = *address_as_uint, assumed;
+
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_uint,
+                        assumed,
+                        __float_as_uint(val + __uint_as_float(assumed)));
+    } while (assumed != old);
+
+    return __uint_as_float(old);
+    }
+#else
+inline __device__ float myAtomicAdd(float* address, float val)
+    {
+    return atomicAdd(address, val);
+    }
+#endif
+
+
 //! GPU implementation of sinc(x)==sin(x)/x
 __device__ Scalar gpu_sinc(Scalar x)
     {
@@ -251,7 +275,7 @@ __global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
 
                     // compute fraction of particle density assigned to cell
                     // from particles in this bin
-                    atomicAdd(&d_mesh[cell_idx].x, z0*result/V_cell);
+                    myAtomicAdd(&d_mesh[cell_idx].x, z0*result/V_cell);
                     }
 
                 ignore_z = false;
