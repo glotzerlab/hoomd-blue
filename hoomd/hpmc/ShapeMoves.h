@@ -128,7 +128,7 @@ public:
     //! Returns all of the provided log quantities for the shape move.
     std::vector< std::string > getProvidedLogQuantities()
         {
-        return m_ProvidedQuantities;
+        return m_provided_quantities;
         }
 
     //! Calculates the requested log value and returns true if the quantity was
@@ -140,7 +140,7 @@ public:
 
 
 protected:
-    std::vector< std::string >      m_ProvidedQuantities;
+    std::vector< std::string >      m_provided_quantities;
     Scalar                          m_det_inertia_tensor;     // TODO: REMOVE?
     Scalar                          m_isoperimetric_quotient;
     std::vector<Scalar>             m_step_size;                    // maximum stepsize. input/output
@@ -167,7 +167,7 @@ public:
         this->m_det_inertia_tensor = 0.0;
         for(size_t i = 0; i < getNumParam(); i++)
             {
-            this->m_ProvidedQuantities.push_back(getParamName(i));
+            this->m_provided_quantities.push_back(getParamName(i));
             }
         }
 
@@ -571,7 +571,7 @@ class ShapeLogBoltzmannFunction
     //! Returns all of the provided log quantities for the shape move.
     std::vector< std::string > getProvidedLogQuantities()
         {
-        return m_ProvidedQuantities;
+        return m_provided_quantities;
         }
 
     //! Calculates the requested log value and returns true if the quantity was
@@ -582,7 +582,7 @@ class ShapeLogBoltzmannFunction
         }
 
 protected:
-    std::vector< std::string >      m_ProvidedQuantities;
+    std::vector< std::string >      m_provided_quantities;
 };
 
 template<class Shape>
@@ -595,8 +595,6 @@ public:
         }
 };
 
-#define SHAPE_SPRING_STIFFNESS "shape_move_stiffness"
-
 template< class Shape >
 class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
 {
@@ -604,7 +602,7 @@ protected:
     Scalar m_volume;
     std::unique_ptr<typename Shape::param_type> m_reference_shape;
     std::shared_ptr<Variant> m_k;
-    using ShapeLogBoltzmannFunction<Shape>::m_ProvidedQuantities;
+    using ShapeLogBoltzmannFunction<Shape>::m_provided_quantities;
 public:
 
     ShapeSpringBase(std::shared_ptr<Variant> k, typename Shape::param_type shape) : m_reference_shape(new typename Shape::param_type), m_k(k)
@@ -612,7 +610,7 @@ public:
         (*m_reference_shape) = shape;
         detail::mass_properties<Shape> mp(*m_reference_shape);
         m_volume = mp.getVolume();
-        m_ProvidedQuantities.push_back(SHAPE_SPRING_STIFFNESS);
+        m_provided_quantities.push_back("shape_move_stiffness");
         }
 
     void setStiffness(std::shared_ptr<Variant> stiff)
@@ -629,7 +627,7 @@ public:
     //! provided by this class.
     virtual bool getLogValue(const std::string& quantity, unsigned int timestep, Scalar& value)
         {
-        if(quantity == SHAPE_SPRING_STIFFNESS)
+        if(quantity == "shape_move_stiffness")
             {
             value = m_k->getValue(timestep);
             return true;

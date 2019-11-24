@@ -103,7 +103,7 @@ private:
     GPUArray< Scalar >          m_iq;
     GPUArray< unsigned int >    m_ntypes;
 
-    std::vector< std::string >  m_ProvidedQuantities;
+    std::vector< std::string >  m_provided_quantities;
     size_t                      m_num_params;
     bool                        m_pretend;
     bool                        m_initialized;
@@ -139,24 +139,24 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_box_accepted.resize(m_pdata->getNTypes(), 0);
     m_box_total.resize(m_pdata->getNTypes(), 0);
     n_type_select = (m_pdata->getNTypes() < n_type_select) ? m_pdata->getNTypes() : n_type_select;
-    m_ProvidedQuantities.push_back("shape_move_acceptance_ratio");
-    m_ProvidedQuantities.push_back("shape_move_particle_volume");
-    m_ProvidedQuantities.push_back("shape_move_multi_phase_box");
+    m_provided_quantities.push_back("shape_move_acceptance_ratio");
+    m_provided_quantities.push_back("shape_move_particle_volume");
+    m_provided_quantities.push_back("shape_move_multi_phase_box");
     if (std::is_same<Shape, ShapeConvexPolyhedron>::value)
-        m_ProvidedQuantities.push_back("shape_isoperimetric_quotient");
+        m_provided_quantities.push_back("shape_isoperimetric_quotient");
         {
         for(unsigned int type_idx = 0; type_idx < m_pdata->getNTypes(); type_idx++)
             {
             const std::string ptype = m_pdata->getNameByType(type_idx);
             const std::string qname = "shape_isoperimetric_quotient_" + ptype;
-            m_ProvidedQuantities.push_back(qname);
+            m_provided_quantities.push_back(qname);
             }
         }
 
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_iq(m_iq, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-    m_ProvidedQuantities.push_back("shape_move_energy");
+    m_provided_quantities.push_back("shape_move_energy");
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
         {
         h_det.data[i] = 0.0;
@@ -188,7 +188,7 @@ UpdaterShape<Shape>::~UpdaterShape()
 template < class Shape >
 std::vector< std::string > UpdaterShape<Shape>::getProvidedLogQuantities()
     {
-    return m_ProvidedQuantities;
+    return m_provided_quantities;
     }
 
 //! Calculates the requested log value and returns it
@@ -489,8 +489,8 @@ void UpdaterShape<Shape>::registerLogBoltzmannFunction(std::shared_ptr< ShapeLog
         return;
     m_log_boltz_function = lbf;
     std::vector< std::string > quantities(m_log_boltz_function->getProvidedLogQuantities());
-    m_ProvidedQuantities.reserve( m_ProvidedQuantities.size() + quantities.size() );
-    m_ProvidedQuantities.insert(m_ProvidedQuantities.end(), quantities.begin(), quantities.end());
+    m_provided_quantities.reserve( m_provided_quantities.size() + quantities.size() );
+    m_provided_quantities.insert(m_provided_quantities.end(), quantities.begin(), quantities.end());
     }
 
 template< typename Shape>
@@ -500,8 +500,8 @@ void UpdaterShape<Shape>::registerShapeMove(std::shared_ptr<ShapeMoveBase<Shape>
         return;
     m_move_function = move;
     std::vector< std::string > quantities(m_move_function->getProvidedLogQuantities());
-    m_ProvidedQuantities.reserve( m_ProvidedQuantities.size() + quantities.size() );
-    m_ProvidedQuantities.insert(m_ProvidedQuantities.end(), quantities.begin(), quantities.end());
+    m_provided_quantities.reserve( m_provided_quantities.size() + quantities.size() );
+    m_provided_quantities.insert(m_provided_quantities.end(), quantities.begin(), quantities.end());
     }
 
 template< typename Shape>
