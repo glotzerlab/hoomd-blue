@@ -390,138 +390,155 @@ private:
     std::vector<bool>       m_calculated;
 };   // end class ConvexPolyhedronVertexShapeMove
 
-//TODO: put the following functions in a class
-inline bool isIn(Scalar x, Scalar y, Scalar alpha)
-    {
-    const Scalar one = 1.0;
-    if(x < one && y > one/(alpha*x)) return true;
-    else if(x >= one && y < alpha/x) return true;
-    return false;
-    }
-
-
-inline void generate_scale_R(Scalar& x, Scalar& y, hoomd::RandomGenerator& rng, Scalar alpha)
-    {
-    hoomd::UniformDistribution<Scalar> uniform(Scalar(1)/alpha, alpha);
-    do
-        {
-        x = uniform(rng);
-        y = uniform(rng);
-        }while(!isIn(x,y,alpha));
-    }
-
-inline void generate_scale_S(Scalar& x, Scalar& y, hoomd::RandomGenerator& rng, Scalar alpha)
-    {
-    Scalar sigma_max = 0.0, sigma = 0.0, U = 0.0;
-    sigma_max = sqrt(pow(alpha, 4) + pow(alpha, 2) + 1);
-    do
-        {
-        generate_scale_R(x,y,rng,alpha);
-        sigma = sqrt((1.0/(x*x*x*x*y*y)) + (1.0/(x*x*y*y*y*y)) + 1);
-        U = hoomd::detail::generate_canonical<Scalar>(rng);
-        }while(U > sigma/sigma_max);
-    }
-
-inline void generate_scale(Eigen::Matrix3d& S, hoomd::RandomGenerator& rng, Scalar alpha)
-    {
-    Scalar x = 0.0, y = 0.0, z = 0.0;
-    generate_scale_S(x, y, rng, alpha);
-    z = 1.0/x/y;
-    S << x, 0.0, 0.0,
-        0.0, y, 0.0,
-        0.0, 0.0, z;
-    }
-
 template<class Shape>
 class ElasticShapeMove : public ShapeMoveBase<Shape>
-{  // Derived class from ShapeMoveBase base class
-    std::vector <Eigen::Matrix3d> m_Fbar_last;
-    std::vector <Eigen::Matrix3d> m_Fbar;
-public:
-    ElasticShapeMove(
-                                    unsigned int ntypes,
-                                    const Scalar& stepsize,
-                                    Scalar move_ratio
-                                ) : ShapeMoveBase<Shape>(ntypes), m_mass_props(ntypes)
-        {
-        m_select_ratio = fmin(move_ratio, 1.0)*65535;
-        this->m_step_size.resize(ntypes, stepsize);
-        m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
-        m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
-        std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
-        this->m_det_inertia_tensor = 1.0;
-        }
+    {
 
-    void prepare(unsigned int timestep)
-        {
-        m_Fbar_last = m_Fbar;
-        }
-
-    //! construct is called at the beginning of every update()
-    void construct(const unsigned int& timestep,
-            const unsigned int& type_id,
-            typename Shape::param_type& param,
-            hoomd::RandomGenerator& rng)
-        {
-        using Eigen::Matrix3d;
-        Matrix3d transform;
-        if( hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio ) // perform a scaling move
+    public:
+        ElasticShapeMove(
+                         unsigned int ntypes,
+                         const Scalar& stepsize,
+                         Scalar move_ratio
+                        )
+            : ShapeMoveBase<Shape>(ntypes), m_mass_props(ntypes)
             {
-            generate_scale(transform, rng, this->m_step_size[type_id]+1.0);
-            }
-        else                                        // perform a rotation-scale-rotation move
-            {
-            quat<Scalar> q(1.0,vec3<Scalar>(0.0,0.0,0.0));
-            move_rotate(q, rng, 0.5, 3);
-            Matrix3d rot, rot_inv, scale;
-            Eigen::Quaternion<double> eq(q.s, q.v.x, q.v.y, q.v.z);
-            rot = eq.toRotationMatrix();
-            rot_inv = rot.transpose();
-            generate_scale(scale, rng, this->m_step_size[type_id]+1.0);
-            transform = rot*scale*rot_inv;
+            m_select_ratio = fmin(move_ratio, 1.0)*65535;
+            this->m_step_size.resize(ntypes, stepsize);
+            m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
+            m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
+            std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
+            this->m_det_inertia_tensor = 1.0;
             }
 
-        m_Fbar[type_id] = transform*m_Fbar[type_id];
-        Scalar dsq = 0.0;
-        for(unsigned int i = 0; i < param.N; i++)
+        void prepare(unsigned int timestep)
             {
-            vec3<Scalar> vert(param.x[i], param.y[i], param.z[i]);
-            param.x[i] = transform(0,0)*vert.x + transform(0,1)*vert.y + transform(0,2)*vert.z;
-            param.y[i] = transform(1,0)*vert.x + transform(1,1)*vert.y + transform(1,2)*vert.z;
-            param.z[i] = transform(2,0)*vert.x + transform(2,1)*vert.y + transform(2,2)*vert.z;
-            vert = vec3<Scalar>( param.x[i], param.y[i], param.z[i]);
-            dsq = fmax(dsq, dot(vert, vert));
+            m_Fbar_last = m_Fbar;
             }
-        param.diameter = 2.0*sqrt(dsq);
-        m_mass_props[type_id].updateParam(param, false); // update allows caching since for some shapes a full compute is not necessary.
-        this->m_det_inertia_tensor = m_mass_props[type_id].getDeterminant();
-        #ifdef DEBUG
-            detail::mass_properties<Shape> mp(param);
-            this->m_det_inertia_tensor = mp.getDeterminant();
-            assert(fabs(this->m_det_inertia_tensor-mp.getDeterminant()) < 1e-5);
-        #endif
-        }
 
-    Eigen::Matrix3d getEps(unsigned int type_id)
-        {
-        return 0.5*((m_Fbar[type_id].transpose()*m_Fbar[type_id]) - Eigen::Matrix3d::Identity());
-        }
+        //! construct is called at the beginning of every update()
+        void construct(const unsigned int& timestep,
+                const unsigned int& type_id,
+                typename Shape::param_type& param,
+                hoomd::RandomGenerator& rng)
+            {
+            using Eigen::Matrix3d;
+            Matrix3d transform;
+            if( hoomd::UniformIntDistribution(0xffff)(rng) < m_select_ratio ) // perform a scaling move
+                {
+                generateExtentional(transform, rng, this->m_step_size[type_id]+1.0);
+                }
+            else                                        // perform a rotation-scale-rotation move
+                {
+                quat<Scalar> q(1.0,vec3<Scalar>(0.0,0.0,0.0));
+                move_rotate(q, rng, 0.5, 3);
+                Matrix3d rot, rot_inv, scale;
+                Eigen::Quaternion<double> eq(q.s, q.v.x, q.v.y, q.v.z);
+                rot = eq.toRotationMatrix();
+                rot_inv = rot.transpose();
+                generateExtentional(scale, rng, this->m_step_size[type_id]+1.0);
+                transform = rot*scale*rot_inv;
+                }
 
-    Eigen::Matrix3d getEpsLast(unsigned int type_id)
-        {
-        return 0.5*((m_Fbar_last[type_id].transpose()*m_Fbar_last[type_id]) - Eigen::Matrix3d::Identity());
-        }
+            m_Fbar[type_id] = transform*m_Fbar[type_id];
+            Scalar dsq = 0.0;
+            for(unsigned int i = 0; i < param.N; i++)
+                {
+                vec3<Scalar> vert(param.x[i], param.y[i], param.z[i]);
+                param.x[i] = transform(0,0)*vert.x + transform(0,1)*vert.y + transform(0,2)*vert.z;
+                param.y[i] = transform(1,0)*vert.x + transform(1,1)*vert.y + transform(1,2)*vert.z;
+                param.z[i] = transform(2,0)*vert.x + transform(2,1)*vert.y + transform(2,2)*vert.z;
+                vert = vec3<Scalar>( param.x[i], param.y[i], param.z[i]);
+                dsq = fmax(dsq, dot(vert, vert));
+                }
+            param.diameter = 2.0*sqrt(dsq);
+            m_mass_props[type_id].updateParam(param, false); // update allows caching since for some shapes a full compute is not necessary.
+            this->m_det_inertia_tensor = m_mass_props[type_id].getDeterminant();
+            #ifdef DEBUG
+                detail::mass_properties<Shape> mp(param);
+                this->m_det_inertia_tensor = mp.getDeterminant();
+                assert(fabs(this->m_det_inertia_tensor-mp.getDeterminant()) < 1e-5);
+            #endif
+            }
 
-    //! retreat whenever the proposed move is rejected.
-    void retreat(unsigned int timestep)
-        {
-        m_Fbar.swap(m_Fbar_last); // we can swap because m_Fbar_last will be reset on the next prepare
-        }
+        Eigen::Matrix3d getEps(unsigned int type_id)
+            {
+            return 0.5*((m_Fbar[type_id].transpose()*m_Fbar[type_id]) - Eigen::Matrix3d::Identity());
+            }
 
-protected:
-    unsigned int            m_select_ratio;
-    std::vector< detail::mass_properties<Shape> > m_mass_props;
-};
+        Eigen::Matrix3d getEpsLast(unsigned int type_id)
+            {
+            return 0.5*((m_Fbar_last[type_id].transpose()*m_Fbar_last[type_id]) - Eigen::Matrix3d::Identity());
+            }
+
+        //! retreat whenever the proposed move is rejected.
+        void retreat(unsigned int timestep)
+            {
+            m_Fbar.swap(m_Fbar_last); // we can swap because m_Fbar_last will be reset on the next prepare
+            }
+
+        protected:
+            unsigned int m_select_ratio;
+            std::vector< detail::mass_properties<Shape> > m_mass_props;
+            std::vector <Eigen::Matrix3d> m_Fbar_last;
+            std::vector <Eigen::Matrix3d> m_Fbar;
+
+        private:
+
+            // These are ElasticShapeMove specific helper functions to randomly
+            // sample point on the XYZ=1 surface from a uniform distribution
+
+            //! Check if a point (x,y) lies in the projection of xyz=1 surface
+            //! on the xy plane
+            inline bool inInSurfaceProjection(Scalar x, Scalar y, Scalar alpha)
+                {
+                if(x < Scalar(1.0) && y > Scalar(1.0)/(alpha*x))
+                    return true;
+                else if(x >= Scalar(1.0) && y < alpha/x)
+                    return true;
+                else
+                    return false;
+                }
+
+             //! Sample points on the projection of xyz=1
+            inline void sampleOnSurfaceProjection(Scalar& x,
+                                                  Scalar& y,
+                                                  hoomd::RandomGenerator& rng,
+                                                  Scalar alpha)
+                {
+                hoomd::UniformDistribution<Scalar> uniform(Scalar(1)/alpha, alpha);
+                do
+                    {
+                    x = uniform(rng);
+                    y = uniform(rng);
+                    }while(!inInSurfaceProjection(x,y,alpha));
+                }
+
+            //! Sample points on the projection of xyz=1 surface
+            inline void sampleOnSurface(Scalar& x, Scalar& y, hoomd::RandomGenerator& rng, Scalar alpha)
+                {
+                Scalar sigma_max = 0.0, sigma = 0.0, U = 0.0;
+                Scalar alpha2 = alpha*alpha;
+                Scalar alpha4 = alpha2*alpha2;
+                sigma_max = fast::sqrt(alpha4 + alpha2 + 1);
+                do
+                    {
+                    sampleOnSurfaceProjection(x,y,rng,alpha);
+                    sigma = fast::sqrt((1.0/(x*x*x*x*y*y)) + (1.0/(x*x*y*y*y*y)) + 1);
+                    U = hoomd::detail::generate_canonical<Scalar>(rng);
+                    }while(U > sigma/sigma_max);
+                }
+
+            //! Generate an volume conserving extentional deformation matrix
+            inline void generateExtentional(Eigen::Matrix3d& S, hoomd::RandomGenerator& rng, Scalar alpha)
+                {
+                Scalar x = 0.0, y = 0.0, z = 0.0;
+                sampleOnSurface(x, y, rng, alpha);
+                z = Scalar(1.0)/x/y;
+                S << x, 0.0, 0.0,
+                     0.0, y, 0.0,
+                     0.0, 0.0, z;
+                }
+    };
 
 template<class Shape>
 class ShapeLogBoltzmannFunction

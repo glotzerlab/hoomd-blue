@@ -6,10 +6,8 @@
 #include "hoomd/Updater.h"
 #include "IntegratorHPMCMono.h"
 #include "hoomd/HOOMDMPI.h"
-
 #include "ShapeUtils.h"
 #include "ShapeMoves.h"
-// #include "hoomd/GSDState.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
