@@ -131,13 +131,17 @@ public:
         return m_provided_quantities;
         }
 
-    //! Calculates the requested log value and returns true if the quantity was
-    //! provided by this class.
-    virtual bool getLogValue(const std::string& quantity, unsigned int timestep, Scalar& value)
+    //! Calculates the requested log value and returns it
+    virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        {
+        return 0.0;
+        }
+
+    //! Checks if the requested log value is provided
+    virtual bool isProvidedQuantity(const std::string& quantity)
         {
         return false;
         }
-
 
 protected:
     std::vector< std::string >      m_provided_quantities;
@@ -234,19 +238,16 @@ public:
         return "shape_param-" + snum;
         }
 
-    //! Calculates the requested log value and returns true if the quantity was
-    //! provided by this class.
-    bool getLogValue(const std::string& quantity, unsigned int timestep, Scalar& value)
+    //! Calculates the requested log value and returns it
+    virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
         {
         for(size_t i = 0; i < m_num_params; i++)
             {
             if(quantity == getParamName(i))
                 {
-                value = getParam(i);
-                return true;
+                return getParam(i);
                 }
             }
-        return false;
         }
 
 private:
@@ -257,7 +258,6 @@ private:
     std::vector< std::vector<Scalar> >      m_params_backup;    // all params are from 0,1
     std::vector< std::vector<Scalar> >      m_params;           // all params are from 0,1
     pybind11::object                        m_python_callback;  // callback that takes m_params as an argiment and returns (shape, det(I))
-    // bool                                    m_normalized;       // if true all parameters are restricted to (0,1)
 };
 
 template< typename Shape >
@@ -574,9 +574,13 @@ class ShapeLogBoltzmannFunction
         return m_provided_quantities;
         }
 
-    //! Calculates the requested log value and returns true if the quantity was
-    //! provided by this class.
-    virtual bool getLogValue(const std::string& quantity, unsigned int timestep, Scalar& value)
+    //! Calculates the requested log value and returns it
+    virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        {
+        return 0.0;
+        }
+
+    virtual bool isProvidedQuantity(const std::string& quantity)
         {
         return false;
         }
@@ -623,13 +627,21 @@ public:
         return m_k;
         }
 
-    //! Calculates the requested log value and returns true if the quantity was
-    //! provided by this class.
-    virtual bool getLogValue(const std::string& quantity, unsigned int timestep, Scalar& value)
+    //! Calculates the requested log value and returns it
+    virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
         {
         if(quantity == "shape_move_stiffness")
             {
-            value = m_k->getValue(timestep);
+            return m_k->getValue(timestep);
+            }
+        }
+
+    //! Checks if the requested log value is provided
+    virtual bool isProvidedQuantity(const std::string& quantity)
+        {
+        if(std::find(m_provided_quantities.begin(), m_provided_quantities.end(), quantity)
+           != m_provided_quantities.end())
+            {
             return true;
             }
         return false;

@@ -195,10 +195,13 @@ std::vector< std::string > UpdaterShape<Shape>::getProvidedLogQuantities()
 template < class Shape >
 Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    Scalar value = 0.0;
-    if(m_move_function->getLogValue(quantity, timestep, value) || m_log_boltz_function->getLogValue(quantity, timestep, value))
+    if(m_move_function->isProvidedQuantity(quantity))
         {
-        return value;
+        return m_move_function->getLogValue(quantity, timestep);
+        }
+    else if(m_log_boltz_function->isProvidedQuantity(quantity))
+        {
+        return m_log_boltz_function->getLogValue(quantity, timestep);
         }
     else if(quantity == "shape_move_acceptance_ratio")
         {
