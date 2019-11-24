@@ -124,10 +124,28 @@ __device__ double myAtomicAdd(double* address, double val)
 #endif
 #endif
 
-__device__ float myAtomicAdd(float* address, float val)
+// workaround for HIP bug
+#ifdef __HIP_PLATFORM_HCC__
+inline __device__ float myAtomicAdd(float* address, float val)
+    {
+    unsigned  int* address_as_uint = (unsigned  int*)address;
+    unsigned  int old = *address_as_uint, assumed;
+
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_uint,
+                        assumed,
+                        __float_as_uint(val + __uint_as_float(assumed)));
+    } while (assumed != old);
+
+    return __uint_as_float(old);
+    }
+#else
+inline __device__ float myAtomicAdd(float* address, float val)
     {
     return atomicAdd(address, val);
     }
+#endif
 
 //! Kernel for calculating the Tersoff forces
 /*! This kernel is called to calculate the forces on all N particles. Actual evaluation of the potentials and
