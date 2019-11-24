@@ -103,7 +103,7 @@ void export_PythonShapeMove(pybind11::module& m, const std::string& name)
 template<class Shape>
 void export_ConstantShapeMove(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< constant_shape_move<Shape>, std::shared_ptr< constant_shape_move<Shape> > >
+    pybind11::class_< ConstantShapeMove<Shape>, std::shared_ptr< ConstantShapeMove<Shape> > >
     (m, name.c_str(), pybind11::base< ShapeMoveBase<Shape> >())
     .def(pybind11::init<unsigned int,
                         const std::vector< typename Shape::param_type >& >())
