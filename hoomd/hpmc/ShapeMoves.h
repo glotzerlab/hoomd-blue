@@ -266,13 +266,13 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
 public:
     ConstantShapeMove(const unsigned int& ntypes,
                         const std::vector< typename Shape::param_type >& shape_move)
-        : ShapeMoveBase<Shape>(ntypes), m_shapeMoves(shape_move)
+        : ShapeMoveBase<Shape>(ntypes), m_shape_moves(shape_move)
         {
-        if(ntypes != m_shapeMoves.size())
+        if(ntypes != m_shape_moves.size())
             throw std::runtime_error("Must supply a shape move for each type");
-        for(size_t i = 0; i < m_shapeMoves.size(); i++)
+        for(size_t i = 0; i < m_shape_moves.size(); i++)
             {
-            detail::mass_properties<Shape> mp(m_shapeMoves[i]);
+            detail::mass_properties<Shape> mp(m_shape_moves[i]);
             m_determinants.push_back(mp.getDeterminant());
             }
         }
@@ -284,7 +284,7 @@ public:
                    typename Shape::param_type& shape,
                    hoomd::RandomGenerator& rng)
         {
-        shape = m_shapeMoves[type_id];
+        shape = m_shape_moves[type_id];
         this->m_det_inertia_tensor = m_determinants[type_id];
         }
 
@@ -294,7 +294,7 @@ public:
         }
 
 private:
-    std::vector< typename Shape::param_type >   m_shapeMoves;
+    std::vector< typename Shape::param_type >   m_shape_moves;
     std::vector< Scalar >                       m_determinants;
 };
 
