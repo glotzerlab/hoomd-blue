@@ -120,7 +120,11 @@ gpu_sort_by_molecule(unsigned int nptl,
     unsigned int *d_molecule_by_idx = alloc.getTemporaryBuffer<unsigned int>(nptl);
     thrust::device_ptr<unsigned int> molecule_by_idx(d_molecule_by_idx);
 
+    #ifdef __HIP_PLATFORM_HCC__
     thrust::copy(thrust::hip::par(alloc),
+    #else
+    thrust::copy(thrust::cuda::par(alloc),
+    #endif
         molecule_tag_lookup_sorted_by_tag,
         molecule_tag_lookup_sorted_by_tag+nptl,
         molecule_by_idx);
@@ -209,7 +213,7 @@ gpu_sort_by_molecule(unsigned int nptl,
     if (check_cuda) CHECK_CUDA();
 
     thrust::device_ptr<unsigned int> idx_sorted_by_molecule_and_tag(d_idx_sorted_by_molecule_and_tag);
-    thrust::gather(thrust::hip::par(alloc),
+    thrust::gather(
         lowest_idx_in_molecules,
         lowest_idx_in_molecules + n_local_molecules,
         idx_sorted_by_molecule_and_tag,
@@ -286,7 +290,7 @@ gpu_sort_by_molecule(unsigned int nptl,
     // create a global lookup table for lowest idx by molecule tag
     thrust::device_ptr<unsigned int> lowest_idx_by_molecule_tag(d_lowest_idx_by_molecule_tag);
     thrust::device_ptr<unsigned int> lowest_idx_sort(d_lowest_idx_sort);
-    thrust::scatter(thrust::hip::par(alloc),
+    thrust::scatter(
         lowest_idx_sort,
         lowest_idx_sort + n_local_molecules,
         local_unique_molecule_tags,
@@ -303,7 +307,11 @@ gpu_sort_by_molecule(unsigned int nptl,
     unsigned int *d_local_molecules_lowest_idx_unsorted = alloc.getTemporaryBuffer<unsigned int>(n_local_ptls_in_molecules);
 
     thrust::device_ptr<unsigned int> local_molecules_lowest_idx_unsorted(d_local_molecules_lowest_idx_unsorted);
+    #ifdef __HIP_PLATFORM_HCC__
     thrust::copy(thrust::hip::par(alloc),
+    #else
+    thrust::copy(thrust::cuda::par(alloc),
+    #endif
         lowest_idx_by_ptl_in_molecule,
         lowest_idx_by_ptl_in_molecule + n_local_ptls_in_molecules,
         local_molecules_lowest_idx_unsorted);
@@ -334,7 +342,7 @@ gpu_sort_by_molecule(unsigned int nptl,
     alloc.deallocate((char *) d_local_molecules_lowest_idx_unsorted);
 
     // assign local molecule tags to particles
-    thrust::fill(thrust::hip::par(alloc),
+    thrust::fill(
         local_molecule_idx,
         local_molecule_idx+nptl,
         NO_MOLECULE);
@@ -389,7 +397,12 @@ hipError_t gpu_fill_molecule_table(
 
     // generate ascending index for every molecule
     thrust::constant_iterator<unsigned int> one(1);
+
+    #ifdef __HIP_PLATFORM_HCC__
     thrust::exclusive_scan_by_key(thrust::hip::par(alloc),
+    #else
+    thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
+    #endif
         local_molecule_tags,
         local_molecule_tags+n_local_ptls_in_molecules,
         one,

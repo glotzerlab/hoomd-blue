@@ -3,6 +3,7 @@
 
 #ifdef ENABLE_HIP
 
+#include <vector>
 #include <string>
 #include <stdexcept>
 #include <algorithm>

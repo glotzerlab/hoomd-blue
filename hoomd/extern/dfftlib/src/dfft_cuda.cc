@@ -25,6 +25,7 @@
         }                                                                   \
     }                                                                       \
 
+#ifdef __HIP_PLATFORM_HCC__
 #define CHECK_LOCAL_FFT(res) \
     {                                                                          \
     if (res != HIPFFT_SUCCESS)                                                 \
@@ -34,6 +35,17 @@
         exit(1);                                                               \
         }                                                                      \
     }
+#else
+#define CHECK_LOCAL_FFT(res) \
+    {                                                                          \
+    if (res != CUFFT_SUCCESS)                                                 \
+        {                                                                      \
+        printf("Local FFT failed, error code %d, file %s, line %d.\n",res, __FILE__,__LINE__); \
+        assert(!res);                                                          \
+        exit(1);                                                               \
+        }                                                                      \
+    }
+#endif
 
 
 /*****************************************************************************

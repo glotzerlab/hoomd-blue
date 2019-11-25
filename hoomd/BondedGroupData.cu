@@ -169,7 +169,11 @@ void gpu_update_group_table(
         // sort groups by particle idx
         thrust::device_ptr<unsigned int> scratch_idx(d_scratch_idx);
         thrust::device_ptr<unsigned int> scratch_g(d_scratch_g);
+        #ifdef __HIP_PLATFORM_HCC__
         thrust::sort_by_key(thrust::hip::par(alloc),
+        #else
+        thrust::sort_by_key(thrust::cuda::par(alloc),
+        #endif
             scratch_idx,
             scratch_idx + group_size*n_groups,
             scratch_g);
@@ -177,7 +181,11 @@ void gpu_update_group_table(
         // perform a segmented scan of d_scratch_idx
         thrust::device_ptr<unsigned int> offsets(d_offsets);
         thrust::constant_iterator<unsigned int> const_it(1);
+        #ifdef __HIP_PLATFORM_HCC__
         thrust::exclusive_scan_by_key(thrust::hip::par(alloc),
+        #else
+        thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
+        #endif
             scratch_idx,
             scratch_idx + group_size*n_groups,
             const_it,

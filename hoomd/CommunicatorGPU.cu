@@ -210,7 +210,11 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
     assert(d_tmp);
     assert(d_in_copy);
 
+    #ifdef __HIP_PLATFORM_HCC__
     thrust::sort_by_key(thrust::hip::par(alloc),
+    #else
+    thrust::sort_by_key(thrust::cuda::par(alloc),
+    #endif
         keys_ptr,
         keys_ptr + nsend,
         tmp_ptr);
@@ -677,32 +681,44 @@ void gpu_exchange_ghosts_make_indices(
 
     if (n_out)
         {
-		// scatter the nonzero counts into their corresponding output positions
-		thrust::device_ptr<const unsigned int> counts(d_counts);
-		thrust::device_ptr<const unsigned int> scan(d_scan);
+        // scatter the nonzero counts into their corresponding output positions
+        thrust::device_ptr<const unsigned int> counts(d_counts);
+        thrust::device_ptr<const unsigned int> scan(d_scan);
         unsigned int *d_output_indices = alloc.getTemporaryBuffer<unsigned int>(n_out);
         assert(d_output_indices);
 
         thrust::device_ptr<unsigned int> output_indices(d_output_indices);
+        #ifdef __HIP_PLATFORM_HCC__
         thrust::fill(thrust::hip::par(alloc),
+        #else
+        thrust::fill(thrust::cuda::par(alloc),
+        #endif
             output_indices,
             output_indices + n_out,
             0);
 
+        #ifdef __HIP_PLATFORM_HCC__
         thrust::scatter_if(thrust::hip::par(alloc),
-			 thrust::counting_iterator<unsigned int>(0),
-			 thrust::counting_iterator<unsigned int>(N),
-			 scan,
-			 counts,
-			 output_indices);
+        #else
+        thrust::scatter_if(thrust::cuda::par(alloc),
+        #endif
+            thrust::counting_iterator<unsigned int>(0),
+            thrust::counting_iterator<unsigned int>(N),
+            scan,
+            counts,
+            output_indices);
 
         // compute max-scan over the output indices, filling in the holes
-		thrust::inclusive_scan
-			(output_indices,
-			 output_indices + n_out,
-			 output_indices,
-			 thrust::maximum<unsigned int>());
-		// output_indices now contains the source particle index, replicated by the number of ghosts
+        #ifdef __HIP_PLATFORM_HCC__
+        thrust::inclusive_scan(thrust::hip::par(alloc),
+        #else
+        thrust::inclusive_scan(thrust::cuda::par(alloc),
+        #endif
+             output_indices,
+             output_indices + n_out,
+             output_indices,
+             thrust::maximum<unsigned int>());
+        // output_indices now contains the source particle index, replicated by the number of ghosts
 
         // fill destination arrays
         unsigned int block_size = 256;
@@ -717,7 +733,11 @@ void gpu_exchange_ghosts_make_indices(
         // sort by neighbor
         thrust::device_ptr<unsigned int> ghost_neigh(d_ghost_neigh);
         thrust::device_ptr<uint2> ghost_idx_adj(d_ghost_idx_adj);
+        #ifdef __HIP_PLATFORM_HCC__
         thrust::sort_by_key(thrust::hip::par(alloc),
+        #else
+        thrust::sort_by_key(thrust::cuda::par(alloc),
+        #endif
             ghost_neigh,
             ghost_neigh + n_out,
             ghost_idx_adj);

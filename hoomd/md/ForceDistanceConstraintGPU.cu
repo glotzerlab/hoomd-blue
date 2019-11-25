@@ -325,13 +325,13 @@ hipError_t gpu_count_nnz(unsigned int n_constraint,
                            double *d_matrix,
                            int *d_nnz,
                            int &nnz,
-                           hipsparseHandle_t hipsparse_handle,
-                           hipsparseMatDescr_t hipsparse_mat_descr)
+                           cusparseHandle_t cusparse_handle,
+                           cusparseMatDescr_t cusparse_mat_descr)
     {
     #ifdef CUSOLVER_AVAILABLE
     // count zeros
-    hipsparseDnnz(hipsparse_handle, CUSPARSE_DIRECTION_ROW, n_constraint, n_constraint,
-        hipsparse_mat_descr, d_matrix, n_constraint, d_nnz, &nnz);
+    cusparseDnnz(cusparse_handle, CUSPARSE_DIRECTION_ROW, n_constraint, n_constraint,
+        cusparse_mat_descr, d_matrix, n_constraint, d_nnz, &nnz);
     #endif
     return hipSuccess;
     }
@@ -339,8 +339,8 @@ hipError_t gpu_count_nnz(unsigned int n_constraint,
 hipError_t gpu_dense2sparse(unsigned int n_constraint,
                            double *d_matrix,
                            int *d_nnz,
-                           hipsparseHandle_t hipsparse_handle,
-                           hipsparseMatDescr_t hipsparse_mat_descr,
+                           cusparseHandle_t cusparse_handle,
+                           cusparseMatDescr_t cusparse_mat_descr,
                            int *d_csr_rowptr,
                            int *d_csr_colind,
                            double *d_csr_val)
@@ -348,7 +348,7 @@ hipError_t gpu_dense2sparse(unsigned int n_constraint,
     // convert dense matrix to compressed sparse row
 
     // update values in CSR format
-    hipsparseDdense2csr(hipsparse_handle, n_constraint, n_constraint, hipsparse_mat_descr, d_matrix, n_constraint, d_nnz,
+    cusparseDdense2csr(cusparse_handle, n_constraint, n_constraint, cusparse_mat_descr, d_matrix, n_constraint, d_nnz,
         d_csr_val, d_csr_rowptr, d_csr_colind);
 
     return hipSuccess;

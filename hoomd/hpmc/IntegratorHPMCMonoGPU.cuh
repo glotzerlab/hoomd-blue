@@ -1372,7 +1372,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
         dim3 threads( block_size, 1, 1);
         dim3 grid((args.N+block_size-1)/block_size,1,1);
 
-        hipLaunchKernelGGL(kernel::hpmc_gen_moves<Shape,2>, grid, threads, shared_bytes, 0,
+        hipLaunchKernelGGL((kernel::hpmc_gen_moves<Shape,2>), grid, threads, shared_bytes, 0,
                                                                      args.d_postype,
                                                                      args.d_orientation,
                                                                      args.N,
@@ -1421,7 +1421,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
         dim3 threads( block_size, 1, 1);
         dim3 grid((args.N+block_size-1)/block_size,1,1);
 
-        hipLaunchKernelGGL(kernel::hpmc_gen_moves<Shape,3>, grid, threads, shared_bytes, 0,
+        hipLaunchKernelGGL((kernel::hpmc_gen_moves<Shape,3>), grid, threads, shared_bytes, 0,
                                                                      args.d_postype,
                                                                      args.d_orientation,
                                                                      args.N,
@@ -1646,7 +1646,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             // 1 block per particle
             dim3 grid( range.second-range.first, 1, 1);
 
-            hipLaunchKernelGGL(kernel::hpmc_insert_depletants<Shape, false>, dim3(grid), dim3(threads), shared_bytes, 0, args.d_trial_postype,
+            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, false>), dim3(grid), dim3(threads), shared_bytes, 0, args.d_trial_postype,
                                                                          args.d_trial_orientation,
                                                                          args.d_trial_move_type,
                                                                          args.d_postype,
@@ -1767,7 +1767,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             // 1 block per particle
             dim3 grid( range.second-range.first, 1, 1);
 
-            hipLaunchKernelGGL(kernel::hpmc_insert_depletants<Shape, true>, dim3(grid), dim3(threads), shared_bytes, 0, args.d_trial_postype,
+            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, true>), dim3(grid), dim3(threads), shared_bytes, 0, args.d_trial_postype,
                                                                          args.d_trial_orientation,
                                                                          args.d_trial_move_type,
                                                                          args.d_postype,
@@ -1823,7 +1823,7 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
 
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
     unsigned int num_blocks = (args.N + block_size - 1)/block_size;
-    hipLaunchKernelGGL(kernel::hpmc_update_pdata<Shape>, dim3(num_blocks), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL((kernel::hpmc_update_pdata<Shape>), dim3(num_blocks), dim3(block_size), 0, 0, 
         args.d_postype,
         args.d_orientation,
         args.d_counters,

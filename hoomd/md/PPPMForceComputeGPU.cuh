@@ -8,7 +8,15 @@
 #include "hoomd/GPUPartition.cuh"
 
 #include "hip/hip_runtime.h"
+
+#if defined(ENABLE_HIP)
+#if __HIP_PLATFORM_HCC__
 #include <hipfft.h>
+#else
+#include <cufft.h>
+typedef cufftComplex hipfftComplex;
+#endif
+#endif
 
 void gpu_assign_particles(const uint3 mesh_dim,
                          const uint3 n_ghost_bins,

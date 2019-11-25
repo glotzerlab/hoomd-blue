@@ -301,7 +301,7 @@ __global__ void gpu_fire_reduce_Pr_partial_kernel(const Scalar4 *d_angmom,
                                           unsigned int group_size,
                                           Scalar* d_partial_sum_Pr)
     {
-    extern __shared__ Scalar fire_sdata[];
+    extern __shared__ Scalar fire_scalar_sdata[];
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -336,7 +336,7 @@ __global__ void gpu_fire_reduce_Pr_partial_kernel(const Scalar4 *d_angmom,
         Pr = dot(t,s);
         }
 
-    fire_sdata[threadIdx.x] = Pr;
+    fire_scalar_sdata[threadIdx.x] = Pr;
     __syncthreads();
 
     // reduce the sum in parallel
@@ -344,14 +344,14 @@ __global__ void gpu_fire_reduce_Pr_partial_kernel(const Scalar4 *d_angmom,
     while (offs > 0)
         {
         if (threadIdx.x < offs)
-            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+            fire_scalar_sdata[threadIdx.x] += fire_scalar_sdata[threadIdx.x + offs];
         offs >>= 1;
         __syncthreads();
         }
 
     // write out our partial sum
     if (threadIdx.x == 0)
-        d_partial_sum_Pr[blockIdx.x] = fire_sdata[0];
+        d_partial_sum_Pr[blockIdx.x] = fire_scalar_sdata[0];
 
     }
 
@@ -362,7 +362,7 @@ __global__ void gpu_fire_reduce_wnorm_partial_kernel(const Scalar4 *d_angmom,
                                           unsigned int group_size,
                                           Scalar* d_partial_sum_w)
     {
-    extern __shared__ Scalar fire_sdata[];
+    extern __shared__ Scalar fire_scalar_sdata[];
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -380,7 +380,7 @@ __global__ void gpu_fire_reduce_wnorm_partial_kernel(const Scalar4 *d_angmom,
         w = dot(s,s);
         }
 
-    fire_sdata[threadIdx.x] = w;
+    fire_scalar_sdata[threadIdx.x] = w;
     __syncthreads();
 
     // reduce the sum in parallel
@@ -388,14 +388,14 @@ __global__ void gpu_fire_reduce_wnorm_partial_kernel(const Scalar4 *d_angmom,
     while (offs > 0)
         {
         if (threadIdx.x < offs)
-            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+            fire_scalar_sdata[threadIdx.x] += fire_scalar_sdata[threadIdx.x + offs];
         offs >>= 1;
         __syncthreads();
         }
 
     // write out our partial sum
     if (threadIdx.x == 0)
-        d_partial_sum_w[blockIdx.x] = fire_sdata[0];
+        d_partial_sum_w[blockIdx.x] = fire_scalar_sdata[0];
 
     }
 
@@ -411,7 +411,7 @@ extern "C" __global__
                                             unsigned int group_size,
                                             Scalar* d_partial_sum_vsq)
     {
-    extern __shared__ Scalar fire_sdata[];
+    extern __shared__ Scalar fire_vsq_sdata[];
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -426,7 +426,7 @@ extern "C" __global__
         vsq = v.x*v.x + v.y*v.y + v.z*v.z;
         }
 
-    fire_sdata[threadIdx.x] = vsq;
+    fire_vsq_sdata[threadIdx.x] = vsq;
     __syncthreads();
 
     // reduce the sum in parallel
@@ -434,14 +434,14 @@ extern "C" __global__
     while (offs > 0)
         {
         if (threadIdx.x < offs)
-            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+            fire_vsq_sdata[threadIdx.x] += fire_vsq_sdata[threadIdx.x + offs];
         offs >>= 1;
         __syncthreads();
         }
 
     // write out our partial sum
     if (threadIdx.x == 0)
-        d_partial_sum_vsq[blockIdx.x] = fire_sdata[0];
+        d_partial_sum_vsq[blockIdx.x] = fire_vsq_sdata[0];
 
     }
 
@@ -457,7 +457,7 @@ extern "C" __global__
                                             unsigned int group_size,
                                             Scalar* d_partial_sum_asq)
     {
-    extern __shared__ Scalar fire_sdata[];
+    extern __shared__ Scalar fire_partial_sdata[];
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -472,7 +472,7 @@ extern "C" __global__
         asq = a.x*a.x + a.y*a.y + a.z*a.z;
         }
 
-    fire_sdata[threadIdx.x] = asq;
+    fire_partial_sdata[threadIdx.x] = asq;
     __syncthreads();
 
     // reduce the sum in parallel
@@ -480,14 +480,14 @@ extern "C" __global__
     while (offs > 0)
         {
         if (threadIdx.x < offs)
-            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+            fire_partial_sdata[threadIdx.x] += fire_partial_sdata[threadIdx.x + offs];
         offs >>= 1;
         __syncthreads();
         }
 
     // write out our partial sum
     if (threadIdx.x == 0)
-        d_partial_sum_asq[blockIdx.x] = fire_sdata[0];
+        d_partial_sum_asq[blockIdx.x] = fire_partial_sdata[0];
 
     }
 
@@ -498,7 +498,7 @@ __global__ void gpu_fire_reduce_tsq_partial_kernel(const Scalar4 *d_net_torque,
                                             unsigned int group_size,
                                             Scalar* d_partial_sum_tsq)
     {
-    extern __shared__ Scalar fire_sdata[];
+    extern __shared__ Scalar fire_scalar_sdata[];
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -528,7 +528,7 @@ __global__ void gpu_fire_reduce_tsq_partial_kernel(const Scalar4 *d_net_torque,
         tsq = dot(t,t);
         }
 
-    fire_sdata[threadIdx.x] = tsq;
+    fire_scalar_sdata[threadIdx.x] = tsq;
     __syncthreads();
 
     // reduce the sum in parallel
@@ -536,14 +536,14 @@ __global__ void gpu_fire_reduce_tsq_partial_kernel(const Scalar4 *d_net_torque,
     while (offs > 0)
         {
         if (threadIdx.x < offs)
-            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+            fire_scalar_sdata[threadIdx.x] += fire_scalar_sdata[threadIdx.x + offs];
         offs >>= 1;
         __syncthreads();
         }
 
     // write out our partial sum
     if (threadIdx.x == 0)
-        d_partial_sum_tsq[blockIdx.x] = fire_sdata[0];
+        d_partial_sum_tsq[blockIdx.x] = fire_scalar_sdata[0];
 
     }
 

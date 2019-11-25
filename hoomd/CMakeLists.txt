@@ -218,8 +218,9 @@ if (ENABLE_HIP)
     # no device linking
     set_property(TARGET _hoomd PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
 
-    target_link_libraries(_hoomd PUBLIC HIP::hipfft)
-    if (NOT ENABLE_HIP)
+    if (HIP_PLATFORM STREQUAL "hcc")
+        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt)
+    elseif(HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
     target_compile_definitions(_hoomd PUBLIC ENABLE_HIP CUDA_ARCH=${_cuda_min_arch})
@@ -236,11 +237,10 @@ if (ENABLE_HIP)
     if (CUSOLVER_AVAILABLE)
         target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
     endif()
+
+    target_link_libraries(_hoomd PUBLIC HIP::hip)
 endif()
 
-if(ENABLE_HIP)
-    target_link_libraries(_hoomd PUBLIC HIP::hip HIP::hiprt)
-endif()
 
 # Libraries and compile definitions for TBB enabled builds
 if (ENABLE_TBB)

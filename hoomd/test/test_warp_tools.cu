@@ -11,7 +11,14 @@
 #include "test_warp_tools.cuh"
 #include "hoomd/WarpTools.cuh"
 
+#ifdef __HIP_PLATFORM_HCC__
 #define BLOCK_SIZE 64
+#define MAX_TPP 64
+#else
+#define BLOCK_SIZE 32
+#define MAX_TPP 32
+#endif
+
 
 //! Performs an iterative warp reduction on a data set using \a tpp threads per row.
 /*!
@@ -126,7 +133,7 @@ void warp_reduce(const reduce_params& params)
     {
     hipMemset(params.reduce, 0, params.reduce_idx.getNumElements() * sizeof(int));
     hipMemset(params.sum, 0, params.N * sizeof(int));
-    warp_reduce_launcher<64>(params);
+    warp_reduce_launcher<MAX_TPP>(params);
     }
 
 //! Performs an iterative warp scan on a data set using \a tpp threads per row.
@@ -244,5 +251,5 @@ void warp_scan(const scan_params& params)
     {
     hipMemset(params.scan, 0, params.scan_idx.getNumElements() * sizeof(int));
     hipMemset(params.sum, 0, params.N * sizeof(int));
-    warp_scan_launcher<64>(params);
+    warp_scan_launcher<MAX_TPP>(params);
     }

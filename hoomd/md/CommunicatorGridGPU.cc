@@ -10,7 +10,12 @@
 #ifdef ENABLE_HIP
 #include "CommunicatorGridGPU.cuh"
 
+#if __HIP_PLATFORM_HCC__
 #include <hipfft.h>
+#elif __HIP_PLATFORM_NVCC__
+#include <cufft.h>
+typedef cufftComplex hipfftComplex;
+#endif
 
 /*! \param sysdef The system definition
  *  \param dim Dimensions of 3dim grid

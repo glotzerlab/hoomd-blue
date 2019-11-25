@@ -220,7 +220,7 @@ HOSTDEVICE inline Scalar3 operator+ (const Scalar3 &a, const Scalar3 &b)
                         a.z + b.z);
     }
 
-#ifndef ENABLE_HIP
+#if !defined(ENABLE_HIP) || defined(__HIP_PLATFORM_NVCC__)
 //! Vector addition
 HOSTDEVICE inline Scalar3& operator+= (Scalar3 &a, const Scalar3 &b)
     {

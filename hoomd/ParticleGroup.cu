@@ -102,7 +102,11 @@ hipError_t gpu_compact_index_list(unsigned int N,
     alloc.deallocate((char *)d_temp_storage);
 
     thrust::device_ptr<unsigned int> is_member(d_is_member);
+    #ifdef __HIP_PLATFORM_HCC__
     num_local_members = thrust::reduce(thrust::hip::par(alloc),
+    #else
+    num_local_members = thrust::reduce(thrust::cuda::par(alloc),
+    #endif
         is_member,
         is_member + N);
 

@@ -34,20 +34,20 @@ hipError_t gpu_fill_matrix_vector(unsigned int n_constraint,
                           unsigned int block_size);
 
 #ifdef CUSOLVER_AVAILABLE
-#include <hipsparse.h>
+#include <cusparse.h>
 
 hipError_t gpu_count_nnz(unsigned int n_constraint,
                            double *d_matrix,
                            int *d_nnz,
                            int &nnz,
-                           hipsparseHandle_t hipsparse_handle,
-                           hipsparseMatDescr_t hipsparse_mat_descr);
+                           cusparseHandle_t cusparse_handle,
+                           cusparseMatDescr_t cusparse_mat_descr);
 
 hipError_t gpu_dense2sparse(unsigned int n_constraint,
                                double *d_matrix,
                                int *d_nnz,
-                               hipsparseHandle_t hipsparse_handle,
-                               hipsparseMatDescr_t hipsparse_mat_descr,
+                               cusparseHandle_t cusparse_handle,
+                               cusparseMatDescr_t cusparse_mat_descr,
                                int *d_csr_rowptr,
                                int *d_csr_colind,
                                double *d_csr_val);

@@ -6,7 +6,16 @@
 #define __DFFT_CUFFT_SINGLE_INTERFACE_H__
 
 #include <hip/hip_runtime.h>
+
+#if defined(ENABLE_HIP)
+#ifdef __HIP_PLATFORM_HCC__
 #include <hipfft.h>
+#else
+#include <cufft.h>
+typedef cufftComplex hipfftComplex;
+typedef cufftHandle hipfftHandle;
+#endif
+#endif
 
 typedef float cuda_scalar_t;
 typedef hipfftComplex cuda_cpx_t;

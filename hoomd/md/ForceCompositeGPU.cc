@@ -25,7 +25,7 @@ ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
     std::vector<unsigned int> valid_params;
     unsigned int bodies_per_block = 1;
 
-    for (unsigned int i = 0; bodies_per_block <= dev_prop.warpSize; ++i)
+    for (unsigned int i = 0; bodies_per_block <= (unsigned int)dev_prop.warpSize; ++i)
         {
         bodies_per_block = 1 << i;
         unsigned int cur_block_size = m_exec_conf->dev_prop.warpSize;
@@ -44,7 +44,7 @@ ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
 
     // initialize autotuner
     std::vector<unsigned int> valid_params_update;
-    for (unsigned int block_size = dev_prop.warpSize; block_size <= dev_prop.maxThreadsPerBlock; block_size += dev_prop.warpSize)
+    for (unsigned int block_size = dev_prop.warpSize; block_size <= (unsigned int)dev_prop.maxThreadsPerBlock; block_size += dev_prop.warpSize)
         valid_params_update.push_back(block_size);
 
     m_tuner_update.reset(new Autotuner(valid_params_update, 5, 100000, "update_composite", this->m_exec_conf));

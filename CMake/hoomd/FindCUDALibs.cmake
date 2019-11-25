@@ -100,12 +100,12 @@ if (HIP_PLATFORM STREQUAL "nvcc")
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
       )
     endif()
-    list(add REQUIRED_CUDA_LIB_VARS CUDA_nvToolsExt_LIBRARY)
+    list(APPEND REQUIRED_CUDA_LIB_VARS CUDA_nvToolsExt_LIBRARY)
 else()
     # nvtools not supported by HIP
     add_library(CUDA::nvToolsExt UNKNOWN IMPORTED)
 endif()
-    
+
 if (HIP_PLATFORM STREQUAL "nvcc")
     find_library(CUDA_cusolver_LIBRARY cusolver HINTS ${CUDA_LIB_PATH} NO_DEFAULT_PATH)
     mark_as_advanced(CUDA_cusolver_LIBRARY)
@@ -116,7 +116,7 @@ if (HIP_PLATFORM STREQUAL "nvcc")
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
       )
     endif()
-    list(add REQUIRED_CUDA_LIB_VARS CUDA_cusolver_LIBRARY)
+    list(APPEND REQUIRED_CUDA_LIB_VARS CUDA_cusolver_LIBRARY)
 else()
     # cusolver not offered by HIP (?)
     add_library(CUDA::cusolver UNKNOWN IMPORTED)
@@ -132,25 +132,25 @@ if (HIP_PLATFORM STREQUAL "nvcc")
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
       )
     endif()
-    list(add REQUIRED_CUDA_LIB_VARS CUDA_cusparse_LIBRARY)
+    list(APPEND REQUIRED_CUDA_LIB_VARS CUDA_cusparse_LIBRARY)
 else()
     # cusparse not supported by HIP (?)
     add_library(CUDA::cusparse UNKNOWN IMPORTED)
 endif()
 
-find_path(HIP_hipfft_INCLUDE_DIR
-    NAMES hipfft.h
-    PATHS
-    ${HIP_ROOT_DIR}/rocfft/include
-    $ENV{ROCM_PATH}/hipfft/include
-    $ENV{HIP_PATH}/hipfft/include
-    /opt/rocm/include
-    /opt/rocm/hipfft/include
-    NO_DEFAULT_PATH)
-
-list(APPEND REQUIRED_CUDA_LIB_VARS HIP_hipfft_INCLUDE_DIR)
-
 if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
+    find_path(HIP_hipfft_INCLUDE_DIR
+        NAMES hipfft.h
+        PATHS
+        ${HIP_ROOT_DIR}/rocfft/include
+        $ENV{ROCM_PATH}/hipfft/include
+        $ENV{HIP_PATH}/hipfft/include
+        /opt/rocm/include
+        /opt/rocm/hipfft/include
+        NO_DEFAULT_PATH)
+
+    list(APPEND REQUIRED_CUDA_LIB_VARS HIP_hipfft_INCLUDE_DIR)
+
     find_library(HIP_rocfft_LIBRARY rocfft
         PATHS
         "${HIP_ROOT_DIR}"
@@ -247,7 +247,7 @@ if (HIP_PLATFORM STREQUAL "nvcc")
       HINTS "${CUDA_BIN_PATH}"
       NO_DEFAULT_PATH)
     mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
-    list(add REQUIRED_CUDA_LIB_VARS CUDA_MEMCHECK_EXECUTABLE)
+    list(APPEND REQUIRED_CUDA_LIB_VARS CUDA_MEMCHECK_EXECUTABLE)
 endif()
 
 include(FindPackageHandleStandardArgs)

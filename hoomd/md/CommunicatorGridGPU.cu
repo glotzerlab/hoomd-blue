@@ -1,5 +1,11 @@
 #include "hip/hip_runtime.h"
+
+#if __HIP_PLATFORM_HCC__
 #include <hipfft.h>
+#else
+#include <cufft.h>
+typedef cufftComplex hipfftComplex;
+#endif
 
 #include "CommunicatorGridGPU.cuh"
 //! Define plus operator for complex data type (needed by CommunicatorMesh)

@@ -32,7 +32,11 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
     if (m_local_fft)
         {
+        #ifdef __HIP_PLATFORM_HCC__
         CHECK_HIPFFT_ERROR(hipfftDestroy(m_hipfft_plan));
+        #else
+        CHECK_HIPFFT_ERROR(cufftDestroy(m_hipfft_plan));
+        #endif
         }
     #ifdef ENABLE_MPI
     else
@@ -105,7 +109,11 @@ void PPPMForceComputeGPU::initializeFFT()
     if (m_local_fft)
         {
         // create plan on every device
+        #ifdef __HIP_PLATFORM_HCC__
         CHECK_HIPFFT_ERROR(hipfftPlan3d(&m_hipfft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, HIPFFT_C2C));
+        #else
+        CHECK_HIPFFT_ERROR(cufftPlan3d(&m_hipfft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, CUFFT_C2C));
+        #endif
         }
 
     // allocate mesh and transformed mesh
@@ -155,7 +163,7 @@ void PPPMForceComputeGPU::initializeFFT()
         auto gpu_map = m_exec_conf->getGPUIds();
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaMemAdvise(m_inv_fourier_mesh_x.get(), inv_mesh_elementss*sizeof(hipfftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_inv_fourier_mesh_x.get(), inv_mesh_elements*sizeof(hipfftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_inv_fourier_mesh_y.get(), inv_mesh_elements*sizeof(hipfftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_inv_fourier_mesh_z.get(), inv_mesh_elements*sizeof(hipfftComplex), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             CHECK_CUDA_ERROR();
@@ -246,7 +254,11 @@ void PPPMForceComputeGPU::updateMeshes()
         // locally transform the particle mesh
         ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
 
+        #ifdef __HIP_PLATFORM_HCC__
         CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan, d_mesh.data, d_mesh.data, HIPFFT_FORWARD));
+        #else
+        CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan, d_mesh.data, d_mesh.data, CUFFT_FORWARD));
+        #endif
         if (m_prof) m_prof->pop(m_exec_conf);
         }
     #ifdef ENABLE_MPI
@@ -322,6 +334,7 @@ void PPPMForceComputeGPU::updateMeshes()
 
         m_exec_conf->beginMultiGPU();
 
+        #ifdef __HIP_PLATFORM_HCC__
         CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
                      d_inv_fourier_mesh_x.data,
                      d_inv_fourier_mesh_x.data,
@@ -334,6 +347,20 @@ void PPPMForceComputeGPU::updateMeshes()
                      d_inv_fourier_mesh_z.data,
                      d_inv_fourier_mesh_z.data,
                      HIPFFT_BACKWARD));
+        #else
+        CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
+                     d_inv_fourier_mesh_x.data,
+                     d_inv_fourier_mesh_x.data,
+                     CUFFT_INVERSE));
+        CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
+                     d_inv_fourier_mesh_y.data,
+                     d_inv_fourier_mesh_y.data,
+                     CUFFT_INVERSE));
+        CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
+                     d_inv_fourier_mesh_z.data,
+                     d_inv_fourier_mesh_z.data,
+                     CUFFT_INVERSE));
+        #endif
         m_exec_conf->endMultiGPU();
 
         if (m_prof) m_prof->pop(m_exec_conf);

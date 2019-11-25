@@ -57,38 +57,15 @@ typedef struct{
 
 namespace cereal
    {
-
-    // this is a workaround for serialization of HIP's vector types
-    template<class Archive, typename std::enable_if<!std::is_same<decltype(Scalar4::x), Scalar>{}>::type* = nullptr>
-    void serialize(Archive& ar, decltype(Scalar4::x)& s)
-        {
-        ar & (Scalar &)s;
-        }
-    template<class Archive, typename std::enable_if<!std::is_same<decltype(Scalar4::y), Scalar>{}>::type* = nullptr>
-    void serialize(Archive& ar, decltype(Scalar4::y)& s)
-        {
-        ar & (Scalar &)s;
-        }
-    template<class Archive, typename std::enable_if<!std::is_same<decltype(Scalar4::z), Scalar>{}>::type* = nullptr>
-    void serialize(Archive& ar, decltype(Scalar4::z)& s)
-        {
-        ar & (Scalar &)s;
-        }
-    template<class Archive, typename std::enable_if<!std::is_same<decltype(Scalar4::w), Scalar>{}>::type* = nullptr>
-    void serialize(Archive& ar, decltype(Scalar4::w)& s)
-        {
-        ar & (Scalar &)s;
-        }
-
    //! Serialization functions for some of our data types
    //! Serialization of Scalar4
    template<class Archive>
    void serialize(Archive & ar, Scalar4 & s, const unsigned int version)
        {
-       ar & s.x;
-       ar & s.y;
-       ar & s.z;
-       ar & s.w;
+       ar & (Scalar &) s.x;
+       ar & (Scalar &) s.y;
+       ar & (Scalar &) s.z;
+       ar & (Scalar &) s.w;
        }
 
     //! Serialization of Scalar3

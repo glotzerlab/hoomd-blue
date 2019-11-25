@@ -250,7 +250,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         hipEventCreateWithFlags(&m_events[idev],hipEventDisableTiming);
         }
     #endif
-    
     }
 
 ExecutionConfiguration::~ExecutionConfiguration()
@@ -424,7 +423,7 @@ void ExecutionConfiguration::printGPUStats()
         int mib = int(float(m_dev_prop[idev].totalGlobalMem) / float(1024*1024));
         s << ", " << setw(4) << mib << " MiB DRAM";
 
-        #ifdef __HIP_PLATFORM_NVCC__
+        #if defined(__HIP_PLATFORM_NVCC__) && 0 // disabled for now
         // follow up with some flags to signify device features
         if (m_dev_prop[idev].kernelExecTimeoutEnabled)
             s << ", DIS";

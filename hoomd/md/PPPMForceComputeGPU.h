@@ -8,7 +8,13 @@
 
 #ifdef ENABLE_HIP
 
+#if __HIP_PLATFORM_HCC__
 #include <hipfft.h>
+#elif __HIP_PLATFORM_NVCC__
+#include <cufft.h>
+typedef cufftComplex hipfftComplex;
+#endif
+
 #include <sstream>
 
 //#define USE_HOST_DFFT
@@ -83,9 +89,17 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         virtual void fixExclusions();
 
         //! Check for HIPFFT errors
+        #ifdef __HIP_PLATFORM_HCC__
         inline void handleHIPFFTResult(hipfftResult result, const char *file, unsigned int line) const
+        #else
+        inline void handleHIPFFTResult(cufftResult result, const char *file, unsigned int line) const
+        #endif
             {
+            #ifdef __HIP_PLATFORM_HCC__
             if (result != HIPFFT_SUCCESS)
+            #else
+            if (result != CUFFT_SUCCESS)
+            #endif
                 {
                 std::ostringstream oss;
                 oss << "HIPFFT returned error " << result << " in file " << file << " line " << line << std::endl;
