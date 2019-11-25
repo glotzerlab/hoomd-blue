@@ -4,7 +4,6 @@
 #include "ShapeUtils.h"
 #include <hoomd/Variant.h>
 #include "Moves.h"
-// #include "hoomd/GSDState.h"
 #include "GSDHPMCSchema.h"
 #include <hoomd/extern/Eigen/Eigen/Dense>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -81,34 +80,31 @@ public:
         {
         if(!exec_conf->isRoot())
             return 0;
-        int retval = 0;
         std::string path = name + "stepsize";
-        exec_conf->msg->notice(2) << "shape_move writint to GSD File to name: "<< name << std::endl;
+        exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: "<< name << std::endl;
         std::vector<float> d;
         d.resize(m_step_size.size());
         std::transform(m_step_size.begin(), m_step_size.end(), d.begin(), [](const Scalar& s)->float{ return s; });
-        retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, d.size(), 1, 0, (void *)&d[0]);
+        int retval = gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, d.size(), 1, 0, (void *)&d[0]);
         return retval;
         }
 
     //! Method that is called to connect to the gsd write state signal
     virtual bool restoreStateGSD(   std::shared_ptr<GSDReader> reader,
-                                    uint64_t frame,
                                     std::string name,
-                                    unsigned int Ntypes,
                                     const std::shared_ptr<const ExecutionConfiguration> exec_conf,
                                     bool mpi)
         {
-        bool success = true;
+        bool success;
         std::string path = name + "stepsize";
         std::vector<float> d;
+        unsigned int Ntypes = this->m_step_size.size();
+        uint64_t frame = reader->getFrame();
         if(exec_conf->isRoot())
             {
             d.resize(Ntypes, 0.0);
             exec_conf->msg->notice(2) << "shape_move reading from GSD File from name: "<< name << std::endl;
-            exec_conf->msg->notice(2) << "stepsize: "<< d[0] << " success: " << std::boolalpha << success << std::endl;
-
-            success = reader->readChunk((void *)&d[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
+            success = reader->readChunk((void *)&d[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes);
             exec_conf->msg->notice(2) << "stepsize: "<< d[0] << " success: " << std::boolalpha << success << std::endl;
             }
 
@@ -118,11 +114,12 @@ public:
             bcast(d, 0, exec_conf->getMPICommunicator()); // broadcast the data
             }
         #endif
-        if(!d.size() || d.size() != m_step_size.size()) // adding this sanity check but can remove.
-            throw std::runtime_error("Error occured while attempting to restore from gsd file.");
+
         for(unsigned int i = 0; i < d.size(); i++)
-            m_step_size[i] = d[i];
+            m_step_size[i] = Scalar(d[i]);
+
         return success;
+
         }
 
     //! Returns all of the provided log quantities for the shape move.

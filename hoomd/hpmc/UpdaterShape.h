@@ -536,16 +536,12 @@ template< typename Shape>
 int UpdaterShape<Shape>::slotWriteGSD(gsd_handle& handle, std::string name) const
     {
     m_exec_conf->msg->notice(2) << "UpdaterShape writing to GSD File to name: "<< name << std::endl;
-    int retval = 0;
-    // create schema helpers
     #ifdef ENABLE_MPI
     bool mpi=(bool)m_pdata->getDomainDecomposition();
     #else
     bool mpi=false;
     #endif
-
-    retval |= m_move_function->writeGSD(handle, name+"move/", m_exec_conf, mpi);
-
+    int retval = m_move_function->writeGSD(handle, name+"move/", m_exec_conf, mpi);
     return retval;
     }
 
@@ -561,16 +557,13 @@ void UpdaterShape<Shape>::connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer
 template< typename Shape>
 bool UpdaterShape<Shape>::restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name)
     {
-    bool success = true;
     m_exec_conf->msg->notice(2) << "UpdaterShape from GSD File to name: "<< name << std::endl;
-    uint64_t frame = reader->getFrame();
-    // create schemas
     #ifdef ENABLE_MPI
     bool mpi=(bool)m_pdata->getDomainDecomposition();
     #else
     bool mpi=false;
     #endif
-    success = m_move_function->restoreStateGSD(reader, frame, name+"move/", m_pdata->getNTypes(), m_exec_conf, mpi) && success;
+    bool success = m_move_function->restoreStateGSD(reader, name+"move/", m_exec_conf, mpi);
     return success;
     }
 
