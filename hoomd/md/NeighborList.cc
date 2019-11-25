@@ -342,6 +342,9 @@ void NeighborList::compute(unsigned int timestep)
     // check if the list needs to be updated and update it
     if (needsUpdating(timestep))
         {
+        // check simulation box size is OK
+        checkBoxSize();
+
         // rebuild the list until there is no overflow
         bool overflowed = false;
         do
@@ -514,6 +517,37 @@ void NeighborList::updateRList()
 
     // rcut has been updated to the latest values now
     m_rcut_changed = false;
+    }
+
+/*!
+ * Check that the largest neighbor search radius is not bigger than twice the shortest box size.
+ * Raises an error if this condition is not met. Otherwise, nothing happens.
+ */
+void NeighborList::checkBoxSize()
+    {
+    const BoxDim& box = m_pdata->getBox();
+    const uchar3 periodic = box.getPeriodic();
+
+    // check that rcut fits in the box
+    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
+    Scalar rmax = m_rcut_max_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
+
+    if (m_filter_body)
+        {
+        // add the maximum diameter of all composite particles
+        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
+        rmax += 0.5*max_d_comp;
+        }
+
+    if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
+        (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
+        (m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
+        {
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
+        throw runtime_error("Error updating neighborlist bins");
+        }
     }
 
 /*! \returns an estimate of the number of neighbors per particle
