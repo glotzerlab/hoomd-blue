@@ -156,6 +156,7 @@ Michael P. Howard, Princeton University & University of Texas at Austin
  * Misc. bug fixes
  * CUDA9+V100 compatibility
  * GPU polymorphic object wrapper
+ * Performance improvements to tree neighbor lists
 
 James Antonaglia, University of Michigan
 
@@ -819,7 +820,7 @@ Random123 is used to generate random numbers and is used under the following lic
 A CUDA [neighbor](https://github.com/mphoward/neighbor) search library is
 used under the Modified BSD license::
 
-    Copyright (c) 2018, Michael P. Howard. All rights reserved.
+    Copyright (c) 2018-2019, Michael P. Howard. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without modification,
     are permitted provided that the following conditions are met:
