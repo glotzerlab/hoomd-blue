@@ -19,3 +19,6 @@
 [submodule "hoomd/extern/HIP"]
 	path = hoomd/extern/HIP
 	url = https://github.com/ROCm-Developer-Tools/HIP.git
+[submodule "hoomd/extern/hipCUB"]
+	path = hoomd/extern/hipCUB
+	url = https://github.com/ROCmSoftwarePlatform/hipCUB
