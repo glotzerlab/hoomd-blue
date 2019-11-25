@@ -16,3 +16,6 @@
 [submodule "hoomd/extern/random123"]
 	path = hoomd/extern/random123
 	url = https://github.com/glotzerlab/random123.git
+[submodule "hoomd/extern/HIP"]
+	path = hoomd/extern/HIP
+	url = https://github.com/ROCm-Developer-Tools/HIP.git
