@@ -305,9 +305,9 @@ void CellList::initializeMemory()
         {
         // if we have less than radius*2+1 cells in a direction, restrict to unique neighbors
         uint3 n_unique_neighbors = m_dim;
-        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.x;
-        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.y;
-        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.z;
+        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.x;
+        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.y;
+        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.z;
 
         unsigned int n_adj;
         if (m_sysdef->getNDimensions() == 2)

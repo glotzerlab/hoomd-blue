@@ -110,9 +110,9 @@ void test_domain_decomposition(std::shared_ptr<ExecutionConfiguration> exec_conf
     pdata->setDomainDecomposition(decomposition);
 
     // check that periodic flags are correctly set on the box
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
 
     pdata->initializeFromSnapshot(snap);
 
@@ -256,9 +256,9 @@ void test_balanced_domain_decomposition(std::shared_ptr<ExecutionConfiguration> 
     pdata->setDomainDecomposition(decomposition);
 
     // check that periodic flags are correctly set on the box
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
 
     pdata->initializeFromSnapshot(snap);
 

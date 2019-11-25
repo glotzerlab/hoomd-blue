@@ -1100,7 +1100,7 @@ bool NeighborList::distanceCheck(unsigned int timestep)
     // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
     Scalar3 lambda = L_g / m_last_L;
     Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;
-    lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
+    lambda_min = (lambda_min < lambda.z) ? lambda_min : (Scalar) lambda.z;
 
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
