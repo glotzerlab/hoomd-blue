@@ -1590,12 +1590,12 @@ int3 ParticleData::getImage(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(pos.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(pos.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(pos.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((int &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((int &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((int &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) pos.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) pos.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) pos.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1742,10 +1742,10 @@ Scalar4 ParticleData::getOrientation(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.w, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1768,10 +1768,10 @@ Scalar4 ParticleData::getAngularMomentum(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.w, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1794,9 +1794,9 @@ Scalar3 ParticleData::getMomentsOfInertia(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1819,10 +1819,10 @@ Scalar4 ParticleData::getPNetForce(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.w, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1846,10 +1846,10 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(result.w, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif

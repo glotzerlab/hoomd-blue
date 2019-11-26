@@ -10,7 +10,7 @@
 #include "hip/hip_runtime.h"
 
 #if defined(ENABLE_HIP)
-#if __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_HCC__
 #include <hipfft.h>
 #else
 #include <cufft.h>

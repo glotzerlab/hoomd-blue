@@ -104,7 +104,7 @@ void dfft_cuda_free_aligned_memory(cuda_cpx_t *ptr)
 /* Destroy a 1d plan */
 int dfft_cuda_destroy_local_plan(cuda_plan_t *p)
     {
-    #ifdef __HIP_PLATFORM_HCC
+    #ifdef __HIP_PLATFORM_HCC__
     hipfftResult res = hipfftDestroy(*p);
     if (res != HIPFFT_SUCCESS)
     #else
@@ -127,7 +127,7 @@ int dfft_cuda_local_fft(
     cuda_plan_t p,
     int dir)
     {
-    #ifdef __HIP_PLATFORM_HCC
+    #ifdef __HIP_PLATFORM_HCC__
     hipfftResult res;
     res = hipfftExecC2C(p, in, out, dir ? HIPFFT_BACKWARD : HIPFFT_FORWARD);
     #else
