@@ -129,7 +129,6 @@ ENDMACRO(copy_file)
 
 set(files   analyze.py
             compute.py
-            data.py
             __init__.py
             integrate.py
             update.py
