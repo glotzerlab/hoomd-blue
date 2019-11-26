@@ -107,7 +107,7 @@ PYBIND11_MODULE(_hpmc, m)
         .def(pybind11::init< pybind11::dict >())
         .def("asDict", &sphinx3d_params::asDict)
         ;
-    py::class_< ShapeUnion<ShapeSphere>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere>::param_type> >(m, "msph_params")
+    py::class_< ShapeUnion<ShapeSphere>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere>::param_type> >(m, "SphereUnionParams")
         .def(pybind11::init< pybind11::dict >())
         .def("asDict", &ShapeUnion<ShapeSphere>::param_type::asDict)
         ;
