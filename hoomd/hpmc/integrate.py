@@ -1461,9 +1461,9 @@ class convex_spheropolyhedron(mode_hpmc):
         """
         return super(convex_spheropolyhedron, self)._return_type_shapes()
 
-class ellipsoid(mode_hpmc):
+class Ellipsoid(mode_hpmc):
     R""" HPMC integration for ellipsoids (2D/3D).
-
+​
     Args:
         seed (int): Random number seed.
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
@@ -1472,66 +1472,73 @@ class ellipsoid(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
-
+​
     Ellipsoid parameters:
-
+​
     * *a* (**required**) - principle axis a of the ellipsoid (radius in the x direction) (distance units)
     * *b* (**required**) - principle axis b of the ellipsoid (radius in the y direction) (distance units)
     * *c* (**required**) - principle axis c of the ellipsoid (radius in the z direction) (distance units)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-
+​
     Example::
-
+​
         mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
         print('ellipsoids parameters (a,b,c) = ', mc.shape_param['A'].a, mc.shape_param['A'].b, mc.shape_param['A'].c)
-
+​
     Depletants Example::
-
+​
         mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
         mc.set_param(nselect=1)
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
         mc.shape_param.set('B', a=0.05, b=0.05, c=0.05);
         mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
-
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
         # initialize base class
-        mode_hpmc.__init__(self);
-
+        super().__init__()
+        self._param_dict = dict(seed=seed,
+                                move_ratio=move_ratio,
+                                nselect=nselect)
+        typeparam_d = TypeParameter('d', type_kind='particle_types',
+                                    param_dict=TypeParameterDict(d, len_keys=1)
+                                    )
+        typeparam_a = TypeParameter('a', type_kind='particle_types',
+                                    param_dict=TypeParameterDict(a, len_keys=1)
+                                    )
+        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            a=RequiredArg,
+                                            b=RequiredArg,
+                                            c=RequiredArg,
+                                            ignore_statistics=False,
+                                            len_keys=1)
+                                    )
+        self._extend_typeparam([typeparam_a, typeparam_d, typeparam_shape])
+    def attach(self, simulation):
         # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_integrator = _hpmc.IntegratorHPMCMonoEllipsoid(hoomd.context.current.system_definition, seed);
+        sys_def = simulation.state._cpp_sys_def
+        if not simulation.device.mode == 'GPU':
+            self._cpp_obj = _hpmc.IntegratorHPMCMonoEllipsoid(sys_def, self.seed)
+            cl_c = None
         else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
-
-        # set default parameters
-        setD(self.cpp_integrator,d);
-        setA(self.cpp_integrator,a);
-        self.cpp_integrator.setMoveRatio(move_ratio)
-
-        self.cpp_integrator.setNSelect(nselect);
-
-        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.initialize_shape_params();
-
-        if restore_state:
-            self.restore_state()
+            cl_c = hoomd.CellListGPU(sys_def)
+            self._cpp_obj = hpmc.IntegratorHPMCMonoGPUEllipsoid(sys_def, cl_c, self.seed)
+        # set the non type specfic parameters
+        self._apply_param_dict()
+        # Deal with type specific properties
+        self._apply_typeparam_dict(self._cpp_obj, simulation)
+        return [cl_c] if cl_c is not None else None
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
-
         Example:
-
             >>> mc.get_type_shapes()
             [{'type': 'Ellipsoid', 'a': 1.0, 'b': 1.5, 'c': 1}]
-
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        return super(ellipsoid, self)._return_type_shapes()
+        return super()._return_type_shapes()
 
 class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).

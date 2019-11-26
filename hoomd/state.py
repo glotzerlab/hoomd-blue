@@ -3,6 +3,7 @@ from hoomd.groups import Groups
 from .data import boxdim
 from hoomd.snapshot import Snapshot
 
+
 def _create_domain_decomposition(device, box):
     """ Create a default domain decomposition.
 
@@ -27,6 +28,7 @@ def _create_domain_decomposition(device, box):
                                         False)
 
     return result
+
 
 class State:
     R"""
@@ -55,9 +57,9 @@ class State:
 
     @property
     def snapshot(self):
-        result = Snapshot(self._simulation.device.comm)
-        result._cpp_obj = self._cpp_sys_def.takeSnapshot_double()
-        return result
+        cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
+        return Snapshot._from_cpp_snapshot(cpp_snapshot,
+                                           self._simulation.device.comm)
 
     @snapshot.setter
     def snapshot(self, snapshot):
@@ -66,12 +68,14 @@ class State:
         Args:
             snapshot:. The snapshot to initialize the system from.
 
-        Snapshots temporarily store system data. Snapshots contain the complete simulation state in a
-        single object. They can be used to restart a simulation.
+        Snapshots temporarily store system data. Snapshots contain the complete
+        simulation state in a single object. They can be used to restart a
+        simulation.
 
-        Example use cases in which a simulation may be restarted from a snapshot include python-script-level
-        Monte-Carlo schemes, where the system state is stored after a move has been accepted (according to
-        some criterion), and where the system is re-initialized from that same state in the case
+        Example use cases in which a simulation may be restarted from a snapshot
+        include python-script-level Monte-Carlo schemes, where the system state
+        is stored after a move has been accepted (according to some criterion),
+        and where the system is re-initialized from that same state in the case
         when a move is not accepted.
 
         Example::
@@ -85,10 +89,13 @@ class State:
             system.restore_snapshot(snapshot)
 
         Warning:
-                restore_snapshot() may invalidate force coefficients, neighborlist r_cut values, and other per type
-                quantities if called within a callback during a run(). You can restore a snapshot during a run only
-                if the snapshot is of a previous state of the currently running system. Otherwise, you need to use
-                restore_snapshot() between run() commands to ensure that all per type coefficients are updated properly.
+                restore_snapshot() may invalidate force coefficients,
+                neighborlist r_cut values, and other per type quantities if
+                called within a callback during a run(). You can restore a
+                snapshot during a run only if the snapshot is of a previous
+                state of the currently running system. Otherwise, you need to
+                use restore_snapshot() between run() commands to ensure that all
+                per type coefficients are updated properly.
 
         """
 

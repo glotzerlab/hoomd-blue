@@ -8,13 +8,14 @@ Commands in the dump package write the system state out to a file every
 each command writes.
 """
 
-from collections import namedtuple;
+from collections import namedtuple
+from hoomd.filters import All
 from hoomd import _hoomd
-import hoomd;
-import json;
-import os;
-import sys;
-import types;
+import hoomd
+import json
+import os
+import sys
+import types
 
 class dcd(hoomd.analyze._analyzer):
     R""" Writes simulation snapshots in the DCD format
@@ -612,10 +613,11 @@ class GSD(hoomd.meta._Analyzer):
     TODO: should ``filter_`` default to All?
 
     """
+
     def __init__(self,
                  filename,
                  trigger,
-                 filter_,
+                 filter=All(),
                  overwrite=False,
                  truncate=False,
                  dynamic=None):
@@ -623,7 +625,7 @@ class GSD(hoomd.meta._Analyzer):
         super().__init__(trigger)
 
         self._param_dict = dict(filename=filename,
-                                filter=filter_,
+                                filter=filter,
                                 overwrite=overwrite,
                                 truncate=truncate,
                                 dynamic=dynamic,

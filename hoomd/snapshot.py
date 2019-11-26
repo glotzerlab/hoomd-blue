@@ -93,6 +93,13 @@ class Snapshot:
         else:
             return None
 
+    @classmethod
+    def _from_cpp_snapshot(cls, snapshot, comm):
+        sp = cls()
+        sp._comm = comm
+        sp._cpp_obj = snapshot
+        return sp
+
     def replicate(self, nx, ny, nz):
         self._cpp_obj.replicate(nx, ny, nz)
 
