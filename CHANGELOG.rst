@@ -8,7 +8,7 @@ v2.8.1 (2019-11-26)
 
 * Fix a rare divide-by-zero in the ``collide.srd`` thermostat.
 * Improve performance of first frame written by ``dump.gsd``.
-* Support python 3.8.
+* Support Python 3.8.
 * Fix an error triggering migration of embedded particles for MPCD with MPI +
   GPU configurations.
 
