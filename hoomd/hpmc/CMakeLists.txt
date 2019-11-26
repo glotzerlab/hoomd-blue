@@ -53,7 +53,6 @@ set(_hpmc_headers
     ShapeEllipsoid.h
     ShapeFacetedEllipsoid.h
     ShapePolyhedron.h
-    ShapeProxy.h
     ShapeSimplePolygon.h
     ShapeSphere.h
     ShapeSpheropolygon.h

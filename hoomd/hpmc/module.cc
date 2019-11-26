@@ -20,8 +20,6 @@
 #include "UpdaterBoxMC.h"
 #include "UpdaterClusters.h"
 
-#include "ShapeProxy.h"
-
 #include "GPUTree.h"
 
 #ifdef ENABLE_CUDA
@@ -62,7 +60,6 @@ PYBIND11_MODULE(_hpmc, m)
 
     export_UpdaterBoxMC(m);
     export_external_fields(m);
-    export_shape_params(m);
 
     export_sphere(m);
     export_convex_polygon(m);
@@ -121,16 +118,6 @@ PYBIND11_MODULE(_hpmc, m)
         .def("asDict", &ShapeUnion<ShapeFacetedEllipsoid>::param_type::asDict)
         ;
 
-    m.def("make_poly2d_verts", &make_poly2d_verts);
-    m.def("make_poly3d_data", &make_poly3d_data);
-    m.def("make_poly3d_verts", &make_poly3d_verts);
-    m.def("make_ell_params", &make_ell_params);
-    m.def("make_sph_params", &make_sph_params);
-    m.def("make_faceted_ellipsoid", &make_faceted_ellipsoid);
-    m.def("make_sphinx3d_params", &make_sphinx3d_params);
-    m.def("make_convex_polyhedron_union_params", &make_union_params<ShapeSpheropolyhedron>);
-    m.def("make_faceted_ellipsoid_union_params", &make_union_params<ShapeFacetedEllipsoid>);
-    m.def("make_sphere_union_params", &make_union_params<ShapeSphere>);
     m.def("make_overlapreal3", &make_overlapreal3);
     m.def("make_overlapreal4", &make_overlapreal4);
 
