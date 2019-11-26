@@ -12,7 +12,8 @@ class Operations:
 
     def add(self, op):
         if isinstance(op, hoomd.integrate._integrator):
-            self._integrator = op
+            self.integrator = op
+            return None
         elif isinstance(op, hoomd.meta._Updater):
             self._updaters.append(op)
         elif isinstance(op, hoomd.meta._Analyzer):
@@ -70,6 +71,21 @@ class Operations:
             return self._integrator
         except AttributeError:
             return None
+
+    @integrator.setter
+    def integrator(self, op):
+        if not isinstance(op, hoomd.integrate._integrator):
+            raise TypeError("Cannot set integrator to a type not derived "
+                            "from hoomd.integrator._integrator")
+        old_ref = self.integrator
+        self._integrator = op
+        if self._auto_schedule:
+            self._schedule([op])
+            if old_ref is not None:
+                new_objs = old_ref.notify_detach(self.simulation)
+                old_ref.detach()
+            if new_objs is not None:
+                self._compute.extend(new_objs)
 
     @property
     def updaters(self):

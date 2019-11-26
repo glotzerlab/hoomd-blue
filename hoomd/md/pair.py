@@ -547,7 +547,7 @@ class pair(force._force):
         raise NotImplementedError(
             "You are using a shape type that is not implemented! "
             "If you want it, please modify the "
-            "hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function.")
+            "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
         type_shapes = self.cpp_force.getTypeShapesPy();

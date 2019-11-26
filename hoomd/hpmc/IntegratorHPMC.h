@@ -328,6 +328,13 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         //! Enable deterministic simulations
         virtual void setDeterministic(bool deterministic) {};
 
+        //! Get the deterministic setting
+        virtual bool getDeterministic()
+            {
+            // The CPU is always deterministic
+            return true;
+            };
+
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep)
             {

@@ -61,7 +61,7 @@ class boxmc(_updater):
         # according to frequency parameter.
         period = 1
 
-        if not isinstance(mc, integrate.mode_hpmc):
+        if not isinstance(mc, integrate.HPMCIntegrator):
             hoomd.context.current.device.cpp_msg.warning("update.boxmc: Must have a handle to an HPMC integrator.\n");
             return;
 
@@ -535,7 +535,7 @@ class muvt(_updater):
     """
     def __init__(self, mc, seed, period=1, transfer_types=None,ngibbs=1):
 
-        if not isinstance(mc, integrate.mode_hpmc):
+        if not isinstance(mc, integrate.HPMCIntegrator):
             hoomd.context.current.device.cpp_msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
             return;
 
@@ -801,7 +801,7 @@ class Clusters(_Updater):
 
     def attach(self, simulation):
         integrator = simulation.operations.integrator
-        if not isinstance(integrator, integrate.mode_hpmc):
+        if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
         integrator_pairs = [
