@@ -42,7 +42,7 @@ def test_convex_polyhedron_python():
     assert not poly.shape['A']['ignore_statistics']
     np.testing.assert_allclose(poly.shape['A']['vertices'], verts)
 
-def test_convex_polyhedron_after_attaching(device, dummy_simulation):
+def test_convex_polyhedron_after_attaching(device, dummy_simulation_factory):
 
     verts = [(-1, 1, 0), (1, 0, -1), (1, 1, 1), (-1, -1, 1)] 
     verts2 = [(-1, 1, 1), (1, -1, 0), (1, 1, 1)] 
@@ -50,7 +50,7 @@ def test_convex_polyhedron_after_attaching(device, dummy_simulation):
     poly.shape['A'] = dict(vertices=verts)
     poly.shape['B'] = dict(vertices=verts2, ignore_statistics=True)
 
-    sim = dummy_simulation
+    sim = dummy_simulation_factory(particle_types=['A', 'B'])
     sim.operations.add(poly)
     sim.operations.schedule()
 
