@@ -84,16 +84,18 @@ class _Operation:
     def detach(self):
         self._unapply_typeparam_dict()
         self._cpp_obj = None
+        if hasattr(self, '_simulation'):
+            del self._simulation
         return self
 
     def add_dependent(self, obj):
         self._dependent_list.append(obj)
 
-    def notify_detach(self):
+    def notify_detach(self, sim):
         for dependent in self._dependent_list:
-            dependent.handle_detached_dependency(self)
+            dependent.handle_detached_dependency(sim, self)
 
-    def handle_detached_dependency(self, obj):
+    def handle_detached_dependency(self, sim, obj):
         pass
 
     def attach(self, sim):

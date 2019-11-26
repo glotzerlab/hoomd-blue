@@ -82,7 +82,7 @@ class Operations:
         if self._auto_schedule:
             self._schedule([op])
             if old_ref is not None:
-                old_ref.notify_detach()
+                old_ref.notify_detach(self.simulation)
                 old_ref.detach()
 
     @property
