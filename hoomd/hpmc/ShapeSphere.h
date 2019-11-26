@@ -122,7 +122,8 @@ struct sph_params : param_base
 
     #ifndef NVCC
     sph_params() { }
-
+    
+    // Get parameters from dictionary
     sph_params(pybind11::dict v)
         {
         ignore = v["ignore_statistics"].cast<bool>();
@@ -130,6 +131,7 @@ struct sph_params : param_base
         isOriented = v["orientable"].cast<bool>();
         }
 
+    // Return parameters as dictionary
     pybind11::dict asDict()
         {
         pybind11::dict v;

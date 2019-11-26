@@ -488,6 +488,7 @@ class Sphere(HPMCIntegrator):
         """
         return super()._return_type_shapes()
 
+
 class ConvexPolygon(HPMCIntegrator):
     R""" HPMC integration for convex polygons (2D).
 
@@ -526,41 +527,22 @@ class ConvexPolygon(HPMCIntegrator):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    _cpp_cls = 'IntegratorHPMCMonoConvexPolygon'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_d = TypeParameter('d', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(d, len_keys=1)
-                                    )
-        typeparam_a = TypeParameter('a', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(a, len_keys=1)
-                                    )
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=RequiredArg,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
-        self._extend_typeparam([typeparam_a, typeparam_d, typeparam_shape])
-
-    def attach(self, simulation):
-        sys_def = simulation.state._cpp_sys_def
-
-        # initialize the reflected c++ class
-        if not simulation.device.mode == "GPU":
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoConvexPolygon(sys_def, self.seed);
-            cl_c = None
-        else:
-            cl_c = _hoomd.CellListGPU(sys_def);
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUConvexPolygon(sys_def, cl_c, self.seed);
-
-        # set the non type specfic parameters
-        self._apply_param_dict()
-
-        # Deal with type specific properties
-        self._apply_typeparam_dict(self._cpp_obj, simulation)
+        
+        self._add_typeparam(typeparam_shape)
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -574,6 +556,7 @@ class ConvexPolygon(HPMCIntegrator):
             A list of dictionaries, one for each particle type in the system.
         """
         return super(ConvexPolygon, self)._return_type_shapes()
+
 
 class ConvexSpheropolygon(HPMCIntegrator):
     R""" HPMC integration for convex spheropolygons (2D).
@@ -615,48 +598,23 @@ class ConvexSpheropolygon(HPMCIntegrator):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    _cpp_cls = 'IntegratorHPMCMonoSpheropolygon'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        super(ConvexSpheropolygon, self).__init__(self)
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        self._param_dict = dict(seed=seed,
-                                move_ratio=move_ratio,
-                                nselect=nselect)
-
-        typeparam_d = TypeParameter('d', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(d, len_keys=1)
-                                    )
-        typeparam_a = TypeParameter('a', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(a, len_keys=1)
-                                    )
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=RequiredArg,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
-        self._extend_typeparam([typeparam_a, typeparam_d, typeparam_shape])
-
-    def attach(self, simulation):
-
-        # initialize the reflected c++ class
-        sys_def = simulation.state._cpp_sys_def
-        if not simulation.device.mode == "GPU":
-            cl_c = None
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoSpheropolygon(sys_def, self.seed);
-        else:
-            cl_c = _hoomd.CellListGPU(sys_def);
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUSpheropolygon(sys_def, cl_c, self.seed);
-
-        # set the non type specfic parameters
-        self._apply_param_dict()
-
-        # Deal with type specific properties
-        self._apply_typeparam_dict(self._cpp_obj, simulation)
-
-        return [cl_c] if cl_c is not None else None
-
+        
+        self._add_typeparam(typeparam_shape)
+    
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
@@ -669,6 +627,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
             A list of dictionaries, one for each particle type in the system.
         """
         return super(ConvexSpheropolygon, self)._return_type_shapes()
+
 
 class SimplePolygon(HPMCIntegrator):
     R""" HPMC integration for simple polygons (2D).
@@ -708,47 +667,23 @@ class SimplePolygon(HPMCIntegrator):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    
+    _cpp_cls = 'IntegratorHPMCMonoSimplePolygon'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        super(SimplePolygon, self).__init__();
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        self._param_dict = dict(seed=seed,
-                                move_ratio=move_ratio,
-                                nselect=nselect)
-
-        typeparam_d = TypeParameter('d', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(d, len_keys=1)
-                                    )
-        typeparam_a = TypeParameter('a', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(a, len_keys=1)
-                                    )
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=RequiredArg,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
-        self._extend_typeparam([typeparam_a, typeparam_d, typeparam_shape])
-
-    def attach(self, simulation):
-
-        sys_def = simulation.state._cpp_sys_def
-        # initialize the reflected c++ class
-        if not simulation.device.mode == 'GPU':
-            cl_c = None
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoSimplePolygon(sys_def, self.seed);
-        else:
-            cl_c = _hoomd.CellListGPU(sys_def);
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUSimplePolygon(sys_def, cl_c, self.seed);
-
-        # set the non type specfic parameters
-        self._apply_param_dict()
-
-        # Deal with type specific properties
-        self._apply_typeparam_dict(self._cpp_obj, simulation)
-
-        return [cl_c] if cl_c is not None else None
+        
+        self._add_typeparam(typeparam_shape)
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -762,6 +697,7 @@ class SimplePolygon(HPMCIntegrator):
             A list of dictionaries, one for each particle type in the system.
         """
         return super(SimplePolygon, self)._return_type_shapes()
+
 
 class Polyhedron(HPMCIntegrator):
     R""" HPMC integration for general polyhedra (3D).
@@ -836,21 +772,15 @@ class Polyhedron(HPMCIntegrator):
         mc.shape_param.set('A', vertices = cube_verts, faces = cube_faces);
         mc.shape_param.set('B', vertices = tetra_verts, faces = tetra_faces, origin = (0,0,0));
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    
+    _cpp_cls = 'IntegratorHPMCMonoPolyhedron'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        super(Polyhedron, self).__init__()
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        self._param_dict = dict(seed=seed,
-                                move_ratio=move_ratio,
-                                nselect=nselect)
-
-        typeparam_d = TypeParameter('d', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(d, len_keys=1)
-                                    )
-        typeparam_a = TypeParameter('a', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(a, len_keys=1)
-                                    )
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=RequiredArg,
@@ -865,27 +795,9 @@ class Polyhedron(HPMCIntegrator):
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
-        self._extend_typeparam([typeparam_a, typeparam_d, typeparam_shape])
-
-    def attach(self, simulation):
-
-        sys_def = simulation.state._cpp_sys_def
-        # initialize the reflected c++ class
-        if not simulation.device.mode == "GPU":
-            cl_c = None
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoPolyhedron(sys_def, self.seed)
-        else:
-            cl_c = _hoomd.CellListGPU(sys_def);
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUPolyhedron(sys_def, cl_c, self.seed);
-
-        # set the non type specfic parameters
-        self._apply_param_dict()
-
-        # Deal with type specific properties
-        self._apply_typeparam_dict(self._cpp_obj, simulation)
-
-        return [cl_c] if cl_c is not None else None
-
+        
+        self._add_typeparam(typeparam_shape)
+    
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
@@ -900,7 +812,7 @@ class Polyhedron(HPMCIntegrator):
         return super(Polyhedron, self)._return_type_shapes()
 
 
-class convex_polyhedron(HPMCIntegrator):
+class ConvexPolyhedron(HPMCIntegrator):
     R""" HPMC integration for convex polyhedra (3D).
 
     Args:
@@ -940,34 +852,24 @@ class convex_polyhedron(HPMCIntegrator):
         mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
         mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    
+    _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedron'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoConvexPolyhedron(
-                hoomd.context.current.system_definition, seed)
-        else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition)
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUConvexPolyhedron(
-                hoomd.context.current.system_definition, cl_c, seed)
-
-        # set default parameters
-        setD(self._cpp_obj, d)
-        setA(self._cpp_obj, a)
-        self._cpp_obj.setMoveRatio(move_ratio)
-        if nselect is not None:
-            self._cpp_obj.setNSelect(nselect)
-
-        hoomd.context.current.system.setIntegrator(self._cpp_obj)
-        self.initialize_shape_params()
-
-        if restore_state:
-            self.restore_state()
-
+        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            vertices=RequiredArg,
+                                            ignore_overlaps=False,
+                                            ignore_statistics=False,
+                                            len_keys=1)
+                                        )
+        self._add_typeparam(typeparam_shape)
+        
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
@@ -980,10 +882,11 @@ class convex_polyhedron(HPMCIntegrator):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        return super(convex_polyhedron, self)._return_type_shapes()
+        return super(ConvexPolyhedron, self)._return_type_shapes()
 
 
-class faceted_ellipsoid(HPMCIntegrator):
+
+class FacetedEllipsoid(HPMCIntegrator):
     R""" HPMC integration for faceted ellipsoids (3D).
 
     Args:
@@ -1049,35 +952,32 @@ class faceted_ellipsoid(HPMCIntegrator):
         mc.shape_param.set('B', normals=[],a=0.1,b=0.1,c=0.1);
         mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoid'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoFacetedEllipsoid(
-                hoomd.context.current.system_definition, seed)
-        else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition)
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUFacetedEllipsoid(
-                hoomd.context.current.system_definition, cl_c, seed)
-
-        # set default parameters
-        setD(self._cpp_obj, d)
-        setA(self._cpp_obj, a)
-        self._cpp_obj.setMoveRatio(move_ratio)
-        self._cpp_obj.setNSelect(nselect)
-
-        hoomd.context.current.system.setIntegrator(self._cpp_obj)
-        self.initialize_shape_params()
-
-        if restore_state:
-            self.restore_state()
+        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            normals=RequiredArg,
+                                            offsets=RequiredArg,
+                                            a=RequiredArg,
+                                            b=RequiredArg,
+                                            c=RequiredArg,
+                                            vertices=RequiredArg,
+                                            origin=RequiredArg,
+                                            ignore_overlaps=False,
+                                            ignore_statistics=False,
+                                            len_keys=1)
+                                        )
+        self._add_typeparam(typeparam_shape)
 
 
-class faceted_sphere(faceted_ellipsoid):
+
+class FacetedSphere(FacetedEllipsoid):
     R""" HPMC integration for faceted spheres (3D).
 
     Args:
@@ -1137,13 +1037,13 @@ class faceted_sphere(faceted_ellipsoid):
         mc.shape_param.set('B', normals=[],diameter=0.1);
         mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, deterministic=False):
 
-        super(faceted_sphere, self).__init__(seed=seed, d=d, a=a, move_ratio=move_ratio,
-                                             nselect=nselect, restore_state=restore_state)
+        super(FacetedSphere, self).__init__(seed=seed, d=d, a=a, move_ratio=move_ratio,
+                                             nselect=nselect, deterministic=deterministic)
 
 
-class sphinx(HPMCIntegrator):
+class Sphinx(HPMCIntegrator):
     R""" HPMC integration for sphinx particles (3D).
 
     Args:
@@ -1177,37 +1077,26 @@ class sphinx(HPMCIntegrator):
         mc.shape_param.set('B', centers=[(0,0,0)], diameters=[.15])
         mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    _cpp_cls = 'IntegratorHPMCMonoSphinx'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoSphinx(
-                hoomd.context.current.system_definition, seed)
-        else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition)
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUSphinx(
-                hoomd.context.current.system_definition, cl_c, seed)
-
-        # set default parameters
-        setD(self._cpp_obj, d)
-        setA(self._cpp_obj, a)
-        self._cpp_obj.setMoveRatio(move_ratio)
-        if nselect is not None:
-            self._cpp_obj.setNSelect(nselect)
-
-        hoomd.context.current.system.setIntegrator(self._cpp_obj)
-        self.initialize_shape_params()
-
-        if restore_state:
-            self.restore_state()
-
-
-class convex_spheropolyhedron(HPMCIntegrator):
+        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            diameters=RequiredArg,
+                                            centers=RequiredArg,
+                                            ignore_overlaps=False,
+                                            ignore_statistics=False,
+                                            len_keys=1)
+                                        )
+        self._add_typeparam(typeparam_shape)
+    
+    
+class ConvexSpheropolyhedron(HPMCIntegrator):
     R""" HPMC integration for spheropolyhedra (3D).
 
     Args:
@@ -1252,34 +1141,25 @@ class convex_spheropolyhedron(HPMCIntegrator):
         mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
         mc.set_fugacity('B',fugacity=3.0)
     """
-
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    
+    _cpp_cls = 'IntegratorHPMCMonoSpheropolyhedron'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoSpheropolyhedron(
-                hoomd.context.current.system_definition, seed)
-        else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition)
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUSpheropolyhedron(
-                hoomd.context.current.system_definition, cl_c, seed)
-
-        # set default parameters
-        setD(self._cpp_obj, d)
-        setA(self._cpp_obj, a)
-        self._cpp_obj.setMoveRatio(move_ratio)
-        if nselect is not None:
-            self._cpp_obj.setNSelect(nselect)
-
-        hoomd.context.current.system.setIntegrator(self._cpp_obj)
-        self.initialize_shape_params()
-
-        if restore_state:
-            self.restore_state()
+        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            vertices=RequiredArg,
+                                            sweep_radius=0.0,
+                                            ignore_overlaps=False,
+                                            ignore_statistics=False,
+                                            len_keys=1)
+                                        )
+        self._add_typeparam(typeparam_shape)
+    
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -1293,7 +1173,8 @@ class convex_spheropolyhedron(HPMCIntegrator):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        return super(convex_spheropolyhedron, self)._return_type_shapes()
+        return super(ConvexSpheropolyhedron, self)._return_type_shapes()
+
 
 class Ellipsoid(HPMCIntegrator):
     R""" HPMC integration for ellipsoids (2D/3D).
@@ -1328,18 +1209,14 @@ class Ellipsoid(HPMCIntegrator):
         mc.shape_param.set('B', a=0.05, b=0.05, c=0.05);
         mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
+    _cpp_cls = 'IntegratorHPMCMonoEllipsoid'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
+
         # initialize base class
-        super().__init__()
-        self._param_dict = dict(seed=seed,
-                                move_ratio=move_ratio,
-                                nselect=nselect)
-        typeparam_d = TypeParameter('d', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(d, len_keys=1)
-                                    )
-        typeparam_a = TypeParameter('a', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(a, len_keys=1)
-                                    )
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             a=RequiredArg,
@@ -1348,21 +1225,8 @@ class Ellipsoid(HPMCIntegrator):
                                             ignore_statistics=False,
                                             len_keys=1)
                                     )
-        self._extend_typeparam([typeparam_a, typeparam_d, typeparam_shape])
-    def attach(self, simulation):
-        # initialize the reflected c++ class
-        sys_def = simulation.state._cpp_sys_def
-        if not simulation.device.mode == 'GPU':
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoEllipsoid(sys_def, self.seed)
-            cl_c = None
-        else:
-            cl_c = hoomd.CellListGPU(sys_def)
-            self._cpp_obj = hpmc.IntegratorHPMCMonoGPUEllipsoid(sys_def, cl_c, self.seed)
-        # set the non type specfic parameters
-        self._apply_param_dict()
-        # Deal with type specific properties
-        self._apply_typeparam_dict(self._cpp_obj, simulation)
-        return [cl_c] if cl_c is not None else None
+
+        self._extend_typeparam([typeparam_shape])
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -1375,7 +1239,7 @@ class Ellipsoid(HPMCIntegrator):
         return super()._return_type_shapes()
 
 
-class sphere_union(HPMCIntegrator):
+class SphereUnion(HPMCIntegrator):
     R""" HPMC integration for unions of spheres (3D).
 
     This shape uses an internal OBB tree for fast collision queries.
@@ -1420,36 +1284,29 @@ class sphere_union(HPMCIntegrator):
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
         mc.set_fugacity('B',fugacity=3.0)
     """
-
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
+    
+    _cpp_cls = 'IntegratorHPMCMonoSphereUnion'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoSphereUnion(
-                hoomd.context.current.system_definition, seed)
-        else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition)
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUSphereUnion(
-                hoomd.context.current.system_definition, cl_c, seed)
+        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            diameters=RequiredArg,
+                                            centers=RequiredArg,
+                                            capacity=4,
+                                            overlap=1,
+                                            ignore_overlaps=False,
+                                            ignore_statistics=False,
+                                            len_keys=1)
+                                        )
+        self._add_typeparam(typeparam_shape)
 
-        # set default parameters
-        setD(self._cpp_obj, d)
-        setA(self._cpp_obj, a)
-        self._cpp_obj.setMoveRatio(move_ratio)
-        self._cpp_obj.setNSelect(nselect)
-
-        hoomd.context.current.system.setIntegrator(self._cpp_obj)
-        self.initialize_shape_params()
-
-        if restore_state:
-            self.restore_state()
-
-
-class convex_spheropolyhedron_union(HPMCIntegrator):
+    
+class ConvexSpheropolyhedronUnion(HPMCIntegrator):
     R""" HPMC integration for unions of convex polyhedra (3D).
 
     Args:
@@ -1485,36 +1342,32 @@ class convex_spheropolyhedron_union(HPMCIntegrator):
         print('center of the first cube = ', mc.shape_param['A'].centers[0])
         print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
     """
-
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
+    
+    _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedronUnion'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoConvexPolyhedronUnion(
-                hoomd.context.current.system_definition, seed)
-        else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition)
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUConvexPolyhedronUnion(
-                hoomd.context.current.system_definition, cl_c, seed)
-
-        # set default parameters
-        setD(self._cpp_obj, d)
-        setA(self._cpp_obj, a)
-        self._cpp_obj.setMoveRatio(move_ratio)
-        self._cpp_obj.setNSelect(nselect)
-
-        hoomd.context.current.system.setIntegrator(self._cpp_obj)
-        self.initialize_shape_params()
-
+        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            vertices=RequiredArg,
+                                            centers=RequiredArg,
+                                            orientations=RequiredArg,
+                                            sweep_radius=0.0,
+                                            overlap=1,
+                                            ignore_overlaps=False,
+                                            ignore_statistics=False,
+                                            len_keys=1)
+                                        )
+        self._add_typeparam(typeparam_shape)
         # meta data
         self.metadata_fields = ['capacity']
 
 
-class faceted_ellipsoid_union(HPMCIntegrator):
+class FacetedEllipsoidUnion(HPMCIntegrator):
     R""" HPMC integration for unions of faceted ellipsoids (3D).
 
     Args:
@@ -1559,30 +1412,24 @@ class faceted_ellipsoid_union(HPMCIntegrator):
         print('normals of the first faceted ellispoid = ', mc.shape_param['A'].members[0].offsets)
         print('vertices of the first faceted ellipsoid = ', mc.shape_param['A'].members[0].vertices)
     """
-
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
+    
+    _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoidUnion'
+    
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoFacetedEllipsoidUnion(
-                hoomd.context.current.system_definition, seed)
-        else:
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition)
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUFacetedEllipsoidUnion(
-                hoomd.context.current.system_definition, cl_c, seed)
-
-        # set default parameters
-        setD(self._cpp_obj, d)
-        setA(self._cpp_obj, a)
-        self._cpp_obj.setMoveRatio(move_ratio)
-        self._cpp_obj.setNSelect(nselect)
-
-        hoomd.context.current.system.setIntegrator(self._cpp_obj)
-        self.initialize_shape_params()
-
-        # meta data
-        self.metadata_fields = ['capacity']
+        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            vertices=RequiredArg,
+                                            normals=RequiredArg,
+                                            offsets=RequiredArg,
+                                            axes=RequiredArg,
+                                            origin=RequiredArg,
+                                            ignore_overlaps=False,
+                                            ignore_statistics=False,
+                                            len_keys=1)
+                                        )
+        self._add_typeparam(typeparam_shape)
