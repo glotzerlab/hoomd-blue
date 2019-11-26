@@ -269,13 +269,7 @@ endif()
 # link the library to its dependencies
 if (CUSOLVER_AVAILABLE)
     # CUDA 8.0 requires that we link in gomp
-    target_link_libraries(_md PUBLIC _hoomd CUDA::cusolver CUDA::cusparse HIP::hip gomp)
-else()
-    if (HIP_PLATFORM STREQAL "nvcc")
-        target_link_libraries(_md PUBLIC _hoomd HIP::hip)
-    elseif (HIP_PLATFORM STREQUAL "hcc")
-        target_link_libraries(_md PUBLIC _hoomd HIP::hip HIP::hiprt)
-    endif()
+    target_link_libraries(_md PUBLIC _hoomd CUDA::cusolver CUDA::cusparse gomp)
 endif()
 
 if (ENABLE_HIP)
