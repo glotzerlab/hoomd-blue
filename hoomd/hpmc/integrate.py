@@ -12,6 +12,7 @@ import hoomd
 import sys
 import json
 
+
 class interaction_matrix:
     R""" Define pairwise interaction matrix
 
@@ -146,23 +147,26 @@ def cite_depletants():
                                    feature='implicit depletants')
     hoomd.cite._ensure_global_bib().add(_citation)
 
+
 class mode_hpmc(_integrator):
     R""" Base class HPMC integrator.
 
-    :py:class:`mode_hpmc` is the base class for all HPMC integrators. It provides common interface elements.
-    Users should not instantiate this class directly. Methods documented here are available to all hpmc
-    integrators.
+    :py:class:`mode_hpmc` is the base class for all HPMC integrators. It
+    provides common interface elements.  Users should not instantiate this class
+    directly. Methods documented here are available to all hpmc integrators.
 
     .. rubric:: State data
 
-    HPMC integrators can save and restore the following state information to gsd files:
+    HPMC integrators can save and restore the following state information to gsd
+    files:
 
         * Maximum trial move displacement *d*
         * Maximum trial rotation move *a*
         * Shape parameters for all types.
 
-    State data are *not* written by default. You must explicitly request that state data for an mc integrator
-    is written to a gsd file (see :py:meth:`hoomd.dump.GSD.dump_state`).
+    State data are *not* written by default. You must explicitly request that
+    state data for an mc integrator is written to a gsd file (see
+    :py:meth:`hoomd.dump.GSD.dump_state`).
 
     .. code::
 
@@ -170,31 +174,74 @@ class mode_hpmc(_integrator):
         gsd = hoomd.dump.gsd(...)
         gsd.dump_state(mc)
 
-    State data are *not* restored by default. You must explicitly request that state data be restored when initializing
-    the integrator.
+    State data are *not* restored by default. You must explicitly request that
+    state data be restored when initializing the integrator.
 
     .. code::
 
         init.read_gsd(...)
         mc = hoomd.hpmc.shape(..., restore_state=True)
 
-    See the *State data* section of the `HOOMD GSD schema <http://gsd.readthedocs.io/en/latest/schema-hoomd.html>`_ for
-    details on GSD data chunk names and how the data are stored.
+    See the *State data* section of the `HOOMD GSD schema
+    <http://gsd.readthedocs.io/en/latest/schema-hoomd.html>`_ for details on GSD
+    data chunk names and how the data are stored.
     """
 
-    ## \internal
+    _cpp_cls = None
+    # \internal
     # \brief Initialize an empty integrator
     #
     # \post the member shape_param is created
-    def __init__(self):
+
+    def __init__(self, seed, d, a, move_ratio, nselect, deterministic):
         super().__init__()
+
+        # Set base parameter dict for hpmc integrators
+        self._param_dict.update(dict(seed=seed, d=d,
+                                     a=a, move_ratio=move_ratio,
+                                     nselect=nselect,
+                                     deterministic=deterministic)
+                                )
+
+        # Set standard typeparameters for hpmc integrators
+        typeparam_d = TypeParameter('d', type_kind='particle_types',
+                                    param_dict=TypeParameterDict(d, len_keys=1)
+                                    )
+        typeparam_a = TypeParameter('a', type_kind='particle_types',
+                                    param_dict=TypeParameterDict(a, len_keys=1)
+                                    )
+        typeparam_fugacity = TypeParameter('depletant_fugacity',
+                                           type_kind='particle_types',
+                                           param_dict=TypeParameterDict(
+                                               float(0), len_key=1)
+                                           )
+
+        self._extend_typeparam([typeparam_d, typeparam_a, typeparam_fugacity])
 
         self.overlap_checks = interaction_matrix()
 
-        #initialize list to check implicit params
-        self.implicit_params=list()
+        # initialize list to check implicit params
+        self.implicit_params = list()
 
-    ## Set the external field
+    def attach(self, simulation):
+        '''initialize the reflected c++ class'''
+        sys_def = simulation.state._cpp_sys_def
+        if not simulation.device.mode == 'GPU':
+            self._cpp_obj = self._cpp_cls(sys_def, self.seed)
+            cl_c = None
+        else:
+            cl_c = _hoomd.CellListGPU(sys_def)
+            self._cpp_obj = self._cpp_cls(sys_def, cl_c, self.seed)
+
+        # set the non type specfic parameters
+        self._apply_param_dict()
+
+        # Deal with type specific properties
+        self._apply_typeparam_dict(self._cpp_obj, simulation)
+
+        return [cl_c] if cl_c is not None else None
+
+    # Set the external field
     def set_external(self, ext):
         self.cpp_integrator.setExternalField(ext.cpp_compute);
 
@@ -271,38 +318,40 @@ class mode_hpmc(_integrator):
             "hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function.")
 
     def _return_type_shapes(self):
-        type_shapes = self.cpp_integrator.getTypeShapesPy();
-        ret = [ json.loads(json_string) for json_string in type_shapes ];
-        return ret;
+        type_shapes = self.cpp_integrator.getTypeShapesPy()
+        ret = [json.loads(json_string) for json_string in type_shapes]
+        return ret
 
     def initialize_shape_params(self):
-        shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
+        # using the naming convention for convenience.
+        shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]
 
         # setup the coefficient options
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        for i in range(0,ntypes):
-            type_name = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            if not type_name in self.shape_param.keys(): # only add new keys
-                self.shape_param.update({ type_name: shape_param_type(self, i) });
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes()
+        for i in range(0, ntypes):
+            type_name = hoomd.context.current.system_definition.getParticleData().getNameByType(i)
+            if not type_name in self.shape_param.keys():  # only add new keys
+                self.shape_param.update({type_name: shape_param_type(self, i)})
 
     def set_params(self,
-                   d=None,
-                   a=None,
-                   move_ratio=None,
-                   nselect=None,
-                   quermass=None,
-                   sweep_radius=None,
                    deterministic=None):
         R""" Changes parameters of an existing integration mode.
 
         Args:
-            d (float): (if set) Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-            a (float): (if set) Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+            d (float): (if set) Maximum move displacement, Scalar to set for all
+            types, or a dict containing {type:size} to set by type.
+            a (float): (if set) Maximum rotation move, Scalar to set for all
+            types, or a dict containing {type:size} to set by type.
             move_ratio (float): (if set) New value for the move ratio.
-            nselect (int): (if set) New value for the number of particles to select for trial moves in one cell.
-            quermass (bool): (if set) **Implicit depletants only**: Enable/disable quermass integration mode
-            sweep_radius (float): (if set): **Implicit depletants only**: Additional radius of a sphere to sweep the shapes by in **quermass** mode
-            deterministic (bool): (if set) Make HPMC integration deterministic on the GPU by sorting the cell list.
+            nselect (int): (if set) New value for the number of particles to
+            select for trial moves in one cell.
+            quermass (bool): (if set) **Implicit depletants only**:
+            Enable/disable quermass integration mode
+            sweep_radius (float): (if set): **Implicit depletants only**:
+            Additional radius of a sphere to sweep the shapes by in **quermass**
+            mode
+            deterministic (bool): (if set) Make HPMC integration deterministic
+            on the GPU by sorting the cell list.
 
         .. note:: Simulations are only deterministic with respect to the same execution configuration (CPU or GPU) and
                   number of MPI ranks. Simulation output will not be identical if either of these is changed.
@@ -481,76 +530,7 @@ class mode_hpmc(_integrator):
                     overlap_checks=counters.overlap_checks,
                     translate_acceptance=counters.getTranslateAcceptance(),
                     rotate_acceptance=counters.getRotateAcceptance(),
-                    move_count=counters.getNMoves());
-
-    def get_d(self,type=None):
-        R""" Get the maximum trial displacement.
-
-        Args:
-            type (str): Type name to query.
-
-        Returns:
-            The current value of the 'd' parameter of the integrator.
-
-        """
-        if type is None:
-            return self.cpp_integrator.getD(0);
-        else:
-            return self.cpp_integrator.getD(hoomd.context.current.system_definition.getParticleData().getTypeByName(type));
-
-    def get_a(self,type=None):
-        R""" Get the maximum trial rotation.
-
-        Args:
-            type (str): Type name to query.
-
-        Returns:
-            The current value of the 'a' parameter of the integrator.
-
-        """
-        if type is None:
-            return self.cpp_integrator.getA(0);
-        else:
-            return self.cpp_integrator.getA(hoomd.context.current.system_definition.getParticleData().getTypeByName(type));
-
-    def get_move_ratio(self):
-        R""" Get the current probability of attempting translation moves.
-
-        Returns: The current value of the 'move_ratio' parameter of the integrator.
-
-        """
-        return self.cpp_integrator.getMoveRatio();
-
-    def get_nselect(self):
-        R""" Get nselect parameter.
-
-        Returns:
-            The current value of the 'nselect' parameter of the integrator.
-
-        """
-        return self.cpp_integrator.getNSelect();
-
-    def set_fugacity(self,type,fugacity):
-        R""" Set depletant fugacity of a given type
-            * .. versionadded:: 3.0
-
-        Args:
-            type (str): Type for which fugacity is returned
-            fugacity (float): Ideal gas density of the depletant, can take any scalar value
-
-        """
-        cite_depletants()
-
-        return self.cpp_integrator.setDepletantFugacity(hoomd.context.current.system_definition.getParticleData().getTypeByName(type),fugacity)
-
-    def get_fugacity(self,type):
-        R""" Get depletant fugacity of a given type
-            * .. versionadded:: 3.0
-
-        Args:
-            type (str): Type for which fugacity is returned
-        """
-        return self.cpp_integrator.getDepletantFugacity(hoomd.context.current.system_definition.getParticleData().getTypeByName(type))
+                    move_count=counters.getNMoves())
 
     def get_quermass_mode(self):
         R""" Get the value of the quermass integration setting
@@ -574,20 +554,27 @@ class Sphere(mode_hpmc):
 
     Args:
         seed (int): Random number seed
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float, only with **orientable=True**): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type. (added in version 2.3)
-        move_ratio (float, only used with **orientable=True**): Ratio of translation moves to rotation moves. (added in version 2.3)
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+        dict containing {type:size} to set by type.
+        a (float, only with **orientable=True**): Maximum rotation move, Scalar
+        to set for all types, or a dict containing {type:size} to set by type.
+        (added in version 2.3)
+        move_ratio (float, only used with **orientable=True**): Ratio of
+        translation moves to rotation moves. (added in version 2.3)
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
-                             for a description of what state data restored. (added in version 2.2)
+        restore_state(bool): Restore internal state from initialization file
+        when True. See :py:class:`mode_hpmc` for a description of what state
+        data restored.  (added in version 2.2)
 
     Hard particle Monte Carlo integration method for spheres.
 
     Sphere parameters:
 
     * *diameter* (**required**) - diameter of the sphere (distance units)
-    * *orientable* (**default: False**) - set to True for spheres with orientation (added in version 2.3)
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *orientable* (**default: False**) - set to True for spheres with
+    orientation (added in version 2.3)
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+    for statistics tracking
 
     Examples::
 
@@ -605,21 +592,14 @@ class Sphere(mode_hpmc):
         mc.shape_param.set('B', diameter=.1)
         mc.set_fugacity('B',fugacity=3.0)
     """
+    _cpp_cls = _hoomd.IntegratorHPMCMonoSphere
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
 
         # initialize base class
-        super().__init__()
-        self._param_dict = dict(seed=seed,
-                                move_ratio=move_ratio,
-                                nselect=nselect)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
-        typeparam_d = TypeParameter('d', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(d, len_keys=1)
-                                    )
-        typeparam_a = TypeParameter('a', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(a, len_keys=1)
-                                    )
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             diameter=RequiredArg,
@@ -627,27 +607,7 @@ class Sphere(mode_hpmc):
                                             orientable=False,
                                             len_keys=1)
                                         )
-        self._extend_typeparam([typeparam_a, typeparam_d, typeparam_shape])
-
-    def attach(self, simulation):
-        # initialize the reflected c++ class
-        sys_def = simulation.state._cpp_sys_def
-        if not simulation.device.mode == 'GPU':
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoSphere(sys_def, self.seed)
-            cl_c = None
-        else:
-            cl_c = _hoomd.CellListGPU(sys_def)
-            self._cpp_obj = _hpmc.IntegratorHPMCMonoGPUSphere(sys_def,
-                                                              cl_c,
-                                                              self.seed)
-
-        # set the non type specfic parameters
-        self._apply_param_dict()
-
-        # Deal with type specific properties
-        self._apply_typeparam_dict(self._cpp_obj, simulation)
-
-        return [cl_c] if cl_c is not None else None
+        self._add_typeparam(typeparam_shape)
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -662,6 +622,7 @@ class Sphere(mode_hpmc):
             A list of dictionaries, one for each particle type in the system.
         """
         return super()._return_type_shapes()
+
 
 class convex_polygon(mode_hpmc):
     R""" HPMC integration for convex polygons (2D).
