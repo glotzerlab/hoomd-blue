@@ -193,8 +193,7 @@ class HPMCIntegrator(_integrator):
         super().__init__()
 
         # Set base parameter dict for hpmc integrators
-        self._param_dict.update(dict(seed=seed, d=d,
-                                     a=a, move_ratio=move_ratio,
+        self._param_dict.update(dict(seed=seed, move_ratio=move_ratio,
                                      nselect=nselect,
                                      deterministic=deterministic)
                                 )
@@ -209,7 +208,7 @@ class HPMCIntegrator(_integrator):
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
-                                               float(0), len_key=1)
+                                               float(0), len_keys=1)
                                            )
 
         self._extend_typeparam([typeparam_d, typeparam_a, typeparam_fugacity])
@@ -220,12 +219,15 @@ class HPMCIntegrator(_integrator):
     def attach(self, simulation):
         '''initialize the reflected c++ class'''
         sys_def = simulation.state._cpp_sys_def
-        if not simulation.device.mode == 'GPU':
-            self._cpp_obj = self._cpp_cls(sys_def, self.seed)
-            cl_c = None
-        else:
+        if simulation.device.mode == 'GPU':
             cl_c = _hoomd.CellListGPU(sys_def)
-            self._cpp_obj = self._cpp_cls(sys_def, cl_c, self.seed)
+            self._cpp_obj = getattr(_hpmc,
+                                    self._cpp_cls + 'GPU')(sys_def,
+                                                           cl_c, self.seed)
+        else:
+            self._cpp_obj = getattr(_hpmc,
+                                    self._cpp_cls)(sys_def, self.seed)
+            cl_c = None
 
         # set the non type specfic parameters
         self._apply_param_dict()
@@ -455,13 +457,13 @@ class Sphere(HPMCIntegrator):
         mc.shape_param.set('B', diameter=.1)
         mc.set_fugacity('B',fugacity=3.0)
     """
-    _cpp_cls = _hoomd.IntegratorHPMCMonoSphere
+    _cpp_cls = 'IntegratorHPMCMonoSphere'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
