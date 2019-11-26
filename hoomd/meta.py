@@ -92,11 +92,15 @@ class _Operation:
         self._dependent_list.append(obj)
 
     def notify_detach(self, sim):
+        new_objs = []
         for dependent in self._dependent_list:
-            dependent.handle_detached_dependency(sim, self)
+            new_objs.extend(dependent.handle_detached_dependency(sim, self))
+        return new_objs
 
     def handle_detached_dependency(self, sim, obj):
-        pass
+        self.detach()
+        new_objs = self.attach(sim)
+        return new_objs if new_objs is not None else []
 
     def attach(self, sim):
         raise NotImplementedError

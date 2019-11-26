@@ -82,8 +82,10 @@ class Operations:
         if self._auto_schedule:
             self._schedule([op])
             if old_ref is not None:
-                old_ref.notify_detach(self.simulation)
+                new_objs = old_ref.notify_detach(self.simulation)
                 old_ref.detach()
+            if new_objs is not None:
+                self._compute.extend(new_objs)
 
     @property
     def updaters(self):
