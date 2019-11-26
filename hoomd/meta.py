@@ -30,7 +30,8 @@ from collections import Mapping
 class _Operation:
     _reserved_attrs_with_dft = {'_cpp_obj': lambda: None,
                                 '_param_dict': dict,
-                                '_typeparam_dict': dict}
+                                '_typeparam_dict': dict,
+                                '_dependent_list': lambda: []}
 
     def __getattr__(self, attr):
         if attr in self._reserved_attrs_with_dft.keys():
@@ -84,6 +85,16 @@ class _Operation:
         self._unapply_typeparam_dict()
         self._cpp_obj = None
         return self
+
+    def add_dependent(self, obj):
+        self._dependent_list.append(obj)
+
+    def notify_detach(self):
+        for dependent in self._dependent_list:
+            dependent.handle_detached_dependency(self)
+
+    def handle_detached_dependency(self, obj):
+        pass
 
     def attach(self, sim):
         raise NotImplementedError
