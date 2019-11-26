@@ -6,7 +6,6 @@ from hoomd.parameterdicts import TypeParameterDict, AttachedTypeParameterDict
 from hoomd.parameterdicts import RequiredArg
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
-from hoomd.hpmc import data
 from hoomd.integrate import _integrator
 import hoomd
 import sys
