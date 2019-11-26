@@ -473,6 +473,82 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
             m_Fbar.swap(m_Fbar_last); // we can swap because m_Fbar_last will be reset on the next prepare
             }
 
+        //! Method that is called whenever the GSD file is written if connected to a GSD file.
+        int writeGSD(gsd_handle& handle, std::string name, const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) const
+            {
+
+            if(!exec_conf->isRoot())
+                return 0;
+
+            // Call base method for stepsize
+            int retval = ShapeMoveBase<Shape>::writeGSD(handle, name, exec_conf, mpi);
+            // flatten deformation matrix before writting to GSD
+            unsigned int Ntypes = this->m_step_size.size();
+            int rows = Ntypes*3;
+            std::vector<float> data(rows*3);
+            size_t count = 0;
+            for(unsigned int i = 0; i < Ntypes; i++)
+                {
+                for (unsigned int j = 0; j < 3; j++)
+                    {
+                    data[count*3+0] = float(m_Fbar[i](0,j));
+                    data[count*3+1] = float(m_Fbar[i](1,j));
+                    data[count*3+2] = float(m_Fbar[i](2,j));
+                    count++;
+                  };
+                };
+            std::string path = name + "defmat";
+            exec_conf->msg->notice(2) << "shape_move writing to GSD File to name: "<< name << std::endl;
+            retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, rows, 3, 0, (void *)&data[0]);
+            return retval;
+            };
+
+        //! Method that is called to connect to the gsd write state signal
+        virtual bool restoreStateGSD(   std::shared_ptr<GSDReader> reader,
+                                        std::string name,
+                                        const std::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                        bool mpi)
+            {
+            // Call base method for stepsize
+            bool success = ShapeMoveBase<Shape>::restoreStateGSD(reader, name, exec_conf, mpi);
+            unsigned int Ntypes = this->m_step_size.size();
+            uint64_t frame = reader->getFrame();
+            std::vector<float> defmat(Ntypes*3*3,0.0);
+            if(exec_conf->isRoot())
+                {
+                std::string path = name + "defmat";
+                exec_conf->msg->notice(2) << "shape_move reading from GSD File from name: "<< name << std::endl;
+                success = reader->readChunk((void *)&defmat[0], frame, path.c_str(), 3*3*Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), 3*Ntypes) && success;
+                exec_conf->msg->notice(2) << "defmat success: " << std::boolalpha << success << std::endl;
+                }
+
+            #ifdef ENABLE_MPI
+            if(mpi)
+                {
+                bcast(defmat, 0, exec_conf->getMPICommunicator());
+                }
+            #endif
+
+            if(defmat.size() != (this->m_Fbar).size()*3*3)
+                {
+                throw std::runtime_error("Error occured while attempting to restore from gsd file.");
+                }
+
+            size_t count = 0;
+            for(unsigned int i = 0; i < (this->m_Fbar).size(); i++)
+                {
+                for (unsigned int j = 0; j < 3; j++)
+                    {
+                    this->m_Fbar[i](0,j) = defmat[count*3+0];
+                    this->m_Fbar[i](1,j) = defmat[count*3+1];
+                    this->m_Fbar[i](2,j) = defmat[count*3+2];
+                    count++;
+                    }
+                }
+
+            return success;
+            };
+
         protected:
             unsigned int m_select_ratio;
             std::vector< detail::mass_properties<Shape> > m_mass_props;
