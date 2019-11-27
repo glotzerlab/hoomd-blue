@@ -368,7 +368,7 @@ public:
         detail::mass_properties<ShapeConvexPolyhedron> mp2(points, convex_hull.getFaces());
         this->m_det_inertia_tensor = mp2.getDeterminant();
         m_isoperimetric_quotient = mp2.getIsoperimetricQuotient();
-        shape.diameter = 2.0*sqrt(rsq);
+        shape.diameter = 2.0*fast::sqrt(rsq);
         m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
         }
 
@@ -447,7 +447,7 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
                 vert = vec3<Scalar>( param.x[i], param.y[i], param.z[i]);
                 dsq = fmax(dsq, dot(vert, vert));
                 }
-            param.diameter = 2.0*sqrt(dsq);
+            param.diameter = 2.0*fast::sqrt(dsq);
             m_mass_props[type_id].updateParam(param, false); // update allows caching since for some shapes a full compute is not necessary.
             this->m_det_inertia_tensor = m_mass_props[type_id].getDeterminant();
             #ifdef DEBUG
