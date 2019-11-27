@@ -773,7 +773,7 @@ public:
     ShapeSpring(std::shared_ptr<Variant> k,
                 typename Shape::param_type ref,
                 std::shared_ptr<ElasticShapeMove<Shape> > P)
-        : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
+        : ShapeSpringBase <Shape> (k, ref) , m_shape_move(P)
         {
         }
 
@@ -798,6 +798,49 @@ public:
         return N*stiff*e_ddot_e*this->m_volume;
         }
 };
+
+template<>
+class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
+    {
+
+    typedef typename ShapeEllipsoid::param_type param_type;
+
+    public:
+        ShapeSpring(std::shared_ptr<Variant> k,
+                    param_type ref,
+                    std::shared_ptr<ElasticShapeMove<ShapeEllipsoid>> shape_move)
+                    : ShapeSpringBase<ShapeEllipsoid>(k, ref), m_shape_move(shape_move)
+            {
+            }
+
+        Scalar operator()(const unsigned int& timestep,
+                          const unsigned int& N,
+                          const unsigned int type_id,
+                          const param_type& shape_new,
+                          const Scalar& inew,
+                          const param_type& shape_old,
+                          const Scalar& iold)
+            {
+            Scalar stiff = this->m_k->getValue(timestep);
+            Scalar x_new = shape_new.x/shape_new.y;
+            Scalar x_old = shape_old.x/shape_old.y;
+            return stiff*(log(x_old)*log(x_old) - log(x_new)*log(x_new));
+            }
+
+        Scalar computeEnergy(const unsigned int &timestep,
+                             const unsigned int& N,
+                             const unsigned int type_id,
+                             const param_type& shape,
+                             const Scalar& inertia)
+            {
+            Scalar stiff = m_k->getValue(timestep);
+            Scalar logx = log(shape.x/shape.y);
+            return N*stiff*logx*logx;
+            }
+
+        private:
+            std::shared_ptr<ElasticShapeMove<ShapeEllipsoid>> m_shape_move;
+    };
 
 template<class Shape>
 void export_ShapeMoveInterface(pybind11::module& m, const std::string& name);
