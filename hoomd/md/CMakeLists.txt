@@ -280,9 +280,15 @@ endif()
 fix_cudart_rpath(_md)
 
 # install the library
-install(TARGETS _md _neighbor EXPORT HOOMDTargets
+install(TARGETS _md EXPORT HOOMDTargets
         LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
         )
+
+if (ENABLE_CUDA)
+install(TARGETS _neighbor EXPORT HOOMDTargets
+        LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
+        )
+endif()
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
