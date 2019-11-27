@@ -337,6 +337,10 @@ if (BUILD_MD)
         # add the neighbor library
         set(NEIGHBOR_HOOMD_INTERNAL TRUE)
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
+
+        install(TARGETS _neighbor EXPORT HOOMDTargets
+                LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
+                )
     endif (ENABLE_CUDA)
 
     add_subdirectory(md)

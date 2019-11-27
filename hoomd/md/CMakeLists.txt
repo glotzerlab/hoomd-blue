@@ -284,12 +284,6 @@ install(TARGETS _md EXPORT HOOMDTargets
         LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
         )
 
-if (ENABLE_CUDA)
-install(TARGETS _neighbor EXPORT HOOMDTargets
-        LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
-        )
-endif()
-
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
 MACRO(copy_file file)
