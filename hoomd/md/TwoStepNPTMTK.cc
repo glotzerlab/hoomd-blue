@@ -901,7 +901,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
         Scalar& xi = v.variable[1];
 
         unsigned int g = m_thermo_group->getNDOF();
-        Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_T_randomize*m_tau*m_tau);
+        Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
 
         if (master)
             {
@@ -913,7 +913,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
             {
             // update thermostat for rotational DOF
             Scalar &xi_rot = v.variable[8];
-            Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_thermo_group->getRotationalNDOF()*m_T_randomize*m_tau*m_tau);
+            Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_thermo_group->getRotationalNDOF()*m_tau*m_tau);
 
             if (master)
                 {
@@ -931,7 +931,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
     Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
     unsigned int d = m_sysdef->getNDimensions();
-    Scalar sigmasq_baro = Scalar(1.0)/((Scalar)(m_ndof+d)/(Scalar)d*m_T_randomize*m_tauP*m_tauP);
+    Scalar sigmasq_baro = Scalar(1.0)/((Scalar)(m_ndof+d)/(Scalar)d*m_tauP*m_tauP);
 
     if (master)
         {
