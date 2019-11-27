@@ -739,26 +739,18 @@ public:
         Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
         Eigen::Matrix3d eps_last = m_shape_move->getEpsLast(type_id);
         AlchemyLogBoltzmannFunction< Shape > fn;
-        Scalar e_ddot_e = 0.0, e_ddot_e_last = 0.0;
-        e_ddot_e = eps(0,0)*eps(0,0) + eps(0,1)*eps(1,0) + eps(0,2)*eps(2,0) +
-                 eps(1,0)*eps(0,1) + eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) +
-                 eps(2,0)*eps(0,2) + eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2);
-
-        e_ddot_e_last = eps_last(0,0)*eps_last(0,0) + eps_last(0,1)*eps_last(1,0) + eps_last(0,2)*eps_last(2,0) +
-                 eps_last(1,0)*eps_last(0,1) + eps_last(1,1)*eps_last(1,1) + eps_last(1,2)*eps_last(2,1) +
-                 eps_last(2,0)*eps_last(0,2) + eps_last(2,1)*eps_last(1,2) + eps_last(2,2)*eps_last(2,2) ;
+        Scalar e_ddot_e = (eps*eps.transpose()).trace();
+        Scalar e_ddot_e_last = (eps_last*eps_last.transpose()).trace();
         // TODO: To make this more correct we need to calculate the previous volume and multiply accodingly.
-        return N*stiff*(e_ddot_e_last-e_ddot_e)*this->m_volume + fn(timestep, N, type_id, shape_new, inew, shape_old, iold); // -\beta dH
+        return N*stiff*(e_ddot_e_last-e_ddot_e)*this->m_volume
+               + fn(timestep, N, type_id, shape_new, inew, shape_old, iold);
         }
 
     Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
         {
         Scalar stiff = this->m_k->getValue(timestep);
         Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
-        Scalar e_ddot_e = 0.0;
-        e_ddot_e = eps(0,0)*eps(0,0) + eps(0,1)*eps(1,0) + eps(0,2)*eps(2,0) +
-                 eps(1,0)*eps(0,1) + eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) +
-                 eps(2,0)*eps(0,2) + eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2);
+        Scalar e_ddot_e = (eps*eps.transpose()).trace();
         return N*stiff*e_ddot_e*this->m_volume;
         }
 };
