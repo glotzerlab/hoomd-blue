@@ -350,7 +350,7 @@ public:
         detail::mass_properties<ShapeConvexPolyhedron> mp(convex_hull.getPoints(), convex_hull.getFaces());
         Scalar volume = mp.getVolume();
         vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
-        m_scale = pow(m_volume/volume, 1.0/3.0);
+        m_scale = fast::pow(m_volume/volume, 1.0/3.0);
         Scalar rsq = 0.0;
         std::vector< vec3<Scalar> > points(shape.N);
         for(size_t i = 0; i < shape.N; i++)
