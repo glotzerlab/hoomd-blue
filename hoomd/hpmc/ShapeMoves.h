@@ -613,6 +613,50 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
                 }
     };
 
+template <>
+class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
+    {
+
+    public:
+
+        ElasticShapeMove(unsigned int ntypes,
+                         Scalar stepsize,
+                         Scalar move_ratio)
+                         : ShapeMoveBase<ShapeEllipsoid>(ntypes),
+                         m_mass_props(ntypes), m_move_ratio(move_ratio)
+            {
+            this->m_step_size.resize(ntypes, stepsize);
+            std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
+            }
+
+        void construct(const unsigned int& timestep, const unsigned int& type_id,
+                       typename ShapeEllipsoid::param_type& param, hoomd::RandomGenerator& rng)
+            {
+            Scalar lnx = log(param.x/param.y);
+            Scalar dlnx = hoomd::UniformDistribution<Scalar>(-m_step_size[type_id], m_step_size[type_id])(rng);
+            Scalar x = fast::exp(lnx+dlnx);
+            m_mass_props[type_id].updateParam(param);
+            Scalar volume = m_mass_props[type_id].getVolume();
+            Scalar vol_factor = detail::mass_properties<ShapeEllipsoid>::m_vol_factor;
+            Scalar b = fast::pow(volume/vol_factor/x, 1.0/3.0);
+            param.x = x*b;
+            param.y = b;
+            param.z = b;
+            }
+
+        void prepare(unsigned int timestep)
+            {
+            }
+
+        void retreat(unsigned int timestep)
+            {
+            }
+
+    private:
+        std::vector< detail::mass_properties<ShapeEllipsoid> > m_mass_props;
+        Scalar m_move_ratio;
+    };
+
 template<class Shape>
 class ShapeLogBoltzmannFunction
 {

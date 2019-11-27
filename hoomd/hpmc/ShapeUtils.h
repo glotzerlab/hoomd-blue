@@ -827,6 +827,54 @@ protected:
         }  // end mass_properties<ShapeConvexPolyhedron>::compute()
 };  // end class mass_properties < ShapeConvexPolyhedron >
 
+template<>
+class mass_properties<ShapeEllipsoid> : public mass_properties_base<ShapeEllipsoid>
+    {
+
+    public:
+        mass_properties() : mass_properties_base() {};
+
+        mass_properties(const typename ShapeEllipsoid::param_type& param, bool do_compute = true) :
+                        mass_properties_base(), m_param(param)
+            {
+            if (do_compute) compute();
+            }
+
+        virtual void updateParam(const typename ShapeEllipsoid::param_type& param, bool force = true)
+            {
+            m_param = param;
+            compute();
+            }
+
+        Scalar getDeterminant()
+            {
+            return m_inertia[0]*m_inertia[1]*m_inertia[2];
+            }
+
+    static constexpr Scalar m_vol_factor = Scalar(4.0)/Scalar(3.0)*M_PI;
+
+    protected:
+        using mass_properties_base<ShapeEllipsoid>::m_volume;
+        using mass_properties_base<ShapeEllipsoid>::m_inertia;
+
+        virtual void compute()
+            {
+            m_volume = m_vol_factor*m_param.x*m_param.y*m_param.z;
+            Scalar a2 = m_param.x*m_param.x;
+            Scalar b2 = m_param.y*m_param.y;
+            Scalar c2 = m_param.z*m_param.z;
+            m_inertia[0] = (b2+c2)/Scalar(5.0);
+            m_inertia[1] = (a2+c2)/Scalar(5.0);
+            m_inertia[2] = (a2+b2)/Scalar(5.0);
+            m_inertia[3] = Scalar(0);
+            m_inertia[4] = Scalar(0);
+            m_inertia[5] = Scalar(0);
+            }
+
+    private:
+        typename ShapeEllipsoid::param_type m_param;
+    };
+
 //TODO: Enable true spheropolyhedron calculation
 template < >
 class mass_properties< ShapeSpheropolyhedron > : public mass_properties < ShapeConvexPolyhedron >
