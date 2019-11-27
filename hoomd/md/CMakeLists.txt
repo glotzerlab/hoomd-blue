@@ -274,13 +274,13 @@ else()
     target_link_libraries(_md PUBLIC _hoomd)
 endif()
 if (ENABLE_CUDA)
-    target_link_libraries(_md PRIVATE neighbor)
+    target_link_libraries(_md PRIVATE _neighbor)
 endif()
 
 fix_cudart_rpath(_md)
 
 # install the library
-install(TARGETS _md EXPORT HOOMDTargets
+install(TARGETS _md _neighbor EXPORT HOOMDTargets
         LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
         )
 
