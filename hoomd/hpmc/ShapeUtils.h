@@ -51,6 +51,8 @@ public:
         for(unsigned int i = 0; i < 6; i++) m_inertia[i] = 0.0;
         }
 
+    virtual ~mass_properties_base() {};
+
     Scalar getVolume() { return m_volume; }
 
     Scalar getSurfaceArea() { return m_surface_area; }
@@ -701,9 +703,10 @@ template< >
 class mass_properties< ShapeConvexPolyhedron > : public mass_properties_base< ShapeConvexPolyhedron >
 {
 public:
-    mass_properties() {}
+    mass_properties() : mass_properties_base() {};
 
     mass_properties(const typename ShapeConvexPolyhedron::param_type& param, bool do_compute=true)
+                   : mass_properties_base()
         {
         ConvexHull hull(param);
         hull.compute();

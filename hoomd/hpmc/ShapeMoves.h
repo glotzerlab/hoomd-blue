@@ -27,6 +27,8 @@ public:
         {
         }
 
+    virtual ~ShapeMoveBase() {};
+
     //! prepare is called at the beginning of every update()
     virtual void prepare(unsigned int timestep)
         {
@@ -662,6 +664,9 @@ class ShapeLogBoltzmannFunction
 {
   public:
     ShapeLogBoltzmannFunction(){};
+
+    virtual ~ShapeLogBoltzmannFunction() {};
+
     virtual Scalar operator()(
                                 const unsigned int& timestep,
                                 const unsigned int& N,
