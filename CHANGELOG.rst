@@ -250,13 +250,8 @@ v2.4.2 (2018-12-20)
    returned from ``ParticleData`` and other classes (replace by
    ``GlobalArray``)
 
-<<<<<<< HEAD
 v2.4.1 (2018/11/27)
 ^^^^^^^^^^^^^^^^^^^
-=======
-v2.4.1 (2018-11-27)
-^^^^^^^^^^^^^^^^^^^
->>>>>>> master
 
 *Bug fixes*
 
@@ -266,13 +261,8 @@ v2.4.1 (2018-11-27)
    conditions
 -  Support llvm 7.0
 
-<<<<<<< HEAD
-v2.4.0 (2018/11/07)
-^^^^^^^^^^^^^^^^^^^
-=======
 v2.4.0 (2018-11-07)
 ^^^^^^^^^^^^^^^^^^^
->>>>>>> master
 
 *New features*
 

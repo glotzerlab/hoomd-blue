@@ -23,3 +23,7 @@
 	path = hoomd/extern/hipCUB
 	url = https://jglaser@github.com/jglaser/hipCUB
 	branch = header_only
+[submodule "hoomd/extern/neighbor"]
+	path = hoomd/extern/neighbor
+	url = https://github.com/jglaser/neighbor.git
+	branch = hoomd_next
