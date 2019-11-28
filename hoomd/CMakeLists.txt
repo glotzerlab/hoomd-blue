@@ -340,11 +340,17 @@ if (BUILD_MD)
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/dfftlib)
     endif()
 
-    if (ENABLE_CUDA)
+    if (ENABLE_HIP)
         # add the neighbor library
         set(NEIGHBOR_HOOMD_INTERNAL TRUE)
+
+        if (HIP_PLATFORM STREQUAL "hcc")
+            set(NEIGHBOR_DISABLE_MIXED TRUE)
+            target_compile_definitions(_hoomd PUBLIC NEIGHBOR_DISABLE_MIXED)
+        endif()
+
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
-    endif (ENABLE_CUDA)
+    endif (ENABLE_HIP)
 
     add_subdirectory(md)
 endif()

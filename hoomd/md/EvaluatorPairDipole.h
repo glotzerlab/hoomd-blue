@@ -13,6 +13,10 @@
 #include <string>
 #endif
 
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
+#endif
+
 #include "QuaternionMath.h"
 
 #include <iostream>
@@ -81,9 +85,9 @@ struct dipole_shape_params
      */
     HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const {}
+    void attach_to_stream(hipStream_t stream) const {}
     #endif
     };
 
