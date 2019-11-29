@@ -620,8 +620,8 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
 
                 // check particle circumspheres
 
-                // load particle j
-                const Scalar4 postype_j = old ? d_postype[j] : d_trial_postype[j];
+                // load particle j (always load ghosts from particle data)
+                const Scalar4 postype_j = (old || j >= N_new) ? d_postype[j] : d_trial_postype[j];
                 unsigned int type_j = __scalar_as_int(postype_j.w);
                 vec3<Scalar> pos_j(postype_j);
                 Shape shape_j(quat<Scalar>(), s_params[type_j]);
@@ -1077,7 +1077,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                         next_j = __ldg(&d_excell_idx[excli(k>>1, my_cell)]);
 
                     // read in position of neighboring particle, do not need it's orientation for circumsphere check
-                    postype_j = old ? d_postype[j] : d_trial_postype[j];
+                    // for ghosts always load particle data
+                    postype_j = (old || j >= N_new) ? d_postype[j] : d_trial_postype[j];
                     unsigned int type_j = __scalar_as_int(postype_j.w);
                     Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
 
