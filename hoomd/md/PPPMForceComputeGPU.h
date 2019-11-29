@@ -13,6 +13,7 @@
 #elif __HIP_PLATFORM_NVCC__
 #include <cufft.h>
 typedef cufftComplex hipfftComplex;
+typedef cufftHandle hipfftHandle;
 #endif
 
 #include <sstream>
