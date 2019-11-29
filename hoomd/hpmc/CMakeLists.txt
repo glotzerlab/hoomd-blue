@@ -100,7 +100,7 @@ set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
 endif()
 
 # link the library to its dependencies
-target_link_libraries(_hpmc PUBLIC _hoomd HIP::hip)
+target_link_libraries(_hpmc PUBLIC _hoomd)
 
 if (ENABLE_HIP)
     # no device linking
