@@ -26,4 +26,4 @@
 [submodule "hoomd/extern/neighbor"]
 	path = hoomd/extern/neighbor
 	url = https://github.com/jglaser/neighbor.git
-	branch = hoomd_next
+	branch = hip
