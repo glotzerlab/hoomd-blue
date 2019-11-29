@@ -11,7 +11,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "2.6.0")
+set(HOOMD_VERSION_RAW "3.0.0")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -78,6 +78,7 @@ endif()
 #################################
 ## Build options
 option(SINGLE_PRECISION "Use single precision math" OFF)
+OPTION(ENABLE_HIP "True if we are compiling with HIP as a target" FALSE)
 
 option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
 
@@ -238,6 +239,8 @@ configure_package_config_file(hoomd-config.cmake.in
 
 install(FILES CMake/hoomd/FindTBB.cmake
               CMake/hoomd/FindCUDALibs.cmake
+              CMake/hoomd/HOOMDHIPSetup.cmake
+              CMake/hoomd/hipcc.cmake
               CMake/hoomd/hoomd-macros.cmake
               ${HOOMD_BINARY_DIR}/hoomd-config.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})

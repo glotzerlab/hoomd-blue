@@ -1,5 +1,3 @@
-OPTION(ENABLE_HIP "True if we are compiling with HIP as a target" FALSE)
-
 if(ENABLE_HIP)
     find_package(HIP)
 
@@ -9,7 +7,12 @@ if(ENABLE_HIP)
 
         # call hipcc to tell us about the nvcc options
         set(ENV{HIPCC_VERBOSE} 1)
-        EXECUTE_PROCESS(COMMAND ${HIP_HIPCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/hoomd/test.cc OUTPUT_VARIABLE _hipcc_verbose_out)
+
+        FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/hip_test.cc "
+int main(int argc, char **argv)
+{ }
+")
+        EXECUTE_PROCESS(COMMAND ${HIP_HIPCC_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/hip_test.cc OUTPUT_VARIABLE _hipcc_verbose_out)
 
         string(REPLACE " " ";" _hipcc_verbose_options ${_hipcc_verbose_out})
 
@@ -77,13 +80,13 @@ if(ENABLE_HIP)
         set(HIP_VERSION_PATCH "0")
         set(HIP_NVCC_FLAGS "")
         set(HIP_PLATFORM "nvcc")
-        set(CUB_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cub/")
+        set(CUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/cub/")
     endif()
 
     ENABLE_LANGUAGE(CUDA)
 
     # hipCUB
-    set(HIPCUB_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/hipCUB/hipcub/include;${CUB_INCLUDE_DIR}")
+    set(HIPCUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/hipCUB/hipcub/include/")
 
     if(NOT TARGET HIP::hip)
         add_library(HIP::hip INTERFACE IMPORTED)
