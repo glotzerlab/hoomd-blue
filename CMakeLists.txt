@@ -111,17 +111,17 @@ option(BUILD_JIT "Build the jit package" off)
 # Optionally use TBB for threading
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
 
-# setup MPI support
-include (HOOMDMPISetup)
-# find the python libraries to link to
-include(HOOMDPythonSetup)
-
 # this needs to go before CUDA setup
 include (HOOMDHIPSetup)
 
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
 include (hoomd-macros)
+
+# setup MPI support
+include (HOOMDMPISetup)
+# find the python libraries to link to
+include(HOOMDPythonSetup)
 
 find_package(Eigen3 3.2 CONFIG REQUIRED)
 if (Eigen3_FOUND)
