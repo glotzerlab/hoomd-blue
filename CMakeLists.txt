@@ -184,10 +184,10 @@ if (BUILD_TESTING OR BUILD_VALIDATION)
 endif (BUILD_TESTING OR BUILD_VALIDATION)
 
 # In jenkins tests on multiple build configurations, it is wasteful to run CPU tests on CPU and all GPU test paths
-# this option turns off CPU only tests in builds with ENABLE_CUDA=ON
+# this option turns off CPU only tests in builds with ENABLE_HIP=ON
 option(TEST_CPU_IN_GPU_BUILDS "Test CPU code path in GPU enabled builds" on)
 mark_as_advanced(TEST_CPU_IN_GPU_BUILDS)
-if (NOT TEST_CPU_IN_GPU_BUILDS AND ENABLE_CUDA)
+if (NOT TEST_CPU_IN_GPU_BUILDS AND ENABLE_HIP)
     message(STATUS "Warning: Skipping CPU tests")
 endif()
 

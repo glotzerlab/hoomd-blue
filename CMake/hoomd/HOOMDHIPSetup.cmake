@@ -89,27 +89,27 @@ if(ENABLE_HIP)
         add_library(HIP::hip INTERFACE IMPORTED)
         set_target_properties(HIP::hip PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${HIP_INCLUDE_DIR};${HIPCUB_INCLUDE_DIR}")
-#        target_compile_options(HIP::hip INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:${HIP_NVCC_FLAGS}>)
-        target_compile_definitions(HIP::hip INTERFACE ENABLE_HIP)
 
         if(HIP_PLATFORM STREQUAL "hip-clang")
             # needed with hip-clang
-            target_compile_definitions(HIP::hip INTERFACE __HIP_PLATFORM_HCC__)
+            set_property(TARGET HIP::hip APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS "__HIP_PLATFORM_HCC__")
         endif()
 
-        #set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fgpu-rdc")
-        target_compile_definitions(HIP::hip INTERFACE HIP_PLATFORM=${HIP_PLATFORM})
-
         # set HIP_VERSION_* on non-CUDA targets (the version is already defined on CUDA targets through HIP_NVCC_FLAGS)
-        target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_MAJOR=${HIP_VERSION_MAJOR}>)
-        target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_MINOR=${HIP_VERSION_MINOR}>)
-        target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_PATCH=${HIP_VERSION_PATCH}>)
+        set_property(TARGET HIP::hip APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS
+            $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_MAJOR=${HIP_VERSION_MAJOR}>)
+        set_property(TARGET HIP::hip APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS
+            $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_MINOR=${HIP_VERSION_MINOR}>)
+        set_property(TARGET HIP::hip APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS
+            $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_PATCH=${HIP_VERSION_PATCH}>)
 
         # branch upon HCC or NVCC target
         if(${HIP_PLATFORM} STREQUAL "nvcc")
-            target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_NVCC__>)
+            set_property(TARGET HIP::hip APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS
+                $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_NVCC__>)
         elseif(${HIP_PLATFORM} STREQUAL "hcc")
-            target_compile_definitions(HIP::hip INTERFACE $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_HCC__>)
+            set_property(TARGET HIP::hip APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS
+                $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_HCC__>)
         endif()
     endif()
     find_package(CUDALibs REQUIRED)
