@@ -2,7 +2,7 @@ variables:
   image_root: glotzerlab/ci:2019.11
 
   # default build parameters, will override as needed with job matrix values
-  enable_cuda: off
+  enable_hip: off
   enable_mpi: off
   enable_tbb: off
   build_validation: off
@@ -138,7 +138,7 @@ stages:
   displayName: Unit test (GPU)
   dependsOn: []
   variables:
-    enable_cuda: on
+    enable_hip: on
 
   jobs:
   - job: linux_gpu
