@@ -381,6 +381,8 @@ void NeighborListGPUTree::traverseTree()
     // clear the neighbor counts
     cudaMemset(d_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
 
+    const BoxDim& box = m_pdata->getBox();
+
     // traverse all pairs in (now-transposed) streams
     cudaDeviceSynchronize();
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
@@ -430,7 +432,8 @@ void NeighborListGPUTree::traverseTree()
                                                       Ni,
                                                       m_pdata->getN(),
                                                       rcut,
-                                                      rlist);
+                                                      rlist,
+                                                      box);
                 m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
                 }
             else if (m_filter_body && !m_diameter_shift)
@@ -442,7 +445,8 @@ void NeighborListGPUTree::traverseTree()
                                                      Ni,
                                                      m_pdata->getN(),
                                                      rcut,
-                                                     rlist);
+                                                     rlist,
+                                                     box);
                 m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
                 }
             else if (!m_filter_body && m_diameter_shift)
@@ -454,7 +458,8 @@ void NeighborListGPUTree::traverseTree()
                                                      Ni,
                                                      m_pdata->getN(),
                                                      rcut,
-                                                     rlist);
+                                                     rlist,
+                                                     box);
                 m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
                 }
             else
@@ -466,7 +471,8 @@ void NeighborListGPUTree::traverseTree()
                                                     Ni,
                                                     m_pdata->getN(),
                                                     rcut,
-                                                    rlist);
+                                                    rlist,
+                                                    box);
                 m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
                 }
             }
