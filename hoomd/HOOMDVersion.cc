@@ -29,7 +29,13 @@ std::string hoomd_compile_flags()
     int hip_major = HIP_VERSION_MAJOR;
     int hip_minor = HIP_VERSION_MINOR;
 
-    o << "HIP (" << hip_major << "." << hip_minor << ") ";
+    o << "HIP [";
+    #if defined(__HIP_PLATFORM_NVCC__)
+    o << "CUDA"
+    #elif defined(__HIP_PLATFORM_HCC__)
+    o << "ROCm";
+    #endif
+    o << "] (" << hip_major << "." << hip_minor << ") ";
     #endif
 
     #ifdef SINGLE_PRECISION
