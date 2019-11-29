@@ -154,9 +154,10 @@ struct ParticleQueryOp
                     unsigned int N_,
                     unsigned int Nown_,
                     const Scalar rcut_,
-                    const Scalar rlist_)
+                    const Scalar rlist_,
+                    const BoxDim& box_)
         : positions(positions_), bodies(bodies_), diams(diams_), map(map_),
-          N(N_), Nown(Nown_), rcut(rcut_), rlist(rlist_)
+          N(N_), Nown(Nown_), rcut(rcut_), rlist(rlist_), box(box_)
           {}
 
     #ifdef __HIPCC__
@@ -245,7 +246,6 @@ struct ParticleQueryOp
     /*!
      * \param q The current thread data.
      * \param primitive Index of the intersected primitive.
-     * \param image the current image
      * \returns True If the volumes still overlap after refinement.
      *
      * HOOMD's neighbor lists require additional filtering. This first ensures
@@ -254,7 +254,7 @@ struct ParticleQueryOp
      * enabled, the cutoff radius is adjusted based on the diameters of the
      * particles.
      */
-    DEVICE bool refine(const ThreadData& q, const int primitive, const Scalar3& image) const
+    DEVICE bool refine(const ThreadData& q, const int primitive) const
         {
         bool exclude = (q.idx == primitive);
 
@@ -278,7 +278,7 @@ struct ParticleQueryOp
             rc2 *= rc2;
 
             // compute distance and wrap back into box
-            const Scalar3 dr = r - q.position - image;
+            const Scalar3 dr = box.minImage(r - q.position);
             const Scalar drsq = dot(dr,dr);
 
             // exclude if outside the sphere
@@ -303,6 +303,7 @@ struct ParticleQueryOp
     unsigned int Nown;          //!< Number of particles owned by the local rank
     Scalar rcut;                //!< True cutoff radius + buffer
     Scalar rlist;               //!< Maximum cutoff (may include shifting)
+    const BoxDim box;           //!< Box dimensions
     };
 
 //! Operation to write the neighbor list
