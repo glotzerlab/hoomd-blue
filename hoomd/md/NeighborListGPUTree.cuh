@@ -245,6 +245,7 @@ struct ParticleQueryOp
     /*!
      * \param q The current thread data.
      * \param primitive Index of the intersected primitive.
+     * \param image the current image
      * \returns True If the volumes still overlap after refinement.
      *
      * HOOMD's neighbor lists require additional filtering. This first ensures
@@ -253,7 +254,7 @@ struct ParticleQueryOp
      * enabled, the cutoff radius is adjusted based on the diameters of the
      * particles.
      */
-    DEVICE bool refine(const ThreadData& q, const int primitive) const
+    DEVICE bool refine(const ThreadData& q, const int primitive, const Scalar3& image) const
         {
         bool exclude = (q.idx == primitive);
 
@@ -277,7 +278,7 @@ struct ParticleQueryOp
             rc2 *= rc2;
 
             // compute distance and wrap back into box
-            const Scalar3 dr = r - q.position;
+            const Scalar3 dr = r - q.position - image;
             const Scalar drsq = dot(dr,dr);
 
             // exclude if outside the sphere
