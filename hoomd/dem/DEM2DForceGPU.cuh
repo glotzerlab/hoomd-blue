@@ -3,7 +3,6 @@
 
 // Maintainer: mspells
 
-#include <hip/hip_runtime.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
@@ -17,6 +16,7 @@
 #define __DEM2DFORCEGPU_CUH__
 
 #ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 
 //! Kernel driver that computes 2D DEM forces on the GPU for DEM2DForceComputeGPU
 template<typename Real, typename Real2, typename Real4, typename Evaluator>
