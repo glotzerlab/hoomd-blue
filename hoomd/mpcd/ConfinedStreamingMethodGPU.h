@@ -11,7 +11,7 @@
 #ifndef MPCD_CONFINED_STREAMING_METHOD_GPU_H_
 #define MPCD_CONFINED_STREAMING_METHOD_GPU_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

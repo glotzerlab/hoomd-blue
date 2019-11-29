@@ -367,8 +367,10 @@ if (BUILD_DEM AND BUILD_MD)
     add_subdirectory(dem)
 endif()
 
-if (BUILD_MPCD)
-    add_subdirectory(mpcd)
+if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
+    if (BUILD_MPCD)
+        add_subdirectory(mpcd)
+    endif()
 endif()
 
 if (BUILD_JIT)

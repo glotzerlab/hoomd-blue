@@ -6,7 +6,7 @@
 #ifdef ENABLE_MPI
 
 #include "hoomd/mpcd/Communicator.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/CommunicatorGPU.h"
 #endif
 
@@ -835,7 +835,7 @@ UP_TEST( mpcd_communicator_overdecompose_test )
         test_communicator_overdecompose(exec_conf, 1, 1, 8, true);
         }
     }
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 std::shared_ptr<mpcd::Communicator> gpu_communicator_creator(std::shared_ptr<mpcd::SystemData> mpcd_sys,
                                                              unsigned int nstages)
     {
@@ -892,5 +892,5 @@ UP_TEST( mpcd_communicator_migrate_ortho_test_GPU_two_stage )
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_migrate_ortho(communicator_creator_gpu, exec_conf, 2);
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI

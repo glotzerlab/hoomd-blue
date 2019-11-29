@@ -6,9 +6,9 @@
 #include "utils.h"
 #include "hoomd/mpcd/CellList.h"
 #include "hoomd/mpcd/CellThermoCompute.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/CellThermoComputeGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -320,7 +320,7 @@ UP_TEST( mpcd_cell_thermo_embed )
     cell_thermo_embed_test<mpcd::CellThermoCompute>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 UP_TEST( mpcd_cell_thermo_basic_gpu )
     {
     cell_thermo_basic_test<mpcd::CellThermoComputeGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
@@ -329,4 +329,4 @@ UP_TEST( mpcd_cell_thermo_embed_gpu )
     {
     cell_thermo_embed_test<mpcd::CellThermoComputeGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

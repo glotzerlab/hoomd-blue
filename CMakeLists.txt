@@ -105,7 +105,6 @@ option(BUILD_HPMC "Build the hpmc package" off)
 endif()
 option(BUILD_METAL "Build the metal package" on)
 option(BUILD_DEM "Build the dem package" on)
-option(BUILD_MPCD "Build the mpcd package" on)
 option(BUILD_JIT "Build the jit package" off)
 
 # Optionally use TBB for threading
@@ -122,6 +121,12 @@ include (hoomd-macros)
 include (HOOMDMPISetup)
 # find the python libraries to link to
 include(HOOMDPythonSetup)
+
+if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
+    option(BUILD_MPCD "Build the mpcd package" on)
+else()
+    option(BUILD_MPCD "Build the mpcd package" off)
+endif()
 
 find_package(Eigen3 3.2 CONFIG REQUIRED)
 if (Eigen3_FOUND)

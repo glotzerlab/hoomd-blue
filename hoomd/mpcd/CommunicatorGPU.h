@@ -14,7 +14,7 @@
 #ifdef ENABLE_MPI
 #ifdef ENABLE_HIP
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
