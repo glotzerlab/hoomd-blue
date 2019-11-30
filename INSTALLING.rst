@@ -93,9 +93,13 @@ Install prerequisites
     - MPI (tested with OpenMPI, MVAPICH)
     - cereal >= 1.1 (required when ``ENABLE_MPI=on``)
 
-  - For GPU execution (required when ``ENABLE_CUDA=on``):
+  - For GPU execution (required when ``ENABLE_HIP=on``):
 
     - NVIDIA CUDA Toolkit >= 9.0
+
+    **OR**
+
+    - AMD ROCm >= 2.9
 
   - For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``):
 
@@ -160,14 +164,14 @@ to enable optimizations specific to your CPU::
 
     -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native
 
-Set ``-DENABLE_CUDA=ON`` to compile for the GPU and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI.
+Set ``-DENABLE_HIP=ON`` to compile for the GPU and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI.
 See the build options section below for a full list of options.
 
 Compile::
 
     ▶ make -j4
 
-Test your build (requires a GPU to pass if **HOOMD-blue** was built with CUDA support)::
+Test your build (requires a GPU to pass if **HOOMD-blue** was built with HIP support)::
 
     ▶ ctest
 
@@ -191,7 +195,7 @@ generate. The ``Makefile`` is now updated with the newly selected
 options. You can also set these parameters on the command line with
 ``cmake``::
 
-    ▶ cmake . -DENABLE_CUDA=ON
+    ▶ cmake . -DENABLE_HIP=ON
 
 Options that specify library versions only take effect on a clean invocation of
 CMake. To set these options, first remove ``CMakeCache.txt`` and then run ``cmake``
@@ -201,7 +205,7 @@ and specify these options on the command line:
 
   - Default: ``python3.X`` detected on ``$PATH``
 
-- ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` to build with.
+- ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` or ``hipcc`` to build with.
 
   - Default: location of ``nvcc`` detected on ``$PATH``
 
@@ -227,7 +231,7 @@ Other option changes take effect at any time. These can be set from within
     asserts are removed. Recommended for production builds: required for any
     benchmarking.
 
-- ``ENABLE_CUDA`` - Enable compiling of the GPU accelerated computations. Default: ``OFF``.
+- ``ENABLE_HIP`` - Enable compiling of the GPU accelerated computations. Default: ``OFF``.
 - ``ENABLE_DOXYGEN`` - Enables the generation of developer documentation
   Default: ``OFF``.
 - ``SINGLE_PRECISION`` - Controls precision. Default: ``OFF``.
@@ -259,7 +263,7 @@ Other option changes take effect at any time. These can be set from within
   - When set to ``ON``, HOOMD will use TBB to speed up calculations in some
     classes on multiple CPU cores.
 
-These options control CUDA compilation:
+These options control CUDA compilation via ``nvcc``:
 
 - ``CUDA_ARCH_LIST`` - A semicolon-separated list of GPU architectures to
   compile in.
