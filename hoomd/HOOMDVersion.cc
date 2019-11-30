@@ -31,7 +31,7 @@ std::string hoomd_compile_flags()
 
     o << "HIP [";
     #if defined(__HIP_PLATFORM_NVCC__)
-    o << "CUDA"
+    o << "CUDA";
     #elif defined(__HIP_PLATFORM_HCC__)
     o << "ROCm";
     #endif
