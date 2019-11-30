@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
     else()
         # here we go if hipcc is not available, fall back on internal HIP->CUDA headers
-        set(HIP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/HIP/include")
+        set(HIP_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/HIP/include/")
 
         # use CUDA runtime version
         set(HIP_VERSION_MAJOR "(CUDART_VERSION/1000)")

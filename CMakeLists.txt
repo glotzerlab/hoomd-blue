@@ -239,8 +239,13 @@ configure_package_config_file(hoomd-config.cmake.in
 
 install(FILES CMake/hoomd/FindTBB.cmake
               CMake/hoomd/FindCUDALibs.cmake
+              CMake/HIP/FindHIP.cmake
               CMake/hoomd/HOOMDHIPSetup.cmake
               CMake/hoomd/hipcc.cmake
               CMake/hoomd/hoomd-macros.cmake
               ${HOOMD_BINARY_DIR}/hoomd-config.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})
+
+install(FILES CMake/HIP/FindHIP/run_hipcc.cmake
+              CMake/HIP/FindHIP/run_make2cmake.cmake
+        DESTINATION ${CONFIG_INSTALL_DIR}/FindHIP)
