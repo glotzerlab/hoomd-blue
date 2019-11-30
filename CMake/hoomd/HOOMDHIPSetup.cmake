@@ -45,6 +45,10 @@ int main(int argc, char **argv)
         # this is hack to set the right options on hipcc, may not be portable
         include(hipcc)
 
+        # override command line, so that it doesn't contain "-x cu"
+        set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
+            "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
+
         # don't let CMake examine the compiler, because it will fail
         SET(CMAKE_CUDA_COMPILER_FORCED TRUE)
 
