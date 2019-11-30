@@ -807,6 +807,8 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
             );
     #endif
 
+    m_acquired = true;
+
     // make sure a null array can be acquired
     if (!this->m_exec_conf || isNull() )
         return GlobalArrayDispatch<T>(nullptr, *this);
@@ -830,8 +832,6 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
             CHECK_CUDA_ERROR();
         }
     #endif
-
-    m_acquired = true;
 
     return GlobalArrayDispatch<T>(m_data.get(), *this);
     }
