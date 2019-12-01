@@ -102,10 +102,10 @@ Install prerequisites
     - AMD ROCm >= 2.9
 
       Required components:
-      - rocfft
-      - rocprim
-      - rocthrust
-      - hipCUB
+        - rocfft
+        - rocprim
+        - rocthrust
+        - hipCUB
 
   - For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``):
 
