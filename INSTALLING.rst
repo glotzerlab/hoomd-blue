@@ -101,6 +101,12 @@ Install prerequisites
 
     - AMD ROCm >= 2.9
 
+      Required components:
+      - rocfft
+      - rocprim
+      - rocthrust
+      - hipCUB
+
   - For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``):
 
     - Intel Threading Building Blocks >= 4.3
