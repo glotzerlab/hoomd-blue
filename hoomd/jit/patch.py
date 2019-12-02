@@ -150,7 +150,6 @@ class user(object):
                 llvm_ir = f.read()
 
         if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            sys_include_path = "/usr/include"
             include_path = os.path.dirname(hoomd.__file__) + '/include';
             include_path_source = hoomd._hoomd.__hoomd_source_dir__;
             cuda_devrt_library_path = _jit.__cuda_devrt_library_path__;
