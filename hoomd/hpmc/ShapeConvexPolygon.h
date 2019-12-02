@@ -8,8 +8,7 @@
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "XenoCollide2D.h"
 
-#ifndef __SHAPE_CONVEX_POLYGON_H__
-#define __SHAPE_CONVEX_POLYGON_H__
+#pragma once
 
 #ifdef NVCC
 #define DEVICE __device__
@@ -617,4 +616,3 @@ DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec
 
 #undef DEVICE
 #undef HOSTDEVICE
-#endif //__SHAPE_CONVEX_POLYGON_H__

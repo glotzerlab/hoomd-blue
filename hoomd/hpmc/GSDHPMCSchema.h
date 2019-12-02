@@ -162,11 +162,11 @@ struct gsd_shape_schema<hpmc::SphereParams>: public gsd_schema_hpmc_base
     };
 
 template<>
-struct gsd_shape_schema<hpmc::ell_params>: public gsd_schema_hpmc_base
+struct gsd_shape_schema<hpmc::EllipsoidParams>: public gsd_schema_hpmc_base
     {
     gsd_shape_schema(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) : gsd_schema_hpmc_base(exec_conf, mpi) {}
 
-    int write(gsd_handle& handle, const std::string& name, unsigned int Ntypes,const param_array<hpmc::ell_params>& shape)
+    int write(gsd_handle& handle, const std::string& name, unsigned int Ntypes,const param_array<hpmc::EllipsoidParams>& shape)
         {
         if(!m_exec_conf->isRoot())
             return 0;
@@ -174,13 +174,13 @@ struct gsd_shape_schema<hpmc::ell_params>: public gsd_schema_hpmc_base
         int retval = 0;
         std::vector<float> data(Ntypes);
         std::string path = name + "a";
-        std::transform(shape.cbegin(), shape.cend(), data.begin(), [](const hpmc::ell_params& s)->float{return s.x;});
+        std::transform(shape.cbegin(), shape.cend(), data.begin(), [](const hpmc::EllipsoidParams& s)->float{return s.x;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
         path = name + "b";
-        std::transform(shape.cbegin(), shape.cend(), data.begin(), [](const hpmc::ell_params& s)->float{return s.y;});
+        std::transform(shape.cbegin(), shape.cend(), data.begin(), [](const hpmc::EllipsoidParams& s)->float{return s.y;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
         path = name + "c";
-        std::transform(shape.cbegin(), shape.cend(), data.begin(), [](const hpmc::ell_params& s)->float{return s.z;});
+        std::transform(shape.cbegin(), shape.cend(), data.begin(), [](const hpmc::EllipsoidParams& s)->float{return s.z;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
         return retval;
         }
@@ -189,7 +189,7 @@ struct gsd_shape_schema<hpmc::ell_params>: public gsd_schema_hpmc_base
                 uint64_t frame,
                 const std::string& name,
                 unsigned int Ntypes,
-                param_array<hpmc::ell_params>& shape
+                param_array<hpmc::EllipsoidParams>& shape
             )
         {
 

@@ -13,8 +13,7 @@
 
 #include <stdexcept>
 
-#ifndef __SHAPE_SPHERE_H__
-#define __SHAPE_SPHERE_H__
+#pragma once
 
 #ifdef NVCC
 #define DEVICE __device__
@@ -528,4 +527,3 @@ DEVICE inline bool test_overlap_intersection(const ShapeSphere& a, const ShapeSp
 
 #undef DEVICE
 #undef HOSTDEVICE
-#endif //__SHAPE_SPHERE_H__

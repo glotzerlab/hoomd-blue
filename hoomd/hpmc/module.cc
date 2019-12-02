@@ -79,9 +79,9 @@ PYBIND11_MODULE(_hpmc, m)
         .def(pybind11::init< pybind11::dict >())
         .def("asDict", &SphereParams::asDict)
         ;
-    py::class_<ell_params, std::shared_ptr<ell_params> >(m, "ell_params")
+    py::class_<EllipsoidParams, std::shared_ptr<EllipsoidParams> >(m, "EllipsoidParams")
         .def(pybind11::init< pybind11::dict >())
-        .def("asDict", &ell_params::asDict)
+        .def("asDict", &EllipsoidParams::asDict)
         ;
     py::class_<PolygonVertices, std::shared_ptr<PolygonVertices> >(m, "PolygonVertices")
         .def(pybind11::init< pybind11::dict >())

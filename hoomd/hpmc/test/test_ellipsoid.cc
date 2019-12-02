@@ -26,7 +26,7 @@ UP_TEST( construction )
     {
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
 
-    ell_params axes;
+    EllipsoidParams axes;
     axes.x = 3;
     axes.y = 1;
     axes.z = 2;
@@ -55,7 +55,7 @@ UP_TEST( overlap_ellipsoid_sphere )
     BoxDim box(100);
 
     // build two ellipsoids
-    ell_params axes;
+    EllipsoidParams axes;
     axes.x = 1;
     axes.y = 1;
     axes.z = 1;
@@ -82,12 +82,12 @@ UP_TEST( overlap_ellipsoid_no_rot )
     BoxDim box(100);
 
     // build two ellipsoids
-    ell_params axes_a;
+    EllipsoidParams axes_a;
     axes_a.x = 3;
     axes_a.y = 1;
     axes_a.z = 2;
     axes_a.ignore=0;
-    ell_params axes_b;
+    EllipsoidParams axes_b;
     axes_b.x = 2;
     axes_b.y = 3;
     axes_b.z = 1;
@@ -171,12 +171,12 @@ UP_TEST( overlap_ellipsoid_mystery )
 
     BoxDim box(100);
 
-    ell_params axes_a;
+    EllipsoidParams axes_a;
     axes_a.x = 0.5;
     axes_a.y = 0.5;
     axes_a.z = 0.25;
     axes_a.ignore=0;
-    ell_params axes_b;
+    EllipsoidParams axes_b;
     axes_b.x = 0.1;
     axes_b.y = 0.1;
     axes_b.z = 0.1;
@@ -272,12 +272,12 @@ UP_TEST( overlap_ellipsoid_mystery_2 )
 
     BoxDim box(100);
 
-    ell_params axes_a;
+    EllipsoidParams axes_a;
     axes_a.x = 0.5;
     axes_a.y = 0.5;
     axes_a.z = 0.25;
     axes_a.ignore=0;
-    ell_params axes_b;
+    EllipsoidParams axes_b;
     axes_b.x = 0.5;
     axes_b.y = 0.5;
     axes_b.z = 0.25;
@@ -312,12 +312,12 @@ UP_TEST( overlap_ellipsoid_mystery_2 )
     axes_b.z = 0.15;
     axes_b.ignore=0;
 
-    a = ShapeEllipsoid(o_a, axes_a);
-    b = ShapeEllipsoid(o_b, axes_b);
+    c = ShapeEllipsoid(o_a, axes_a);
+    d = ShapeEllipsoid(o_b, axes_b);
 
     r_ij = vec3<Scalar>(-0.0152884, -0.00495342, 0.0171991);
-    UP_ASSERT(test_overlap(r_ij,a,b,err_count));
-    UP_ASSERT(test_overlap(-r_ij,b,a,err_count));
+    UP_ASSERT(test_overlap(r_ij,c,d,err_count));
+    UP_ASSERT(test_overlap(-r_ij,d,c,err_count));
     }
 
 UP_TEST( overlap_ellipsoid_sanity )
@@ -340,12 +340,12 @@ UP_TEST( overlap_ellipsoid_sanity )
 
     BoxDim box(100);
 
-    ell_params axes_a;
+    EllipsoidParams axes_a;
     axes_a.x = 1;
     axes_a.y = 2;
     axes_a.z = 3;
     axes_a.ignore=0;
-    ell_params axes_b;
+    EllipsoidParams axes_b;
     axes_b.x = 3;
     axes_b.y = 2;
     axes_b.z = 1;
@@ -428,7 +428,7 @@ UP_TEST( overlap_ellipsoid_range )
     BoxDim box(100);
 
     // build two ellipsoids
-    ell_params axes;
+    EllipsoidParams axes;
     axes.x=2;
     axes.y=1;
     axes.z=1;
@@ -502,7 +502,7 @@ UP_TEST( overlap_sphere_as_ellipsoid_range )
     BoxDim box(100);
 
     // build two ellipsoids
-    ell_params axes;
+    EllipsoidParams axes;
     axes.x=1.125;
     axes.y=1;
     axes.z=1;
@@ -578,7 +578,7 @@ UP_TEST( overlap_sphere_as_ellipsoid_range_rot1 )
     BoxDim box(100);
 
     // build two ellipsoids
-    ell_params axes;
+    EllipsoidParams axes;
     axes.x=1.125;
     axes.y=1;
     axes.z=1;
@@ -657,13 +657,13 @@ UP_TEST( overlap_sphere_as_ellipsoid_range_crazy )
      //are the same. This tests the ability of the numerical stability checker to properly handle cases
      //when different types of ellipsoids are compared. Because it sets up two ellipsoids so that the
      //rotation to fix the stability issues makes the ellipsoids have the same orientation
-    ell_params axes_a;
+    EllipsoidParams axes_a;
     axes_a.x=1.125;
     axes_a.y=1;
     axes_a.z=1;
     axes_a.ignore=0;
     ShapeEllipsoid a(o_a,axes_a);
-    ell_params axes_b;
+    EllipsoidParams axes_b;
     axes_b.x=1.0;
     axes_b.y=1.125;
     axes_b.z=1;
@@ -739,12 +739,12 @@ UP_TEST( overlap_ellipsoid_rot1 )
     BoxDim box(100);
 
     // build two ellipsoids
-    ell_params axes_a;
+    EllipsoidParams axes_a;
     axes_a.x = 3;
     axes_a.y = 1;
     axes_a.z = 2;
     axes_a.ignore=0;
-    ell_params axes_b;
+    EllipsoidParams axes_b;
     axes_b.x = 2;
     axes_b.y = 3;
     axes_b.z = 1;
@@ -819,12 +819,12 @@ UP_TEST( overlap_ellipsoid_rot2 )
     BoxDim box(100);
 
     // build two ellipsoids
-    ell_params axes_a;
+    EllipsoidParams axes_a;
     axes_a.x = 3;
     axes_a.y = 1;
     axes_a.z = 2;
     axes_a.ignore=0;
-    ell_params axes_b;
+    EllipsoidParams axes_b;
     axes_b.x = 2;
     axes_b.y = 3;
     axes_b.z = 1;
