@@ -50,7 +50,7 @@ namespace hpmc
 */
 
 
-struct ell_params : param_base
+struct ell_params : ShapeParams
     {
     OverlapReal x;                      //!< x semiaxis of the ellipsoid
     OverlapReal y;                      //!< y semiaxis of the ellipsoid

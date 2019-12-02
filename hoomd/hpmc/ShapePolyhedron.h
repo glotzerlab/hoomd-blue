@@ -57,7 +57,7 @@
  //! Data structure for general polytopes
  /*! \ingroup hpmc_data_structs */
 
-struct poly3d_data : param_base
+struct poly3d_data : ShapeParams
      {
      poly3d_data()
          : convex_hull_verts(), verts(), face_offs(),
@@ -154,9 +154,9 @@ struct poly3d_data : param_base
              for (unsigned int i = 0; i < n_faces; i++)
                  {
                  face_overlap[i] = pybind11::cast<unsigned int>(overlap_list[i]);
-                 }            
+                 }
             }
-                 
+
          // extract the verts from the python list and compute the radius on the way
          OverlapReal radius_sq = OverlapReal(0.0);
          for (unsigned int i = 0; i < pybind11::len(verts_list); i++)

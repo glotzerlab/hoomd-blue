@@ -38,7 +38,7 @@ const unsigned int MAX_SPHERE_CENTERS = 8;
 
 //! Data structure for sphere centers and diameters
 /*! \ingroup hpmc_data_structs */
-struct sphinx3d_params : param_base
+struct sphinx3d_params : ShapeParams
     {
     OverlapReal circumsphereDiameter;               //!< Circumsphere Diameter of all spheres defined in intersection
     unsigned int N;                                //!< Number of spheres

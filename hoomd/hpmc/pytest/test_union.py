@@ -8,9 +8,9 @@ def test_union():
     sph_args_2 = {'diameter':9, 'orientable': 1, 'ignore_statistics':1}
     sph_args_3 = {'diameter':4, 'orientable': 0, 'ignore_statistics':0}
 
-    test_sphere1 = hpmc.sph_params(sph_args_1)
-    test_sphere2 = hpmc.sph_params(sph_args_2)
-    test_sphere3 = hpmc.sph_params(sph_args_3)
+    test_sphere1 = hpmc.SphereParams(sph_args_1)
+    test_sphere2 = hpmc.SphereParams(sph_args_2)
+    test_sphere3 = hpmc.SphereParams(sph_args_3)
 
     sph_union_args1 = {'members': [test_sphere1, test_sphere2], 'positions': [(0, 0, 0), (0, 0, 1)], 'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)], 'overlap': [1, 1], 'capacity': 4, 'ignore_statistics': 1}
     sph_test_args1 = {'members': [sph_args_1, sph_args_2], 'positions': [(0, 0, 0), (0, 0, 1)], 'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)], 'overlap': [1, 1], 'capacity': 4, 'ignore_statistics': 1}

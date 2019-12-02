@@ -46,7 +46,7 @@ namespace detail
 
 //! Data structure for intersection planes
 /*! \ingroup hpmc_data_structs */
-struct faceted_ellipsoid_params : param_base
+struct faceted_ellipsoid_params : ShapeParams
     {
     //! Empty constructor
     faceted_ellipsoid_params()
@@ -146,7 +146,7 @@ struct faceted_ellipsoid_params : param_base
             pybind11::tuple normal_tuple = pybind11::tuple(normal_i_list);
             normals.append(normal_tuple);
             }
-            
+
         pybind11::list origin_list;
         origin_list.append(origin.x);
         origin_list.append(origin.y);

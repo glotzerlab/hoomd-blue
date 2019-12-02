@@ -91,11 +91,11 @@ struct gsd_shape_schema : public gsd_schema_hpmc_base
     };
 
 template<>
-struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
+struct gsd_shape_schema<hpmc::SphereParams>: public gsd_schema_hpmc_base
     {
     gsd_shape_schema(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) : gsd_schema_hpmc_base(exec_conf, mpi) {}
 
-    int write(gsd_handle& handle, const std::string& name, unsigned int Ntypes, const param_array<hpmc::sph_params>& shape)
+    int write(gsd_handle& handle, const std::string& name, unsigned int Ntypes, const param_array<hpmc::SphereParams>& shape)
         {
         if(!m_exec_conf->isRoot())
             return 0;
@@ -104,9 +104,9 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         std::string path_o = name + "orientable";
         std::vector<float> data(Ntypes);
         std::vector<uint8_t> orientableflag(Ntypes);
-        std::transform(shape.begin(), shape.end(), data.begin(), [](const hpmc::sph_params& s)->float{return s.radius;});
+        std::transform(shape.begin(), shape.end(), data.begin(), [](const hpmc::SphereParams& s)->float{return s.radius;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
-        std::transform(shape.begin(), shape.end(), orientableflag.begin(), [](const hpmc::sph_params& s)->uint32_t{return s.isOriented;});
+        std::transform(shape.begin(), shape.end(), orientableflag.begin(), [](const hpmc::SphereParams& s)->uint32_t{return s.isOriented;});
         retval |= gsd_write_chunk(&handle, path_o.c_str(), GSD_TYPE_UINT8, Ntypes, 1, 0, (void *)&orientableflag[0]);
         return retval;
         }
@@ -115,7 +115,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
                 uint64_t frame,
                 const std::string& name,
                 unsigned int Ntypes,
-                param_array<hpmc::sph_params>& shape
+                param_array<hpmc::SphereParams>& shape
             )
         {
 

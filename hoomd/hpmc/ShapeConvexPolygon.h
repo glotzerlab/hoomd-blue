@@ -42,7 +42,7 @@ const unsigned int MAX_POLY2D_VERTS=64;
 
 //! Data structure for polygon vertices
 /*! \ingroup hpmc_data_structs */
-struct poly2d_verts : param_base
+struct poly2d_verts : ShapeParams
     {
 
     OverlapReal x[MAX_POLY2D_VERTS];    //!< X coordinate of vertices

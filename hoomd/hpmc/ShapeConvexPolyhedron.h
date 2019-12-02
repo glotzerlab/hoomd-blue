@@ -45,7 +45,7 @@ namespace detail
 //! Data structure for polyhedron vertices
 //! Note that vectorized methods using this struct will assume unused coordinates are set to zero.
 /*! \ingroup hpmc_data_structs */
-    struct poly3d_verts : param_base
+    struct poly3d_verts : ShapeParams
 
     {
         /*

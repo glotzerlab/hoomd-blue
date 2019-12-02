@@ -39,7 +39,7 @@ namespace detail
 
 //! Data structure for shape composed of a union of multiple shapes
 template<class Shape>
-struct union_params : param_base
+struct union_params : ShapeParams
     {
     typedef GPUTree gpu_tree_type; //!< Handy typedef for GPUTree template
     typedef typename Shape::param_type mparam_type;
@@ -215,12 +215,12 @@ struct union_params : param_base
     pybind11::dict asDict()
         {
         pybind11::dict v;
-        
+
         pybind11::list positions;
         pybind11::list orientations;
         pybind11::list overlaps;
         pybind11::list members;
-        
+
         for (unsigned int i = 0; i < N; i++)
             {
             pybind11::list pos_i;
@@ -229,7 +229,7 @@ struct union_params : param_base
             pos_i.append(mpos[i].z);
             pybind11::tuple pos_tuple = pybind11::tuple(pos_i);
             positions.append(pos_tuple);
-            
+
            // quat<OverlapReal> orientation_i = morientation[i];
             //QuatIterator<OverlapReal> begin = orientation_i.begin();
             //QuatIterator<OverlapReal> end = orientation_i.end();
