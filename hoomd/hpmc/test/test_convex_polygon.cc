@@ -23,12 +23,12 @@ using namespace std;
 unsigned int err_count = 0;
 
 // helper function to compute poly radius
-poly2d_verts setup_verts(const vector< vec2<OverlapReal> > vlist)
+PolygonVertices setup_verts(const vector< vec2<OverlapReal> > vlist)
     {
     if (vlist.size() > MAX_POLY2D_VERTS)
         throw runtime_error("Too many polygon vertices");
 
-    poly2d_verts result;
+    PolygonVertices result;
     result.N = vlist.size();
     result.ignore = 0;
 
@@ -63,7 +63,7 @@ poly2d_verts setup_verts(const vector< vec2<OverlapReal> > vlist)
 // void write_poly_gle(ostream& o, const ShapeConvexPolygon& poly, const vec3<Scalar>& pos)
 //     {
 //     // first transform all verts into screen space (rotation only, translation handled by an rmove)
-//     poly2d_verts ss_verts = poly.verts;
+//     PolygonVertices ss_verts = poly.verts;
 
 //     for (unsigned int i = 0; i < ss_verts.N; i++)
 //         ss_verts.v[i] = rotate(quat<OverlapReal>(poly.orientation), ss_verts.v[i]);
@@ -91,7 +91,7 @@ UP_TEST( construction )
     vlist.push_back(vec2<OverlapReal>(0,0));
     vlist.push_back(vec2<OverlapReal>(1,0));
     vlist.push_back(vec2<OverlapReal>(0,1.25));
-    poly2d_verts verts = setup_verts(vlist);
+    PolygonVertices verts = setup_verts(vlist);
 
     ShapeConvexPolygon a(o, verts);
 
@@ -125,7 +125,7 @@ UP_TEST( overlap_square_no_rot )
     vlist.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist.push_back(vec2<OverlapReal>(-0.5,0.5));
-    poly2d_verts verts = setup_verts(vlist);
+    PolygonVertices verts = setup_verts(vlist);
 
     ShapeConvexPolygon a(o, verts);
 
@@ -212,7 +212,7 @@ UP_TEST( overlap_square_rot1 )
     vlist.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist.push_back(vec2<OverlapReal>(-0.5,0.5));
-    poly2d_verts verts = setup_verts(vlist);
+    PolygonVertices verts = setup_verts(vlist);
 
     ShapeConvexPolygon a(o_a, verts);
 
@@ -290,7 +290,7 @@ UP_TEST( overlap_square_rot2 )
     vlist.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist.push_back(vec2<OverlapReal>(-0.5,0.5));
-    poly2d_verts verts = setup_verts(vlist);
+    PolygonVertices verts = setup_verts(vlist);
 
     ShapeConvexPolygon a(o_b, verts);
 
@@ -370,13 +370,13 @@ UP_TEST( overlap_square_tri )
     vlist_a.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist_a.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist_a.push_back(vec2<OverlapReal>(-0.5,0.5));
-    poly2d_verts verts_a = setup_verts(vlist_a);
+    PolygonVertices verts_a = setup_verts(vlist_a);
 
     std::vector< vec2<OverlapReal> > vlist_b;
     vlist_b.push_back(vec2<OverlapReal>(-0.5,-0.5));
     vlist_b.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist_b.push_back(vec2<OverlapReal>(0.5,0.5));
-    poly2d_verts verts_b = setup_verts(vlist_b);
+    PolygonVertices verts_b = setup_verts(vlist_b);
 
     ShapeConvexPolygon a(o_a, verts_a);
 
@@ -427,7 +427,7 @@ UP_TEST( overlap_square_tri )
     BoxDim box(100);
 
     // build a hexagon
-    poly2d_verts verts_a;
+    PolygonVertices verts_a;
     verts_a.N = 6;
     verts_a.v[0] = vec2<Scalar>(-0.5,-0.5);
     verts_a.v[1] = vec2<Scalar>(0.1,-0.4);
@@ -440,7 +440,7 @@ UP_TEST( overlap_square_tri )
     ShapeConvexPolygon a(vec3<Scalar>(0,0,0), quat<Scalar>(), verts_a);
 
     // build a triangle
-    poly2d_verts verts_b;
+    PolygonVertices verts_b;
     verts_b.N = 3;
     verts_b.v[0] = vec2<Scalar>(-0.5,-0.5);
     verts_b.v[1] = vec2<Scalar>(0.5,-0.5);

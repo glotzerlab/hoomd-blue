@@ -335,11 +335,11 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
     };
 
 template<>
-struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_base
+struct gsd_shape_schema< hpmc::detail::PolygonVertices >: public gsd_schema_hpmc_base
     {
     gsd_shape_schema(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) : gsd_schema_hpmc_base(exec_conf, mpi) {}
 
-    int write(gsd_handle& handle, const std::string& name, unsigned int Ntypes, const param_array<hpmc::detail::poly2d_verts>& shape)
+    int write(gsd_handle& handle, const std::string& name, unsigned int Ntypes, const param_array<hpmc::detail::PolygonVertices>& shape)
         {
         if(!m_exec_conf->isRoot())
             return 0;
@@ -348,7 +348,7 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
         int retval = 0;
         std::vector<uint32_t> N(Ntypes);
         path = name + "N";
-        std::transform(shape.cbegin(), shape.cend(), N.begin(), [](const hpmc::detail::poly2d_verts& s) -> uint32_t{return s.N;});
+        std::transform(shape.cbegin(), shape.cend(), N.begin(), [](const hpmc::detail::PolygonVertices& s) -> uint32_t{return s.N;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_UINT32, Ntypes, 1, 0, (void *)&N[0]);
         path = name + "vertices";
         std::vector<float> data(hpmc::detail::MAX_POLY2D_VERTS*Ntypes*2), sr(Ntypes); // over allocate is ok because we just wont write those extra ones
@@ -364,7 +364,7 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
             }
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, count, 2, 0, (void *)&data[0]);
         path = name + "sweep_radius";
-        std::transform(shape.cbegin(), shape.cend(), sr.begin(), [](const hpmc::detail::poly2d_verts& s) -> float{return s.sweep_radius;});
+        std::transform(shape.cbegin(), shape.cend(), sr.begin(), [](const hpmc::detail::PolygonVertices& s) -> float{return s.sweep_radius;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&sr[0]);
         return retval;
         }
@@ -373,7 +373,7 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
                 uint64_t frame,
                 const std::string& name,
                 unsigned int Ntypes,
-                param_array<hpmc::detail::poly2d_verts>& shape
+                param_array<hpmc::detail::PolygonVertices>& shape
             )
         {
 

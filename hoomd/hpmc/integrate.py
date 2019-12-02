@@ -523,7 +523,7 @@ class ConvexPolygon(HPMCIntegrator):
 
     """
     _cpp_cls = 'IntegratorHPMCMonoConvexPolygon'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -534,9 +534,10 @@ class ConvexPolygon(HPMCIntegrator):
                                         param_dict=TypeParameterDict(
                                             vertices=RequiredArg,
                                             ignore_statistics=False,
+                                            sweep_radius=0,
                                             len_keys=1)
                                         )
-        
+
         self._add_typeparam(typeparam_shape)
 
     def get_type_shapes(self):
@@ -594,7 +595,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
     """
     _cpp_cls = 'IntegratorHPMCMonoSpheropolygon'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -604,12 +605,13 @@ class ConvexSpheropolygon(HPMCIntegrator):
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=RequiredArg,
+                                            sweep_radius=RequiredArg,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
-        
+
         self._add_typeparam(typeparam_shape)
-    
+
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
@@ -662,9 +664,9 @@ class SimplePolygon(HPMCIntegrator):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    
+
     _cpp_cls = 'IntegratorHPMCMonoSimplePolygon'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -675,9 +677,10 @@ class SimplePolygon(HPMCIntegrator):
                                         param_dict=TypeParameterDict(
                                             vertices=RequiredArg,
                                             ignore_statistics=False,
+                                            sweep_radius=0,
                                             len_keys=1)
                                         )
-        
+
         self._add_typeparam(typeparam_shape)
 
     def get_type_shapes(self):
@@ -767,9 +770,9 @@ class Polyhedron(HPMCIntegrator):
         mc.shape_param.set('A', vertices = cube_verts, faces = cube_faces);
         mc.shape_param.set('B', vertices = tetra_verts, faces = tetra_faces, origin = (0,0,0));
     """
-    
+
     _cpp_cls = 'IntegratorHPMCMonoPolyhedron'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -790,9 +793,9 @@ class Polyhedron(HPMCIntegrator):
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
-        
+
         self._add_typeparam(typeparam_shape)
-    
+
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
@@ -847,9 +850,9 @@ class ConvexPolyhedron(HPMCIntegrator):
         mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
         mc.set_fugacity('B',fugacity=3.0)
     """
-    
+
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedron'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -864,7 +867,7 @@ class ConvexPolyhedron(HPMCIntegrator):
                                             len_keys=1)
                                         )
         self._add_typeparam(typeparam_shape)
-        
+
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
@@ -948,7 +951,7 @@ class FacetedEllipsoid(HPMCIntegrator):
         mc.set_fugacity('B',fugacity=3.0)
     """
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoid'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -1073,7 +1076,7 @@ class Sphinx(HPMCIntegrator):
         mc.set_fugacity('B',fugacity=3.0)
     """
     _cpp_cls = 'IntegratorHPMCMonoSphinx'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -1089,8 +1092,8 @@ class Sphinx(HPMCIntegrator):
                                             len_keys=1)
                                         )
         self._add_typeparam(typeparam_shape)
-    
-    
+
+
 class ConvexSpheropolyhedron(HPMCIntegrator):
     R""" HPMC integration for spheropolyhedra (3D).
 
@@ -1136,9 +1139,9 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
         mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
         mc.set_fugacity('B',fugacity=3.0)
     """
-    
+
     _cpp_cls = 'IntegratorHPMCMonoSpheropolyhedron'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -1154,7 +1157,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
                                             len_keys=1)
                                         )
         self._add_typeparam(typeparam_shape)
-    
+
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
@@ -1205,7 +1208,7 @@ class Ellipsoid(HPMCIntegrator):
         mc.set_fugacity('B',fugacity=3.0)
     """
     _cpp_cls = 'IntegratorHPMCMonoEllipsoid'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -1279,9 +1282,9 @@ class SphereUnion(HPMCIntegrator):
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
         mc.set_fugacity('B',fugacity=3.0)
     """
-    
+
     _cpp_cls = 'IntegratorHPMCMonoSphereUnion'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -1300,7 +1303,7 @@ class SphereUnion(HPMCIntegrator):
                                         )
         self._add_typeparam(typeparam_shape)
 
-    
+
 class ConvexSpheropolyhedronUnion(HPMCIntegrator):
     R""" HPMC integration for unions of convex polyhedra (3D).
 
@@ -1337,9 +1340,9 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
         print('center of the first cube = ', mc.shape_param['A'].centers[0])
         print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
     """
-    
+
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedronUnion'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -1407,9 +1410,9 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
         print('normals of the first faceted ellispoid = ', mc.shape_param['A'].members[0].offsets)
         print('vertices of the first faceted ellipsoid = ', mc.shape_param['A'].members[0].vertices)
     """
-    
+
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoidUnion'
-    
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 

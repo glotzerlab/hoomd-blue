@@ -227,7 +227,7 @@ struct ShapeSphere
     */
     HOSTDEVICE static bool isParallel() { return false; }
 
-    /// Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return true;
