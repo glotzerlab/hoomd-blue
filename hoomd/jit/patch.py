@@ -134,12 +134,9 @@ class user(object):
         # check if initialization has occurred
         hoomd.context._verify_init()
 
-        # raise an error if this run is on the GPU
-        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            hoomd.context.current.device.cpp_msg.error("Patch energies are not supported on the GPU\n");
-            raise RuntimeError("Error initializing patch energy");
+        self.compute_name = "patch"
 
-        # Find a clang executable if none is provided
+        # Find a clang executable if none is provided (we need the CPU version even when running on GPU)
         if clang_exec is not None:
             clang = clang_exec;
         else:
@@ -152,8 +149,29 @@ class user(object):
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
-        self.compute_name = "patch"
-        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size);
+        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+            sys_include_path = "/usr/include"
+            include_path = os.path.dirname(hoomd.__file__) + '/include';
+            include_path_source = hoomd._hoomd.__hoomd_source_dir__;
+            cuda_devrt_library_path = _jit.__cuda_devrt_library_path__;
+
+
+            # select maximum supported compute capability out of those we compile for
+            compute_archs = _jit.__cuda_compute_archs__;
+            compute_archs_vec = _hoomd.std_vector_uint()
+            compute_capability = hoomd.context.current.device.cpp_exec_conf.getComputeCapability(0) # GPU 0
+            compute_major, compute_minor = compute_capability.split('.')
+            max_arch = 0
+            for a in compute_archs.split('_'):
+                if int(a) < int(compute_major)*10+int(compute_major):
+                    max_arch = int(a)
+
+            gpu_code = self.wrap_code_gpu(array_size, 1, code)
+            self.cpp_evaluator = _jit.PatchEnergyJITGPU(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size,
+                gpu_code, include_path, include_path_source, cuda_devrt_library_path, max_arch);
+        else:
+            self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size);
+
         mc.set_PatchEnergyEvaluator(self);
 
         self.mc = mc
@@ -175,6 +193,7 @@ class user(object):
         .. versionadded:: 2.3
         '''
         cpp_function = """
+#include <stdio.h>
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
@@ -225,6 +244,51 @@ float eval(const vec3<float>& r_ij,
             raise RuntimeError("Error initializing patch energy");
 
         return llvm_ir
+
+    def wrap_code_gpu(self, array_size_iso, array_size_union, code):
+        R'''Helper function to compile the provided code into a device function
+
+        Args:
+            code (str): C++ code to compile
+            clang_exec (str): The Clang executable to use
+            fn (str): If provided, the code will be written to a file.
+            array_size_iso (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
+            array_size_union (int): Size of array with adjustable elements for unions of shapes. (added in version 2.8)
+
+        .. versionadded:: 3.0
+        '''
+        cpp_function = """
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
+#include "hoomd/jit/Evaluator.cuh"
+
+__device__ float alpha_iso[{}];
+__device__ float alpha_union[{}];
+
+extern "C"
+{{
+__device__ float eval(const vec3<float>& r_ij,
+    unsigned int type_i,
+    const quat<float>& q_i,
+    float d_i,
+    float charge_i,
+    unsigned int type_j,
+    const quat<float>& q_j,
+    float d_j,
+    float charge_j)
+    {{
+""".format(array_size_iso, array_size_union);
+        cpp_function += code
+        cpp_function += """
+    }
+}
+
+// store pointer to device function in a static variable
+__device__ eval_func p_eval = eval;
+"""
+
+        # Compile on C++ side
+        return cpp_function
 
     R''' Disable the patch energy and optionally enable it only for logging
 

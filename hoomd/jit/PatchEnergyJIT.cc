@@ -10,7 +10,8 @@
     After construction, the LLVM IR is loaded, compiled, and the energy() method is ready to be called.
 */
 PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut,
-                const unsigned int array_size) : m_r_cut(r_cut), m_alpha_size(array_size)
+                const unsigned int array_size)
+    : m_exec_conf(exec_conf), m_r_cut(r_cut), m_alpha_size(array_size)
     {
     // build the JIT.
     m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir));

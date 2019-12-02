@@ -103,9 +103,10 @@ endif()
 target_link_libraries(_hpmc PUBLIC _hoomd)
 
 if (ENABLE_HIP)
-    # no device linking
-    set_property(TARGET _hpmc PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
-endif()
+    # Separable compilation is needed to support ExternalField.cu polymorphism.
+    set_property(TARGET _hpmc PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+    target_link_libraries(_hpmc PUBLIC CUDA::cudadevrt)
+endif (ENABLE_HIP)
 
 fix_cudart_rpath(_hpmc)
 

@@ -83,6 +83,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
             }
 
     protected:
+        std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The exceuction configuration
         //! function pointer signature
         typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, float, float, unsigned int type_j, const quat<float>& q_j, float, float);
         Scalar m_r_cut;                             //!< Cutoff radius

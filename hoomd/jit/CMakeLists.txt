@@ -13,6 +13,7 @@ llvm_map_components_to_libnames(llvm_libs executionengine support core irreader 
 set(_${PACKAGE_NAME}_sources
      module-${PACKAGE_NAME}.cc
      PatchEnergyJIT.cc
+     PatchEnergyJITGPU.cc
      PatchEnergyJITUnion.cc
    )
 
@@ -22,17 +23,30 @@ set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc ExternalFieldEvalFactory.cc)
 
 set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
                              PatchEnergyJITUnion.h
+                             PatchEnergyJITGPU.h
                              ExternalFieldJIT.h
                              EvalFactory.h
+                             Evaluator.cuh
                              ExternalFieldEvalFactory.h
                              KaleidoscopeJIT.h
+                             jitify_safe_headers.hpp
    )
 
-pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} NO_EXTRAS)
+pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_${PACKAGE_NAME}_cu_sources} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_${PACKAGE_NAME} ALIAS _${PACKAGE_NAME})
 
 add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
+
+if (ENABLE_HIP)
+    # Separable compilation is needed to support ExternalField.cu polymorphism.
+    # This likely breaks plugin support though. :-(
+    set_property(TARGET _${PACKAGE_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+    target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_DEVRT_LIBRARY_PATH=\"${CUDA_cudadevrt_LIBRARY}\")
+    string(REPLACE ";" "_" CUDA_COMPUTE_ARCHS "${CUDA_ARCH_LIST}")
+    target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_COMPUTE_ARCHS=\"${CUDA_COMPUTE_ARCHS}\")
+    target_link_libraries(_${PACKAGE_NAME} PUBLIC CUDA::cudadevrt CUDA::cuda CUDA::nvrtc)
+endif (ENABLE_HIP)
 
 target_include_directories(_${PACKAGE_NAME}_llvm PUBLIC
                            $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>

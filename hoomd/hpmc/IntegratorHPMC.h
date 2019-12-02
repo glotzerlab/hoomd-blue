@@ -10,6 +10,10 @@
 */
 
 
+#ifdef ENABLE_HIP
+#include "hoomd/jit/Evaluator.cuh"
+#endif
+
 #include "hoomd/Integrator.h"
 #include "hoomd/CellList.h"
 
@@ -77,6 +81,15 @@ class PatchEnergy
         return 0;
         }
 
+    #ifdef ENABLE_HIP
+    //! Return the device function pointer for a GPU
+    /* \param idev the logical GPU id
+     */
+    virtual eval_func getDeviceFunc(unsigned int idev) const
+        {
+        throw std::runtime_error("PatchEnergyJIT (base class) does not support device pointers.");
+        }
+    #endif
     };
 
 class PYBIND11_EXPORT IntegratorHPMC : public Integrator

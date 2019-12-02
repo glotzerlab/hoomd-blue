@@ -68,10 +68,46 @@ if (HIP_PLATFORM STREQUAL "nvcc")
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
       )
     endif()
-    list(APPEND REQUIRED_CUDA_LIB_VARS CUDA_cudadevrt_LIBRARY)  
+    list(APPEND REQUIRED_CUDA_LIB_VARS CUDA_cudadevrt_LIBRARY)
 else()
     # separable compilation not supported with HIP
     add_library(CUDA::cudadevrt UNKNOWN IMPORTED)
+endif()
+
+if (BUILD_JIT)
+if (HIP_PLATFORM STREQUAL "nvcc")
+    find_library(CUDA_nvrtc_LIBRARY nvrtc HINTS ${CUDA_LIB_PATH} NO_DEFAULT_PATH)
+    mark_as_advanced(CUDA_nvrtc_LIBRARY)
+    if(CUDA_nvrtc_LIBRARY AND NOT TARGET CUDA::nvrtc)
+      add_library(CUDA::nvrtc UNKNOWN IMPORTED)
+      set_target_properties(CUDA::nvrtc PROPERTIES
+        IMPORTED_LOCATION "${CUDA_nvrtc_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
+      )
+    endif()
+    list(APPEND REQUIRED_CUDA_LIB_VARS CUDA_nvrtc_LIBRARY)
+else()
+    # separable compilation not supported with HIP
+    add_library(CUDA::nvrtc UNKNOWN IMPORTED)
+endif()
+
+if (HIP_PLATFORM STREQUAL "nvcc")
+    # find libraries that go with this compiler
+    find_library(CUDA_cuda_LIBRARY cuda HINTS ${CUDA_LIB_PATH})
+    mark_as_advanced(CUDA_cuda_LIBRARY)
+    if(CUDA_cuda_LIBRARY AND NOT TARGET CUDA::cuda)
+      add_library(CUDA::cuda UNKNOWN IMPORTED)
+      set_target_properties(CUDA::cuda PROPERTIES
+        IMPORTED_LOCATION "${CUDA_cuda_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
+      )
+    endif()
+    list(APPEND REQUIRED_CUDA_LIB_VARS "CUDA_cuda_LIBRARY")
+else()
+    # define empty target
+    add_library(CUDA::cuda UNKNOWN IMPORTED)
+endif()
+
 endif()
 
 if (HIP_PLATFORM STREQUAL "nvcc")

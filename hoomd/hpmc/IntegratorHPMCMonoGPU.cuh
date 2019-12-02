@@ -12,6 +12,7 @@
 #include "hoomd/CachedAllocator.h"
 
 #include "hoomd/hpmc/HPMCCounters.h"
+#include "hoomd/jit/Evaluator.cuh"
 
 #include <cassert>
 
@@ -146,6 +147,50 @@ struct hpmc_args_t
     const GPUPartition& gpu_partition; //!< Multi-GPU partition
     };
 
+//! Wraps arguments to hpmc_* template functions
+/*! \ingroup hpmc_data_structs */
+struct hpmc_patch_args_t
+    {
+    //! Construct a hpmc_patch_args_t
+    hpmc_patch_args_t(eval_func *_evaluators,
+                const bool _old_config,
+                const Scalar _r_cut_patch,
+                const Scalar *_d_additive_cutoff,
+                unsigned int *_d_nlist,
+                unsigned int *_d_nneigh,
+                const unsigned int _maxn,
+                unsigned int *_d_overflow,
+                float *_d_energy,
+                const Scalar *_d_charge,
+                const Scalar *_d_diameter)
+                : evaluators(_evaluators),
+                  old_config(_old_config),
+                  r_cut_patch(_r_cut_patch),
+                  d_additive_cutoff(_d_additive_cutoff),
+                  d_nlist(_d_nlist),
+                  d_nneigh(_d_nneigh),
+                  maxn(_maxn),
+                  d_overflow(_d_overflow),
+                  d_energy(_d_energy),
+                  d_charge(_d_charge),
+                  d_diameter(_d_diameter)
+        {
+        };
+
+    eval_func *evaluators;           //!< The device function pointer for energy evaluation, for every device
+    bool old_config;                 //!< True if we are evaluating the energy in the old config of particle i
+    const Scalar r_cut_patch;        //!< Global cutoff radius
+    const Scalar *d_additive_cutoff; //!< Additive contribution to cutoff per type
+    unsigned int *d_nlist;           //!< List of neighbor particle indices
+    unsigned int *d_nneigh;          //!< Number of neighbors
+    const unsigned int maxn;         //!< Max number of neighbors
+    unsigned int *d_overflow;        //!< Overflow condition
+    float* d_energy;                 //!< Evaluated energy terms for every neighbor
+    const Scalar *d_charge;          //!< Particle charges
+    const Scalar *d_diameter;        //!< Particle diameters
+    };
+
+
 //! Wraps arguments to kernel::hpmc_insert_depletants
 /*! \ingroup hpmc_data_structs */
 struct hpmc_implicit_args_t
@@ -237,6 +282,9 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
 template< class Shape >
 void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type *params);
 
+//! Driver for kernel::hpmc_narrow_phase_patch()
+void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& patch_args);
+
 //! Driver for kernel::hpmc_update_pdata()
 template< class Shape >
 void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::param_type *params);
@@ -264,7 +312,18 @@ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                  const unsigned int N_old,
                  const unsigned int N,
                  const unsigned int maxn,
+                 bool patch,
+                 const unsigned int *d_nlist_patch_old,
+                 const unsigned int *d_nlist_patch_new,
+                 const unsigned int *d_nneigh_patch_old,
+                 const unsigned int *d_nneigh_patch_new,
+                 const float *d_energy_old,
+                 const float *d_energy_new,
+                 const unsigned int maxn_patch,
                  unsigned int *d_condition,
+                 const unsigned int seed,
+                 const unsigned int select,
+                 const unsigned int timestep,
                  const unsigned int block_size);
 
 #ifdef __HIPCC__
@@ -752,6 +811,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
         #endif
         }
     }
+
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape, bool quermass >
@@ -1445,7 +1505,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
                                                                      args.d_reject_out_of_cell,
                                                                      params
                                                                 );
- 
+
         }
     }
 
@@ -1525,7 +1585,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 
     shared_bytes += extra_bytes;
     dim3 thread(tpp, n_groups, 1);
-    
+
     for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = args.gpu_partition.getRangeAndSetGPU(idev);
@@ -1535,7 +1595,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 
         dim3 grid(num_blocks, 1, 1);
 
-        hipLaunchKernelGGL(kernel::hpmc_narrow_phase<Shape>, grid, thread, shared_bytes, 0, 
+        hipLaunchKernelGGL(kernel::hpmc_narrow_phase<Shape>, grid, thread, shared_bytes, 0,
             args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
             args.d_excell_idx, args.d_excell_size, args.excli,
             args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
@@ -1837,7 +1897,6 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
         params);
     }
 #endif
-
 
 } // end namespace gpu
 
