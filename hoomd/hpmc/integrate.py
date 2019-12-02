@@ -420,16 +420,12 @@ class Sphere(HPMCIntegrator):
     Args:
         seed (int): Random number seed
         d (float): Maximum move displacement, Scalar to set for all types, or a
-        dict containing {type:size} to set by type.
-        a (float, only with **orientable=True**): Maximum rotation move, Scalar
-        to set for all types, or a dict containing {type:size} to set by type.
-        (added in version 2.3)
+            dict containing {type:size} to set by type.
+        a (float): Maximum rotation move to set for all types, or a dict
+            containing {type:size} to set by type.
         move_ratio (float, only used with **orientable=True**): Ratio of
-        translation moves to rotation moves. (added in version 2.3)
+            translation moves to rotation moves. (added in version 2.3)
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file
-        when True. See :py:class:`HPMCIntegrator` for a description of what state
-        data restored.  (added in version 2.2)
 
     Hard particle Monte Carlo integration method for spheres.
 
@@ -437,9 +433,9 @@ class Sphere(HPMCIntegrator):
 
     * *diameter* (**required**) - diameter of the sphere (distance units)
     * *orientable* (**default: False**) - set to True for spheres with
-    orientation (added in version 2.3)
+      orientation (added in version 2.3)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
-    for statistics tracking
+      for statistics tracking
 
     Examples::
 

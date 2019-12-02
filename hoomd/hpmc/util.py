@@ -621,7 +621,7 @@ class tune(object):
     * maximum (:py:class:`float`): maximum value the tuner may set for the tunable parameter
 
     The default ``tunable_map`` defines the :py:obj:`callable` for 'set' to call
-    :py:meth:`hoomd.hpmc.integrate.mode_hpmc.set_params` with ``tunable={type: newval}``
+    ``hoomd.hpmc.integrate.mode_hpmc.set_params`` with ``tunable={type: newval}``
     instead of ``tunable=newval`` if the ``type`` argument is given when creating
     the ``tune`` object.
 

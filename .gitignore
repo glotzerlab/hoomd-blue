@@ -11,3 +11,4 @@ __pycache__
 .idea
 *.code-workspace
 .vscode/
+devdoc/
