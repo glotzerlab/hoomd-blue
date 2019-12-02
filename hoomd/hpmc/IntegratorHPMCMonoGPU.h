@@ -456,7 +456,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
             cudaMemAdvise(m_nneigh.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_nneigh.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
 
-            if (this->m_patch)
+            if (this->m_patch && !this->m_patch_log)
                 {
                 cudaMemAdvise(m_nneigh_patch_old.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
                 cudaMemPrefetchAsync(m_nneigh_patch_old.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
@@ -475,7 +475,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     {
     IntegratorHPMC::update(timestep);
 
-    if (this->m_patch)
+    if (this->m_patch && !this->m_patch_log)
         {
         ArrayHandle<Scalar> h_additive_cutoff(m_additive_cutoff, access_location::host, access_mode::overwrite);
         for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
@@ -543,7 +543,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             m_trial_orientation.resize(this->m_pdata->getMaxN());
             m_trial_move_type.resize(this->m_pdata->getMaxN());
 
-            if (this->m_patch)
+            if (this->m_patch && !this->m_patch_log)
                 {
                 m_nneigh_patch_old.resize(this->m_pdata->getMaxN());
                 m_nneigh_patch_new.resize(this->m_pdata->getMaxN());
@@ -890,7 +890,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                 reallocate = checkReallocate();
                 } while (reallocate);
 
-            if (this->m_patch)
+            if (this->m_patch && !this->m_patch_log)
                 {
                 // make sure neighbor list size is sufficient before running the kernels
                 checkReallocatePatch();

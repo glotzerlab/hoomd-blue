@@ -40,7 +40,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
                                 else
                                     return 0.0f;
                             """.format(self.r_cut,self.lamb);
-            self.snapshot = data.make_snapshot(N=2, box=data.boxdim(L=2*self.r_cut, dimensions=3), particle_types=['A']);
+            self.snapshot = data.make_snapshot(N=2, box=data.boxdim(L=10*self.r_cut, dimensions=3), particle_types=['A']);
 
         # a) particle 1 on top of particle 2: parallel dipole orientations
         def test_head_to_tail_parallel(self):
