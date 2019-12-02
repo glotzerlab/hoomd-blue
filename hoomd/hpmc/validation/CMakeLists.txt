@@ -61,6 +61,10 @@ set(TEST_LIST_CPU ${TEST_LIST_CPU}
     wca_dumbbell.py 0 2
     lj_spheres.py 0 0
 )
+set(TEST_LIST_GPU
+    wca_dumbbell.py 0 2
+    lj_spheres.py 0 0
+)
 endif(BUILD_JIT)
 
 set(TEST_LIST_GPU
@@ -72,7 +76,6 @@ disk_eos.py 0 0
 
 set(EXCLUDE_FROM_GPU_MPI
     spheres_implicit.py
-    wca_dumbbell.py
 )
 
 set(EXCLUDE_FROM_MPI
