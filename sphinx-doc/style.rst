@@ -24,7 +24,7 @@ Tools
 ^^^^^
 
 * Linter: `flake8 <http://flake8.pycqa.org/en/latest/>`_ with
-`pep8-naming <https://pypi.org/project/pep8-naming/>`_
+  `pep8-naming <https://pypi.org/project/pep8-naming/>`_
 * Autoformatter: `autopep8 <https://pypi.org/project/autopep8/>`_
 * See ``setup.cfg`` for the **flake8** configuration (also used by
   **autopep8**).
@@ -60,7 +60,7 @@ Tools
 ^^^^^
 
 * Autoformatter: We plan to provide a style configuration file once
-**clang-format** 10 is more widely available.
+  **clang-format** 10 is more widely available.
 
 Documentation
 ^^^^^^^^^^^^^
