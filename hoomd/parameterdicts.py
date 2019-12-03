@@ -1,6 +1,7 @@
 from itertools import product, combinations_with_replacement
 from copy import deepcopy
 from numpy import array, ndarray
+from hoomd.util import to_camel_case
 
 # Psudonym for None that states an argument is required to be supplied by the
 # user
@@ -25,10 +26,6 @@ def has_str_elems(obj):
 def is_good_iterable(obj):
     '''Returns True if object is iterable with respect to types.'''
     return is_iterable(obj) and has_str_elems(obj)
-
-
-def to_camel_case(string):
-    return string.replace('_', ' ').title().replace(' ', '')
 
 
 def proper_type_return(val):
