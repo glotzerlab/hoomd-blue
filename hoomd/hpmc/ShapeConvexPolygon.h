@@ -1,14 +1,14 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#pragma once
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "HPMCPrecisionSetup.h"
 #include "hoomd/VectorMath.h"
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "XenoCollide2D.h"
-
-#pragma once
 
 #ifdef NVCC
 #define DEVICE __device__
@@ -149,7 +149,7 @@ struct PolygonVertices : ShapeParams
     SupportFuncConvexPolygon is a functor that computes the support function for ShapeConvexPolygon.
     For a given input vector in local coordinates, it finds the vertex most in that direction.
 
-    \todo Make a minkowski namespace
+    @todo Make a minkowski namespace
 */
 class SupportFuncConvexPolygon
     {
@@ -498,7 +498,7 @@ DEVICE inline bool is_outside(const PolygonVertices& verts, const vec2<OverlapRe
     q_a^* q_b - q_b^* \vec{a} q_b \f$. The first rotation is by the already computed `ab_r`! The 2nd
     only needs to be computed once
 
-    \note Only edges in *a* are checked. This function must be called twice for a full separating
+    @note Only edges in *a* are checked. This function must be called twice for a full separating
     planes overlap test
 */
 DEVICE inline bool find_separating_plane(const PolygonVertices& a,
@@ -551,11 +551,9 @@ DEVICE inline bool find_separating_plane(const PolygonVertices& a,
     @param qb Orientation of second polygon
     @returns true when the two polygons overlap
 
-    \pre Polygon vertices are in **counter-clockwise** order
-    \pre The shape is convex and contains no internal vertices
-
-    \ingroup overlap
-*/
+    @pre Polygon vertices are in **counter-clockwise** order
+    @pre The shape is convex and contains no internal vertices
+f*/
 DEVICE inline bool test_overlap_separating_planes(const PolygonVertices& a,
                                                   const PolygonVertices& b,
                                                   const vec2<OverlapReal>& ab_t,

@@ -94,7 +94,6 @@ UP_TEST( construction )
     PolygonVertices verts = setup_verts(vlist);
 
     ShapeConvexPolygon a(o, verts);
-
     MY_CHECK_CLOSE(a.orientation.s, o.s, tol);
     MY_CHECK_CLOSE(a.orientation.v.x, o.v.x, tol);
     MY_CHECK_CLOSE(a.orientation.v.y, o.v.y, tol);

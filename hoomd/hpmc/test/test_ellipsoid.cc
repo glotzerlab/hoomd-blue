@@ -312,8 +312,8 @@ UP_TEST( overlap_ellipsoid_mystery_2 )
     axes_b.z = 0.15;
     axes_b.ignore=0;
 
-    c = ShapeEllipsoid(o_a, axes_a);
-    d = ShapeEllipsoid(o_b, axes_b);
+    ShapeEllipsoid c(o_a, axes_a);
+    ShapeEllipsoid d(o_b, axes_b);
 
     r_ij = vec3<Scalar>(-0.0152884, -0.00495342, 0.0171991);
     UP_ASSERT(test_overlap(r_ij,c,d,err_count));
