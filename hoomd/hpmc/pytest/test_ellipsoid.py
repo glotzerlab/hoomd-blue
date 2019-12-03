@@ -1,6 +1,8 @@
 import hoomd
 import hoomd.hpmc
 import hoomd.hpmc._hpmc as hpmc
+import math
+import pytest
 
 def test_ellipsoid():
 
@@ -18,5 +20,108 @@ def test_ellipsoid():
     test_ellipsoid3 = hpmc.ell_params(args_3)
     test_dict3 = test_ellipsoid3.asDict()
     assert test_dict3 == args_3
+    
+
+def test_shape_params():
+
+    mc = hoomd.hpmc.integrate.Ellipsoid(23456)
+
+    mc.shape['A'] = dict()
+    assert mc.shape['A']['a'] is None
+    assert mc.shape['A']['b'] is None
+    assert mc.shape['A']['c'] is None
+    assert mc.shape['A']['ignore_statistics'] is False
+
+    mc.shape['B'] = dict(a=2.5, b=1, c=3)
+    assert mc.shape['B']['a'] == 2.5
+    assert mc.shape['B']['b'] == 1
+    assert mc.shape['B']['c'] == 3
+    assert mc.shape['B']['ignore_statistics'] is False
+
+    mc.shape['C'] = dict(ignore_statistics=True)
+    assert mc.shape['C']['a'] is None
+    assert mc.shape['C']['b'] is None
+    assert mc.shape['C']['c'] is None
+    assert mc.shape['C']['ignore_statistics'] is True
+
+
+def test_shape_params_attached(device, dummy_simulation_factory):
+
+    mc = hoomd.hpmc.integrate.Ellipsoid(23456)
+
+    mc.shape['A'] = dict(a=5.1, b=1.7, c=2.2)
+    mc.shape['B'] = dict(a=1.1, b=4.6, c=6.3, ignore_statistics=True)
+    mc.shape['C'] = dict(a=0.4, b=25, c=3.1)
+    mc.shape['D'] = dict(a=4.2, b=4.2, c=4.2)
+
+    sim = dummy_simulation_factory(particle_types=['A', 'B', 'C', 'D'])
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    #isclose(a, b, rel_tol = 1e-09, abs_tol 0.0)
+    assert math.isclose(mc.shape['A']['a'], 5.1, rel_tol = 1e-06)
+    assert math.isclose(mc.shape['A']['b'], 1.7, rel_tol = 1e-06)
+    assert math.isclose(mc.shape['A']['c'], 2.2, rel_tol = 1e-06)
+    assert mc.shape['A']['ignore_statistics'] == False
+    
+    assert math.isclose(mc.shape['B']['a'], 1.1, rel_tol = 1e-06)
+    assert math.isclose(mc.shape['B']['b'], 4.6, rel_tol = 1e-06)
+    assert math.isclose(mc.shape['B']['c'], 6.3, rel_tol = 1e-06)
+    assert mc.shape['B']['ignore_statistics'] == True
+    
+    assert math.isclose(mc.shape['C']['a'], 0.4, rel_tol = 1e-06)
+    assert math.isclose(mc.shape['C']['b'], 25, rel_tol = 1e-06)
+    assert math.isclose(mc.shape['C']['c'], 3.1, rel_tol = 1e-06)
+    assert mc.shape['C']['ignore_statistics'] == False
+    
+    assert math.isclose(mc.shape['D']['a'], 4.2, rel_tol = 1e-06)
+    assert math.isclose(mc.shape['D']['b'], 4.2, rel_tol = 1e-06)
+    assert math.isclose(mc.shape['D']['c'], 4.2, rel_tol = 1e-06)
+    assert mc.shape['D']['ignore_statistics'] == False
+
+    # check for errors on invalid input
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a='invalid', b='invalid', c='invalid')
+ 
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a=1.3, b='invalid', c='invalid')
+    
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a='invalid', b=4.1, c='invalid')
+    
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a='invalid', b='invalid', c=3.6)
+        
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a=5.5, b=2.7, c='invalid')
+    
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a=1.8, b='invalid', c=8.3)
+    
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a='invalid', b=4.7, c=5.8)
+
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a=[1, 2, 3], b=[4, 5, 6], c=[7, 8, 9])
+        
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a=3.1, b=[4, 5, 6], c=[7, 8, 9])
+        
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a=[1, 2, 3], b=4.2, c=[7, 8, 9])
+        
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a=[1, 2, 3], b=[4, 5, 6], c=7.1)
+        
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a=1.2, b=3.1, c=[7, 8, 9])
+        
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a=4.4, b=[4, 5, 6], c=9.1)
+        
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a=[1, 2, 3], b=4.4, c=2.9)
+
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = dict(a=2.1, b=5.2, c=1.4, ignore_statistics='invalid')
 
 

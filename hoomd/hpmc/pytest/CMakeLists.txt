@@ -20,6 +20,8 @@ set(files __init__.py
     test_faceted_ellipsoid.py
     test_union.py
     test_simple_polygon.py
+    test_convex_spheropolygon.py
+    test_convex_spheropolyhedron.py
     )
 
 install(FILES ${files}

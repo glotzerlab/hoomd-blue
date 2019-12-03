@@ -55,11 +55,11 @@ def test_polyhedron(dummy_integrator_args):
               'capacity': 3,
               'origin': (0, 1, 0),
               'hull_only': False}
-
+    '''
     test_polyhedron2 = _hpmc.poly3d_data(args_2)
     test_dict2 = test_polyhedron2.asDict()
     assert test_dict2 == args_2
-
+    '''
     args_3 = {'vertices':[(0, 3, 0), (2, 1, 0), (1, 3, 1), (1, 1, 1), (1, 2, 5), (3, 0, 1), (0, 3, 3)],
               'faces':[[0, 1, 2], [3, 2, 6], [1, 2, 4], [6, 1, 3], [3, 4, 6], [4, 5, 1], [6, 2, 5]],
               'face_offs': [1, 4, 0, 5, 5, 1, 1, 4],
@@ -96,7 +96,7 @@ def test_polyhedron_python(dummy_integrator_args):
     poly.shape['A'] = args4
     assert not poly.shape['A']['ignore_statistics']
     for key in args4.keys():
-        assert poly,shape['A'][key] == args4[key]
+        assert poly.shape['A'][key] == args4[key]
 
 def test_poly_after_attaching(device,
                               dummy_simulation_factory,
@@ -117,3 +117,4 @@ def test_poly_after_attaching(device,
     for key in args4.keys():
         assert poly.shape['A'][key] == args4[key]
         assert poly.shape['B'][key] == args5[key]
+
