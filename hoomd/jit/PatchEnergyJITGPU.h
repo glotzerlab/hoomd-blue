@@ -4,10 +4,7 @@
 #ifdef ENABLE_HIP
 
 #include "PatchEnergyJIT.h"
-
-#ifdef __HIP_PLATFORM_NVCC__
-#include <cuda.h>
-#endif
+#include "GPUEvalFactory.h"
 
 #include <vector>
 
@@ -23,33 +20,20 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
                        const std::string& include_path_source,
                        const std::string& cuda_devrt_library_path,
                        unsigned int compute_arch)
-            : PatchEnergyJIT(exec_conf, llvm_ir, r_cut, array_size)
+            : PatchEnergyJIT(exec_conf, llvm_ir, r_cut, array_size),
+              m_gpu_factory(exec_conf, code, include_path, include_path_source, cuda_devrt_library_path, compute_arch)
             {
-            m_device_ptr.resize(m_exec_conf->getNumActiveGPUs());
-            compileGPU(code, include_path, include_path_source, cuda_devrt_library_path, compute_arch);
+            // allocate data array
+            cudaMallocManaged(&m_d_alpha, sizeof(float)*m_alpha_size);
+            CHECK_CUDA_ERROR();
+
+            // set the pointer on the device
+            m_gpu_factory.setAlphaPtr(m_d_alpha);
             }
 
         virtual ~PatchEnergyJITGPU()
             {
-            #ifdef __HIP_PLATFORM_NVCC__
-            // free resources
-            char *error;
-            for (auto m: m_module)
-                {
-                CUresult status = cuModuleUnload(m);
-                if (status != CUDA_SUCCESS)
-                    {
-                    cuGetErrorString(status, const_cast<const char **>(&error));
-                    m_exec_conf->msg->error() << "cuModuleUnload: " << std::string(error);
-                    }
-                }
-           CUresult status = cuLinkDestroy(m_link_state);
-           if (status != CUDA_SUCCESS)
-                {
-                cuGetErrorString(status, const_cast<const char **>(&error));
-                m_exec_conf->msg->error() << "cuLinkDestroy: "<< std::string(error);
-                }
-            #endif
+            cudaFree(m_d_alpha);
             }
 
         //! Return the device function pointer for a GPU
@@ -57,25 +41,21 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
          */
         virtual eval_func getDeviceFunc(unsigned int idev) const
             {
-            assert(m_device_ptr.size() > idev);
-            return m_device_ptr[idev];
+            return m_gpu_factory.getDeviceFunc(idev);
             }
 
     protected:
-        std::vector<eval_func> m_device_ptr;                //!< The pointer to the device function, for every device
+        //! Set the pointer to the auxillary data
+        void setAlphaPtr(float *d_alpha)
+            {
+            // set it in the base class
+            PatchEnergyJIT::setAlphaPtr(d_alpha);
+            m_gpu_factory.setAlphaPtr(d_alpha);
+            }
 
     private:
-        //! Helper function for RTC
-        void compileGPU(const std::string& code,
-            const std::string& include_path,
-            const std::string& include_path_source,
-            const std::string& cuda_devrt_library_path,
-            unsigned int compute_arch);
-
-        #ifdef __HIP_PLATFORM_NVCC__
-        CUlinkState m_link_state;                           //!< CUDA linker
-        std::vector<CUmodule> m_module;                     //!< CUDA module
-        #endif
+        GPUEvalFactory m_gpu_factory;                       //!< JIT implementation
+        float *m_d_alpha;                                   //!< device memory holding auxillary data
     };
 
 //! Exports the PatchEnergyJIT class to python

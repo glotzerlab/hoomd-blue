@@ -34,7 +34,7 @@ class user(object):
     in the MC loop with full performance. It enables researchers to quickly and easily implement custom energetic
     interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`user` provides a mechanism,
     through the `alpha_iso` attribute (numpy array), to adjust user defined potential parameters without the need
-    to recompile the patch energy code.
+    to recompile the patch energy code. These arrays are **read-only** during function evaluation.
 
     .. rubric:: C++ code
 
@@ -196,8 +196,9 @@ class user(object):
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-float alpha_iso[{}];
-float alpha_union[{}];
+// these are allocated by the library
+float *alpha_iso;
+float *alpha_union;
 
 extern "C"
 {{
@@ -261,8 +262,9 @@ float eval(const vec3<float>& r_ij,
 #include "hoomd/VectorMath.h"
 #include "hoomd/jit/Evaluator.cuh"
 
-__device__ float alpha_iso[{}];
-__device__ float alpha_union[{}];
+// these are allocated by the library
+__device__ float *alpha_iso;
+__device__ float *alpha_union;
 
 extern "C"
 {{
@@ -282,7 +284,7 @@ __device__ float eval(const vec3<float>& r_ij,
     }
 }
 
-// store pointer to device function in a static variable
+// store pointers to device in static variables
 __device__ eval_func p_eval = eval;
 """
 

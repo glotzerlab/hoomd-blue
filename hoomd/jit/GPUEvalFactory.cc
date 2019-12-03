@@ -6,11 +6,13 @@
 #include <string>
 #include <vector>
 
-#include "PatchEnergyJITGPU.h"
+#include "GPUEvalFactory.h"
 
 // pybind11 vector bindings
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
+
+#include <hip/hip_runtime.h>
 
 #if __HIP_PLATFORM_NVCC__
 #include <cuda.h>
@@ -18,13 +20,15 @@
 
 #include "jitify_safe_headers.hpp"
 
-void PatchEnergyJITGPU::compileGPU(
+void GPUEvalFactory::compileGPU(
     const std::string& code,
     const std::string& include_path,
     const std::string& include_path_source,
     const std::string& cuda_devrt_library_path,
     const unsigned int compute_arch)
     {
+    m_exec_conf->msg->notice(3) << "Compiling nvrtc code" << std::endl;
+
     std::vector<std::string> compile_options = {
         "--gpu-architecture=compute_"+std::to_string(compute_arch),
         "--include-path="+include_path,
@@ -32,7 +36,8 @@ void PatchEnergyJITGPU::compileGPU(
         "--relocatable-device-code=true",
         "--device-as-default-execution-space",
         "-DHOOMD_LLVMJIT_BUILD",
-        "-D__HIPCC__"
+        "-D__HIPCC__",
+        "-D__HIP_PLATFORM_NVCC__"
         };
 
     char *compileParams[compile_options.size()];
@@ -54,8 +59,7 @@ void PatchEnergyJITGPU::compileGPU(
     std::string code_with_headers = std::string(jitify::detail::jitsafe_header_math) +
         printf_include + code;
 
-    nvrtcProgram prog;
-    nvrtcResult status = nvrtcCreateProgram(&prog, code_with_headers.c_str(), "evaluator.cu", 0, NULL, NULL);
+    nvrtcResult status = nvrtcCreateProgram(&m_program, code_with_headers.c_str(), "evaluator.cu", 0, NULL, NULL);
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcCreateProgram error: "+std::string(nvrtcGetErrorString(status)));
 
@@ -66,11 +70,21 @@ void PatchEnergyJITGPU::compileGPU(
         }
 
     char eval_name[] = "&p_eval";
-    status = nvrtcAddNameExpression(prog, eval_name);
+    status = nvrtcAddNameExpression(m_program, eval_name);
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
 
-    nvrtcResult compile_result = nvrtcCompileProgram(prog, compile_options.size(), compileParams);
+    std::string alpha_iso_name = "&alpha_iso";
+    status = nvrtcAddNameExpression(m_program, alpha_iso_name.c_str());
+    if (status != NVRTC_SUCCESS)
+        throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
+
+    std::string alpha_union_name = "&alpha_union";
+    status = nvrtcAddNameExpression(m_program, alpha_union_name.c_str());
+    if (status != NVRTC_SUCCESS)
+        throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
+
+    nvrtcResult compile_result = nvrtcCompileProgram(m_program, compile_options.size(), compileParams);
     for (unsigned int i = 0; i < compile_options.size(); ++i)
         {
         free(compileParams[i]);
@@ -78,36 +92,46 @@ void PatchEnergyJITGPU::compileGPU(
 
     // Obtain compilation log from the program.
     size_t logSize;
-    status = nvrtcGetProgramLogSize(prog, &logSize);
+    status = nvrtcGetProgramLogSize(m_program, &logSize);
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcGetProgramLogSize error: "+std::string(nvrtcGetErrorString(status)));
 
     char *log = new char[logSize];
-    status = nvrtcGetProgramLog(prog, log);
+    status = nvrtcGetProgramLog(m_program, log);
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcGetProgramLog error: "+std::string(nvrtcGetErrorString(status)));
     m_exec_conf->msg->notice(3) << "nvrtc output" << std::endl << log << '\n';
     delete[] log;
 
     if (compile_result != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcCompileProgram error: "+std::string(nvrtcGetErrorString(compile_result)));
+        throw std::runtime_error("nvrtcCompileProgram error (set device.notice_level=3 to see full log): "+std::string(nvrtcGetErrorString(compile_result)));
 
     // fetch PTX
     size_t ptx_size;
-    status = nvrtcGetPTXSize(prog, &ptx_size);
+    status = nvrtcGetPTXSize(m_program, &ptx_size);
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcGetPTXSize error: "+std::string(nvrtcGetErrorString(status)));
 
     char ptx[ptx_size];
-    status = nvrtcGetPTX(prog, ptx);
+    status = nvrtcGetPTX(m_program, ptx);
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcGetPTX error: "+std::string(nvrtcGetErrorString(status)));
 
-    // look up mangled name
+    // look up mangled names
     char *eval_name_mangled;
-    status = nvrtcGetLoweredName(prog, eval_name, const_cast<const char **>(&eval_name_mangled));
+    status = nvrtcGetLoweredName(m_program, eval_name, const_cast<const char **>(&eval_name_mangled));
     if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcGetLoweredNane: "+std::string(nvrtcGetErrorString(status)));
+        throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
+
+    char *alpha_iso_name_mangled;
+    status = nvrtcGetLoweredName(m_program, alpha_iso_name.c_str(), const_cast<const char **>(&alpha_iso_name_mangled));
+    if (status != NVRTC_SUCCESS)
+        throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
+
+    char *alpha_union_name_mangled;
+    status = nvrtcGetLoweredName(m_program, alpha_union_name.c_str(), const_cast<const char **>(&alpha_union_name_mangled));
+    if (status != NVRTC_SUCCESS)
+        throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
 
     // link PTX into cubin
     CUresult custatus;
@@ -158,7 +182,7 @@ void PatchEnergyJITGPU::compileGPU(
             throw std::runtime_error("cuModuleLoadData: "+std::string(error));
             }
 
-        // get variable pointer
+        // get variable pointers
         CUdeviceptr p_eval_ptr;
         custatus = cuModuleGetGlobal(&p_eval_ptr, NULL, m_module[idev], eval_name_mangled);
         if (custatus != CUDA_SUCCESS)
@@ -174,11 +198,27 @@ void PatchEnergyJITGPU::compileGPU(
             cuGetErrorString(custatus, const_cast<const char **>(&error));
             throw std::runtime_error("cuMemcpyDtoH: "+std::string(error));
             }
-        }
 
-    status = nvrtcDestroyProgram(&prog);
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcDestroyProgram: "+std::string(nvrtcGetErrorString(status)));
+        // get variable pointers
+        CUdeviceptr alpha_iso_ptr;
+        custatus = cuModuleGetGlobal(&alpha_iso_ptr, 0, m_module[idev], alpha_iso_name_mangled);
+        if (custatus != CUDA_SUCCESS)
+            {
+            cuGetErrorString(custatus, const_cast<const char **>(&error));
+            throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
+            }
+
+        m_alpha_iso_device_ptr[idev] = alpha_iso_ptr;
+
+        CUdeviceptr alpha_union_ptr;
+        custatus = cuModuleGetGlobal(&alpha_union_ptr, 0, m_module[idev], alpha_union_name_mangled);
+        if (custatus != CUDA_SUCCESS)
+            {
+            cuGetErrorString(custatus, const_cast<const char **>(&error));
+            throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
+            }
+        m_alpha_union_device_ptr[idev] = alpha_union_ptr;
+        }
     }
 #endif
 #endif

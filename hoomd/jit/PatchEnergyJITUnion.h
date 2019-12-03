@@ -26,13 +26,14 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             // get the evaluator
             m_eval_union = m_factory_union->getEval();
 
-            m_alpha_union = m_factory_union->getAlphaUnionArray();
-
-            if (!m_eval_union || !m_alpha_union)
+            if (!m_eval_union)
                 {
                 exec_conf->msg->error() << m_factory_union->getError() << std::endl;
                 throw std::runtime_error("Error compiling Union JIT code.");
                 }
+
+            m_alpha_union.resize(m_alpha_size_union);
+            m_factory->setAlphaUnionArray(&m_alpha_union.front());
 
             // Connect to number of types change signal
             m_sysdef->getParticleData()->getNumTypesChangeSignal().connect<PatchEnergyJITUnion, &PatchEnergyJITUnion::slotNumTypesChange>(this);
@@ -127,7 +128,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         static pybind11::object getAlphaUnionNP(pybind11::object self)
             {
             auto self_cpp = self.cast<PatchEnergyJITUnion *>();
-            return pybind11::array(self_cpp->m_alpha_size_union, (float*)&self_cpp->m_alpha_union[0], self);
+            return pybind11::array(self_cpp->m_alpha_size_union, self_cpp->m_factory->getAlphaUnionArray(), self);
             }
 
     protected:
@@ -152,7 +153,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         std::shared_ptr<EvalFactory> m_factory_union;            //!< The factory for the evaluator function, for constituent ptls
         EvalFactory::EvalFnPtr m_eval_union;                     //!< Pointer to evaluator function inside the JIT module
         Scalar m_rcut_union;                                     //!< Cutoff on constituent particles
-        float *  m_alpha_union;                                     //!< Cutoff on constituent particles
+        std::vector<float> m_alpha_union;                        //!< Data array for union
         unsigned int m_alpha_size_union;
     };
 

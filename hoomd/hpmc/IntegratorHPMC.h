@@ -87,9 +87,15 @@ class PatchEnergy
      */
     virtual eval_func getDeviceFunc(unsigned int idev) const
         {
-        throw std::runtime_error("PatchEnergyJIT (base class) does not support device pointers.");
+        throw std::runtime_error("PatchEnergy (base class) does not support device pointers.");
         }
     #endif
+
+    //! Return the raw pointer to the data array (host)
+    virtual void loadDevice()
+        {
+        throw std::runtime_error("PatchEnergy (base class) does not implement loadDevice");
+        }
     };
 
 class PYBIND11_EXPORT IntegratorHPMC : public Integrator

@@ -19,15 +19,15 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf
     // get the evaluator
     m_eval = m_factory->getEval();
 
-    m_alpha = m_factory->getAlphaArray();
-
-    if (!m_eval || !m_alpha)
+    if (!m_eval)
         {
         exec_conf->msg->error() << m_factory->getError() << std::endl;
         throw std::runtime_error("Error compiling JIT code.");
         }
-    }
 
+    m_alpha.resize(m_alpha_size);
+    m_factory->setAlphaArray(&m_alpha.front());
+    }
 
 void export_PatchEnergyJIT(pybind11::module &m)
     {

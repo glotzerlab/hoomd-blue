@@ -1086,7 +1086,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         this->m_pdata->getN() + this->m_pdata->getNGhosts(),
                         this->m_pdata->getN(),
                         m_maxn,
-                        this->m_patch != 0,
+                        (this->m_patch != 0) && !this->m_patch_log,
                         d_nlist_patch_old.data,
                         d_nlist_patch_new.data,
                         d_nneigh_patch_old.data,

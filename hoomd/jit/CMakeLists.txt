@@ -13,7 +13,7 @@ llvm_map_components_to_libnames(llvm_libs executionengine support core irreader 
 set(_${PACKAGE_NAME}_sources
      module-${PACKAGE_NAME}.cc
      PatchEnergyJIT.cc
-     PatchEnergyJITGPU.cc
+     GPUEvalFactory.cc
      PatchEnergyJITUnion.cc
    )
 
@@ -28,6 +28,7 @@ set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
                              EvalFactory.h
                              Evaluator.cuh
                              ExternalFieldEvalFactory.h
+                             GPUEvalFactory.h
                              KaleidoscopeJIT.h
                              jitify_safe_headers.hpp
    )
