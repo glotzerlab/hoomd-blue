@@ -64,6 +64,11 @@ void GPUEvalFactory::compileGPU(
         std::string("int fprintf ( FILE * stream, const char * format, ... );\n");
 
     std::string code_with_headers = std::string(jitify::detail::jitsafe_header_math) +
+        std::string(jitify::detail::jitsafe_header_type_traits) +
+        //std::string(jitify::detail::jitsafe_header_stdint_h) +
+        + "#define uint8_t unsigned char\n" +
+        + "#define uint32_t unsigned int\n" +
+        + "#define uint64_t unsigned long long\n" +
         printf_include + code;
 
     m_exec_conf->msg->notice(4) << code_with_headers << std::endl;

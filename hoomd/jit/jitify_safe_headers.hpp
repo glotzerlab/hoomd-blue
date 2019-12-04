@@ -55,7 +55,7 @@ static const char* jitsafe_header_preinclude_h = R"(
 )";
 
 static const char* jitsafe_header_float_h =
-    "#pragma once\n"
+//    "#pragma once\n"
     "\n"
     "inline __host__ __device__ float  jitify_int_as_float(int i)             "
     "{ union FloatInt { float f; int i; } fi; fi.i = i; return fi.f; }\n"
@@ -88,7 +88,7 @@ static const char* jitsafe_header_float_h =
     "#endif\n";
 
 static const char* jitsafe_header_limits_h =
-    "#pragma once\n"
+//    "#pragma once\n"
     "\n"
     "#if defined _WIN32 || defined _WIN64\n"
     " #define __WORDSIZE 32\n"
@@ -133,7 +133,7 @@ static const char* jitsafe_header_limits_h =
     "#define ULLONG_MAX 18446744073709551615ULL\n";
 
 static const char* jitsafe_header_iterator =
-    "#pragma once\n"
+//    "#pragma once\n"
     "\n"
     "namespace __jitify_iterator_ns {\n"
     "struct output_iterator_tag {};\n"
@@ -171,7 +171,7 @@ static const char* jitsafe_header_iterator =
 
 // TODO: This is incomplete; need floating point limits
 static const char* jitsafe_header_limits =
-    "#pragma once\n"
+//    "#pragma once\n"
     "#include <climits>\n"
     "\n"
     "namespace __jitify_limits_ns {\n"
@@ -242,7 +242,7 @@ static const char* jitsafe_header_limits =
 
 // TODO: This is highly incomplete
 static const char* jitsafe_header_type_traits = R"(
-    #pragma once
+//    #pragma once
     #if __cplusplus >= 201103L
     namespace __jitify_type_traits_ns {
 
@@ -303,6 +303,20 @@ static const char* jitsafe_header_type_traits = R"(
     template<class T> struct is_array : false_type {};
     template<class T> struct is_array<T[]> : true_type {};
     template<class T, size_t N> struct is_array<T[N]> : true_type {};
+
+    template<typename T> struct make_signed { typedef T type; };
+    template<> struct make_signed<unsigned char> { typedef signed char type; };
+    template<> struct make_signed<unsigned short> { typedef signed short type; };
+    template<> struct make_signed<unsigned int> { typedef signed int type; };
+    template<> struct make_signed<unsigned long> { typedef signed long type; };
+    template<> struct make_signed<unsigned long long> { typedef signed long long type; };
+
+    template<typename T> struct make_unsigned { typedef T type; };
+    template<> struct make_unsigned<char> { typedef unsigned char type; };
+    template<> struct make_unsigned<short> { typedef unsigned short type; };
+    template<> struct make_unsigned<int> { typedef unsigned int type; };
+    template<> struct make_unsigned<long> { typedef unsigned long type; };
+    template<> struct make_unsigned<long long> { typedef unsigned long long type; };
 
     //partial implementation only of is_function
     template<class> struct is_function : false_type { };
@@ -378,8 +392,8 @@ static const char* jitsafe_header_type_traits = R"(
 
 // TODO: INT_FAST8_MAX et al. and a few other misc constants
 static const char* jitsafe_header_stdint_h =
-    "#pragma once\n"
-    "#include <climits>\n"
+//    "#pragma once\n"
+//    "#include <climits>\n"
     "namespace __jitify_stdint_ns {\n"
     "typedef signed char      int8_t;\n"
     "typedef signed short     int16_t;\n"
@@ -436,7 +450,7 @@ static const char* jitsafe_header_stdint_h =
 
 // TODO: offsetof
 static const char* jitsafe_header_stddef_h =
-    "#pragma once\n"
+//    "#pragma once\n"
     "#include <climits>\n"
     "namespace __jitify_stddef_ns {\n"
     //"enum { NULL = 0 };\n"
@@ -447,23 +461,23 @@ static const char* jitsafe_header_stddef_h =
     "using namespace __jitify_stddef_ns;\n";
 
 static const char* jitsafe_header_stdlib_h =
-    "#pragma once\n"
+//    "#pragma once\n"
     "#include <stddef.h>\n";
 static const char* jitsafe_header_stdio_h =
-    "#pragma once\n"
+//    "#pragma once\n"
     "#include <stddef.h>\n"
     "#define FILE int\n"
     "int fflush ( FILE * stream );\n"
     "int fprintf ( FILE * stream, const char * format, ... );\n";
 
 static const char* jitsafe_header_string_h =
-    "#pragma once\n"
+//    "#pragma once\n"
     "char* strcpy ( char * destination, const char * source );\n"
     "int strcmp ( const char * str1, const char * str2 );\n"
     "char* strerror( int errnum );\n";
 
 static const char* jitsafe_header_cstring =
-    "#pragma once\n"
+//    "#pragma once\n"
     "\n"
     "namespace __jitify_cstring_ns {\n"
     "char* strcpy ( char * destination, const char * source );\n"
@@ -475,12 +489,12 @@ static const char* jitsafe_header_cstring =
 
 // HACK TESTING (WAR for cub)
 static const char* jitsafe_header_iostream =
-    "#pragma once\n"
+//    "#pragma once\n"
     "#include <ostream>\n"
     "#include <istream>\n";
 // HACK TESTING (WAR for Thrust)
 static const char* jitsafe_header_ostream =
-    "#pragma once\n"
+//    "#pragma once\n"
     "\n"
     "namespace __jitify_ostream_ns {\n"
     "template<class CharT,class Traits=void>\n"  // = std::char_traits<CharT>
@@ -503,7 +517,7 @@ static const char* jitsafe_header_ostream =
     "using namespace __jitify_ostream_ns;\n";
 
 static const char* jitsafe_header_istream =
-    "#pragma once\n"
+//    "#pragma once\n"
     "\n"
     "namespace __jitify_istream_ns {\n"
     "template<class CharT,class Traits=void>\n"  // = std::char_traits<CharT>
@@ -516,12 +530,12 @@ static const char* jitsafe_header_istream =
     "using namespace __jitify_istream_ns;\n";
 
 static const char* jitsafe_header_sstream =
-    "#pragma once\n"
+//    "#pragma once\n"
     "#include <ostream>\n"
     "#include <istream>\n";
 
 static const char* jitsafe_header_utility =
-    "#pragma once\n"
+//    "#pragma once\n"
     "namespace __jitify_utility_ns {\n"
     "template<class T1, class T2>\n"
     "struct pair {\n"
@@ -543,7 +557,7 @@ static const char* jitsafe_header_utility =
 
 // TODO: incomplete
 static const char* jitsafe_header_vector =
-    "#pragma once\n"
+//    "#pragma once\n"
     "namespace __jitify_vector_ns {\n"
     "template<class T, class Allocator=void>\n"  // = std::allocator> \n"
     "struct vector {\n"
@@ -554,7 +568,7 @@ static const char* jitsafe_header_vector =
 
 // TODO: incomplete
 static const char* jitsafe_header_string =
-    "#pragma once\n"
+//    "#pragma once\n"
     "namespace __jitify_string_ns {\n"
     "template<class CharT,class Traits=void,class Allocator=void>\n"
     "struct basic_string {\n"
@@ -573,7 +587,7 @@ static const char* jitsafe_header_string =
 
 // TODO: incomplete
 static const char* jitsafe_header_stdexcept =
-    "#pragma once\n"
+//    "#pragma once\n"
     "namespace __jitify_stdexcept_ns {\n"
     "struct runtime_error {\n"
     "explicit runtime_error( const std::string& what_arg );"
@@ -586,7 +600,7 @@ static const char* jitsafe_header_stdexcept =
 
 // TODO: incomplete
 static const char* jitsafe_header_complex =
-    "#pragma once\n"
+//    "#pragma once\n"
     "namespace __jitify_complex_ns {\n"
     "template<typename T>\n"
     "class complex {\n"
@@ -624,7 +638,7 @@ static const char* jitsafe_header_complex =
 // TODO: This is incomplete (missing binary and integer funcs, macros,
 // constants, types)
 static const char* jitsafe_header_math =
-    "#pragma once\n"
+//    "#pragma once\n"
     "namespace __jitify_math_ns {\n"
     "#if __cplusplus >= 201103L\n"
     "#define DEFINE_MATH_UNARY_FUNC_WRAPPER(f) \\\n"
