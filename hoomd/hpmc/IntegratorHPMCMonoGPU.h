@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 #pragma once
 
 #ifdef ENABLE_HIP
@@ -28,6 +31,12 @@
 
 namespace hpmc
 {
+
+namespace gpu
+{
+//! Driver for kernel::hpmc_narrow_phase_patch() (JIT)
+void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& patch_args, const PatchEnergy& patch);
+}
 
 namespace detail
 {
@@ -963,10 +972,10 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
                     ArrayHandle<Scalar> d_additive_cutoff(m_additive_cutoff, access_location::device, access_mode::read);
 
-                    eval_func eval_ptr[ngpu];
+                    const void *kernels[ngpu];
                     for (unsigned int idev = 0; idev < ngpu; ++idev)
                         {
-                        eval_ptr[idev] = this->m_patch->getDeviceFunc(idev);
+                        kernels[idev] = this->m_patch->getKernelAddress(idev);
                         }
 
                         {
@@ -979,7 +988,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         ArrayHandle<unsigned int> d_overflow_patch(m_overflow_patch, access_location::device, access_mode::readwrite);
 
                         gpu::hpmc_patch_args_t patch_args(
-                            eval_ptr,
+                            kernels,
                             true,
                             this->m_patch->getRCut(),
                             d_additive_cutoff.data,
@@ -996,7 +1005,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         unsigned int param = m_tuner_narrow_patch->getParam();
                         args.block_size = param/1000;
                         args.tpp = param%1000;
-                        gpu::hpmc_narrow_phase_patch(args,patch_args);
+                        gpu::hpmc_narrow_phase_patch(args,patch_args,*this->m_patch);
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();
                         m_tuner_narrow_patch->end();
@@ -1019,7 +1028,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         ArrayHandle<unsigned int> d_overflow_patch(m_overflow_patch, access_location::device, access_mode::readwrite);
 
                         gpu::hpmc_patch_args_t patch_args(
-                            eval_ptr,
+                            kernels,
                             false,
                             this->m_patch->getRCut(),
                             d_additive_cutoff.data,
@@ -1036,7 +1045,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         unsigned int param = m_tuner_narrow_patch->getParam();
                         args.block_size = param/1000;
                         args.tpp = param%1000;
-                        gpu::hpmc_narrow_phase_patch(args, patch_args);
+                        gpu::hpmc_narrow_phase_patch(args, patch_args, *this->m_patch);
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();
                         m_tuner_narrow_patch->end();

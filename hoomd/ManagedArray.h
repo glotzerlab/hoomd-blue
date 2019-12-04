@@ -8,13 +8,12 @@
 
 #include <algorithm>
 #include <utility>
+#include <memory>
 #endif
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
-
-#include <memory>
 
 #ifdef __HIPCC__
 #define DEVICE __device__

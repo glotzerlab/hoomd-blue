@@ -22,6 +22,7 @@
 
 void GPUEvalFactory::compileGPU(
     const std::string& code,
+    const std::string& kernel_name,
     const std::string& include_path,
     const std::string& include_path_source,
     const std::string& cuda_devrt_library_path,
@@ -35,6 +36,7 @@ void GPUEvalFactory::compileGPU(
         "--include-path="+include_path_source,
         "--relocatable-device-code=true",
         "--device-as-default-execution-space",
+        "--std=c++11",
         "-DHOOMD_LLVMJIT_BUILD",
         "-D__HIPCC__",
         "-D__HIP_PLATFORM_NVCC__"
@@ -59,18 +61,19 @@ void GPUEvalFactory::compileGPU(
     std::string code_with_headers = std::string(jitify::detail::jitsafe_header_math) +
         printf_include + code;
 
+    m_exec_conf->msg->notice(4) << code_with_headers << std::endl;
+
     nvrtcResult status = nvrtcCreateProgram(&m_program, code_with_headers.c_str(), "evaluator.cu", 0, NULL, NULL);
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcCreateProgram error: "+std::string(nvrtcGetErrorString(status)));
 
-    m_exec_conf->msg->notice(3) << "nvrtc options:" << std::endl;
+    m_exec_conf->msg->notice(3) << "nvrtc options (notice level 4 shows code):" << std::endl;
     for (unsigned int i = 0; i < compile_options.size(); ++i)
         {
         m_exec_conf->msg->notice(3) << " " << compileParams[i] << std::endl;
         }
 
-    char eval_name[] = "&p_eval";
-    status = nvrtcAddNameExpression(m_program, eval_name);
+    status = nvrtcAddNameExpression(m_program, kernel_name.c_str());
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
 
@@ -81,6 +84,16 @@ void GPUEvalFactory::compileGPU(
 
     std::string alpha_union_name = "&alpha_union";
     status = nvrtcAddNameExpression(m_program, alpha_union_name.c_str());
+    if (status != NVRTC_SUCCESS)
+        throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
+
+    std::string rcut_name = "&jit::d_rcut_union";
+    status = nvrtcAddNameExpression(m_program, rcut_name.c_str());
+    if (status != NVRTC_SUCCESS)
+        throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
+
+    std::string union_params_name = "&jit::d_union_params";
+    status = nvrtcAddNameExpression(m_program, union_params_name.c_str());
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
 
@@ -118,8 +131,8 @@ void GPUEvalFactory::compileGPU(
         throw std::runtime_error("nvrtcGetPTX error: "+std::string(nvrtcGetErrorString(status)));
 
     // look up mangled names
-    char *eval_name_mangled;
-    status = nvrtcGetLoweredName(m_program, eval_name, const_cast<const char **>(&eval_name_mangled));
+    char *kernel_name_mangled;
+    status = nvrtcGetLoweredName(m_program, kernel_name.c_str(), const_cast<const char **>(&kernel_name_mangled));
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
 
@@ -130,6 +143,16 @@ void GPUEvalFactory::compileGPU(
 
     char *alpha_union_name_mangled;
     status = nvrtcGetLoweredName(m_program, alpha_union_name.c_str(), const_cast<const char **>(&alpha_union_name_mangled));
+    if (status != NVRTC_SUCCESS)
+        throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
+
+    char *rcut_name_mangled;
+    status = nvrtcGetLoweredName(m_program, rcut_name.c_str(), const_cast<const char **>(&rcut_name_mangled));
+    if (status != NVRTC_SUCCESS)
+        throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
+
+    char *union_params_name_mangled;
+    status = nvrtcGetLoweredName(m_program, union_params_name.c_str(), const_cast<const char **>(&union_params_name_mangled));
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
 
@@ -183,21 +206,14 @@ void GPUEvalFactory::compileGPU(
             }
 
         // get variable pointers
-        CUdeviceptr p_eval_ptr;
-        custatus = cuModuleGetGlobal(&p_eval_ptr, NULL, m_module[idev], eval_name_mangled);
+        CUfunction kernel_ptr;
+        custatus = cuModuleGetFunction(&kernel_ptr, m_module[idev], kernel_name_mangled);
         if (custatus != CUDA_SUCCESS)
             {
             cuGetErrorString(custatus, const_cast<const char **>(&error));
-            throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
+            throw std::runtime_error("cuModuleGetFunction: "+std::string(error));
             }
-
-        // copy variable contents (the function pointer) to host
-        custatus = cuMemcpyDtoH(&m_device_ptr[idev], p_eval_ptr, sizeof(eval_func));
-        if (custatus != CUDA_SUCCESS)
-            {
-            cuGetErrorString(custatus, const_cast<const char **>(&error));
-            throw std::runtime_error("cuMemcpyDtoH: "+std::string(error));
-            }
+        m_kernel_ptr[idev] = kernel_ptr;
 
         // get variable pointers
         CUdeviceptr alpha_iso_ptr;
@@ -218,6 +234,24 @@ void GPUEvalFactory::compileGPU(
             throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
             }
         m_alpha_union_device_ptr[idev] = alpha_union_ptr;
+
+        CUdeviceptr rcut_ptr;
+        custatus = cuModuleGetGlobal(&rcut_ptr, 0, m_module[idev], rcut_name_mangled);
+        if (custatus != CUDA_SUCCESS)
+            {
+            cuGetErrorString(custatus, const_cast<const char **>(&error));
+            throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
+            }
+        m_rcut_union_device_ptr[idev] = rcut_ptr;
+
+        CUdeviceptr union_params_ptr;
+        custatus = cuModuleGetGlobal(&union_params_ptr, 0, m_module[idev], union_params_name_mangled);
+        if (custatus != CUDA_SUCCESS)
+            {
+            cuGetErrorString(custatus, const_cast<const char **>(&error));
+            throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
+            }
+        m_union_params_device_ptr[idev] = union_params_ptr;
         }
     }
 #endif

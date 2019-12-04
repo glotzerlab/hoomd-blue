@@ -7,21 +7,30 @@
 #include "hoomd/VectorMath.h"
 #include "hoomd/AABB.h"
 
+#include "HPMCPrecisionSetup.h"
 #include "HPMCMiscFunctions.h"
-
-#include <algorithm>
-#include <cfloat>
 
 #ifndef __OBB_H__
 #define __OBB_H__
 
+
 #ifndef __HIPCC__
+#include <cfloat>
+#include <algorithm>
+
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
 #include "hoomd/extern/quickhull/QuickHull.hpp"
 
 #include <random>
+#endif
+
+#ifdef __HIPCC__
+// can't use system headers in JIT
+#ifndef FLT_MAX
+#define FLT_MAX 340282346638528859811704183484516925440.0f
+#endif
 #endif
 
 /*! \file OBB.h

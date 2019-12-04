@@ -9,9 +9,8 @@
     \brief Declaration of IntegratorHPMC
 */
 
-
 #ifdef ENABLE_HIP
-#include "hoomd/jit/Evaluator.cuh"
+#include <hip/hip_runtime.h>
 #endif
 
 #include "hoomd/Integrator.h"
@@ -85,17 +84,40 @@ class PatchEnergy
     //! Return the device function pointer for a GPU
     /* \param idev the logical GPU id
      */
-    virtual eval_func getDeviceFunc(unsigned int idev) const
+    virtual const void *getKernelAddress(unsigned int idev) const
         {
         throw std::runtime_error("PatchEnergy (base class) does not support device pointers.");
         }
-    #endif
 
-    //! Return the raw pointer to the data array (host)
-    virtual void loadDevice()
+    //! Return the maximum number of threads per block for this kernel
+    /* \param idev the logical GPU id
+     */
+    virtual unsigned int getKernelMaxThreads(unsigned int idev) const
         {
-        throw std::runtime_error("PatchEnergy (base class) does not implement loadDevice");
+        throw std::runtime_error("PatchEnergy (base class) does not support getKernelMaxThreads.");
         }
+
+    //! Return the shared size usage in bytes for this kernel
+    /* \param idev the logical GPU id
+     */
+    virtual unsigned int getKernelSharedSize(unsigned int idev) const
+        {
+        throw std::runtime_error("PatchEnergy (base class) does not support getKernelSharedSize.");
+        }
+
+    //! Asynchronously launch the JIT kernel
+    /*! \param logical GPU id
+        \param grid The grid dimensions
+        \param threads The thread block dimensions
+        \param sharedMemBytes The size of the dynamic shared mem allocation
+        \param hStream stream to execute on
+        \param kernelParams the kernel parameters
+        */
+    virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream, void** kernelParams) const
+        {
+        throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
+        }
+    #endif
     };
 
 class PYBIND11_EXPORT IntegratorHPMC : public Integrator

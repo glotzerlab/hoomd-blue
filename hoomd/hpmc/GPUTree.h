@@ -1,7 +1,11 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#include "OBB.h"
+
+#ifndef __HIPCC__
 #include "OBBTree.h"
+#endif
 
 #ifndef __GPU_TREE_H__
 #define __GPU_TREE_H__
@@ -59,7 +63,7 @@ class GPUTree
             unsigned int n = 0;
             m_num_leaves = 0;
 
-            // load data from AABTree
+            // load data from OBBTree
             for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
                 {
                 m_left[i] = tree.getNodeLeft(i);
@@ -148,7 +152,7 @@ class GPUTree
                 unsigned int left_child = getLeftChild(cur_node);
 
                 // is this node a leaf node?
-                if (left_child == OBB_INVALID_NODE)
+                if (left_child == 0xffffffff)
                     {
                     leaf = true;
                     }
@@ -186,7 +190,7 @@ class GPUTree
                 {
                 // is this node a leaf node?
                 unsigned int left_child = getLeftChild(cur_node);
-                if (left_child == OBB_INVALID_NODE)
+                if (left_child == 0xffffffff)
                     {
                     leaf = true;
                     }
@@ -206,7 +210,7 @@ class GPUTree
         //! Test if a given index is a leaf node
         DEVICE inline bool isLeaf(unsigned int idx) const
             {
-            return (m_left[idx] == OBB_INVALID_NODE);
+            return (m_left[idx] == 0xffffffff);
             }
 
         //! Return the ith leaf node

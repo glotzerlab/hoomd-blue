@@ -22,6 +22,7 @@ set(_hpmc_sources   module.cc
                     module_convex_spheropolyhedron.cc
                     UpdaterBoxMC.cc
                     IntegratorHPMC.cc
+                    IntegratorHPMCMonoGPU.cc
                     )
 
 set(_hpmc_headers
@@ -34,12 +35,14 @@ set(_hpmc_headers
     ExternalFieldLattice.h
     ExternalFieldWall.h
     GSDHPMCSchema.h
+    GPUHelpers.cuh
     GPUTree.h
     HPMCCounters.h
     HPMCMiscFunctions.h
     HPMCPrecisionSetup.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.cuh
+    IntegratorHPMCMonoGPUJIT.inc
     IntegratorHPMCMonoGPU.h
     IntegratorHPMCMono.h
     MAP3D.h
@@ -103,10 +106,9 @@ endif()
 target_link_libraries(_hpmc PUBLIC _hoomd)
 
 if (ENABLE_HIP)
-    # Separable compilation is needed to support ExternalField.cu polymorphism.
-    set_property(TARGET _hpmc PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-    target_link_libraries(_hpmc PUBLIC CUDA::cudadevrt)
-endif (ENABLE_HIP)
+    # no device linking
+    set_property(TARGET _hpmc PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
+endif()
 
 fix_cudart_rpath(_hpmc)
 

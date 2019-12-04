@@ -16,46 +16,56 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
         PatchEnergyJITGPU(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut,
                        const unsigned int array_size,
                        const std::string& code,
+                       const std::string& kernel_name,
                        const std::string& include_path,
                        const std::string& include_path_source,
                        const std::string& cuda_devrt_library_path,
                        unsigned int compute_arch)
             : PatchEnergyJIT(exec_conf, llvm_ir, r_cut, array_size),
-              m_gpu_factory(exec_conf, code, include_path, include_path_source, cuda_devrt_library_path, compute_arch)
+              m_gpu_factory(exec_conf, code, kernel_name, include_path, include_path_source, cuda_devrt_library_path, compute_arch)
             {
-            // allocate data array
-            cudaMallocManaged(&m_d_alpha, sizeof(float)*m_alpha_size);
-            CHECK_CUDA_ERROR();
-
-            // set the pointer on the device
-            m_gpu_factory.setAlphaPtr(m_d_alpha);
+            m_gpu_factory.setAlphaPtr(&m_alpha.front());
             }
 
-        virtual ~PatchEnergyJITGPU()
-            {
-            cudaFree(m_d_alpha);
-            }
-
-        //! Return the device function pointer for a GPU
+        //! Return the __global__ function pointer for a GPU
         /* \param idev the logical GPU id
          */
-        virtual eval_func getDeviceFunc(unsigned int idev) const
+        virtual const void *getKernelAddress(unsigned int idev) const
             {
-            return m_gpu_factory.getDeviceFunc(idev);
+            return m_gpu_factory.getKernelAddress(idev);
             }
 
-    protected:
-        //! Set the pointer to the auxillary data
-        void setAlphaPtr(float *d_alpha)
+        //! Return the maximum number of threads per block for this kernel
+        /* \param idev the logical GPU id
+         */
+        virtual unsigned int getKernelMaxThreads(unsigned int idev) const
             {
-            // set it in the base class
-            PatchEnergyJIT::setAlphaPtr(d_alpha);
-            m_gpu_factory.setAlphaPtr(d_alpha);
+            return m_gpu_factory.getKernelMaxThreads(idev);
+            }
+
+        //! Return the shared size usage in bytes for this kernel
+        /* \param idev the logical GPU id
+         */
+        virtual unsigned int getKernelSharedSize(unsigned int idev) const
+            {
+            return m_gpu_factory.getKernelSharedSize(idev);
+            }
+
+        //! Asynchronously launch the JIT kernel
+        /*! \param idev logical GPU id to launch on
+            \param grid The grid dimensions
+            \param threads The thread block dimensions
+            \param sharedMemBytes The size of the dynamic shared mem allocation
+            \param hStream stream to execute on
+            \param kernelParams the kernel parameters
+            */
+        virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream, void** kernelParams) const
+            {
+            m_gpu_factory.launchKernel(idev, grid, threads, sharedMemBytes, hStream, kernelParams);
             }
 
     private:
         GPUEvalFactory m_gpu_factory;                       //!< JIT implementation
-        float *m_d_alpha;                                   //!< device memory holding auxillary data
     };
 
 //! Exports the PatchEnergyJIT class to python
@@ -63,8 +73,8 @@ inline void export_PatchEnergyJITGPU(pybind11::module &m)
     {
     pybind11::class_<PatchEnergyJITGPU, PatchEnergyJIT, std::shared_ptr<PatchEnergyJITGPU> >(m, "PatchEnergyJITGPU")
             .def(pybind11::init< std::shared_ptr<ExecutionConfiguration>,
-                                 const std::string&, Scalar, const unsigned int,
-                                 const std::string&, const std::string&, const std::string&, const std::string&,
+                                 const std::string&, Scalar, const unsigned int, const std::string&, const std::string&,
+                                 const std::string&, const std::string&, const std::string&,
                                  unsigned int >())
             ;
     }

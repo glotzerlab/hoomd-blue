@@ -15,6 +15,7 @@ set(_${PACKAGE_NAME}_sources
      PatchEnergyJIT.cc
      GPUEvalFactory.cc
      PatchEnergyJITUnion.cc
+     PatchEnergyJITUnionGPU.cc
    )
 
 # we compile a separate package just for the LLVM-interfacing part,
@@ -24,9 +25,11 @@ set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc ExternalFieldEvalFactory.cc)
 set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
                              PatchEnergyJITUnion.h
                              PatchEnergyJITGPU.h
+                             PatchEnergyJITUnionGPU.h
                              ExternalFieldJIT.h
                              EvalFactory.h
                              Evaluator.cuh
+                             EvaluatorUnionGPU.cuh
                              ExternalFieldEvalFactory.h
                              GPUEvalFactory.h
                              KaleidoscopeJIT.h
@@ -40,13 +43,11 @@ add_library(HOOMD::_${PACKAGE_NAME} ALIAS _${PACKAGE_NAME})
 add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 
 if (ENABLE_HIP)
-    # Separable compilation is needed to support ExternalField.cu polymorphism.
-    # This likely breaks plugin support though. :-(
-    set_property(TARGET _${PACKAGE_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+    # no device linking
     target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_DEVRT_LIBRARY_PATH=\"${CUDA_cudadevrt_LIBRARY}\")
     string(REPLACE ";" "_" CUDA_COMPUTE_ARCHS "${CUDA_ARCH_LIST}")
     target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_COMPUTE_ARCHS=\"${CUDA_COMPUTE_ARCHS}\")
-    target_link_libraries(_${PACKAGE_NAME} PUBLIC CUDA::cudadevrt CUDA::cuda CUDA::nvrtc)
+    target_link_libraries(_${PACKAGE_NAME} PUBLIC CUDA::cuda CUDA::nvrtc)
 endif (ENABLE_HIP)
 
 target_include_directories(_${PACKAGE_NAME}_llvm PUBLIC

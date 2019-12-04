@@ -104,6 +104,7 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
     unsigned int na = m_tree[type_a].getNumParticles(cur_node_a);
     unsigned int nb = m_tree[type_b].getNumParticles(cur_node_b);
 
+    std::cout << "here " << cur_node_a << " " << cur_node_b << std::endl;
     for (unsigned int i= 0; i < na; i++)
         {
         unsigned int ileaf = m_tree[type_a].getParticle(cur_node_a, i);
