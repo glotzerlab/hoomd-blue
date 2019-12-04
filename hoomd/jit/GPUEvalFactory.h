@@ -137,7 +137,7 @@ class GPUEvalFactory
         void setAlphaPtr(float *d_alpha)
             {
             #ifdef __HIP_PLATFORM_NVCC__
-            // copy pointer in device variables
+            // copy pointer to device variables
             auto gpu_map = m_exec_conf->getGPUIds();
             for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
                 {
@@ -158,7 +158,7 @@ class GPUEvalFactory
         void setAlphaUnionPtr(float *d_alpha_union)
             {
             #ifdef __HIP_PLATFORM_NVCC__
-            // copy pointer in device variables
+            // copy pointer to device variables
             auto gpu_map = m_exec_conf->getGPUIds();
             for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
                 {
@@ -179,7 +179,7 @@ class GPUEvalFactory
         void setRCutUnion(float rcut)
             {
             #ifdef __HIP_PLATFORM_NVCC__
-            // copy pointer in device variables
+            // copy pointer to device variable
             auto gpu_map = m_exec_conf->getGPUIds();
             for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
                 {
@@ -200,7 +200,7 @@ class GPUEvalFactory
         void setUnionParamsPtr(jit::union_params_t *d_params)
             {
             #ifdef __HIP_PLATFORM_NVCC__
-            // copy pointer in device variables
+            // copy pointer to device variables
             auto gpu_map = m_exec_conf->getGPUIds();
             for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
                 {

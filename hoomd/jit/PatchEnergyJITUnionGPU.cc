@@ -50,9 +50,11 @@ void PatchEnergyJITUnionGPU::setParam(unsigned int type,
 
     // build tree and store proxy structure
     hpmc::detail::OBBTree tree;
-    tree.buildTree(obbs, N, leaf_capacity, false);
+    bool internal_nodes_spheres = false;
+    tree.buildTree(obbs, N, leaf_capacity, internal_nodes_spheres);
     delete [] obbs;
-    params.tree = hpmc::detail::GPUTree(tree,false);
+    bool managed = true;
+    params.tree = hpmc::detail::GPUTree(tree, managed);
 
     // store result
     m_d_union_params[type] = params;

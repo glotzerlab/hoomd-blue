@@ -41,6 +41,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             m_gpu_factory.setAlphaPtr(&m_alpha.front());
             m_gpu_factory.setAlphaUnionPtr(&m_alpha.front());
             m_gpu_factory.setUnionParamsPtr(&m_d_union_params.front());
+            m_gpu_factory.setRCutUnion(m_rcut_union);
             }
 
         virtual ~PatchEnergyJITUnionGPU()

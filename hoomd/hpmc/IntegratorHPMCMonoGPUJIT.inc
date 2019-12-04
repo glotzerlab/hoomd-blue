@@ -16,6 +16,9 @@ namespace kernel
 {
 
 //! Compute energy in old and new configuration of every particle
+/*!
+    The energy evaluation function (EVAL_FN) is selected via a preprocessor define
+ */
 __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                            Scalar4 *d_orientation,
                            Scalar4 *d_trial_postype,
@@ -264,7 +267,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
             r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
 
             // evaluate energy
-            float energy = eval(r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
+            float energy = EVAL_FN(r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
 
             // store energy term in global memory
             unsigned int n = atomicAdd(&s_nneigh_group[check_group], 1);

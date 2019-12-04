@@ -139,7 +139,7 @@ __device__ inline float compute_leaf_leaf_energy(float r_cut,
             if (rsq <= r_cut*r_cut)
                 {
                 // evaluate energy via JIT function
-                energy += eval(r_ij,
+                energy += ::eval(r_ij,
                     type_i,
                     orientation_i,
                     d_union_params[type_a].mdiameter[ileaf],
@@ -155,7 +155,7 @@ __device__ inline float compute_leaf_leaf_energy(float r_cut,
     }
 
 extern "C" {
-__device__ static float eval_union(const vec3<float>& r_ij,
+__device__ inline float eval_union(const vec3<float>& r_ij,
     unsigned int type_i,
     const quat<float>& q_i,
     float d_i,
@@ -165,7 +165,6 @@ __device__ static float eval_union(const vec3<float>& r_ij,
     float d_j,
     float charge_j)
     {
-    #if 0
     const hpmc::detail::GPUTree& tree_a = d_union_params[type_i].tree;
     const hpmc::detail::GPUTree& tree_b = d_union_params[type_j].tree;
 
@@ -214,9 +213,6 @@ __device__ static float eval_union(const vec3<float>& r_ij,
             }
         }
     return energy;
-    #else
-    return 0.0f;
-    #endif
     }
 }
 #endif // __HIPCC__

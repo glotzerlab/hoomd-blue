@@ -7,6 +7,9 @@
 #include "OBBTree.h"
 #endif
 
+#include "hoomd/ManagedArray.h"
+#include "HPMCPrecisionSetup.h"
+
 #ifndef __GPU_TREE_H__
 #define __GPU_TREE_H__
 

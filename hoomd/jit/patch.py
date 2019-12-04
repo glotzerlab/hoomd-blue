@@ -258,6 +258,9 @@ float eval(const vec3<float>& r_ij,
         .. versionadded:: 3.0
         '''
         cpp_function = """
+// select the evaluator to use
+#define EVAL_FN {}
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/jit/Evaluator.cuh"
@@ -269,7 +272,7 @@ __device__ float *alpha_iso;
 __device__ float *alpha_union;
 
 extern "C"
-{
+{{
 __device__ float eval(const vec3<float>& r_ij,
     unsigned int type_i,
     const quat<float>& q_i,
@@ -279,13 +282,13 @@ __device__ float eval(const vec3<float>& r_ij,
     const quat<float>& q_j,
     float d_j,
     float charge_j)
-    {
-"""
+    {{
+""".format(evaluator_name)
         cpp_function += code
         cpp_function += """
-    }}
-}}
-""".format(evaluator_name)
+    }
+}
+"""
 
         # Compile on C++ side
         return cpp_function
