@@ -34,6 +34,7 @@ void GPUEvalFactory::compileGPU(
         "--gpu-architecture=compute_"+std::to_string(compute_arch),
         "--include-path="+include_path,
         "--include-path="+include_path_source,
+        "--relocatable-device-code=true",
         "--device-as-default-execution-space",
         "--std=c++11",
 #ifdef ENABLE_HPMC_MIXED_PRECISION

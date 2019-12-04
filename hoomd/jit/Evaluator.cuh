@@ -3,7 +3,7 @@
 #include "hoomd/VectorMath.h"
 
 //! Declaration of evaluator function
-extern "C" __device__ float eval(const vec3<float>& r_ij,
+__device__ float eval(const vec3<float>& r_ij,
     unsigned int type_i,
     const quat<float>& q_i,
     float d_i,

@@ -106,7 +106,7 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
 
     for (unsigned int i= 0; i < na; i++)
         {
-        unsigned int ileaf = m_tree[type_a].getParticle(cur_node_a, i);
+        unsigned int ileaf = m_tree[type_a].getParticleByNode(cur_node_a, i);
 
         unsigned int type_i = m_type[type_a][ileaf];
         quat<float> orientation_i = conj(quat<float>(orientation_b))*quat<float>(orientation_a) * m_orientation[type_a][ileaf];
@@ -115,7 +115,7 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
         // loop through leaf particles of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
             {
-            unsigned int jleaf = m_tree[type_b].getParticle(cur_node_b, j);
+            unsigned int jleaf = m_tree[type_b].getParticleByNode(cur_node_b, j);
 
             unsigned int type_j = m_type[type_b][jleaf];
             quat<float> orientation_j = m_orientation[type_b][jleaf];

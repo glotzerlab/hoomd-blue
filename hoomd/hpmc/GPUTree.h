@@ -228,10 +228,21 @@ class GPUTree
             return m_num_leaves;
             }
 
-        DEVICE inline unsigned int getParticle(unsigned int node, unsigned int i) const
+        DEVICE inline unsigned int getParticleByNode(unsigned int node, unsigned int i) const
             {
             return m_particles[m_leaf_ptr[node]+i];
             }
+
+        DEVICE inline unsigned int getLeafNodePtrByNode(unsigned int node) const
+            {
+            return m_leaf_ptr[node];
+            }
+
+        DEVICE inline unsigned int getParticleByIndex(unsigned int idx) const
+            {
+            return m_particles[idx];
+            }
+
 
         DEVICE inline int getNumParticles(unsigned int node) const
             {

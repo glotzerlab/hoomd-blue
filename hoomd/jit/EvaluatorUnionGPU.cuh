@@ -102,7 +102,7 @@ static __device__ float d_rcut_union;
 
 __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
                              float r_cut,
-                             vec3<float> dr,
+                             const vec3<float>& dr,
                              unsigned int type_a,
                              unsigned int type_b,
                              const quat<float>& orientation_a,
@@ -117,9 +117,12 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
     unsigned int na = params[type_a].tree.getNumParticles(cur_node_a);
     unsigned int nb = params[type_b].tree.getNumParticles(cur_node_b);
 
-    for (unsigned int i= 0; i < na; i++)
+    unsigned int leafptr_i = params[type_a].tree.getLeafNodePtrByNode(cur_node_a);
+    unsigned int leafptr_j = params[type_b].tree.getLeafNodePtrByNode(cur_node_b);
+
+    for (unsigned int i = 0; i < na; i++)
         {
-        unsigned int ileaf = params[type_a].tree.getParticle(cur_node_a, i);
+        unsigned int ileaf = params[type_a].tree.getParticleByIndex(leafptr_i+i);
 
         unsigned int type_i = params[type_a].mtype[ileaf];
         quat<float> orientation_i = conj(quat<float>(orientation_b))*quat<float>(orientation_a) * params[type_a].morientation[ileaf];
@@ -128,7 +131,7 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
         // loop through leaf particles of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
             {
-            unsigned int jleaf = params[type_b].tree.getParticle(cur_node_b, j);
+            unsigned int jleaf = params[type_b].tree.getParticleByIndex(leafptr_j+j);
 
             unsigned int type_j = params[type_b].mtype[jleaf];
             quat<float> orientation_j = params[type_b].morientation[jleaf];
