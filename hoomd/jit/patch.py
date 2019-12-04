@@ -273,9 +273,7 @@ float eval(const vec3<float>& r_ij,
 __device__ float *alpha_iso;
 __device__ float *alpha_union;
 
-extern "C"
-{
-__device__ float eval(const vec3<float>& r_ij,
+__device__ inline float eval(const vec3<float>& r_ij,
     unsigned int type_i,
     const quat<float>& q_i,
     float d_i,
@@ -289,7 +287,6 @@ __device__ float eval(const vec3<float>& r_ij,
         cpp_function += code
         cpp_function += """
     }
-}
 """
 
         # Compile on C++ side
