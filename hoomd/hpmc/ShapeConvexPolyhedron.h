@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#pragma once
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/VectorMath.h"
@@ -12,15 +14,6 @@
 
 #include <cfloat>
 
-#ifndef __SHAPE_CONVEX_POLYHEDRON_H__
-#define __SHAPE_CONVEX_POLYHEDRON_H__
-
-/*! \file ShapeConvexPolyhedron.h
-    \brief Defines the convex polyhedron shape
-*/
-
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
@@ -39,23 +32,19 @@ namespace hpmc
 namespace detail
 {
 
-//! maximum number of vertices that can be stored (must be multiple of 8)
-/*! \ingroup hpmc_data_structs */
+/** Polyhedron vertices
 
-//! Data structure for polyhedron vertices
-//! Note that vectorized methods using this struct will assume unused coordinates are set to zero.
-/*! \ingroup hpmc_data_structs */
+    Define the parameters of a convex polyhedron for HPMC shape overlap checks. Convex polyhedra are
+    defined by the convex hull of N vertices. The polyhedrons's diameter is precomputed from the
+    vertex farthest from the origin. Convex polyhedra may have sweep radius greater than 0 which
+    makes them rounded convex polyhedra. Coordinates are stored with x, y, and z in separate arrays
+    to support vector intrinsics on the CPU. These arrays are stored in ManagedArray to support
+    arbitrary numbers of verticles.
+*/
     struct poly3d_verts : ShapeParams
 
     {
-        /*
-    poly3d_verts make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, bool ignore_stats,
-                                        std::shared_ptr<ExecutionConfiguration> exec_conf)
-    {
-
-    }
-    */
-    //! Default constructor initializes zero values.
+    /// Default constructor initializes zero values.
     DEVICE poly3d_verts()
         : n_hull_verts(0),
           N(0),
@@ -65,76 +54,68 @@ namespace detail
         { }
 
     #ifndef NVCC
-    //! Default constructor initializes zero values.
-    DEVICE poly3d_verts(bool _managed)
-        : x(0,_managed,32),
-          y(0,_managed,32),
-          z(0,_managed,32),
-          hull_verts(0,_managed,32),
-          n_hull_verts(0),
-          N(0),
-          diameter(OverlapReal(0)),
-          sweep_radius(OverlapReal(0)),
-          ignore(0)
-        { }
+    /** Initialize with a given number of vertices
+        @todo Remove this in favor of the other constructors
+    */
+    poly3d_verts(unsigned int _N, bool managed=false)
+        : x(_N, managed), y(_N, managed), z(_N, managed), n_hull_verts(0), N(_N), diameter(0.0),
+          sweep_radius(0.0), ignore(0)
+        {
+        }
+
+    poly3d_verts(const std::vector<vec3<OverlapReal>>& verts,
+                 OverlapReal sweep_radius_,
+                 unsigned int ignore_,
+                 bool managed=false)
+        {
+        setVerts(verts, sweep_radius_, ignore_, managed);
+        }
 
     //! Shape constructor
-    poly3d_verts(unsigned int _N, bool _managed)
-        : n_hull_verts(0), N(_N), diameter(0.0), sweep_radius(0.0), ignore(0)
+    void setVerts(const std::vector<vec3<OverlapReal>>& verts,
+                  OverlapReal sweep_radius_,
+                  unsigned int ignore_,
+                  bool managed=false)
         {
+        n_hull_verts = 0;
+        N = verts.size();
+        diameter = 0;
+        sweep_radius = sweep_radius_;
+        ignore = ignore_;
 
         unsigned int align_size = 8; //for AVX
         unsigned int N_align =((N + align_size - 1)/align_size)*align_size;
-        x = ManagedArray<OverlapReal>(N_align,_managed, 32); // 32byte alignment for AVX
-        y = ManagedArray<OverlapReal>(N_align,_managed, 32);
-        z = ManagedArray<OverlapReal>(N_align,_managed, 32);
+        x = ManagedArray<OverlapReal>(N_align, managed, 32); // 32byte alignment for AVX
+        y = ManagedArray<OverlapReal>(N_align, managed, 32);
+        z = ManagedArray<OverlapReal>(N_align, managed, 32);
         for (unsigned int i = 0; i <  N_align; ++i)
             {
             x[i] = y[i] = z[i] = OverlapReal(0.0);
             }
-        }
 
-    poly3d_verts(pybind11::dict v)
-        : poly3d_verts(pybind11::len(v["vertices"]), false)
-        {
-        pybind11::list verts = v["vertices"];
-        N = len(verts);
-        ignore = v["ignore_statistics"].cast<unsigned int>();
-
-        // extract the verts from the python list and compute the radius on the way
+        // copy the verts over from the std vector and compute the radius on the way
         OverlapReal radius_sq = OverlapReal(0.0);
-        for (unsigned int i = 0; i < pybind11::len(verts); i++)
+        for (unsigned int i = 0; i < verts.size(); i++)
             {
-            pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
-            vec3<OverlapReal> vert = vec3<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]), pybind11::cast<OverlapReal>(verts_i[1]), pybind11::cast<OverlapReal>(verts_i[2]));
+            const auto& vert = verts[i];
             x[i] = vert.x;
             y[i] = vert.y;
             z[i] = vert.z;
             radius_sq = max(radius_sq, dot(vert, vert));
             }
-        for (unsigned int i = len(verts); i < N; i++)
-            {
-            x[i] = 0;
-            y[i] = 0;
-            z[i] = 0;
-            }
-
         // set the diameter
         diameter = 2*(sqrt(radius_sq) + sweep_radius);
 
-        if (pybind11::len(verts) >= 3)
+        if (N >= 3)
             {
             // compute convex hull of vertices
-            typedef quickhull::Vector3<OverlapReal> vec;
-
-            std::vector<vec> qh_pts;
-            for (unsigned int i = 0; i < pybind11::len(verts); i++)
+            std::vector<quickhull::Vector3<OverlapReal>> qh_pts;
+            for (unsigned int i = 0; i < N; i++)
                 {
-                pybind11::list v = pybind11::cast<pybind11::list>(verts[i]);
-                vec vert;
-                vert.x = pybind11::cast<OverlapReal>(v[0]);
-                vert.y = pybind11::cast<OverlapReal>(v[1]);
-                vert.z = pybind11::cast<OverlapReal>(v[2]);
+                quickhull::Vector3<OverlapReal> vert;
+                vert.x = x[i];
+                vert.y = y[i];
+                vert.z = z[i];
                 qh_pts.push_back(vert);
                 }
 
@@ -144,7 +125,7 @@ namespace detail
             auto hull = qh.getConvexHull(qh_pts, false, true);
             auto indexBuffer = hull.getIndexBuffer();
 
-            hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), false);
+            hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), managed);
             n_hull_verts = indexBuffer.size();
 
             for (unsigned int i = 0; i < indexBuffer.size(); i++)
@@ -160,6 +141,27 @@ namespace detail
 
             obb = detail::compute_obb(pts, vertex_radii, false);
             }
+        }
+
+    poly3d_verts(pybind11::dict v, bool managed=false)
+        {
+        pybind11::list verts = v["vertices"];
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+
+        // extract the verts from the python list
+        std::vector<vec3<OverlapReal>> vert_vector;
+        for (unsigned int i = 0; i < pybind11::len(verts); i++)
+            {
+            pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
+            if (len(verts_i) != 3)
+                throw std::runtime_error("Each vertex must have 3 elements");
+            vec3<OverlapReal> vert = vec3<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]),
+                                                       pybind11::cast<OverlapReal>(verts_i[1]),
+                                                       pybind11::cast<OverlapReal>(verts_i[2]));
+            vert_vector.push_back(vert);
+            }
+
+        setVerts(vert_vector, sweep_radius, ignore, managed);
         }
         pybind11::dict asDict()
             {
@@ -829,4 +831,3 @@ DEVICE inline bool test_overlap_intersection(const ShapeConvexPolyhedron& a,
 
 #undef DEVICE
 #undef HOSTDEVICE
-#endif //__SHAPE_CONVEX_POLYHEDRON_H__

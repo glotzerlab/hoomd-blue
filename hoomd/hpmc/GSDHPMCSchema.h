@@ -315,21 +315,15 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
         count = 0;
         for (unsigned int i = 0; i < Ntypes; i++)
             {
-            float dsq = 0.0;
-            hpmc::detail::poly3d_verts result(N[i], m_exec_conf->isCUDAEnabled());
+            std::vector<vec3<hpmc::OverlapReal>> verts;
             for (unsigned int v = 0; v < N[i]; v++)
                 {
-                result.x[v] = vertices[count*3+0];
-                result.y[v] = vertices[count*3+1];
-                result.z[v] = vertices[count*3+2];
-                dsq = fmax(result.x[v]*result.x[v] + result.y[v]*result.y[v] + result.z[v]*result.z[v], dsq);
+                verts.push_back(vec3<hpmc::OverlapReal>(vertices[count*3+0],
+                                                  vertices[count*3+1],
+                                                  vertices[count*3+2]));
                 count++;
                 }
-            result.diameter = 2.0*(sqrt(dsq)+result.sweep_radius);
-            result.N = N[i];
-            result.sweep_radius = sweep_radius[i];
-            shape[i] = result; // Can we avoid a full copy of the data (move semantics?)
-            shape[i].ignore = 0;
+            shape[i] = hpmc::detail::poly3d_verts(verts, sweep_radius[i], 0);
             }
         }
     };

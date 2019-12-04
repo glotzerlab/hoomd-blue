@@ -34,13 +34,13 @@ namespace detail
     have nested ManagedArray members.
 */
 template<class Shape>
-struct union_params : ShapeParams
+struct ShapeUnionParams : ShapeParams
     {
     /** Default constructor
 
         @note Use of this constructor with N != 0 is intended only for unit tests
     */
-    DEVICE union_params(unsigned int _N=0)
+    DEVICE ShapeUnionParams(unsigned int _N=0)
         : mpos(_N, false), morientation(_N, false), mparams(_N, false),
           moverlap(_N, false), diameter(0.0), N(_N), ignore(0)
         {
@@ -118,7 +118,7 @@ struct union_params : ShapeParams
 
     #ifndef NVCC
 
-    union_params(pybind11::dict v, bool managed=false)
+    ShapeUnionParams(pybind11::dict v, bool managed=false)
         {
         // list of dicts to set parameters for member shapes
         pybind11::list shapes = v["shapes"];
@@ -303,7 +303,7 @@ template<class Shape>
 struct ShapeUnion
     {
     /// Define the parameter type
-    typedef typename detail::union_params<Shape> param_type;
+    typedef typename detail::ShapeUnionParams<Shape> param_type;
 
     /// Construct a shape at a given orientation
     DEVICE ShapeUnion(const quat<Scalar>& _orientation, const param_type& _params)
