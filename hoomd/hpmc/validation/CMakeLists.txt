@@ -67,7 +67,7 @@ set(TEST_LIST_GPU
 )
 endif(BUILD_JIT)
 
-set(TEST_LIST_GPU
+set(TEST_LIST_GPU ${TEST_LIST_GPU}
 disks_implicit.py 0 0
 spheres_implicit.py 0 1
 sphere_eos.py 0 0
