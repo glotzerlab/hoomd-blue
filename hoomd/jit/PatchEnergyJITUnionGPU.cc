@@ -58,6 +58,11 @@ void PatchEnergyJITUnionGPU::setParam(unsigned int type,
 
     // store result
     m_d_union_params[type] = params;
+
+    // cudaMemadviseReadMostly
+    m_d_union_params[type].set_memory_hint();
+
+    m_params_updated = true;
     }
 
 void export_PatchEnergyJITUnionGPU(pybind11::module &m)

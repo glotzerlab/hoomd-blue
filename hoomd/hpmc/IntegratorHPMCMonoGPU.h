@@ -35,7 +35,7 @@ namespace hpmc
 namespace gpu
 {
 //! Driver for kernel::hpmc_narrow_phase_patch() (JIT)
-void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& patch_args, const PatchEnergy& patch);
+void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& patch_args, PatchEnergy& patch);
 }
 
 namespace detail

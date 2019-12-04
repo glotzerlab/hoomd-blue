@@ -9,27 +9,26 @@
 #include "hoomd/hpmc/GPUTree.h"
 #include "hoomd/ManagedArray.h"
 
-#undef HOSTDEVICE
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
+#define DEVICE __device__
 #else
 #define HOSTDEVICE
+#define DEVICE
 #endif
 
 namespace jit
 {
 
 //! Data structure for shape composed of a union of multiple shapes
-struct union_params_t
+struct __attribute((aligned(sizeof(Scalar4)))) // align to largest data type for shared memory storage
+union_params_t
     {
     //! Default constructor
     HOSTDEVICE union_params_t()
         : N(0)
         { }
 
-    // this initial implementation is probably not performant, as it does not use shared memory
-
-    #if 0
     //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
@@ -71,7 +70,6 @@ struct union_params_t
         mtype.set_memory_hint();
         }
     #endif
-    #endif
 
     #ifndef __HIPCC__
     //! Shape constructor
@@ -93,7 +91,7 @@ struct union_params_t
     ManagedArray<float> mcharge;             //!< Charges of constituent particles
     ManagedArray<unsigned int> mtype;        //!< Types of constituent particles
     unsigned int N;                           //!< Number of member shapes
-    }; //__attribute__((aligned(32))); // aligned to sizeof(double4), for shared memory storage
+    }; 
 
 #ifdef __HIPCC__
 // Storage for shape parameters
@@ -102,7 +100,8 @@ static __device__ union_params_t *d_union_params;
 //! Device storage of rcut value
 static __device__ float d_rcut_union;
 
-__device__ inline float compute_leaf_leaf_energy(float r_cut,
+__device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
+                             float r_cut,
                              vec3<float> dr,
                              unsigned int type_a,
                              unsigned int type_b,
@@ -115,25 +114,25 @@ __device__ inline float compute_leaf_leaf_energy(float r_cut,
     vec3<float> r_ij = rotate(conj(quat<float>(orientation_b)),vec3<float>(dr));
 
     // loop through leaf particles of cur_node_a
-    unsigned int na = d_union_params[type_a].tree.getNumParticles(cur_node_a);
-    unsigned int nb = d_union_params[type_b].tree.getNumParticles(cur_node_b);
+    unsigned int na = params[type_a].tree.getNumParticles(cur_node_a);
+    unsigned int nb = params[type_b].tree.getNumParticles(cur_node_b);
 
     for (unsigned int i= 0; i < na; i++)
         {
-        unsigned int ileaf = d_union_params[type_a].tree.getParticle(cur_node_a, i);
+        unsigned int ileaf = params[type_a].tree.getParticle(cur_node_a, i);
 
-        unsigned int type_i = d_union_params[type_a].mtype[ileaf];
-        quat<float> orientation_i = conj(quat<float>(orientation_b))*quat<float>(orientation_a) * d_union_params[type_a].morientation[ileaf];
-        vec3<float> pos_i(rotate(conj(quat<float>(orientation_b))*quat<float>(orientation_a),d_union_params[type_a].mpos[ileaf])-r_ij);
+        unsigned int type_i = params[type_a].mtype[ileaf];
+        quat<float> orientation_i = conj(quat<float>(orientation_b))*quat<float>(orientation_a) * params[type_a].morientation[ileaf];
+        vec3<float> pos_i(rotate(conj(quat<float>(orientation_b))*quat<float>(orientation_a),params[type_a].mpos[ileaf])-r_ij);
 
         // loop through leaf particles of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
             {
-            unsigned int jleaf = d_union_params[type_b].tree.getParticle(cur_node_b, j);
+            unsigned int jleaf = params[type_b].tree.getParticle(cur_node_b, j);
 
-            unsigned int type_j = d_union_params[type_b].mtype[jleaf];
-            quat<float> orientation_j = d_union_params[type_b].morientation[jleaf];
-            vec3<float> r_ij = d_union_params[type_b].mpos[jleaf] - pos_i;
+            unsigned int type_j = params[type_b].mtype[jleaf];
+            quat<float> orientation_j = params[type_b].morientation[jleaf];
+            vec3<float> r_ij = params[type_b].mpos[jleaf] - pos_i;
 
             float rsq = dot(r_ij,r_ij);
             if (rsq <= r_cut*r_cut)
@@ -142,12 +141,12 @@ __device__ inline float compute_leaf_leaf_energy(float r_cut,
                 energy += ::eval(r_ij,
                     type_i,
                     orientation_i,
-                    d_union_params[type_a].mdiameter[ileaf],
-                    d_union_params[type_a].mcharge[ileaf],
+                    params[type_a].mdiameter[ileaf],
+                    params[type_a].mcharge[ileaf],
                     type_j,
                     orientation_j,
-                    d_union_params[type_b].mdiameter[jleaf],
-                    d_union_params[type_b].mcharge[jleaf]);
+                    params[type_b].mdiameter[jleaf],
+                    params[type_b].mcharge[jleaf]);
                 }
             }
         }
@@ -155,7 +154,8 @@ __device__ inline float compute_leaf_leaf_energy(float r_cut,
     }
 
 extern "C" {
-__device__ inline float eval_union(const vec3<float>& r_ij,
+__device__ inline float eval_union(const union_params_t *params,
+    const vec3<float>& r_ij,
     unsigned int type_i,
     const quat<float>& q_i,
     float d_i,
@@ -165,8 +165,8 @@ __device__ inline float eval_union(const vec3<float>& r_ij,
     float d_j,
     float charge_j)
     {
-    const hpmc::detail::GPUTree& tree_a = d_union_params[type_i].tree;
-    const hpmc::detail::GPUTree& tree_b = d_union_params[type_j].tree;
+    const hpmc::detail::GPUTree& tree_a = params[type_i].tree;
+    const hpmc::detail::GPUTree& tree_b = params[type_j].tree;
 
     // load from device global variable
     float r_cut = d_rcut_union;
@@ -209,7 +209,7 @@ __device__ inline float eval_union(const vec3<float>& r_ij,
 
         if (hpmc::detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot, false))
             {
-            energy += compute_leaf_leaf_energy(r_cut, r_ij, type_i, type_j, q_i, q_j, query_node_a, query_node_b);
+            energy += compute_leaf_leaf_energy(params, r_cut, r_ij, type_i, type_j, q_i, q_j, query_node_a, query_node_b);
             }
         }
     return energy;
@@ -218,4 +218,5 @@ __device__ inline float eval_union(const vec3<float>& r_ij,
 #endif // __HIPCC__
 
 #undef HOSTDEVICE
+#undef DEVICE
 } // end namespace jit

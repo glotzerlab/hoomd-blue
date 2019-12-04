@@ -65,7 +65,7 @@ class npt_wca_dimer_eos(unittest.TestCase):
         seed = 1234
         mc = hpmc.integrate.sphere(d=0.1,a=0.1,seed=seed)
         mc.shape_param.set('A',diameter=0, orientable = True)
-        mc.overlap_checks('A','A', enable=False)
+        mc.overlap_checks.set('A','A', enable=False)
 
         rcut_wca = sigma*2**(1./6.)
         rcut = len_cyl + rcut_wca
@@ -168,13 +168,12 @@ class npt_wca_dimer_eos_union(unittest.TestCase):
         seed = 1234
         mc = hpmc.integrate.sphere(d=0.1,a=0.1,seed=seed)
         mc.shape_param.set('A',diameter=0, orientable = True)
-        mc.overlap_checks('A','A', enable=False)
+        mc.overlap_checks.set('A','A', enable=False)
 
         rcut_wca = sigma*2**(1./6.)
         eps = 1.0
         wca = """float rsq = dot(r_ij, r_ij);
                  float rcut_wca = {:.15f};
-                 float rcut_wca_sq = rcut_wca*rcut_wca;
                  float sigma = {};
                  float eps = {};
                  float pair_eng = 0;

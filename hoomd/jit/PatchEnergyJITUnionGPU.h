@@ -28,7 +28,8 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             unsigned int compute_arch)
             : PatchEnergyJITUnion(sysdef, exec_conf, llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir_union, r_cut_union, array_size_union),
               m_gpu_factory(exec_conf, code, kernel_name, include_path, include_path_source, cuda_devrt_library_path, compute_arch),
-              m_d_union_params(m_sysdef->getParticleData()->getNTypes(), jit::union_params_t(), managed_allocator<jit::union_params_t>(m_exec_conf->isCUDAEnabled()))
+              m_d_union_params(m_sysdef->getParticleData()->getNTypes(), jit::union_params_t(), managed_allocator<jit::union_params_t>(m_exec_conf->isCUDAEnabled())),
+              m_params_updated(false)
             {
             // allocate data array
             cudaMallocManaged(&m_d_alpha, sizeof(float)*m_alpha_size);
@@ -100,8 +101,39 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             \param hStream stream to execute on
             \param kernelParams the kernel parameters
             */
-        virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream, void** kernelParams) const
+        virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream, void** kernelParams)
             {
+            // add shape data structures to shared memory requirements
+            sharedMemBytes += m_d_union_params.size()*sizeof(jit::union_params_t);
+
+            // allocate some extra shared mem to store union shape parameters
+            static unsigned int base_shared_bytes = UINT_MAX;
+            unsigned int kernel_shared_bytes = getKernelSharedSize(idev);
+            bool shared_bytes_changed = base_shared_bytes != sharedMemBytes + kernel_shared_bytes;
+            base_shared_bytes = sharedMemBytes + kernel_shared_bytes;
+
+            unsigned int max_extra_bytes = m_exec_conf->dev_prop.sharedMemPerBlock - base_shared_bytes;
+            static unsigned int extra_bytes = UINT_MAX;
+            if (extra_bytes == UINT_MAX || m_params_updated || shared_bytes_changed)
+                {
+                // required for memory coherency
+                hipDeviceSynchronize();
+
+                // determine dynamically requested shared memory
+                char *ptr = (char *)nullptr;
+                unsigned int available_bytes = max_extra_bytes;
+                for (unsigned int i = 0; i < m_d_union_params.size(); ++i)
+                    {
+                    m_d_union_params[i].allocate_shared(ptr, available_bytes);
+                    }
+                extra_bytes = max_extra_bytes - available_bytes;
+                }
+
+            m_params_updated = false;
+
+            sharedMemBytes += extra_bytes;
+
+            // launch kernel
             m_gpu_factory.launchKernel(idev, grid, threads, sharedMemBytes, hStream, kernelParams);
             }
 
@@ -114,6 +146,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
 
             // update device side pointer
             m_gpu_factory.setUnionParamsPtr(&m_d_union_params.front());
+            m_params_updated = true;
             }
 
     private:
@@ -121,6 +154,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         float *m_d_alpha;                                   //!< device memory holding auxillary data
         float *m_d_alpha_union;                             //!< device memory holding auxillary data
         std::vector<jit::union_params_t, managed_allocator<jit::union_params_t> > m_d_union_params;   //!< Parameters for each particle type on GPU
+        bool m_params_updated;                              //!< True if parameters have been updated
     };
 
 //! Exports the PatchEnergyJITUnionGPU class to python

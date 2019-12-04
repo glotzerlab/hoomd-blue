@@ -245,7 +245,7 @@ float eval(const vec3<float>& r_ij,
 
         return llvm_ir
 
-    def wrap_gpu_code(self, code, evaluator_name = "eval"):
+    def wrap_gpu_code(self, code, union = False):
         R'''Helper function to compile the provided code into a device function
 
         Args:
@@ -257,14 +257,16 @@ float eval(const vec3<float>& r_ij,
 
         .. versionadded:: 3.0
         '''
-        cpp_function = """
-// select the evaluator to use
-#define EVAL_FN {}
 
+        if union:
+            cpp_function = """#define UNION_EVAL
+"""
+        else:
+            cpp_function = ""
+
+        cpp_function += """
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
-#include "hoomd/jit/Evaluator.cuh"
-#include "hoomd/jit/EvaluatorUnionGPU.cuh"
 #include "hoomd/hpmc/IntegratorHPMCMonoGPUJIT.inc"
 
 // these are allocated by the library
@@ -272,7 +274,7 @@ __device__ float *alpha_iso;
 __device__ float *alpha_union;
 
 extern "C"
-{{
+{
 __device__ float eval(const vec3<float>& r_ij,
     unsigned int type_i,
     const quat<float>& q_i,
@@ -282,8 +284,8 @@ __device__ float eval(const vec3<float>& r_ij,
     const quat<float>& q_j,
     float d_j,
     float charge_j)
-    {{
-""".format(evaluator_name)
+    {
+"""
         cpp_function += code
         cpp_function += """
     }
@@ -430,7 +432,7 @@ class user_union(user):
                 if int(a) < int(compute_major)*10+int(compute_major):
                     max_arch = int(a)
 
-            gpu_code = self.wrap_gpu_code(code, evaluator_name="jit::eval_union")
+            gpu_code = self.wrap_gpu_code(code, union=True)
             self.cpp_evaluator = _jit.PatchEnergyJITUnionGPU(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
                 llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", include_path, include_path_source, cuda_devrt_library_path, max_arch);

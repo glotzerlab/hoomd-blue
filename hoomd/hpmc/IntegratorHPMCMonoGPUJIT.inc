@@ -5,6 +5,7 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/jit/Evaluator.cuh"
+#include "hoomd/jit/EvaluatorUnionGPU.cuh"
 
 #include "GPUHelpers.cuh"
 
@@ -60,7 +61,13 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];
 
+    #ifdef UNION_EVAL
+    typename jit::union_params_t *s_params = (typename jit::union_params_t *)(&s_data[0]);
+    Scalar4 *s_orientation_group = (Scalar4*)(s_params + num_types);
+    #else
     Scalar4 *s_orientation_group = (Scalar4*)(&s_data[0]);
+    #endif
+
     Scalar3 *s_pos_group = (Scalar3*)(s_orientation_group + n_groups);
     Scalar *s_diameter_group = (Scalar *)(s_pos_group + n_groups);
     Scalar *s_charge_group = (Scalar *)(s_diameter_group + n_groups);
@@ -72,9 +79,21 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
     unsigned int *s_nneigh_group = (unsigned int *)(s_idx_group + n_groups);
 
         {
-        // copy over parameters one value per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
         unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
+
+        #ifdef UNION_EVAL
+        unsigned int param_size = num_types*sizeof(typename jit::union_params_t) / sizeof(int);
+
+        for (unsigned int cur_offset = 0; cur_offset < param_size; cur_offset += block_size)
+            {
+            if (cur_offset + tidx < param_size)
+                {
+                ((int *)s_params)[cur_offset + tidx] = ((int *)jit::d_union_params)[cur_offset + tidx];
+                }
+            }
+        #endif
 
         for (unsigned int cur_offset = 0; cur_offset < num_types; cur_offset += block_size)
             {
@@ -87,7 +106,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
 
     __syncthreads();
 
-    #if 0
+    #ifdef UNION_EVAL
     // initialize extra shared mem
     char *s_extra = (char *)(s_nneigh_group + n_groups);
 
@@ -267,7 +286,11 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
             r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
 
             // evaluate energy
-            float energy = EVAL_FN(r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
+            #ifdef UNION_EVAL
+            float energy = jit::eval_union(s_params, r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
+            #else
+            float energy = eval(r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
+            #endif
 
             // store energy term in global memory
             unsigned int n = atomicAdd(&s_nneigh_group[check_group], 1);

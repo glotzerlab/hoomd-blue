@@ -59,7 +59,7 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
             \param hStream stream to execute on
             \param kernelParams the kernel parameters
             */
-        virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream, void** kernelParams) const
+        virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream, void** kernelParams)
             {
             m_gpu_factory.launchKernel(idev, grid, threads, sharedMemBytes, hStream, kernelParams);
             }

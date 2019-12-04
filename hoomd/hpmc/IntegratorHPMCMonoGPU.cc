@@ -14,7 +14,7 @@ namespace gpu
 {
 
 //! Kernel driver for kernel::hpmc_narrow_phase_patch
-void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& patch_args, const PatchEnergy& patch)
+void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& patch_args, PatchEnergy& patch)
     {
     assert(args.d_postype);
     assert(args.d_orientation);
@@ -53,31 +53,6 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
         }
 
     unsigned int max_extra_bytes = 0;
-    #if 0
-    // determine dynamically allocated shared memory size
-    static unsigned int base_shared_bytes = UINT_MAX;
-    bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-    base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
-
-    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
-    static unsigned int extra_bytes = UINT_MAX;
-    if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
-        {
-        // required for memory coherency
-        cudaDeviceSynchronize();
-
-        // determine dynamically requested shared memory
-        char *ptr = (char *)nullptr;
-        unsigned int available_bytes = max_extra_bytes;
-        for (unsigned int i = 0; i < args.num_types; ++i)
-            {
-            params[i].allocate_shared(ptr, available_bytes);
-            }
-        extra_bytes = max_extra_bytes - available_bytes;
-        }
-
-    shared_bytes += extra_bytes;
-    #endif
 
     dim3 thread(tpp, n_groups, 1);
 

@@ -113,7 +113,7 @@ class PatchEnergy
         \param hStream stream to execute on
         \param kernelParams the kernel parameters
         */
-    virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream, void** kernelParams) const
+    virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream, void** kernelParams)
         {
         throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
         }
