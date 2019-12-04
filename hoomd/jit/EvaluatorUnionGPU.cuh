@@ -21,7 +21,7 @@ namespace jit
 {
 
 //! Data structure for shape composed of a union of multiple shapes
-struct __attribute((aligned(sizeof(Scalar4)))) // align to largest data type for shared memory storage
+struct __attribute__((aligned(sizeof(Scalar4)))) // align to largest data type used in shared memory storage
 union_params_t
     {
     //! Default constructor
