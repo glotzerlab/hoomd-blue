@@ -100,8 +100,11 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             \param sharedMemBytes The size of the dynamic shared mem allocation
             \param hStream stream to execute on
             \param kernelParams the kernel parameters
+            \param extra_bytes Maximum extra bytes of shared memory (modifiable value passed to kernel)
             */
-        virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream, void** kernelParams)
+        virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads,
+            unsigned int sharedMemBytes, hipStream_t hStream,
+            void** kernelParams, unsigned int &max_extra_bytes)
             {
             // add shape data structures to shared memory requirements
             sharedMemBytes += m_d_union_params.size()*sizeof(jit::union_params_t);
@@ -112,7 +115,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             bool shared_bytes_changed = base_shared_bytes != sharedMemBytes + kernel_shared_bytes;
             base_shared_bytes = sharedMemBytes + kernel_shared_bytes;
 
-            unsigned int max_extra_bytes = m_exec_conf->dev_prop.sharedMemPerBlock - base_shared_bytes;
+            max_extra_bytes = m_exec_conf->dev_prop.sharedMemPerBlock - base_shared_bytes;
             static unsigned int extra_bytes = UINT_MAX;
             if (extra_bytes == UINT_MAX || m_params_updated || shared_bytes_changed)
                 {

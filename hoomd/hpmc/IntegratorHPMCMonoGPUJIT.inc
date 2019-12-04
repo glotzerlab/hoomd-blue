@@ -44,10 +44,10 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                            Scalar r_cut_patch,
                            const Scalar *d_additive_cutoff,
                            unsigned int *d_overflow,
-                           const unsigned int max_extra_bytes,
                            const unsigned int max_queue_size,
                            const unsigned int work_offset,
-                           const unsigned int nwork)
+                           const unsigned int nwork,
+                           const unsigned int max_extra_bytes)
     {
     __shared__ unsigned int s_queue_size;
     __shared__ unsigned int s_still_searching;

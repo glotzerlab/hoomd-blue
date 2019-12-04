@@ -52,8 +52,6 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
             + min_shared_bytes;
         }
 
-    unsigned int max_extra_bytes = 0;
-
     dim3 thread(tpp, n_groups, 1);
 
     for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
@@ -65,15 +63,16 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
 
         dim3 grid(num_blocks, 1, 1);
 
+        unsigned int max_extra_bytes = 0;
         unsigned int N_old = args.N + args.N_ghost;
         void *k_args[] = {(void *)&args.d_postype, (void *)&args.d_orientation, (void *)&args.d_trial_postype, (void *) &args.d_trial_orientation,
             (void *) &patch_args.d_charge, (void *) &patch_args.d_diameter, (void *) &args.d_excell_idx, (void *) &args.d_excell_size, (void *) &args.excli,
             (void *) &patch_args.d_nlist, (void *) &patch_args.d_energy, (void *) &patch_args.d_nneigh, (void *) &patch_args.maxn,  (void *) &args.num_types,
             (void *) &args.box, (void *) &args.ghost_width, (void *) &args.cell_dim, (void *) &args.ci, (void *) &N_old, (void *) &args.N,
             (void *) &patch_args.old_config, (void *) &patch_args.r_cut_patch, (void *) &patch_args.d_additive_cutoff,
-            (void *) &patch_args.d_overflow, (void *) &max_extra_bytes, (void *) &max_queue_size, (void *)&range.first, (void *) &nwork};
+            (void *) &patch_args.d_overflow, (void *) &max_queue_size, (void *)&range.first, (void *) &nwork, (void *) &max_extra_bytes};
 
-        patch.launchKernel(idev, grid, thread, shared_bytes, 0, k_args);
+        patch.launchKernel(idev, grid, thread, shared_bytes, 0, k_args, max_extra_bytes);
         }
     }
 

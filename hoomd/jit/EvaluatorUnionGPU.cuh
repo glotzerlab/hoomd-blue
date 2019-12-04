@@ -91,7 +91,7 @@ union_params_t
     ManagedArray<float> mcharge;             //!< Charges of constituent particles
     ManagedArray<unsigned int> mtype;        //!< Types of constituent particles
     unsigned int N;                           //!< Number of member shapes
-    }; 
+    };
 
 #ifdef __HIPCC__
 // Storage for shape parameters

@@ -58,8 +58,11 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
             \param sharedMemBytes The size of the dynamic shared mem allocation
             \param hStream stream to execute on
             \param kernelParams the kernel parameters
+            \param max_extra_bytes Maximum extra bytes of shared memory, kernel argument
             */
-        virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream, void** kernelParams)
+        virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads,
+            unsigned int sharedMemBytes, hipStream_t hStream,
+            void** kernelParams, unsigned int& max_extra_bytes)
             {
             m_gpu_factory.launchKernel(idev, grid, threads, sharedMemBytes, hStream, kernelParams);
             }
