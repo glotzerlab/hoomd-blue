@@ -73,3 +73,9 @@ class Trigger:
 
 class PeriodicTrigger:
     pass
+
+class ParticleFilterAll:
+    pass
+
+class ParticleFilterTags:
+    pass

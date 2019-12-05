@@ -152,17 +152,23 @@ class IntegratorHPMCMono : public IntegratorHPMC
          */
 
         //! Set the depletant density in the free volume
-        void setDepletantFugacity(unsigned int type, Scalar fugacity)
+        void setDepletantFugacityPy(std::string type_name, Scalar fugacity)
             {
-            if (type >= this->m_pdata->getNTypes())
-                throw std::runtime_error("Unknown type.");
-            m_fugacity[type] = fugacity;
+            unsigned int id = this->m_pdata->getTypeByName(type_name);
+            m_fugacity[id] = fugacity;
             }
 
         //! Returns the depletant fugacity
-        Scalar getDepletantFugacity(unsigned int type)
+        Scalar getDepletantFugacityPy(std::string type_name)
             {
-            return m_fugacity[type];
+            unsigned int id = this->m_pdata->getTypeByName(type_name);
+            return m_fugacity[id];
+            }
+
+        //! Returns the depletant fugacity
+        Scalar getDepletantFugacity(unsigned int id)
+            {
+            return m_fugacity[id];
             }
 
         //! Set quermass integration mode
@@ -222,7 +228,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
         pybind11::dict getShape(std::string typ);
 
         //! Set elements of the interaction matrix
-        virtual void setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps);
+        virtual void setInteractionMatrix(std::pair<std::string, std::string> types,
+                                          bool check_overlaps);
 
         //! Set the external field for the integrator
         void setExternalField(std::shared_ptr< ExternalFieldMono<Shape> > external)
@@ -1577,7 +1584,7 @@ void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& pa
     // validate input
     if (typ >= this->m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set pair params for a non existent type! "
+        this->m_exec_conf->msg->error() << "integrate.HPMCIntegrator_?." << /*evaluator::getName() <<*/ ": Trying to set pair params for a non existent type! "
                   << typ << std::endl;
         throw std::runtime_error("Error setting parameters in IntegratorHPMCMono");
         }
@@ -1593,25 +1600,13 @@ void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& pa
     }
 
 template <class Shape>
-void IntegratorHPMCMono<Shape>::setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps)
+void IntegratorHPMCMono<Shape>::setInteractionMatrix(std::pair<std::string, std::string> types,
+                                                     bool check_overlaps)
     {
-    // validate input
-    if (typi >= this->m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existent type! "
-                  << typi << std::endl;
-        throw std::runtime_error("Error setting interaction matrix in IntegratorHPMCMono");
-        }
-
-    if (typj >= this->m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existent type! "
-                  << typj << std::endl;
-        throw std::runtime_error("Error setting interaction matrix in IntegratorHPMCMono");
-        }
+    auto typi = m_pdata->getTypeByName(types.first);
+    auto typj = m_pdata->getTypeByName(types.second);
 
     // update the parameter for this type
-    m_exec_conf->msg->notice(7) << "setOverlapChecks : " << typi << " " << typj << " " << check_overlaps << std::endl;
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
     h_overlaps.data[m_overlap_idx(typi,typj)] = check_overlaps;
     h_overlaps.data[m_overlap_idx(typj,typi)] = check_overlaps;
@@ -3119,7 +3114,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
     pybind11::class_< IntegratorHPMCMono<Shape>, IntegratorHPMC, std::shared_ptr< IntegratorHPMCMono<Shape> > >(m, name.c_str())
           .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
-          .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
+          .def("setInteractionMatrix", &IntegratorHPMCMono<Shape>::setInteractionMatrix)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
@@ -3127,9 +3122,9 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("connectGSDShapeSpec", &IntegratorHPMCMono<Shape>::connectGSDShapeSpec)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
           .def("py_test_overlap", &IntegratorHPMCMono<Shape>::py_test_overlap)
-          .def("setDepletantFugacity", &IntegratorHPMCMono<Shape>::setDepletantFugacity)
           .def("getImplicitCounters", &IntegratorHPMCMono<Shape>::getImplicitCounters)
-          .def("getDepletantFugacity", &IntegratorHPMCMono<Shape>::getDepletantFugacity)
+          .def("setDepletantFugacity", &IntegratorHPMCMono<Shape>::setDepletantFugacityPy)
+          .def("getDepletantFugacity", &IntegratorHPMCMono<Shape>::getDepletantFugacityPy)
           .def("setQuermassMode", &IntegratorHPMCMono<Shape>::setQuermassMode)
           .def("setSweepRadius", &IntegratorHPMCMono<Shape>::setSweepRadius)
           .def("getQuermassMode", &IntegratorHPMCMono<Shape>::getQuermassMode)

@@ -74,3 +74,7 @@ def cuda_profile_stop():
 
     if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
         hoomd.context.current.device.cpp_exec_conf.cudaProfileStop();
+
+
+def to_camel_case(string):
+    return string.replace('_', ' ').title().replace(' ', '')

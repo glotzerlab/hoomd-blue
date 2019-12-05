@@ -108,8 +108,7 @@ struct param_base
 struct sph_params : param_base
     {
     OverlapReal radius;                 //!< radius of sphere
-    unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
-                                        //   First bit is ignore overlaps, Second bit is ignore statistics
+    bool ignore;                        //!< Ignore statistics
     bool isOriented;                    //!< Flag to specify whether a sphere has orientation or not. Intended for
                                         //!  for use with anisotropic/patchy pair potentials.
 
@@ -126,7 +125,7 @@ struct sph_params : param_base
 
     sph_params(pybind11::dict v)
         {
-        ignore = v["ignore_statistics"].cast<unsigned int>();
+        ignore = v["ignore_statistics"].cast<bool>();
         radius = v["diameter"].cast<OverlapReal>() / OverlapReal(2.0);
         isOriented = v["orientable"].cast<bool>();
         }

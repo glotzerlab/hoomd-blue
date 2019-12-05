@@ -95,7 +95,7 @@ Glaser, to be published (2019).
 Since release 3.0 HOOMD-blue supports *quermass integration*, which is a method
 to define the excluded volume of the colloids independently from that of the
 test particles. Every colloid is swept by a sphere of constant radius
-**r_sweep** (see :py:meth:`hoomd.hpmc.integrate.mode_hpmc.set_params`), similar
+**r_sweep** (see ``hoomd.hpmc.integrate.mode_hpmc.set_params``), similar
 to implicit depletants with a spherical depletant. However, the test particle
 (or mixture thereof) now intersects the region of intersection between the
 sphere-swept colloids, as illustrated below. The name 'Quermass integration' of
@@ -105,7 +105,7 @@ surface area, integrated mean and Gaussian curvature -- the four Minkowski measu
 three dimensions) can be used to realize a free energy functional that depends
 on the corresponding measures of the system of particles in a general way. The
 coefficients can have any sign, e.g. negative coefficients are realized
-by negative test particle fugacities (see :py:meth:`hoomd.hpmc.integrate.mode_hpmc.set_fugacity`).
+by negative test particle fugacities (see ``hoomd.hpmc.integrate.mode_hpmc.set_fugacity``).
 
 .. image:: quermass.png
     :width: 450 px

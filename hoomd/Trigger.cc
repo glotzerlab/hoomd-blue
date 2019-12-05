@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 #include "Trigger.h"
 
 //* Method to enable unit testing of C++ trigger calls from pytest
@@ -10,10 +13,10 @@ bool testTriggerCall(std::shared_ptr<Trigger> t, uint64_t step)
 class TriggerPy : public Trigger
     {
     public:
-        //* Inherit the constructors
+        // Inherit the constructors
         using Trigger::Trigger;
 
-        //* trampoline method
+        // trampoline method
         bool operator()(uint64_t timestep) override
             {
             PYBIND11_OVERLOAD_NAME(bool,         // Return type
