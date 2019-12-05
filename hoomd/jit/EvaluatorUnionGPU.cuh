@@ -173,6 +173,7 @@ __device__ inline float eval_union(const union_params_t *params,
 
     // load from device global variable
     float r_cut = d_rcut_union;
+    float r_cut2 = 0.5f*d_rcut_union;
 
     // perform a tandem tree traversal
     unsigned long int stack = 0;
@@ -193,20 +194,20 @@ __device__ inline float eval_union(const union_params_t *params,
     float energy = 0.0f;
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
-        // extend OBBs
+        // extend OBBs by distributing the cut-off symmetrically
         if (query_node_a != cur_node_a)
             {
-            obb_a.lengths.x += r_cut;
-            obb_a.lengths.y += r_cut;
-            obb_a.lengths.z += r_cut;
+            obb_a.lengths.x += r_cut2;
+            obb_a.lengths.y += r_cut2;
+            obb_a.lengths.z += r_cut2;
             query_node_a = cur_node_a;
             }
 
         if (query_node_b != cur_node_b)
             {
-            obb_b.lengths.x += r_cut;
-            obb_b.lengths.y += r_cut;
-            obb_b.lengths.z += r_cut;
+            obb_b.lengths.x += r_cut2;
+            obb_b.lengths.y += r_cut2;
+            obb_b.lengths.z += r_cut2;
             query_node_b = cur_node_b;
             }
 
