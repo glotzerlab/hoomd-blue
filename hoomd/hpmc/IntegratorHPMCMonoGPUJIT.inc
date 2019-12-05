@@ -6,6 +6,8 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/jit/Evaluator.cuh"
 #include "hoomd/jit/EvaluatorUnionGPU.cuh"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #include "GPUHelpers.cuh"
 
@@ -40,6 +42,9 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                            const Index3D ci,
                            const unsigned int N_old,
                            const unsigned int N_new,
+                           const unsigned int seed,
+                           const unsigned int select,
+                           const unsigned int timestep,
                            bool old_config,
                            Scalar r_cut_patch,
                            const Scalar *d_additive_cutoff,
@@ -63,13 +68,15 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
 
     #ifdef UNION_EVAL
     typename jit::union_params_t *s_params = (typename jit::union_params_t *)(&s_data[0]);
-    Scalar4 *s_orientation_group = (Scalar4*)(s_params + num_types);
+    Scalar4 *s_orientation_group_old = (Scalar4*)(s_params + num_types);
     #else
-    Scalar4 *s_orientation_group = (Scalar4*)(&s_data[0]);
+    Scalar4 *s_orientation_group_old = (Scalar4*)(&s_data[0]);
     #endif
 
-    Scalar3 *s_pos_group = (Scalar3*)(s_orientation_group + n_groups);
-    Scalar *s_diameter_group = (Scalar *)(s_pos_group + n_groups);
+    Scalar4 *s_orientation_group_new = (Scalar4*)(s_orientation_group_old + n_groups);
+    Scalar3 *s_pos_group_old = (Scalar3*)(s_orientation_group_new + n_groups);
+    Scalar3 *s_pos_group_new = (Scalar3*)(s_pos_group_old + n_groups);
+    Scalar *s_diameter_group = (Scalar *)(s_pos_group_new + n_groups);
     Scalar *s_charge_group = (Scalar *)(s_diameter_group + n_groups);
     Scalar *s_additive_cutoff = (Scalar *)(s_charge_group + n_groups);
     unsigned int *s_queue_j =   (unsigned int*)(s_additive_cutoff + num_types);
@@ -142,9 +149,9 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
     if (active)
         {
         // load particle i
-        Scalar4 postype_i(old_config ? d_postype[idx] : d_trial_postype[idx]);
-        vec3<Scalar> pos_i(postype_i);
-        unsigned int type_i = __scalar_as_int(postype_i.w);
+        Scalar4 postype_i_new(d_trial_postype[idx]);
+        vec3<Scalar> pos_i_new(postype_i_new);
+        unsigned int type_i = __scalar_as_int(postype_i_new.w);
 
         // find the cell this particle should be in
         vec3<Scalar> pos_i_old(d_postype[idx]);
@@ -152,9 +159,11 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
 
         if (master)
             {
-            s_pos_group[group] = make_scalar3(pos_i.x, pos_i.y, pos_i.z);
+            s_pos_group_old[group] = make_scalar3(pos_i_old.x, pos_i_old.y, pos_i_old.z);
+            s_pos_group_new[group] = make_scalar3(pos_i_new.x, pos_i_new.y, pos_i_new.z);
             s_type_group[group] = type_i;
-            s_orientation_group[group] = old_config ? d_orientation[idx] : d_trial_orientation[idx];
+            s_orientation_group_old[group] = d_orientation[idx];
+            s_orientation_group_new[group] = d_trial_orientation[idx];
             s_diameter_group[group] = d_diameter[idx];
             s_charge_group[group] = d_charge[idx];
             s_idx_group[group] = idx;
@@ -197,7 +206,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                 {
                 // build some shapes, but we only need them to get diameters, so don't load orientations
                 // build shape i from shared memory
-                vec3<Scalar> pos_i(s_pos_group[group]);
+                vec3<Scalar> pos_i(old_config ? s_pos_group_old[group] : s_pos_group_new[group]);
                 unsigned int type_i = s_type_group[group];
 
                 bool old = k & 1;
@@ -265,12 +274,12 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
             bool check_old = check_j_flag & 1;
             unsigned int check_j  = check_j_flag >> 1;
 
-            vec3<Scalar> r_ij;
-
             // build shape i from shared memory
-            Scalar3 pos_i = s_pos_group[check_group];
+            Scalar3 pos_i_old = s_pos_group_old[check_group];
+            Scalar3 pos_i_new = s_pos_group_new[check_group];
             unsigned int type_i = s_type_group[check_group];
-            Scalar4 orientation_i  = s_orientation_group[check_group];
+            Scalar4 orientation_i_old  = s_orientation_group_old[check_group];
+            Scalar4 orientation_i_new  = s_orientation_group_new[check_group];
             Scalar d_i = s_diameter_group[check_group];
             Scalar q_i = s_charge_group[check_group];
 
@@ -282,14 +291,44 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
             unsigned int type_j = __scalar_as_int(postype_j.w);
 
             // put particle j into the coordinate system of particle i
-            r_ij = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_i);
-            r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
+            vec3<float> r_ij_old = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_i_old);
+            r_ij_old = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij_old)));
+
+            vec3<float> r_ij_new = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_i_new);
+            r_ij_new = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij_new)));
 
             // evaluate energy
+            bool early_exit = false;
             #ifdef UNION_EVAL
-            float energy = jit::eval_union(s_params, r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
+            // generate a unique seed per particle pair
+            hoomd::RandomGenerator rng_ij(hoomd::RNGIdentifier::HPMCJITPairs, seed + select, timestep, s_idx_group[check_group], check_j);
+            unsigned int seed_ij = hoomd::detail::generate_u32(rng_ij);
+
+            float energy = jit::eval_union(s_params,
+                r_ij_old,
+                r_ij_new,
+                type_i,
+                quat<float>(orientation_i_old),
+                quat<float>(orientation_i_new),
+                d_i,
+                q_i,
+                type_j,
+                quat<float>(orientation_j),
+                d_j,
+                q_j,
+                old_config,
+                seed_ij,
+                early_exit);
             #else
-            float energy = eval(r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
+            float energy = eval(old_config ? r_ij_old : r_ij_new,
+                type_i,
+                quat<float>(old_config ? orientation_i_old : orientation_i_new),
+                d_i,
+                q_i,
+                type_j,
+                quat<float>(orientation_j),
+                d_j,
+                q_j);
             #endif
 
             // store energy term in global memory
@@ -298,7 +337,8 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                 {
                 unsigned int pidx = s_idx_group[check_group];
                 d_nlist[n+maxn*pidx] = check_old ? check_j : (check_j + N_old);
-                d_energy[n+maxn*pidx] = energy;
+                // use (+/-)FLT_MAX as a sentinel
+                d_energy[n+maxn*pidx] = early_exit ? (old_config ? -FLT_MAX : FLT_MAX) : energy;
                 }
             }
 
