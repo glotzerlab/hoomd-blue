@@ -95,9 +95,9 @@ PYBIND11_MODULE(_hpmc, m)
         .def(pybind11::init< pybind11::dict >())
         .def("asDict", &PolyhedronVertices::asDict)
         ;
-    py::class_<faceted_ellipsoid_params, std::shared_ptr<faceted_ellipsoid_params> >(m, "faceted_ellipsoid_params")
+    py::class_<FacetedEllipsoidParams, std::shared_ptr<FacetedEllipsoidParams> >(m, "FacetedEllipsoidParams")
         .def(pybind11::init< pybind11::dict >())
-        .def("asDict", &faceted_ellipsoid_params::asDict)
+        .def("asDict", &FacetedEllipsoidParams::asDict)
         ;
     py::class_<sphinx3d_params, std::shared_ptr<sphinx3d_params> >(m, "sphinx3d_params")
         .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter)

@@ -198,11 +198,6 @@ struct PolyhedronVertices : ShapeParams
 
     #endif
 
-    /** Load dynamic data members into shared memory and increase pointer
-
-        @param ptr Pointer to load data to (will be incremented)
-        @param available_bytes Size of remaining shared memory allocation
-     */
     DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         x.load_shared(ptr,available_bytes);
@@ -225,7 +220,6 @@ struct PolyhedronVertices : ShapeParams
         }
 
     #ifdef ENABLE_CUDA
-    /// Set CUDA memory hints
     void set_memory_hint() const
         {
         x.set_memory_hint();
@@ -590,7 +584,6 @@ DEVICE inline vec3<OverlapReal> ClosestPtPointSegment(const vec3<OverlapReal>& c
     ShapePolyhedron. For a given input point in local coordinates, it finds the vertex closest to
     that point.
 */
-
 class ProjectionFuncConvexPolyhedron
     {
     public:
@@ -786,7 +779,8 @@ struct ShapeConvexPolyhedron
 
     /** Returns true if this shape splits the overlap check over several threads of a warp using
         threadIdx.x
-    */    HOSTDEVICE static bool isParallel() { return false; }
+    */
+    HOSTDEVICE static bool isParallel() { return false; }
 
     /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()

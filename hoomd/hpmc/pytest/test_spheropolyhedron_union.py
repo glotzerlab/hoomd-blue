@@ -4,23 +4,28 @@ from hoomd.hpmc import _hpmc
 
 def test_dict_conversions():
 
-    polyhedron_args_1 = {'vertices':[(0, 5, 0), (1, 1, 1), (1, 0, 1),
-                                     (0, 1, 1), (1, 1, 0), (0, 0, 1)],
-                         'ignore_statistics':1}
-    polyhedron_args_2 = {'vertices':[(1, 0, 0), (1, 1, 0), (1, 2, 1),
-                                     (0, 1, 1), (1, 1, 2), (0, 0, 1)],
-                         'ignore_statistics':0}
-    polyhedron_args_3 = {'vertices':[(0, 0, 0), (1, 1, 1),
-                                     (1, 0, 2), (2, 1, 1)],
-                         'ignore_statistics':1}
-    polyhedron_args_4 = {'vertices':[(0, 1, 0), (1, 1, 1), (1, 0, 1),
-                                     (0, 1, 1), (1, 1, 0), (0, 0, 1),
-                                     (0, 0, 1), (0, 0, 1)],
-                         'ignore_statistics':0}
-    polyhedron_args_5 = {'vertices':[(0, 10, 3), (3, 2, 1), (1, 2, 1),
-                                     (0, 1, 1), (1, 1, 0), (5, 0, 1),
-                                     (0, 10, 1), (9, 5, 1), (0, 0, 1)],
-                         'ignore_statistics':1}
+    polyhedron_args_1 = {'vertices': [(0, 5, 0), (1, 1, 1), (1, 0, 1),
+                                      (0, 1, 1), (1, 1, 0), (0, 0, 1)],
+                         'ignore_statistics': 1,
+                         'sweep_radius': 0}
+    polyhedron_args_2 = {'vertices': [(1, 0, 0), (1, 1, 0), (1, 2, 1),
+                                      (0, 1, 1), (1, 1, 2), (0, 0, 1)],
+                         'ignore_statistics': 0,
+                         'sweep_radius': 1}
+    polyhedron_args_3 = {'vertices': [(0, 0, 0), (1, 1, 1),
+                                      (1, 0, 2), (2, 1, 1)],
+                         'ignore_statistics': 1,
+                         'sweep_radius': 3.125}
+    polyhedron_args_4 = {'vertices' :[(0, 1, 0), (1, 1, 1), (1, 0, 1),
+                                      (0, 1, 1), (1, 1, 0), (0, 0, 1),
+                                      (0, 0, 1), (0, 0, 1)],
+                         'ignore_statistics': 0,
+                         'sweep_radius': 5.5}
+    polyhedron_args_5 = {'vertices': [(0, 10, 3), (3, 2, 1), (1, 2, 1),
+                                      (0, 1, 1), (1, 1, 0), (5, 0, 1),
+                                      (0, 10, 1), (9, 5, 1), (0, 0, 1)],
+                         'ignore_statistics': 1,
+                         'sweep_radius': 6.25}
 
     polyhedron_union_args1 = {'shapes': [polyhedron_args_1, polyhedron_args_2],
                               'positions': [(0, 0, 0), (0, 0, 1)],
