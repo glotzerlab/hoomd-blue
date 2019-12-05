@@ -1,21 +1,14 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#pragma once
+
 #include "hoomd/HOOMDMath.h"
 #include "HPMCPrecisionSetup.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/VectorMath.h"
-#include "ShapeSphere.h"    //< For the base template of test_overlap
+#include "ShapeSphere.h"
 
-#ifndef __SHAPE_SPHINX_H__
-#define __SHAPE_SPHINX_H__
-
-/*! \file ShapeSphinx.h
-    \brief Defines the sphinx shape - an intersection of spheres
-*/
-
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
@@ -24,7 +17,7 @@
 #define HOSTDEVICE
 #endif
 
-#include "SphinxOverlap.h"  //< This is the main overlap function.
+#include "SphinxOverlap.h"
 
 namespace hpmc
 {
@@ -32,22 +25,42 @@ namespace hpmc
 namespace detail
 {
 
-//! maximum number of sphere centers that can be stored
-/*! \ingroup hpmc_data_structs */
-const unsigned int MAX_SPHERE_CENTERS = 8;
+/// Maximum number of sphere centers that
+const unsigned int MAX_SPHINX_SPHERE_CENTERS = 8;
 
-//! Data structure for sphere centers and diameters
-/*! \ingroup hpmc_data_structs */
-struct sphinx3d_params : ShapeParams
+/** Sphinx particle parameters
+
+    A Sphinx particle is represented by N spheres each with their own diameter.
+
+    ShapeSphinx represents the intersection of spheres. A  positive sphere is one where the volume
+    inside the sphere is considered, and a negative sphere is one where the volume outside the
+    sphere is considered. This shape is defined using a struct called SphinxParams whose detail
+    is named spheres. ShapeSphinx requires an incoming orientation vector, followed by parameters
+    for the struct SphinxParams. The parameter defining a sphinx is a structure containing the
+    circumsphere diameter of all spheres defined in the shape. This is followed the number of
+    spheres in the shape, their diameters and then a list of the centers of the spheres. It is
+    recommended that the list of spheres begin with a positive sphere placed at the origin, and the
+    other sphere centers are relative to it. Positive spheres are defined by a positive value in
+    their diameter. Negative spheres are defined by a negative value in their diameter.
+*/
+struct SphinxParams : ShapeParams
     {
-    OverlapReal circumsphereDiameter;               //!< Circumsphere Diameter of all spheres defined in intersection
-    unsigned int N;                                //!< Number of spheres
-    OverlapReal diameter[MAX_SPHERE_CENTERS];      //!< Sphere Diameters
-    vec3<OverlapReal> center[MAX_SPHERE_CENTERS];  //!< Sphere Centers (in local frame)
-    unsigned int ignore;    //!< 0: Process overlaps - if (a.ignore == True) and (b.ignore == True) then test_overlap(a,b) = False
+    /// Circumsphere Diameter of all spheres defined in intersection
+    OverlapReal circumsphereDiameter;
+
+    /// Number of spheres
+    unsigned int N;
+
+    /// Sphere Diameters
+    OverlapReal diameter[MAX_SPHINX_SPHERE_CENTERS];
+
+    /// Sphere Centers (in local frame)
+    vec3<OverlapReal> center[MAX_SPHINX_SPHERE_CENTERS];
+
+    /// True when move statistics should not be counted
+    unsigned int ignore;
 
     #ifdef ENABLE_CUDA
-    //! Set CUDA memory hints
     void set_memory_hint() const
         {
         // default implementation does nothing
@@ -55,19 +68,21 @@ struct sphinx3d_params : ShapeParams
     #endif
 
     #ifndef NVCC
-    sphinx3d_params() { }
+    /// Empty constructor
+    SphinxParams() { }
 
-    sphinx3d_params(pybind11::dict v)
+
+    /// Construct from a python dictionary
+    SphinxParams(pybind11::dict v)
         {
         pybind11::list centers = v["centers"];
         pybind11::list diameters = v["diameters"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
 
-
         N = pybind11::len(diameters);
         unsigned int N_centers = pybind11::len(centers);
 
-        if (N_centers > MAX_SPHERE_CENTERS)
+        if (N_centers > MAX_SPHINX_SPHERE_CENTERS)
             throw std::runtime_error("Too many spheres");
 
         if (N != N_centers)
@@ -80,29 +95,25 @@ struct sphinx3d_params : ShapeParams
             {
             pybind11::list center_i = centers[i];
 
-            OverlapReal center_x = center_i[0].cast<OverlapReal>();
-            OverlapReal center_y = center_i[1].cast<OverlapReal>();
-            OverlapReal center_z = center_i[2].cast<OverlapReal>();
-
             vec3<OverlapReal> center_vec;
-            center_vec.x = center_x;
-            center_vec.y = center_y;
-            center_vec.z = center_z;
+            center_vec.x = center_i[0].cast<OverlapReal>();
+            center_vec.y = center_i[1].cast<OverlapReal>();
+            center_vec.z = center_i[2].cast<OverlapReal>();
 
             center[i] = center_vec;
 
             OverlapReal d = diameters[i].cast<OverlapReal>();
             diameter[i] = d;
 
-            OverlapReal n = sqrt(center_x*center_x + center_y*center_y + center_z*center_z);
+            OverlapReal n = sqrt(dot(center_vec, center_vec));
             radius = max(radius, (n+d/OverlapReal(2.0)));
             }
 
         // set the diameter
         circumsphereDiameter = 2.0*radius;
-
         }
 
+    /// Convert parameters to a python dictionary
     pybind11::dict asDict()
         {
         pybind11::list centers;
@@ -118,8 +129,7 @@ struct sphinx3d_params : ShapeParams
             xyz.append(x);
             xyz.append(y);
             xyz.append(z);
-            pybind11::tuple xyz_tuple = pybind11::tuple(xyz);
-            centers.append(xyz_tuple);
+            centers.append(pybind11::tuple(xyz));
             diameters.append(diameter[i]);
             }
         v["diameters"] = diameters;
@@ -134,28 +144,22 @@ struct sphinx3d_params : ShapeParams
 
 namespace detail
     {
-    DEVICE inline OverlapReal initVolume(bool disjoint, OverlapReal r[MAX_SPHERE_CENTERS], int n,
-         OverlapReal d[MAX_SPHERE_CENTERS*(MAX_SPHERE_CENTERS-1)/2]);
+    DEVICE inline OverlapReal initVolume(bool disjoint,
+                                         OverlapReal r[MAX_SPHINX_SPHERE_CENTERS],
+                                         int n,
+                                         OverlapReal d[MAX_SPHINX_SPHERE_CENTERS*(MAX_SPHINX_SPHERE_CENTERS-1)/2]);
     }
 
-//! Sphinx shape template
-/*! ShapeSphinx represents the intersection of spheres. A  positive sphere is one where the volume inside
-    the sphere is considered, and a negative sphere is one where the volume outside the sphere is considered.
-    This shape is defined using a struct called sphinx3d_params whose detail is named spheres. ShapeSphinx requires
-    an incoming orientation vector, followed by parameters for the struct sphinx3d_params.
-    The parameter defining a sphinx is a structure containing the circumsphere diameter of all spheres defined in the
-    shape. This is followed the number of spheres in the shape, their diameters and then a list of the centers of the
-    spheres. It is recommended that the list of spheres begin with a positive sphere placed at the origin,
-    and the other sphere centers are relative to it. Positive spheres are defined by a positive value in their
-    diameter. Negative spheres are defined by a negative value in their diameter.
+/** Sphinx shape
 
-    \ingroup shape
+    Implement the HPMC shape interface for sphinx particles.
 */
 struct ShapeSphinx
     {
-    //! Define the parameter type
-    typedef detail::sphinx3d_params param_type;
+    /// Define the parameter type
+    typedef detail::SphinxParams param_type;
 
+    /// Construct a shape at a given orientation
     DEVICE inline ShapeSphinx(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), convex(true), spheres(_params)
         {
@@ -189,72 +193,104 @@ struct ShapeSphinx
         volume = detail::initVolume(disjoint,r,n,d);
         }
 
-    //! Does this shape have an orientation
+    /// Check if the shape may be rotated
     DEVICE static bool hasOrientation() { return true; }
 
-    //! Get the circumsphere diameter
+    /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
-        // return the diameter of the parent sphere - TODO: recalculate for convex particles
+        // return the diameter of the parent sphere
         return spheres.diameter[0];
         }
 
-    //! Get the insphere radius
+    /// Get the in-sphere radius of the shape
     DEVICE Scalar getInsphereRadius() const
         {
         return Scalar(0.0);
         }
 
     #ifndef NVCC
+    /// Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this shape class.");
         }
     #endif
 
-    //! Return the bounding box of the shape in world coordinates
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return detail::AABB(pos, getCircumsphereDiameter()/Scalar(2.0));
         }
 
-    //! Return a tight fitting OBB
+    /// Return a tight fitting OBB around the shape
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         // just use the AABB for now
         return detail::OBB(getAABB(pos));
         }
 
-    //!Ignore flag for acceptance statistics
+    /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return spheres.ignore; }
 
-    //!Ignore flag for overlaps
+    /** Returns true if this shape splits the overlap check over several threads of a warp using
+        threadIdx.x
+    */
     HOSTDEVICE static bool isParallel() {return false; }
 
-    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return false;
         }
 
-    quat<Scalar> orientation;                   //!< Orientation of the sphinx
+    /// Orientation of the sphinx
+    quat<Scalar> orientation;
 
-    unsigned int n;              //!< Number of spheres
+    /// Number of spheres
+    unsigned int n;
+
     bool convex;
+
     bool disjoint;
-    OverlapReal r[detail::MAX_SPHERE_CENTERS];                 //!< radius of each sphere
-    OverlapReal R[detail::MAX_SPHERE_CENTERS];                 //!< radius^2
-    int s[detail::MAX_SPHERE_CENTERS];                         //!< sign of radius of each sphere
-    vec3<OverlapReal> u[detail::MAX_SPHERE_CENTERS];           //!< original center of each sphere
-    //vec3<OverlapReal> v[MAX_SPHERE_CENTERS];           //!< rotated center - having this in the overlap check
-    OverlapReal D[detail::MAX_SPHERE_CENTERS*(detail::MAX_SPHERE_CENTERS-1)/2];   //!< distance^2 between every pair of spheres
-    OverlapReal d[detail::MAX_SPHERE_CENTERS*(detail::MAX_SPHERE_CENTERS-1)/2];   //!< distance with sign bet. every pair of spheres
+
+    /// radius of each sphere
+    OverlapReal r[detail::MAX_SPHINX_SPHERE_CENTERS];
+
+    /// radius^2
+    OverlapReal R[detail::MAX_SPHINX_SPHERE_CENTERS];
+
+    /// sign of radius of each sphere
+    int s[detail::MAX_SPHINX_SPHERE_CENTERS];
+
+    /// original center of each sphere
+    vec3<OverlapReal> u[detail::MAX_SPHINX_SPHERE_CENTERS];
+
+    //vec3<OverlapReal> v[MAX_SPHINX_SPHERE_CENTERS];
+
+    /// distance^2 between every pair of spheres
+    OverlapReal D[detail::MAX_SPHINX_SPHERE_CENTERS*(detail::MAX_SPHINX_SPHERE_CENTERS-1)/2];
+
+    /// distance with sign bet. every pair of spheres
+    OverlapReal d[detail::MAX_SPHINX_SPHERE_CENTERS*(detail::MAX_SPHINX_SPHERE_CENTERS-1)/2];
+
     OverlapReal radius;
+
     OverlapReal volume;
 
-    const detail::sphinx3d_params& spheres;     //!< Vertices
+    /// shape parameters
+    const detail::SphinxParams& spheres;
     };
 
+/** Sphinx particle overlap test
+
+    @param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    @param a Shape a
+    @param b Shape b
+    @param err in/out variable incremented when error conditions occur in the overlap test
+    @param sweep_radius Additional sphere radius to sweep the shapes with
+    @returns true if the two particles overlap
+*/
 template <>
 DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_ab,
                                                           const ShapeSphinx& p,
@@ -262,8 +298,8 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
                                                           Scalar sweep_radius_a,
                                                           Scalar sweep_radius_b)
     {
-    vec3<OverlapReal> pv[detail::MAX_SPHERE_CENTERS];           //!< rotated centers of p
-    vec3<OverlapReal> qv[detail::MAX_SPHERE_CENTERS];           //!< rotated centers of q
+    vec3<OverlapReal> pv[detail::MAX_SPHINX_SPHERE_CENTERS];           /// rotated centers of p
+    vec3<OverlapReal> qv[detail::MAX_SPHINX_SPHERE_CENTERS];           /// rotated centers of q
 
     quat<OverlapReal> qp(p.orientation);
     quat<OverlapReal> qq(q.orientation);
@@ -656,8 +692,8 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
 
 namespace detail
 {
-DEVICE inline OverlapReal initVolume(bool disjoint, OverlapReal r[MAX_SPHERE_CENTERS], int n,
-     OverlapReal d[MAX_SPHERE_CENTERS*(MAX_SPHERE_CENTERS-1)/2])
+DEVICE inline OverlapReal initVolume(bool disjoint, OverlapReal r[MAX_SPHINX_SPHERE_CENTERS], int n,
+     OverlapReal d[MAX_SPHINX_SPHERE_CENTERS*(MAX_SPHINX_SPHERE_CENTERS-1)/2])
     {
     if(disjoint)
         {
@@ -701,4 +737,3 @@ DEVICE inline OverlapReal initVolume(bool disjoint, OverlapReal r[MAX_SPHERE_CEN
 
 #undef DEVICE
 #undef HOSTDEVICE
-#endif // __SHAPE_SPHINX_H__

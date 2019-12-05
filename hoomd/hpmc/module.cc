@@ -99,10 +99,10 @@ PYBIND11_MODULE(_hpmc, m)
         .def(pybind11::init< pybind11::dict >())
         .def("asDict", &FacetedEllipsoidParams::asDict)
         ;
-    py::class_<sphinx3d_params, std::shared_ptr<sphinx3d_params> >(m, "sphinx3d_params")
-        .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter)
+    py::class_<SphinxParams, std::shared_ptr<SphinxParams> >(m, "SphinxParams")
+        .def_readwrite("circumsphereDiameter",&SphinxParams::circumsphereDiameter)
         .def(pybind11::init< pybind11::dict >())
-        .def("asDict", &sphinx3d_params::asDict)
+        .def("asDict", &SphinxParams::asDict)
         ;
     py::class_< ShapeUnion<ShapeSphere>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere>::param_type> >(m, "SphereUnionParams")
         .def(pybind11::init< pybind11::dict >())
