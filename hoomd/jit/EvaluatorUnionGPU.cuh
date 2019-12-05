@@ -1,13 +1,16 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#pragma once
+#ifndef __EVALUATOR_UNION_CUH__
+#define __EVALUATOR_UNION_CUH__
 
 #include "hoomd/jit/Evaluator.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/hpmc/GPUTree.h"
 #include "hoomd/ManagedArray.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
@@ -102,16 +105,22 @@ static __device__ float d_rcut_union;
 
 __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
                              float r_cut,
-                             const vec3<float>& dr,
+                             const vec3<float>& dr_old,
+                             const vec3<float>& dr_new,
                              unsigned int type_a,
                              unsigned int type_b,
-                             const quat<float>& orientation_a,
+                             const quat<float>& orientation_a_old,
+                             const quat<float>& orientation_a_new,
                              const quat<float>& orientation_b,
                              unsigned int cur_node_a,
-                             unsigned int cur_node_b)
+                             unsigned int cur_node_b,
+                             bool old_config,
+                             unsigned int seed_ij,
+                             bool &early_exit)
     {
     float energy = 0.0;
-    vec3<float> r_ij = rotate(conj(quat<float>(orientation_b)),vec3<float>(dr));
+    vec3<float> r_ij_old = rotate(conj(quat<float>(orientation_b)),vec3<float>(dr_old));
+    vec3<float> r_ij_new = rotate(conj(quat<float>(orientation_b)),vec3<float>(dr_new));
 
     // loop through leaf particles of cur_node_a
     unsigned int na = params[type_a].tree.getNumParticles(cur_node_a);
@@ -125,8 +134,10 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
         unsigned int ileaf = params[type_a].tree.getParticleByIndex(leafptr_i+i);
 
         unsigned int type_i = params[type_a].mtype[ileaf];
-        quat<float> orientation_i = conj(quat<float>(orientation_b))*quat<float>(orientation_a) * params[type_a].morientation[ileaf];
-        vec3<float> pos_i(rotate(conj(quat<float>(orientation_b))*quat<float>(orientation_a),params[type_a].mpos[ileaf])-r_ij);
+        quat<float> orientation_i_old = conj(quat<float>(orientation_b))*quat<float>(orientation_a_old) * params[type_a].morientation[ileaf];
+        quat<float> orientation_i_new = conj(quat<float>(orientation_b))*quat<float>(orientation_a_new) * params[type_a].morientation[ileaf];
+        vec3<float> pos_i_old(rotate(conj(quat<float>(orientation_b))*quat<float>(orientation_a_old),params[type_a].mpos[ileaf])-r_ij_old);
+        vec3<float> pos_i_new(rotate(conj(quat<float>(orientation_b))*quat<float>(orientation_a_new),params[type_a].mpos[ileaf])-r_ij_new);
 
         // loop through leaf particles of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
@@ -135,15 +146,16 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
 
             unsigned int type_j = params[type_b].mtype[jleaf];
             quat<float> orientation_j = params[type_b].morientation[jleaf];
-            vec3<float> r_ij = params[type_b].mpos[jleaf] - pos_i;
+            vec3<float> r_ij = params[type_b].mpos[jleaf] - (old_config ? pos_i_old : pos_i_new);
 
             float rsq = dot(r_ij,r_ij);
+            float Uij = 0.0f;
             if (rsq <= r_cut*r_cut)
                 {
                 // evaluate energy via JIT function
-                energy += ::eval(r_ij,
+                Uij = ::eval(r_ij,
                     type_i,
-                    orientation_i,
+                    old_config ? orientation_i_old : orientation_i_new,
                     params[type_a].mdiameter[ileaf],
                     params[type_a].mcharge[ileaf],
                     type_j,
@@ -151,22 +163,60 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
                     params[type_b].mdiameter[jleaf],
                     params[type_b].mcharge[jleaf]);
                 }
+
+            // check the other config of particle i, too
+            r_ij = params[type_b].mpos[jleaf] - (old_config ? pos_i_new : pos_i_old);
+            rsq = dot(r_ij,r_ij);
+            float Vij = 0.0f;
+            if (rsq <= r_cut*r_cut)
+                {
+                // evaluate energy via JIT function
+                Vij = ::eval(r_ij,
+                    type_i,
+                    old_config ? orientation_i_new : orientation_i_old,
+                    params[type_a].mdiameter[ileaf],
+                    params[type_a].mcharge[ileaf],
+                    type_j,
+                    orientation_j,
+                    params[type_b].mdiameter[jleaf],
+                    params[type_b].mcharge[jleaf]);
+                }
+            float deltaU = Uij - Vij;
+            if ((old_config && deltaU < 0.0f) || (!old_config && deltaU > 0.0f))
+                {
+                // factorize this ij contribution to the MH probability out
+                hoomd::RandomGenerator rng_ij(hoomd::RNGIdentifier::HPMCJITPairs+1, seed_ij, ileaf, jleaf);
+                early_exit |= hoomd::detail::generate_canonical<float>(rng_ij) > slow::exp((old_config ? deltaU : -deltaU));
+                if (early_exit)
+                    {
+                    return energy;
+                    }
+                }
+            else
+                {
+                // attractive contribution, keep
+                energy += Uij;
+                }
             }
         }
     return energy;
     }
 
-extern "C" {
 __device__ inline float eval_union(const union_params_t *params,
-    const vec3<float>& r_ij,
+    const vec3<float>& r_ij_old,
+    const vec3<float>& r_ij_new,
     unsigned int type_i,
-    const quat<float>& q_i,
+    const quat<float>& q_i_old,
+    const quat<float>& q_i_new,
     float d_i,
     float charge_i,
     unsigned int type_j,
     const quat<float>& q_j,
     float d_j,
-    float charge_j)
+    float charge_j,
+    bool old_config,
+    unsigned int seed_ij,
+    bool &early_exit)
     {
     const hpmc::detail::GPUTree& tree_a = params[type_i].tree;
     const hpmc::detail::GPUTree& tree_b = params[type_j].tree;
@@ -179,8 +229,8 @@ __device__ inline float eval_union(const union_params_t *params,
     unsigned int cur_node_a = 0;
     unsigned int cur_node_b = 0;
 
-    vec3<float> dr_rot(rotate(conj(q_j),-r_ij));
-    quat<float> q(conj(q_j)*q_i);
+    vec3<float> dr_rot(rotate(conj(q_j),-(old_config ? r_ij_old : r_ij_new)));
+    quat<float> q(conj(q_j)*(old_config ? q_i_old : q_i_new));
 
     hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
     obb_a.affineTransform(q, dr_rot);
@@ -212,14 +262,22 @@ __device__ inline float eval_union(const union_params_t *params,
 
         if (hpmc::detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot, false))
             {
-            energy += compute_leaf_leaf_energy(params, r_cut, r_ij, type_i, type_j, q_i, q_j, query_node_a, query_node_b);
+            energy += compute_leaf_leaf_energy(params, r_cut, r_ij_old, r_ij_new,
+                type_i, type_j, q_i_old, q_i_new,
+                q_j, query_node_a, query_node_b,
+                old_config, seed_ij, early_exit);
+            if (early_exit)
+                {
+                return energy;
+                }
             }
         }
     return energy;
     }
-}
 #endif // __HIPCC__
 
 #undef HOSTDEVICE
 #undef DEVICE
 } // end namespace jit
+
+#endif // __EVALUATOR_UNION_CUH__
