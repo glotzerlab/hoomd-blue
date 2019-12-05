@@ -789,7 +789,6 @@ class Polyhedron(HPMCIntegrator):
                                             hull_only=True,
                                             overlap=None,
                                             face_offs=[],
-                                            ignore_overlaps=False,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -862,7 +861,7 @@ class ConvexPolyhedron(HPMCIntegrator):
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=RequiredArg,
-                                            ignore_overlaps=False,
+                                            sweep_radius=0.0,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -967,7 +966,6 @@ class FacetedEllipsoid(HPMCIntegrator):
                                             c=RequiredArg,
                                             vertices=RequiredArg,
                                             origin=RequiredArg,
-                                            ignore_overlaps=False,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -1087,7 +1085,6 @@ class Sphinx(HPMCIntegrator):
                                         param_dict=TypeParameterDict(
                                             diameters=RequiredArg,
                                             centers=RequiredArg,
-                                            ignore_overlaps=False,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -1152,7 +1149,6 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
                                         param_dict=TypeParameterDict(
                                             vertices=RequiredArg,
                                             sweep_radius=0.0,
-                                            ignore_overlaps=False,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -1297,7 +1293,6 @@ class SphereUnion(HPMCIntegrator):
                                             centers=RequiredArg,
                                             capacity=4,
                                             overlap=1,
-                                            ignore_overlaps=False,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -1356,7 +1351,6 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
                                             orientations=RequiredArg,
                                             sweep_radius=0.0,
                                             overlap=1,
-                                            ignore_overlaps=False,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -1426,7 +1420,6 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
                                             offsets=RequiredArg,
                                             axes=RequiredArg,
                                             origin=RequiredArg,
-                                            ignore_overlaps=False,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
