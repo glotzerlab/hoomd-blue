@@ -150,7 +150,8 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
 
             float rsq = dot(r_ij,r_ij);
             float Uij = 0.0f;
-            if (rsq <= r_cut*r_cut)
+            float rcut_total = r_cut+0.5*(params[type_a].mdiameter[ileaf] + params[type_b].mdiameter[jleaf]);
+            if (rsq <= rcut_total*rcut_total)
                 {
                 // evaluate energy via JIT function
                 Uij = ::eval(r_ij,
@@ -168,7 +169,7 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
             r_ij = params[type_b].mpos[jleaf] - (old_config ? pos_i_new : pos_i_old);
             rsq = dot(r_ij,r_ij);
             float Vij = 0.0f;
-            if (rsq <= r_cut*r_cut)
+            if (rsq <= rcut_total*rcut_total)
                 {
                 // evaluate energy via JIT function
                 Vij = ::eval(r_ij,

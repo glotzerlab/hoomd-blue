@@ -42,7 +42,7 @@ void PatchEnergyJITUnionGPU::setParam(unsigned int type,
         params.mcharge[i] = charge;
 
         // use a point-sized OBB
-        obbs[i] = hpmc::detail::OBB(pos,0.0);
+        obbs[i] = hpmc::detail::OBB(pos,0.5f*diameter);
 
         // we do not support exclusions
         obbs[i].mask = 1;

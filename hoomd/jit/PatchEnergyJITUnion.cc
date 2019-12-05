@@ -69,11 +69,11 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
         m_diameter[type][i] = diameter;
         m_charge[type][i] = charge;
 
-        // use a point-sized OBB
-        obbs[i] = hpmc::detail::OBB(pos,0.0);
+        // use a spherical OBB of radius 0.5*d
+        obbs[i] = hpmc::detail::OBB(pos,0.5f*diameter);
 
-        Scalar d = sqrt(dot(pos,pos));
-        extent_i = std::max(extent_i, float(2*d));
+        Scalar r = sqrt(dot(pos,pos))+0.5f*diameter;
+        extent_i = std::max(extent_i, float(2*r));
 
         // we do not support exclusions
         obbs[i].mask = 1;
@@ -122,7 +122,8 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
             vec3<float> r_ij = m_position[type_b][jleaf] - pos_i;
 
             float rsq = dot(r_ij,r_ij);
-            if (rsq <= m_rcut_union*m_rcut_union)
+            float rcut = m_rcut_union+0.5f*(m_diameter[type_a][ileaf]+m_diameter[type_b][jleaf]);
+            if (rsq <= rcut*rcut)
                 {
                 // evaluate energy via JIT function
                 energy += m_eval_union(r_ij,

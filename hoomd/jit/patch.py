@@ -465,7 +465,7 @@ class user_union(user):
             charges = [0]*len(positions)
 
         if diameters is None:
-            diameters = [1.0]*len(positions)
+            diameters = [0.0]*len(positions)
 
         positions = np.array(positions).tolist()
         orientations = np.array(orientations).tolist()
