@@ -150,6 +150,9 @@ class npt_wca_dimer_eos(unittest.TestCase):
 
         # compare if error is within confidence interval
         self.assertLessEqual(math.fabs(rho_avg*d_eff**3.0-rho_star_ref),ci*(rho_star_ref*rho_star_rel_err+rho_err*d_eff**3.0))
+    def tearDown(self):
+        context.initialize();
+
 
 class npt_wca_dimer_eos_union(unittest.TestCase):
     def test_statepoint(self):
@@ -229,6 +232,10 @@ class npt_wca_dimer_eos_union(unittest.TestCase):
 
         # compare if error is within confidence interval
         self.assertLessEqual(math.fabs(rho_avg*d_eff**3.0-rho_star_ref),ci*(rho_star_ref*rho_star_rel_err+rho_err*d_eff**3.0))
+
+    def tearDown(self):
+        context.initialize();
+
 
 
 if __name__ == '__main__':
