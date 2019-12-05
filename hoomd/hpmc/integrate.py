@@ -2,27 +2,26 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 from hoomd import _hoomd
-from hoomd.parameterdicts import TypeParameterDict, AttachedTypeParameterDict
+from hoomd.parameterdicts import TypeParameterDict
 from hoomd.parameterdicts import RequiredArg
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
-from hoomd.hpmc import data
 from hoomd.integrate import _integrator
 import hoomd
-import sys
 import json
 
 
 class interaction_matrix:
     R""" Define pairwise interaction matrix
 
-    All shapes use :py:class:`interaction_matrix` to define the interaction matrix between different
-    pairs of particles indexed by type. The set of pair coefficients is a symmetric
-    matrix defined over all possible pairs of particle types.
+    All shapes use :py:class:`interaction_matrix` to define the interaction
+    matrix between different pairs of particles indexed by type. The set of pair
+    coefficients is a symmetric matrix defined over all possible pairs of
+    particle types.
 
-    By default, all elements of the interaction matrix are 1, that means that overlaps
-    are checked between all pairs of types. To disable overlap checking for a specific
-    type pair, set the coefficient for that pair to 0.
+    By default, all elements of the interaction matrix are 1, that means that
+    overlaps are checked between all pairs of types. To disable overlap checking
+    for a specific type pair, set the coefficient for that pair to 0.
 
     Access the interaction matrix with a saved integrator object like so::
 
@@ -211,10 +210,14 @@ class HPMCIntegrator(_integrator):
                                                float(0), len_keys=1)
                                            )
 
-        self._extend_typeparam([typeparam_d, typeparam_a, typeparam_fugacity])
+        typeparam_inter_matrix = TypeParameter('interaction_matrix',
+                                               type_kind='particle_types',
+                                               param_dict=TypeParameterDict(
+                                                   True, len_keys=2)
+                                               )
 
-        self.overlap_checks = interaction_matrix()
-
+        self._extend_typeparam([typeparam_d, typeparam_a,
+                                typeparam_fugacity, typeparam_inter_matrix])
 
     def attach(self, simulation):
         '''initialize the reflected c++ class'''
@@ -246,19 +249,6 @@ class HPMCIntegrator(_integrator):
         self._cpp_obj.setPatchEnergy(patch.cpp_evaluator)
 
     # TODO need to validate somewhere that quaternions are normalized
-
-    # Declare the GSD state schema.
-    @classmethod
-    def _gsd_state_name(cls):
-        return "state/hpmc/" + str(cls.__name__) + "/"
-
-    def restore_state(self):
-        super(HPMCIntegrator, self).restore_state()
-
-        # if restore state succeeds, all shape information is set
-        # set the python level is_set flags to notify this
-        for type in self.shape_param.keys():
-            self.shape_param[type].is_set = True
 
     def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
