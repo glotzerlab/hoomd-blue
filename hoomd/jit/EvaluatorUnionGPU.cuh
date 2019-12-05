@@ -262,7 +262,7 @@ __device__ inline float eval_union(const union_params_t *params,
             query_node_b = cur_node_b;
             }
 
-        if (hpmc::detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot, false))
+        if (hpmc::detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot, true))
             {
             energy += compute_leaf_leaf_energy(params, r_cut, r_ij_old, r_ij_new,
                 type_i, type_j, q_i_old, q_i_new,

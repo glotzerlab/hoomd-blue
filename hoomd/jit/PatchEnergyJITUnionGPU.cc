@@ -41,7 +41,7 @@ void PatchEnergyJITUnionGPU::setParam(unsigned int type,
         params.mdiameter[i] = diameter;
         params.mcharge[i] = charge;
 
-        // use a point-sized OBB
+        // use a spheriacl OBB of radius 0.5*d
         obbs[i] = hpmc::detail::OBB(pos,0.5f*diameter);
 
         // we do not support exclusions
