@@ -1289,6 +1289,7 @@ class SphereUnion(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
+                                            shapes=RequiredArg,
                                             diameters=RequiredArg,
                                             centers=RequiredArg,
                                             capacity=4,
@@ -1346,6 +1347,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
+                                            shapes=RequiredArg,
                                             vertices=RequiredArg,
                                             centers=RequiredArg,
                                             orientations=RequiredArg,
@@ -1415,6 +1417,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
+                                            shapes=RequiredArg,
                                             vertices=RequiredArg,
                                             normals=RequiredArg,
                                             offsets=RequiredArg,

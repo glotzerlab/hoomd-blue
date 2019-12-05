@@ -8,15 +8,32 @@ import numpy as np
 def dummy_integrator_args():
 
     args_1 = {'diameters':[1, 4, 2, 8, 5, 9],
-              'centers':[(0, 0, 0), (1, 1, 1), (1, 0, 1), (0, 1, 1), (1, 1, 0), (0, 0, 1)],
+              'centers':[(0, 0, 0),
+                         (1, 1, 1),
+                         (1, 0, 1),
+                         (0, 1, 1),
+                         (1, 1, 0),
+                         (0, 0, 1)],
               'ignore_statistics':1}
 
     args_2 = {'diameters':[5, 2, 4, 5, 1, 2],
-              'centers':[(0, 2, 0), (1, 4, 1), (3, 0, 1), (3, 1, 1), (1, 4, 0), (2, 2, 1)],
+              'centers':[(0, 2, 0),
+                         (1, 4, 1),
+                         (3, 0, 1),
+                         (3, 1, 1),
+                         (1, 4, 0),
+                         (2, 2, 1)],
               'ignore_statistics':0}
 
     args_3 = {'diameters':[1, 2, 2, 3, 4, 9, 3, 2],
-              'centers':[(0, 0, 0), (1, 1, 1), (1, 0, 1), (0, 1, 1), (1, 1, 0), (0, 0, 1), (2, 2, 1), (3, 5, 3)],
+              'centers':[(0, 0, 0),
+                         (1, 1, 1),
+                         (1, 0, 1),
+                         (0, 1, 1),
+                         (1, 1, 0),
+                         (0, 0, 1),
+                         (2, 2, 1),
+                         (3, 5, 3)],
               'ignore_statistics':1}
 
     args_4 = {'diameters':[1, 4, 2, 8, 5],
@@ -59,10 +76,20 @@ def test_shape_params(dummy_integrator_args):
     assert mc.shape['A']['ignore_statistics'] is False
 
     mc.shape['B'] = dict(diameters=[1, 4, 2, 8, 5, 9],
-                         centers=[(0, 2, 0), (1, 4, 1), (3, 0, 1), (3, 1, 1), (1, 4, 0), (2, 2, 1)],
+                         centers=[(0, 2, 0),
+                                  (1, 4, 1),
+                                  (3, 0, 1),
+                                  (3, 1, 1),
+                                  (1, 4, 0),
+                                  (2, 2, 1)],
                          ignore_statistics=True)
     assert mc.shape['B']['diameters'] == [1, 4, 2, 8, 5, 9]
-    assert mc.shape['B']['centers'] == [(0, 2, 0), (1, 4, 1), (3, 0, 1), (3, 1, 1), (1, 4, 0), (2, 2, 1)]
+    assert mc.shape['B']['centers'] == [(0, 2, 0),
+                                        (1, 4, 1),
+                                        (3, 0, 1),
+                                        (3, 1, 1),
+                                        (1, 4, 0),
+                                        (2, 2, 1)]
     assert mc.shape['B']['ignore_statistics'] is True
 
     mc.shape['C'] = args_1
@@ -107,7 +134,14 @@ def test_shape_params_attached(device, dummy_simulation_factory, dummy_integrato
 
     args_1['diameters'] = 'invalid'
     args_2['diameters'] = 1
-    args_3['diameters'] = [(0, 0, 0), (1, 1, 1), (1, 0, 1), (0, 1, 1), (1, 1, 0), (0, 0, 1), (2, 2, 1), (3, 5, 3)]
+    args_3['diameters'] = [(0, 0, 0),
+                           (1, 1, 1),
+                           (1, 0, 1),
+                           (0, 1, 1),
+                           (1, 1, 0),
+                           (0, 0, 1),
+                           (2, 2, 1),
+                           (3, 5, 3)]
     args_4['ignore_statistics'] = 'invalid'
 
     # check for errors on invalid input
