@@ -228,7 +228,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
         pybind11::dict getShape(std::string typ);
 
         //! Set elements of the interaction matrix
-        virtual void setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps);
+        virtual void setInteractionMatrix(std::pair<std::string, std::string> types,
+                                          bool check_overlaps);
 
         //! Set the external field for the integrator
         void setExternalField(std::shared_ptr< ExternalFieldMono<Shape> > external)
@@ -1599,25 +1600,13 @@ void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& pa
     }
 
 template <class Shape>
-void IntegratorHPMCMono<Shape>::setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps)
+void IntegratorHPMCMono<Shape>::setInteractionMatrix(std::pair<std::string, std::string> types,
+                                                     bool check_overlaps)
     {
-    // validate input
-    if (typi >= this->m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "integrate.HPMCIntegrator_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existent type! "
-                  << typi << std::endl;
-        throw std::runtime_error("Error setting interaction matrix in IntegratorHPMCMono");
-        }
-
-    if (typj >= this->m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "integrate.HPMCIntegrator_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existent type! "
-                  << typj << std::endl;
-        throw std::runtime_error("Error setting interaction matrix in IntegratorHPMCMono");
-        }
+    auto typi = m_pdata->getTypeByName(types.first);
+    auto typj = m_pdata->getTypeByName(types.second);
 
     // update the parameter for this type
-    m_exec_conf->msg->notice(7) << "setOverlapChecks : " << typi << " " << typj << " " << check_overlaps << std::endl;
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
     h_overlaps.data[m_overlap_idx(typi,typj)] = check_overlaps;
     h_overlaps.data[m_overlap_idx(typj,typi)] = check_overlaps;
@@ -3125,7 +3114,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
     pybind11::class_< IntegratorHPMCMono<Shape>, IntegratorHPMC, std::shared_ptr< IntegratorHPMCMono<Shape> > >(m, name.c_str())
           .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
-          .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
+          .def("setInteractionMatrix", &IntegratorHPMCMono<Shape>::setInteractionMatrix)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)

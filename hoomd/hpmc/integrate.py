@@ -134,6 +134,7 @@ class interaction_matrix:
         return self.values[cur_pair];
 
 # Helper method to inform about implicit depletants citation
+# TODO: figure out where to call this
 def cite_depletants():
     _citation = hoomd.cite.article(cite_key='glaser2015',
                                    author=['J Glaser', 'A S Karas', 'S C Glotzer'],
