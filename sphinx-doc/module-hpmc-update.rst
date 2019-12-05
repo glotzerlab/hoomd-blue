@@ -12,7 +12,7 @@ hpmc.update
     hpmc.update.Clusters
     hpmc.update.muvt
     hpmc.update.remove_drift
-    hpmc.update.wall
+    hpmc.update.Wall
 
 .. rubric:: Details
 

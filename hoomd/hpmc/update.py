@@ -400,6 +400,7 @@ class boxmc(_updater):
 
 # TODO: consider updating the naming of move_ratio to move_probabilty
 # TODO: find out if logging documentation is still valid
+# TODO replace (periodic)trigger with :py:class:`hoomd.Triggers` once doc'ed
 class Wall(_updater):
     R""" Apply wall updates with a user-provided python callback.
 
@@ -409,16 +410,19 @@ class Wall(_updater):
         py_updater (`callable`): the python callback that performs the update
                                  moves. This must be a python method that is a
                                  function of the timestep of the simulation.
-               It must actually update the :py:class:`hoomd.hpmc.field.wall`)
-               managed object.
+                                 It must actually update the 
+                                 :py:class:`hoomd.hpmc.field.wall`) managed 
+                                 object.
         move_ratio (float): the probability with which an update move is
                             attempted.
         seed (int): the seed of the pseudo-random number generator that
                     determines whether or not an update move is attempted
-        trigger (int): the number of timesteps between update move attempt
-                       attempts.
+        trigger (int or `Trigger`): the trigger object which causes
+            the updater to be called. If an interger is given, default is 1, a
+            PeriodicTrigger with phase of 0 will be used.
+                    
 
-    Every *trigger* steps, a walls update move is tried with probability
+    Every *trigger* step, a walls update move is tried with probability
     *move_ratio*. This update move is provided by the *py_updater* callback.
     Then, update.wall only accepts an update move provided by the python
     callback if it maintains confinement conditions associated with all walls.
@@ -427,13 +431,13 @@ class Wall(_updater):
     Once initialized, the update provides the following log quantities that can
     be logged via :py:class:`hoomd.analyze.log`:
 
-    * **hpmc_wall_acceptance_ratio** - the acceptance ratio for wall update
+    **hpmc_wall_acceptance_ratio** - the acceptance ratio for wall update
     moves
 
     Examples::
 
         TODO: link to example notebook, move examples here to notebook
-
+        
     Example::
 
         mc = hpmc.integrate.sphere(seed = 415236);
@@ -444,7 +448,7 @@ class Wall(_updater):
           r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0, param = "rsq"));
           ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
                                    origin = [0, 0, 0], inside = True);
-        wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
+        wall_updater = hpmc.update.Wall(mc, ext_wall, perturb,
                                         move_ratio = 0.5, seed = 27,
                                         trigger = 50);
         log = analyze.log(quantities=['hpmc_wall_acceptance_ratio'],
