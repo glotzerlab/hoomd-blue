@@ -33,15 +33,15 @@ namespace hpmc
 {
 struct SphereWall
     {
-    SphereWall() : rsq(0), inside(false), origin(0,0,0), verts(new detail::poly3d_verts(1,false)) {}
-    SphereWall(Scalar r, vec3<Scalar> orig, bool ins = true) : rsq(r*r), inside(ins), origin(orig), verts(new detail::poly3d_verts(1,false))
+    SphereWall() : rsq(0), inside(false), origin(0,0,0), verts(new detail::PolyhedronVertices(1,false)) {}
+    SphereWall(Scalar r, vec3<Scalar> orig, bool ins = true) : rsq(r*r), inside(ins), origin(orig), verts(new detail::PolyhedronVertices(1,false))
     {
         verts->N = 0; // case for sphere (can be 0 or 1)
         verts->diameter = r+r;
         verts->sweep_radius = r;
         verts->ignore = 0;
     }
-    SphereWall(const SphereWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), verts(new detail::poly3d_verts(*src.verts)) {}
+    SphereWall(const SphereWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), verts(new detail::PolyhedronVertices(*src.verts)) {}
     // scale all distances associated with the sphere wall by some factor alpha
     void scale(const OverlapReal& alpha)
         {
@@ -54,13 +54,13 @@ struct SphereWall
     OverlapReal          rsq;
     bool            inside;
     vec3<OverlapReal>    origin;
-    std::shared_ptr<detail::poly3d_verts >    verts;
+    std::shared_ptr<detail::PolyhedronVertices >    verts;
     };
 
 struct CylinderWall
     {
-    CylinderWall() : rsq(0), inside(false), origin(0,0,0), orientation(origin), verts(new detail::poly3d_verts) {}
-    CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> orient, bool ins = true) : rsq(0), inside(false), origin(0,0,0), orientation(origin), verts(new detail::poly3d_verts(2,false))
+    CylinderWall() : rsq(0), inside(false), origin(0,0,0), orientation(origin), verts(new detail::PolyhedronVertices) {}
+    CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> orient, bool ins = true) : rsq(0), inside(false), origin(0,0,0), orientation(origin), verts(new detail::PolyhedronVertices(2,false))
         {
 
         rsq = r*r;
@@ -77,7 +77,7 @@ struct CylinderWall
         verts->ignore = 0;
 
         }
-    CylinderWall(const CylinderWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), orientation(src.orientation), verts(new detail::poly3d_verts(*src.verts)) {}
+    CylinderWall(const CylinderWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), orientation(src.orientation), verts(new detail::PolyhedronVertices(*src.verts)) {}
     // scale all distances associated with the sphere wall by some factor alpha
     void scale(const OverlapReal& alpha)
         {
@@ -90,7 +90,7 @@ struct CylinderWall
     bool            inside;
     vec3<OverlapReal>    origin;         // center of cylinder.
     vec3<OverlapReal>    orientation;    // (normal) vector pointing in direction of long axis of cylinder (sign of vector has no meaning)
-    std::shared_ptr<detail::poly3d_verts >    verts;
+    std::shared_ptr<detail::PolyhedronVertices >    verts;
     };
 
 struct PlaneWall

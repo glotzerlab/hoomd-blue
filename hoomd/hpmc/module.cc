@@ -91,9 +91,9 @@ PYBIND11_MODULE(_hpmc, m)
         .def(pybind11::init< pybind11::dict >())
         .def("asDict", &poly3d_data::asDict)
         ;
-    py::class_< poly3d_verts, std::shared_ptr< poly3d_verts > >(m, "poly3d_verts")
+    py::class_< PolyhedronVertices, std::shared_ptr< PolyhedronVertices > >(m, "PolyhedronVertices")
         .def(pybind11::init< pybind11::dict >())
-        .def("asDict", &poly3d_verts::asDict)
+        .def("asDict", &PolyhedronVertices::asDict)
         ;
     py::class_<faceted_ellipsoid_params, std::shared_ptr<faceted_ellipsoid_params> >(m, "faceted_ellipsoid_params")
         .def(pybind11::init< pybind11::dict >())

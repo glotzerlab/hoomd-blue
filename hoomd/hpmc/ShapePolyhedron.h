@@ -70,7 +70,7 @@ struct poly3d_data : ShapeParams
      poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, unsigned int n_hull_verts, bool _managed)
          : n_verts(nverts), n_faces(_n_faces), hull_only(0)
          {
-         convex_hull_verts = poly3d_verts(n_hull_verts, _managed);
+         convex_hull_verts = PolyhedronVertices(n_hull_verts, _managed);
          verts = ManagedArray<vec3<OverlapReal> >(nverts, _managed);
          face_offs = ManagedArray<unsigned int>(n_faces+1,_managed);
          face_verts = ManagedArray<unsigned int>(_n_face_verts, _managed);
@@ -110,7 +110,7 @@ struct poly3d_data : ShapeParams
          auto hull = qh.getConvexHull(qh_pts, true, false);
          auto vertexBuffer = hull.getVertexBuffer();
 
-         convex_hull_verts = poly3d_verts(vertexBuffer.size(), _managed);
+         convex_hull_verts = PolyhedronVertices(vertexBuffer.size(), _managed);
          verts = ManagedArray<vec3<OverlapReal> >(pybind11::len(verts_list), _managed);
          face_offs = ManagedArray<unsigned int>(pybind11::len(face_offs_list),_managed);
          face_verts = ManagedArray<unsigned int>(pybind11::len(face_verts_list)*3, _managed);
@@ -279,7 +279,7 @@ struct poly3d_data : ShapeParams
      #endif
 
      GPUTree tree;                                   //!< Tree for fast locality lookups
-     poly3d_verts convex_hull_verts;                 //!< Holds parameters of convex hull
+     PolyhedronVertices convex_hull_verts;                 //!< Holds parameters of convex hull
      ManagedArray<vec3<OverlapReal> > verts;         //!< Vertex coordinates
      ManagedArray<unsigned int> face_offs;           //!< Offset of every face in the list of vertices per face
      ManagedArray<unsigned int> face_verts;          //!< Ordered vertex IDs of every face

@@ -11,7 +11,7 @@ def test_convex_polyhedron():
                            (0, 1, 1), (1, 1, 0), (0, 0, 1)],
               'ignore_statistics': 1,
               'sweep_radius': 0.5}
-    test_convex_polyhedron1 = _hpmc.poly3d_verts(args_1)
+    test_convex_polyhedron1 = _hpmc.PolyhedronVertices(args_1)
     test_dict1 = test_convex_polyhedron1.asDict()
     assert test_dict1 == args_1
 
@@ -19,14 +19,14 @@ def test_convex_polyhedron():
                            (0, 1, 1), (1, 1, 2), (0, 0, 1)],
               'ignore_statistics': 0,
               'sweep_radius': 1.0}
-    test_convex_polyhedron2 = _hpmc.poly3d_verts(args_2)
+    test_convex_polyhedron2 = _hpmc.PolyhedronVertices(args_2)
     test_dict2 = test_convex_polyhedron2.asDict()
     assert test_dict2 == args_2
 
     args_3 = {'vertices': [(0, 0, 0), (1, 1, 1), (1, 0, 2), (2, 1, 1)],
               'ignore_statistics': 1,
               'sweep_radius': 2.0}
-    test_convex_polyhedron3 = _hpmc.poly3d_verts(args_3)
+    test_convex_polyhedron3 = _hpmc.PolyhedronVertices(args_3)
     test_dict3 = test_convex_polyhedron3.asDict()
     assert test_dict3 == args_3
 
@@ -34,7 +34,7 @@ def test_convex_polyhedron():
                            (1, 1, 0), (0, 0, 1), (0, 0, 1), (0, 0, 1)],
               'ignore_statistics': 0,
               'sweep_radius': 4.0}
-    test_convex_polyhedron4 = _hpmc.poly3d_verts(args_4)
+    test_convex_polyhedron4 = _hpmc.PolyhedronVertices(args_4)
     test_dict4 = test_convex_polyhedron4.asDict()
     assert test_dict4 == args_4
 
@@ -43,7 +43,7 @@ def test_convex_polyhedron():
                            (0, 0, 1)],
               'ignore_statistics': 1,
               'sweep_radius': 5.5}
-    test_convex_polyhedron5 = _hpmc.poly3d_verts(args_5)
+    test_convex_polyhedron5 = _hpmc.PolyhedronVertices(args_5)
     test_dict5 = test_convex_polyhedron5.asDict()
     assert test_dict5 == args_5
 

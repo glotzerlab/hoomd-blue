@@ -233,11 +233,11 @@ struct gsd_shape_schema<hpmc::EllipsoidParams>: public gsd_schema_hpmc_base
     };
 
 template<>
-struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_base
+struct gsd_shape_schema< hpmc::detail::PolyhedronVertices > : public gsd_schema_hpmc_base
     {
     gsd_shape_schema(const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) : gsd_schema_hpmc_base(exec_conf, mpi) {}
 
-    int write(gsd_handle& handle, const std::string& name, unsigned int Ntypes, const param_array<hpmc::detail::poly3d_verts>& shape)
+    int write(gsd_handle& handle, const std::string& name, unsigned int Ntypes, const param_array<hpmc::detail::PolyhedronVertices>& shape)
         {
         if(!m_exec_conf->isRoot())
             return 0;
@@ -246,7 +246,7 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
         int retval = 0;
         std::vector<uint32_t> N(Ntypes);
         path = name + "N";
-        std::transform(shape.cbegin(), shape.cend(), N.begin(), [](const hpmc::detail::poly3d_verts& s) -> uint32_t{return s.N;});
+        std::transform(shape.cbegin(), shape.cend(), N.begin(), [](const hpmc::detail::PolyhedronVertices& s) -> uint32_t{return s.N;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_UINT32, Ntypes, 1, 0, (void *)&N[0]);
         path = name + "vertices";
         size_t count = std::accumulate(N.begin(), N.end(), 0);
@@ -264,7 +264,7 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
             }
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, count, 3, 0, (void *)&data[0]);
         path = name + "sweep_radius";
-        std::transform(shape.cbegin(), shape.cend(), sr.begin(), [](const hpmc::detail::poly3d_verts& s) -> float{return s.sweep_radius;});
+        std::transform(shape.cbegin(), shape.cend(), sr.begin(), [](const hpmc::detail::PolyhedronVertices& s) -> float{return s.sweep_radius;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&sr[0]);
         return retval;
         }
@@ -273,7 +273,7 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
                 uint64_t frame,
                 const std::string& name,
                 unsigned int Ntypes,
-                param_array<hpmc::detail::poly3d_verts>& shape
+                param_array<hpmc::detail::PolyhedronVertices>& shape
             )
         {
 
@@ -323,7 +323,7 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
                                                   vertices[count*3+2]));
                 count++;
                 }
-            shape[i] = hpmc::detail::poly3d_verts(verts, sweep_radius[i], 0);
+            shape[i] = hpmc::detail::PolyhedronVertices(verts, sweep_radius[i], 0);
             }
         }
     };

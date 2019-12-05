@@ -41,10 +41,10 @@ namespace detail
     to support vector intrinsics on the CPU. These arrays are stored in ManagedArray to support
     arbitrary numbers of verticles.
 */
-struct poly3d_verts : ShapeParams
+struct PolyhedronVertices : ShapeParams
     {
     /// Default constructor initializes zero values.
-    DEVICE poly3d_verts()
+    DEVICE PolyhedronVertices()
         : n_hull_verts(0),
           N(0),
           diameter(OverlapReal(0)),
@@ -55,17 +55,17 @@ struct poly3d_verts : ShapeParams
     #ifndef NVCC
     /** Initialize with a given number of vertices
     */
-    poly3d_verts(unsigned int _N, bool managed=false)
+    PolyhedronVertices(unsigned int _N, bool managed=false)
         : ignore(0)
         {
         std::vector<vec3<OverlapReal>> v(_N, vec3<OverlapReal>(0,0,0));
         setVerts(v, 0);
         }
 
-    poly3d_verts(const std::vector<vec3<OverlapReal>>& verts,
-                 OverlapReal sweep_radius_,
-                 unsigned int ignore_,
-                 bool managed=false)
+    PolyhedronVertices(const std::vector<vec3<OverlapReal>>& verts,
+                       OverlapReal sweep_radius_,
+                       unsigned int ignore_,
+                       bool managed=false)
         : x(verts.size(), managed),
           y(verts.size(), managed),
           z(verts.size(), managed),
@@ -154,8 +154,8 @@ struct poly3d_verts : ShapeParams
         }
 
     /// Construct from a Python dictionary
-    poly3d_verts(pybind11::dict v, bool managed=false)
-        : poly3d_verts((unsigned int)pybind11::len(v["vertices"]), managed)
+    PolyhedronVertices(pybind11::dict v, bool managed=false)
+        : PolyhedronVertices((unsigned int)pybind11::len(v["vertices"]), managed)
         {
         pybind11::list verts = v["vertices"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
@@ -283,7 +283,7 @@ class SupportFuncConvexPolyhedron
             Note that for performance it is assumed that unused vertices (beyond N) have already
             been set to zero.
         */
-        DEVICE SupportFuncConvexPolyhedron(const poly3d_verts& _verts,
+        DEVICE SupportFuncConvexPolyhedron(const PolyhedronVertices& _verts,
             OverlapReal extra_sweep_radius=OverlapReal(0.0))
             : verts(_verts), sweep_radius(extra_sweep_radius)
             {
@@ -474,7 +474,7 @@ class SupportFuncConvexPolyhedron
             }
 
     private:
-        const poly3d_verts& verts;      //!< Vertices of the polyhedron
+        const PolyhedronVertices& verts;      //!< Vertices of the polyhedron
         const OverlapReal sweep_radius; //!< Extra sweep radius
     };
 
@@ -598,7 +598,7 @@ class ProjectionFuncConvexPolyhedron
 
             @param _verts Polyhedron vertices
         */
-        DEVICE ProjectionFuncConvexPolyhedron(const poly3d_verts& _verts,
+        DEVICE ProjectionFuncConvexPolyhedron(const PolyhedronVertices& _verts,
             OverlapReal extra_sweep_radius=OverlapReal(0.0))
             : verts(_verts), sweep_radius(extra_sweep_radius)
             {
@@ -691,7 +691,7 @@ class ProjectionFuncConvexPolyhedron
             }
 
     private:
-        const poly3d_verts& verts;      //!< Vertices of the polyhedron
+        const PolyhedronVertices& verts;      //!< Vertices of the polyhedron
         const OverlapReal sweep_radius; //!< extra sphere sweep radius
     };
 
@@ -705,7 +705,7 @@ class ProjectionFuncConvexPolyhedron
 struct ShapeConvexPolyhedron
     {
     /// Define the parameter type
-    typedef detail::poly3d_verts param_type;
+    typedef detail::PolyhedronVertices param_type;
 
     /// Construct a shape at a given orientation
     DEVICE ShapeConvexPolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
@@ -798,7 +798,7 @@ struct ShapeConvexPolyhedron
     quat<Scalar> orientation;
 
     /// Shape parameters
-    const detail::poly3d_verts& verts;
+    const detail::PolyhedronVertices& verts;
     };
 
 /** Convex polyhedron overlap test
