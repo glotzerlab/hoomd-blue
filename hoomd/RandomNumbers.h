@@ -605,5 +605,5 @@ class PoissonDistribution
     };
 
 } // end namespace hoomd
-
+#undef DEVICE
 #endif // #define HOOMD_RANDOM_NUMBERS_H_

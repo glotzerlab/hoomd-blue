@@ -172,8 +172,8 @@ static const char* jitsafe_header_iterator =
 // TODO: This is incomplete; need floating point limits
 static const char* jitsafe_header_limits =
 //    "#pragma once\n"
-    "#include <climits>\n"
-    "\n"
+//    "#include <climits>\n"
+//    "\n"
     "namespace __jitify_limits_ns {\n"
     "// TODO: Floating-point limits\n"
     "namespace __jitify_detail {\n"

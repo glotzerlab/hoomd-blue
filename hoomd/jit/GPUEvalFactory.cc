@@ -60,7 +60,7 @@ void GPUEvalFactory::compileGPU(
 
     // add fake math headers + printf + ..
 
-    // these hacky includes exist primarily to enable use of some HOOMD
+    // these hacky includes exist primarily to enable use of certain HOOMD
     // header files inside RTC
     std::string printf_include = std::string("#define FILE int\n") +
         std::string("int fflush ( FILE * stream );\n") +
@@ -69,6 +69,8 @@ void GPUEvalFactory::compileGPU(
     std::string code_with_headers = std::string(jitify::detail::jitsafe_header_math) +
         std::string(jitify::detail::jitsafe_header_type_traits) +
         std::string(jitify::detail::jitsafe_header_stdint_h) +
+        std::string(jitify::detail::jitsafe_header_limits_h) +
+        std::string(jitify::detail::jitsafe_header_limits) +
         printf_include + code;
 
     m_exec_conf->msg->notice(4) << code_with_headers << std::endl;
