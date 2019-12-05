@@ -4,363 +4,318 @@ from hoomd.hpmc import _hpmc
 import pytest
 
 
-@pytest.fixture(scope='session')
-def dummy_integrator_args():
-    faceted_ell_args_1 = {"normals": [(0, 0, 1), (0, 1, 0), (1, 0, 0),
-                                      (0, 1, 1), (1, 1, 0), (1, 0, 1)],
-                          "offsets": [1, 3, 2, 6, 3, 1],
-                          "a": 3, "b": 4, "c": 1,
-                          "vertices": [(0, 0, 0), (0, 0, 1), (0, 1, 0),
-                                       (1, 0, 0), (1, 1, 1), (1, 1, 0)],
-                          "origin": (0, 0, 0), "ignore_statistics":1}
+
+faceted_ell_args_1 = {"normals": [(0, 0, 1), (0, 1, 0), (1, 0, 0),
+                                  (0, 1, 1), (1, 1, 0), (1, 0, 1)],
+                      "offsets": [1, 3, 2, 6, 3, 1],
+                      "a": 3, "b": 4, "c": 1,
+                      "vertices": [(0, 0, 0), (0, 0, 1), (0, 1, 0),
+                                   (1, 0, 0), (1, 1, 1), (1, 1, 0)],
+                      "origin": (0, 0, 0), "ignore_statistics":1}
+                      
+faceted_ell_args_2 = {"normals": [(0, 0, 0), (2, 1, 1), (1, 3, 3),
+                                  (5, 1, 1), (1, 3, 0), (1, 2, 2)],
+                      "offsets": [1, 3, 3, 2, 3, 1],
+                      "a": 2, "b": 1, "c": 3,
+                      "vertices": [(1, 0, 0), (1, 1, 0), (1, 2, 1),
+                                   (0, 1, 1), (1, 1, 2), (0, 0, 1)],
+                      "origin": (0, 0, 1), "ignore_statistics":0}
+                      
+faceted_ell_args_3 = {"normals": [(0, 0, 2), (0, 1, 1), (1, 3, 5), (0, 1, 6)],
+                      "offsets": [6, 2, 2, 5],
+                      "a": 1,
+                      "b": 6,
+                      "c": 6,
+                      "vertices": [(0, 0, 0), (1, 1, 1), (1, 0, 2), (2, 1, 1)],
+                      "origin": (0, 1, 0),
+                      "ignore_statistics":1}
+                      
+faceted_ell_args_4 = {"normals": [(0, 0, 2),
+                                  (2, 2, 0),
+                                  (3, 1, 1),
+                                  (4, 1, 1),
+                                  (1, 2, 0),
+                                  (3, 3, 1),
+                                  (1, 2, 1),
+                                  (3, 3, 2)],
+                      "offsets": [5, 3, 3, 4, 3, 4, 2, 2],
+                      "a": 2,
+                      "b": 2,
+                      "c": 4,
+                      "vertices": [(0, 1, 0),
+                                   (1, 1, 1),
+                                   (1, 0, 1),
+                                   (0, 1, 1),
+                                   (1, 1, 0),
+                                   (0, 0, 1),
+                                   (0, 0, 1),
+                                   (0, 0, 1)],
+                       "origin": (1, 0, 0),
+                       "ignore_statistics":0}
+                       
+faceted_ell_args_5 = {"normals": [(0, 0, 1),
+                                  (0, 4, 0),
+                                  (2, 0, 1),
+                                  (0, 3, 1),
+                                  (4, 1, 0),
+                                  (2, 2, 1),
+                                  (1, 3, 1),
+                                  (1, 9, 0),
+                                  (2, 2, 2)],
+                      "offsets": [5, 4, 2, 2, 7, 3, 1, 4, 1],
+                      "a": 6,
+                      "b": 1,
+                      "c": 1,
+                      "vertices": [(0, 10, 3),
+                                   (3, 2, 1),
+                                   (1, 2, 1),
+                                   (0, 1, 1),
+                                   (1, 1, 0),
+                                   (5, 0, 1),
+                                   (0, 10, 1),
+                                   (9, 5, 1),
+                                   (0, 0, 1)],
+                      "origin": (0, 0, 0),
+                      "ignore_statistics":1}
+
+faceted_ell_union_args1 = {'shapes': [faceted_ell_args_1, faceted_ell_args_2],
+                          'positions': [(0, 0, 0), (0, 0, 1)],
+                          'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
+                          'overlap': [1, 1],
+                          'capacity': 4,
+                          'ignore_statistics': 1}
                           
-    faceted_ell_args_2 = {"normals": [(0, 0, 0), (2, 1, 1), (1, 3, 3),
-                                      (5, 1, 1), (1, 3, 0), (1, 2, 2)],
-                          "offsets": [1, 3, 3, 2, 3, 1],
-                          "a": 2, "b": 1, "c": 3,
-                          "vertices": [(1, 0, 0), (1, 1, 0), (1, 2, 1),
-                                       (0, 1, 1), (1, 1, 2), (0, 0, 1)],
-                          "origin": (0, 0, 1), "ignore_statistics":0}
+faceted_ell_union_args2 = {'shapes': [faceted_ell_args_3, faceted_ell_args_2],
+                          'positions': [(1, 0, 0), (0, 0, 1)],
+                          'orientations': [(1, 1, 0, 0), (1, 0, 0, 0)],
+                          'overlap': [1, 2],
+                          'capacity': 3,
+                          'ignore_statistics': 0}
                           
-    faceted_ell_args_3 = {"normals": [(0, 0, 2), (0, 1, 1), (1, 3, 5), (0, 1, 6)],
-                          "offsets": [6, 2, 2, 5],
-                          "a": 1,
-                          "b": 6,
-                          "c": 6,
-                          "vertices": [(0, 0, 0), (1, 1, 1), (1, 0, 2), (2, 1, 1)],
-                          "origin": (0, 1, 0),
-                          "ignore_statistics":1}
+faceted_ell_union_args3 = {'shapes': [faceted_ell_args_4, faceted_ell_args_2],
+                          'positions': [(1, 1, 0), (0, 0, 1)],
+                          'orientations': [(1, 0, 1, 0), (1, 0, 0, 0)],
+                          'overlap': [1, 3],
+                          'capacity': 2,
+                          'ignore_statistics': 1}
                           
-    faceted_ell_args_4 = {"normals": [(0, 0, 2),
-                                      (2, 2, 0),
-                                      (3, 1, 1),
-                                      (4, 1, 1),
-                                      (1, 2, 0),
-                                      (3, 3, 1),
-                                      (1, 2, 1),
-                                      (3, 3, 2)],
-                          "offsets": [5, 3, 3, 4, 3, 4, 2, 2],
-                          "a": 2,
-                          "b": 2,
-                          "c": 4,
-                          "vertices": [(0, 1, 0),
-                                       (1, 1, 1),
-                                       (1, 0, 1),
-                                       (0, 1, 1),
-                                       (1, 1, 0),
-                                       (0, 0, 1),
-                                       (0, 0, 1),
-                                       (0, 0, 1)],
-                           "origin": (1, 0, 0),
-                           "ignore_statistics":0}
+faceted_ell_union_args4 = {'shapes': [faceted_ell_args_5, faceted_ell_args_2],
+                          'positions': [(1, 1, 1), (0, 0, 0)],
+                          'orientations': [(1, 0, 0, 1), (1, 0, 0, 0)],
+                          'overlap': [1, 0],
+                          'capacity': 1,
+                          'ignore_statistics': 0}
+                          
+faceted_ell_union_args5 = {'shapes': [faceted_ell_args_1, faceted_ell_args_3],
+                          'positions': [(1, 0, 1), (0, 0, 0)],
+                          'orientations': [(1, 0, 0, 0), (1, 1, 0, 0)],
+                          'overlap': [0, 1],
+                          'capacity': 5,
+                          'ignore_statistics': 1}
+                          
+faceted_ell_union_args6 = {'shapes': [faceted_ell_args_1, faceted_ell_args_4],
+                          'positions': [(1, 0, 0), (0, 1, 1)],
+                          'orientations': [(1, 0, 0, 0), (1, 0, 1, 0)],
+                          'overlap': [2, 1],
+                          'capacity': 6,
+                          'ignore_statistics': 0}
+                          
+faceted_ell_union_args7 = {'shapes': [faceted_ell_args_1, faceted_ell_args_5],
+                          'positions': [(0, 1, 1), (0, 0, 1)],
+                          'orientations': [(1, 0, 0, 0), (1, 0, 0, 1)],
+                          'overlap': [3, 1],
+                          'capacity': 4,
+                          'ignore_statistics': 1}
+                          
+faceted_ell_union_args8 = {'shapes': [faceted_ell_args_3, faceted_ell_args_4],
+                          'positions': [(0, 0, 0), (1, 0, 1)],
+                          'orientations': [(1, 0, 0, 1), (1, 1, 0, 0)],
+                          'overlap': [0, 0],
+                          'capacity': 4,
+                          'ignore_statistics': 0}
+                          
+faceted_ell_union_args9 = {'shapes': [faceted_ell_args_3, faceted_ell_args_5],
+                          'positions': [(0, 0, 1), (0, 0, 0)],
+                          'orientations': [(1, 0, 1, 0), (1, 0, 1, 0)],
+                          'overlap': [2, 2],
+                          'capacity': 4,
+                          'ignore_statistics': 1}
+                          
+faceted_ell_union_args10 = {'shapes': [faceted_ell_args_4, faceted_ell_args_5],
+                           'positions': [(0, 1, 0), (1, 0, 1)],
+                           'orientations': [(1, 1, 0, 1), (1, 0, 0, 0)],
+                           'overlap': [3, 3],
+                           'capacity': 4,
+                           'ignore_statistics': 0}
+
+faceted_ell_union_args11 = {'shapes': [faceted_ell_args_1,
+                                      faceted_ell_args_2,
+                                      faceted_ell_args_3],
+                           'positions': [(0, 0, 0), (0, 0, 1), (1, 1, 1)],
+                           'orientations': [(1, 0, 0, 0),
+                                            (1, 0, 0, 0),
+                                            (1, 0, 0, 1)],
+                           'overlap': [1, 1, 1],
+                           'capacity': 4,
+                           'ignore_statistics': 1}
                            
-    faceted_ell_args_5 = {"normals": [(0, 0, 1),
-                                      (0, 4, 0),
-                                      (2, 0, 1),
-                                      (0, 3, 1),
-                                      (4, 1, 0),
-                                      (2, 2, 1),
-                                      (1, 3, 1),
-                                      (1, 9, 0),
-                                      (2, 2, 2)],
-                          "offsets": [5, 4, 2, 2, 7, 3, 1, 4, 1],
-                          "a": 6,
-                          "b": 1,
-                          "c": 1,
-                          "vertices": [(0, 10, 3),
-                                       (3, 2, 1),
-                                       (1, 2, 1),
-                                       (0, 1, 1),
-                                       (1, 1, 0),
-                                       (5, 0, 1),
-                                       (0, 10, 1),
-                                       (9, 5, 1),
-                                       (0, 0, 1)],
-                          "origin": (0, 0, 0),
-                          "ignore_statistics":1}
+faceted_ell_union_args12 = {'shapes': [faceted_ell_args_1,
+                                      faceted_ell_args_3,
+                                      faceted_ell_args_4],
+                           'positions': [(1, 0, 0), (0, 0, 1), (1, 0, 1)],
+                           'orientations': [(1, 1, 0, 0),
+                                            (1, 0, 0, 0),
+                                            (1, 0, 1, 0)],
+                           'overlap': [1, 2, 1],
+                           'capacity': 3,
+                           'ignore_statistics': 0}
+                           
+faceted_ell_union_args13 = {'shapes': [faceted_ell_args_1,
+                                      faceted_ell_args_4,
+                                      faceted_ell_args_5],
+                           'positions': [(1, 1, 0), (0, 0, 1), (0, 1, 1)],
+                           'orientations': [(1, 0, 1, 0),
+                                            (1, 0, 0, 0),
+                                            (1, 1, 0, 0)],
+                           'overlap': [1, 3, 0],
+                           'capacity': 2,
+                           'ignore_statistics': 1}
+                           
+faceted_ell_union_args14 = {'shapes': [faceted_ell_args_2,
+                                      faceted_ell_args_3,
+                                      faceted_ell_args_4],
+                           'positions': [(1, 1, 1), (0, 0, 0), (0, 0, 1)],
+                           'orientations': [(1, 0, 0, 1),
+                                            (1, 0, 0, 0),
+                                            (1, 0, 0, 0)],
+                           'overlap': [1, 0, 2],
+                           'capacity': 4,
+                           'ignore_statistics': 0}
+                           
+faceted_ell_union_args15 = {'shapes': [faceted_ell_args_2,
+                                      faceted_ell_args_4,
+                                      faceted_ell_args_5],
+                           'positions': [(0, 0, 0), (0, 1, 1), (1, 0, 1)],
+                           'orientations': [(1, 0, 0, 0),
+                                            (1, 1, 0, 0),
+                                            (1, 1, 0, 0)],
+                           'overlap': [0, 1, 1],
+                           'capacity': 4,
+                           'ignore_statistics': 1}
+                           
+faceted_ell_union_args16 = {'shapes': [faceted_ell_args_3,
+                                      faceted_ell_args_4,
+                                      faceted_ell_args_5],
+                           'positions': [(0, 1, 0), (1, 0, 1), (0, 0, 1)], 
+                           'orientations': [(1, 0, 0, 0),
+                                            (1, 0, 1, 0),
+                                            (1, 0, 0, 0)],
+                           'overlap': [2, 1, 0],
+                           'capacity': 4,
+                           'ignore_statistics': 0}
 
-    faceted_ell_union_args1 = {'shapes': [faceted_ell_args_1, faceted_ell_args_2],
-                              'positions': [(0, 0, 0), (0, 0, 1)],
-                              'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
-                              'overlap': [1, 1],
-                              'capacity': 4,
-                              'ignore_statistics': 1}
-                              
-    faceted_ell_union_args2 = {'shapes': [faceted_ell_args_3, faceted_ell_args_2],
-                              'positions': [(1, 0, 0), (0, 0, 1)],
-                              'orientations': [(1, 1, 0, 0), (1, 0, 0, 0)],
-                              'overlap': [1, 2],
-                              'capacity': 3,
-                              'ignore_statistics': 0}
-                              
-    faceted_ell_union_args3 = {'shapes': [faceted_ell_args_4, faceted_ell_args_2],
-                              'positions': [(1, 1, 0), (0, 0, 1)],
-                              'orientations': [(1, 0, 1, 0), (1, 0, 0, 0)],
-                              'overlap': [1, 3],
-                              'capacity': 2,
-                              'ignore_statistics': 1}
-                              
-    faceted_ell_union_args4 = {'shapes': [faceted_ell_args_5, faceted_ell_args_2],
-                              'positions': [(1, 1, 1), (0, 0, 0)],
-                              'orientations': [(1, 0, 0, 1), (1, 0, 0, 0)],
-                              'overlap': [1, 0],
-                              'capacity': 1,
-                              'ignore_statistics': 0}
-                              
-    faceted_ell_union_args5 = {'shapes': [faceted_ell_args_1, faceted_ell_args_3],
-                              'positions': [(1, 0, 1), (0, 0, 0)],
-                              'orientations': [(1, 0, 0, 0), (1, 1, 0, 0)],
-                              'overlap': [0, 1],
-                              'capacity': 5,
-                              'ignore_statistics': 1}
-                              
-    faceted_ell_union_args6 = {'shapes': [faceted_ell_args_1, faceted_ell_args_4],
-                              'positions': [(1, 0, 0), (0, 1, 1)],
-                              'orientations': [(1, 0, 0, 0), (1, 0, 1, 0)],
-                              'overlap': [2, 1],
-                              'capacity': 6,
-                              'ignore_statistics': 0}
-                              
-    faceted_ell_union_args7 = {'shapes': [faceted_ell_args_1, faceted_ell_args_5],
-                              'positions': [(0, 1, 1), (0, 0, 1)],
-                              'orientations': [(1, 0, 0, 0), (1, 0, 0, 1)],
-                              'overlap': [3, 1],
-                              'capacity': 4,
-                              'ignore_statistics': 1}
-                              
-    faceted_ell_union_args8 = {'shapes': [faceted_ell_args_3, faceted_ell_args_4],
-                              'positions': [(0, 0, 0), (1, 0, 1)],
-                              'orientations': [(1, 0, 0, 1), (1, 1, 0, 0)],
-                              'overlap': [0, 0],
-                              'capacity': 4,
-                              'ignore_statistics': 0}
-                              
-    faceted_ell_union_args9 = {'shapes': [faceted_ell_args_3, faceted_ell_args_5],
-                              'positions': [(0, 0, 1), (0, 0, 0)],
-                              'orientations': [(1, 0, 1, 0), (1, 0, 1, 0)],
-                              'overlap': [2, 2],
-                              'capacity': 4,
-                              'ignore_statistics': 1}
-                              
-    faceted_ell_union_args10 = {'shapes': [faceted_ell_args_4, faceted_ell_args_5],
-                               'positions': [(0, 1, 0), (1, 0, 1)],
-                               'orientations': [(1, 1, 0, 1), (1, 0, 0, 0)],
-                               'overlap': [3, 3],
-                               'capacity': 4,
-                               'ignore_statistics': 0}
+faceted_ell_union_args17 = {'shapes': [faceted_ell_args_1,
+                                      faceted_ell_args_2,
+                                      faceted_ell_args_3,
+                                      faceted_ell_args_4],
+                           'positions': [(0, 0, 0),
+                                         (0, 0, 1),
+                                         (1, 1, 1),
+                                         (1, 1, 0)],
+                           'orientations': [(1, 0, 0, 0),
+                                            (1, 0, 0, 0),
+                                            (1, 0, 0, 0),
+                                            (1, 0, 0, 0)],
+                           'overlap': [1, 1, 1, 1],
+                           'capacity': 4,
+                           'ignore_statistics': 1}
+                           
+faceted_ell_union_args18 = {'shapes': [faceted_ell_args_1,
+                                      faceted_ell_args_2,
+                                      faceted_ell_args_3,
+                                      faceted_ell_args_5],
+                           'positions': [(1, 0, 0),
+                                         (0, 0, 1),
+                                         (1, 0, 1),
+                                         (0, 1, 1)],
+                           'orientations': [(1, 1, 0, 0),
+                                            (1, 0, 0, 0),
+                                            (1, 0, 0, 0),
+                                            (1, 0, 0, 1)],
+                           'overlap': [1, 1, 2, 0],
+                           'capacity': 3,
+                           'ignore_statistics': 0}
+                           
+faceted_ell_union_args19 = {'shapes': [faceted_ell_args_1,
+                                      faceted_ell_args_2,
+                                      faceted_ell_args_4,
+                                      faceted_ell_args_5],
+                           'positions': [(1, 1, 0),
+                                         (1, 0, 1),
+                                         (0, 0, 0),
+                                         (1, 1, 1)],
+                           'orientations': [(1, 0, 1, 0),
+                                            (1, 0, 0, 0),
+                                            (1, 0, 0, 0),
+                                            (1, 0, 1, 0)],
+                           'overlap': [1, 2, 1, 1],
+                           'capacity': 2,
+                           'ignore_statistics': 1}
+                           
+faceted_ell_union_args20 = {'shapes': [faceted_ell_args_1,
+                                      faceted_ell_args_3,
+                                      faceted_ell_args_4,
+                                      faceted_ell_args_5],
+                           'positions': [(1, 1, 1),
+                                         (0, 0, 1),
+                                         (0, 0, 0),
+                                         (1, 1, 0)],
+                           'orientations': [(1, 0, 0, 1),
+                                            (1, 0, 0, 0),
+                                            (1, 0, 0, 0),
+                                            (1, 1, 0, 0)],
+                           'overlap': [0, 1, 1, 0],
+                           'capacity': 4,
+                           'ignore_statistics': 0}
+                           
+faceted_ell_union_args21 = {'shapes': [faceted_ell_args_2,
+                                      faceted_ell_args_3,
+                                      faceted_ell_args_4,
+                                      faceted_ell_args_5],
+                           'positions': [(0, 0, 0),
+                                         (0, 1, 1),
+                                         (1, 1, 1),
+                                         (1, 0, 0)],
+                           'orientations': [(1, 0, 0, 0),
+                                            (1, 1, 0, 0),
+                                            (1, 0, 0, 1),
+                                            (1, 0, 0, 0)],
+                           'overlap': [1, 2, 2, 2],
+                           'capacity': 4,
+                           'ignore_statistics': 1}
 
-    faceted_ell_union_args11 = {'shapes': [faceted_ell_args_1,
-                                          faceted_ell_args_2,
-                                          faceted_ell_args_3],
-                               'positions': [(0, 0, 0), (0, 0, 1), (1, 1, 1)],
-                               'orientations': [(1, 0, 0, 0),
-                                                (1, 0, 0, 0),
-                                                (1, 0, 0, 1)],
-                               'overlap': [1, 1, 1],
-                               'capacity': 4,
-                               'ignore_statistics': 1}
-                               
-    faceted_ell_union_args12 = {'shapes': [faceted_ell_args_1,
-                                          faceted_ell_args_3,
-                                          faceted_ell_args_4],
-                               'positions': [(1, 0, 0), (0, 0, 1), (1, 0, 1)],
-                               'orientations': [(1, 1, 0, 0),
-                                                (1, 0, 0, 0),
-                                                (1, 0, 1, 0)],
-                               'overlap': [1, 2, 1],
-                               'capacity': 3,
-                               'ignore_statistics': 0}
-                               
-    faceted_ell_union_args13 = {'shapes': [faceted_ell_args_1,
-                                          faceted_ell_args_4,
-                                          faceted_ell_args_5],
-                               'positions': [(1, 1, 0), (0, 0, 1), (0, 1, 1)],
-                               'orientations': [(1, 0, 1, 0),
-                                                (1, 0, 0, 0),
-                                                (1, 1, 0, 0)],
-                               'overlap': [1, 3, 0],
-                               'capacity': 2,
-                               'ignore_statistics': 1}
-                               
-    faceted_ell_union_args14 = {'shapes': [faceted_ell_args_2,
-                                          faceted_ell_args_3,
-                                          faceted_ell_args_4],
-                               'positions': [(1, 1, 1), (0, 0, 0), (0, 0, 1)],
-                               'orientations': [(1, 0, 0, 1),
-                                                (1, 0, 0, 0),
-                                                (1, 0, 0, 0)],
-                               'overlap': [1, 0, 2],
-                               'capacity': 4,
-                               'ignore_statistics': 0}
-                               
-    faceted_ell_union_args15 = {'shapes': [faceted_ell_args_2,
-                                          faceted_ell_args_4,
-                                          faceted_ell_args_5],
-                               'positions': [(0, 0, 0), (0, 1, 1), (1, 0, 1)],
-                               'orientations': [(1, 0, 0, 0),
-                                                (1, 1, 0, 0),
-                                                (1, 1, 0, 0)],
-                               'overlap': [0, 1, 1],
-                               'capacity': 4,
-                               'ignore_statistics': 1}
-                               
-    faceted_ell_union_args16 = {'shapes': [faceted_ell_args_3,
-                                          faceted_ell_args_4,
-                                          faceted_ell_args_5],
-                               'positions': [(0, 1, 0), (1, 0, 1), (0, 0, 1)], 
-                               'orientations': [(1, 0, 0, 0),
-                                                (1, 0, 1, 0),
-                                                (1, 0, 0, 0)],
-                               'overlap': [2, 1, 0],
-                               'capacity': 4,
-                               'ignore_statistics': 0}
+faceted_ell_union_args22 = {'shapes': [faceted_ell_args_1,
+                                      faceted_ell_args_2,
+                                      faceted_ell_args_3,
+                                      faceted_ell_args_4,
+                                      faceted_ell_args_5],
+                           'positions': [(0, 0, 0),
+                                         (0, 0, 1),
+                                         (1, 1, 1),
+                                         (1, 1, 0),
+                                         (2, 2, 0)],
+                           'orientations': [(1, 0, 0, 0),
+                                            (1, 0, 0, 0),
+                                            (1, 1, 0, 0),
+                                            (0, 0, 1, 1),
+                                            (1, 0, 0, 0)],
+                           'overlap': [1, 1, 0, 2, 1],
+                           'capacity': 4,
+                           'ignore_statistics': 1}
 
-    faceted_ell_union_args17 = {'shapes': [faceted_ell_args_1,
-                                          faceted_ell_args_2,
-                                          faceted_ell_args_3,
-                                          faceted_ell_args_4],
-                               'positions': [(0, 0, 0),
-                                             (0, 0, 1),
-                                             (1, 1, 1),
-                                             (1, 1, 0)],
-                               'orientations': [(1, 0, 0, 0),
-                                                (1, 0, 0, 0),
-                                                (1, 0, 0, 0),
-                                                (1, 0, 0, 0)],
-                               'overlap': [1, 1, 1, 1],
-                               'capacity': 4,
-                               'ignore_statistics': 1}
-                               
-    faceted_ell_union_args18 = {'shapes': [faceted_ell_args_1,
-                                          faceted_ell_args_2,
-                                          faceted_ell_args_3,
-                                          faceted_ell_args_5],
-                               'positions': [(1, 0, 0),
-                                             (0, 0, 1),
-                                             (1, 0, 1),
-                                             (0, 1, 1)],
-                               'orientations': [(1, 1, 0, 0),
-                                                (1, 0, 0, 0),
-                                                (1, 0, 0, 0),
-                                                (1, 0, 0, 1)],
-                               'overlap': [1, 1, 2, 0],
-                               'capacity': 3,
-                               'ignore_statistics': 0}
-                               
-    faceted_ell_union_args19 = {'shapes': [faceted_ell_args_1,
-                                          faceted_ell_args_2,
-                                          faceted_ell_args_4,
-                                          faceted_ell_args_5],
-                               'positions': [(1, 1, 0),
-                                             (1, 0, 1),
-                                             (0, 0, 0),
-                                             (1, 1, 1)],
-                               'orientations': [(1, 0, 1, 0),
-                                                (1, 0, 0, 0),
-                                                (1, 0, 0, 0),
-                                                (1, 0, 1, 0)],
-                               'overlap': [1, 2, 1, 1],
-                               'capacity': 2,
-                               'ignore_statistics': 1}
-                               
-    faceted_ell_union_args20 = {'shapes': [faceted_ell_args_1,
-                                          faceted_ell_args_3,
-                                          faceted_ell_args_4,
-                                          faceted_ell_args_5],
-                               'positions': [(1, 1, 1),
-                                             (0, 0, 1),
-                                             (0, 0, 0),
-                                             (1, 1, 0)],
-                               'orientations': [(1, 0, 0, 1),
-                                                (1, 0, 0, 0),
-                                                (1, 0, 0, 0),
-                                                (1, 1, 0, 0)],
-                               'overlap': [0, 1, 1, 0],
-                               'capacity': 4,
-                               'ignore_statistics': 0}
-                               
-    faceted_ell_union_args21 = {'shapes': [faceted_ell_args_2,
-                                          faceted_ell_args_3,
-                                          faceted_ell_args_4,
-                                          faceted_ell_args_5],
-                               'positions': [(0, 0, 0),
-                                             (0, 1, 1),
-                                             (1, 1, 1),
-                                             (1, 0, 0)],
-                               'orientations': [(1, 0, 0, 0),
-                                                (1, 1, 0, 0),
-                                                (1, 0, 0, 1),
-                                                (1, 0, 0, 0)],
-                               'overlap': [1, 2, 2, 2],
-                               'capacity': 4,
-                               'ignore_statistics': 1}
 
-    faceted_ell_union_args22 = {'shapes': [faceted_ell_args_1,
-                                          faceted_ell_args_2,
-                                          faceted_ell_args_3,
-                                          faceted_ell_args_4,
-                                          faceted_ell_args_5],
-                               'positions': [(0, 0, 0),
-                                             (0, 0, 1),
-                                             (1, 1, 1),
-                                             (1, 1, 0),
-                                             (2, 2, 0)],
-                               'orientations': [(1, 0, 0, 0),
-                                                (1, 0, 0, 0),
-                                                (1, 1, 0, 0),
-                                                (0, 0, 1, 1),
-                                                (1, 0, 0, 0)],
-                               'overlap': [1, 1, 0, 2, 1],
-                               'capacity': 4,
-                               'ignore_statistics': 1}
-    
-    return (faceted_ell_union_args1,
-            faceted_ell_union_args2,
-            faceted_ell_union_args3,
-            faceted_ell_union_args4,
-            faceted_ell_union_args5,
-            faceted_ell_union_args6,
-            faceted_ell_union_args7,
-            faceted_ell_union_args8,
-            faceted_ell_union_args9,
-            faceted_ell_union_args10,
-            faceted_ell_union_args11,
-            faceted_ell_union_args12,
-            faceted_ell_union_args13,
-            faceted_ell_union_args14,
-            faceted_ell_union_args15,
-            faceted_ell_union_args16,
-            faceted_ell_union_args17,
-            faceted_ell_union_args18,
-            faceted_ell_union_args19,
-            faceted_ell_union_args20,
-            faceted_ell_union_args21,
-            faceted_ell_union_args22)
 
-def test_dict_conversions(dummy_integrator_args):
-
-    (faceted_ell_union_args1,
-    faceted_ell_union_args2,
-    faceted_ell_union_args3,
-    faceted_ell_union_args4,
-    faceted_ell_union_args5,
-    faceted_ell_union_args6,
-    faceted_ell_union_args7,
-    faceted_ell_union_args8,
-    faceted_ell_union_args9,
-    faceted_ell_union_args10,
-    faceted_ell_union_args11,
-    faceted_ell_union_args12,
-    faceted_ell_union_args13,
-    faceted_ell_union_args14,
-    faceted_ell_union_args15,
-    faceted_ell_union_args16,
-    faceted_ell_union_args17,
-    faceted_ell_union_args18,
-    faceted_ell_union_args19,
-    faceted_ell_union_args20,
-    faceted_ell_union_args21,
-    faceted_ell_union_args22) = dummy_integrator_args
+def test_dict_conversions():
 
     test_faceted_ell_union1 = _hpmc.mfellipsoid_params(faceted_ell_union_args1)
     test_faceted_ell_dict1 = test_faceted_ell_union1.asDict()
@@ -430,93 +385,48 @@ def test_dict_conversions(dummy_integrator_args):
     assert test_faceted_ell_dict21 == faceted_ell_union_args21
     assert test_faceted_ell_dict22 == faceted_ell_union_args22
 
-'''
-def test_shape_params(dummy_integrator_args):
 
-    (faceted_ell_union_args1,
-    faceted_ell_union_args2,
-    faceted_ell_union_args3,
-    faceted_ell_union_args4,
-    faceted_ell_union_args5,
-    faceted_ell_union_args6,
-    faceted_ell_union_args7,
-    faceted_ell_union_args8,
-    faceted_ell_union_args9,
-    faceted_ell_union_args10,
-    faceted_ell_union_args11,
-    faceted_ell_union_args12,
-    faceted_ell_union_args13,
-    faceted_ell_union_args14,
-    faceted_ell_union_args15,
-    faceted_ell_union_args16,
-    faceted_ell_union_args17,
-    faceted_ell_union_args18,
-    faceted_ell_union_args19,
-    faceted_ell_union_args20,
-    faceted_ell_union_args21,
-    faceted_ell_union_args22) = dummy_integrator_args
+def test_shape_params():
+
 
     mc = hoomd.hpmc.integrate.FacetedEllipsoidUnion(23456)
 
     mc.shape['A'] = dict()
     assert mc.shape['A']['shapes'] is None
-    assert mc.shape['A']['centers'] is None
-    assert mc.shape['A']['diameters'] is None
+    assert mc.shape['A']['positions'] is None
+    assert mc.shape['A']['orientations'] is None
     assert mc.shape['A']['overlap'] == 1
     assert mc.shape['A']['capacity'] == 4
     assert mc.shape['A']['ignore_statistics'] is False
 
     mc.shape['A'] = dict(shapes=faceted_ell_union_args1['shapes'])
     assert mc.shape['A']['shapes']  == faceted_ell_union_args1['shapes']
-    assert mc.shape['A']['centers'] is None
-    assert mc.shape['A']['diameters'] is None
+    assert mc.shape['A']['positions'] is None
+    assert mc.shape['A']['orientations'] is None
     assert mc.shape['A']['overlap'] == 1
     assert mc.shape['A']['capacity'] == 4
     assert mc.shape['A']['ignore_statistics'] is False
 
-    mc.shape['A'] = dict(centers=faceted_ell_union_args2['centers'],
+    mc.shape['A'] = dict(positions=faceted_ell_union_args2['positions'],
                          ignore_statistics=True)
     assert mc.shape['A']['shapes'] is None
-    assert mc.shape['A']['centers'] == faceted_ell_union_args2['centers']
-    assert mc.shape['A']['diameters'] is None
+    assert mc.shape['A']['positions'] == faceted_ell_union_args2['positions']
+    assert mc.shape['A']['orientations'] is None
     assert mc.shape['A']['overlap'] == 1
     assert mc.shape['A']['capacity'] == 4
     assert mc.shape['A']['ignore_statistics'] is True
     
     mc.shape['A'] = faceted_ell_union_args3
     assert mc.shape['A']['shapes'] == faceted_ell_union_args3['shapes']
-    assert mc.shape['A']['centers'] == faceted_ell_union_args3['centers']
-    assert mc.shape['A']['diameters'] == faceted_ell_union_args3['diameters']
+    assert mc.shape['A']['positions'] == faceted_ell_union_args3['positions']
+    assert mc.shape['A']['orientations'] == faceted_ell_union_args3['orientations']
     assert mc.shape['A']['overlap'] == faceted_ell_union_args3['overlap']
     assert mc.shape['A']['capacity'] == faceted_ell_union_args3['capacity']
     assert mc.shape['A']['ignore_statistics'] == faceted_ell_union_args3['ignore_statistics']
     
     
     
-def test_shape_params_attached(device, dummy_simulation_factory, dummy_integrator_args):
-
-    (faceted_ell_union_args1,
-    faceted_ell_union_args2,
-    faceted_ell_union_args3,
-    faceted_ell_union_args4,
-    faceted_ell_union_args5,
-    faceted_ell_union_args6,
-    faceted_ell_union_args7,
-    faceted_ell_union_args8,
-    faceted_ell_union_args9,
-    faceted_ell_union_args10,
-    faceted_ell_union_args11,
-    faceted_ell_union_args12,
-    faceted_ell_union_args13,
-    faceted_ell_union_args14,
-    faceted_ell_union_args15,
-    faceted_ell_union_args16,
-    faceted_ell_union_args17,
-    faceted_ell_union_args18,
-    faceted_ell_union_args19,
-    faceted_ell_union_args20,
-    faceted_ell_union_args21,
-    faceted_ell_union_args22) = dummy_integrator_args
+def test_shape_params_attached(device, dummy_simulation_factory):
     
     mc = hoomd.hpmc.integrate.FacetedEllipsoidUnion(23456)
     mc.shape['A'] = faceted_ell_union_args1
@@ -536,78 +446,78 @@ def test_shape_params_attached(device, dummy_simulation_factory, dummy_integrato
     sim.operations.schedule()
 
     assert mc.shape['A']['shapes'] == faceted_ell_union_args1['shapes']
-    assert mc.shape['A']['centers'] == faceted_ell_union_args1['centers']
-    assert mc.shape['A']['diameters'] == faceted_ell_union_args1['diameters']
+    assert mc.shape['A']['positions'] == faceted_ell_union_args1['positions']
+    assert mc.shape['A']['orientations'] == faceted_ell_union_args1['orientations']
     assert mc.shape['A']['overlap'] == faceted_ell_union_args1['overlap']
     assert mc.shape['A']['capacity'] == faceted_ell_union_args1['capacity']
     assert mc.shape['A']['ignore_statistics'] == faceted_ell_union_args1['ignore_statistics']
 
     assert mc.shape['B']['shapes'] == faceted_ell_union_args2['shapes']
-    assert mc.shape['B']['centers'] == faceted_ell_union_args2['centers']
-    assert mc.shape['B']['diameters'] == faceted_ell_union_args2['diameters']
+    assert mc.shape['B']['positions'] == faceted_ell_union_args2['positions']
+    assert mc.shape['B']['orientations'] == faceted_ell_union_args2['orientations']
     assert mc.shape['B']['overlap'] == faceted_ell_union_args2['overlap']
     assert mc.shape['B']['capacity'] == faceted_ell_union_args2['capacity']
     assert mc.shape['B']['ignore_statistics'] == faceted_ell_union_args2['ignore_statistics']
 
     assert mc.shape['C']['shapes'] == faceted_ell_union_args3['shapes']
-    assert mc.shape['C']['centers'] == faceted_ell_union_args3['centers']
-    assert mc.shape['C']['diameters'] == faceted_ell_union_args3['diameters']
+    assert mc.shape['C']['positions'] == faceted_ell_union_args3['positions']
+    assert mc.shape['C']['orientations'] == faceted_ell_union_args3['orientations']
     assert mc.shape['C']['overlap'] == faceted_ell_union_args3['overlap']
     assert mc.shape['C']['capacity'] == faceted_ell_union_args3['capacity']
     assert mc.shape['C']['ignore_statistics'] == faceted_ell_union_args3['ignore_statistics']
     
     assert mc.shape['D']['shapes'] == faceted_ell_union_args4['shapes']
-    assert mc.shape['D']['centers'] == faceted_ell_union_args4['centers']
-    assert mc.shape['D']['diameters'] == faceted_ell_union_args4['diameters']
+    assert mc.shape['D']['positions'] == faceted_ell_union_args4['positions']
+    assert mc.shape['D']['orientations'] == faceted_ell_union_args4['orientations']
     assert mc.shape['D']['overlap'] == faceted_ell_union_args4['overlap']
     assert mc.shape['D']['capacity'] == faceted_ell_union_args4['capacity']
     assert mc.shape['D']['ignore_statistics'] == faceted_ell_union_args4['ignore_statistics']
     
     assert mc.shape['E']['shapes'] == faceted_ell_union_args5['shapes']
-    assert mc.shape['E']['centers'] == faceted_ell_union_args5['centers']
-    assert mc.shape['E']['diameters'] == faceted_ell_union_args5['diameters']
+    assert mc.shape['E']['positions'] == faceted_ell_union_args5['positions']
+    assert mc.shape['E']['orientations'] == faceted_ell_union_args5['orientations']
     assert mc.shape['E']['overlap'] == faceted_ell_union_args5['overlap']
     assert mc.shape['E']['capacity'] == faceted_ell_union_args5['capacity']
     assert mc.shape['E']['ignore_statistics'] == faceted_ell_union_args5['ignore_statistics']
     
     assert mc.shape['F']['shapes'] == faceted_ell_union_args6['shapes']
-    assert mc.shape['F']['centers'] == faceted_ell_union_args6['centers']
-    assert mc.shape['F']['diameters'] == faceted_ell_union_args6['diameters']
+    assert mc.shape['F']['positions'] == faceted_ell_union_args6['positions']
+    assert mc.shape['F']['orientations'] == faceted_ell_union_args6['orientations']
     assert mc.shape['F']['overlap'] == faceted_ell_union_args6['overlap']
     assert mc.shape['F']['capacity'] == faceted_ell_union_args6['capacity']
     assert mc.shape['F']['ignore_statistics'] == faceted_ell_union_args6['ignore_statistics']
     
     assert mc.shape['G']['shapes'] == faceted_ell_union_args7['shapes']
-    assert mc.shape['G']['centers'] == faceted_ell_union_args7['centers']
-    assert mc.shape['G']['diameters'] == faceted_ell_union_args7['diameters']
+    assert mc.shape['G']['positions'] == faceted_ell_union_args7['positions']
+    assert mc.shape['G']['orientations'] == faceted_ell_union_args7['orientations']
     assert mc.shape['G']['overlap'] == faceted_ell_union_args7['overlap']
     assert mc.shape['G']['capacity'] == faceted_ell_union_args7['capacity']
     assert mc.shape['G']['ignore_statistics'] == faceted_ell_union_args7['ignore_statistics']
     
     assert mc.shape['H']['shapes'] == faceted_ell_union_args8['shapes']
-    assert mc.shape['H']['centers'] == faceted_ell_union_args8['centers']
-    assert mc.shape['H']['diameters'] == faceted_ell_union_args8['diameters']
+    assert mc.shape['H']['positions'] == faceted_ell_union_args8['positions']
+    assert mc.shape['H']['orientations'] == faceted_ell_union_args8['orientations']
     assert mc.shape['H']['overlap'] == faceted_ell_union_args8['overlap']
     assert mc.shape['H']['capacity'] == faceted_ell_union_args8['capacity']
     assert mc.shape['H']['ignore_statistics'] == faceted_ell_union_args8['ignore_statistics']
     
     assert mc.shape['I']['shapes'] == faceted_ell_union_args9['shapes']
-    assert mc.shape['I']['centers'] == faceted_ell_union_args9['centers']
-    assert mc.shape['I']['diameters'] == faceted_ell_union_args9['diameters']
+    assert mc.shape['I']['positions'] == faceted_ell_union_args9['positions']
+    assert mc.shape['I']['orientations'] == faceted_ell_union_args9['orientations']
     assert mc.shape['I']['overlap'] == faceted_ell_union_args9['overlap']
     assert mc.shape['I']['capacity'] == faceted_ell_union_args9['capacity']
     assert mc.shape['I']['ignore_statistics'] == faceted_ell_union_args9['ignore_statistics']
     
     assert mc.shape['J']['shapes'] == faceted_ell_union_args10['shapes']
-    assert mc.shape['J']['centers'] == faceted_ell_union_args10['centers']
-    assert mc.shape['J']['diameters'] == faceted_ell_union_args10['diameters']
+    assert mc.shape['J']['positions'] == faceted_ell_union_args10['positions']
+    assert mc.shape['J']['orientations'] == faceted_ell_union_args10['orientations']
     assert mc.shape['J']['overlap'] == faceted_ell_union_args10['overlap']
     assert mc.shape['J']['capacity'] == faceted_ell_union_args10['capacity']
     assert mc.shape['J']['ignore_statistics'] == faceted_ell_union_args10['ignore_statistics']
     
     assert mc.shape['K']['shapes'] == faceted_ell_union_args11['shapes']
-    assert mc.shape['K']['centers'] == faceted_ell_union_args11['centers']
-    assert mc.shape['K']['diameters'] == faceted_ell_union_args11['diameters']
+    assert mc.shape['K']['positions'] == faceted_ell_union_args11['positions']
+    assert mc.shape['K']['orientations'] == faceted_ell_union_args11['orientations']
     assert mc.shape['K']['overlap'] == faceted_ell_union_args11['overlap']
     assert mc.shape['K']['capacity'] == faceted_ell_union_args11['capacity']
     assert mc.shape['K']['ignore_statistics'] == faceted_ell_union_args11['ignore_statistics']
@@ -616,11 +526,11 @@ def test_shape_params_attached(device, dummy_simulation_factory, dummy_integrato
     faceted_ell_union_args1['shapes'] = 'invalid'
     faceted_ell_union_args2['shapes'] = 1
     faceted_ell_union_args3['shapes'] = [1, 2, 3]
-    faceted_ell_union_args4['diameters'] = 'invalid'
-    faceted_ell_union_args5['diameters'] = 1
-    faceted_ell_union_args6['centers'] = 1
-    faceted_ell_union_args7['centers'] = [1, 2, 3]
-    faceted_ell_union_args8['centers'] = 'invalid'
+    faceted_ell_union_args4['orientations'] = 'invalid'
+    faceted_ell_union_args5['orientations'] = 1
+    faceted_ell_union_args6['positions'] = 1
+    faceted_ell_union_args7['positions'] = [1, 2, 3]
+    faceted_ell_union_args8['positions'] = 'invalid'
     faceted_ell_union_args9['overlap'] = 'invalid'
     faceted_ell_union_args10['capacity'] = 'invalid'
     faceted_ell_union_args11['capacity'] = [1, 2, 3]
@@ -630,7 +540,7 @@ def test_shape_params_attached(device, dummy_simulation_factory, dummy_integrato
     with pytest.raises(RuntimeError):
         mc.shape['A'] = faceted_ell_union_args1
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(TypeError):
         mc.shape['A'] = faceted_ell_union_args2
         
     with pytest.raises(RuntimeError):
@@ -639,10 +549,10 @@ def test_shape_params_attached(device, dummy_simulation_factory, dummy_integrato
     with pytest.raises(RuntimeError):
         mc.shape['A'] = faceted_ell_union_args4
         
-    with pytest.raises(RuntimeError):
+    with pytest.raises(TypeError):
         mc.shape['A'] = faceted_ell_union_args5
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(TypeError):
         mc.shape['A'] = faceted_ell_union_args6
         
     with pytest.raises(RuntimeError):
@@ -662,4 +572,4 @@ def test_shape_params_attached(device, dummy_simulation_factory, dummy_integrato
         
     with pytest.raises(RuntimeError):
         mc.shape['A'] = faceted_ell_union_args12
-'''
+

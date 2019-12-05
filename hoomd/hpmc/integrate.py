@@ -1290,8 +1290,8 @@ class SphereUnion(HPMCIntegrator):
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             shapes=RequiredArg,
-                                            diameters=RequiredArg,
-                                            centers=RequiredArg,
+                                            orientations=RequiredArg,
+                                            positions=RequiredArg,
                                             capacity=4,
                                             overlap=1,
                                             ignore_statistics=False,
@@ -1348,12 +1348,11 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             shapes=RequiredArg,
-                                            vertices=RequiredArg,
-                                            centers=RequiredArg,
+                                            positions=RequiredArg,
                                             orientations=RequiredArg,
-                                            sweep_radius=0.0,
                                             overlap=1,
                                             ignore_statistics=False,
+                                            capacity=4,
                                             len_keys=1)
                                         )
         self._add_typeparam(typeparam_shape)
@@ -1418,12 +1417,11 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             shapes=RequiredArg,
-                                            vertices=RequiredArg,
-                                            normals=RequiredArg,
-                                            offsets=RequiredArg,
-                                            axes=RequiredArg,
-                                            origin=RequiredArg,
+                                            positions=RequiredArg,
+                                            orientations=RequiredArg,
+                                            overlap=1,
                                             ignore_statistics=False,
+                                            capacity=4,
                                             len_keys=1)
-                                        )
+                                            )
         self._add_typeparam(typeparam_shape)
