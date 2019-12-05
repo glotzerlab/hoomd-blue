@@ -20,6 +20,8 @@ class PYBIND11_EXPORT Trigger
         /// Construct a Trigger
         Trigger() { }
 
+        virtual ~Trigger() { }
+
         /** Determine if an operation should be performed on the given timestep
          *
          *  @param timestep Time step to query
@@ -49,7 +51,7 @@ class PYBIND11_EXPORT PeriodicTrigger : public Trigger
             {
             }
 
-        virtual bool operator()(uint64_t timestep)
+        bool operator()(uint64_t timestep)
             {
             return (timestep - m_phase) % m_period == 0;
             }
