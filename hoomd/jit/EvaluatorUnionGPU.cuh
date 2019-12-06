@@ -102,7 +102,6 @@ static __device__ union_params_t *d_union_params;
 
 //! Device storage of rcut value
 static __device__ float d_rcut_union;
-static __device__ float d_rcut_union_repulsive;
 
 __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
                              float r_cut,
@@ -117,7 +116,6 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
                              unsigned int cur_node_b,
                              bool old_config,
                              unsigned int seed_ij,
-                             bool check_early_exit,
                              bool &early_exit)
     {
     float energy = 0.0;
@@ -167,45 +165,37 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
                     params[type_b].mcharge[jleaf]);
                 }
 
-
-            if (check_early_exit)
+            // check the other config of particle i, too
+            r_ij = params[type_b].mpos[jleaf] - (old_config ? pos_i_new : pos_i_old);
+            rsq = dot(r_ij,r_ij);
+            float Vij = 0.0f;
+            if (rsq <= rcut_total*rcut_total)
                 {
-                // check the other config of particle i, too
-                r_ij = params[type_b].mpos[jleaf] - (old_config ? pos_i_new : pos_i_old);
-                rsq = dot(r_ij,r_ij);
-                float Vij = 0.0f;
-                if (rsq <= rcut_total*rcut_total)
+                // evaluate energy via JIT function
+                Vij = ::eval(r_ij,
+                    type_i,
+                    old_config ? orientation_i_new : orientation_i_old,
+                    params[type_a].mdiameter[ileaf],
+                    params[type_a].mcharge[ileaf],
+                    type_j,
+                    orientation_j,
+                    params[type_b].mdiameter[jleaf],
+                    params[type_b].mcharge[jleaf]);
+                }
+            float deltaU = Uij - Vij;
+            if ((old_config && deltaU < 0.0f) || (!old_config && deltaU > 0.0f))
+                {
+                // factorize this ij contribution to the MH probability out
+                hoomd::RandomGenerator rng_ij(hoomd::RNGIdentifier::HPMCJITPairs+1, seed_ij, ileaf, jleaf);
+                early_exit |= hoomd::detail::generate_canonical<float>(rng_ij) > slow::exp((old_config ? deltaU : -deltaU));
+                if (early_exit)
                     {
-                    // evaluate energy via JIT function
-                    Vij = ::eval(r_ij,
-                        type_i,
-                        old_config ? orientation_i_new : orientation_i_old,
-                        params[type_a].mdiameter[ileaf],
-                        params[type_a].mcharge[ileaf],
-                        type_j,
-                        orientation_j,
-                        params[type_b].mdiameter[jleaf],
-                        params[type_b].mcharge[jleaf]);
-                    }
-                float deltaU = Uij - Vij;
-                if ((old_config && deltaU < 0.0f) || (!old_config && deltaU > 0.0f))
-                    {
-                    // factorize this ij contribution to the MH probability out
-                    hoomd::RandomGenerator rng_ij(hoomd::RNGIdentifier::HPMCJITPairs+1, seed_ij, ileaf, jleaf);
-                    early_exit |= hoomd::detail::generate_canonical<float>(rng_ij) > slow::exp((old_config ? deltaU : -deltaU));
-                    if (early_exit)
-                        {
-                        return energy;
-                        }
-                    }
-                else
-                    {
-                    // attractive contribution, keep
-                    energy += Uij;
+                    return energy;
                     }
                 }
             else
                 {
+                // attractive contribution, keep
                 energy += Uij;
                 }
             }
@@ -232,6 +222,10 @@ __device__ inline float eval_union(const union_params_t *params,
     const hpmc::detail::GPUTree& tree_a = params[type_i].tree;
     const hpmc::detail::GPUTree& tree_b = params[type_j].tree;
 
+    // load from device global variable
+    float r_cut = d_rcut_union;
+    float r_cut2 = 0.5f*d_rcut_union;
+
     // perform a tandem tree traversal
     unsigned long int stack = 0;
     unsigned int cur_node_a = 0;
@@ -248,52 +242,7 @@ __device__ inline float eval_union(const union_params_t *params,
     unsigned int query_node_a = 0xffffffffu;
     unsigned int query_node_b = 0xffffffffu;
 
-    // load from device global variable
-    float r_cut = d_rcut_union;
-    float r_cut2 = 0.5f*r_cut;
-
-    float r_cut_repulsive = d_rcut_union_repulsive;
-    float r_cut_repulsive2 = 0.5f*d_rcut_union_repulsive;
-
-    bool check_early_exit = r_cut_repulsive >= 0.0f;
-    if (check_early_exit)
-        {
-        while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
-            {
-            // extend OBBs by distributing the cut-off symmetrically
-            if (query_node_a != cur_node_a)
-                {
-                obb_a.lengths.x += r_cut_repulsive2;
-                obb_a.lengths.y += r_cut_repulsive2;
-                obb_a.lengths.z += r_cut_repulsive2;
-                query_node_a = cur_node_a;
-                }
-
-            if (query_node_b != cur_node_b)
-                {
-                obb_b.lengths.x += r_cut_repulsive2;
-                obb_b.lengths.y += r_cut_repulsive2;
-                obb_b.lengths.z += r_cut_repulsive2;
-                query_node_b = cur_node_b;
-                }
-
-            if (hpmc::detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot, true))
-                {
-                // check for early exit only, ignore total energy
-                compute_leaf_leaf_energy(params, r_cut, r_ij_old, r_ij_new,
-                    type_i, type_j, q_i_old, q_i_new,
-                    q_j, query_node_a, query_node_b,
-                    old_config, seed_ij, check_early_exit, early_exit);
-                if (early_exit)
-                    {
-                    return 0.0f;
-                    }
-                }
-            }
-        }
-
     float energy = 0.0f;
-
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
         // extend OBBs by distributing the cut-off symmetrically
@@ -318,7 +267,7 @@ __device__ inline float eval_union(const union_params_t *params,
             energy += compute_leaf_leaf_energy(params, r_cut, r_ij_old, r_ij_new,
                 type_i, type_j, q_i_old, q_i_new,
                 q_j, query_node_a, query_node_b,
-                old_config, seed_ij, check_early_exit,  early_exit);
+                old_config, seed_ij, early_exit);
             if (early_exit)
                 {
                 return energy;

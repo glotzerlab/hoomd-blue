@@ -18,9 +18,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             std::shared_ptr<ExecutionConfiguration> exec_conf,
             const std::string& llvm_ir_iso, Scalar r_cut_iso,
             const unsigned int array_size_iso,
-            const std::string& llvm_ir_union,
-            Scalar r_cut_union,
-            Scalar r_cut_union_repulsive,
+            const std::string& llvm_ir_union, Scalar r_cut_union,
             const unsigned int array_size_union,
             const std::string& code,
             const std::string& kernel_name,
@@ -45,7 +43,6 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             m_gpu_factory.setAlphaUnionPtr(&m_alpha.front());
             m_gpu_factory.setUnionParamsPtr(&m_d_union_params.front());
             m_gpu_factory.setRCutUnion(m_rcut_union);
-            m_gpu_factory.setRCutUnionRepulsive(r_cut_union_repulsive);
             }
 
         virtual ~PatchEnergyJITUnionGPU()

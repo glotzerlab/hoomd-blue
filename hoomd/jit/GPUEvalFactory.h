@@ -39,7 +39,6 @@ class GPUEvalFactory
             m_alpha_union_device_ptr.resize(m_exec_conf->getNumActiveGPUs());
 
             m_rcut_union_device_ptr.resize(m_exec_conf->getNumActiveGPUs());
-            m_rcut_union_repulsive_device_ptr.resize(m_exec_conf->getNumActiveGPUs());
             m_union_params_device_ptr.resize(m_exec_conf->getNumActiveGPUs());
 
             compileGPU(code, kernel_name, include_path, include_path_source, cuda_devrt_library_path, compute_arch);
@@ -198,27 +197,6 @@ class GPUEvalFactory
             #endif
             }
 
-        void setRCutUnionRepulsive(float rcut_repulsive)
-            {
-            #ifdef __HIP_PLATFORM_NVCC__
-            // copy pointer to device variable
-            auto gpu_map = m_exec_conf->getGPUIds();
-            for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
-                {
-                cudaSetDevice(gpu_map[idev]);
-
-                // copy the array pointer to the device
-                char *error;
-                CUresult custatus = cuMemcpyHtoD(m_rcut_union_repulsive_device_ptr[idev], &rcut_repulsive, sizeof(float));
-                if (custatus != CUDA_SUCCESS)
-                    {
-                    cuGetErrorString(custatus, const_cast<const char **>(&error));
-                    throw std::runtime_error("cuMemcpyHtoD: "+std::string(error));
-                    }
-                }
-            #endif
-            }
-
         void setUnionParamsPtr(jit::union_params_t *d_params)
             {
             #ifdef __HIP_PLATFORM_NVCC__
@@ -247,8 +225,7 @@ class GPUEvalFactory
         #ifdef __HIP_PLATFORM_NVCC__
         std::vector<CUdeviceptr> m_alpha_iso_device_ptr;     //!< Device pointer to data ptr for patches
         std::vector<CUdeviceptr> m_alpha_union_device_ptr;   //!< Device pointer to data ptr for union patches
-        std::vector<CUdeviceptr> m_rcut_union_device_ptr;    //!< Device pointer to rcut variable for union patches
-        std::vector<CUdeviceptr> m_rcut_union_repulsive_device_ptr;    //!< Device pointer to rcut variable for union patches (repulsive cutoff)
+        std::vector<CUdeviceptr> m_rcut_union_device_ptr;    //!< Device pointer to data ptr for union patches
         std::vector<CUdeviceptr> m_union_params_device_ptr;  //!< Device pointer to data ptr for union patches
         #endif
 
