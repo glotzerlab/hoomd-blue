@@ -144,8 +144,10 @@ class Logger(NamespaceDict):
             return log_quantity
 
     def add(self, obj, quantities=None):
+        used_namespaces = []
         for quantity in self._grab_log_quantities_from_names(quantities):
-            self._add_single_quantity(quantity, obj)
+            used_namespaces.append(self._add_single_quantity(quantity, obj))
+        return used_namespaces
 
     def remove(self, obj=None, quantities=None):
         if obj is None and quantities is None:
@@ -154,18 +156,24 @@ class Logger(NamespaceDict):
         if obj is None:
             for quantity in quantities:
                 if self.key_exists(quantity):
-                    self._remove_quantity(quantity)
+                    del self[quantity]
         else:
             for quantity in self._grab_log_quantities_from_names(obj,
                                                                  quantities):
                 # Check all currently used namespaces for object's quantities
                 for namespace in quantity.yield_names():
+                    base_name, parent_namespace = self.pop_namespace(namespace)
+                    # Check for namespace existance. If a namespace doesn't
+                    # exist all future yielded ones won't as well, so we can
+                    # terminate the loop.
                     if self.key_exists(namespace):
-                        parent_dict = self._unsafe_getitem(namespace[:-1])
+                        # Need to see if the namespace contains as its value the
+                        # object given.
+                        parent_dict = self._unsafe_getitem(parent_namespace)
                         try:
                             # If namespace contains object remove
-                            if parent_dict[namespace[-1]][0] is obj:
-                                del parent_dict[namespace[1]]
+                            if parent_dict[base_name][0] is obj:
+                                del parent_dict[base_name]
                                 continue
                         except TypeError:
                             continue
@@ -175,31 +183,19 @@ class Logger(NamespaceDict):
     def _add_single_quanity(self, quantity, obj):
         for namespace in quantity.yield_names():
             if self.key_exists(namespace):
-                quantity_val = self._unsafe_getitem(namespace)
-                try:
-                    if quantity_val[0] is obj:
-                        return None
-                except TypeError:
-                    raise RuntimeError("Logger is in an undefined state. "
-                                       "In namespace {} is an improper value."
-                                       "".format(namespace))
                 continue
             else:
-                self._setitem(namespace, (obj, quantity.name))
+                self[namespace] = (obj, quantity.name, quantity.flag)
+                return namespace
 
     def __setitem__(self, namespace, value):
         if not isinstance(value, tuple):
-            raise ValueError("Logger expects values of (obj, method/property)")
+            raise ValueError("Logger expects values of "
+                             "(obj, method/property, flag)")
         super().__setitem__(namespace, value)
 
-    def _unsafe_getitem(self, namespace):
-        ret_val = self._dict
-        for name in namespace:
-            ret_val = ret_val[name]
-        return ret_val
-
     def __iadd__(self, obj):
-        self.add(obj)
+        return self.add(obj)
 
     def __isub__(self, value):
         if isinstance(value, str):
@@ -213,8 +209,11 @@ class Logger(NamespaceDict):
         return dict_map(self._dict, self._log_conversion)
 
     def _log_conversion(obj_prop_tuple):
-        attr = getattr(obj_prop_tuple[0], obj_prop_tuple[1])
-        if hasattr(attr, '__call__'):
-            return attr()
+        obj, prop, flag = obj_prop_tuple
+        value = getattr(obj, prop)
+        if hasattr(value, '__call__'):
+            value = value()
+        if flag == 'dict':
+            return value
         else:
-            return attr
+            return (value, flag)
