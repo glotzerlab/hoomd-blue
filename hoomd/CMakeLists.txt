@@ -314,6 +314,7 @@ set(files analyze.py
           filters.py
           groups.py
           snapshot.py
+	  logger.py
     )
 
 install(FILES ${files}
