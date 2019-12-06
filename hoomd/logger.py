@@ -71,7 +71,7 @@ class LoggerQuantity:
                 (self.namespace[-1] + '_' + str(i), self.name)
 
 
-class NamespaceDict:
+class SafeNamespaceDict:
     def __init__(self):
         self._dict = dict()
 
@@ -97,6 +97,9 @@ class NamespaceDict:
     def keys(self):
         pass
 
+    def pop_namespace(self, namespace):
+        return (namespace[-1], namespace[:-1])
+
     def _setitem(self, namespace, value):
         if self.key_exists(namespace):
             raise KeyError("Namespace {} is being used. Remove before "
@@ -104,7 +107,8 @@ class NamespaceDict:
         # Grab parent dictionary creating sub dictionaries as necessary
         parent_dict = self._dict
         current_namespace = []
-        for name in namespace[:-1]:
+        base_name, parent_namespace = self.pop_namespace(namespace)
+        for name in parent_namespace:
             current_namespace.append(name)
             # If key does not exist create key with empty dictionary
             try:
@@ -113,18 +117,29 @@ class NamespaceDict:
                 parent_dict[name] = dict()
                 parent_dict = parent_dict[name]
         # Attempt to set the value
-        parent_dict[namespace[-1]] = value
+        parent_dict[base_name] = value
 
     def __setitem__(self, namespace, value):
-        if isinstance(namespace, tuple):
+        if not isinstance(namespace, tuple):
             if isinstance(namespace, str):
                 namespace = (namespace,)
             else:
                 namespace = tuple(namespace)
         self._setitem(namespace, value)
 
+    def _unsafe_getitem(self, namespace):
+        ret_val = self._dict
+        for name in namespace:
+            ret_val = ret_val[name]
+        return ret_val
 
-class Logger(NamespaceDict):
+    def __delitem__(self, namespace):
+        '''Does not check that key exists.'''
+        parent_dict = self._unsafe_getitem(namespace[:-1])
+        del parent_dict[namespace[-1]]
+
+
+class Logger(SafeNamespaceDict):
     '''Logs Hoomd Operation data and custom quantities.'''
 
     def _grab_log_quantities_from_names(self, obj, quantities):
