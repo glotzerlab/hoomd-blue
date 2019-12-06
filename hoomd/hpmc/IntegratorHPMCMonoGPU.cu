@@ -179,7 +179,6 @@ __global__ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
         if (patch)
             {
             // iterate over overlapping neighbors in old configuration
-            bool early_exit = false;
             float energy_old = 0.0f;
             unsigned int nneigh = d_nneigh_patch_old[i];
             for (unsigned int cur_neigh = 0; cur_neigh < nneigh; cur_neigh++)
@@ -198,16 +197,10 @@ __global__ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                 bool j_has_been_updated = j < N && d_trial_move_type[j]
                     && d_update_order_by_ptl[j] < update_order_i && !d_reject[j];
 
+                // acceptance, reject if current configuration of particle overlaps
                 if ((old && !j_has_been_updated) || (!old && j_has_been_updated))
                     {
-                    float energy = d_energy_old[cur_neigh+maxn_patch*i];
-                    if (energy <= -FLT_MAX/2.0f)
-                        {
-                        // assume it is -inf
-                        early_exit = true;
-                        break;
-                        }
-                    energy_old += energy;
+                    energy_old += d_energy_old[cur_neigh+maxn_patch*i];
                     }
 
                 } // end loop over neighbors
@@ -231,24 +224,14 @@ __global__ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                 bool j_has_been_updated = j < N && d_trial_move_type[j]
                     && d_update_order_by_ptl[j] < update_order_i && !d_reject[j];
 
+                // acceptance, reject if current configuration of particle overlaps
                 if ((old && !j_has_been_updated) || (!old && j_has_been_updated))
                     {
-                    float energy = d_energy_new[cur_neigh+maxn_patch*i];
-                    if (energy >= FLT_MAX/2.0f)
-                        {
-                        // assume it is inf
-                        early_exit = true;
-                        break;
-                        }
-                    energy_new += energy;
+                    energy_new += d_energy_new[cur_neigh+maxn_patch*i];
                     }
 
                 } // end loop over neighbors
 
-            if (early_exit)
-                {
-                accept = false;
-                }
             delta_U = energy_new - energy_old;
             }
 
