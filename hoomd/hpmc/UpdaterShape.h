@@ -459,7 +459,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             }
         if (this->m_prof)
             this->m_prof->pop();
-        }
+        }  // end loop over n_sweeps
     if (this->m_prof)
         this->m_prof->pop();
     m_exec_conf->msg->notice(4) << " UpdaterShape update done" << std::endl;
