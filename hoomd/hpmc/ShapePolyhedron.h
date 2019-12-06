@@ -51,9 +51,9 @@ namespace detail
      The polyhedrons's diameter is precomputed from the vertex farthest from the origin. Arrays are
     stored in ManagedArray to support arbitrary numbers of verticles.
 */
-struct poly3d_data : ShapeParams
+struct TriangleMesh : ShapeParams
     {
-    poly3d_data()
+    TriangleMesh()
         : convex_hull_verts(), verts(), face_offs(),
           face_verts(), face_overlap(), n_faces(0), ignore(0)
         {
@@ -62,11 +62,11 @@ struct poly3d_data : ShapeParams
     #ifndef NVCC
     /** Initialize with a given number of vertices and vaces
     */
-    poly3d_data(unsigned int n_verts_,
-                unsigned int n_faces_,
-                unsigned int n_face_verts_,
-                unsigned int n_hull_verts_,
-                bool managed)
+    TriangleMesh(unsigned int n_verts_,
+                 unsigned int n_faces_,
+                 unsigned int n_face_verts_,
+                 unsigned int n_hull_verts_,
+                 bool managed)
         : n_verts(n_verts_), n_faces(n_faces_), hull_only(0)
         {
         convex_hull_verts = PolyhedronVertices(n_hull_verts_, managed);
@@ -78,8 +78,7 @@ struct poly3d_data : ShapeParams
         }
 
     /// Construct from a Python dictionary
-    poly3d_data(pybind11::dict v, bool managed=false)
-        : poly3d_data()
+    TriangleMesh(pybind11::dict v, bool managed=false)
         {
         pybind11::list verts_list = v["vertices"];
         pybind11::list face_list = v["faces"];
@@ -149,7 +148,7 @@ struct poly3d_data : ShapeParams
                 }
             }
        else
-           {
+            {
             if (pybind11::len(overlap_list) != n_faces)
                 {
                 throw std::runtime_error("Number of member overlap flags must be equal to number faces");
@@ -351,7 +350,7 @@ struct poly3d_data : ShapeParams
 struct ShapePolyhedron
     {
     //. Define the parameter type
-    typedef detail::poly3d_data param_type;
+    typedef detail::TriangleMesh param_type;
 
     /// Construct a shape at a given orientation
     DEVICE ShapePolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
@@ -455,7 +454,7 @@ struct ShapePolyhedron
     quat<Scalar> orientation;
 
     /// Vertices
-    const detail::poly3d_data& data;
+    const detail::TriangleMesh& data;
 
     /// Tree for particle features
     const detail::GPUTree &tree;

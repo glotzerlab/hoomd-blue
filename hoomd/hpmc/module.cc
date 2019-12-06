@@ -87,9 +87,9 @@ PYBIND11_MODULE(_hpmc, m)
         .def(pybind11::init< pybind11::dict >())
         .def("asDict", &PolygonVertices::asDict)
         ;
-    py::class_<poly3d_data, std::shared_ptr<poly3d_data> >(m, "poly3d_data")
+    py::class_<TriangleMesh, std::shared_ptr<TriangleMesh> >(m, "TriangleMesh")
         .def(pybind11::init< pybind11::dict >())
-        .def("asDict", &poly3d_data::asDict)
+        .def("asDict", &TriangleMesh::asDict)
         ;
     py::class_< PolyhedronVertices, std::shared_ptr< PolyhedronVertices > >(m, "PolyhedronVertices")
         .def(pybind11::init< pybind11::dict >())

@@ -102,23 +102,23 @@ args_5 = {'vertices':[(0, 3, 0),
 # these test passing back and forth between python and C++
 def test_polyhedron():
 
-    test_polyhedron1 = _hpmc.poly3d_data(args_1)
+    test_polyhedron1 = _hpmc.TriangleMesh(args_1)
     test_dict1 = test_polyhedron1.asDict()
     assert test_dict1 == args_1
 
-    test_polyhedron2 = _hpmc.poly3d_data(args_2)
+    test_polyhedron2 = _hpmc.TriangleMesh(args_2)
     test_dict2 = test_polyhedron2.asDict()
     assert test_dict2 == args_2
 
-    test_polyhedron3 = _hpmc.poly3d_data(args_3)
+    test_polyhedron3 = _hpmc.TriangleMesh(args_3)
     test_dict3 = test_polyhedron3.asDict()
     assert test_dict3 == args_3
 
-    test_polyhedron4 = _hpmc.poly3d_data(args_4)
+    test_polyhedron4 = _hpmc.TriangleMesh(args_4)
     test_dict4 = test_polyhedron4.asDict()
     assert test_dict4 == args_4
 
-    test_polyhedron5 = _hpmc.poly3d_data(args_5)
+    test_polyhedron5 = _hpmc.TriangleMesh(args_5)
     test_dict5 = test_polyhedron5.asDict()
     assert test_dict5 == args_5
 
