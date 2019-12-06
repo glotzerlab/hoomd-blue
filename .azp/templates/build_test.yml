@@ -24,13 +24,9 @@ steps:
     # workaround issues on Mac
     TMPDIR: /tmp
 
-- script: cp $(Build.BinariesDirectory)/Testing/**/Test.xml $(Common.TestResultsDirectory)
-  displayName: Copy test results
-  condition: always()
-
 - task: PublishTestResults@2
-  condition: always()
+  condition: or(succeeded(), failed())
   inputs:
     testResultsFormat: 'cTest'
-    testResultsFiles: '$(Common.TestResultsDirectory)/*.xml'
+    testResultsFiles: '$(Build.BinariesDirectory)/Testing/**/Test.xml'
     testRunTitle: $(suite_name)
