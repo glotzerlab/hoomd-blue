@@ -788,7 +788,6 @@ class Polyhedron(HPMCIntegrator):
                                             origin=(0, 0, 0),
                                             hull_only=True,
                                             overlap=None,
-                                            face_offs=[],
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )

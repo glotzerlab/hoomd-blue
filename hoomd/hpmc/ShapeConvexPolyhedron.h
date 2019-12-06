@@ -32,7 +32,7 @@ namespace hpmc
 namespace detail
 {
 
-/** Polyhedron vertices
+/** Convex polyhedron vertices
 
     Define the parameters of a convex polyhedron for HPMC shape overlap checks. Convex polyhedra are
     defined by the convex hull of N vertices. The polyhedrons's diameter is precomputed from the
@@ -691,7 +691,7 @@ class ProjectionFuncConvexPolyhedron
 
 }; // end namespace detail
 
-/** Convex Polygon shape
+/** Convex Polyhedron shape
 
     Implement the HPMC shape interface for convex polyhedra.
 */

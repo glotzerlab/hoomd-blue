@@ -4,48 +4,41 @@ import hoomd.hpmc._hpmc as hpmc
 import pytest
 import numpy as np
 
-@pytest.fixture(scope='session')
-def dummy_integrator_args():
+args_1 = {'diameters':[1, 4, 2, 8, 5, 9],
+            'centers':[(0, 0, 0),
+                        (1, 1, 1),
+                        (1, 0, 1),
+                        (0, 1, 1),
+                        (1, 1, 0),
+                        (0, 0, 1)],
+            'ignore_statistics':1}
 
-    args_1 = {'diameters':[1, 4, 2, 8, 5, 9],
-              'centers':[(0, 0, 0),
-                         (1, 1, 1),
-                         (1, 0, 1),
-                         (0, 1, 1),
-                         (1, 1, 0),
-                         (0, 0, 1)],
-              'ignore_statistics':1}
+args_2 = {'diameters':[5, 2, 4, 5, 1, 2],
+            'centers':[(0, 2, 0),
+                        (1, 4, 1),
+                        (3, 0, 1),
+                        (3, 1, 1),
+                        (1, 4, 0),
+                        (2, 2, 1)],
+            'ignore_statistics':0}
 
-    args_2 = {'diameters':[5, 2, 4, 5, 1, 2],
-              'centers':[(0, 2, 0),
-                         (1, 4, 1),
-                         (3, 0, 1),
-                         (3, 1, 1),
-                         (1, 4, 0),
-                         (2, 2, 1)],
-              'ignore_statistics':0}
+args_3 = {'diameters':[1, 2, 2, 3, 4, 9, 3, 2],
+            'centers':[(0, 0, 0),
+                        (1, 1, 1),
+                        (1, 0, 1),
+                        (0, 1, 1),
+                        (1, 1, 0),
+                        (0, 0, 1),
+                        (2, 2, 1),
+                        (3, 5, 3)],
+            'ignore_statistics':1}
 
-    args_3 = {'diameters':[1, 2, 2, 3, 4, 9, 3, 2],
-              'centers':[(0, 0, 0),
-                         (1, 1, 1),
-                         (1, 0, 1),
-                         (0, 1, 1),
-                         (1, 1, 0),
-                         (0, 0, 1),
-                         (2, 2, 1),
-                         (3, 5, 3)],
-              'ignore_statistics':1}
-
-    args_4 = {'diameters':[1, 4, 2, 8, 5],
-              'centers':[(0, 2, 0), (1, 4, 1), (3, 0, 1), (3, 1, 1), (1, 4, 0)],
-              'ignore_statistics':0}
-
-    return args_1, args_2, args_3, args_4
+args_4 = {'diameters':[1, 4, 2, 8, 5],
+            'centers':[(0, 2, 0), (1, 4, 1), (3, 0, 1), (3, 1, 1), (1, 4, 0)],
+            'ignore_statistics':0}
 
 
-def test_sphinx(dummy_integrator_args):
-
-    args_1, args_2, args_3, args_4 = dummy_integrator_args
+def test_sphinx():
 
     test_sphinx1 = hpmc.SphinxParams(args_1)
     test_dict1 = test_sphinx1.asDict()
@@ -64,11 +57,9 @@ def test_sphinx(dummy_integrator_args):
     assert test_dict4 == args_4
 
 
-def test_shape_params(dummy_integrator_args):
+def test_shape_params():
 
     mc = hoomd.hpmc.integrate.Sphinx(23456)
-
-    args_1, args_2, args_3, args_4 = dummy_integrator_args
 
     mc.shape['A'] = dict()
     assert mc.shape['A']['diameters'] is None
@@ -109,9 +100,7 @@ def test_shape_params(dummy_integrator_args):
         assert mc.shape['F'][key] == args_4[key]
 
 
-def test_shape_params_attached(device, dummy_simulation_factory, dummy_integrator_args):
-
-    args_1, args_2, args_3, args_4 = dummy_integrator_args
+def test_shape_params_attached(device, dummy_simulation_factory):
 
     mc = hoomd.hpmc.integrate.Sphinx(23456)
 
@@ -156,10 +145,6 @@ def test_shape_params_attached(device, dummy_simulation_factory, dummy_integrato
 
     with pytest.raises(RuntimeError):
         mc.shape['A'] = dict(args_4)
-
-
-
-    args_1, args_2, args_3, args_4 = dummy_integrator_args
 
     args_1['centers'] = 'invalid'
     args_2['centers'] = 1
