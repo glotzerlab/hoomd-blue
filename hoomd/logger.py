@@ -49,18 +49,8 @@ def dict_map(dict_, func):
     return new_dict
 
 
-def generate_namespace(module_str):
-    return module_str.split('.')
-
-
-def add_quantities(cls, names):
-    private_namespace = cls.__name__
-    namespace = generate_namespace(cls.__module__)
-    log_quantities = dict()
-    for name in names:
-        log_quantities[name] = LoggerQuantity(name, private_namespace,
-                                              namespace)
-    return log_quantities
+def generate_namespace(cls):
+    return tuple(cls.__module__.split('.') + [cls.__name__])
 
 
 class LoggerQuantity:
