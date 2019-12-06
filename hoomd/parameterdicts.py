@@ -1,21 +1,11 @@
 from itertools import product, combinations_with_replacement
 from copy import deepcopy
 from numpy import array, ndarray
-from hoomd.util import to_camel_case
+from hoomd.util import to_camel_case, is_iterable
 
 # Psudonym for None that states an argument is required to be supplied by the
 # user
 RequiredArg = None
-
-
-def is_iterable(obj):
-    '''Returns True if object is iterable and not a str or dict.'''
-    return hasattr(obj, '__iter__') and not bad_iterable_type(obj)
-
-
-def bad_iterable_type(obj):
-    '''Returns True if str or dict.'''
-    return isinstance(obj, str) or isinstance(obj, dict)
 
 
 def has_str_elems(obj):

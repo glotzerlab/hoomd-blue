@@ -78,3 +78,13 @@ def cuda_profile_stop():
 
 def to_camel_case(string):
     return string.replace('_', ' ').title().replace(' ', '')
+
+
+def is_iterable(obj):
+    '''Returns True if object is iterable and not a str or dict.'''
+    return hasattr(obj, '__iter__') and not bad_iterable_type(obj)
+
+
+def bad_iterable_type(obj):
+    '''Returns True if str or dict.'''
+    return isinstance(obj, str) or isinstance(obj, dict)
