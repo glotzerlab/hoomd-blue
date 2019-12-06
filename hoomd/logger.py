@@ -54,7 +54,7 @@ def generate_namespace(cls):
 
 
 class LoggerQuantity:
-    def __init__(self, name, private_namespace, namespace):
+    def __init__(self, name, namespace, flag='scalar'):
         if not isinstance(name, str):
             raise ValueError("Name must be a string.")
         self.name = name
@@ -62,15 +62,13 @@ class LoggerQuantity:
             raise ValueError("Namespace must be an ordered tuple of "
                              "namespaces.")
         self.namespace = namespace
-        if not isinstance(private_namespace, str):
-            raise ValueError("Name must be a string.")
-        self.private_namespace = private_namespace
+        self.flag = flag
 
     def yield_names(self):
-        yield self.namespace + (self.private_namespace, self.name)
+        yield self.namespace + (self.name,)
         for i in count(start=1, step=1):
-            yield self.namespace + \
-                (self.private_namespace + '_' + str(i), self.name)
+            yield self.namespace[:-1] + \
+                (self.namespace[-1] + '_' + str(i), self.name)
 
 
 class NamespaceDict:
