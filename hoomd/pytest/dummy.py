@@ -1,8 +1,5 @@
 from hoomd.triggers import Trigger
 from hoomd.meta import _Operation, _TriggeredOperation
-from hoomd.parameterdicts import TypeParameterDict, RequiredArg
-from hoomd.logger import LoggerQuantity
-from hoomd.typeparam import TypeParameter
 
 
 class DummySimulation:
@@ -72,22 +69,3 @@ class DummyTriggeredOp(_TriggeredOperation):
 class DummyTrigger(Trigger):
     def __call__(self, ts):
         return True
-
-
-class DummyLoggedObj:
-    _export_dict = {
-        'prop1': LoggerQuantity('prop1', 'dummy', ('foo',)),
-        'proplist': LoggerQuantity('proplist', 'dummy', ('bar', 'baz')),
-        'methodNone': LoggerQuantity('methodNone', 'dummy', tuple())
-        }
-
-    @property
-    def prop1(self):
-        return 1
-
-    @property
-    def proplist(self):
-        return [1, 2, 3]
-
-    def methodNone(self):
-        return None
