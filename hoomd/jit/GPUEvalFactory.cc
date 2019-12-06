@@ -104,6 +104,11 @@ void GPUEvalFactory::compileGPU(
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
 
+    std::string rcut_repulsive_name = "&jit::d_rcut_union_repulsive";
+    status = nvrtcAddNameExpression(m_program, rcut_repulsive_name.c_str());
+    if (status != NVRTC_SUCCESS)
+        throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
+
     std::string union_params_name = "&jit::d_union_params";
     status = nvrtcAddNameExpression(m_program, union_params_name.c_str());
     if (status != NVRTC_SUCCESS)
@@ -160,6 +165,11 @@ void GPUEvalFactory::compileGPU(
 
     char *rcut_name_mangled;
     status = nvrtcGetLoweredName(m_program, rcut_name.c_str(), const_cast<const char **>(&rcut_name_mangled));
+    if (status != NVRTC_SUCCESS)
+        throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
+
+    char *rcut_repulsive_name_mangled;
+    status = nvrtcGetLoweredName(m_program, rcut_repulsive_name.c_str(), const_cast<const char **>(&rcut_repulsive_name_mangled));
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
 
@@ -255,6 +265,15 @@ void GPUEvalFactory::compileGPU(
             throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
             }
         m_rcut_union_device_ptr[idev] = rcut_ptr;
+
+        CUdeviceptr rcut_repulsive_ptr;
+        custatus = cuModuleGetGlobal(&rcut_ptr, 0, m_module[idev], rcut_repulsive_name_mangled);
+        if (custatus != CUDA_SUCCESS)
+            {
+            cuGetErrorString(custatus, const_cast<const char **>(&error));
+            throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
+            }
+        m_rcut_union_repulsive_device_ptr[idev] = rcut_ptr;
 
         CUdeviceptr union_params_ptr;
         custatus = cuModuleGetGlobal(&union_params_ptr, 0, m_module[idev], union_params_name_mangled);

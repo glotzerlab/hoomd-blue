@@ -322,6 +322,7 @@ class user_union(user):
 
     Args:
         r_cut (float): Constituent particle center to center distance cutoff beyond which all pair interactions are assumed 0.
+        r_cut_repulsive (float, **optional**): Constituent particle center to center distance cutoff for early exit
         r_cut_iso (float, **optional**): Cut-off for isotropic interaction between centers of union particles
         code (str): C++ code to compile
         code_iso (str, **optional**): C++ code for isotropic part
@@ -329,6 +330,11 @@ class user_union(user):
         llvm_ir_fname_iso (str, **optional**): File name of the llvm IR file to load for isotropic interaction
         array_size (int): Size of array with adjustable elements. (added in version 2.8)
         array_size_iso (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
+
+    If **r_cut_repulsive** >= 0 is specified, the energy evaluation is split into two loops, one with a short cut-off
+    (**r_cut_repulsive**), and one with the regular cutoff (**r_cut**). Early-exit opportunities based on the positive part of the
+    pair interaction will then be observed. Optimal performance is expected when r_cut_repulsive corresponds to the extent
+    of the hard-core part of the potential.
 
     Attributes:
         alpha_union (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
@@ -380,7 +386,7 @@ class user_union(user):
 
     .. versionadded:: 2.3
     '''
-    def __init__(self, mc, r_cut, array_size=1, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
+    def __init__(self, mc, r_cut, r_cut_repulsive = -1.0, array_size=1, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
         llvm_ir_file_iso=None, array_size_iso=1, clang_exec=None):
 
         # check if initialization has occurred
@@ -431,8 +437,8 @@ class user_union(user):
 
             gpu_code = self.wrap_gpu_code(code, union=True)
             self.cpp_evaluator = _jit.PatchEnergyJITUnionGPU(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
-                llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size,
-                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", include_path, include_path_source, cuda_devrt_library_path, max_arch);
+                llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut, r_cut_repulsive,
+                array_size, gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", include_path, include_path_source, cuda_devrt_library_path, max_arch);
         else:
             self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
                 llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size);
