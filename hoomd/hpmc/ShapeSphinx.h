@@ -73,7 +73,7 @@ struct SphinxParams : ShapeParams
 
 
     /// Construct from a python dictionary
-    SphinxParams(pybind11::dict v)
+    SphinxParams(pybind11::dict v, bool managed=false)
         {
         pybind11::list centers = v["centers"];
         pybind11::list diameters = v["diameters"];

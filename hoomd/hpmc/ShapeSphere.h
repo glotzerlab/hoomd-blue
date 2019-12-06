@@ -132,7 +132,7 @@ struct SphereParams : ShapeParams
     SphereParams() { }
 
     /// Construct from a Python dictionary
-    SphereParams(pybind11::dict v)
+    SphereParams(pybind11::dict v, bool managed=false)
         {
         ignore = v["ignore_statistics"].cast<bool>();
         radius = v["diameter"].cast<OverlapReal>() / OverlapReal(2.0);

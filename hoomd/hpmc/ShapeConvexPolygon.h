@@ -86,7 +86,7 @@ struct PolygonVertices : ShapeParams
     #ifndef NVCC
 
     /// Construct from a Python dictionary
-    PolygonVertices(pybind11::dict v)
+    PolygonVertices(pybind11::dict v, bool managed=false)
         {
         pybind11::list verts = v["vertices"];
         if (len(verts) > MAX_POLY2D_VERTS)

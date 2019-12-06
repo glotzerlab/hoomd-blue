@@ -120,7 +120,7 @@ struct TriangleMesh : ShapeParams
 
         convex_hull_verts = PolyhedronVertices(vertexBuffer.size(), managed);
         verts = ManagedArray<vec3<OverlapReal> >(n_verts, managed);
-        face_offs = ManagedArray<unsigned int>(n_faces + 1,managed);
+        face_offs = ManagedArray<unsigned int>(n_faces + 1, managed);
         face_verts = ManagedArray<unsigned int>(n_faces * 3, managed);
         face_overlap = ManagedArray<unsigned int>(n_faces, managed);
 

@@ -62,7 +62,7 @@ struct EllipsoidParams : ShapeParams
     EllipsoidParams() { }
 
     /// Construct from a Python dictionary
-    EllipsoidParams(pybind11::dict v)
+    EllipsoidParams(pybind11::dict v, bool managed=false)
         {
         ignore = v["ignore_statistics"].cast<unsigned int>();
         x = v["a"].cast<OverlapReal>();

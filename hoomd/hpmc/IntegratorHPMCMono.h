@@ -1550,7 +1550,7 @@ template <class Shape> inline
 void IntegratorHPMCMono<Shape>::setShape(std::string typ, pybind11::dict v)
     {
     unsigned int id = this->m_pdata->getTypeByName(typ);
-    setParam(id, (typename Shape::param_type)(v));
+    setParam(id, typename Shape::param_type(v, m_exec_conf->isCUDAEnabled()));
     }
 
 /*! \param typ type name to get
