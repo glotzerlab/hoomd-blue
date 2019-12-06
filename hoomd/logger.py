@@ -1,5 +1,42 @@
 from itertools import count
+from copy import deepcopy
 from hoomd.util import is_iterable
+
+
+class Loggable(type):
+    _meta_export_dict = dict()
+
+    @classmethod
+    def log(cls, func=None, is_property=True, flag='scalar'):
+        def helper(func):
+            name = func.__name__
+            if name in cls._meta_export_dict.keys():
+                raise KeyError("Multiple loggable quantities named "
+                            "{}.".format(name))
+            cls._meta_export_dict[name] = flag
+            if is_property:
+                return property(func)
+            else:
+                return func
+        if func is None:
+            return helper
+        else:
+            return helper(func)
+
+    def __new__(cls, name, base, dct):
+        new_cls = super().__new__(cls, name, base, dct)
+        namespace = generate_namespace(new_cls)
+        log_dict = dict()
+        for name, flag in cls._meta_export_dict.items():
+            log_dict[name] = LoggerQuantity(name, namespace, flag)
+        if hasattr(new_cls, '_export_dict'):
+            old_dict = deepcopy(new_cls._export_dict)
+            old_dict.update(log_dict)
+            new_cls._export_dict = old_dict
+        else:
+            new_cls._export_dict = log_dict
+        cls._meta_export_dict = dict()
+        return new_cls
 
 
 def dict_map(dict_, func):
