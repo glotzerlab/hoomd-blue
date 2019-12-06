@@ -1177,33 +1177,10 @@ are only enabled for polyhedral and spherical particles.")
             hoomd.context.msg.error("update.shape_update.elastic_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
         move_cls = None;
-        if isinstance(self.mc, integrate.sphere):
-            pass;
-            # move_cls = _hpmc.ScaleShearShapeMoveSphere;
-        elif isinstance(self.mc, integrate.convex_polygon):
-            pass;
-            # move_cls = _hpmc.ScaleShearShapeMoveConvexPolygon;
-        elif isinstance(self.mc, integrate.simple_polygon):
-            pass;
-            # move_cls = _hpmc.ScaleShearShapeMoveSimplePolygon;
-        elif isinstance(self.mc, integrate.convex_polyhedron):
-            move_cls = _hpmc.ScaleShearShapeMoveConvexPolyhedron;
-        elif isinstance(self.mc, integrate.convex_spheropolyhedron):
-            pass;
+        if isinstance(self.mc, integrate.convex_polyhedron):
+            move_cls = _hpmc.ElasticShapeMoveConvexPolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
-            move_cls = _hpmc.ScaleShearShapeMoveEllipsoid;
-        elif isinstance(self.mc, integrate.convex_spheropolygon):
-            pass;
-            # move_cls = _hpmc.ScaleShearShapeMoveConvexSphereopolygon;
-        elif isinstance(self.mc, integrate.polyhedron):
-            pass;
-            # move_cls = _hpmc.ScaleShearShapeMovePolyhedron;
-        elif isinstance(self.mc, integrate.sphinx):
-            pass;
-            # move_cls = _hpmc.ScaleShearShapeMoveSphinx;
-        elif isinstance(self.mc, integrate.sphere_union):
-            pass;
-            # move_cls = _hpmc.ScaleShearShapeMoveSphereUnion;
+            move_cls = _hpmc.ElasticShapeMoveEllipsoid;
         else:
             hoomd.context.msg.error("update.shape_update.elastic_shape_move: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
@@ -1489,6 +1466,11 @@ class elastic_shape(shape_update):
         if isinstance(self.mc, integrate.convex_polyhedron):
             clss = _hpmc.ShapeSpringLogBoltzmannConvexPolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
+            for type_shape in self.mc.get_type_shapes():
+                if  not np.isclose(type_shape["a"], type_shape["b"]) or \
+                    not np.isclose(type_shape["a"], type_shape["c"]) or \
+                    not np.isclose(type_shape["b"], type_shape["c"]):
+                    raise ValueError("This updater only works when a=b=c initially.")
             clss = _hpmc.ShapeSpringLogBoltzmannEllipsoid
         else:
             hoomd.context.msg.error("update.elastic_shape: Unsupported integrator.\n");
