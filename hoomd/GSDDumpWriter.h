@@ -1,9 +1,7 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-#ifndef __GSDDUMPWRITER_H__
-#define __GSDDUMPWRITER_H__
+#pragma once
 
 #include "Analyzer.h"
 #include "ParticleGroup.h"
@@ -110,6 +108,21 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
         hoomd::detail::SharedSignal<int (gsd_handle&)>& getWriteSignal() { return m_write_signal; }
 
+        /// Write a logged quantity
+        void writeLogQuantity(std::string name, pybind11::object obj);
+
+        /// Set the log writer
+        void setLogWriter(pybind11::object log_writer)
+            {
+            m_log_writer = log_writer;
+            }
+
+        /// Get the log writer
+        pybind11::object getLogWriter()
+            {
+            return m_log_writer;
+            }
+
     private:
         std::string m_fname;                //!< The file name we are writing to
         bool m_overwrite;                   //!< True if file should be overwritten
@@ -121,9 +134,11 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         bool m_write_topology;              //!< True if topology should be written
         gsd_handle m_handle;                //!< Handle to the file
 
+        /// Callback to write log quantities to file
+        pybind11::object m_log_writer;
+
         std::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
         std::map<std::string, bool> m_nondefault; //!< Map of quantities (true when non-default in frame 0)
-        std::map<std::string, pybind11::function> m_user_log;   //!< Map of user-defined quantities to log
 
         hoomd::detail::SharedSignal<int (gsd_handle&)> m_write_signal;
 
@@ -167,5 +182,3 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
 //! Exports the GSDDumpWriter class to python
 void export_GSDDumpWriter(pybind11::module& m);
-
-#endif
