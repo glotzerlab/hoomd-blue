@@ -18,6 +18,7 @@ Example::
 
 import hoomd
 from hoomd.triggers import PeriodicTrigger, Trigger
+from hoomd.logger import Loggable
 import json
 import time
 import datetime
@@ -27,7 +28,7 @@ from collections import OrderedDict
 from collections import Mapping
 
 
-class _Operation:
+class _Operation(metaclass=Loggable):
     _reserved_attrs_with_dft = {'_cpp_obj': lambda: None,
                                 '_param_dict': dict,
                                 '_typeparam_dict': dict,
