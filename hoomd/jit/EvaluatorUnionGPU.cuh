@@ -121,11 +121,10 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
     unsigned int leafptr_j = params[type_b].tree.getLeafNodePtrByNode(cur_node_b);
 
     // parallel loop over N^2 interacting particle pairs
+    unsigned int i = 0;
+    unsigned int j = 0;
     for (unsigned int k = threadIdx.x; k < na*nb; k += blockDim.x)
         {
-        unsigned int i = k/nb;
-        unsigned int j = k%nb;
-
         unsigned int ileaf = params[type_a].tree.getParticleByIndex(leafptr_i+i);
 
         unsigned int type_i = params[type_a].mtype[ileaf];
@@ -153,6 +152,11 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
                 orientation_j,
                 params[type_b].mdiameter[jleaf],
                 params[type_b].mcharge[jleaf]);
+            }
+        if (++j == nb)
+            {
+            j = 0;
+            i++;
             }
         }
     return energy;
