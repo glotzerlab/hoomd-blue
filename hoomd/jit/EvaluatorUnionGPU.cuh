@@ -111,28 +111,34 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
                              unsigned int cur_node_b)
     {
     float energy = 0.0;
-    vec3<float> r_ij = rotate(conj(quat<float>(orientation_b)),vec3<float>(dr));
 
     // loop through leaf particles of cur_node_a
-    unsigned int na = params[type_a].tree.getNumParticles(cur_node_a);
-    unsigned int nb = params[type_b].tree.getNumParticles(cur_node_b);
-
-    unsigned int leafptr_i = params[type_a].tree.getLeafNodePtrByNode(cur_node_a);
-    unsigned int leafptr_j = params[type_b].tree.getLeafNodePtrByNode(cur_node_b);
-
     // parallel loop over N^2 interacting particle pairs
-    unsigned int i = 0;
-    unsigned int j = 0;
-    for (unsigned int k = threadIdx.x; k < na*nb; k += blockDim.x)
+    unsigned int ptl_i = params[type_a].tree.getLeafNodePtrByNode(cur_node_a);
+    unsigned int ptl_j = params[type_b].tree.getLeafNodePtrByNode(cur_node_b);
+
+    unsigned int ptls_i_end = params[type_a].tree.getLeafNodePtrByNode(cur_node_a+1);
+    unsigned int ptls_j_end = params[type_b].tree.getLeafNodePtrByNode(cur_node_b+1);
+
+    // get starting offset for this thread
+    unsigned int nb = ptls_j_end - ptl_j;
+    if (nb == 0)
+        return 0.0;
+
+    ptl_i += threadIdx.x / nb;
+    ptl_j += threadIdx.x % nb;
+
+    while ((ptl_i < ptls_i_end) && (ptl_j < ptls_j_end))
         {
-        unsigned int ileaf = params[type_a].tree.getParticleByIndex(leafptr_i+i);
+        vec3<float> r_ij = rotate(conj(quat<float>(orientation_b)),vec3<float>(dr));
+        unsigned int ileaf = params[type_a].tree.getParticleByIndex(ptl_i);
 
         unsigned int type_i = params[type_a].mtype[ileaf];
         quat<float> orientation_i = conj(quat<float>(orientation_b))*quat<float>(orientation_a) * params[type_a].morientation[ileaf];
         vec3<float> pos_i(rotate(conj(quat<float>(orientation_b))*quat<float>(orientation_a),params[type_a].mpos[ileaf])-r_ij);
 
         // loop through leaf particles of cur_node_b
-        unsigned int jleaf = params[type_b].tree.getParticleByIndex(leafptr_j+j);
+        unsigned int jleaf = params[type_b].tree.getParticleByIndex(ptl_j);
 
         unsigned int type_j = params[type_b].mtype[jleaf];
         quat<float> orientation_j = params[type_b].morientation[jleaf];
@@ -153,12 +159,18 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
                 params[type_b].mdiameter[jleaf],
                 params[type_b].mcharge[jleaf]);
             }
-        if (++j == nb)
+
+        // increment counters
+        ptl_j += blockDim.x;
+        while (ptl_j >= ptls_j_end)
             {
-            j = 0;
-            i++;
+            ptl_j -= nb;
+            ptl_i++;
+
+            if (ptl_i == ptls_i_end)
+                break;
             }
-        }
+       }
     return energy;
     }
 
