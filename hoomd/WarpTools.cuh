@@ -11,12 +11,15 @@
 #ifndef HOOMD_WARP_TOOLS_CUH_
 #define HOOMD_WARP_TOOLS_CUH_
 
+#ifndef __CUDACC_RTC__
 #include <type_traits>
+#endif
 
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hipcub/hipcub.hpp>
 #else
-#include <cub/cub.cuh>
+#include "hoomd/extern/cub/cub/warp/warp_reduce.cuh"
+#include "hoomd/extern/cub/cub/warp/warp_scan.cuh"
 #endif
 
 #define DEVICE __device__ __forceinline__
@@ -112,7 +115,7 @@ class WarpReduce
             {
             // shuffle-based reduce does not need temporary space, so we let the compiler optimize this dummy variable out
             TempStorage tmp;
-            return MyWarpReduce(tmp).template Reduce(input, reduce_op);
+            return MyWarpReduce(tmp).Reduce(input, reduce_op);
             }
 
         //! Custom reduction over valid items.
@@ -131,7 +134,7 @@ class WarpReduce
             {
             // shuffle-based reduce does not need temporary space, so we let the compiler optimize this dummy variable out
             TempStorage tmp;
-            return MyWarpReduce(tmp).template Reduce(input, reduce_op, valid_items);
+            return MyWarpReduce(tmp).Reduce(input, reduce_op, valid_items);
             }
 
     private:

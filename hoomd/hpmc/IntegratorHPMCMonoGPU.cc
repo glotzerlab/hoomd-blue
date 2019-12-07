@@ -21,10 +21,19 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
     assert(args.d_counters);
 
     // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
-    unsigned int run_block_size = std::min(args.block_size, (unsigned int)patch.getKernelMaxThreads(0)); // fixme GPU 0
+    unsigned int eval_threads = patch_args.eval_threads;
+    unsigned int run_block_size = std::min(args.block_size, (unsigned int)patch.getKernelMaxThreads(0, eval_threads)); // fixme GPU 0
 
     unsigned int tpp = std::min(args.tpp,run_block_size);
-    unsigned int n_groups = run_block_size/tpp;
+    while (eval_threads*tpp > run_block_size || run_block_size % (eval_threads*tpp) != 0)
+        {
+        tpp--;
+        }
+
+    unsigned int n_groups = run_block_size/(tpp*eval_threads);
+
+    // truncate blockDim.z
+    n_groups = std::min((unsigned int) 64, n_groups);
     unsigned int max_queue_size = n_groups*tpp;
 
     const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar);
@@ -36,15 +45,24 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
     if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
 
-    unsigned int kernel_shared_bytes = patch.getKernelSharedSize(0); //fixme GPU 0
+    unsigned int kernel_shared_bytes = patch.getKernelSharedSize(0, eval_threads); //fixme GPU 0
     while (shared_bytes + kernel_shared_bytes >= args.devprop.sharedMemPerBlock)
         {
         run_block_size -= args.devprop.warpSize;
         if (run_block_size == 0)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel");
 
-        tpp = std::min(tpp, run_block_size);
-        n_groups = run_block_size / tpp;
+        tpp = std::min(args.tpp, run_block_size);
+        while (eval_threads*tpp > run_block_size || run_block_size % (eval_threads*tpp) != 0)
+            {
+            tpp--;
+            }
+
+        n_groups = run_block_size / (tpp*eval_threads);
+
+        // truncate blockDim.z
+        n_groups = std::min((unsigned int)64, n_groups);
+
         max_queue_size = n_groups*tpp;
 
         shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3) + 2*sizeof(Scalar))
@@ -52,7 +70,7 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
             + min_shared_bytes;
         }
 
-    dim3 thread(tpp, n_groups, 1);
+    dim3 thread(eval_threads, tpp, n_groups);
 
     for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
@@ -72,7 +90,8 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
             (void *) &patch_args.old_config, (void *) &patch_args.r_cut_patch, (void *) &patch_args.d_additive_cutoff,
             (void *) &patch_args.d_overflow, (void *) &max_queue_size, (void *)&range.first, (void *) &nwork, (void *) &max_extra_bytes};
 
-        patch.launchKernel(idev, grid, thread, shared_bytes, 0, k_args, max_extra_bytes);
+        // launch kernel template
+        patch.launchKernel(idev, grid, thread, shared_bytes, 0, k_args, max_extra_bytes, eval_threads);
         }
     }
 

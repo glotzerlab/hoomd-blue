@@ -12,6 +12,7 @@ import itertools
 import sys
 
 context.initialize();
+context.current.device.gpu_error_checking = True
 
 class enthalpic_dipole_interaction(unittest.TestCase):
         def setUp(self):
@@ -195,6 +196,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             del self.snapshot;
             del self.log;
             context.initialize();
+            context.current.device.gpu_error_checking = True
 
 class patch_alpha_user(unittest.TestCase):
 
@@ -268,6 +270,7 @@ class patch_alpha_user(unittest.TestCase):
         del self.logger
         del self.patch
         context.initialize();
+        context.current.device.gpu_error_checking = True
 
 class patch_alpha_user_union(unittest.TestCase):
 
@@ -338,6 +341,7 @@ class patch_alpha_user_union(unittest.TestCase):
         del self.logger
         del self.patch
         context.initialize();
+        context.current.device.gpu_error_checking = True
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

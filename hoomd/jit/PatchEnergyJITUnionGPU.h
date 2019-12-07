@@ -69,28 +69,22 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             pybind11::list charges,
             unsigned int leaf_capacity=4);
 
-        //! Return the __global__ function pointer for a GPU
-        /* \param idev the logical GPU id
-         */
-        virtual const void *getKernelAddress(unsigned int idev) const
-            {
-            return m_gpu_factory.getKernelAddress(idev);
-            }
-
         //! Return the maximum number of threads per block for this kernel
         /* \param idev the logical GPU id
+           \param eval_threads template parameter
          */
-        virtual unsigned int getKernelMaxThreads(unsigned int idev) const
+        virtual unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads)
             {
-            return m_gpu_factory.getKernelMaxThreads(idev);
+            return m_gpu_factory.getKernelMaxThreads(idev, eval_threads);
             }
 
         //! Return the shared size usage in bytes for this kernel
         /* \param idev the logical GPU id
+           \param eval_threads Template parameter
          */
-        virtual unsigned int getKernelSharedSize(unsigned int idev) const
+        virtual unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads)
             {
-            return m_gpu_factory.getKernelSharedSize(idev);
+            return m_gpu_factory.getKernelSharedSize(idev, eval_threads);
             }
 
         //! Asynchronously launch the JIT kernel
@@ -101,23 +95,25 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             \param hStream stream to execute on
             \param kernelParams the kernel parameters
             \param extra_bytes Maximum extra bytes of shared memory (modifiable value passed to kernel)
+            \param eval_threads Number of threads to use for energy evaluation
             */
         virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads,
             unsigned int sharedMemBytes, hipStream_t hStream,
-            void** kernelParams, unsigned int &max_extra_bytes)
+            void** kernelParams, unsigned int &max_extra_bytes,
+            unsigned int eval_threads)
             {
             // add shape data structures to shared memory requirements
             sharedMemBytes += m_d_union_params.size()*sizeof(jit::union_params_t);
 
             // allocate some extra shared mem to store union shape parameters
-            static unsigned int base_shared_bytes = UINT_MAX;
-            unsigned int kernel_shared_bytes = getKernelSharedSize(idev);
-            bool shared_bytes_changed = base_shared_bytes != sharedMemBytes + kernel_shared_bytes;
-            base_shared_bytes = sharedMemBytes + kernel_shared_bytes;
+            bool init_shared_bytes = m_base_shared_bytes.find(eval_threads) != m_base_shared_bytes.end();
+            unsigned int kernel_shared_bytes = getKernelSharedSize(idev, eval_threads);
+            bool shared_bytes_changed = init_shared_bytes || (m_base_shared_bytes[eval_threads] != sharedMemBytes + kernel_shared_bytes);
+            m_base_shared_bytes[eval_threads] = sharedMemBytes + kernel_shared_bytes;
 
-            max_extra_bytes = m_exec_conf->dev_prop.sharedMemPerBlock - base_shared_bytes;
-            static unsigned int extra_bytes = UINT_MAX;
-            if (extra_bytes == UINT_MAX || m_params_updated || shared_bytes_changed)
+            max_extra_bytes = m_exec_conf->dev_prop.sharedMemPerBlock - m_base_shared_bytes[eval_threads];
+            bool init_extra_bytes = m_extra_bytes.find(eval_threads) != m_extra_bytes.end();
+            if (init_extra_bytes || m_params_updated || shared_bytes_changed)
                 {
                 // required for memory coherency
                 hipDeviceSynchronize();
@@ -129,15 +125,15 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                     {
                     m_d_union_params[i].allocate_shared(ptr, available_bytes);
                     }
-                extra_bytes = max_extra_bytes - available_bytes;
+                m_extra_bytes[eval_threads] = max_extra_bytes - available_bytes;
                 }
 
             m_params_updated = false;
 
-            sharedMemBytes += extra_bytes;
+            sharedMemBytes += m_extra_bytes[eval_threads];
 
             // launch kernel
-            m_gpu_factory.launchKernel(idev, grid, threads, sharedMemBytes, hStream, kernelParams);
+            m_gpu_factory.launchKernel(idev, grid, threads, sharedMemBytes, hStream, kernelParams, eval_threads);
             }
 
         //! Method to be called when number of types changes
@@ -158,6 +154,9 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         float *m_d_alpha_union;                             //!< device memory holding auxillary data
         std::vector<jit::union_params_t, managed_allocator<jit::union_params_t> > m_d_union_params;   //!< Parameters for each particle type on GPU
         bool m_params_updated;                              //!< True if parameters have been updated
+
+        std::map<unsigned int, unsigned int> m_base_shared_bytes;      //!< Kernel shared memory, for every template
+        std::map<unsigned int, unsigned int> m_extra_bytes;            //!< Kernel extra shared bytes, for every template
     };
 
 //! Exports the PatchEnergyJITUnionGPU class to python

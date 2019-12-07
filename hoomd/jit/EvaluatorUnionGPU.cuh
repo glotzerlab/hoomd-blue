@@ -120,8 +120,12 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
     unsigned int leafptr_i = params[type_a].tree.getLeafNodePtrByNode(cur_node_a);
     unsigned int leafptr_j = params[type_b].tree.getLeafNodePtrByNode(cur_node_b);
 
-    for (unsigned int i = 0; i < na; i++)
+    // parallel loop over N^2 interacting particle pairs
+    for (unsigned int k = threadIdx.x; k < na*nb; k += blockDim.x)
         {
+        unsigned int i = k/nb;
+        unsigned int j = k%nb;
+
         unsigned int ileaf = params[type_a].tree.getParticleByIndex(leafptr_i+i);
 
         unsigned int type_i = params[type_a].mtype[ileaf];
@@ -129,35 +133,31 @@ __device__ inline float compute_leaf_leaf_energy(const union_params_t* params,
         vec3<float> pos_i(rotate(conj(quat<float>(orientation_b))*quat<float>(orientation_a),params[type_a].mpos[ileaf])-r_ij);
 
         // loop through leaf particles of cur_node_b
-        for (unsigned int j= 0; j < nb; j++)
+        unsigned int jleaf = params[type_b].tree.getParticleByIndex(leafptr_j+j);
+
+        unsigned int type_j = params[type_b].mtype[jleaf];
+        quat<float> orientation_j = params[type_b].morientation[jleaf];
+        vec3<float> r_ij_local = params[type_b].mpos[jleaf] - pos_i;
+
+        float rsq = dot(r_ij_local,r_ij_local);
+        float rcut_total = r_cut+0.5*(params[type_a].mdiameter[ileaf] + params[type_b].mdiameter[jleaf]);
+        if (rsq <= rcut_total*rcut_total)
             {
-            unsigned int jleaf = params[type_b].tree.getParticleByIndex(leafptr_j+j);
-
-            unsigned int type_j = params[type_b].mtype[jleaf];
-            quat<float> orientation_j = params[type_b].morientation[jleaf];
-            vec3<float> r_ij = params[type_b].mpos[jleaf] - pos_i;
-
-            float rsq = dot(r_ij,r_ij);
-            float rcut_total = r_cut+0.5*(params[type_a].mdiameter[ileaf] + params[type_b].mdiameter[jleaf]);
-            if (rsq <= rcut_total*rcut_total)
-                {
-                // evaluate energy via JIT function
-                energy += ::eval(r_ij,
-                    type_i,
-                    orientation_i,
-                    params[type_a].mdiameter[ileaf],
-                    params[type_a].mcharge[ileaf],
-                    type_j,
-                    orientation_j,
-                    params[type_b].mdiameter[jleaf],
-                    params[type_b].mcharge[jleaf]);
-                }
+            // evaluate energy via JIT function
+            energy += ::eval(r_ij_local,
+                type_i,
+                orientation_i,
+                params[type_a].mdiameter[ileaf],
+                params[type_a].mcharge[ileaf],
+                type_j,
+                orientation_j,
+                params[type_b].mdiameter[jleaf],
+                params[type_b].mcharge[jleaf]);
             }
         }
     return energy;
     }
 
-extern "C" {
 __device__ inline float eval_union(const union_params_t *params,
     const vec3<float>& r_ij,
     unsigned int type_i,
@@ -219,7 +219,6 @@ __device__ inline float eval_union(const union_params_t *params,
         }
     return energy;
     }
-}
 #endif // __HIPCC__
 
 #undef HOSTDEVICE

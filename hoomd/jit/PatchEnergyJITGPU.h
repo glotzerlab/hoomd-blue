@@ -27,28 +27,22 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
             m_gpu_factory.setAlphaPtr(&m_alpha.front());
             }
 
-        //! Return the __global__ function pointer for a GPU
-        /* \param idev the logical GPU id
-         */
-        virtual const void *getKernelAddress(unsigned int idev) const
-            {
-            return m_gpu_factory.getKernelAddress(idev);
-            }
-
         //! Return the maximum number of threads per block for this kernel
         /* \param idev the logical GPU id
+           \param eval_threads kernel template parameter
          */
-        virtual unsigned int getKernelMaxThreads(unsigned int idev) const
+        virtual unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads)
             {
-            return m_gpu_factory.getKernelMaxThreads(idev);
+            return m_gpu_factory.getKernelMaxThreads(idev, eval_threads);
             }
 
         //! Return the shared size usage in bytes for this kernel
         /* \param idev the logical GPU id
+           \param eval_threads template parameter
          */
-        virtual unsigned int getKernelSharedSize(unsigned int idev) const
+        virtual unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads)
             {
-            return m_gpu_factory.getKernelSharedSize(idev);
+            return m_gpu_factory.getKernelSharedSize(idev, eval_threads);
             }
 
         //! Asynchronously launch the JIT kernel
@@ -59,12 +53,13 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
             \param hStream stream to execute on
             \param kernelParams the kernel parameters
             \param max_extra_bytes Maximum extra bytes of shared memory, kernel argument
+            \param eval_threads template parameter
             */
         virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads,
             unsigned int sharedMemBytes, hipStream_t hStream,
-            void** kernelParams, unsigned int& max_extra_bytes)
+            void** kernelParams, unsigned int& max_extra_bytes, unsigned int eval_threads)
             {
-            m_gpu_factory.launchKernel(idev, grid, threads, sharedMemBytes, hStream, kernelParams);
+            m_gpu_factory.launchKernel(idev, grid, threads, sharedMemBytes, hStream, kernelParams, eval_threads);
             }
 
     private:

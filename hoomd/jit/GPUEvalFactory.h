@@ -14,6 +14,7 @@
 #endif
 
 #include <vector>
+#include <map>
 
 //! Evaluate patch energies via runtime generated code, GPU version
 /*! This class encapsulates a JIT compiled kernel and provides the API necessary to query kernel
@@ -34,7 +35,14 @@ class GPUEvalFactory
                        unsigned int compute_arch)
             : m_exec_conf(exec_conf)
             {
-            m_kernel_ptr.resize(m_exec_conf->getNumActiveGPUs());
+            for (unsigned int i = 1; i <= (unsigned int) m_exec_conf->dev_prop.warpSize; i *= 2)
+                m_eval_threads.push_back(i);
+
+            for (auto t: m_eval_threads)
+                {
+                m_kernel_ptr[t].resize(m_exec_conf->getNumActiveGPUs());
+                }
+
             m_alpha_iso_device_ptr.resize(m_exec_conf->getNumActiveGPUs());
             m_alpha_union_device_ptr.resize(m_exec_conf->getNumActiveGPUs());
 
@@ -71,23 +79,15 @@ class GPUEvalFactory
             #endif
             }
 
-        //! Return the __global__ function pointer for a GPU
-        /* \param idev the logical GPU id
-         */
-        const void *getKernelAddress(unsigned int idev) const
-            {
-            assert(m_kernel_ptr.size() > idev);
-            return reinterpret_cast<const void *>(m_kernel_ptr[idev]);
-            }
-
         //! Return the maximum number of threads per block for this kernel
         /* \param idev the logical GPU id
+           \param eval_threads template parameter
          */
-        unsigned int getKernelMaxThreads(unsigned int idev) const
+        unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads)
             {
             assert(m_kernel_ptr.size() > idev);
             int max_threads = 0;
-            CUresult custatus = cuFuncGetAttribute(&max_threads, CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, m_kernel_ptr[idev]);
+            CUresult custatus = cuFuncGetAttribute(&max_threads, CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, m_kernel_ptr[eval_threads][idev]);
             char *error;
             if (custatus != CUDA_SUCCESS)
                 {
@@ -99,12 +99,13 @@ class GPUEvalFactory
 
         //! Return the shared size usage in bytes for this kernel
         /* \param idev the logical GPU id
+           \param eval_threads template parameter
          */
-        unsigned int getKernelSharedSize(unsigned int idev) const
+        unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads)
             {
             assert(m_kernel_ptr.size() > idev);
             int shared_bytes = 0;
-            CUresult custatus = cuFuncGetAttribute(&shared_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, m_kernel_ptr[idev]);
+            CUresult custatus = cuFuncGetAttribute(&shared_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, m_kernel_ptr[eval_threads][idev]);
             char *error;
             if (custatus != CUDA_SUCCESS)
                 {
@@ -121,10 +122,12 @@ class GPUEvalFactory
             \param sharedMemBytes The size of the dynamic shared mem allocation
             \param hStream stream to execute on
             \param kernelParams the kernel parameters
+            \param eval_threads template parameter
             */
-        void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream, void** kernelParams) const
+        void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream,
+            void** kernelParams, unsigned int eval_threads)
             {
-            CUresult custatus = cuLaunchKernel(m_kernel_ptr[idev],
+            CUresult custatus = cuLaunchKernel(m_kernel_ptr[eval_threads][idev],
                 grid.x, grid.y, grid.z, threads.x, threads.y, threads.z, sharedMemBytes, hStream, kernelParams, 0);
             char *error;
             if (custatus != CUDA_SUCCESS)
@@ -220,7 +223,8 @@ class GPUEvalFactory
 
     private:
         std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The exceuction configuration
-        std::vector<CUfunction> m_kernel_ptr;              //!< The pointer to the kernel, for every device
+        std::vector<unsigned int> m_eval_threads;            //!< The number of template paramteres
+        std::map<unsigned int, std::vector<CUfunction> > m_kernel_ptr;  //!< The pointer to the kernel, for every template parameter and device
 
         #ifdef __HIP_PLATFORM_NVCC__
         std::vector<CUdeviceptr> m_alpha_iso_device_ptr;     //!< Device pointer to data ptr for patches

@@ -465,7 +465,7 @@ static const char* jitsafe_header_stdlib_h =
     "#include <stddef.h>\n";
 static const char* jitsafe_header_stdio_h =
 //    "#pragma once\n"
-    "#include <stddef.h>\n"
+//    "#include <stddef.h>\n"
     "#define FILE int\n"
     "int fflush ( FILE * stream );\n"
     "int fprintf ( FILE * stream, const char * format, ... );\n";

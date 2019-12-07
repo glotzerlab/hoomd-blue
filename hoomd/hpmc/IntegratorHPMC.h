@@ -81,26 +81,20 @@ class PatchEnergy
         }
 
     #ifdef ENABLE_HIP
-    //! Return the device function pointer for a GPU
-    /* \param idev the logical GPU id
-     */
-    virtual const void *getKernelAddress(unsigned int idev) const
-        {
-        throw std::runtime_error("PatchEnergy (base class) does not support device pointers.");
-        }
-
     //! Return the maximum number of threads per block for this kernel
     /* \param idev the logical GPU id
+       \param eval_threads template parameter
      */
-    virtual unsigned int getKernelMaxThreads(unsigned int idev) const
+    virtual unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads)
         {
         throw std::runtime_error("PatchEnergy (base class) does not support getKernelMaxThreads.");
         }
 
     //! Return the shared size usage in bytes for this kernel
     /* \param idev the logical GPU id
+       \param eval_threads template parameter
      */
-    virtual unsigned int getKernelSharedSize(unsigned int idev) const
+    virtual unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads)
         {
         throw std::runtime_error("PatchEnergy (base class) does not support getKernelSharedSize.");
         }
@@ -113,10 +107,12 @@ class PatchEnergy
         \param hStream stream to execute on
         \param kernelParams the kernel parameters
         \param max_extra_bytes Maximum extra bytes of shared memory (modifiable)
+        \param eval_threads template parameter
         */
     virtual void launchKernel(unsigned int idev,
         dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream,
-        void** kernelParams, unsigned int& max_extra_bytes)
+        void** kernelParams, unsigned int& max_extra_bytes,
+        unsigned int eval_threads)
         {
         throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
         }

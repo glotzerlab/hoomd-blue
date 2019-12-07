@@ -295,8 +295,24 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
                 valid_params.push_back(block_size*10000 + group_size);
             }
         }
+
+    // tuning params for patch narrow phase
+    std::vector<unsigned int> valid_params_patch;
+    const unsigned int narrow_phase_max_threads_per_eval = dev_prop.warpSize;
+    for (unsigned int block_size = dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += dev_prop.warpSize)
+        {
+        for (unsigned int group_size=1; group_size <= narrow_phase_max_tpp; group_size*=2)
+            {
+            for (unsigned int eval_threads=1; eval_threads <= narrow_phase_max_threads_per_eval; eval_threads *= 2)
+                {
+                if ((block_size % (group_size*eval_threads)) == 0)
+                    valid_params_patch.push_back(block_size*1000000 + group_size*100 + eval_threads);
+                }
+            }
+        }
+
     m_tuner_narrow.reset(new Autotuner(valid_params, 5, 100000, "hpmc_narrow", this->m_exec_conf));
-    m_tuner_narrow_patch.reset(new Autotuner(valid_params, 5, 100000, "hpmc_narrow_patch", this->m_exec_conf));
+    m_tuner_narrow_patch.reset(new Autotuner(valid_params_patch, 5, 100000, "hpmc_narrow_patch", this->m_exec_conf));
     m_tuner_depletants.reset(new Autotuner(valid_params, 5, 100000, "hpmc_depletants", this->m_exec_conf));
 
     // initialize memory
@@ -972,12 +988,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
                     ArrayHandle<Scalar> d_additive_cutoff(m_additive_cutoff, access_location::device, access_mode::read);
 
-                    const void *kernels[ngpu];
-                    for (unsigned int idev = 0; idev < ngpu; ++idev)
-                        {
-                        kernels[idev] = this->m_patch->getKernelAddress(idev);
-                        }
-
                         {
                         /*
                          *  evaluate energy of old configuration simultaneously against the old and the new configuration
@@ -987,8 +997,12 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         ArrayHandle<unsigned int> d_nneigh_patch_old(m_nneigh_patch_old, access_location::device, access_mode::overwrite);
                         ArrayHandle<unsigned int> d_overflow_patch(m_overflow_patch, access_location::device, access_mode::readwrite);
 
+                        unsigned int param = m_tuner_narrow_patch->getParam();
+                        args.block_size = param/1000000;
+                        args.tpp = (param%1000000)/100;
+                        unsigned int eval_threads = param % 100;
+
                         gpu::hpmc_patch_args_t patch_args(
-                            kernels,
                             true,
                             this->m_patch->getRCut(),
                             d_additive_cutoff.data,
@@ -998,13 +1012,11 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             d_overflow_patch.data,
                             d_energy_old.data,
                             d_charge.data,
-                            d_diameter.data);
+                            d_diameter.data,
+                            eval_threads);
 
                         this->m_exec_conf->beginMultiGPU();
                         m_tuner_narrow_patch->begin();
-                        unsigned int param = m_tuner_narrow_patch->getParam();
-                        args.block_size = param/10000;
-                        args.tpp = param%10000;
                         gpu::hpmc_narrow_phase_patch(args,patch_args,*this->m_patch);
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();
@@ -1027,8 +1039,12 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         ArrayHandle<unsigned int> d_nneigh_patch_new(m_nneigh_patch_new, access_location::device, access_mode::overwrite);
                         ArrayHandle<unsigned int> d_overflow_patch(m_overflow_patch, access_location::device, access_mode::readwrite);
 
+                        unsigned int param = m_tuner_narrow_patch->getParam();
+                        args.block_size = param/1000000;
+                        args.tpp = (param%1000000)/100;
+                        unsigned int eval_threads = param % 100;
+
                         gpu::hpmc_patch_args_t patch_args(
-                            kernels,
                             false,
                             this->m_patch->getRCut(),
                             d_additive_cutoff.data,
@@ -1038,13 +1054,11 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             d_overflow_patch.data,
                             d_energy_new.data,
                             d_charge.data,
-                            d_diameter.data);
+                            d_diameter.data,
+                            eval_threads);
 
                         this->m_exec_conf->beginMultiGPU();
                         m_tuner_narrow_patch->begin();
-                        unsigned int param = m_tuner_narrow_patch->getParam();
-                        args.block_size = param/10000;
-                        args.tpp = param%10000;
                         gpu::hpmc_narrow_phase_patch(args, patch_args, *this->m_patch);
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();

@@ -8,6 +8,7 @@
 #include "hoomd/jit/EvaluatorUnionGPU.cuh"
 
 #include "GPUHelpers.cuh"
+#include "hoomd/WarpTools.cuh"
 
 namespace hpmc
 {
@@ -20,6 +21,7 @@ namespace kernel
 /*!
     The energy evaluation function (EVAL_FN) is selected via a preprocessor define
  */
+template<unsigned int eval_threads>
 __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                            Scalar4 *d_orientation,
                            Scalar4 *d_trial_postype,
@@ -52,11 +54,11 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
     __shared__ unsigned int s_queue_size;
     __shared__ unsigned int s_still_searching;
 
-    unsigned int group = threadIdx.y;
-    unsigned int offset = threadIdx.x;
-    unsigned int group_size = blockDim.x;
-    bool master = (offset == 0);
-    unsigned int n_groups = blockDim.y;
+    unsigned int group = threadIdx.z;
+    unsigned int offset = threadIdx.y;
+    unsigned int group_size = blockDim.y;
+    bool master = (offset == 0) && threadIdx.x == 0;
+    unsigned int n_groups = blockDim.z;
 
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];
@@ -176,6 +178,9 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
 
     // loop while still searching
 
+    // only the first thread of every group of eval_threads threads adds to the queueu
+    active &= threadIdx.x == 0;
+
     while (s_still_searching)
         {
         // stage 1, fill the queue.
@@ -288,17 +293,28 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
             // evaluate energy
             #ifdef UNION_EVAL
             float energy = jit::eval_union(s_params, r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
+
+            // sum up energy from logical warp
+            energy = hoomd::detail::WarpReduce<float, eval_threads>().Sum(energy);
             #else
-            float energy = eval(r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
+            float energy = 0.0f;
+            if (threadIdx.x == 0)
+                {
+                // no parallelism in user function
+                float energy = eval(r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
+                }
             #endif
 
-            // store energy term in global memory
-            unsigned int n = atomicAdd(&s_nneigh_group[check_group], 1);
-            if (n < maxn)
+            if (threadIdx.x == 0)
                 {
-                unsigned int pidx = s_idx_group[check_group];
-                d_nlist[n+maxn*pidx] = check_old ? check_j : (check_j + N_old);
-                d_energy[n+maxn*pidx] = energy;
+                // store energy term in global memory
+                unsigned int n = atomicAdd(&s_nneigh_group[check_group], 1);
+                if (n < maxn)
+                    {
+                    unsigned int pidx = s_idx_group[check_group];
+                    d_nlist[n+maxn*pidx] = check_old ? check_j : (check_j + N_old);
+                    d_energy[n+maxn*pidx] = energy;
+                    }
                 }
             }
 
