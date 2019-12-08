@@ -22,7 +22,7 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
 
     // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
     unsigned int eval_threads = patch_args.eval_threads;
-    unsigned int run_block_size = std::min(args.block_size, (unsigned int)patch.getKernelMaxThreads(0, eval_threads)); // fixme GPU 0
+    unsigned int run_block_size = std::min(args.block_size, (unsigned int)patch.getKernelMaxThreads(0, eval_threads, patch_args.launch_bounds)); // fixme GPU 0
 
     unsigned int tpp = std::min(args.tpp,run_block_size);
     while (eval_threads*tpp > run_block_size || run_block_size % (eval_threads*tpp) != 0)
@@ -45,7 +45,7 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
     if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
 
-    unsigned int kernel_shared_bytes = patch.getKernelSharedSize(0, eval_threads); //fixme GPU 0
+    unsigned int kernel_shared_bytes = patch.getKernelSharedSize(0, eval_threads, patch_args.launch_bounds); //fixme GPU 0
     while (shared_bytes + kernel_shared_bytes >= args.devprop.sharedMemPerBlock)
         {
         run_block_size -= args.devprop.warpSize;
@@ -93,7 +93,7 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
             (void *) &patch_args.d_overflow, (void *) &max_queue_size, (void *)&range.first, (void *) &nwork, (void *) &max_extra_bytes};
 
         // launch kernel template
-        patch.launchKernel(idev, grid, thread, shared_bytes, 0, k_args, max_extra_bytes, eval_threads);
+        patch.launchKernel(idev, grid, thread, shared_bytes, 0, k_args, max_extra_bytes, eval_threads, patch_args.launch_bounds);
         }
     }
 

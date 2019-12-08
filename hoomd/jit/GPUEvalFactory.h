@@ -38,9 +38,15 @@ class GPUEvalFactory
             for (unsigned int i = 1; i <= (unsigned int) m_exec_conf->dev_prop.warpSize; i *= 2)
                 m_eval_threads.push_back(i);
 
+            for (unsigned int i = 32; i <= (unsigned int) m_exec_conf->dev_prop.maxThreadsPerBlock; i *= 2)
+                m_launch_bounds.push_back(i);
+
             for (auto t: m_eval_threads)
                 {
-                m_kernel_ptr[t].resize(m_exec_conf->getNumActiveGPUs());
+                for (auto l: m_launch_bounds)
+                    {
+                    m_kernel_ptr[std::make_pair(t,l)].resize(m_exec_conf->getNumActiveGPUs());
+                    }
                 }
 
             m_alpha_iso_device_ptr.resize(m_exec_conf->getNumActiveGPUs());
@@ -79,15 +85,26 @@ class GPUEvalFactory
             #endif
             }
 
-        //! Return the maximum number of threads per block for this kernel
+        //! Return the list of available launch bounds
         /* \param idev the logical GPU id
            \param eval_threads template parameter
          */
-        unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads)
+        const std::vector<unsigned int>& getLaunchBounds() const
             {
-            assert(m_kernel_ptr.size() > idev);
+            return m_launch_bounds;
+            }
+
+        //! Return the maximum number of threads per block for this kernel
+        /* \param idev the logical GPU id
+           \param eval_threads template parameter
+           \param launch_bounds template parameter
+         */
+        unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads, unsigned int launch_bounds)
+            {
+            assert(m_kernel_ptr[std::make_pair(eval_threads,launch_bounds)].size() > idev);
             int max_threads = 0;
-            CUresult custatus = cuFuncGetAttribute(&max_threads, CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, m_kernel_ptr[eval_threads][idev]);
+            CUresult custatus = cuFuncGetAttribute(&max_threads, CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK,
+                m_kernel_ptr[std::make_pair(eval_threads,launch_bounds)][idev]);
             char *error;
             if (custatus != CUDA_SUCCESS)
                 {
@@ -100,12 +117,14 @@ class GPUEvalFactory
         //! Return the shared size usage in bytes for this kernel
         /* \param idev the logical GPU id
            \param eval_threads template parameter
+           \param launch_bounds template parameter
          */
-        unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads)
+        unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads, unsigned int launch_bounds)
             {
-            assert(m_kernel_ptr.size() > idev);
+            assert(m_kernel_ptr[std::make_pair(eval_threads,launch_bounds)].size() > idev);
             int shared_bytes = 0;
-            CUresult custatus = cuFuncGetAttribute(&shared_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, m_kernel_ptr[eval_threads][idev]);
+            CUresult custatus = cuFuncGetAttribute(&shared_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,
+                m_kernel_ptr[std::make_pair(eval_threads,launch_bounds)][idev]);
             char *error;
             if (custatus != CUDA_SUCCESS)
                 {
@@ -123,11 +142,13 @@ class GPUEvalFactory
             \param hStream stream to execute on
             \param kernelParams the kernel parameters
             \param eval_threads template parameter
+            \param launch_bounds template parameter
             */
         void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream,
-            void** kernelParams, unsigned int eval_threads)
+            void** kernelParams, unsigned int eval_threads, unsigned int launch_bounds)
             {
-            CUresult custatus = cuLaunchKernel(m_kernel_ptr[eval_threads][idev],
+            assert(m_kernel_ptr[std::make_pair(eval_threads,launch_bounds)].size() > idev);
+            CUresult custatus = cuLaunchKernel(m_kernel_ptr[std::make_pair(eval_threads,launch_bounds)][idev],
                 grid.x, grid.y, grid.z, threads.x, threads.y, threads.z, sharedMemBytes, hStream, kernelParams, 0);
             char *error;
             if (custatus != CUDA_SUCCESS)
@@ -224,7 +245,8 @@ class GPUEvalFactory
     private:
         std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The exceuction configuration
         std::vector<unsigned int> m_eval_threads;            //!< The number of template paramteres
-        std::map<unsigned int, std::vector<CUfunction> > m_kernel_ptr;  //!< The pointer to the kernel, for every template parameter and device
+        std::vector<unsigned int> m_launch_bounds;           //!< The number of different __launch_bounds__
+        std::map<std::pair<unsigned int, unsigned int>, std::vector<CUfunction> > m_kernel_ptr;  //!< The pointer to the kernel, for every template parameter and device
 
         #ifdef __HIP_PLATFORM_NVCC__
         std::vector<CUdeviceptr> m_alpha_iso_device_ptr;     //!< Device pointer to data ptr for patches

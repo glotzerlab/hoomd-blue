@@ -84,8 +84,9 @@ class PatchEnergy
     //! Return the maximum number of threads per block for this kernel
     /* \param idev the logical GPU id
        \param eval_threads template parameter
+       \param launch_bounds template parameter
      */
-    virtual unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads)
+    virtual unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads, unsigned int launch_bounds)
         {
         throw std::runtime_error("PatchEnergy (base class) does not support getKernelMaxThreads.");
         }
@@ -93,10 +94,20 @@ class PatchEnergy
     //! Return the shared size usage in bytes for this kernel
     /* \param idev the logical GPU id
        \param eval_threads template parameter
+       \param launch_bounds template parameter
      */
-    virtual unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads)
+    virtual unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads, unsigned int launch_bounds)
         {
         throw std::runtime_error("PatchEnergy (base class) does not support getKernelSharedSize.");
+        }
+
+    //! Return the list of available launch bounds
+    /* \param idev the logical GPU id
+       \param eval_threads template parameter
+     */
+    virtual const std::vector<unsigned int>& getLaunchBounds() const
+        {
+        throw std::runtime_error("PatchEnergy (base class) does not support getLaunchBounds.");
         }
 
     //! Asynchronously launch the JIT kernel
@@ -108,11 +119,12 @@ class PatchEnergy
         \param kernelParams the kernel parameters
         \param max_extra_bytes Maximum extra bytes of shared memory (modifiable)
         \param eval_threads template parameter
+        \param launch_bounds template parameter
         */
     virtual void launchKernel(unsigned int idev,
         dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream,
         void** kernelParams, unsigned int& max_extra_bytes,
-        unsigned int eval_threads)
+        unsigned int eval_threads, unsigned int launch_bounds)
         {
         throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
         }
@@ -369,7 +381,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             }
 
         //! Set the patch energy
-        void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
+        virtual void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
             {
             m_patch = patch;
             }

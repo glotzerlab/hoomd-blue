@@ -21,7 +21,8 @@ namespace kernel
 /*!
     The energy evaluation function (EVAL_FN) is selected via a preprocessor define
  */
-template<unsigned int eval_threads>
+template<unsigned int eval_threads, unsigned int max_threads>
+__launch_bounds__(max_threads)
 __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                            Scalar4 *d_orientation,
                            Scalar4 *d_trial_postype,

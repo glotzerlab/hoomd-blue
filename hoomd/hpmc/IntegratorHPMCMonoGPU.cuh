@@ -252,7 +252,8 @@ struct hpmc_patch_args_t
                 unsigned int *_d_overflow,
                 const Scalar *_d_charge,
                 const Scalar *_d_diameter,
-                const unsigned int _eval_threads)
+                const unsigned int _eval_threads,
+                const unsigned int _launch_bounds)
                 : r_cut_patch(_r_cut_patch),
                   d_additive_cutoff(_d_additive_cutoff),
                   d_nlist_old(_d_nlist_old),
@@ -265,7 +266,8 @@ struct hpmc_patch_args_t
                   d_overflow(_d_overflow),
                   d_charge(_d_charge),
                   d_diameter(_d_diameter),
-                  eval_threads(_eval_threads)
+                  eval_threads(_eval_threads),
+                  launch_bounds(_launch_bounds)
         {
         };
 
@@ -282,6 +284,7 @@ struct hpmc_patch_args_t
     const Scalar *d_charge;          //!< Particle charges
     const Scalar *d_diameter;        //!< Particle diameters
     const unsigned int eval_threads; //!< Number of threads for energy evaluation
+    const unsigned int launch_bounds; //!< Launch bounds, template parameter
     };
 
 //! Driver for kernel::hpmc_gen_moves()

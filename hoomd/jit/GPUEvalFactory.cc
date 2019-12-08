@@ -84,11 +84,14 @@ void GPUEvalFactory::compileGPU(
 
     for (auto eval_threads: m_eval_threads)
         {
-        // instantiate template
-        std::string template_name = kernel_name+"<"+std::to_string(eval_threads)+std::string(">");
-        status = nvrtcAddNameExpression(m_program, template_name.c_str());
-        if (status != NVRTC_SUCCESS)
-            throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
+        for (auto launch_bounds: m_launch_bounds)
+            {
+            // instantiate template
+            std::string template_name = kernel_name+"<"+std::to_string(eval_threads)+std::string(",")+std::to_string(launch_bounds)+std::string(">");
+            status = nvrtcAddNameExpression(m_program, template_name.c_str());
+            if (status != NVRTC_SUCCESS)
+                throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
+            }
         }
 
     std::string alpha_iso_name = "&alpha_iso";
@@ -145,15 +148,19 @@ void GPUEvalFactory::compileGPU(
         throw std::runtime_error("nvrtcGetPTX error: "+std::string(nvrtcGetErrorString(status)));
 
     // look up mangled names
-    char *kernel_name_mangled[m_eval_threads.size()];
-    unsigned int i = 0;
+    std::map<std::pair<unsigned int, unsigned int>, char *> kernel_name_mangled;
     for (auto eval_threads: m_eval_threads)
         {
-        // instantiate template
-        std::string template_name = kernel_name+"<"+std::to_string(eval_threads)+std::string(">");
-        status = nvrtcGetLoweredName(m_program, template_name.c_str(), const_cast<const char **>(&kernel_name_mangled[i++]));
-        if (status != NVRTC_SUCCESS)
-            throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
+        for (auto launch_bounds: m_launch_bounds)
+            {
+            // instantiate template
+            std::string template_name = kernel_name+"<"+std::to_string(eval_threads)+std::string(",")+std::to_string(launch_bounds)+std::string(">");
+            char *mangled_name;
+            status = nvrtcGetLoweredName(m_program, template_name.c_str(), const_cast<const char **>(&mangled_name));
+            if (status != NVRTC_SUCCESS)
+                throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
+            kernel_name_mangled[std::make_pair(eval_threads,launch_bounds)] = mangled_name;
+            }
         }
 
     char *alpha_iso_name_mangled;
@@ -226,16 +233,19 @@ void GPUEvalFactory::compileGPU(
             }
 
         // get variable pointers
-        for (unsigned int i = 0; i < m_eval_threads.size(); ++i)
+        for (auto eval_threads: m_eval_threads)
             {
-            CUfunction kernel_ptr;
-            custatus = cuModuleGetFunction(&kernel_ptr, m_module[idev], kernel_name_mangled[i]);
-            if (custatus != CUDA_SUCCESS)
+            for (auto launch_bounds: m_launch_bounds)
                 {
-                cuGetErrorString(custatus, const_cast<const char **>(&error));
-                throw std::runtime_error("cuModuleGetFunction: "+std::string(error));
+                CUfunction kernel_ptr;
+                custatus = cuModuleGetFunction(&kernel_ptr, m_module[idev], kernel_name_mangled[std::make_pair(eval_threads, launch_bounds)]);
+                if (custatus != CUDA_SUCCESS)
+                    {
+                    cuGetErrorString(custatus, const_cast<const char **>(&error));
+                    throw std::runtime_error("cuModuleGetFunction: "+std::string(error));
+                    }
+                m_kernel_ptr[std::make_pair(eval_threads, launch_bounds)][idev] = kernel_ptr;
                 }
-            m_kernel_ptr[m_eval_threads[i]][idev] = kernel_ptr;
             }
 
         // get variable pointers

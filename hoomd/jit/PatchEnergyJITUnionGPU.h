@@ -69,22 +69,33 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             pybind11::list charges,
             unsigned int leaf_capacity=4);
 
-        //! Return the maximum number of threads per block for this kernel
+        //! Return the list of available launch bounds
         /* \param idev the logical GPU id
            \param eval_threads template parameter
          */
-        virtual unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads)
+        virtual const std::vector<unsigned int>& getLaunchBounds() const
             {
-            return m_gpu_factory.getKernelMaxThreads(idev, eval_threads);
+            return m_gpu_factory.getLaunchBounds();
+            }
+
+        //! Return the maximum number of threads per block for this kernel
+        /* \param idev the logical GPU id
+           \param eval_threads template parameter
+           \param launch_bounds template parameter
+         */
+        virtual unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads, unsigned int launch_bounds)
+            {
+            return m_gpu_factory.getKernelMaxThreads(idev, eval_threads, launch_bounds);
             }
 
         //! Return the shared size usage in bytes for this kernel
         /* \param idev the logical GPU id
            \param eval_threads Template parameter
+           \param launch_bounds Template parameter
          */
-        virtual unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads)
+        virtual unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads, unsigned int launch_bounds)
             {
-            return m_gpu_factory.getKernelSharedSize(idev, eval_threads);
+            return m_gpu_factory.getKernelSharedSize(idev, eval_threads, launch_bounds);
             }
 
         //! Asynchronously launch the JIT kernel
@@ -96,23 +107,24 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             \param kernelParams the kernel parameters
             \param extra_bytes Maximum extra bytes of shared memory (modifiable value passed to kernel)
             \param eval_threads Number of threads to use for energy evaluation
+            \param launch_bounds Selected launch bounds (template parameter)
             */
         virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads,
             unsigned int sharedMemBytes, hipStream_t hStream,
             void** kernelParams, unsigned int &max_extra_bytes,
-            unsigned int eval_threads)
+            unsigned int eval_threads, unsigned int launch_bounds)
             {
             // add shape data structures to shared memory requirements
             sharedMemBytes += m_d_union_params.size()*sizeof(jit::union_params_t);
 
             // allocate some extra shared mem to store union shape parameters
-            bool init_shared_bytes = m_base_shared_bytes.find(eval_threads) != m_base_shared_bytes.end();
-            unsigned int kernel_shared_bytes = getKernelSharedSize(idev, eval_threads);
-            bool shared_bytes_changed = init_shared_bytes || (m_base_shared_bytes[eval_threads] != sharedMemBytes + kernel_shared_bytes);
-            m_base_shared_bytes[eval_threads] = sharedMemBytes + kernel_shared_bytes;
+            bool init_shared_bytes = m_base_shared_bytes.find(std::make_pair(eval_threads, launch_bounds)) != m_base_shared_bytes.end();
+            unsigned int kernel_shared_bytes = getKernelSharedSize(idev, eval_threads, launch_bounds);
+            bool shared_bytes_changed = init_shared_bytes || (m_base_shared_bytes[std::make_pair(eval_threads, launch_bounds)] != sharedMemBytes + kernel_shared_bytes);
+            m_base_shared_bytes[std::make_pair(eval_threads,launch_bounds)] = sharedMemBytes + kernel_shared_bytes;
 
-            max_extra_bytes = m_exec_conf->dev_prop.sharedMemPerBlock - m_base_shared_bytes[eval_threads];
-            bool init_extra_bytes = m_extra_bytes.find(eval_threads) != m_extra_bytes.end();
+            max_extra_bytes = m_exec_conf->dev_prop.sharedMemPerBlock - m_base_shared_bytes[std::make_pair(eval_threads,launch_bounds)];
+            bool init_extra_bytes = m_extra_bytes.find(std::make_pair(eval_threads,launch_bounds)) != m_extra_bytes.end();
             if (init_extra_bytes || m_params_updated || shared_bytes_changed)
                 {
                 // required for memory coherency
@@ -125,15 +137,15 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                     {
                     m_d_union_params[i].allocate_shared(ptr, available_bytes);
                     }
-                m_extra_bytes[eval_threads] = max_extra_bytes - available_bytes;
+                m_extra_bytes[std::make_pair(eval_threads,launch_bounds)] = max_extra_bytes - available_bytes;
                 }
 
             m_params_updated = false;
 
-            sharedMemBytes += m_extra_bytes[eval_threads];
+            sharedMemBytes += m_extra_bytes[std::make_pair(eval_threads,launch_bounds)];
 
             // launch kernel
-            m_gpu_factory.launchKernel(idev, grid, threads, sharedMemBytes, hStream, kernelParams, eval_threads);
+            m_gpu_factory.launchKernel(idev, grid, threads, sharedMemBytes, hStream, kernelParams, eval_threads, launch_bounds);
             }
 
         //! Method to be called when number of types changes
@@ -155,8 +167,8 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         std::vector<jit::union_params_t, managed_allocator<jit::union_params_t> > m_d_union_params;   //!< Parameters for each particle type on GPU
         bool m_params_updated;                              //!< True if parameters have been updated
 
-        std::map<unsigned int, unsigned int> m_base_shared_bytes;      //!< Kernel shared memory, for every template
-        std::map<unsigned int, unsigned int> m_extra_bytes;            //!< Kernel extra shared bytes, for every template
+        std::map<std::pair<unsigned int, unsigned int>, unsigned int> m_base_shared_bytes;      //!< Kernel shared memory, for every template
+        std::map<std::pair<unsigned int, unsigned int>, unsigned int> m_extra_bytes;            //!< Kernel extra shared bytes, for every template
     };
 
 //! Exports the PatchEnergyJITUnionGPU class to python
