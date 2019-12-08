@@ -119,13 +119,6 @@ class UpdateOrderGPU
                 return m_update_order;
             }
 
-        //! Access the underlying GlobalVector
-        const GlobalVector<unsigned int> & getInverse() const
-            {
-            // with ascending/descending update order, the permutation is self-inverse
-            return get();
-            }
-
     private:
         unsigned int m_seed;                               //!< Random number seed
         bool m_is_reversed;                                //!< True if order is reversed
@@ -495,6 +488,12 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
             cudaMemAdvise(m_nneigh.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_nneigh.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
 
+            cudaMemAdvise(m_reject.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_reject.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+
+            cudaMemAdvise(m_reject_out.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_reject_out.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+
             if (this->m_patch && !this->m_patch_log)
                 {
                 cudaMemAdvise(m_nneigh_patch_old.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
@@ -665,7 +664,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         for (unsigned int i = 0; i < this->m_nselect; i++)
             {
                 { // ArrayHandle scope
-                ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.getInverse(), access_location::device, access_mode::read);
+                ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::read);
@@ -743,7 +742,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             do
                 {
                     { // ArrayHandle scope
-                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.getInverse(), access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
                     ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::overwrite);
                     ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::readwrite);
@@ -832,7 +831,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     }
 
                     { // ArrayHandle scope
-                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.getInverse(), access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
                     ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::readwrite);
                     ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::readwrite);
@@ -939,7 +938,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
                 do
                     {
-                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.getInverse(), access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::read);
 
                     // access data for proposed moves
@@ -1060,8 +1059,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
              while (!done)
                 {
                     {
-                    ArrayHandle<unsigned int> d_ptl_by_update_order(m_update_order.get(), access_location::device, access_mode::read);
-                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.getInverse(), access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_trial_move_type(m_trial_move_type, access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_reject(m_reject, access_location::device, access_mode::readwrite);
@@ -1080,9 +1078,14 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     ArrayHandle<float> d_energy_old(m_energy_old, access_location::device, access_mode::read);
                     ArrayHandle<float> d_energy_new(m_energy_new, access_location::device, access_mode::read);
 
+                    // reset condition flag
+                    hipMemsetAsync(d_condition.data, 0, sizeof(unsigned int));
+                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                        CHECK_CUDA_ERROR();
+
+                    this->m_exec_conf->beginMultiGPU();
                     m_tuner_accept->begin();
-                    gpu::hpmc_accept(d_ptl_by_update_order.data,
-                        d_update_order_by_ptl.data,
+                    gpu::hpmc_accept(d_update_order_by_ptl.data,
                         d_trial_move_type.data,
                         d_reject_out_of_cell.data,
                         d_reject.data,
@@ -1091,6 +1094,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_nlist.data,
                         this->m_pdata->getN() + this->m_pdata->getNGhosts(),
                         this->m_pdata->getN(),
+                        this->m_pdata->getGPUPartition(),
                         m_maxn,
                         (this->m_patch != 0) && !this->m_patch_log,
                         d_nlist_patch_old.data,
@@ -1109,6 +1113,22 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                         CHECK_CUDA_ERROR();
                     m_tuner_accept->end();
+                    this->m_exec_conf->endMultiGPU();
+
+                    // update reject flags
+                    this->m_exec_conf->beginMultiGPU();
+                    for (int idev = this->m_pdata->getGPUPartition().getNumActiveGPUs() - 1; idev >= 0; --idev)
+                        {
+                        auto range = this->m_pdata->getGPUPartition().getRangeAndSetGPU(idev);
+                        if (range.second-range.first==0)
+                            continue;
+
+                        // update reject flags
+                        hipMemcpyAsync(d_reject.data+range.first, d_reject_out.data+range.first, sizeof(unsigned int)*(range.second-range.first), hipMemcpyDeviceToDevice);
+                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                            CHECK_CUDA_ERROR();
+                        }
+                    this->m_exec_conf->endMultiGPU();
                     }
 
                     {
@@ -1136,12 +1156,13 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                 ArrayHandle<unsigned int> d_reject(m_reject, access_location::device, access_mode::read);
 
                 // Update the particle data and statistics
+                this->m_exec_conf->beginMultiGPU();
                 m_tuner_update_pdata->begin();
                 gpu::hpmc_update_args_t args(
                     d_postype.data,
                     d_orientation.data,
                     ngpu > 1 ? d_counters_per_device.data : d_counters.data,
-                    this->m_pdata->getN(),
+                    this->m_pdata->getGPUPartition(),
                     d_trial_postype.data,
                     d_trial_orientation.data,
                     d_trial_move_type.data,
@@ -1153,6 +1174,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 m_tuner_update_pdata->end();
+                this->m_exec_conf->endMultiGPU();
                 }
             } // end loop over nselect
 

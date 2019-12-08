@@ -190,7 +190,7 @@ struct hpmc_update_args_t
     hpmc_update_args_t(Scalar4 *_d_postype,
         Scalar4 *_d_orientation,
         hpmc_counters_t *_d_counters,
-        const unsigned int _N,
+        const GPUPartition& _gpu_partition,
         const Scalar4 *_d_trial_postype,
         const Scalar4 *_d_trial_orientation,
         const unsigned int *_d_trial_move_type,
@@ -200,7 +200,7 @@ struct hpmc_update_args_t
         : d_postype(_d_postype),
           d_orientation(_d_orientation),
           d_counters(_d_counters),
-          N(_N),
+          gpu_partition(_gpu_partition),
           d_trial_postype(_d_trial_postype),
           d_trial_orientation(_d_trial_orientation),
           d_trial_move_type(_d_trial_move_type),
@@ -213,7 +213,7 @@ struct hpmc_update_args_t
     Scalar4 *d_postype;
     Scalar4 *d_orientation;
     hpmc_counters_t *d_counters;
-    const unsigned int N;
+    const GPUPartition& gpu_partition;
     const Scalar4 *d_trial_postype;
     const Scalar4 *d_trial_orientation;
     const unsigned int *d_trial_move_type;
@@ -311,8 +311,7 @@ void hpmc_shift(Scalar4 *d_postype,
                 const Scalar3 shift,
                 const unsigned int block_size);
 
-void hpmc_accept(const unsigned int *d_ptl_by_update_order,
-                 const unsigned int *d_update_order_by_ptl,
+void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  const unsigned int *d_trial_move_type,
                  const unsigned int *d_reject_out_of_cell,
                  unsigned int *d_reject,
@@ -321,6 +320,7 @@ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                  const unsigned int *d_nlist,
                  const unsigned int N_old,
                  const unsigned int N,
+                 const GPUPartition& gpu_partition,
                  const unsigned int maxn,
                  bool patch,
                  const unsigned int *d_nlist_patch_old,
@@ -1304,7 +1304,8 @@ template<class Shape>
 __global__ void hpmc_update_pdata(Scalar4 *d_postype,
                                   Scalar4 *d_orientation,
                                   hpmc_counters_t *d_counters,
-                                  const unsigned int N,
+                                  const unsigned int nwork,
+                                  const unsigned int offset,
                                   const Scalar4 *d_trial_postype,
                                   const Scalar4 *d_trial_orientation,
                                   const unsigned int *d_trial_move_type,
@@ -1332,8 +1333,10 @@ __global__ void hpmc_update_pdata(Scalar4 *d_postype,
 
     __syncthreads();
 
-    if (idx < N)
+    if (idx < nwork)
         {
+        idx += offset;
+
         unsigned int move_type = d_trial_move_type[idx];
         bool move_active = move_type > 0;
         bool move_type_translate = move_type == 1;
@@ -1370,10 +1373,17 @@ __global__ void hpmc_update_pdata(Scalar4 *d_postype,
     // final tally into global mem
     if (threadIdx.x == 0)
         {
+        #if (__CUDA_ARCH__ >= 600)
+        atomicAdd_system(&d_counters->translate_accept_count, s_translate_accept_count);
+        atomicAdd_system(&d_counters->translate_reject_count, s_translate_reject_count);
+        atomicAdd_system(&d_counters->rotate_accept_count, s_rotate_accept_count);
+        atomicAdd_system(&d_counters->rotate_reject_count, s_rotate_reject_count);
+        #else
         atomicAdd(&d_counters->translate_accept_count, s_translate_accept_count);
         atomicAdd(&d_counters->translate_reject_count, s_translate_reject_count);
         atomicAdd(&d_counters->rotate_accept_count, s_rotate_accept_count);
         atomicAdd(&d_counters->rotate_reject_count, s_rotate_reject_count);
+        #endif
         }
     }
 
@@ -1863,18 +1873,26 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
         }
 
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-    unsigned int num_blocks = (args.N + block_size - 1)/block_size;
-    hipLaunchKernelGGL((kernel::hpmc_update_pdata<Shape>), dim3(num_blocks), dim3(block_size), 0, 0, 
-        args.d_postype,
-        args.d_orientation,
-        args.d_counters,
-        args.N,
-        args.d_trial_postype,
-        args.d_trial_orientation,
-        args.d_trial_move_type,
-        args.d_reject,
-        args.maxn,
-        params);
+    for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = args.gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+        const unsigned int num_blocks = (nwork + block_size - 1)/block_size;
+
+        hipLaunchKernelGGL((kernel::hpmc_update_pdata<Shape>), dim3(num_blocks), dim3(block_size), 0, 0,
+            args.d_postype,
+            args.d_orientation,
+            args.d_counters,
+            nwork,
+            range.first,
+            args.d_trial_postype,
+            args.d_trial_orientation,
+            args.d_trial_move_type,
+            args.d_reject,
+            args.maxn,
+            params);
+        }
     }
 #endif
 

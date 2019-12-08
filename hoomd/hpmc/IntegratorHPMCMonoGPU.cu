@@ -111,8 +111,7 @@ __global__ void hpmc_shift(Scalar4 *d_postype,
     }
 
 //!< Kernel to accept/reject
-__global__ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
-                 const unsigned int *d_update_order_by_ptl,
+__global__ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  const unsigned int *d_trial_move_type,
                  const unsigned int *d_reject_out_of_cell,
                  unsigned int *d_reject,
@@ -121,6 +120,8 @@ __global__ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                  const unsigned int *d_nlist,
                  const unsigned int N_old,
                  const unsigned int N,
+                 const unsigned int nwork,
+                 const unsigned offset,
                  const unsigned int maxn,
                  bool patch,
                  const unsigned int *d_nlist_patch_old,
@@ -135,12 +136,13 @@ __global__ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                  const unsigned int select,
                  const unsigned int timestep)
     {
-    unsigned int update_order_i = blockIdx.x*blockDim.x + threadIdx.x;
+    unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
 
-    if (update_order_i >= N)
+    if (i >= nwork)
         return;
+    i += offset;
 
-    unsigned int i = d_ptl_by_update_order[update_order_i];
+    unsigned int update_order_i = d_update_order_by_ptl[i];
 
     bool move_active = d_trial_move_type[i] > 0;
 
@@ -242,7 +244,11 @@ __global__ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
         if ((accept && d_reject[i]) || (!accept && !d_reject[i]))
             {
             // flag that we're not done yet
+            #if (__CUDA_ARCH__ >= 600)
+            atomicAdd_system(d_condition,1);
+            #else
             atomicAdd(d_condition,1);
+            #endif
             }
 
         // write out to device memory
@@ -323,8 +329,7 @@ void hpmc_shift(Scalar4 *d_postype,
     }
 
 
-void hpmc_accept(const unsigned int *d_ptl_by_update_order,
-                 const unsigned int *d_update_order_by_ptl,
+void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  const unsigned int *d_trial_move_type,
                  const unsigned int *d_reject_out_of_cell,
                  unsigned int *d_reject,
@@ -333,6 +338,7 @@ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                  const unsigned int *d_nlist,
                  const unsigned int N_old,
                  const unsigned int N,
+                 const GPUPartition& gpu_partition,
                  const unsigned int maxn,
                  bool patch,
                  const unsigned int *d_nlist_patch_old,
@@ -348,9 +354,6 @@ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                  const unsigned int timestep,
                  const unsigned int block_size)
     {
-    // launch kernel in a single thread
-    hipMemset(d_condition, 0, sizeof(unsigned int));
-
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
     if (max_block_size == -1)
@@ -361,35 +364,42 @@ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
         }
 
     // setup the grid to run the kernel
-    dim3 threads(min(block_size, (unsigned int)max_block_size), 1, 1);
-    dim3 grid((N+block_size-1)/block_size,1,1);
+    unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
+    dim3 threads(run_block_size, 1, 1);
 
-    hipLaunchKernelGGL(kernel::hpmc_accept, dim3(grid), dim3(threads), 0, 0, d_ptl_by_update_order,
-        d_update_order_by_ptl,
-        d_trial_move_type,
-        d_reject_out_of_cell,
-        d_reject,
-        d_reject_out,
-        d_nneigh,
-        d_nlist,
-        N_old,
-        N,
-        maxn,
-        patch,
-        d_nlist_patch_old,
-        d_nlist_patch_new,
-        d_nneigh_patch_old,
-        d_nneigh_patch_new,
-        d_energy_old,
-        d_energy_new,
-        maxn_patch,
-        d_condition,
-        seed,
-        select,
-        timestep);
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-    // update reject flags
-    hipMemcpyAsync(d_reject, d_reject_out, sizeof(unsigned int)*N, hipMemcpyDeviceToDevice);
+        unsigned int nwork = range.second - range.first;
+        const unsigned int num_blocks = (nwork + run_block_size - 1)/run_block_size;
+
+        hipLaunchKernelGGL(kernel::hpmc_accept, dim3(num_blocks), threads, 0, 0,
+            d_update_order_by_ptl,
+            d_trial_move_type,
+            d_reject_out_of_cell,
+            d_reject,
+            d_reject_out,
+            d_nneigh,
+            d_nlist,
+            N_old,
+            N,
+            nwork,
+            range.first,
+            maxn,
+            patch,
+            d_nlist_patch_old,
+            d_nlist_patch_new,
+            d_nneigh_patch_old,
+            d_nneigh_patch_new,
+            d_energy_old,
+            d_energy_new,
+            maxn_patch,
+            d_condition,
+            seed,
+            select,
+            timestep);
+        }
     }
 
 } // end namespace gpu
