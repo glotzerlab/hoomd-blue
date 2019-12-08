@@ -1657,8 +1657,8 @@ void CommunicatorGPU::migrateParticles()
                 if (n_send_ptls[ineigh])
                     {
                     MPI_Isend(gpu_sendbuf_handle.data+h_begin.data[ineigh],
-                        n_send_ptls[ineigh]*sizeof(pdata_element),
-                        MPI_BYTE,
+                        n_send_ptls[ineigh],
+                        m_mpi_pdata_element,
                         neighbor,
                         1,
                         m_mpi_comm,
@@ -1670,8 +1670,8 @@ void CommunicatorGPU::migrateParticles()
                 if (n_recv_ptls[ineigh])
                     {
                     MPI_Irecv(gpu_recvbuf_handle.data+offs[ineigh],
-                        n_recv_ptls[ineigh]*sizeof(pdata_element),
-                        MPI_BYTE,
+                        n_recv_ptls[ineigh],
+                        m_mpi_pdata_element,
                         neighbor,
                         1,
                         m_mpi_comm,
