@@ -301,7 +301,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
             if (threadIdx.x == 0)
                 {
                 // no parallelism in user function
-                float energy = eval(r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
+                energy = eval(r_ij, type_i, quat<float>(orientation_i), d_i, q_i, type_j, quat<float>(orientation_j), d_j, q_j);
                 }
             #endif
 
