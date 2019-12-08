@@ -38,7 +38,7 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
 
     const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar);
 
-    unsigned int shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3) + 2*sizeof(Scalar))
+    unsigned int shared_bytes = n_groups * (4*sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar))
         + max_queue_size * 2 * sizeof(unsigned int)
         + min_shared_bytes;
 
@@ -65,7 +65,7 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
 
         max_queue_size = n_groups*tpp;
 
-        shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3) + 2*sizeof(Scalar))
+        shared_bytes = n_groups * (4*sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar))
             + max_queue_size * 2 * sizeof(unsigned int)
             + min_shared_bytes;
         }
@@ -85,9 +85,11 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
         unsigned int N_old = args.N + args.N_ghost;
         void *k_args[] = {(void *)&args.d_postype, (void *)&args.d_orientation, (void *)&args.d_trial_postype, (void *) &args.d_trial_orientation,
             (void *) &patch_args.d_charge, (void *) &patch_args.d_diameter, (void *) &args.d_excell_idx, (void *) &args.d_excell_size, (void *) &args.excli,
-            (void *) &patch_args.d_nlist, (void *) &patch_args.d_energy, (void *) &patch_args.d_nneigh, (void *) &patch_args.maxn,  (void *) &args.num_types,
+            (void *) &patch_args.d_nlist_old, (void *) &patch_args.d_energy_old, (void *) &patch_args.d_nneigh_old,
+            (void *) &patch_args.d_nlist_new, (void *) &patch_args.d_energy_new, (void *) &patch_args.d_nneigh_new,
+            (void *) &patch_args.maxn,  (void *) &args.num_types,
             (void *) &args.box, (void *) &args.ghost_width, (void *) &args.cell_dim, (void *) &args.ci, (void *) &N_old, (void *) &args.N,
-            (void *) &patch_args.old_config, (void *) &patch_args.r_cut_patch, (void *) &patch_args.d_additive_cutoff,
+            (void *) &patch_args.r_cut_patch, (void *) &patch_args.d_additive_cutoff,
             (void *) &patch_args.d_overflow, (void *) &max_queue_size, (void *)&range.first, (void *) &nwork, (void *) &max_extra_bytes};
 
         // launch kernel template
