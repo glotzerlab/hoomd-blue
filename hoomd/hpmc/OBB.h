@@ -13,9 +13,11 @@
 #ifndef __OBB_H__
 #define __OBB_H__
 
+#ifndef __CUDACC_RTC__
+#include <cfloat>
+#endif
 
 #ifndef __HIPCC__
-#include <cfloat>
 #include <algorithm>
 
 #include <Eigen/Dense>
@@ -24,13 +26,6 @@
 #include "hoomd/extern/quickhull/QuickHull.hpp"
 
 #include <random>
-#endif
-
-#ifdef __HIPCC__
-// can't use system headers in JIT
-#ifndef FLT_MAX
-#define FLT_MAX 340282346638528859811704183484516925440.0f
-#endif
 #endif
 
 /*! \file OBB.h
@@ -255,6 +250,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b,
     OverlapReal ra, rb;
     ra = a.lengths.x;
     rb = b.lengths.x * rabs[0][0] + b.lengths.y * rabs[0][1] + b.lengths.z*rabs[0][2];
+
     if (fabs(t.x) > ra + rb) return false;
 
     rabs[1][0] = fabs(r.row1.x) + eps;
