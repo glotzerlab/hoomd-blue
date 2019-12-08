@@ -277,9 +277,6 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     // with multiple GPUs, request a cell list per device
     m_cl->setPerDevice(this->m_exec_conf->allConcurrentManagedAccess());
 
-    // require that cell lists have an even number of cells along each direction
-    this->m_cl->setMultiple(2);
-
     // set last dim to a bogus value so that it will re-init on the first call
     m_last_dim = make_uint3(0xffffffff, 0xffffffff, 0xffffffff);
     m_last_nmax = 0xffffffff;
@@ -585,11 +582,14 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             m_trial_orientation.resize(this->m_pdata->getMaxN());
             m_trial_move_type.resize(this->m_pdata->getMaxN());
 
-            if (this->m_patch && !this->m_patch_log)
-                {
-                m_nneigh_patch_old.resize(this->m_pdata->getMaxN());
-                m_nneigh_patch_new.resize(this->m_pdata->getMaxN());
-                }
+            updateGPUAdvice();
+            }
+
+        if (m_nneigh_patch_old.getNumElements() < this->m_pdata->getMaxN()
+            && this->m_patch && !this->m_patch_log)
+            {
+            m_nneigh_patch_old.resize(this->m_pdata->getMaxN());
+            m_nneigh_patch_new.resize(this->m_pdata->getMaxN());
 
             updateGPUAdvice();
             }
