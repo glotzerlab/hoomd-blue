@@ -335,7 +335,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                     if (n < maxn)
                         {
                         unsigned int pidx = s_idx_group[check_group];
-                        d_nlist_new[n+maxn*pidx] = check_old_j ? check_j : (check_j + N_new);
+                        d_nlist_new[n+maxn*pidx] = check_old_j ? check_j : (check_j + N_old);
                         d_energy_new[n+maxn*pidx] = energy;
                         }
                     }
