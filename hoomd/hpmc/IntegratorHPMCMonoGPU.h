@@ -488,9 +488,6 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
             cudaMemAdvise(m_nneigh.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_nneigh.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
 
-            cudaMemAdvise(m_reject.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemPrefetchAsync(m_reject.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
-
             cudaMemAdvise(m_reject_out.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_reject_out.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
 
