@@ -129,8 +129,8 @@ class nvt_lj_sphere_energy(unittest.TestCase):
         # max error 0.5%
         self.assertLessEqual(sigma_U/mean_U,0.005)
 
-        # 0.95 confidence interval
-        ci = 1.96
+        # 0.99 confidence interval
+        ci = 2.576
 
         # compare if 0 is within the confidence interval around the difference of the means
         sigma_diff = (sigma_U**2 + sigma_Uref**2)**(1/2.);
