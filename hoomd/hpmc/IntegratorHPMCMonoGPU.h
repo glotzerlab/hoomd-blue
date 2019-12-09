@@ -278,7 +278,6 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     m_tuner_moves.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_moves", this->m_exec_conf));
     m_tuner_update_pdata.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_update_pdata", this->m_exec_conf));
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_excell_block_size", this->m_exec_conf));
-    m_tuner_accept.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_accept", this->m_exec_conf));
 
     // tuning parameters for narrow phase
     std::vector<unsigned int> valid_params;
@@ -292,6 +291,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
             }
         }
 
+    m_tuner_accept.reset(new Autotuner(valid_params, 5, 100000, "hpmc_accept", this->m_exec_conf));
     m_tuner_narrow.reset(new Autotuner(valid_params, 5, 100000, "hpmc_narrow", this->m_exec_conf));
     m_tuner_depletants.reset(new Autotuner(valid_params, 5, 100000, "hpmc_depletants", this->m_exec_conf));
 
@@ -1085,6 +1085,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
                     this->m_exec_conf->beginMultiGPU();
                     m_tuner_accept->begin();
+                    unsigned int param = m_tuner_accept->getParam();
+                    unsigned int block_size = param/10000;
+                    unsigned int tpp = param%10000;
                     gpu::hpmc_accept(d_update_order_by_ptl.data,
                         d_trial_move_type.data,
                         d_reject_out_of_cell.data,
@@ -1108,7 +1111,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         this->m_seed,
                         this->m_exec_conf->getRank()*this->m_nselect + i,
                         timestep,
-                        m_tuner_accept->getParam());
+                        block_size,
+                        tpp);
 
                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                         CHECK_CUDA_ERROR();

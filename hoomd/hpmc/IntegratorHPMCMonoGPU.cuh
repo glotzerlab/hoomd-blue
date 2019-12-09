@@ -334,7 +334,8 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  const unsigned int seed,
                  const unsigned int select,
                  const unsigned int timestep,
-                 const unsigned int block_size);
+                 const unsigned int block_size,
+                 const unsigned int tpp);
 
 #ifdef __HIPCC__
 namespace kernel
