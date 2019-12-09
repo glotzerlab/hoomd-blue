@@ -12,7 +12,7 @@ class Loggable(type):
             name = func.__name__
             if name in cls._meta_export_dict.keys():
                 raise KeyError("Multiple loggable quantities named "
-                            "{}.".format(name))
+                               "{}.".format(name))
             cls._meta_export_dict[name] = flag
             if is_property:
                 return property(func)
@@ -49,6 +49,19 @@ def dict_map(dict_, func):
     return new_dict
 
 
+def dict_fold(dict_, func, init_value, use_keys=False):
+    final_value = init_value
+    for key, value in dict_.items():
+        if isinstance(value, dict):
+            final_value = dict_fold(value, func, final_value)
+        else:
+            if use_keys:
+                final_value = func(key, final_value)
+            else:
+                final_value = func(value, final_value)
+    return final_value
+
+
 def generate_namespace(cls):
     return tuple(cls.__module__.split('.') + [cls.__name__])
 
@@ -75,15 +88,17 @@ class SafeNamespaceDict:
     def __init__(self):
         self._dict = dict()
 
+    def __len__(self):
+        return dict_fold(self._dict, lambda x, incr: incr + 1, 0)
+
     def key_exists(self, namespace):
-        if isinstance(namespace, str):
-            namespace = (namespace,)
-        elif not is_iterable(namespace) or len(namespace) == 0:
+        try:
+            namespace = self.validate_namespace(namespace)
+        except ValueError:
             return False
         current_dict = self._dict
-        current_namespace = []
+        # traverse through dictionary hierarchy
         for name in namespace:
-            current_namespace.append(name)
             try:
                 if name in current_dict.keys():
                     current_dict = current_dict[name]
@@ -95,21 +110,19 @@ class SafeNamespaceDict:
         return True
 
     def keys(self):
-        pass
+        raise NotImplementedError
 
     def pop_namespace(self, namespace):
         return (namespace[-1], namespace[:-1])
 
     def _setitem(self, namespace, value):
-        if self.key_exists(namespace):
+        if namespace in self:
             raise KeyError("Namespace {} is being used. Remove before "
                            "replacing.".format(namespace))
         # Grab parent dictionary creating sub dictionaries as necessary
         parent_dict = self._dict
-        current_namespace = []
         base_name, parent_namespace = self.pop_namespace(namespace)
         for name in parent_namespace:
-            current_namespace.append(name)
             # If key does not exist create key with empty dictionary
             try:
                 parent_dict = parent_dict[name]
@@ -120,27 +133,45 @@ class SafeNamespaceDict:
         parent_dict[base_name] = value
 
     def __setitem__(self, namespace, value):
-        if not isinstance(namespace, tuple):
-            if isinstance(namespace, str):
-                namespace = (namespace,)
-            else:
-                namespace = tuple(namespace)
+        try:
+            namespace = self.validate_namespace(namespace)
+        except ValueError:
+            raise KeyError("Expected a tuple or string key.")
         self._setitem(namespace, value)
 
     def _unsafe_getitem(self, namespace):
         ret_val = self._dict
+        if isinstance(namespace, str):
+            namespace = (namespace,)
         for name in namespace:
             ret_val = ret_val[name]
         return ret_val
 
     def __delitem__(self, namespace):
         '''Does not check that key exists.'''
+        if isinstance(namespace, str):
+            namespace = (namespace,)
         parent_dict = self._unsafe_getitem(namespace[:-1])
         del parent_dict[namespace[-1]]
+
+    def __contains__(self, namespace):
+        return self.key_exists(namespace)
+
+    def validate_namespace(self, namespace):
+        if isinstance(namespace, str):
+            namespace = (namespace,)
+        if not isinstance(namespace, tuple):
+            raise ValueError("Expected a string or tuple namespace.")
+        return namespace
 
 
 class Logger(SafeNamespaceDict):
     '''Logs Hoomd Operation data and custom quantities.'''
+
+    def __init__(self, accepted_flags=None):
+        accepted_flags = [] if accepted_flags is None else accepted_flags
+        self._flags = accepted_flags
+        super().__init__()
 
     def _grab_log_quantities_from_names(self, obj, quantities):
         if quantities is None:
@@ -148,20 +179,22 @@ class Logger(SafeNamespaceDict):
         else:
             log_quantities = []
             bad_keys = []
-            for quantity in quantities:
+            for quantity in self.wrap_quantity(quantities):
                 try:
-                    log_quantity.append(obj._export_dict[quantity])
+                    log_quantities.append(obj._export_dict[quantity])
                 except KeyError:
                     bad_keys.append(quantity)
             if bad_keys != []:
                 raise KeyError("Log quantities {} do not exist for {} obj."
                                "".format(bad_keys, obj))
-            return log_quantity
+            return log_quantities
 
     def add(self, obj, quantities=None):
         used_namespaces = []
-        for quantity in self._grab_log_quantities_from_names(quantities):
-            used_namespaces.append(self._add_single_quantity(quantity, obj))
+        for quantity in self._grab_log_quantities_from_names(obj, quantities):
+            if self.flag_checks(quantity):
+                used_namespaces.append(self._add_single_quantity(obj,
+                                                                 quantity))
         return used_namespaces
 
     def remove(self, obj=None, quantities=None):
@@ -169,61 +202,57 @@ class Logger(SafeNamespaceDict):
             return None
 
         if obj is None:
-            for quantity in quantities:
-                if self.key_exists(quantity):
+            for quantity in self.wrap_quantity(quantities):
+                if quantity in self:
                     del self[quantity]
         else:
             for quantity in self._grab_log_quantities_from_names(obj,
                                                                  quantities):
                 # Check all currently used namespaces for object's quantities
                 for namespace in quantity.yield_names():
-                    base_name, parent_namespace = self.pop_namespace(namespace)
-                    # Check for namespace existance. If a namespace doesn't
-                    # exist all future yielded ones won't as well, so we can
-                    # terminate the loop.
-                    if self.key_exists(namespace):
-                        # Need to see if the namespace contains as its value the
-                        # object given.
-                        parent_dict = self._unsafe_getitem(parent_namespace)
-                        try:
-                            # If namespace contains object remove
-                            if parent_dict[base_name][0] is obj:
-                                del parent_dict[base_name]
-                                continue
-                        except TypeError:
-                            continue
+                    if namespace in self:
+                        if self._contains_obj(namespace, obj):
+                            del self[namespace]
                     else:
                         break
 
-    def _add_single_quanity(self, quantity, obj):
+    def _add_single_quantity(self, obj, quantity):
+        '''If quantity for obj is not logged add to first available namespace.
+        '''
         for namespace in quantity.yield_names():
-            if self.key_exists(namespace):
-                continue
+            if namespace in self:
+                if self._contains_obj(namespace, obj):
+                    return namespace
+                else:
+                    continue
             else:
                 self[namespace] = (obj, quantity.name, quantity.flag)
                 return namespace
 
     def __setitem__(self, namespace, value):
-        if not isinstance(value, tuple):
+        if not isinstance(value, tuple) or len(value) != 3:
             raise ValueError("Logger expects values of "
                              "(obj, method/property, flag)")
         super().__setitem__(namespace, value)
 
     def __iadd__(self, obj):
-        return self.add(obj)
+        self.add(obj)
+        return self
 
     def __isub__(self, value):
-        if isinstance(value, str):
-            self.remove(quantities=[value])
-        elif hasattr(value, '__iter__'):
+        if isinstance(value, str) or isinstance(value, tuple):
             self.remove(quantities=value)
+        elif hasattr(value, '__iter__'):
+            for v in value:
+                self.__isub__(v)
         else:
             self.remove(obj=value)
+        return self
 
     def log(self):
         return dict_map(self._dict, self._log_conversion)
 
-    def _log_conversion(obj_prop_tuple):
+    def _log_conversion(self, obj_prop_tuple):
         obj, prop, flag = obj_prop_tuple
         value = getattr(obj, prop)
         if hasattr(value, '__call__'):
@@ -232,3 +261,23 @@ class Logger(SafeNamespaceDict):
             return value
         else:
             return (value, flag)
+
+    def flag_checks(self, log_quantity):
+        if self._flags == []:
+            return True
+        else:
+            return log_quantity.flag in self._flags
+
+    def _contains_obj(self, namespace, obj):
+        '''evaulates based on identity.'''
+        val = self._unsafe_getitem(namespace)
+        if isinstance(val, tuple):
+            return val[0] is obj
+        else:
+            return False
+
+    def wrap_quantity(self, quantity):
+        if isinstance(quantity, str) or isinstance(quantity, tuple):
+            return [quantity]
+        else:
+            return quantity
