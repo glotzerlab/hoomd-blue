@@ -18,5 +18,5 @@
 	url = https://github.com/glotzerlab/random123.git
 [submodule "hoomd/extern/neighbor"]
 	path = hoomd/extern/neighbor
-	url = https://github.com/jglaser/neighbor.git
-	branch = hoomd_next
+	url = https://github.com/mphoward/neighbor
+	branch = hoomd-3
