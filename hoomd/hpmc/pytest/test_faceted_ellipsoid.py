@@ -3,101 +3,102 @@ import hoomd.hpmc
 import hoomd.hpmc._hpmc as hpmc
 import pytest
 import numpy as np
+import copy
 
 args_1 = {"normals": [(0, 0, 1),
-                        (0, 1, 0),
-                        (1, 0, 0),
-                        (0, 1, 1),
-                        (1, 1, 0),
-                        (1, 0, 1)],
-            "offsets": [1, 3, 2, 6, 3, 1],
-            "a": 3,
-            "b": 4,
-            "c": 1,
-            "vertices": [(0, 0, 0),
-                        (0, 0, 1),
-                        (0, 1, 0),
-                        (1, 0, 0),
-                        (1, 1, 1),
-                        (1, 1, 0)],
-            "origin": (0, 0, 0),
-            "ignore_statistics":1}
+                      (0, 1, 0),
+                      (1, 0, 0),
+                      (0, 1, 1),
+                      (1, 1, 0),
+                      (1, 0, 1)],
+          "offsets": [1, 3, 2, 6, 3, 1],
+          "a": 3,
+          "b": 4,
+          "c": 1,
+          "vertices": [(0, 0, 0),
+                       (0, 0, 1),
+                       (0, 1, 0),
+                       (1, 0, 0),
+                       (1, 1, 1),
+                       (1, 1, 0)],
+          "origin": (0, 0, 0),
+          "ignore_statistics": 1}
 
 args_2 = {"normals": [(0, 0, 0),
-                        (2, 1, 1),
-                        (1, 3, 3),
-                        (5, 1, 1),
-                        (1, 3, 0),
-                        (1, 2, 2)],
-            "offsets": [1, 3, 3, 2, 3, 1],
-            "a": 2,
-            "b": 1,
-            "c": 3,
-            "vertices": [(1, 0, 0),
-                        (1, 1, 0),
-                        (1, 2, 1),
-                        (0, 1, 1),
-                        (1, 1, 2),
-                        (0, 0, 1)],
-            "origin": (0, 0, 1),
-            "ignore_statistics":0}
+                      (2, 1, 1),
+                      (1, 3, 3),
+                      (5, 1, 1),
+                      (1, 3, 0),
+                      (1, 2, 2)],
+          "offsets": [1, 3, 3, 2, 3, 1],
+          "a": 2,
+          "b": 1,
+          "c": 3,
+          "vertices": [(1, 0, 0),
+                       (1, 1, 0),
+                       (1, 2, 1),
+                       (0, 1, 1),
+                       (1, 1, 2),
+                       (0, 0, 1)],
+          "origin": (0, 0, 1),
+          "ignore_statistics": 0}
 
 args_3 = {"normals": [(0, 0, 2), (0, 1, 1), (1, 3, 5), (0, 1, 6)],
-            "offsets": [6, 2, 2, 5],
-            "a": 1,
-            "b": 6,
-            "c": 6,
-            "vertices": [(0, 0, 0), (1, 1, 1), (1, 0, 2), (2, 1, 1)],
-            "origin": (0, 1, 0),
-            "ignore_statistics":1}
+          "offsets": [6, 2, 2, 5],
+          "a": 1,
+          "b": 6,
+          "c": 6,
+          "vertices": [(0, 0, 0), (1, 1, 1), (1, 0, 2), (2, 1, 1)],
+          "origin": (0, 1, 0),
+          "ignore_statistics": 1}
 
 args_4 = {"normals": [(0, 0, 2),
-                        (2, 2, 0),
-                        (3, 1, 1),
-                        (4, 1, 1),
-                        (1, 2, 0),
-                        (3, 3, 1),
-                        (1, 2, 1),
-                        (3, 3, 2)],
-            "offsets": [5, 3, 3, 4, 3, 4, 2, 2],
-            "a": 2,
-            "b": 2,
-            "c": 4,
-            "vertices": [(0, 1, 0),
-                        (1, 1, 1),
-                        (1, 0, 1),
-                        (0, 1, 1),
-                        (1, 1, 0),
-                        (0, 0, 1),
-                        (0, 0, 1),
-                        (0, 0, 1)],
-            "origin": (1, 0, 0),
-            "ignore_statistics":0}
+                      (2, 2, 0),
+                      (3, 1, 1),
+                      (4, 1, 1),
+                      (1, 2, 0),
+                      (3, 3, 1),
+                      (1, 2, 1),
+                      (3, 3, 2)],
+          "offsets": [5, 3, 3, 4, 3, 4, 2, 2],
+          "a": 2,
+          "b": 2,
+          "c": 4,
+          "vertices": [(0, 1, 0),
+                       (1, 1, 1),
+                       (1, 0, 1),
+                       (0, 1, 1),
+                       (1, 1, 0),
+                       (0, 0, 1),
+                       (0, 0, 1),
+                       (0, 0, 1)],
+          "origin": (1, 0, 0),
+          "ignore_statistics": 0}
 
 args_5 = {"normals": [(0, 0, 1),
-                        (0, 4, 0),
-                        (2, 0, 1),
-                        (0, 3, 1),
-                        (4, 1, 0),
-                        (2, 2, 1),
-                        (1, 3, 1),
-                        (1, 9, 0),
-                        (2, 2, 2)],
-            "offsets": [5, 4, 2, 2, 7, 3, 1, 4, 1],
-            "a": 6,
-            "b": 1,
-            "c": 1,
-            "vertices": [(0, 10, 3),
-                        (3, 2, 1),
-                        (1, 2, 1),
-                        (0, 1, 1),
-                        (1, 1, 0),
-                        (5, 0, 1),
-                        (0, 10, 1),
-                        (9, 5, 1),
-                        (0, 0, 1)],
-            "origin": (0, 0, 0),
-            "ignore_statistics":1}
+                      (0, 4, 0),
+                      (2, 0, 1),
+                      (0, 3, 1),
+                      (4, 1, 0),
+                      (2, 2, 1),
+                      (1, 3, 1),
+                      (1, 9, 0),
+                      (2, 2, 2)],
+          "offsets": [5, 4, 2, 2, 7, 3, 1, 4, 1],
+          "a": 6,
+          "b": 1,
+          "c": 1,
+          "vertices": [(0, 10, 3),
+                       (3, 2, 1),
+                       (1, 2, 1),
+                       (0, 1, 1),
+                       (1, 1, 0),
+                       (5, 0, 1),
+                       (0, 10, 1),
+                       (9, 5, 1),
+                       (0, 0, 1)],
+          "origin": (0, 0, 0),
+          "ignore_statistics": 1}
 
 
 def test_faceted_ellipsoid():
@@ -190,70 +191,82 @@ def test_shape_params_attached(device, dummy_simulation_factory):
         assert mc.shape['D'][key] == args_4[key]
         assert mc.shape['E'][key] == args_5[key]
 
-    args_1['normals'] = 'invalid'
-    args_2['normals'] = 1
-    args_3['normals'] = [1, 2, 3, 4]
-    args_4['origin'] = 1
-    args_5['origin'] = 'invalid'
+    args_1_invalid = copy.deepcopy(args_1)
+    args_2_invalid = copy.deepcopy(args_2)
+    args_3_invalid = copy.deepcopy(args_3)
+    args_4_invalid = copy.deepcopy(args_4)
+    args_5_invalid = copy.deepcopy(args_5)
+    args_1_invalid['normals'] = 'invalid'
+    args_2_invalid['normals'] = 1
+    args_3_invalid['normals'] = [1, 2, 3, 4]
+    args_4_invalid['origin'] = 1
+    args_5_invalid['origin'] = 'invalid'
 
     # check for errors on invalid input
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_1)
+        mc.shape['A'] = args_1_invalid
 
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_2)
+        mc.shape['A'] = args_2_invalid
 
     with pytest.raises(TypeError):
-        mc.shape['A'] = dict(args_3)
+        mc.shape['A'] = args_3_invalid
 
     with pytest.raises(TypeError):
-        mc.shape['A'] = dict(args_4)
+        mc.shape['A'] = args_4_invalid
 
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_5)
+        mc.shape['A'] = args_5_invalid
 
 
-    args_1['offsets'] = 'invalid'
-    args_2['offsets'] = 1
-    args_3['offsets'] = [(0, 0, 0), (0, 0, 1), (1, 0, 0), (1, 1, 1,)]
-    args_4['ignore_statistics'] = 'invalid'
+    args_1_invalid = copy.deepcopy(args_1)
+    args_2_invalid = copy.deepcopy(args_2)
+    args_3_invalid = copy.deepcopy(args_3)
+    args_4_invalid = copy.deepcopy(args_4)
+    args_1_invalid['offsets'] = 'invalid'
+    args_2_invalid['offsets'] = 1
+    args_3_invalid['offsets'] = [(0, 0, 0), (0, 0, 1), (1, 0, 0), (1, 1, 1,)]
+    args_4_invalid['ignore_statistics'] = 'invalid'
 
     # check for errors on invalid input
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_1)
-
-    with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_2)
+        mc.shape['A'] = args_1_invalid
 
     with pytest.raises(TypeError):
-        mc.shape['A'] = dict(args_3)
-
-    with pytest.raises(TypeError):
-        mc.shape['A'] = dict(args_4)
+        mc.shape['A'] = args_2_invalid
 
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_5)
+        mc.shape['A'] = args_3_invalid
 
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = args_4_invalid
 
-    args_1['vertices'] = 'invalid'
-    args_2['vertices'] = 1
-    args_3['vertices'] = [1, 2, 3, 4]
-    args_4['a'] = [1, 2, 3]
-    args_5['b'] = 'invalid'
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = args_5_invalid
+
+    args_1_invalid = copy.deepcopy(args_1)
+    args_2_invalid = copy.deepcopy(args_2)
+    args_3_invalid = copy.deepcopy(args_3)
+    args_4_invalid = copy.deepcopy(args_4)
+    args_1_invalid['vertices'] = 'invalid'
+    args_2_invalid['vertices'] = 1
+    args_3_invalid['vertices'] = [1, 2, 3, 4]
+    args_4_invalid['a'] = [1, 2, 3]
+    args_5_invalid['b'] = 'invalid'
 
     # check for errors on invalid input
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_1)
-
-    with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_2)
+        mc.shape['A'] = args_1_invalid
 
     with pytest.raises(TypeError):
-        mc.shape['A'] = dict(args_3)
+        mc.shape['A'] = args_2_invalid
+
+    with pytest.raises(TypeError):
+        mc.shape['A'] = args_3_invalid
 
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_4)
+        mc.shape['A'] = args_4_invalid
 
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_5)
+        mc.shape['A'] = args_5_invalid
 

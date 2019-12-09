@@ -69,7 +69,7 @@ struct SphinxParams : ShapeParams
 
     #ifndef NVCC
     /// Empty constructor
-    SphinxParams() { }
+    SphinxParams() : circumsphereDiameter(0.0), N(0) { }
 
 
     /// Construct from a python dictionary
@@ -87,7 +87,10 @@ struct SphinxParams : ShapeParams
 
         if (N != N_centers)
             {
-            throw std::runtime_error("Number of centers not equal to number of diameters");
+            throw std::runtime_error(
+                std::string("Number of centers not equal to number of diameters")
+                + pybind11::str(centers).cast<std::string>() + " "
+                + pybind11::str(diameters).cast<std::string>());
             }
 
         OverlapReal radius = OverlapReal(0.0);

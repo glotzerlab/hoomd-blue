@@ -2,7 +2,7 @@ import hoomd
 import hoomd.hpmc
 import hoomd.hpmc._hpmc as hpmc
 import pytest
-import numpy as np
+import copy
 
 args_1 = {'diameters':[1, 4, 2, 8, 5, 9],
             'centers':[(0, 0, 0),
@@ -121,9 +121,14 @@ def test_shape_params_attached(device, dummy_simulation_factory):
         assert mc.shape['C'][key] == args_3[key]
         assert mc.shape['D'][key] == args_4[key]
 
-    args_1['diameters'] = 'invalid'
-    args_2['diameters'] = 1
-    args_3['diameters'] = [(0, 0, 0),
+
+    args_1_invalid = copy.deepcopy(args_1)
+    args_2_invalid = copy.deepcopy(args_2)
+    args_3_invalid = copy.deepcopy(args_3)
+    args_4_invalid = copy.deepcopy(args_4)
+    args_1_invalid['diameters'] = 'invalid'
+    args_2_invalid['diameters'] = 1
+    args_3_invalid['diameters'] = [(0, 0, 0),
                            (1, 1, 1),
                            (1, 0, 1),
                            (0, 1, 1),
@@ -131,33 +136,36 @@ def test_shape_params_attached(device, dummy_simulation_factory):
                            (0, 0, 1),
                            (2, 2, 1),
                            (3, 5, 3)]
-    args_4['ignore_statistics'] = 'invalid'
+    args_4_invalid['ignore_statistics'] = 'invalid'
 
     # check for errors on invalid input
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_1)
+        mc.shape['A'] = dict(args_1_invalid)
 
     with pytest.raises(TypeError):
-        mc.shape['A'] = dict(args_2)
+        mc.shape['A'] = dict(args_2_invalid)
 
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_3)
+        mc.shape['A'] = dict(args_3_invalid)
 
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_4)
+        mc.shape['A'] = dict(args_4_invalid)
 
-    args_1['centers'] = 'invalid'
-    args_2['centers'] = 1
-    args_3['centers'] = [1, 2, 3, 4, 5, 6, 7, 8]
+    args_1_invalid = copy.deepcopy(args_1)
+    args_2_invalid = copy.deepcopy(args_2)
+    args_3_invalid = copy.deepcopy(args_3)
+    args_1_invalid['centers'] = 'invalid'
+    args_2_invalid['centers'] = 1
+    args_3_invalid['centers'] = [1, 2, 3, 4, 5, 6, 7, 8]
 
     # check for errors on invalid input
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_1)
+        mc.shape['A'] = dict(args_1_invalid)
 
     with pytest.raises(TypeError):
-        mc.shape['A'] = dict(args_2)
+        mc.shape['A'] = dict(args_2_invalid)
 
     with pytest.raises(TypeError):
-        mc.shape['A'] = dict(args_3)
+        mc.shape['A'] = dict(args_3_invalid)
 
 

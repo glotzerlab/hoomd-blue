@@ -2,6 +2,7 @@ import hoomd
 import hoomd.hpmc
 from hoomd.hpmc import _hpmc
 import pytest
+import copy
 
 sph_args_1 = {'diameter': 1, 'orientable': 0, 'ignore_statistics': 1}
 sph_args_2 = {'diameter': 9, 'orientable': 1, 'ignore_statistics': 1}
@@ -35,20 +36,9 @@ sph_union_args4 = {'shapes': [sph_args_1, sph_args_2, sph_args_3],
                    'capacity': 4,
                    'ignore_statistics': 1}
 
-sph_union_args5 = sph_union_args1
-sph_union_args6 = sph_union_args2
-sph_union_args7 = sph_union_args3
-sph_union_args8 = sph_union_args4
-sph_union_args9 = sph_union_args1
-sph_union_args10 = sph_union_args2
-sph_union_args11 = sph_union_args3
-sph_union_args12 = sph_union_args4
-
-
-
 
 def test_dict_conversions():
-        
+
     test_sph_union1 = _hpmc.SphereUnionParams(sph_union_args1)
     test_sph_dict1 = test_sph_union1.asDict()
     assert test_sph_dict1 == sph_union_args1
@@ -56,7 +46,7 @@ def test_dict_conversions():
     test_sph_union2 = _hpmc.SphereUnionParams(sph_union_args2)
     test_sph_dict2 = test_sph_union2.asDict()
     assert test_sph_dict2 == sph_union_args2
-    
+
     test_sph_union3 = _hpmc.SphereUnionParams(sph_union_args3)
     test_sph_dict3 = test_sph_union3.asDict()
     assert test_sph_dict3 == sph_union_args3
@@ -79,10 +69,10 @@ def test_shape_params():
     assert mc.shape['A']['ignore_statistics'] is False
 
 
-    
+
 
 def test_shape_params_attached(device, dummy_simulation_factory):
-    
+
     mc = hoomd.hpmc.integrate.SphereUnion(23456)
     mc.shape['A'] = sph_union_args1
     mc.shape['B'] = sph_union_args2
@@ -113,7 +103,7 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     assert mc.shape['C']['overlap'] == sph_union_args3['overlap']
     assert mc.shape['C']['capacity'] == sph_union_args3['capacity']
     assert mc.shape['C']['ignore_statistics'] == sph_union_args3['ignore_statistics']
-    
+
     assert mc.shape['D']['shapes'] == sph_union_args4['shapes']
     assert mc.shape['D']['positions'] == sph_union_args4['positions']
     assert mc.shape['D']['orientations'] == sph_union_args4['orientations']
@@ -121,57 +111,64 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     assert mc.shape['D']['capacity'] == sph_union_args4['capacity']
     assert mc.shape['D']['ignore_statistics'] == sph_union_args4['ignore_statistics']
 
+    sph_union_args1_invalid = copy.deepcopy(sph_union_args1)
+    sph_union_args2_invalid = copy.deepcopy(sph_union_args2)
+    sph_union_args3_invalid = copy.deepcopy(sph_union_args3)
+    sph_union_args4_invalid = copy.deepcopy(sph_union_args4)
+    sph_union_args1_invalid['shapes'] = 'invalid'
+    sph_union_args2_invalid['shapes'] = 1
+    sph_union_args3_invalid['shapes'] = [1, 2, 3]
+    sph_union_args4_invalid['orientations'] = 'invalid'
 
-    sph_union_args1['shapes'] = 'invalid'
-    sph_union_args2['shapes'] = 1
-    sph_union_args3['shapes'] = [1, 2, 3]
-    sph_union_args4['orientations'] = 'invalid'
-    
     # check for errors on invalid input
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = sph_union_args1
+        mc.shape['A'] = sph_union_args1_invalid
 
     with pytest.raises(TypeError):
-        mc.shape['A'] = sph_union_args2
-        
+        mc.shape['A'] = sph_union_args2_invalid
+
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = sph_union_args3
-        
+        mc.shape['A'] = sph_union_args3_invalid
+
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = sph_union_args4
-    
-    sph_union_args5['orientations'] = 1
-    sph_union_args6['positions'] = 1
-    sph_union_args7['positions'] = [1, 2, 3]
-    sph_union_args8['positions'] = 'invalid'
-        
-    with pytest.raises(TypeError):
-        mc.shape['A'] = sph_union_args5
+        mc.shape['A'] = sph_union_args4_invalid
+
+    sph_union_args1_invalid = copy.deepcopy(sph_union_args1)
+    sph_union_args2_invalid = copy.deepcopy(sph_union_args2)
+    sph_union_args3_invalid = copy.deepcopy(sph_union_args3)
+    sph_union_args4_invalid = copy.deepcopy(sph_union_args4)
+    sph_union_args1_invalid['orientations'] = 1
+    sph_union_args2_invalid['positions'] = 1
+    sph_union_args3_invalid['positions'] = [1, 2, 3]
+    sph_union_args4_invalid['positions'] = 'invalid'
 
     with pytest.raises(TypeError):
-        mc.shape['A'] = sph_union_args6
-        
-    with pytest.raises(RuntimeError):
-        mc.shape['A'] = sph_union_args7
-        
-    with pytest.raises(RuntimeError):
-        mc.shape['A'] = sph_union_args8
-        
-    
-    sph_union_args9['overlap'] = 'invalid'
-    sph_union_args10['capacity'] = 'invalid'
-    sph_union_args11['capacity'] = [1, 2, 3]
-    sph_union_args12['ignore_statistics'] = 'invalid'    
-    
-    with pytest.raises(TypeError):
-        mc.shape['A'] = sph_union_args9
+        mc.shape['A'] = sph_union_args1_invalid
 
     with pytest.raises(TypeError):
-        mc.shape['A'] = sph_union_args10
-        
+        mc.shape['A'] = sph_union_args2_invalid
+
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = sph_union_args11
-        
+        mc.shape['A'] = sph_union_args3_invalid
+
     with pytest.raises(RuntimeError):
-        mc.shape['A'] = sph_union_args12
+        mc.shape['A'] = sph_union_args4_invalid
+
+
+    sph_union_args1_invalid['overlap'] = 'invalid'
+    sph_union_args2_invalid['capacity'] = 'invalid'
+    sph_union_args3_invalid['capacity'] = [1, 2, 3]
+    sph_union_args4_invalid['ignore_statistics'] = 'invalid'
+
+    with pytest.raises(TypeError):
+        mc.shape['A'] = sph_union_args1_invalid
+
+    with pytest.raises(TypeError):
+        mc.shape['A'] = sph_union_args2_invalid
+
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = sph_union_args3_invalid
+
+    with pytest.raises(RuntimeError):
+        mc.shape['A'] = sph_union_args4_invalid
 

@@ -37,12 +37,9 @@ template<class Shape>
 struct ShapeUnionParams : ShapeParams
     {
     /** Default constructor
-
-        @note Use of this constructor with N != 0 is intended only for unit tests
     */
-    DEVICE ShapeUnionParams(unsigned int _N=0)
-        : mpos(_N, false), morientation(_N, false), mparams(_N, false),
-          moverlap(_N, false), diameter(0.0), N(_N), ignore(0)
+    DEVICE ShapeUnionParams()
+        : diameter(0.0), N(0), ignore(0)
         {
         }
 
@@ -118,6 +115,16 @@ struct ShapeUnionParams : ShapeParams
 
     #ifndef NVCC
 
+    /** Construct with a given number of members
+
+        @note Use of this constructor with N != 0 is intended only for unit tests
+    */
+    DEVICE ShapeUnionParams(unsigned int _N)
+        : mpos(_N, false), morientation(_N, false), mparams(_N, false),
+          moverlap(_N, false), diameter(0.0), N(_N), ignore(0)
+        {
+        }
+
     ShapeUnionParams(pybind11::dict v, bool managed=false)
         {
         // list of dicts to set parameters for member shapes
@@ -138,15 +145,22 @@ struct ShapeUnionParams : ShapeParams
 
         if (pybind11::len(positions) != N)
             {
-            throw std::runtime_error("len(positions) != len(shapes)");
+            throw std::runtime_error(std::string("len(positions) != len(shapes): ")
+                                     + "positions=" + pybind11::str(positions).cast<std::string>() +
+                                     + " shapes=" + pybind11::str(shapes).cast<std::string>() );
             }
         if (pybind11::len(orientations) != N)
             {
-            throw std::runtime_error("len(orientations) != len(shapes)");
+            throw std::runtime_error(std::string("len(orientations) != len(shapes): ")
+                                     + "orientations="
+                                     + pybind11::str(orientations).cast<std::string>() +
+                                     + " shapes=" + pybind11::str(shapes).cast<std::string>() );
             }
         if (pybind11::len(overlap) != N)
             {
-            throw std::runtime_error("len(overlaps) != len(shapes)");
+            throw std::runtime_error(std::string("len(overlap) != len(shapes): ")
+                                     + "overlaps=" + pybind11::str(overlap).cast<std::string>() +
+                                     + " shapes=" + pybind11::str(shapes).cast<std::string>() );
             }
 
         hpmc::detail::OBB *obbs = new hpmc::detail::OBB[N];
@@ -166,7 +180,10 @@ struct ShapeUnionParams : ShapeParams
 
             pybind11::list position = pybind11::cast<pybind11::list>(positions[i]);
             if (len(position) != 3)
-                throw std::runtime_error("Each position must have 3 elements");
+                throw std::runtime_error("Each position must have 3 elements: found "
+                                        + pybind11::str(position).cast<std::string>()
+                                        + " in " + pybind11::str(positions).cast<std::string>());
+
             vec3<OverlapReal> pos = vec3<OverlapReal>(pybind11::cast<OverlapReal>(position[0]),
                                                       pybind11::cast<OverlapReal>(position[1]),
                                                       pybind11::cast<OverlapReal>(position[2]));

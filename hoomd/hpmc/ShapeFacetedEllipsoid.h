@@ -78,7 +78,9 @@ struct FacetedEllipsoidParams : ShapeParams
             {
             pybind11::list normals_i = pybind11::cast<pybind11::list>(normals[i]);
             if (len(normals_i) != 3)
-                throw std::runtime_error("Each normal must have 3 elements");
+                throw std::runtime_error("Each normal must have 3 elements: found "
+                                        + pybind11::str(normals_i).cast<std::string>()
+                                        + " in " + pybind11::str(normals).cast<std::string>());
             n[i] = vec3<OverlapReal>(pybind11::cast<OverlapReal>(normals_i[0]),
                                      pybind11::cast<OverlapReal>(normals_i[1]),
                                      pybind11::cast<OverlapReal>(normals_i[2]));
