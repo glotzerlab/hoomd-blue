@@ -286,11 +286,7 @@ __global__ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
         if ((accept && d_reject[i]) || (!accept && !d_reject[i]))
             {
             // flag that we're not done yet
-            #if (__CUDA_ARCH__ >= 600)
-            atomicAdd_system(d_condition,1);
-            #else
             atomicAdd(d_condition,1);
-            #endif
             }
 
         // write out to device memory
@@ -390,7 +386,7 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  const float *d_energy_old,
                  const float *d_energy_new,
                  const unsigned int maxn_patch,
-                 unsigned int *d_condition,
+                 unsigned int **d_condition,
                  const unsigned int seed,
                  const unsigned int select,
                  const unsigned int timestep,
@@ -447,7 +443,7 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
             d_energy_old,
             d_energy_new,
             maxn_patch,
-            d_condition,
+            d_condition[idev],
             seed,
             select,
             timestep);

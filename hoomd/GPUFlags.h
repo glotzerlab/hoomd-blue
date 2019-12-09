@@ -67,7 +67,7 @@ template<class T> class PYBIND11_EXPORT GPUFlags
             }
 
         //! Read the flags on the host
-        inline const T readFlags();
+        inline const T readFlags() const;
 
         //! Reset the flags on the host
         inline void resetFlags(const T flags);
@@ -140,7 +140,7 @@ template<class T> GPUFlags<T>::~GPUFlags()
     deallocate();
     }
 
-template<class T> GPUFlags<T>::GPUFlags(const GPUFlags& from) : m_exec_conf(from.m_exec_conf), m_mapped(false),
+template<class T> GPUFlags<T>::GPUFlags(const GPUFlags& from) : m_exec_conf(from.m_exec_conf), m_mapped(from.m_mapped),
 #ifdef ENABLE_HIP
         d_data(NULL),
 #endif
@@ -151,7 +151,7 @@ template<class T> GPUFlags<T>::GPUFlags(const GPUFlags& from) : m_exec_conf(from
     memclear();
 
     // copy over the data to the new GPUFlags
-    this->resetFlags(from.readFlags);
+    this->resetFlags(from.readFlags());
     }
 
 template<class T> GPUFlags<T>& GPUFlags<T>::operator=(const GPUFlags& rhs)
@@ -337,7 +337,7 @@ template<class T> void GPUFlags<T>::memclear()
     launches that may set the flags, readFlags() will wait until they complete and will return any flags possibly
     set by those kernels.
 */
-template<class T> const T GPUFlags<T>::readFlags()
+template<class T> const T GPUFlags<T>::readFlags() const
     {
 #ifdef ENABLE_HIP
     if (m_mapped)
