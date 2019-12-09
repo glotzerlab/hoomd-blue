@@ -1116,21 +1116,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     m_tuner_accept->end();
                     this->m_exec_conf->endMultiGPU();
 
-                    // update reject flags
-                    this->m_exec_conf->beginMultiGPU();
-                    for (int idev = this->m_pdata->getGPUPartition().getNumActiveGPUs() - 1; idev >= 0; --idev)
-                        {
-                        auto range = this->m_pdata->getGPUPartition().getRangeAndSetGPU(idev);
-                        if (range.second-range.first==0)
-                            continue;
-
-                        // update reject flags
-                        hipMemcpyAsync(d_reject.data+range.first, d_reject_out.data+range.first, sizeof(unsigned int)*(range.second-range.first), hipMemcpyDeviceToDevice);
-                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                            CHECK_CUDA_ERROR();
-                        }
-                    this->m_exec_conf->endMultiGPU();
                     }
+                // update reject flags
+                std::swap(m_reject,  m_reject_out);
 
                     {
                     ArrayHandle<unsigned int> h_condition(m_condition, access_location::host, access_mode::read);
