@@ -326,10 +326,10 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
     // particle we calculate for in the block
     if(partIdx < N)
         {
-        genAtomicAdd(&partForceTorques[threadIdx.y].x, localForceTorque.x);
-        genAtomicAdd(&partForceTorques[threadIdx.y].y, localForceTorque.y);
-        genAtomicAdd(&partForceTorques[threadIdx.y].z, localForceTorque.z);
-        genAtomicAdd(&partForceTorques[threadIdx.y].w, localForceTorque.w);
+        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].x, (Real) localForceTorque.x);
+        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].y, (Real) localForceTorque.y);
+        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].z, (Real) localForceTorque.z);
+        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].w, (Real) localForceTorque.w);
         genAtomicAdd(partVirials + 6*threadIdx.y + 0, localVirial[0]);
         genAtomicAdd(partVirials + 6*threadIdx.y + 1, localVirial[1]);
         genAtomicAdd(partVirials + 6*threadIdx.y + 3, localVirial[3]);

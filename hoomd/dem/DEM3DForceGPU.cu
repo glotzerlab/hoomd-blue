@@ -428,14 +428,14 @@ __global__ void gpu_compute_dem3d_forces_kernel(
     // particle we calculate for in the block.
     if(partIdx < N)
         {
-        genAtomicAdd(&partForces[threadIdx.x].x, localForce.x);
-        genAtomicAdd(&partForces[threadIdx.x].y, localForce.y);
-        genAtomicAdd(&partForces[threadIdx.x].z, localForce.z);
-        genAtomicAdd(&partForces[threadIdx.x].w, localForce.w);
+        genAtomicAdd((Real *) &partForces[threadIdx.x].x, (Real) localForce.x);
+        genAtomicAdd((Real *) &partForces[threadIdx.x].y, (Real) localForce.y);
+        genAtomicAdd((Real *) &partForces[threadIdx.x].z, (Real) localForce.z);
+        genAtomicAdd((Real *) &partForces[threadIdx.x].w, (Real) localForce.w);
 
-        genAtomicAdd(&partTorques[threadIdx.x].x, localTorque.x);
-        genAtomicAdd(&partTorques[threadIdx.x].y, localTorque.y);
-        genAtomicAdd(&partTorques[threadIdx.x].z, localTorque.z);
+        genAtomicAdd((Real *) &partTorques[threadIdx.x].x, (Real) localTorque.x);
+        genAtomicAdd((Real *) &partTorques[threadIdx.x].y, (Real) localTorque.y);
+        genAtomicAdd((Real *) &partTorques[threadIdx.x].z, (Real) localTorque.z);
 
         for(size_t i(0); i < 6; ++i)
             genAtomicAdd(partVirials + 6*threadIdx.x + i, localVirial[i]);
