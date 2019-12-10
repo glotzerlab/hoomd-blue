@@ -63,17 +63,21 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
     m_mpcd_sys->getCellList()->getSizeChangeSignal().connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
 
     // create new data type for the pdata_element
-    const int nitems = 5;
-    int blocklengths[nitems] = {4,4,1,1,1};
-    MPI_Datatype types[nitems] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_UNSIGNED, MPI_UNSIGNED, MPI_UB};
+    const int nitems = 4;
+    int blocklengths[nitems] = {4,4,1,1};
+    MPI_Datatype types[nitems] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_UNSIGNED, MPI_UNSIGNED};
     MPI_Aint offsets[nitems];
     offsets[0] = offsetof(mpcd::detail::pdata_element, pos);
     offsets[1] = offsetof(mpcd::detail::pdata_element, vel);
     offsets[2] = offsetof(mpcd::detail::pdata_element, tag);
     offsets[3] = offsetof(mpcd::detail::pdata_element, comm_flag);
-    offsets[4] = sizeof(mpcd::detail::pdata_element);
-    MPI_Type_struct(nitems, blocklengths, offsets, types, &m_pdata_element);
+    // this needs to be made via the resize method to get its upper bound correctly
+    MPI_Datatype tmp;
+    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
+    MPI_Type_commit(&tmp);
+    MPI_Type_create_resized(tmp, 0, sizeof(mpcd::detail::pdata_element), &m_pdata_element);
     MPI_Type_commit(&m_pdata_element);
+    MPI_Type_free(&tmp);
 
     initializeNeighborArrays();
     }
