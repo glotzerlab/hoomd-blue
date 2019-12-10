@@ -972,9 +972,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     this->m_aabb_tree_invalid = true;
 
     // set current MPS value
-    hpmc_counters_t run_counters = getCounters(1);
-    double cur_time = double(m_clock.getTime()) / Scalar(1e9);
-    m_mps = double(run_counters.getNMoves()) / cur_time;
+    hpmc_counters_t run_counters = this->getCounters(1);
+    double cur_time = double(this->m_clock.getTime()) / Scalar(1e9);
+    this->m_mps = double(run_counters.getNMoves()) / cur_time;
     }
 
 template< class Shape >
