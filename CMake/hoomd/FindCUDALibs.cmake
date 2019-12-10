@@ -164,11 +164,12 @@ if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
     find_path(HIP_rocfft_INCLUDE_DIR
         NAMES rocfft.h
         PATHS
-        ${HIP_ROOT_DIR}/rocfft/include
-        $ENV{ROCM_PATH}/rocfft/include
-        $ENV{HIP_PATH}/rocfft/include
-        /opt/rocm/include
-        /opt/rocm/rocfft/include
+        ${HIP_ROOT_DIR}/rocfft
+        $ENV{ROCM_PATH}/rocfft
+        $ENV{HIP_PATH}/rocfft
+        /opt/rocm
+        /opt/rocm/rocfft
+        PATH_SUFFIXES include
         NO_DEFAULT_PATH)
 
     mark_as_advanced(HIP_rocfft_LIBRARY)
@@ -254,4 +255,5 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(CUDALibs
   REQUIRED_CUDA_LIB_VARS
     ${REQUIRED_CUDA_LIB_VARS}
+    ${REQUIRED_HIP_LIB_VARS}
 )
