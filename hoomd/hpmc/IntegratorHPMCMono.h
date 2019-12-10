@@ -226,12 +226,10 @@ class IntegratorHPMCMono : public IntegratorHPMC
             flags[comm_flag::tag] = 1;
 
             std::ostringstream o;
-            o << "IntegratorHPMCMono: Requesting communication flags for pos tag ";
-            if (m_hasOrientation)
-                {
-                flags[comm_flag::orientation] = 1;
-                o << "orientation ";
-                }
+            o << "IntegratorHPMCMono: Requesting communication flags for pos tag orientation";
+
+            // many things depend internally on the orientation field (for ghosts) being initialized, therefore always request it
+            flags[comm_flag::orientation] = 1;
 
             if (m_patch)
                 {

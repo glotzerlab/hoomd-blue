@@ -131,6 +131,12 @@ class managed_deleter
                 }
             #endif
 
+            // we used placement new in the allocation, so call destructors explicitly
+            for (std::size_t i = 0; i < m_N; ++i)
+                {
+                ptr[i].~T();
+                }
+
             #ifdef ENABLE_CUDA
             if (m_use_device)
                 {
@@ -750,6 +756,9 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                 m_num_elements, allocation_ptr, allocation_bytes);
             deleter.setTag(m_tag);
             m_data = std::unique_ptr<T, decltype(deleter)>(reinterpret_cast<T *>(ptr), deleter);
+
+            // construct objects explicitly using placement new
+            for (std::size_t i = 0; i < m_num_elements; ++i) ::new ((void **) &((T *)ptr)[i]) T;
 
             // register new allocation
             if (this->m_exec_conf && this->m_exec_conf->getMemoryTracer())
