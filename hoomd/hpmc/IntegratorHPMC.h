@@ -220,9 +220,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         //! Get performance in moves per second
         virtual double getMPS()
             {
-            hpmc_counters_t counters = getCounters(1);
-            double cur_time = double(m_clock.getTime()) / Scalar(1e9);
-            return double(counters.getNMoves()) / cur_time;
+            return m_mps;
             }
 
         //! Reset statistics counters
@@ -373,6 +371,9 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         Scalar m_nominal_width;                      //!< nominal cell width
         Scalar m_extra_ghost_width;                  //!< extra ghost width to add
         ClockSource m_clock;                           //!< Timer for self-benchmarking
+
+        /// Moves-per-second value last recorded
+        double m_mps = 0;
 
         ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be used in a more general setting.
 
