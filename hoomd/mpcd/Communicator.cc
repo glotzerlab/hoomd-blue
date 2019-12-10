@@ -63,15 +63,16 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
     m_mpcd_sys->getCellList()->getSizeChangeSignal().connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
 
     // create new data type for the pdata_element
-    const int nitems = 4;
-    int blocklengths[nitems] = {4,4,1,1};
-    MPI_Datatype types[nitems] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_UNSIGNED, MPI_UNSIGNED};
+    const int nitems = 5;
+    int blocklengths[nitems] = {4,4,1,1,1};
+    MPI_Datatype types[nitems] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_UNSIGNED, MPI_UNSIGNED, MPI_UB};
     MPI_Aint offsets[nitems];
     offsets[0] = offsetof(mpcd::detail::pdata_element, pos);
     offsets[1] = offsetof(mpcd::detail::pdata_element, vel);
     offsets[2] = offsetof(mpcd::detail::pdata_element, tag);
     offsets[3] = offsetof(mpcd::detail::pdata_element, comm_flag);
-    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &m_pdata_element);
+    offsets[4] = sizeof(mpcd::detail::pdata_element);
+    MPI_Type_struct(nitems, blocklengths, offsets, types, &m_pdata_element);
     MPI_Type_commit(&m_pdata_element);
 
     initializeNeighborArrays();
