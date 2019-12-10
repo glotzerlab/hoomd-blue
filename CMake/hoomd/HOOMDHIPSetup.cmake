@@ -85,12 +85,16 @@ int main(int argc, char **argv)
         set(HIP_NVCC_FLAGS "")
         set(HIP_PLATFORM "nvcc")
         set(CUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/cub/")
+
+        # hipCUB
+        # funny enough, we require this only on NVIDA platforms due to issues with hipCUB's cmake build system
+        # on AMD platforms, it is an external dependency
+        set(HIPCUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/hipCUB/hipcub/include/;${CUB_INCLUDE_DIR}")
+
+
     endif()
 
     ENABLE_LANGUAGE(CUDA)
-
-    # hipCUB
-    set(HIPCUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/hipCUB/hipcub/include/;${CUB_INCLUDE_DIR}")
 
     if(NOT TARGET HIP::hip)
         add_library(HIP::hip INTERFACE IMPORTED)
