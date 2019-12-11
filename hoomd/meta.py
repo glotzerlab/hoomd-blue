@@ -36,7 +36,7 @@ def note_type(value):
     elif isinstance(value, str):
         return (value, 'string')
     else:
-        return (value, 'array')
+        return (value, 'multi')
 
 
 class _Operation(metaclass=Loggable):

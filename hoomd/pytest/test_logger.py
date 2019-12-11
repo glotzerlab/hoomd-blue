@@ -40,13 +40,13 @@ class DummyLoggable(metaclass=Loggable):
     def prop(self):
         return 1
 
-    @Loggable.log(flag='array')
+    @Loggable.log(flag='multi')
     def proplist(self):
         return [1, 2, 3]
 
     @Loggable.log(flag='dict')
     def propdict(self):
-        return dict(a=(2, 'scalar'), b=([2, 3, 4], 'array'))
+        return dict(a=(2, 'scalar'), b=([2, 3, 4], 'multi'))
 
 
 class TestLoggableMetaclass():
@@ -74,7 +74,7 @@ class TestLoggableMetaclass():
         assert set(self.dummy_loggable._export_dict.keys()
                    ) == set(loggable_list)
         expected_namespace = generate_namespace(self.dummy_loggable)
-        expected_flags = ['scalar', 'array', 'dict']
+        expected_flags = ['scalar', 'multi', 'dict']
         for loggable, flag in zip(loggable_list, expected_flags):
             log_quantity = self.dummy_loggable._export_dict[loggable]
             assert log_quantity.namespace == expected_namespace
@@ -233,18 +233,18 @@ class TestLogger:
 
     def test_flags_checks(self, blank_logger):
         scalar = LoggerQuantity('name', ('name', 'space'), flag='scalar')
-        array = LoggerQuantity('name', ('name', 'space'), flag='array')
+        multi = LoggerQuantity('name', ('name', 'space'), flag='multi')
         particle = LoggerQuantity('name', ('name', 'space'), flag='particle')
         assert all([blank_logger.flag_checks(log_quantity)
-                   for log_quantity in [scalar, array, particle]])
+                   for log_quantity in [scalar, multi, particle]])
         blank_logger._flags.append('scalar')
         assert blank_logger.flag_checks(scalar)
-        assert not blank_logger.flag_checks(array) and \
+        assert not blank_logger.flag_checks(multi) and \
             not blank_logger.flag_checks(particle)
         blank_logger._flags.append('particle')
         assert blank_logger.flag_checks(scalar) and \
             blank_logger.flag_checks(particle)
-        assert not blank_logger.flag_checks(array)
+        assert not blank_logger.flag_checks(multi)
 
     def test_add(self, blank_logger, logged_obj, base_namespace):
 
@@ -289,7 +289,7 @@ class TestLogger:
         namespaces = blank_logger.add(logged_obj)
         expected_namespace = base_namespace + ('prop',)
         assert set(namespaces) == set([expected_namespace])
-        blank_logger._flags.append('array')
+        blank_logger._flags.append('multi')
         expected_namespace = base_namespace + ('proplist',)
         namespaces = blank_logger.add(logged_obj)
         assert expected_namespace in blank_logger
@@ -394,5 +394,5 @@ class TestLogger:
         logged = log.log()
         inner_dict = logged['hoomd']['pytest']['test_logger']['DummyLoggable']
         assert inner_dict['prop'] == (logged_obj.prop, 'scalar')
-        assert inner_dict['proplist'] == (logged_obj.proplist, 'array')
+        assert inner_dict['proplist'] == (logged_obj.proplist, 'multi')
         assert inner_dict['propdict'] == logged_obj.propdict
