@@ -1302,6 +1302,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
     // If there are exclusions, correct for the long-range part of the potential
     if(m_nlist->getExclusionsSet())
         {
+        m_nlist->compute(timestep);
         fixExclusions();
         }
 
