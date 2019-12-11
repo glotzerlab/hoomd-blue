@@ -1232,12 +1232,6 @@ Scalar PPPMForceCompute::computePE()
 
 void PPPMForceCompute::computeForces(unsigned int timestep)
     {
-    if (m_particles_sorted)
-        {
-        // need to recompute forces
-        m_force_compute = true;
-        }
-
     if (m_prof) m_prof->push("PPPM");
 
     if (m_need_initialize || m_ptls_added_removed)
