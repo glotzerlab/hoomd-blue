@@ -5,8 +5,9 @@
 
 #include "NeighborListGPUTree.cuh"
 
-#include "hoomd/extern/neighbor/neighbor/LBVH.cuh"
-#include "hoomd/extern/neighbor/neighbor/LBVHTraverser.cuh"
+#include "hoomd/extern/neighbor/include/neighbor/LBVH.h"
+#include "hoomd/extern/neighbor/include/neighbor/LBVHTraverser.h"
+#include "hoomd/extern/neighbor/include/neighbor/TranslateOps.h"
 
 #include <thrust/execution_policy.h>
 #include <thrust/fill.h>
@@ -321,17 +322,115 @@ cudaError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
     return cudaSuccess;
     }
 
-// explicit templates for neighbor::LBVH with PointMapInsertOp
-template void neighbor::gpu::lbvh_gen_codes(unsigned int *, unsigned int *, const PointMapInsertOp&,
-    const Scalar3, const Scalar3, const unsigned int, const unsigned int, cudaStream_t);
-template void neighbor::gpu::lbvh_bubble_aabbs(const neighbor::gpu::LBVHData, const PointMapInsertOp&,
-    unsigned int *, const unsigned int, const unsigned int, cudaStream_t);
-template void neighbor::gpu::lbvh_one_primitive(const neighbor::gpu::LBVHData, const PointMapInsertOp&, cudaStream_t);
-template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
-    const ParticleQueryOp<false,false>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
-template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
-    const ParticleQueryOp<false,true>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
-template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
-    const ParticleQueryOp<true,false>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
-template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
-    const ParticleQueryOp<true,true>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
+static float double2float_rd(double x)
+    {
+    float xf = static_cast<float>(x);
+    if (static_cast<double>(xf) > x)
+        {
+        xf = std::nextafterf(xf, -std::numeric_limits<float>::infinity());
+        }
+    return xf;
+    }
+
+static float double2float_ru(double x)
+    {
+    float xf = static_cast<float>(x);
+    if (static_cast<double>(xf) < x)
+        {
+        xf = std::nextafterf(xf, std::numeric_limits<float>::infinity());
+        }
+    return xf;
+    }
+
+LBVHWrapper::LBVHWrapper()
+    {
+    lbvh_ = std::make_shared<neighbor::LBVH>();
+    }
+
+void LBVHWrapper::build(const PointMapInsertOp& insert, const Scalar3& lo, const Scalar3& hi, cudaStream_t stream)
+    {
+    float3 lof = make_float3(double2float_rd(lo.x), double2float_rd(lo.y), double2float_rd(lo.z));
+    float3 hif = make_float3(double2float_ru(hi.x), double2float_ru(hi.y), double2float_ru(hi.z));
+
+    lbvh_->build(insert, lof, hif, stream);
+    }
+
+unsigned int LBVHWrapper::getN() const
+    {
+    return lbvh_->getN();
+    }
+
+const thrust::device_vector<unsigned int>& LBVHWrapper::getPrimitives() const
+    {
+    return lbvh_->getPrimitives();
+    }
+
+void LBVHWrapper::setAutotunerParams(bool enable, unsigned int period)
+    {
+    lbvh_->setAutotunerParams(enable, period);
+    }
+
+LBVHTraverserWrapper::LBVHTraverserWrapper()
+    {
+    trav_ = std::make_shared<neighbor::LBVHTraverser>();
+    };
+
+void LBVHTraverserWrapper::setup(const MapTransformOp& map,
+                                 neighbor::LBVH& lbvh,
+                                 cudaStream_t stream)
+    {
+    trav_->setup(map, lbvh, stream);
+    }
+
+void LBVHTraverserWrapper::traverse(NeighborListOp& nlist_op,
+                                    const ParticleQueryOp<false,false>& query,
+                                    const MapTransformOp& map,
+                                    neighbor::LBVH& lbvh,
+                                    const Scalar3* images,
+                                    const unsigned int Nimages,
+                                    cudaStream_t stream)
+    {
+    neighbor::ImageListOp<Scalar3> translate(images, Nimages);
+    trav_->traverse(nlist_op, query, map, lbvh, translate, stream);
+    };
+
+void LBVHTraverserWrapper::traverse(NeighborListOp& nlist_op,
+                                    const ParticleQueryOp<true,false>& query,
+                                    const MapTransformOp& map,
+                                    neighbor::LBVH& lbvh,
+                                    const Scalar3* images,
+                                    const unsigned int Nimages,
+                                    cudaStream_t stream)
+    {
+    neighbor::ImageListOp<Scalar3> translate(images, Nimages);
+    trav_->traverse(nlist_op, query, map, lbvh, translate, stream);
+    };
+
+void LBVHTraverserWrapper::traverse(NeighborListOp& nlist_op,
+                                    const ParticleQueryOp<false,true>& query,
+                                    const MapTransformOp& map,
+                                    neighbor::LBVH& lbvh,
+                                    const Scalar3* images,
+                                    const unsigned int Nimages,
+                                    cudaStream_t stream)
+    {
+    neighbor::ImageListOp<Scalar3> translate(images, Nimages);
+    trav_->traverse(nlist_op, query, map, lbvh, translate, stream);
+    };
+
+void LBVHTraverserWrapper::traverse(NeighborListOp& nlist_op,
+                                    const ParticleQueryOp<true,true>& query,
+                                    const MapTransformOp& map,
+                                    neighbor::LBVH& lbvh,
+                                    const Scalar3* images,
+                                    const unsigned int Nimages,
+                                    cudaStream_t stream)
+    {
+    neighbor::ImageListOp<Scalar3> translate(images, Nimages);
+    trav_->traverse(nlist_op, query, map, lbvh, translate, stream);
+    };
+
+void LBVHTraverserWrapper::setAutotunerParams(bool enable, unsigned int period)
+    {
+    trav_->setAutotunerParams(enable, period);
+    }

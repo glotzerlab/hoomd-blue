@@ -106,8 +106,8 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
             m_streams.resize(m_pdata->getNTypes());
             for (unsigned int i=m_max_types; i < m_pdata->getNTypes(); ++i)
                 {
-                m_lbvhs[i].reset(new neighbor::LBVH(m_exec_conf));
-                m_traversers[i].reset(new neighbor::LBVHTraverser(m_exec_conf));
+                m_lbvhs[i].reset(new LBVHWrapper());
+                m_traversers[i].reset(new LBVHTraverserWrapper());
                 cudaStreamCreate(&m_streams[i]);
                 }
 
@@ -324,11 +324,11 @@ void NeighborListGPUTree::buildTree()
             if (Ni > 0)
                 {
                 const unsigned int first = h_type_first.data[i];
-                ArrayHandle<unsigned int> d_primitives(m_lbvhs[i]->getPrimitives(), access_location::device, access_mode::read);
+                auto d_primitives = m_lbvhs[i]->getPrimitives();
                 m_copy_tuner->begin();
                 gpu_nlist_copy_primitives(d_traverse_order.data + first,
                                           d_sorted_indexes.data + first,
-                                          d_primitives.data,
+                                          thrust::raw_pointer_cast(d_primitives.data()),
                                           Ni,
                                           m_copy_tuner->getParam());
                 if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
@@ -341,8 +341,8 @@ void NeighborListGPUTree::buildTree()
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
             if (m_lbvhs[i]->getN() == 0) continue;
-            neighbor::MapTransformOp map(d_sorted_indexes.data + h_type_first.data[i]);
-            m_traversers[i]->setup(map, *m_lbvhs[i], m_streams[i]);
+            MapTransformOp map(d_sorted_indexes.data + h_type_first.data[i]);
+            m_traversers[i]->setup(map, *(*m_lbvhs[i]).get(), m_streams[i]);
             }
         cudaDeviceSynchronize();
         }
@@ -374,6 +374,7 @@ void NeighborListGPUTree::traverseTree()
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diam(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_traverse_order(m_traverse_order, access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_image_list(m_image_list, access_location::device, access_mode::read);
 
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
@@ -420,7 +421,7 @@ void NeighborListGPUTree::traverseTree()
                 }
 
             // the transform operator is for the particles in this LBVH (j)
-            neighbor::MapTransformOp map(d_sorted_indexes.data + h_type_first.data[j]);
+            MapTransformOp map(d_sorted_indexes.data + h_type_first.data[j]);
 
             // dispatch traversal using template method (as a microoptimization)
             if (!m_filter_body && !m_diameter_shift)
@@ -434,7 +435,7 @@ void NeighborListGPUTree::traverseTree()
                                                       rcut,
                                                       rlist,
                                                       box);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i]);
                 }
             else if (m_filter_body && !m_diameter_shift)
                 {
@@ -447,7 +448,7 @@ void NeighborListGPUTree::traverseTree()
                                                      rcut,
                                                      rlist,
                                                      box);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i]);
                 }
             else if (!m_filter_body && m_diameter_shift)
                 {
@@ -460,7 +461,7 @@ void NeighborListGPUTree::traverseTree()
                                                      rcut,
                                                      rlist,
                                                      box);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i]);
                 }
             else
                 {
@@ -473,7 +474,7 @@ void NeighborListGPUTree::traverseTree()
                                                     rcut,
                                                     rlist,
                                                     box);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *m_lbvhs[j], m_image_list, m_streams[i]);
+                m_traversers[j]->traverse(nlist_op, query_op, map, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i]);
                 }
             }
         }
@@ -482,8 +483,8 @@ void NeighborListGPUTree::traverseTree()
     }
 
 /*!
- * (Re-)computes the translation vectors for traversing the BVH tree. At most, there are 26 translation vectors
- * when the simulation box is 3D periodic (the self-image is excluded). In 2D, there are at most 8 translation vectors.
+ * (Re-)computes the translation vectors for traversing the BVH tree. At most, there are 27 translation vectors
+ * when the simulation box is 3D periodic (self-image included). In 2D, there are at most 9 translation vectors.
  * In MPI runs, a ghost layer of particles is added from adjacent ranks, so there is no need to perform any translations
  * in this direction. The translation vectors are determined by linear combination of the lattice vectors, and must be
  * recomputed any time that the box resizes.
@@ -502,7 +503,6 @@ void NeighborListGPUTree::updateImageVectors()
         {
         m_n_images *= 3;
         }
-    m_n_images -= 1; // remove the self image
 
     // reallocate memory if necessary
     if (m_n_images > m_image_list.getNumElements())
@@ -517,7 +517,8 @@ void NeighborListGPUTree::updateImageVectors()
     Scalar3 latt_c = box.getLatticeVector(2);
 
     // iterate over all other combinations of images, skipping those that are
-    unsigned int n_images = 0;
+    h_image_list.data[0] = make_scalar3(0,0,0);
+    unsigned int n_images = 1;
     for (int i=-1; i <= 1 && n_images < m_n_images; ++i)
         {
         for (int j=-1; j <= 1 && n_images < m_n_images; ++j)

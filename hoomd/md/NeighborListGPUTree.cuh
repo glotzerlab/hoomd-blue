@@ -11,16 +11,15 @@
 */
 
 #include <cuda_runtime.h>
+#include <thrust/device_vector.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 
-#include "hoomd/extern/neighbor/neighbor/BoundingVolumes.h"
-#include "hoomd/extern/neighbor/neighbor/InsertOps.h"
-#include "hoomd/extern/neighbor/neighbor/TransformOps.h"
-
 #ifdef NVCC
+#include "hoomd/extern/neighbor/include/neighbor/BoundingVolumes.h"
+#include "hoomd/extern/neighbor/include/neighbor/InsertOps.h"
 #define DEVICE __device__ __forceinline__
 #define HOSTDEVICE __host__ __device__ __forceinline__
 #else
@@ -28,6 +27,26 @@
 #define HOSTDEVICE
 #endif
 
+// forward declaration
+namespace neighbor
+    {
+    class LBVH;
+    class LBVHTraverser;
+    }
+
+struct MapTransformOp
+    {
+    MapTransformOp(const unsigned int* map_) : map(map_) {}
+
+    HOSTDEVICE unsigned int operator()(unsigned int primitive) const
+        {
+        return map[primitive];
+        }
+
+    const unsigned int* map;
+    };
+
+#ifdef NVCC
 //! A bounding sphere that can skip traversal
 /*!
  * Extends the base neighbor::BoundingSphere to be skipped if the input
@@ -39,7 +58,6 @@ struct SkippableBoundingSphere : public neighbor::BoundingSphere
     //! Default constructor, always skip
     HOSTDEVICE SkippableBoundingSphere() : skip(true) {}
 
-    #ifdef NVCC
     //! Constructor
     /*!
      * \param o Center of sphere.
@@ -72,10 +90,10 @@ struct SkippableBoundingSphere : public neighbor::BoundingSphere
             return false;
             }
         }
-    #endif
 
     bool skip;  //!< Flag to skip traversal of sphere
     };
+#endif
 
 //! Insert operation for a point under a mapping.
 /*!
@@ -84,7 +102,7 @@ struct SkippableBoundingSphere : public neighbor::BoundingSphere
  * the array of particles that is pre-sorted by type so that the original
  * particle data does not need to be shuffled.
  */
-struct PointMapInsertOp : public neighbor::PointInsertOp
+struct PointMapInsertOp
     {
     //! Constructor
     /*!
@@ -93,7 +111,7 @@ struct PointMapInsertOp : public neighbor::PointInsertOp
      * \param N_ Number of primitives to insert.
      */
     PointMapInsertOp(const Scalar4 *points_, const unsigned int *map_, unsigned int N_)
-        : neighbor::PointInsertOp(points_, N_), map(map_)
+        : points(points_), map(map_), N(N_)
         {}
 
     #ifdef NVCC
@@ -112,7 +130,14 @@ struct PointMapInsertOp : public neighbor::PointInsertOp
         }
     #endif
 
+    HOSTDEVICE unsigned int size() const
+        {
+        return N;
+        }
+
+    const Scalar4* points;
     const unsigned int *map;    //!< Map of particle indexes.
+    const unsigned int N;
     };
 
 //! Neighbor list particle query operation.
@@ -306,6 +331,7 @@ struct ParticleQueryOp
     const BoxDim box;           //!< Box dimensions
     };
 
+
 //! Operation to write the neighbor list
 /*!
  * The neighbor list is assumed to be aligned to multiples of 4. This enables
@@ -492,6 +518,83 @@ cudaError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
                                       const unsigned int *d_primitives,
                                       const unsigned int N,
                                       const unsigned int block_size);
+
+class LBVHWrapper
+    {
+    public:
+        LBVHWrapper();
+
+        void build(const PointMapInsertOp& insert,
+                   const Scalar3& lo,
+                   const Scalar3& hi,
+                   cudaStream_t stream);
+
+        std::shared_ptr<neighbor::LBVH> get()
+            {
+            return lbvh_;
+            }
+
+        unsigned int getN() const;
+
+        const thrust::device_vector<unsigned int>& getPrimitives() const;
+
+        void setAutotunerParams(bool enable, unsigned int period);
+
+    private:
+        std::shared_ptr<neighbor::LBVH> lbvh_;
+    };
+
+class LBVHTraverserWrapper
+    {
+    public:
+        LBVHTraverserWrapper();
+
+        void setup(const MapTransformOp& map,
+                   neighbor::LBVH& lbvh,
+                   cudaStream_t stream);
+
+        void traverse(NeighborListOp& nlist_op,
+                      const ParticleQueryOp<false,false>& query,
+                      const MapTransformOp& map,
+                      neighbor::LBVH& lbvh,
+                      const Scalar3* images,
+                      const unsigned int Nimages,
+                      cudaStream_t stream);
+
+        void traverse(NeighborListOp& nlist_op,
+                      const ParticleQueryOp<true,false>& query,
+                      const MapTransformOp& map,
+                      neighbor::LBVH& lbvh,
+                      const Scalar3* images,
+                      const unsigned int Nimages,
+                      cudaStream_t stream);
+
+        void traverse(NeighborListOp& nlist_op,
+                      const ParticleQueryOp<false,true>& query,
+                      const MapTransformOp& map,
+                      neighbor::LBVH& lbvh,
+                      const Scalar3* images,
+                      const unsigned int Nimages,
+                      cudaStream_t stream);
+
+        void traverse(NeighborListOp& nlist_op,
+                      const ParticleQueryOp<true,true>& query,
+                      const MapTransformOp& map,
+                      neighbor::LBVH& lbvh,
+                      const Scalar3* images,
+                      const unsigned int Nimages,
+                      cudaStream_t stream);
+
+        std::shared_ptr<neighbor::LBVHTraverser> get()
+            {
+            return trav_;
+            }
+
+        void setAutotunerParams(bool enable, unsigned int period);
+
+    private:
+        std::shared_ptr<neighbor::LBVHTraverser> trav_;
+    };
 
 #undef DEVICE
 #undef HOSTDEVICE

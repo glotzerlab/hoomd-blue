@@ -274,7 +274,7 @@ else()
     target_link_libraries(_md PUBLIC _hoomd)
 endif()
 if (ENABLE_CUDA)
-    target_link_libraries(_md PUBLIC _neighbor)
+    target_link_libraries(_md PRIVATE neighbor::neighbor)
 endif()
 
 fix_cudart_rpath(_md)

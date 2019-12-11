@@ -8,8 +8,6 @@
 #include "NeighborListGPUTree.cuh"
 
 #include "hoomd/Autotuner.h"
-#include "hoomd/extern/neighbor/neighbor/LBVH.h"
-#include "hoomd/extern/neighbor/neighbor/LBVHTraverser.h"
 
 /*! \file NeighborListGPUTree.h
     \brief Declares the NeighborListGPUTree class
@@ -87,8 +85,8 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         GPUArray<unsigned int> m_type_last;         //!< Last index of each particle type in sorted list
 
         GPUFlags<unsigned int> m_lbvh_errors;       //!< Error flags during particle marking (e.g., off rank)
-        std::vector< std::unique_ptr<neighbor::LBVH> > m_lbvhs;                 //!< Array of LBVHs per-type
-        std::vector< std::unique_ptr<neighbor::LBVHTraverser> > m_traversers;   //!< Array of LBVH traverers per-type
+        std::vector< std::unique_ptr<LBVHWrapper> > m_lbvhs;                 //!< Array of LBVHs per-type
+        std::vector< std::unique_ptr<LBVHTraverserWrapper> > m_traversers;   //!< Array of LBVH traverers per-type
         std::vector<cudaStream_t> m_streams;                                    //!< Array of CUDA streams per-type
 
         GlobalVector<Scalar3> m_image_list; //!< List of translation vectors for traversal
