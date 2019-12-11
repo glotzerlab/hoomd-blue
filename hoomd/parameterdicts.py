@@ -186,6 +186,8 @@ class TypeParameterDict(_ValidatedDefaultDict):
             for key in self._dict.keys():
                 yield tuple(sorted(list(key)))
 
+    def to_dict(self):
+        return self._dict
 
 class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
@@ -266,3 +268,8 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
             for key in combinations_with_replacement(single_keys,
                                                      self._len_keys):
                 yield tuple(sorted(list(key)))
+
+    def to_dict(self):
+        for key in self.keys():
+            rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
+        return rtn_dict

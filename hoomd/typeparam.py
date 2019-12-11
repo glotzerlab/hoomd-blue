@@ -32,3 +32,6 @@ class TypeParameter:
     def detach(self):
         self.param_dict = self.param_dict.to_dettached()
         return self
+
+    def to_dict(self):
+        return self.param_dict.to_dict()
