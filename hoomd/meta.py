@@ -84,6 +84,7 @@ class _Operation(metaclass=Loggable):
 
     def detach(self):
         self._unapply_typeparam_dict()
+        self._update_param_dict()
         self._cpp_obj = None
         if hasattr(self, '_simulation'):
             del self._simulation
@@ -124,6 +125,10 @@ class _Operation(metaclass=Loggable):
             except ValueError as verr:
                 raise ValueError("TypeParameter {}:"
                                  " ".format(typeparam.name) + verr.args[0])
+
+    def _update_param_dict(self):
+        for key in self._param_dict.keys():
+            self._param_dict[key] = getattr(self, key)
 
     def _unapply_typeparam_dict(self):
         for typeparam in self._typeparam_dict.values():
