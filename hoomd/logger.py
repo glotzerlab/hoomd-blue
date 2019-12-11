@@ -1,6 +1,6 @@
 from itertools import count
 from copy import deepcopy
-from hoomd.util import is_iterable
+from hoomd.util import is_iterable, dict_fold, dict_map
 
 
 class Loggable(type):
@@ -37,29 +37,6 @@ class Loggable(type):
             new_cls._export_dict = log_dict
         cls._meta_export_dict = dict()
         return new_cls
-
-
-def dict_map(dict_, func):
-    new_dict = dict()
-    for key, value in dict_.items():
-        if isinstance(value, dict):
-            new_dict[key] = dict_map(value, func)
-        else:
-            new_dict[key] = func(value)
-    return new_dict
-
-
-def dict_fold(dict_, func, init_value, use_keys=False):
-    final_value = init_value
-    for key, value in dict_.items():
-        if isinstance(value, dict):
-            final_value = dict_fold(value, func, final_value)
-        else:
-            if use_keys:
-                final_value = func(key, final_value)
-            else:
-                final_value = func(value, final_value)
-    return final_value
 
 
 def generate_namespace(cls):
