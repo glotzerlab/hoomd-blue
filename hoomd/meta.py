@@ -17,6 +17,7 @@ Example::
 """
 
 import hoomd
+from hoomd.util import is_iterable, dict_map
 from hoomd.triggers import PeriodicTrigger, Trigger
 from hoomd.logger import Loggable
 import json
@@ -26,6 +27,16 @@ import copy
 
 from collections import OrderedDict
 from collections import Mapping
+from copy import deepcopy
+
+
+def note_type(value):
+    if not is_iterable(value):
+        return (value, 'scalar')
+    elif isinstance(value, str):
+        return (value, 'string')
+    else:
+        return (value, 'array')
 
 
 class _Operation(metaclass=Loggable):
@@ -140,6 +151,19 @@ class _Operation(metaclass=Loggable):
     def _extend_typeparam(self, typeparams):
         for typeparam in typeparams:
             self._add_typeparam(typeparam)
+
+    def _typeparams_to_dict(self):
+        tp_dict = dict()
+        for name, typeparam in self._typeparam_dict.items():
+            tp_dict[name] = typeparam.to_dict()
+        return tp_dict
+
+    @Loggable.log(flag=dict)
+    def state(self):
+        self._update_param_dict()
+        state_dict = deepcopy(self._param_dict)
+        state_dict.update(self._typeparams_to_dict())
+        return dict_map(state_dict, note_type)
 
 
 class _TriggeredOperation(_Operation):
