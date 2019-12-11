@@ -1594,7 +1594,17 @@ Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int t
     {
     if (quantity == m_log_names[0])
         {
-        return computePE();
+        // make sure values are current
+        compute(timestep);
+
+        Scalar result = computePE();
+
+        if(m_nlist->getExclusionsSet())
+            {
+            result += calcEnergySum();
+            }
+
+        return result;
         }
 
     // nothing found? return base class value
