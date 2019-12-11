@@ -66,8 +66,10 @@ class RemoveDriftUpdater : public Updater
                 {
                 unsigned int tag_i = h_tag.data[i];
                 // read in the current position and orientation
-                Scalar4 postype_i = h_postype.data[i];
-                vec3<Scalar> dr = vec3<Scalar>(postype_i) - vec3<Scalar>(h_r0.data[tag_i]) - origin;
+                vec3<Scalar> postype_i = vec3<Scalar>(h_postype.data[i]) - origin;
+		int3 tmp_image = make_int3(0, 0, 0);
+		box.wrap(postype_i, tmp_image);
+                vec3<Scalar> dr = postype_i - vec3<Scalar>(h_r0.data[tag_i]);
                 rshift += vec3<Scalar>(box.minImage(vec_to_scalar3(dr)));
                 }
 
@@ -94,6 +96,10 @@ class RemoveDriftUpdater : public Updater
                 }
 
             m_mc->invalidateAABBTree();
+
+	    // migrate and exchange particles
+	    m_mc->communicate(true);
+
             }
     protected:
                 std::shared_ptr<ExternalFieldLattice<Shape> > m_externalLattice;
