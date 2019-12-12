@@ -18,8 +18,7 @@
 #include "hoomd/Index1D.h"
 
 #ifdef NVCC
-#include "hoomd/extern/neighbor/include/neighbor/BoundingVolumes.h"
-#include "hoomd/extern/neighbor/include/neighbor/InsertOps.h"
+#include <neighbor/neighbor.h>
 #define DEVICE __device__ __forceinline__
 #define HOSTDEVICE __host__ __device__ __forceinline__
 #else
