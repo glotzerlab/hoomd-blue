@@ -2,6 +2,7 @@ import hoomd
 import hoomd.hpmc
 from hoomd.hpmc import _hpmc
 import pytest
+import numpy
 
 
 def test_sphere():
@@ -81,3 +82,35 @@ def test_shape_params_attached(device, dummy_simulation_factory):
 
     with pytest.raises(RuntimeError):
         mc.shape['A'] = dict(diameter=1, orientable='invalid')
+        
+def test_overlaps(device, dummy_simulation_check_overlaps):
+    hoomd.context.initialize("--mode=cpu");
+    mc = hoomd.hpmc.integrate.Sphere(23456)
+    mc.shape['A'] = dict(diameter=1)
+    sim = dummy_simulation_check_overlaps()
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    sim.run(100)
+    #overlaps = sim.operations.integrator.overlaps
+    #assert overlaps > 0
+    assert True
+    
+def test_shape_moves(device, dummy_simulation_check_moves):
+    hoomd.context.initialize("--mode=cpu");
+    mc = hoomd.hpmc.integrate.Sphere(23456)
+    mc.shape['A'] = dict(diameter=1)
+    sim = dummy_simulation_check_moves()
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    initial_snap = sim.state.snapshot
+    initial_pos = initial_snap.particles.position
+    sim.run(100)
+    final_snap = sim.state.snapshot
+    final_pos = final_snap.particles.position
+    #accepted_and_rejected = sim.operations.integrator.accepted + 
+    #                        sim.operations.integrator.rejected
+    #assert accepted_and_rejected > 0
+    numpy.testing.assert_raises(AssertionError, 
+                                numpy.testing.assert_allclose, 
+                                final_pos, 
+                                initial_pos)

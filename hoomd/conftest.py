@@ -52,7 +52,55 @@ def dummy_simulation_factory(device):
         sim.create_state_from_snapshot(s)
         return sim
     return make_simulation
+    
+@pytest.fixture(scope='session')
+def dummy_simulation_check_moves(device):
+    def make_simulation(particle_types=['A']):
+        s = Snapshot(device.comm)
+        N = 343
 
+        if s.exists:
+            s.configuration.box = [20, 20, 20, 0, 0, 0] #make 20x20x20 cubic box
+            s.particles.N = N
+            i = 0
+            for x in numpy.linspace(-9, 9, 7):
+                for y in numpy.linspace(-9, 9, 7):
+                    for z in numpy.linspace(-9, 9, 7):
+                        s.particles.position[i] = [x, y, z]
+                        i += 1
+            s.particles.types = particle_types
+
+        sim = Simulation(device)
+        sim.create_state_from_snapshot(s)
+        return sim
+    return make_simulation
+
+@pytest.fixture(scope='session')
+def dummy_simulation_check_overlaps(device):
+    def make_simulation(particle_types=['A']):
+        hoomd.context.initialize("")
+        s = Snapshot(device.comm)
+        N = 2
+
+        if s.exists:
+            s.configuration.box = [20, 20, 20, 0, 0, 0] #make 20x20x20 cubic box
+            s.particles.N = N
+            s.particles.position[0] = [0, 0, 0]
+            s.particles.position[1] = [0, 0.25, 0]
+            s.particles.types = particle_types
+
+            #hoomd.context.current.system_definition = hoomd._hoomd.SystemDefinition(s, hoomd.context.current.device.cpp_exec_conf);
+
+        # initialize the system
+        #hoomd.context.current.system = hoomd._hoomd.System(hoomd.context.current.system_definition, 0);
+
+        #hoomd.init._perform_common_init_tasks();
+        #hoomd.data.system_data(hoomd.context.current.system_definition);
+        #hoomd.init.read_snapshot(s)
+        sim = Simulation(device)
+        sim.create_state_from_snapshot(s)
+        return sim
+    return make_simulation
 
 @pytest.fixture(autouse=True)
 def skip_mpi(request, device):

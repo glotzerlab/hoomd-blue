@@ -151,3 +151,58 @@ def test_poly_after_attaching(device,
     for key in args_4.keys():
         assert poly.shape['A'][key] == args_4[key]
         assert poly.shape['B'][key] == args_5[key]
+        
+        
+def test_overlaps(device, dummy_simulation_check_overlaps):
+    hoomd.context.initialize("--mode=cpu");
+    mc = hoomd.hpmc.integrate.Polyhedron(23456)
+    mc.shape['A'] = dict(vertices=[(0,(0.75**0.5)/2, -0.5),
+                                   (-0.5,-(0.75**0.5)/2, -0.5),
+                                   (0.5, -(0.75**0.5)/2, -0.5),
+                                   (0, 0, 0.5),
+                                   (0, 0, 0)],
+                         faces=[(3, 1, 2),
+                                (3, 0, 1),
+                                (3, 2, 0),
+                                (4, 2, 1),
+                                (4, 0, 2),
+                                (4, 1, 0)],
+                         overlap=[0, 0, 0, 0, 0, 0])
+    sim = dummy_simulation_check_overlaps()
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    sim.run(100)
+    #overlaps = sim.operations.integrator.overlaps
+    #assert overlaps > 0
+    assert True
+    
+def test_shape_moves(device, dummy_simulation_check_moves):
+    hoomd.context.initialize("--mode=cpu");
+    mc = hoomd.hpmc.integrate.Polyhedron(23456)
+    mc.shape['A'] = dict(vertices=[(0,(0.75**0.5)/2, -0.5),
+                                   (-0.5,-(0.75**0.5)/2, -0.5),
+                                   (0.5, -(0.75**0.5)/2, -0.5),
+                                   (0, 0, 0.5),
+                                   (0, 0, 0)],
+                         faces=[(3, 1, 2),
+                                (3, 0, 1),
+                                (3, 2, 0),
+                                (4, 2, 1),
+                                (4, 0, 2),
+                                (4, 1, 0)],
+                         overlap=[0, 0, 0, 0, 0, 0])
+    sim = dummy_simulation_check_moves()
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    initial_snap = sim.state.snapshot
+    initial_pos = initial_snap.particles.position
+    sim.run(100)
+    final_snap = sim.state.snapshot
+    final_pos = final_snap.particles.position
+    #accepted_and_rejected = sim.operations.integrator.accepted + 
+    #                        sim.operations.integrator.rejected
+    #assert accepted_and_rejected > 0
+    np.testing.assert_raises(AssertionError, 
+                                np.testing.assert_allclose, 
+                                final_pos, 
+                                initial_pos)
