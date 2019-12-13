@@ -11,7 +11,6 @@
 */
 
 #include <cuda_runtime.h>
-#include <thrust/device_vector.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
@@ -546,7 +545,7 @@ class LBVHWrapper
 
         unsigned int getN() const;
 
-        const thrust::device_vector<unsigned int>& getPrimitives() const;
+        const unsigned int* getPrimitives() const;
 
         void setAutotunerParams(bool enable, unsigned int period);
 

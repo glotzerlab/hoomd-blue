@@ -328,7 +328,7 @@ void NeighborListGPUTree::buildTree()
                 m_copy_tuner->begin();
                 gpu_nlist_copy_primitives(d_traverse_order.data + first,
                                           d_sorted_indexes.data + first,
-                                          thrust::raw_pointer_cast(d_primitives.data()),
+                                          d_primitives,
                                           Ni,
                                           m_copy_tuner->getParam());
                 if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();

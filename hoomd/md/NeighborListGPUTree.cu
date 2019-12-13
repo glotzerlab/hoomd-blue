@@ -356,9 +356,9 @@ unsigned int LBVHWrapper::getN() const
     return lbvh_->getN();
     }
 
-const thrust::device_vector<unsigned int>& LBVHWrapper::getPrimitives() const
+const unsigned int* LBVHWrapper::getPrimitives() const
     {
-    return lbvh_->getPrimitives();
+    return thrust::raw_pointer_cast(lbvh_->getPrimitives().data());
     }
 
 void LBVHWrapper::setAutotunerParams(bool enable, unsigned int period)
