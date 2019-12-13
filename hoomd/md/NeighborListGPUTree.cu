@@ -762,7 +762,8 @@ struct NeighborListOp
     unsigned int max_neigh;             //!< Maximum number of neighbors allocated
     };
 
-static float double2float_rd(double x)
+//! Host function to convert a double to a float in round-down mode
+float double2float_rd(double x)
     {
     float xf = static_cast<float>(x);
     if (static_cast<double>(xf) > x)
@@ -772,7 +773,8 @@ static float double2float_rd(double x)
     return xf;
     }
 
-static float double2float_ru(double x)
+//! Host function to convert a double to a float in round-up mode
+float double2float_ru(double x)
     {
     float xf = static_cast<float>(x);
     if (static_cast<double>(xf) < x)
@@ -782,11 +784,26 @@ static float double2float_ru(double x)
     return xf;
     }
 
+/*!
+ * Initializes the shared pointer for the underlying LBVH.
+ */
 LBVHWrapper::LBVHWrapper()
     {
     lbvh_ = std::make_shared<neighbor::LBVH>();
     }
 
+/*!
+ * \param points Particle positions
+ * \param map Mapping of particles for insertion
+ * \param N Number of particles
+ * \param lo Lower bound of box
+ * \param hi Upper bound of box
+ * \param stream CUDA stream for execution
+ *
+ * If HOOMD is using double-precision Scalars, then the lo and hi bounds of the
+ * box are internally converted to floats using round-down and round-up modes,
+ * respectively, which conserves the original box.
+ */
 void LBVHWrapper::build(const Scalar4* points,
                         const unsigned int* map,
                         unsigned int N,
@@ -794,8 +811,13 @@ void LBVHWrapper::build(const Scalar4* points,
                         const Scalar3& hi,
                         cudaStream_t stream)
     {
+    #ifndef SINGLE_PRECISION
     float3 lof = make_float3(double2float_rd(lo.x), double2float_rd(lo.y), double2float_rd(lo.z));
     float3 hif = make_float3(double2float_ru(hi.x), double2float_ru(hi.y), double2float_ru(hi.z));
+    #else
+    float3 lof = lo;
+    float3 hif = hi;
+    #endif
 
     PointMapInsertOp insert(points, map, N);
     lbvh_->build(insert, lof, hif, stream);
@@ -806,6 +828,10 @@ unsigned int LBVHWrapper::getN() const
     return lbvh_->getN();
     }
 
+/*!
+ * The internal thrust data is converted to a raw device pointer that can be
+ * used in host code.
+ */
 const unsigned int* LBVHWrapper::getPrimitives() const
     {
     return thrust::raw_pointer_cast(lbvh_->getPrimitives().data());
@@ -816,11 +842,19 @@ void LBVHWrapper::setAutotunerParams(bool enable, unsigned int period)
     lbvh_->setAutotunerParams(enable, period);
     }
 
+/*!
+ * Initializes the shared pointer for the underlying LBVHTraverser.
+ */
 LBVHTraverserWrapper::LBVHTraverserWrapper()
     {
     trav_ = std::make_shared<neighbor::LBVHTraverser>();
     };
 
+/*!
+ * \param map Mapping operation for the primitives for efficient traversal
+ * \param lbvh LBVH to traverse
+ * \param stream CUDA stream for execution
+ */
 void LBVHTraverserWrapper::setup(const unsigned int* map,
                                  neighbor::LBVH& lbvh,
                                  cudaStream_t stream)
@@ -829,6 +863,24 @@ void LBVHTraverserWrapper::setup(const unsigned int* map,
     trav_->setup(mapop, lbvh, stream);
     }
 
+/*!
+ * \param args Pack of traversal arguments used to build operations
+ * \param lbvh LBVH to traverse
+ * \param images List of image vectors
+ * \param Nimages Number of image vectors
+ * \param stream CUDA stream for execution
+ *
+ * The traversal arguments are forwarded to various neighbor operations
+ * for traversal, including the transform operation, the output operation,
+ * and the query operation. The images are forwarded directly, using the
+ * Scalar precision.
+ *
+ * As a microoptimization, the query operation is templated on whether
+ * body filtering and/or diameter shifting are enabled. These switches
+ * are determined by checking if the body and/or diameter data pointers
+ * are NULL. It is the callers job to set rcut and rlist in the TraverserArgs
+ * to compatible with those modes.
+ */
 void LBVHTraverserWrapper::traverse(TraverserArgs& args,
                                     neighbor::LBVH& lbvh,
                                     const Scalar3* images,

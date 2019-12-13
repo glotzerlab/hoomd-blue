@@ -63,11 +63,19 @@ cudaError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
                                       const unsigned int N,
                                       const unsigned int block_size);
 
+//! Wrapper around the neighbor::LBVH class
+/*!
+ * This wrapper only exposes data types that are natively supported in HOOMD
+ * so that all neighbor-specific templates and structs can be handled only
+ * in CUDA code.
+ */
 class LBVHWrapper
     {
     public:
+        //! Constructor
         LBVHWrapper();
 
+        //! Build the LBVH
         void build(const Scalar4* points,
                    const unsigned int* map,
                    unsigned int N,
@@ -75,24 +83,35 @@ class LBVHWrapper
                    const Scalar3& hi,
                    cudaStream_t stream);
 
+        //! Get the underlying LBVH
         std::shared_ptr<neighbor::LBVH> get()
             {
             return lbvh_;
             }
 
+        //! Get the number of particles in the LBVH
         unsigned int getN() const;
 
+        //! Get the sorted order of the primitives from the LBVH
         const unsigned int* getPrimitives() const;
 
+        //! Set the autotuner parameters for the LBVH
         void setAutotunerParams(bool enable, unsigned int period);
 
     private:
-        std::shared_ptr<neighbor::LBVH> lbvh_;
+        std::shared_ptr<neighbor::LBVH> lbvh_;  //!< Underlying neighbor::LBVH
     };
 
+//! Wrapper around the neighbor::LBVHTraverser class
+/*!
+ * This wrapper only exposes data types that are natively supported in HOOMD
+ * so that all neighbor-specific templates and structs can be handled only
+ * in CUDA code.
+ */
 class LBVHTraverserWrapper
     {
     public:
+        //! Structure to group together all the parameters needed for a traversal
         struct TraverserArgs
             {
             // map
@@ -117,28 +136,26 @@ class LBVHTraverserWrapper
             unsigned int max_neigh;
             };
 
+        //! Constructor
         LBVHTraverserWrapper();
 
+        //! Setup the LBVH traverser
         void setup(const unsigned int* map,
                    neighbor::LBVH& lbvh,
                    cudaStream_t stream);
 
+        //! Traverse the LBVH
         void traverse(TraverserArgs& args,
                       neighbor::LBVH& lbvh,
                       const Scalar3* images,
                       const unsigned int Nimages,
                       cudaStream_t stream);
 
-        std::shared_ptr<neighbor::LBVHTraverser> get()
-            {
-            return trav_;
-            }
-
+        //! Set the autotuner parameters for the LBVHTraverser
         void setAutotunerParams(bool enable, unsigned int period);
 
-
     private:
-        std::shared_ptr<neighbor::LBVHTraverser> trav_;
+        std::shared_ptr<neighbor::LBVHTraverser> trav_; //!< Underlying neighbor::LBVHTraverser
     };
 
 #endif //__NEIGHBORLISTGPUTREE_CUH__
