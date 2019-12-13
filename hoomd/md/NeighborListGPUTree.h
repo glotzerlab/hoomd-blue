@@ -64,6 +64,15 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
 
             m_copy_tuner->setPeriod(period/10);
             m_copy_tuner->setEnabled(enable);
+
+            for (unsigned int i=0; i < m_lbvhs.size(); ++i)
+                {
+                if (m_lbvhs[i]) m_lbvhs[i]->setAutotunerParams(enable, period/10);
+                }
+            for (unsigned int i=0; i < m_traversers.size(); ++i)
+                {
+                if (m_traversers[i]) m_traversers[i]->setAutotunerParams(enable, period/10);
+                }
             }
 
     protected:
