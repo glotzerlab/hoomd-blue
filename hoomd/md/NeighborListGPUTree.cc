@@ -297,7 +297,9 @@ void NeighborListGPUTree::buildTree()
 
             if (first != NeighborListTypeSentinel)
                 {
-                m_lbvhs[i]->build(PointMapInsertOp(d_pos.data, d_sorted_indexes.data + first, last-first),
+                m_lbvhs[i]->build(d_pos.data,
+                                  d_sorted_indexes.data + first,
+                                  last-first,
                                   lbvh_box.getLo(),
                                   lbvh_box.getHi(),
                                   m_streams[i]);
@@ -305,7 +307,7 @@ void NeighborListGPUTree::buildTree()
             else
                 {
                 // effectively destroy the lbvh
-                m_lbvhs[i]->build(PointMapInsertOp(d_pos.data, NULL, 0), lbvh_box.getLo(), lbvh_box.getHi(), m_streams[i]);
+                m_lbvhs[i]->build(d_pos.data, NULL, 0, lbvh_box.getLo(), lbvh_box.getHi(), m_streams[i]);
                 }
             }
         // wait for all builds to finish
@@ -341,8 +343,7 @@ void NeighborListGPUTree::buildTree()
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
             if (m_lbvhs[i]->getN() == 0) continue;
-            MapTransformOp map(d_sorted_indexes.data + h_type_first.data[i]);
-            m_traversers[i]->setup(map, *(*m_lbvhs[i]).get(), m_streams[i]);
+            m_traversers[i]->setup(d_sorted_indexes.data + h_type_first.data[i], *(*m_lbvhs[i]).get(), m_streams[i]);
             }
         cudaDeviceSynchronize();
         }
@@ -394,8 +395,6 @@ void NeighborListGPUTree::traverseTree()
             continue;
         const unsigned int Ni = h_type_last.data[i] - first;
 
-        // neighbor list write op for this type
-        NeighborListOp nlist_op(d_nlist.data, d_n_neigh.data, d_conditions.data + i, d_head_list.data, h_Nmax.data[i]);
 
         // traverse it against all trees, using the same stream for type i to avoid race conditions on writing
         for (unsigned int j=0; j < m_pdata->getNTypes(); ++j)
@@ -420,62 +419,31 @@ void NeighborListGPUTree::traverseTree()
                 continue;
                 }
 
-            // the transform operator is for the particles in this LBVH (j)
-            MapTransformOp map(d_sorted_indexes.data + h_type_first.data[j]);
+            // pack args to the traverser
+            LBVHTraverserWrapper::TraverserArgs args;
 
-            // dispatch traversal using template method (as a microoptimization)
-            if (!m_filter_body && !m_diameter_shift)
-                {
-                ParticleQueryOp<false,false> query_op(d_pos.data,
-                                                      NULL,
-                                                      NULL,
-                                                      d_traverse_order.data + first,
-                                                      Ni,
-                                                      m_pdata->getN(),
-                                                      rcut,
-                                                      rlist,
-                                                      box);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i]);
-                }
-            else if (m_filter_body && !m_diameter_shift)
-                {
-                ParticleQueryOp<true,false> query_op(d_pos.data,
-                                                     d_body.data,
-                                                     NULL,
-                                                     d_traverse_order.data + first,
-                                                     Ni,
-                                                     m_pdata->getN(),
-                                                     rcut,
-                                                     rlist,
-                                                     box);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i]);
-                }
-            else if (!m_filter_body && m_diameter_shift)
-                {
-                ParticleQueryOp<false,true> query_op(d_pos.data,
-                                                     NULL,
-                                                     d_diam.data,
-                                                     d_traverse_order.data + first,
-                                                     Ni,
-                                                     m_pdata->getN(),
-                                                     rcut,
-                                                     rlist,
-                                                     box);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i]);
-                }
-            else
-                {
-                ParticleQueryOp<true,true> query_op(d_pos.data,
-                                                    d_body.data,
-                                                    d_diam.data,
-                                                    d_traverse_order.data + first,
-                                                    Ni,
-                                                    m_pdata->getN(),
-                                                    rcut,
-                                                    rlist,
-                                                    box);
-                m_traversers[j]->traverse(nlist_op, query_op, map, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i]);
-                }
+            // the transform operator is for the particles in this LBVH (j)
+            args.map = d_sorted_indexes.data + h_type_first.data[j];
+
+            // particles
+            args.positions = d_pos.data;
+            args.bodies = (m_filter_body) ? d_body.data : NULL;
+            args.diams = (m_diameter_shift) ? d_diam.data : NULL;
+            args.order = d_traverse_order.data + first;
+            args.N = Ni;
+            args.Nown = m_pdata->getN();
+            args.rcut = rcut;
+            args.rlist = rlist;
+            args.box = box;
+
+            // neighbor list write op for this type
+            args.neigh_list = d_nlist.data;
+            args.nneigh = d_n_neigh.data;
+            args.new_max_neigh = d_conditions.data + i;
+            args.first_neigh = d_head_list.data;
+            args.max_neigh = h_Nmax.data[i];
+
+            m_traversers[j]->traverse(args, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i]);
             }
         }
     // wait for all traversals to finish
