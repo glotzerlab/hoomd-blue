@@ -99,14 +99,20 @@ Install prerequisites
 
     **OR**
 
-    - AMD ROCm >= 2.9
-
+    - `AMD ROCm >= 2.9 <https://rocm.github.io/ROCmInstall.html>`_
+    
       Required components:
+        - HIP
         - rocfft
         - rocprim
         - rocthrust
         - hipCUB, included for NVIDIA GPU targets, but required as an
           external dependency when building for AMD GPUs
+
+      Some components of HOOMD-blue do not currently exceute properly neither
+      with release versions of HIP nor with development versions. A temporary
+      fork of HIP that addresses these problems can be found
+      [here](https://github.com/jglaser/HIP/tree/hipfuncgetattributes).
 
   - For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``):
 
