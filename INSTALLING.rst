@@ -112,7 +112,7 @@ Install prerequisites
       Some components of HOOMD-blue do not currently exceute properly neither
       with release versions of HIP nor with development versions. A temporary
       branch that addresses these problems can be found
-      [here](https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes).
+      `here <https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes>`_.
 
   - For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``):
 
