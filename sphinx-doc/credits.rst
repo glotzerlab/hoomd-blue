@@ -894,3 +894,7 @@ HOOMD-blue links to the following libraries:
  * python - Used under the Python license (http://www.python.org/psf/license/)
  * cuFFT - Used under the NVIDIA CUDA toolkit license (http://docs.nvidia.com/cuda/eula/index.html)
  * rocFFT - Used under the MIT license (https://github.com/ROCmSoftwarePlatform/rocFFT)
+
+HOOMD-blue uses the following header-only libraries:
+ * rocPRIM - https://github.com/ROCmSoftwarePlatform/rocPRIM
+ * rocThrust - https://github.com/ROCmSoftwarePlatform/rocThrust
