@@ -105,7 +105,8 @@ Install prerequisites
         - rocfft
         - rocprim
         - rocthrust
-        - hipCUB
+        - hipCUB, included for NVIDIA GPU targets, but required as an
+          external dependency when building for AMD GPUs
 
   - For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``):
 
