@@ -8,6 +8,10 @@
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
+
+#if defined(__HIP_PLATFORM_NVCC__)
+#include <cuda_runtime.h>
+#endif
 #endif
 
 #ifdef ENABLE_MPI
@@ -423,13 +427,21 @@ void ExecutionConfiguration::printGPUStats()
         int mib = int(float(m_dev_prop[idev].totalGlobalMem) / float(1024*1024));
         s << ", " << setw(4) << mib << " MiB DRAM";
 
-        #if defined(__HIP_PLATFORM_NVCC__) && 0 // disabled for now
-        // follow up with some flags to signify device features
-        if (m_dev_prop[idev].kernelExecTimeoutEnabled)
-            s << ", DIS";
+        #if defined(__HIP_PLATFORM_NVCC__)
+        // hip doesn't currently have the concurrentManagedAccess property, so resort to the CUDA API
+        cudaDeviceProp_t cuda_prop;
+        cudaError_t error = cudaGetDeviceProperties(&cuda_prop, dev);
+        if (error != cudaSuccess)
+            {
+            msg->errorAllRanks() << "Error calling cudaGetDeviceProperties()" << endl;
+            throw runtime_error("Error initializing execution configuration");
+            }
 
         // follow up with some flags to signify device features
-        if (m_dev_prop[idev].concurrentManagedAccess)
+        if (cuda_prop.kernelExecTimeoutEnabled)
+            s << ", DIS";
+
+        if (cuda_prop.concurrentManagedAccess)
             {
             s << ", MNG";
             }
