@@ -93,7 +93,7 @@ Install prerequisites
     - MPI (tested with OpenMPI, MVAPICH)
     - cereal >= 1.1 (required when ``ENABLE_MPI=on``)
 
-  - For GPU execution (required when ``ENABLE_HIP=on``):
+  - For GPU execution (required when ``ENABLE_GPU=on``):
 
     - NVIDIA CUDA Toolkit >= 9.0
 
@@ -177,7 +177,7 @@ to enable optimizations specific to your CPU::
 
     -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native
 
-Set ``-DENABLE_HIP=ON`` to compile for the GPU and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI.
+Set ``-DENABLE_GPU=ON`` to compile for the GPU and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI.
 See the build options section below for a full list of options.
 
 Compile::
@@ -208,7 +208,7 @@ generate. The ``Makefile`` is now updated with the newly selected
 options. You can also set these parameters on the command line with
 ``cmake``::
 
-    ▶ cmake . -DENABLE_HIP=ON
+    ▶ cmake . -DENABLE_GPU=ON
 
 Options that specify library versions only take effect on a clean invocation of
 CMake. To set these options, first remove ``CMakeCache.txt`` and then run ``cmake``
@@ -244,7 +244,7 @@ Other option changes take effect at any time. These can be set from within
     asserts are removed. Recommended for production builds: required for any
     benchmarking.
 
-- ``ENABLE_HIP`` - Enable compiling of the GPU accelerated computations. Default: ``OFF``.
+- ``ENABLE_GPU`` - Enable compiling of the GPU accelerated computations. Default: ``OFF``.
 - ``ENABLE_DOXYGEN`` - Enables the generation of developer documentation
   Default: ``OFF``.
 - ``SINGLE_PRECISION`` - Controls precision. Default: ``OFF``.
