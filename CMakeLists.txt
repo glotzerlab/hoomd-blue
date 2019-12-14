@@ -78,7 +78,8 @@ endif()
 #################################
 ## Build options
 option(SINGLE_PRECISION "Use single precision math" OFF)
-OPTION(ENABLE_HIP "True if we are compiling with HIP as a target" FALSE)
+OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
+SET(ENABLE_HIP ${ENABLE_GPU})
 
 option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
 
