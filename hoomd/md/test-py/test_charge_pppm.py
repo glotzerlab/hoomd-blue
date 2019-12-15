@@ -60,7 +60,7 @@ class charge_pppm_bond_exclusions_test(unittest.TestCase):
         # initialize a two particle system in a large box, to minimize effect of PBC
         snap = data.make_snapshot(N=2, particle_types=[u'A1'], bond_types=['bondA'], box = data.boxdim(L=50))
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snap.particles.position[0] = (0,0,0)
             snap.particles.position[1] = (1,1,1)
             snap.particles.charge[0] = 1
