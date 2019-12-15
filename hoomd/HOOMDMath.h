@@ -127,6 +127,8 @@ HOSTDEVICE inline double __int_as_double(int a)
         int a; double b;
         } u;
 
+    // make sure it is not uninitialized
+    u.b = 0.0;
     u.a = a;
 
     return u.b;
@@ -140,6 +142,8 @@ HOSTDEVICE inline Scalar __int_as_scalar(int a)
         int a; Scalar b;
         } u;
 
+    // make sure it is not uninitialized
+    u.b = Scalar(0.0);
     u.a = a;
 
     return u.b;

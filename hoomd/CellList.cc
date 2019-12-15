@@ -80,10 +80,6 @@ uint3 CellList::computeDimensions()
 
     Scalar3 L = box.getNearestPlaneDistance();
 
-    dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
-    dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
-    dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple) : 1;
-
     // size the ghost layer width
     m_ghost_width = make_scalar3(0.0, 0.0, 0.0);
 #ifdef ENABLE_MPI
@@ -104,24 +100,9 @@ uint3 CellList::computeDimensions()
         }
 #endif
 
-    // expand for ghost width if communicating ghosts
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        const Scalar3 cell_size = make_scalar3(L.x / Scalar(dim.x), L.y / Scalar(dim.y), L.z / Scalar(dim.z));
-
-        // add cells up to the next integer to cover the whole ghost width on both sides
-        if (!box.getPeriodic().x)
-            dim.x += 2*static_cast<int>(ceil(m_ghost_width.x/cell_size.x));
-
-        if (!box.getPeriodic().y)
-            dim.y += 2*static_cast<int>(ceil(m_ghost_width.y/cell_size.y));
-
-        if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
-            dim.z += 2*static_cast<int>(ceil(m_ghost_width.z/cell_size.z));
-        }
-#endif
-
+    dim.x = roundDown((unsigned int)((L.x + 2.0*m_ghost_width.x) / (m_nominal_width)), m_multiple);
+    dim.y = roundDown((unsigned int)((L.y + 2.0*m_ghost_width.y) / (m_nominal_width)), m_multiple);
+    dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z + 2.0*m_ghost_width.z) / (m_nominal_width)), m_multiple) : 1;
 
     // In extremely small boxes, the calculated dimensions could go to zero, but need at least one cell in each dimension
     // for particles to be in a cell and to pass the checkCondition tests.
