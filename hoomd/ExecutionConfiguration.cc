@@ -429,7 +429,7 @@ void ExecutionConfiguration::printGPUStats()
 
         #if defined(__HIP_PLATFORM_NVCC__)
         // hip doesn't currently have the concurrentManagedAccess property, so resort to the CUDA API
-        cudaDeviceProp_t cuda_prop;
+        cudaDeviceProp cuda_prop;
         cudaError_t error = cudaGetDeviceProperties(&cuda_prop, dev);
         if (error != cudaSuccess)
             {
