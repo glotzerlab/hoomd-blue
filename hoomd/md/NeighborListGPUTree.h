@@ -65,14 +65,11 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
             m_copy_tuner->setPeriod(period/10);
             m_copy_tuner->setEnabled(enable);
 
-            for (unsigned int i=0; i < m_lbvhs.size(); ++i)
-                {
-                if (m_lbvhs[i]) m_lbvhs[i]->setAutotunerParams(enable, period/10);
-                }
-            for (unsigned int i=0; i < m_traversers.size(); ++i)
-                {
-                if (m_traversers[i]) m_traversers[i]->setAutotunerParams(enable, period/10);
-                }
+            m_build_tuner->setPeriod(period/10);
+            m_build_tuner->setEnabled(enable);
+
+            m_traverse_tuner->setPeriod(period/10);
+            m_traverse_tuner->setEnabled(enable);
             }
 
     protected:
@@ -83,6 +80,8 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         std::unique_ptr<Autotuner> m_mark_tuner;    //!< Tuner for the type mark kernel
         std::unique_ptr<Autotuner> m_count_tuner;   //!< Tuner for the type-count kernel
         std::unique_ptr<Autotuner> m_copy_tuner;    //!< Tuner for the primitive-copy kernel
+        std::unique_ptr<Autotuner> m_build_tuner;   //!< Tuner for LBVH builds
+        std::unique_ptr<Autotuner> m_traverse_tuner;//!< Tuner for LBVH traversers
 
         GPUArray<unsigned int> m_types;             //!< Particle types (for sorting)
         GPUArray<unsigned int> m_sorted_types;      //!< Sorted particle types

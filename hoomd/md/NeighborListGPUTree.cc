@@ -138,6 +138,18 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
         m_box_changed = false;
         }
 
+    // ensure build tuner is set
+    if (!m_build_tuner)
+        {
+        m_build_tuner.reset(new Autotuner(m_lbvhs[0]->getTunableParameters(), 5, 100000, "nlist_tree_build", m_exec_conf));
+        }
+
+    // ensure traverser tuner is set
+    if (!m_traverse_tuner)
+        {
+        m_traverse_tuner.reset(new Autotuner(m_traversers[0]->getTunableParameters(), 5, 100000, "nlist_tree_traverse", m_exec_conf));
+        }
+
     // build the tree
     if (m_prof) m_prof->push(m_exec_conf, "build");
     buildTree();
@@ -289,7 +301,29 @@ void NeighborListGPUTree::buildTree()
 
         const BoxDim lbvh_box = getLBVHBox();
 
+        // first, setup memory (these do not actually execute in a stream)
+        for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+            {
+            const unsigned int first = h_type_first.data[i];
+            const unsigned int last = h_type_last.data[i];
+            if (first != NeighborListTypeSentinel)
+                {
+                m_lbvhs[i]->setup(d_pos.data,
+                                  d_sorted_indexes.data + first,
+                                  last-first,
+                                  m_streams[i]);
+                }
+            else
+                {
+                // effectively destroy the lbvh
+                m_lbvhs[i]->setup(d_pos.data, NULL, 0, m_streams[i]);
+                }
+            }
+
+        // then, launch all of the builds in their own streams
         cudaDeviceSynchronize();
+        m_build_tuner->begin();
+        const unsigned int block_size = m_build_tuner->getParam();
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
             const unsigned int first = h_type_first.data[i];
@@ -302,14 +336,16 @@ void NeighborListGPUTree::buildTree()
                                   last-first,
                                   lbvh_box.getLo(),
                                   lbvh_box.getHi(),
-                                  m_streams[i]);
+                                  m_streams[i],
+                                  block_size);
                 }
             else
                 {
                 // effectively destroy the lbvh
-                m_lbvhs[i]->build(d_pos.data, NULL, 0, lbvh_box.getLo(), lbvh_box.getHi(), m_streams[i]);
+                m_lbvhs[i]->build(d_pos.data, NULL, 0, lbvh_box.getLo(), lbvh_box.getHi(), m_streams[i], block_size);
                 }
             }
+        m_build_tuner->end();
         // wait for all builds to finish
         cudaDeviceSynchronize();
         }
@@ -387,6 +423,8 @@ void NeighborListGPUTree::traverseTree()
 
     // traverse all pairs in (now-transposed) streams
     cudaDeviceSynchronize();
+    m_traverse_tuner->begin();
+    const unsigned int block_size = m_traverse_tuner->getParam();
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
         {
         // skip this type if there are no particles
@@ -394,7 +432,6 @@ void NeighborListGPUTree::traverseTree()
         if (first == NeighborListTypeSentinel)
             continue;
         const unsigned int Ni = h_type_last.data[i] - first;
-
 
         // traverse it against all trees, using the same stream for type i to avoid race conditions on writing
         for (unsigned int j=0; j < m_pdata->getNTypes(); ++j)
@@ -443,9 +480,10 @@ void NeighborListGPUTree::traverseTree()
             args.first_neigh = d_head_list.data;
             args.max_neigh = h_Nmax.data[i];
 
-            m_traversers[j]->traverse(args, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i]);
+            m_traversers[j]->traverse(args, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i], block_size);
             }
         }
+    m_traverse_tuner->end();
     // wait for all traversals to finish
     cudaDeviceSynchronize();
     }

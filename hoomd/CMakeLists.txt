@@ -335,7 +335,7 @@ if (BUILD_MD)
 
     if (ENABLE_CUDA)
         # add the neighbor library
-        set(CUB_INCLUDE_DIR ${HOOMD_SOURCE_DIR}/hoomd/extern/cub)
+        set(CUB_ROOT ${HOOMD_SOURCE_DIR}/hoomd/extern/cub)
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
     endif (ENABLE_CUDA)
 

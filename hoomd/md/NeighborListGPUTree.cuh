@@ -75,13 +75,20 @@ class LBVHWrapper
         //! Constructor
         LBVHWrapper();
 
+        //! Setup the LBVH
+        void setup(const Scalar4* points,
+                   const unsigned int* map,
+                   unsigned int N,
+                   cudaStream_t stream);
+
         //! Build the LBVH
         void build(const Scalar4* points,
                    const unsigned int* map,
                    unsigned int N,
                    const Scalar3& lo,
                    const Scalar3& hi,
-                   cudaStream_t stream);
+                   cudaStream_t stream,
+                   unsigned int block_size);
 
         //! Get the underlying LBVH
         std::shared_ptr<neighbor::LBVH> get()
@@ -95,8 +102,8 @@ class LBVHWrapper
         //! Get the sorted order of the primitives from the LBVH
         const unsigned int* getPrimitives() const;
 
-        //! Set the autotuner parameters for the LBVH
-        void setAutotunerParams(bool enable, unsigned int period);
+        //! Get the list of tunable parameters
+        std::vector<unsigned int> getTunableParameters() const;
 
     private:
         std::shared_ptr<neighbor::LBVH> lbvh_;  //!< Underlying neighbor::LBVH
@@ -149,10 +156,11 @@ class LBVHTraverserWrapper
                       neighbor::LBVH& lbvh,
                       const Scalar3* images,
                       const unsigned int Nimages,
-                      cudaStream_t stream);
+                      cudaStream_t stream,
+                      unsigned int block_size);
 
-        //! Set the autotuner parameters for the LBVHTraverser
-        void setAutotunerParams(bool enable, unsigned int period);
+        //! Get the list of tunable parameters
+        std::vector<unsigned int> getTunableParameters() const;
 
     private:
         std::shared_ptr<neighbor::LBVHTraverser> trav_; //!< Underlying neighbor::LBVHTraverser

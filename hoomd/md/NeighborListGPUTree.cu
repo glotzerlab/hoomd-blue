@@ -796,9 +796,25 @@ LBVHWrapper::LBVHWrapper()
  * \param points Particle positions
  * \param map Mapping of particles for insertion
  * \param N Number of particles
+ * \param stream CUDA stream for execution
+ */
+void LBVHWrapper::setup(const Scalar4* points,
+                        const unsigned int* map,
+                        unsigned int N,
+                        cudaStream_t stream)
+    {
+    PointMapInsertOp insert(points, map, N);
+    lbvh_->setup(stream, insert);
+    }
+
+/*!
+ * \param points Particle positions
+ * \param map Mapping of particles for insertion
+ * \param N Number of particles
  * \param lo Lower bound of box
  * \param hi Upper bound of box
  * \param stream CUDA stream for execution
+ * \param block_size CUDA block size for execution
  *
  * If HOOMD is using double-precision Scalars, then the lo and hi bounds of the
  * box are internally converted to floats using round-down and round-up modes,
@@ -809,7 +825,8 @@ void LBVHWrapper::build(const Scalar4* points,
                         unsigned int N,
                         const Scalar3& lo,
                         const Scalar3& hi,
-                        cudaStream_t stream)
+                        cudaStream_t stream,
+                        unsigned int block_size)
     {
     #ifndef SINGLE_PRECISION
     float3 lof = make_float3(double2float_rd(lo.x), double2float_rd(lo.y), double2float_rd(lo.z));
@@ -820,7 +837,7 @@ void LBVHWrapper::build(const Scalar4* points,
     #endif
 
     PointMapInsertOp insert(points, map, N);
-    lbvh_->build(insert, lof, hif, stream);
+    lbvh_->build(neighbor::LBVH::LaunchParameters(block_size,stream), insert, lof, hif);
     }
 
 unsigned int LBVHWrapper::getN() const
@@ -829,17 +846,17 @@ unsigned int LBVHWrapper::getN() const
     }
 
 /*!
- * The internal thrust data is converted to a raw device pointer that can be
+ * The internal neighbor data is converted to a raw device pointer that can be
  * used in host code.
  */
 const unsigned int* LBVHWrapper::getPrimitives() const
     {
-    return thrust::raw_pointer_cast(lbvh_->getPrimitives().data());
+    return lbvh_->getPrimitives().get();
     }
 
-void LBVHWrapper::setAutotunerParams(bool enable, unsigned int period)
+std::vector<unsigned int> LBVHWrapper::getTunableParameters() const
     {
-    lbvh_->setAutotunerParams(enable, period);
+    return lbvh_->getTunableParameters();
     }
 
 /*!
@@ -860,7 +877,7 @@ void LBVHTraverserWrapper::setup(const unsigned int* map,
                                  cudaStream_t stream)
     {
     neighbor::MapTransformOp mapop(map);
-    trav_->setup(mapop, lbvh, stream);
+    trav_->setup(stream, lbvh, mapop);
     }
 
 /*!
@@ -869,6 +886,7 @@ void LBVHTraverserWrapper::setup(const unsigned int* map,
  * \param images List of image vectors
  * \param Nimages Number of image vectors
  * \param stream CUDA stream for execution
+ * \param block_size CUDA block size for execution
  *
  * The traversal arguments are forwarded to various neighbor operations
  * for traversal, including the transform operation, the output operation,
@@ -885,7 +903,8 @@ void LBVHTraverserWrapper::traverse(TraverserArgs& args,
                                     neighbor::LBVH& lbvh,
                                     const Scalar3* images,
                                     const unsigned int Nimages,
-                                    cudaStream_t stream)
+                                    cudaStream_t stream,
+                                    unsigned int block_size)
     {
     neighbor::MapTransformOp map(args.map);
 
@@ -908,7 +927,7 @@ void LBVHTraverserWrapper::traverse(TraverserArgs& args,
                                            args.rcut,
                                            args.rlist,
                                            args.box);
-        trav_->traverse(nlist_op, query, map, lbvh, translate, stream);
+        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size,stream), lbvh, query, nlist_op, translate, map);
         }
     else if (args.bodies != NULL && args.diams == NULL)
         {
@@ -921,7 +940,7 @@ void LBVHTraverserWrapper::traverse(TraverserArgs& args,
                                           args.rcut,
                                           args.rlist,
                                           args.box);
-        trav_->traverse(nlist_op, query, map, lbvh, translate, stream);
+        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size,stream), lbvh, query, nlist_op, translate, map);
         }
     else if (args.bodies == NULL && args.diams != NULL)
         {
@@ -934,7 +953,7 @@ void LBVHTraverserWrapper::traverse(TraverserArgs& args,
                                           args.rcut,
                                           args.rlist,
                                           args.box);
-        trav_->traverse(nlist_op, query, map, lbvh, translate, stream);
+        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size,stream), lbvh, query, nlist_op, translate, map);
         }
     else
         {
@@ -947,11 +966,11 @@ void LBVHTraverserWrapper::traverse(TraverserArgs& args,
                                          args.rcut,
                                          args.rlist,
                                          args.box);
-        trav_->traverse(nlist_op, query, map, lbvh, translate, stream);
+        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size,stream), lbvh, query, nlist_op, translate, map);
         }
-    };
+    }
 
-void LBVHTraverserWrapper::setAutotunerParams(bool enable, unsigned int period)
+std::vector<unsigned int> LBVHTraverserWrapper::getTunableParameters() const
     {
-    trav_->setAutotunerParams(enable, period);
+    return trav_->getTunableParameters();
     }
