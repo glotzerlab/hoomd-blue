@@ -114,8 +114,8 @@ Install prerequisites
       1. Sporadic application hangs or intermittently slow performance have been observed.
          These are fixed by the the upstream AMDGPU driver in Linux kernel 5.3 (or later).
 
-      2. Certain HOOMD-blue kernels trigger a unknown HSA error. A temporary bugfix
-         branch of HIP addresses these problems and can be found
+      2. Certain HOOMD-blue kernels trigger a `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
+         A temporary bugfix branch of HIP addresses these problems and can be found
          `here <https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes_revertvectortypes>`_.
          When using a custom HIP version, other libraries used by HOOMD-blue (`rocfft`) need
          to be compiled against that same HIP version.
