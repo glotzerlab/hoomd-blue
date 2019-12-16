@@ -130,7 +130,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 #else
     if (exec_mode == GPU)
         {
-        msg->error() << "GPU execution requested, but this hoomd was built without CUDA support" << endl;
+        msg->error() << "GPU execution requested, but this hoomd was built without GPU support" << endl;
         throw runtime_error("Error initializing execution configuration");
         }
     // "auto-select" the CPU
