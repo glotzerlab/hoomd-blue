@@ -142,8 +142,8 @@ stages:
     steps:
     - template: templates/build_test.yml
 
-- stage: build_validate_gpu
-  displayName: Validate (GPU)
+- stage: build_validate_nvidia
+  displayName: Validate (NVIDIA GPU)
   dependsOn: []
   variables:
     enable_gpu: on
@@ -156,25 +156,25 @@ stages:
     strategy:
       matrix:
         cuda10_py37_cuda10_mpi_1:
-          container_image: cuda10_py37
+          container_image: cuda10_gcc7_py37
           enable_mpi: on
           ctest_start: 1
           suite_name: GPU cuda10
 
         cuda10_py37_cuda10_mpi_2:
-          container_image: cuda10_py37
+          container_image: cuda10_gcc7_py37
           enable_mpi: on
           ctest_start: 2
           suite_name: GPU cuda10
 
         cuda10_py37_cuda10_mpi_3:
-          container_image: cuda10_py37
+          container_image: cuda10_gcc7_py37
           enable_mpi: on
           ctest_start: 3
           suite_name: GPU cuda10
 
         cuda10_py37_cuda10_mpi_4:
-          container_image: cuda10_py37
+          container_image: cuda10_gcc7_py37
           enable_mpi: on
           ctest_start: 4
           suite_name: GPU cuda10
@@ -186,6 +186,57 @@ stages:
     container:
        image: $(image_root)-$(container_image)
        options: -u 0 --gpus=all --cpus=4 --memory=8g -e CUDA_VISIBLE_DEVICES
+
+    workspace:
+      clean: all
+
+    steps:
+    - template: templates/build_test.yml
+
+- stage: build_validate_amd
+  displayName: Validate (AMD GPU)
+  dependsOn: []
+  variables:
+    enable_gpu: on
+
+  jobs:
+  - job: vld_linux_gpu
+    displayName: Linux
+    timeoutInMinutes: 360
+
+    strategy:
+      matrix:
+        rocm210_custom_py38_gcc9_mpi_1:
+          container_image: rocm2.10_custom_gcc9_py38
+          enable_mpi: on
+          ctest_start: 1
+          suite_name: GPU rocm2.10 custom
+
+        rocm210_custom_py38_gcc9_mpi_2:
+          container_image: rocm2.10_custom_gcc9_py38
+          enable_mpi: on
+          ctest_start: 2
+          suite_name: GPU rocm2.10 custom
+
+        rocm210_custom_py38_gcc9_mpi_3:
+          container_image: rocm2.10_custom_gcc9_py38
+          enable_mpi: on
+          ctest_start: 3
+          suite_name: GPU rocm2.10 custom
+
+        rocm210_custom_py38_gcc9_mpi_4:
+          container_image: rocm2.10_custom_gcc9_py38
+          enable_mpi: on
+          ctest_start: 4
+          suite_name: GPU rocm2.10 custom
+
+    pool:
+      name: 'AMDGPU'
+      demands: dual_gpu
+
+    container:
+       image: $(image_root)-$(container_image)
+       options: -u 0
 
     workspace:
       clean: all
