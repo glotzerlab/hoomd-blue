@@ -65,11 +65,22 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
             m_copy_tuner->setPeriod(period/10);
             m_copy_tuner->setEnabled(enable);
 
-            m_build_tuner->setPeriod(period/10);
-            m_build_tuner->setEnabled(enable);
+            /* These may be null pointers if the first compute has not occurred, since construction of these tuners
+               is deferred until the first neighbor list build (in order to get the tuner parameters from the
+               LBVHWrapper and LBVHTraverserWrapper). When initialized, the period and enabled must be borrowed
+               from one of the tuners above to keep everything synced.
+             */
+            if (m_build_tuner)
+                {
+                m_build_tuner->setPeriod(period/10);
+                m_build_tuner->setEnabled(enable);
+                }
 
-            m_traverse_tuner->setPeriod(period/10);
-            m_traverse_tuner->setEnabled(enable);
+            if (m_traverse_tuner)
+                {
+                m_traverse_tuner->setPeriod(period/10);
+                m_traverse_tuner->setEnabled(enable);
+                }
             }
 
     protected:

@@ -142,12 +142,18 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
     if (!m_build_tuner)
         {
         m_build_tuner.reset(new Autotuner(m_lbvhs[0]->getTunableParameters(), 5, 100000, "nlist_tree_build", m_exec_conf));
+        // pilfer enabled & period from the mark tuner
+        m_build_tuner->setEnabled(m_mark_tuner->getEnabled());
+        m_build_tuner->setPeriod(m_mark_tuner->getPeriod());
         }
 
     // ensure traverser tuner is set
     if (!m_traverse_tuner)
         {
         m_traverse_tuner.reset(new Autotuner(m_traversers[0]->getTunableParameters(), 5, 100000, "nlist_tree_traverse", m_exec_conf));
+        // pilfer enabled & period from the mark tuner
+        m_traverse_tuner->setEnabled(m_mark_tuner->getEnabled());
+        m_traverse_tuner->setPeriod(m_mark_tuner->getPeriod());
         }
 
     // build the tree
