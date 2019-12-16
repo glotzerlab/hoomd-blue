@@ -120,7 +120,7 @@ Install prerequisites
          When using a custom HIP version, other libraries used by HOOMD-blue (`rocfft`) need
          to be compiled against that same HIP version.
 
-      3. As of commit `651a91b5e0e89eca190da45273d841348c73407b <https://github.com/ROCm-Developer-Tools/HIP/commit/651a91b5e0e89eca190da45273d841348c73407b>`_,
+      3. As of commit `651a9 <https://github.com/ROCm-Developer-Tools/HIP/commit/651a91b5e0e89eca190da45273d841348c73407b>`_,
          an `ABI incompatibility <https://github.com/ROCm-Developer-Tools/HIP/issues/1740>`_ between `hcc` and `gcc`
          prevents using the development branch of HIP (master) with `gcc` as a host compiler.
          With the development version of HIP, use `clang++`.
