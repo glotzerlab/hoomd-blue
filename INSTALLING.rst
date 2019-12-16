@@ -115,9 +115,8 @@ Install prerequisites
          These are fixed by the the upstream AMDGPU driver in Linux kernel 5.3 (or later).
 
       2. Certain HOOMD-blue kernels trigger a `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-         A temporary bugfix branch of HIP addresses these problems and can be found
-         `here <https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes_revertvectortypes>`_.
-         When using a custom HIP version, other libraries used by HOOMD-blue (`rocfft`) need
+         A `temporary bugfix branch of HIP <https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes_revertvectortypes>`_
+         addresses these problems. When using a custom HIP version, other libraries used by HOOMD-blue (`rocfft`) need
          to be compiled against that same HIP version.
 
       3. As of commit `651a9 <https://github.com/ROCm-Developer-Tools/HIP/commit/651a91b5e0e89eca190da45273d841348c73407b>`_,
