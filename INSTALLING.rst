@@ -100,19 +100,32 @@ Install prerequisites
     **OR**
 
     - `AMD ROCm >= 2.9 <https://rocm.github.io/ROCmInstall.html>`_
-    
+
       Required components:
-        - HIP
-        - rocfft
-        - rocprim
-        - rocthrust
+        - HIP [with `hipcc` and `hcc` as backend]
+        - rocFFT
+        - rocPRIM
+        - rocThrust
         - hipCUB, included for NVIDIA GPU targets, but required as an
           external dependency when building for AMD GPUs
 
-      Some components of HOOMD-blue do not currently exceute properly neither
-      with release versions of HIP nor with development versions. A temporary
-      branch that addresses these problems can be found
-      `here <https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes>`_.
+      For HOOMD-blue on AMD GPUs, the following limitations currently apply.
+
+      1. Sporadic application hangs or intermittently slow performance have been observed.
+         These are fixed by the the upstream AMDGPU driver in Linux kernel 5.3 (or later).
+
+      2. Certain HOOMD-blue kernels trigger a unknown HSA error. A temporary bugfix
+         branch of HIP addresses these problems and can be found
+         `here <https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes_revertvectortypes>`_.
+         When using a custom HIP version, other libraries used by HOOMD-blue (`rocfft`) need
+         to be compiled against that same HIP version.
+
+      3. As of commit `651a91b5e0e89eca190da45273d841348c73407b <https://github.com/ROCm-Developer-Tools/HIP/commit/651a91b5e0e89eca190da45273d841348c73407b>`_,
+         an `ABI incompatibility <https://github.com/ROCm-Developer-Tools/HIP/issues/1740>`_ between `hcc` and `gcc`
+         prevents using the development branch of HIP (master) with `gcc` as a host compiler.
+         With the development version of HIP, use `clang++`.
+
+      4. The `mpcd` component is disabled on AMD GPUs.
 
   - For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``):
 
