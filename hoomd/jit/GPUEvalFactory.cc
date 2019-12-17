@@ -70,13 +70,13 @@ void GPUEvalFactory::compileGPU(
         std::string(jitify::detail::jitsafe_header_limits) +
         std::string(jitify::detail::jitsafe_header_stdio_h) + code;
 
-    m_exec_conf->msg->notice(4) << code_with_headers << std::endl;
+    m_exec_conf->msg->notice(5) << code_with_headers << std::endl;
 
     nvrtcResult status = nvrtcCreateProgram(&m_program, code_with_headers.c_str(), "evaluator.cu", 0, NULL, NULL);
     if (status != NVRTC_SUCCESS)
         throw std::runtime_error("nvrtcCreateProgram error: "+std::string(nvrtcGetErrorString(status)));
 
-    m_exec_conf->msg->notice(3) << "nvrtc options (notice level 4 shows code):" << std::endl;
+    m_exec_conf->msg->notice(3) << "nvrtc options (notice level 5 shows code):" << std::endl;
     for (unsigned int i = 0; i < compile_options.size(); ++i)
         {
         m_exec_conf->msg->notice(3) << " " << compileParams[i] << std::endl;
