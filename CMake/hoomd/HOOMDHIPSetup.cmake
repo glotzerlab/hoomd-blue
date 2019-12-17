@@ -44,6 +44,13 @@ int main(int argc, char **argv)
         # override command line, so that it doesn't contain "-x cu"
         set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
             "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
+        set(CMAKE_CUDA_COMPILE_SEPARABLE_COMPILATION
+            "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -fgpu-rdc <SOURCE> -o <OBJECT>")
+
+        set(CMAKE_CUDA_DEVICE_LINK_LIBRARY
+            "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <LANGUAGE_COMPILE_FLAGS> ${CMAKE_CUDA_COMPILE_OPTIONS_PIC} ${_CMAKE_CUDA_EXTRA_DEVICE_LINK_FLAGS} -shared <OBJECTS> -o <TARGET> <LINK_LIBRARIES>${__IMPLICT_DLINK_FLAGS}")
+        set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE
+            "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <FLAGS> ${CMAKE_CUDA_COMPILE_OPTIONS_PIC} ${_CMAKE_CUDA_EXTRA_DEVICE_LINK_FLAGS} <OBJECTS> -o <TARGET> <LINK_LIBRARIES>${__IMPLICT_DLINK_FLAGS}")
 
         if(CMAKE_GENERATOR STREQUAL "Ninja")
             # this is also ugly, but ninja/hipcc is only supported with a future cmake
@@ -75,9 +82,6 @@ int main(int argc, char **argv)
             NO_DEFAULT_PATH)
 
         list(APPEND HIP_INCLUDE_DIR ${ROCm_hsa_INCLUDE_DIR})
-
-        # we have not tested separable compilation, make sure it is disabled with hipcc
-        set(CMAKE_CUDA_SEPARABLE_COMPILATION OFF)
     else()
         # here we go if hipcc is not available, fall back on internal HIP->CUDA headers
         set(HIP_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/HIP/include/")
