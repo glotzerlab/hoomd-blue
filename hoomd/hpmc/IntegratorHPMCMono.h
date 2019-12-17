@@ -231,6 +231,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual void setInteractionMatrix(std::pair<std::string, std::string> types,
                                           bool check_overlaps);
 
+        //! Get elements of the interaction matrix
+        virtual bool getInteractionMatrixPy(std::pair<std::string, std::string> types);
+
         //! Set the external field for the integrator
         void setExternalField(std::shared_ptr< ExternalFieldMono<Shape> > external)
             {
@@ -1612,6 +1615,17 @@ void IntegratorHPMCMono<Shape>::setInteractionMatrix(std::pair<std::string, std:
     h_overlaps.data[m_overlap_idx(typj,typi)] = check_overlaps;
 
     m_image_list_valid = false;
+    }
+
+template <class Shape>
+bool IntegratorHPMCMono<Shape>::getInteractionMatrixPy(std::pair<std::string, std::string> types)
+    {
+    auto typi = m_pdata->getTypeByName(types.first);
+    auto typj = m_pdata->getTypeByName(types.second);
+
+    // update the parameter for this type
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
+    return h_overlaps.data[m_overlap_idx(typi,typj)];
     }
 
 //! Calculate a list of box images within interaction range of the simulation box, innermost first
@@ -3100,6 +3114,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setInteractionMatrix", &IntegratorHPMCMono<Shape>::setInteractionMatrix)
+          .def("getInteractionMatrix", &IntegratorHPMCMono<Shape>::getInteractionMatrixPy)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)
