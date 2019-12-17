@@ -67,7 +67,7 @@ macro(add_hoomd_script_test_cuda_memcheck test_py)
 # name the test
 get_filename_component(_test_name ${test_py} NAME_WE)
 
-if (ENABLE_HIP)
+if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
 if (ENABLE_MPI)
     add_test(NAME script-${_test_name}-racecheck-gpu
              COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
