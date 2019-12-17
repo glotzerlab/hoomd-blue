@@ -202,10 +202,10 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             {
             hpmc_counters_t counters = getCounters(1);
             m_exec_conf->msg->notice(2) << "-- HPMC stats:" << "\n";
-            m_exec_conf->msg->notice(2) << "Average translate acceptance: " << counters.getTranslateAcceptance() << "\n";
+            /* m_exec_conf->msg->notice(2) << "Average translate acceptance: " << counters.getTranslateCounts() << "\n"; */
             if (counters.rotate_accept_count + counters.rotate_reject_count != 0)
                 {
-                m_exec_conf->msg->notice(2) << "Average rotate acceptance:    " << counters.getRotateAcceptance() << "\n";
+                /* m_exec_conf->msg->notice(2) << "Average rotate acceptance:    " << counters.getRotateCounts() << "\n"; */
                 }
 
             // elapsed time

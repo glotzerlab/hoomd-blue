@@ -7,6 +7,7 @@ from hoomd.parameterdicts import RequiredArg
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import _integrator
+from hoomd.logger import Loggable
 import hoomd
 import json
 
@@ -334,28 +335,31 @@ class HPMCIntegrator(_integrator):
         qj = hoomd.util.listify(qj)
         return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images, exclude_self)
 
-    def get_translate_acceptance(self):
-        R""" Get the average acceptance ratio for translate moves.
+    @Loggable.log(flag='multi')
+    def translate_moves(self):
+        R""" Get the number of accepted and rejected translate moves.
 
         Returns:
-            The average translate accept ratio during the last :py:func:`hoomd.run()`.
+            The number of accepted and rejected translate moves during the last
+            :py:func:`hoomd.run()`.
 
         Example::
 
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param.set(....);
+            mc = hpmc.integrate.Shape(..)
+            mc.shape['A'] = dict(....)
             run(100)
-            t_accept = mc.get_translate_acceptance();
+            t_accept = mc.translate_acceptance
 
         """
-        counters = self._cpp_obj.getCounters(1)
-        return counters.getTranslateAcceptance()
+        return self._cpp_obj.getCounters(1).translate
 
-    def get_rotate_acceptance(self):
-        R""" Get the average acceptance ratio for rotate moves.
+    @Loggable.log(flag='multi')
+    def rotate_moves(self):
+        R""" Get the number of accepted and reject rotation moves
 
         Returns:
-            The average rotate accept ratio during the last :py:func:`hoomd.run()`.
+            The number of accepted and rejected rotate moves during the last
+            :py:func:`hoomd.run()`.
 
         Example::
 
@@ -365,8 +369,7 @@ class HPMCIntegrator(_integrator):
             t_accept = mc.get_rotate_acceptance();
 
         """
-        counters = self._cpp_obj.getCounters(1)
-        return counters.getRotateAcceptance()
+        return self._cpp_obj.getCounters(1).rotate
 
     def get_mps(self):
         R""" Get the number of trial moves per second.
@@ -377,33 +380,18 @@ class HPMCIntegrator(_integrator):
         """
         return self._cpp_obj.getMPS()
 
-    def get_counters(self):
+    @property
+    def counters(self):
         R""" Get all trial move counters.
 
         Returns:
-            A dictionary containing all trial moves counted during the last :py:func:`hoomd.run()`.
-
-        The dictionary contains the entries:
-
-        * *translate_accept_count* - count of the number of accepted translate moves
-        * *translate_reject_count* - count of the number of rejected translate moves
-        * *rotate_accept_count* - count of the number of accepted rotate moves
-        * *rotate_reject_count* - count of the number of rejected rotate moves
-        * *overlap_checks* - estimate of the number of overlap checks performed
-        * *translate_acceptance* - Average translate acceptance ratio over the run
-        * *rotate_acceptance* - Average rotate acceptance ratio over the run
-        * *move_count* - Count of the number of trial moves during the run
+            counter object which has ``translate``, ``rotate``,
+            ``ovelap_checks``, and ``overlap_errors`` attributes. The attributes
+            ``translate`` and ``rotate`` are tuples of the accepted and rejected
+            respective trial move while ``overlap_checks`` and
+            ``overlap_errors`` are integers.
         """
-        counters = self._cpp_obj.getCounters(1)
-        return dict(translate_accept_count=counters.translate_accept_count,
-                    translate_reject_count=counters.translate_reject_count,
-                    rotate_accept_count=counters.rotate_accept_count,
-                    rotate_reject_count=counters.rotate_reject_count,
-                    overlap_checks=counters.overlap_checks,
-                    translate_acceptance=counters.getTranslateAcceptance(),
-                    rotate_acceptance=counters.getRotateAcceptance(),
-                    move_count=counters.getNMoves())
-
+        return self._cpp_obj.getCounters(1)
 
 class Sphere(HPMCIntegrator):
     R""" HPMC integration for spheres (2D/3D).
