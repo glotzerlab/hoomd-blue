@@ -183,6 +183,40 @@ if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
     list(APPEND REQUIRED_CUDA_LIB_VARS HIP_rocfft_LIBRARY)
 endif()
 
+if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
+    find_library(HIP_roctracer_LIBRARY roctracer64
+        PATHS
+        "${HIP_ROOT_DIR}"
+        ENV ROCM_PATH
+        ENV HIP_PATH
+        /opt/rocm
+        /opt/rocm/roctracer
+        PATH_SUFFIXES lib
+        NO_DEFAULT_PATH)
+
+    find_path(HIP_roctracer_INCLUDE_DIR
+        NAMES roctracer.h
+        PATHS
+        ${HIP_ROOT_DIR}/roctracer
+        $ENV{ROCM_PATH}/roctracer
+        $ENV{HIP_PATH}/roctracer
+        /opt/rocm
+        /opt/rocm/roctracer
+        PATH_SUFFIXES include
+        NO_DEFAULT_PATH)
+
+    mark_as_advanced(HIP_roctracer_LIBRARY)
+    if(HIP_roctracer_LIBRARY AND NOT TARGET HIP::roctracer)
+      add_library(HIP::roctracer UNKNOWN IMPORTED)
+      set_target_properties(HIP::roctracer PROPERTIES
+        IMPORTED_LOCATION "${HIP_roctracer_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${HIP_roctracer_INCLUDE_DIR};${HIP_roctracer_INCLUDE_DIR}"
+        )
+    endif()
+    list(APPEND REQUIRED_CUDA_LIB_VARS HIP_roctracer_LIBRARY)
+endif()
+
+
 #find_library(HIP_hipsparse_LIBRARY hipsparse
 #    PATHS
 #    "${HIP_ROOT_DIR}"

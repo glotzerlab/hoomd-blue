@@ -219,7 +219,7 @@ if (ENABLE_HIP)
     set_property(TARGET _hoomd PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
 
     if (HIP_PLATFORM STREQUAL "hcc")
-        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt)
+        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt HIP::roctracer)
     elseif(HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()

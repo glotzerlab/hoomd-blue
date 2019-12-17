@@ -101,13 +101,14 @@ Install prerequisites
 
     - `AMD ROCm >= 2.9 <https://rocm.github.io/ROCmInstall.html>`_
 
-      Additional required dependencies:
+      Additional dependencies:
         - HIP [with `hipcc` and `hcc` as backend]
         - rocFFT
         - rocPRIM
         - rocThrust
         - hipCUB, included for NVIDIA GPU targets, but required as an
           external dependency when building for AMD GPUs
+        - roctracer-dev
         - CMake >= 3.14.0
         - Linux kernel >= 3.5.0
 
