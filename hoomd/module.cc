@@ -319,6 +319,8 @@ PYBIND11_MODULE(_hoomd, m)
     pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector_scalar");
     pybind11::bind_vector< std::vector<string> >(m,"std_vector_string");
     pybind11::bind_vector< std::vector<unsigned int> >(m,"std_vector_uint");
+    pybind11::bind_vector< std::vector<std::pair<unsigned int,
+												 unsigned int> > >(m,"std_vector_uint_pair");
     pybind11::bind_vector< std::vector<int> >(m,"std_vector_int");
     pybind11::bind_vector< std::vector<Scalar3> >(m,"std_vector_scalar3");
     pybind11::bind_vector< std::vector<Scalar4> >(m,"std_vector_scalar4");

@@ -263,13 +263,10 @@ class IntegratorHPMCMono : public IntegratorHPMC
             }
 
         //! Count overlaps with the option to exit early at the first detected overlap
-        virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit);
+        virtual unsigned int countOverlaps(bool early_exit);
 
         //! Return a vector that is an unwrapped overlap map
-        virtual std::vector<bool> mapOverlaps();
-
-        //! Return a python list that is an unwrapped overlap map
-        virtual pybind11::list PyMapOverlaps();
+        virtual std::vector<std::pair<unsigned int, unsigned int> > mapOverlaps();
 
         //! Test overlap for a given pair of particle coordinates
         /*! \param type_i Type of first particle
@@ -1231,12 +1228,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
     \returns number of overlaps if early_exit=false, 1 if early_exit=true
 */
 template <class Shape>
-unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, bool early_exit)
+unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
     {
     unsigned int overlap_count = 0;
     unsigned int err_count = 0;
-
-    m_exec_conf->msg->notice(10) << "HPMCMono count overlaps: " << timestep << std::endl;
 
     if (!m_past_first_run)
         {
@@ -1953,7 +1948,7 @@ void IntegratorHPMCMono<Shape>::limitMoveDistances()
  * with true/false indicating the overlap status of the ith and jth particle
  */
 template <class Shape>
-std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
+std::vector<std::pair<unsigned int, unsigned int> > IntegratorHPMCMono<Shape>::mapOverlaps()
     {
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -1965,7 +1960,7 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
 
     unsigned int N = m_pdata->getN();
 
-    std::vector<bool> overlap_map(N*N, false);
+    std::vector<std::pair<unsigned int, unsigned int> > overlap_vector;
 
     m_exec_conf->msg->notice(10) << "HPMC overlap mapping" << std::endl;
 
@@ -2031,7 +2026,8 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
                                 && test_overlap(r_ij, shape_i, shape_j, err_count)
                                 && test_overlap(-r_ij, shape_j, shape_i, err_count))
                                 {
-                                overlap_map[h_tag.data[j]+N*h_tag.data[i]] = true;
+                                overlap_vector.push_back(std::make_pair(h_tag.data[i],
+                                                                        h_tag.data[j]));
                                 }
                             }
                         }
@@ -2044,25 +2040,9 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
                 } // end loop over AABB nodes
             } // end loop over images
         } // end loop over particles
-    return overlap_map;
+    return overlap_vector;
     }
 
-/*! Function for returning a python list of all overlaps in a system by particle
-  tag. returns an unraveled form of an NxN matrix with true/false indicating
-  the overlap status of the ith and jth particle
- */
-template <class Shape>
-pybind11::list IntegratorHPMCMono<Shape>::PyMapOverlaps()
-    {
-    std::vector<bool> v = IntegratorHPMCMono<Shape>::mapOverlaps();
-    pybind11::list overlap_map;
-    // for( unsigned int i = 0; i < sizeof(v)/sizeof(v[0]); i++ )
-    for (auto i: v)
-        {
-        overlap_map.append(pybind11::cast<bool>(i));
-        }
-    return overlap_map;
-    }
 
 template <class Shape>
 void IntegratorHPMCMono<Shape>::connectGSDStateSignal(
@@ -3122,7 +3102,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setInteractionMatrix", &IntegratorHPMCMono<Shape>::setInteractionMatrix)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
-          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
+          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)
           .def("connectGSDStateSignal", &IntegratorHPMCMono<Shape>::connectGSDStateSignal)
           .def("connectGSDShapeSpec", &IntegratorHPMCMono<Shape>::connectGSDShapeSpec)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)

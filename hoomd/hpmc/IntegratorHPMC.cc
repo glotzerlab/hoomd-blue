@@ -169,7 +169,7 @@ Scalar IntegratorHPMC::getLogValue(const std::string& quantity, unsigned int tim
         }
     else if (quantity == "hpmc_overlap_count")
         {
-        return countOverlaps(timestep, false);
+        return countOverlaps(false);
         }
     else
         {
@@ -273,7 +273,7 @@ bool IntegratorHPMC::attemptBoxResize(unsigned int timestep, const BoxDim& new_b
     this->communicate(false);
 
     // check overlaps
-    return !this->countOverlaps(timestep, true);
+    return !this->countOverlaps(true);
     }
 
 /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step

@@ -206,6 +206,7 @@ class HPMCIntegrator(_integrator):
         typeparam_a = TypeParameter('a', type_kind='particle_types',
                                     param_dict=TypeParameterDict(a, len_keys=1)
                                     )
+
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
@@ -269,6 +270,7 @@ class HPMCIntegrator(_integrator):
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
+    @Loggable.log(flag='multi')
     def map_overlaps(self):
         R""" Build an overlap map of the system
 
@@ -285,12 +287,12 @@ class HPMCIntegrator(_integrator):
             overlap_map = np.asarray(mc.map_overlaps())
         """
 
-        self.update_forces()
-        N = hoomd.context.current.system_definition.getParticleData().getMaximumTag() + 1
-        overlap_map = self._cpp_obj.mapOverlaps()
-        return list(zip(*[iter(overlap_map)] * N))
+        if not self.is_attached:
+            return None
+        return self._cpp_obj.mapOverlaps()
 
-    def count_overlaps(self):
+    @Loggable.log
+    def overlaps(self):
         R""" Count the number of overlaps.
 
         Returns:
@@ -298,16 +300,18 @@ class HPMCIntegrator(_integrator):
 
         Example::
 
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param.set(....);
+            mc = hpmc.integrate.Shape(..)
+            mc.shape['A'] = dict(....)
             run(100)
-            num_overlaps = mc.count_overlaps();
+            num_overlaps = mc.overlaps
         """
-        self.update_forces()
+        if not self.is_attached:
+            return None
         self._cpp_obj.communicate(True)
-        return self._cpp_obj.countOverlaps(hoomd.context.current.system.getCurrentTimeStep(), False)
+        return self._cpp_obj.countOverlaps(False)
 
-    def test_overlap(self, type_i, type_j, rij, qi, qj, use_images=True, exclude_self=False):
+    def test_overlap(self, type_i, type_j, rij, qi, qj, use_images=True,
+                     exclude_self=False):
         R""" Test overlap between two particles.
 
         Args:

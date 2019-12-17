@@ -18,6 +18,7 @@
 
 #ifndef NVCC
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #endif
 
 namespace hpmc
@@ -242,7 +243,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             \param early_exit exit at first overlap found if true
             \returns number of overlaps if early_exit=false, 1 if early_exit=true
         */
-        virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit)
+        virtual unsigned int countOverlaps(bool early_exit)
             {
             return 0;
             }
