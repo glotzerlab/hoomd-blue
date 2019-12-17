@@ -5,7 +5,7 @@
 trigger: none
 
 variables:
-  image_root: glotzerlab/ci:2019.11
+  image_root: glotzerlab/ci:2019.12
 
   # default build parameters, will override as needed with job matrix values
   enable_gpu: off
