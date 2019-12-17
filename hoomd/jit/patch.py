@@ -447,17 +447,18 @@ class user_union(user):
         self.alpha_iso = self.cpp_evaluator.alpha_iso[:]
         self.alpha_union = self.cpp_evaluator.alpha_union[:]
 
-    R''' Set the union shape parameters for a given particle type
-
-    Args:
-        type (string): The type to set the interactions for
-        positions: The positions of the constituent particles (list of vectors)
-        orientations: The orientations of the constituent particles (list of four-vectors)
-        diameters: The diameters of the constituent particles (list of floats)
-        charges: The charges of the constituent particles (list of floats)
-        leaf_capacity: The number of particles in a leaf of the internal tree data structure
-    '''
     def set_params(self, type, positions, typeids, orientations=None, charges=None, diameters=None, leaf_capacity=4):
+        R''' Set the union shape parameters for a given particle type
+
+        Args:
+            type (string): The type to set the interactions for
+            positions: The positions of the constituent particles (list of vectors)
+            orientations: The orientations of the constituent particles (list of four-vectors)
+            diameters: The diameters of the constituent particles (list of floats)
+            charges: The charges of the constituent particles (list of floats)
+            leaf_capacity: The number of particles in a leaf of the internal tree data structure
+        '''
+
         if orientations is None:
             orientations = [[1,0,0,0]]*len(positions)
 
