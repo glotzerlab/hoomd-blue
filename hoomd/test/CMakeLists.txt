@@ -86,7 +86,7 @@ foreach (CUR_TEST ${MPI_TEST_LIST})
 endforeach(CUR_TEST)
 
 # run tests under cuda-memcheck --tool synccheck
-if(ENABLE_HIP)
+if(ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
 
 foreach (CUR_TEST ${SYNC_TEST_LIST})
     if (ENABLE_MPI)
