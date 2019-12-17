@@ -208,8 +208,7 @@ stages:
       clean: all
 
     steps:
-    # hipcc is currently not supported with ninja
-    - template: templates/build_test_with_make.yml
+    - template: templates/build_test.yml
 
 - stage: doc
   displayName: Documentation
