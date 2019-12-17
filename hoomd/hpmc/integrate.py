@@ -256,7 +256,8 @@ class HPMCIntegrator(_integrator):
         """
         return self._cpp_obj.getCounters(1).rotate
 
-    def get_mps(self):
+    @Loggable.log
+    def mps(self):
         R""" Get the number of trial moves per second.
 
         Returns:
