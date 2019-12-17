@@ -185,7 +185,7 @@ stages:
 
     container:
        image: $(image_root)-$(container_image)
-       options: -u 0 --gpus=all --cpus=4 --memory=8g -e CUDA_VISIBLE_DEVICES
+       options: -u 0 --gpus=all --cpus=4 --memory=16g -e CUDA_VISIBLE_DEVICES
 
     workspace:
       clean: all
@@ -236,7 +236,7 @@ stages:
 
     container:
        image: $(image_root)-$(container_image)
-       options: -u 0 --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video
+       options: -u 0 --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --memory=16g
 
     workspace:
       clean: all
