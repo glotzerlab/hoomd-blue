@@ -63,18 +63,27 @@ if (ENABLE_MPI)
         endif(MPI_CUDA)
     endif (ENABLE_HIP AND NOT DEFINED ENABLE_MPI_CUDA)
 
-# backport CMake FindMPI fix
+# backport CMake FindMPI fix from 3.12 to earlier versions
 # https://gitlab.kitware.com/cmake/cmake/merge_requests/2529/diffs
-# additionally, since nvcc doesn't require -pthread (and hipcc doesn't like -Xcompiler), eliminate argument
-if (ENABLE_HIP)
-    string(REPLACE "-pthread" "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:-pthread>"
-      _MPI_C_COMPILE_OPTIONS "${MPI_C_COMPILE_OPTIONS}")
-    set_property(TARGET MPI::MPI_C PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_C_COMPILE_OPTIONS}")
-    unset(_MPI_C_COMPILE_OPTIONS)
 
-    string(REPLACE "-pthread" "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:-pthread>"
+if (CMAKE_VERSION VERSION_LESS 3.12.0 AND ENABLE_HIP)
+    if(HIP_PLATFORM EQUALS "nvcc")
+    string(replace "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<HIP_PLATFORM:nvcc>>:-Xcompiler>;-pthread"
+      _mpi_c_compile_options "${mpi_c_compile_options}")
+    set_property(target mpi::mpi_c property interface_compile_options "${_mpi_c_compile_options}")
+    else()
+    set_property(target mpi::mpi_c property interface_compile_options "${mpi_c_compile_options}")
+    endif()
+    unset(_mpi_c_compile_options)
+
+    if(HIP_PLATFORM EQUALS "nvcc")
+    string(REPLACE "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA><$<HIP_PLATFORM:nvcc>>:-Xcompiler>;-pthread"
       _MPI_CXX_COMPILE_OPTIONS "${MPI_CXX_COMPILE_OPTIONS}")
     set_property(TARGET MPI::MPI_CXX PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_CXX_COMPILE_OPTIONS}")
+    else()
+    set_property(TARGET MPI::MPI_CXX PROPERTY INTERFACE_COMPILE_OPTIONS "${MPI_CXX_COMPILE_OPTIONS}")
+    endif()
+    message(STATUS "_MPI_CXX_COMPILE_OPTIONS: ${_MPI_CXX_COMPILE_OPTIONS}")
     unset(_MPI_CXX_COMPILE_OPTIONS)
 endif()
 
