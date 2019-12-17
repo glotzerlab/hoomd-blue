@@ -41,7 +41,7 @@ if (ENABLE_HIP)
 set(_cuda_sources ${_dem_cu_sources})
 endif (ENABLE_HIP)
 
-pybind11_add_module(_dem SHARED ${_dem_sources} ${_cuda_sources} ${_dem_headers} NO_EXTRAS SYSTEM)
+pybind11_add_module(_dem SHARED ${_dem_sources} ${_cuda_sources} ${_dem_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_dem ALIAS _dem)
 
