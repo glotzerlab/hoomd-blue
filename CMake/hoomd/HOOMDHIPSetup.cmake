@@ -46,8 +46,13 @@ int main(int argc, char **argv)
         set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
             "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
 
-        # hipcc can write dependencies (undocumented CMake option)
-        set(CMAKE_DEPFILE_FLAGS_CUDA "-MD -MT <OBJECT> -MF <DEPFILE>")
+        if(CMAKE_GENERATOR STREQUAL "Ninja")
+            # this is also ugly, but ninja/hipcc is only supported with bleeding-edge cmake
+            CMAKE_MINIMUM_REQUIRED(VERSION 3.16.1 FATAL_ERROR)
+
+            # hipcc can write dependencies (undocumented CMake option)
+            set(CMAKE_DEPFILE_FLAGS_CUDA "-MD -MT <OBJECT> -MF <DEPFILE>")
+        endif()
 
         # don't let CMake examine the compiler, because it will fail
         SET(CMAKE_CUDA_COMPILER_FORCED TRUE)
