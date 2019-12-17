@@ -120,6 +120,8 @@ Install prerequisites
 
       2. The `mpcd` component is disabled on AMD GPUs.
 
+      3. Multi-GPU execution via unified memory is not available.
+
   - For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``):
 
     - Intel Threading Building Blocks >= 4.3
