@@ -236,10 +236,11 @@ stages:
 
     container:
        image: $(image_root)-$(container_image)
-       options: -u 0
+       options: -u 0 --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video
 
     workspace:
       clean: all
 
     steps:
-    - template: templates/build_test.yml
+    # hipcc is currently not supported with ninja
+    - template: templates/build_test_with_make.yml

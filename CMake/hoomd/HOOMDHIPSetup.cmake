@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
         if(CMAKE_GENERATOR STREQUAL "Ninja")
             # this is also ugly, but ninja/hipcc is only supported with bleeding-edge cmake
-            CMAKE_MINIMUM_REQUIRED(VERSION 3.16.1 FATAL_ERROR)
+            CMAKE_MINIMUM_REQUIRED(VERSION 3.17.0 FATAL_ERROR)
 
             # hipcc can write dependencies (undocumented CMake option)
             set(CMAKE_DEPFILE_FLAGS_CUDA "-MD -MT <OBJECT> -MF <DEPFILE>")
