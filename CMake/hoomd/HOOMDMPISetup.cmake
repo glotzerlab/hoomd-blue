@@ -67,12 +67,12 @@ if (ENABLE_MPI)
 # https://gitlab.kitware.com/cmake/cmake/merge_requests/2529/diffs
 
 if (CMAKE_VERSION VERSION_LESS 3.12.0 AND ENABLE_HIP)
-    string(REPLACE "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<HIP_PLATFORM:nvcc>>:-Xcompiler>;-pthread"
+    string(REPLACE "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler>;-pthread"
       _MPI_C_COMPILE_OPTIONS "${MPI_C_COMPILE_OPTIONS}")
     set_property(TARGET MPI::MPI_C PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_C_COMPILE_OPTIONS}")
     unset(_MPI_C_COMPILE_OPTIONS)
 
-    string(REPLACE "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA><$<HIP_PLATFORM:nvcc>>:-Xcompiler>;-pthread"
+    string(REPLACE "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA><$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler>;-pthread"
       _MPI_CXX_COMPILE_OPTIONS "${MPI_CXX_COMPILE_OPTIONS}")
     set_property(TARGET MPI::MPI_CXX PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_CXX_COMPILE_OPTIONS}")
     message(STATUS "_MPI_CXX_COMPILE_OPTIONS: ${_MPI_CXX_COMPILE_OPTIONS}")
