@@ -2,10 +2,7 @@ if(ENABLE_HIP)
     find_package(HIP)
 
     if (HIP_FOUND)
-        OPTION(HIP_NVCC_FLAGS "Flags used by HIP for compiling with nvcc")
-        MARK_AS_ADVANCED(HIP_NVCC_FLAGS)
-
-        # call hipcc to tell us about the nvcc options
+        # call hipcc to tell us about the backend compiler
         set(ENV{HIPCC_VERBOSE} 1)
 
         FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/hip_test.cc "
@@ -49,22 +46,11 @@ int main(int argc, char **argv)
         set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
             "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
 
+        # hipcc can write dependencies (undocumented CMake option)
+        set(CMAKE_DEPFILE_FLAGS_CUDA "-MD -MT <OBJECT> -MF <DEPFILE>"
+
         # don't let CMake examine the compiler, because it will fail
         SET(CMAKE_CUDA_COMPILER_FORCED TRUE)
-
-        # drop the compiler exeuctable and the "hipcc-cmd"
-        LIST(REMOVE_AT _hipcc_verbose_options 0 1)
-
-        # drop the -x cu option to not duplicate it with CMake's options
-        LIST(FIND _hipcc_verbose_options "-x" _idx)
-        if (NOT ${_idx} EQUAL "-1")
-        math(EXPR _idx_plus_one "${_idx} + 1")
-        LIST(REMOVE_AT _hipcc_verbose_options ${_idx} ${_idx_plus_one})
-        endif()
-
-        # finally drop the test file
-        LIST(FILTER _hipcc_verbose_options EXCLUDE REGEX test.cc)
-        SET(HIP_NVCC_FLAGS ${_hipcc_options_str})
 
         #search for HIP include directory
         find_path(HIP_INCLUDE_DIR hip/hip_runtime.h
@@ -93,7 +79,6 @@ int main(int argc, char **argv)
         set(HIP_VERSION_MAJOR "(CUDART_VERSION/1000)")
         set(HIP_VERSION_MINOR "(CUDART_VERSION - (CUDART_VERSION/1000)*1000)/10")
         set(HIP_VERSION_PATCH "0")
-        set(HIP_NVCC_FLAGS "")
         set(HIP_PLATFORM "nvcc")
         set(CUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/cub/")
 
@@ -117,7 +102,7 @@ int main(int argc, char **argv)
             set_property(TARGET HIP::hip APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS "__HIP_PLATFORM_HCC__")
         endif()
 
-        # set HIP_VERSION_* on non-CUDA targets (the version is already defined on CUDA targets through HIP_NVCC_FLAGS)
+        # set HIP_VERSION_* on non-CUDA targets (the version is already defined on AMD targets through hipcc)
         set_property(TARGET HIP::hip APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS
             $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_MAJOR=${HIP_VERSION_MAJOR}>)
         set_property(TARGET HIP::hip APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS
