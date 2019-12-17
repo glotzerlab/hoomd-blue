@@ -42,13 +42,12 @@ int main(int argc, char **argv)
         include(hipcc)
 
         # override command line, so that it doesn't contain "-x cu"
-        # we also add a -fPIC, as it may be useful when linking with hipcc
         set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
-            "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <DEFINES> <INCLUDES> ${CMAKE_CUDA_COMPILE_OPTIONS_PIC} <FLAGS> -c <SOURCE> -o <OBJECT>")
+            "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
 
         # these are no-ops, as device linking is not supported with hcc
-        set(CMAKE_CUDA_DEVICE_LINK_LIBRARY "")
-        set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE "")
+        set(CMAKE_CUDA_DEVICE_LINK_LIBRARY "<CMAKE_CUDA_COMPILER> -o <TARGET> -x c++ -c /dev/null")
+        set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE "<CMAKE_CUDA_COMPILER> -o <TARGET> -x c++ -c /dev/null")
 
         if(CMAKE_GENERATOR STREQUAL "Ninja")
             # this is also ugly, but ninja/hipcc is only supported with a future cmake
