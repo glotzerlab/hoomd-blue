@@ -270,6 +270,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
                 yield tuple(sorted(list(key)))
 
     def to_dict(self):
+        rtn_dict = dict()
         for key in self.keys():
             rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
         return rtn_dict
