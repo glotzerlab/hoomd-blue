@@ -2,6 +2,9 @@ if(ENABLE_HIP)
     find_package(HIP)
 
     if (HIP_FOUND)
+        # we need to be able to turn off device linking on executables, hence CMake 3.14.0
+        CMAKE_MINIMUM_REQUIRED(VERSION 3.14.0 FATAL_ERROR)
+
         # call hipcc to tell us about the backend compiler
         set(ENV{HIPCC_VERBOSE} 1)
 
@@ -35,7 +38,6 @@ int main(int argc, char **argv)
         SET(CMAKE_CXX_CREATE_SHARED_LIBRARY ${_link_exec})
 
         # use hipcc as C++ linker for executables
-        SET(CMAKE_CUDA_COMPILER ${HIP_HIPCC_EXECUTABLE})
         string(REPLACE "<CMAKE_CXX_COMPILER>" "${HIP_HIPCC_EXECUTABLE}" _link_exec ${CMAKE_CXX_LINK_EXECUTABLE})
         SET(CMAKE_CXX_LINK_EXECUTABLE ${_link_exec})
 
@@ -47,7 +49,7 @@ int main(int argc, char **argv)
             "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
 
         if(CMAKE_GENERATOR STREQUAL "Ninja")
-            # this is also ugly, but ninja/hipcc is only supported with bleeding-edge cmake
+            # this is also ugly, but ninja/hipcc is only supported with a future cmake
             CMAKE_MINIMUM_REQUIRED(VERSION 3.17.0 FATAL_ERROR)
 
             # hipcc can write dependencies (undocumented CMake option)
