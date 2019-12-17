@@ -274,10 +274,6 @@ endif()
 target_link_libraries(_md PUBLIC _hoomd)
 
 if (ENABLE_HIP)
-    # no device linking
-    set_property(TARGET _md  PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
-endif()
-if (ENABLE_HIP)
     target_link_libraries(_md PUBLIC _neighbor)
 endif()
 

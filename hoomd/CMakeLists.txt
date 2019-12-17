@@ -215,9 +215,6 @@ endif(SINGLE_PRECISION)
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
-    # no device linking
-    set_property(TARGET _hoomd PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
-
     if (HIP_PLATFORM STREQUAL "hcc")
         target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt HIP::roctracer)
     elseif(HIP_PLATFORM STREQUAL "nvcc")

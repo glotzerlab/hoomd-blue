@@ -2,9 +2,6 @@ if(ENABLE_HIP)
     find_package(HIP)
 
     if (HIP_FOUND)
-        # we need to be able to turn off device linking on executables, hence CMake 3.14.0
-        CMAKE_MINIMUM_REQUIRED(VERSION 3.14.0 FATAL_ERROR)
-
         # call hipcc to tell us about the backend compiler
         set(ENV{HIPCC_VERBOSE} 1)
 
@@ -78,6 +75,9 @@ int main(int argc, char **argv)
             NO_DEFAULT_PATH)
 
         list(APPEND HIP_INCLUDE_DIR ${ROCm_hsa_INCLUDE_DIR})
+
+        # we have not tested separable compilation, make sure it is disabled with hipcc
+        set(CMAKE_CUDA_SEPARABLE_COMPILATION OFF)
     else()
         # here we go if hipcc is not available, fall back on internal HIP->CUDA headers
         set(HIP_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/HIP/include/")
@@ -93,8 +93,6 @@ int main(int argc, char **argv)
         # funny enough, we require this only on NVIDA platforms due to issues with hipCUB's cmake build system
         # on AMD platforms, it is an external dependency
         set(HIPCUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/hipCUB/hipcub/include/;${CUB_INCLUDE_DIR}")
-
-
     endif()
 
     ENABLE_LANGUAGE(CUDA)

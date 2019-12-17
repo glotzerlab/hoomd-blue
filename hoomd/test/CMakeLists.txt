@@ -59,9 +59,6 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     add_dependencies(test_all ${CUR_TEST})
     target_link_libraries(${CUR_TEST} _hoomd ${PYTHON_LIBRARIES})
 
-    # no device linking
-    set_property(TARGET ${CUR_TEST}  PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
-
     fix_cudart_rpath(${CUR_TEST})
 
 endforeach (CUR_TEST)
