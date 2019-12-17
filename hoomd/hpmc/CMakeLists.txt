@@ -89,7 +89,7 @@ if (ENABLE_HIP)
 set(_cuda_sources ${_hpmc_cu_sources})
 endif (ENABLE_HIP)
 
-pybind11_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} ${_hpmc_headers} NO_EXTRAS)
+pybind11_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} ${_hpmc_headers} NO_EXTRAS SYSTEM)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hpmc ALIAS _hpmc)
 

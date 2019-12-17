@@ -256,7 +256,7 @@ if (ENABLE_HIP)
 set(_cuda_sources ${_md_cu_sources} ${DFFT_CU_SOURCES})
 endif (ENABLE_HIP)
 
-pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
+pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS SYSTEM)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_md ALIAS _md)
 
