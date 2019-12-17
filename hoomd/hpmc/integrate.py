@@ -131,7 +131,8 @@ class HPMCIntegrator(_integrator):
 
     # TODO need to validate somewhere that quaternions are normalized
 
-    def get_type_shapes(self):
+    @property
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Since this behaves differently for different types of shapes, the
@@ -144,6 +145,8 @@ class HPMCIntegrator(_integrator):
             "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
+        if not self.is_attached:
+            return None
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
@@ -331,13 +334,14 @@ class Sphere(HPMCIntegrator):
                                         )
         self._add_typeparam(typeparam_shape)
 
-    def get_type_shapes(self):
+    @Loggable.log(flag='multi')
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Examples:
             The types will be 'Sphere' regardless of dimensionality.
 
-            >>> mc.get_type_shapes()
+            >>> mc.type_shapes
             [{'type': 'Sphere', 'diameter': 1}, {'type': 'Sphere', 'diameter': 2}]
 
         Returns:
