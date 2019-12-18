@@ -13,8 +13,12 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/ExecutionConfiguration.h"
-#include <cmath>
+
 #include "hoomd/extern/upp11/upp11.h"
+
+#include <cmath>
+#include <string>
+#include <vector>
 
 //! Macro to test if the difference between two floating-point values is within a tolerance
 /*!
@@ -43,6 +47,50 @@ upp11::TestAssert(LOCATION).assertTrue(std::abs((a)-(b)) <= (eps) * std::min(std
 #define UP_ASSERT_SMALL(a,eps) \
 upp11::TestCollection::getInstance().checkpoint(LOCATION, "UP_ASSERT_SMALL"), \
 upp11::TestAssert(LOCATION).assertTrue(std::abs(a) < (eps), #a " (" + std::to_string(a) + ") close to 0")
+
+//! Macro to test if a value is greater than another
+/*!
+ * \param a First value to test
+ * \param b Second value to test
+ *
+ * This assertion will pass if \a a > \b b.
+ */
+#define UP_ASSERT_GREATER(a,b) \
+upp11::TestCollection::getInstance().checkpoint(LOCATION, "UP_ASSERT_GREATER"), \
+upp11::TestAssert(LOCATION).assertTrue(a > b, #a " (" + std::to_string(a) + ") > " #b " (" + std::to_string(b) + ")")
+
+//! Macro to test if a value is greater than or equal to another
+/*!
+ * \param a First value to test
+ * \param b Second value to test
+ *
+ * This assertion will pass if \a a >= \b b.
+ */
+#define UP_ASSERT_GREATER_EQUAL(a,b) \
+upp11::TestCollection::getInstance().checkpoint(LOCATION, "UP_ASSERT_GREATER_EQUAL"), \
+upp11::TestAssert(LOCATION).assertTrue(a >= b, #a " (" + std::to_string(a) + ") >= " #b " (" + std::to_string(b) + ")")
+
+//! Macro to test if a value is less than another
+/*!
+ * \param a First value to test
+ * \param b Second value to test
+ *
+ * This assertion will pass if \a a < \b b.
+ */
+#define UP_ASSERT_LESS(a,b) \
+upp11::TestCollection::getInstance().checkpoint(LOCATION, "UP_ASSERT_LESS"), \
+upp11::TestAssert(LOCATION).assertTrue(a < b, #a " (" + std::to_string(a) + ") < " #b " (" + std::to_string(b) + ")")
+
+//! Macro to test if a value is less than or equal to another
+/*!
+ * \param a First value to test
+ * \param b Second value to test
+ *
+ * This assertion will pass if \a a <= \b b.
+ */
+#define UP_ASSERT_LESS_EQUAL(a,b) \
+upp11::TestCollection::getInstance().checkpoint(LOCATION, "UP_ASSERT_LESS_EQUAL"), \
+upp11::TestAssert(LOCATION).assertTrue(a <= b, #a " (" + std::to_string(a) + ") <= " #b " (" + std::to_string(b) + ")")
 
 // ******** helper macros
 #define CHECK_CLOSE(a,b,c) UP_ASSERT((std::abs((a)-(b)) <= ((c) * std::abs(a))) && (std::abs((a)-(b)) <= ((c) * std::abs(b))))
@@ -73,7 +121,12 @@ std::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
 int main(int argc, char **argv) \
     { \
     MPI_Init(&argc, &argv); \
-    int val = upp11::TestMain().main(argc, argv); \
+    char dash_s[] = "-s"; \
+    char zero[] = "0"; \
+    std::vector<char *> new_argv(argv, argv+argc); \
+    new_argv.push_back(dash_s); \
+    new_argv.push_back(zero); \
+    int val = upp11::TestMain().main(new_argv.size(), &new_argv[0]); \
     exec_conf_cpu.reset(); \
     exec_conf_gpu.reset(); \
     MPI_Finalize(); \
@@ -82,7 +135,12 @@ int main(int argc, char **argv) \
 #else
 #define HOOMD_UP_MAIN() \
 int main(int argc, char **argv) { \
-    int val = upp11::TestMain().main(argc, argv); \
+    char dash_s[] = "-s"; \
+    char zero[] = "0"; \
+    std::vector<char *> new_argv(argv, argv+argc); \
+    new_argv.push_back(dash_s); \
+    new_argv.push_back(zero); \
+    int val = upp11::TestMain().main(new_argv.size(), &new_argv[0]); \
     exec_conf_cpu.reset(); \
     exec_conf_gpu.reset(); \
     return val; \

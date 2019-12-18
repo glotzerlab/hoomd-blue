@@ -12,6 +12,7 @@
 
 #include "Communicator.h"
 #include "System.h"
+#include "HOOMDMPI.h"
 
 #include <algorithm>
 #include <hoomd/extern/pybind/include/pybind11/stl.h>
@@ -1186,6 +1187,37 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     m_end.swap(end);
 
     initializeNeighborArrays();
+
+    /* create a type for pdata_element */
+    const int nitems=14;
+    int blocklengths[14] = {4,4,3,1,1,3,1,4,4,3,1,4,4,6};
+    MPI_Datatype types[14] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR,
+        MPI_HOOMD_SCALAR, MPI_INT, MPI_UNSIGNED, MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR,
+        MPI_UNSIGNED, MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR};
+    MPI_Aint offsets[14];
+
+    offsets[0] = offsetof(pdata_element, pos);
+    offsets[1] = offsetof(pdata_element, vel);
+    offsets[2] = offsetof(pdata_element, accel);
+    offsets[3] = offsetof(pdata_element, charge);
+    offsets[4] = offsetof(pdata_element, diameter);
+    offsets[5] = offsetof(pdata_element, image);
+    offsets[6] = offsetof(pdata_element, body);
+    offsets[7] = offsetof(pdata_element, orientation);
+    offsets[8] = offsetof(pdata_element, angmom);
+    offsets[9] = offsetof(pdata_element, inertia);
+    offsets[10] = offsetof(pdata_element, tag);
+    offsets[11] = offsetof(pdata_element, net_force);
+    offsets[12] = offsetof(pdata_element, net_torque);
+    offsets[13] = offsetof(pdata_element, net_virial);
+
+    MPI_Datatype tmp;
+    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
+    MPI_Type_commit(&tmp);
+
+    MPI_Type_create_resized(tmp, 0, sizeof(pdata_element), &m_mpi_pdata_element);
+    MPI_Type_commit(&m_mpi_pdata_element);
+    MPI_Type_free(&tmp);
     }
 
 //! Destructor
@@ -1202,6 +1234,8 @@ Communicator::~Communicator()
     m_sysdef->getImproperData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setImpropersChanged>(this);
     m_sysdef->getConstraintData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setConstraintsChanged>(this);
     m_sysdef->getPairData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setPairsChanged>(this);
+
+    MPI_Type_free(&m_mpi_pdata_element);
     }
 
 void Communicator::initializeNeighborArrays()
@@ -1476,8 +1510,8 @@ void Communicator::migrateParticles()
         // exchange particle data
         m_reqs.resize(2);
         m_stats.resize(2);
-        MPI_Isend(&m_sendbuf.front(), n_send_ptls*sizeof(pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & m_reqs[0]);
-        MPI_Irecv(&m_recvbuf.front(), n_recv_ptls*sizeof(pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & m_reqs[1]);
+        MPI_Isend(&m_sendbuf.front(), n_send_ptls, m_mpi_pdata_element, send_neighbor, 1, m_mpi_comm, & m_reqs[0]);
+        MPI_Irecv(&m_recvbuf.front(), n_recv_ptls, m_mpi_pdata_element, recv_neighbor, 1, m_mpi_comm, & m_reqs[1]);
         MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
 
         if (m_prof)
