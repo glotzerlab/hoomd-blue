@@ -8,7 +8,7 @@
     \brief Declares an updater that zeros the momentum of the system
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

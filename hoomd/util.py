@@ -74,3 +74,40 @@ def cuda_profile_stop():
 
     if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
         hoomd.context.current.device.cpp_exec_conf.cudaProfileStop();
+
+
+def to_camel_case(string):
+    return string.replace('_', ' ').title().replace(' ', '')
+
+
+def is_iterable(obj):
+    '''Returns True if object is iterable and not a str or dict.'''
+    return hasattr(obj, '__iter__') and not bad_iterable_type(obj)
+
+
+def bad_iterable_type(obj):
+    '''Returns True if str or dict.'''
+    return isinstance(obj, str) or isinstance(obj, dict)
+
+
+def dict_map(dict_, func):
+    new_dict = dict()
+    for key, value in dict_.items():
+        if isinstance(value, dict):
+            new_dict[key] = dict_map(value, func)
+        else:
+            new_dict[key] = func(value)
+    return new_dict
+
+
+def dict_fold(dict_, func, init_value, use_keys=False):
+    final_value = init_value
+    for key, value in dict_.items():
+        if isinstance(value, dict):
+            final_value = dict_fold(value, func, final_value)
+        else:
+            if use_keys:
+                final_value = func(key, final_value)
+            else:
+                final_value = func(value, final_value)
+    return final_value

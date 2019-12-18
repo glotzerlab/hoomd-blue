@@ -11,6 +11,7 @@ from hoomd import _hoomd
 
 import math
 
+from hoomd.logger import Loggable
 from hoomd.update import _updater
 from hoomd.meta import _Updater
 import hoomd
@@ -398,6 +399,7 @@ class boxmc(_updater):
         self.cpp_updater.computeAspectRatios();
         _updater.enable(self);
 
+
 class wall(_updater):
     R""" Apply wall updates with a user-provided python callback.
 
@@ -506,6 +508,7 @@ class wall(_updater):
 
         """
         return self.cpp_updater.getTotalCount(mode);
+
 
 class muvt(_updater):
     R""" Insert and remove particles in the muVT ensemble.
@@ -679,6 +682,7 @@ class muvt(_updater):
 
         if n_trial is not None:
             self.cpp_updater.setNTrial(int(n_trial))
+
 
 class remove_drift(_updater):
     R""" Remove the center of mass drift from a system restrained on a lattice.
@@ -863,3 +867,45 @@ class Clusters(_Updater):
             return None
         else:
             return self._cpp_obj.getCounters(1)
+
+    @Loggable.log(flag='multi')
+    def pivot_moves(self):
+        R""" Get a tuple with the accepted and rejected pivot moves.
+
+        Returns:
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
+        """
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            return counter.pivot
+
+    @Loggable.log(flag='multi')
+    def reflection_moves(self):
+        R""" Get a tuple with the accepted and rejected reflection moves.
+
+        Returns:
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
+        """
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            return counter.reflection
+
+    @Loggable.log(flag='multi')
+    def swap_moves(self):
+        R""" Get a tuple with the accepted and rejected swap moves.
+
+        Returns:
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
+        """
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            return counter.swap

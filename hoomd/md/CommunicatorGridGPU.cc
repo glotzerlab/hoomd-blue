@@ -7,10 +7,15 @@
 
 #include "CommunicatorGridGPU.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "CommunicatorGridGPU.cuh"
 
+#if __HIP_PLATFORM_HCC__
+#include <hipfft.h>
+#elif __HIP_PLATFORM_NVCC__
 #include <cufft.h>
+typedef cufftComplex hipfftComplex;
+#endif
 
 /*! \param sysdef The system definition
  *  \param dim Dimensions of 3dim grid
@@ -169,7 +174,7 @@ void CommunicatorGridGPU<T>::communicate(const GlobalArray<T>& grid)
 //! Explicit template instantiations
 template class PYBIND11_EXPORT CommunicatorGridGPU<Scalar>;
 template class PYBIND11_EXPORT CommunicatorGridGPU<unsigned int>;
-template class PYBIND11_EXPORT CommunicatorGridGPU<cufftComplex>;
-#endif //ENABLE_CUDA
+template class PYBIND11_EXPORT CommunicatorGridGPU<hipfftComplex>;
+#endif //ENABLE_HIP
 
 #endif // ENABLE_MPI

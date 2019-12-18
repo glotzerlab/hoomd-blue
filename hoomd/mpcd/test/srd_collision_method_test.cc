@@ -5,9 +5,9 @@
 
 #include "utils.h"
 #include "hoomd/mpcd/SRDCollisionMethod.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/SRDCollisionMethodGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -386,7 +386,7 @@ UP_TEST( srd_collision_method_thermostat )
     {
     srd_collision_method_thermostat_test<mpcd::SRDCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! basic test case for MPCD SRDCollisionMethodGPU class
 UP_TEST( srd_collision_method_basic_gpu )
     {
@@ -406,4 +406,4 @@ UP_TEST( srd_collision_method_thermostat_gpu )
     {
     srd_collision_method_thermostat_test<mpcd::SRDCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

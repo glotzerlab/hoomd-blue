@@ -16,7 +16,7 @@
 #define __TWO_STEP_NVE_GPU_CUH__
 
 //! Kernel driver for the first part of the NVE update called by TwoStepNVEGPU
-cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
+hipError_t gpu_nve_step_one(Scalar4 *d_pos,
                              Scalar4 *d_vel,
                              const Scalar3 *d_accel,
                              int3 *d_image,
@@ -30,7 +30,7 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
                              unsigned int block_size);
 
 //! Kernel driver for the second part of the NVE update called by TwoStepNVEGPU
-cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
+hipError_t gpu_nve_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              const GPUPartition& gpu_partition,
@@ -42,7 +42,7 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
                              unsigned int block_size);
 
 //! Kernel driver for the first part of the angular NVE update (NO_SQUISH) by TwoStepNVEPU
-cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
+hipError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,
@@ -53,7 +53,7 @@ cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
                              const unsigned int block_size);
 
 //! Kernel driver for the second part of the angular NVE update (NO_SQUISH) by TwoStepNVEPU
-cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
+hipError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,

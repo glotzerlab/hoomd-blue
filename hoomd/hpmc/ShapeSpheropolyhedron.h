@@ -17,7 +17,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -26,7 +26,7 @@
 #include <iostream>
 #endif
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <vector>
 #endif
 
@@ -91,7 +91,7 @@ struct ShapeSpheropolyhedron
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;

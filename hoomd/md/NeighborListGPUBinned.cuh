@@ -7,7 +7,7 @@
 #ifndef __NEIGHBORLOSTGPUBINNED_CUH__
 #define __NEIGHBORLOSTGPUBINNED_CUH__
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
@@ -18,12 +18,18 @@
     \brief Declares GPU kernel code for neighbor list generation on the GPU
 */
 
+// currently this is hardcoded, we should set it to the max of platforms
+#if defined(__HIP_PLATFORM_NVCC__)
 #define WARP_SIZE 32
+#elif defined(__HIP_PLATFORM_HCC__)
+#define WARP_SIZE 64
+#endif
+
 const unsigned int min_threads_per_particle=1;
 const unsigned int max_threads_per_particle=WARP_SIZE;
 
 //! Kernel driver for gpu_compute_nlist_kernel()
-cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
+hipError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
                                      Scalar4 *d_last_updated_pos,
                                      unsigned int *d_conditions,

@@ -9,7 +9,7 @@
 #include "hoomd/VectorMath.h"
 #include "ShapeSphere.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -60,17 +60,16 @@ struct SphinxParams : ShapeParams
     /// True when move statistics should not be counted
     unsigned int ignore;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     void set_memory_hint() const
         {
         // default implementation does nothing
         }
     #endif
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     /// Empty constructor
     SphinxParams() : circumsphereDiameter(0.0), N(0) { }
-
 
     /// Construct from a python dictionary
     SphinxParams(pybind11::dict v, bool managed=false)
@@ -212,7 +211,7 @@ struct ShapeSphinx
         return Scalar(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     /// Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {

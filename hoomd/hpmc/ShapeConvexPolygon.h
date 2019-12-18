@@ -10,7 +10,7 @@
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "XenoCollide2D.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -76,14 +76,14 @@ struct PolygonVertices : ShapeParams
             }
         }
 
-    #ifdef ENABLE_CUDA
-    /// Set CUDA memory hints
+    #ifdef ENABLE_HIP
+    //! Set CUDA memory hint
     void set_memory_hint() const
         {
         }
     #endif
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
 
     /// Construct from a Python dictionary
     PolygonVertices(pybind11::dict v, bool managed=false)
@@ -178,7 +178,7 @@ class SupportFuncConvexPolygon
 
             if (verts.N > 0)
                 {
-                #if !defined(NVCC) && defined(__AVX__) && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+                #if !defined(__HIPCC__) && defined(__AVX__) && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
                 // process dot products with AVX 8 at a time on the CPU when working with more than 4 verts
                 __m256 nx_v = _mm256_broadcast_ss(&n.x);
                 __m256 ny_v = _mm256_broadcast_ss(&n.y);
@@ -222,7 +222,7 @@ class SupportFuncConvexPolygon
                         }
                     }
 
-                #elif !defined(NVCC) && defined(__SSE__) && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+                #elif !defined(__HIPCC__) && defined(__SSE__) && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
                 // process dot products with SSE 4 at a time on the CPU
                 __m128 nx_v = _mm_load_ps1(&n.x);
                 __m128 ny_v = _mm_load_ps1(&n.y);
@@ -370,7 +370,7 @@ struct ShapeConvexPolygon
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     /// Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
@@ -594,7 +594,7 @@ DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec
                                                                        Scalar sweep_radius_b)
     {
     vec2<OverlapReal> dr(r_ab.x,r_ab.y);
-    #ifdef NVCC
+    #ifdef __HIPCC__
     return detail::xenocollide_2d(detail::SupportFuncConvexPolygon(a.verts),
                                   detail::SupportFuncConvexPolygon(b.verts),
                                   dr,

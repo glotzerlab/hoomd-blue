@@ -68,11 +68,6 @@ set(_hpmc_headers
     XenoCollide3D.h
     )
 
-# if (ENABLE_CUDA)
-# list(APPEND _hpmc_sources
-#                            )
-# endif()
-
 set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      all_kernels_sphere.cu
                      all_kernels_convex_polygon.cu
@@ -89,9 +84,9 @@ set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      all_kernels_convex_spheropolyhedron.cu
                      )
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 set(_cuda_sources ${_hpmc_cu_sources})
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 pybind11_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} ${_hpmc_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work

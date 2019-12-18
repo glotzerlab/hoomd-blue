@@ -8,7 +8,6 @@
     \brief Defines the SFCPackUpdater class
 */
 
-
 #include "SFCPackUpdater.h"
 #include "Communicator.h"
 

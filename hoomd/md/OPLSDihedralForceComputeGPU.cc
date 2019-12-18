@@ -28,7 +28,8 @@ OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(std::shared_ptr<SystemD
         throw std::runtime_error("Error initializing OPLSDihedralForceComputeGPU");
         }
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "opls_dihedral", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "opls_dihedral", this->m_exec_conf));
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -69,7 +70,8 @@ void OPLSDihedralForceComputeGPU::computeForces(unsigned int timestep)
                                          d_n_dihedrals.data,
                                          d_params.data,
                                          m_dihedral_data->getNTypes(),
-                                         this->m_tuner->getParam());
+                                         this->m_tuner->getParam(),
+                                         m_exec_conf->dev_prop.warpSize);
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     this->m_tuner->end();

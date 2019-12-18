@@ -47,12 +47,12 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
     // encoded as block_size*10000 + threads_per_particle
     std::vector<unsigned int> valid_params;
 
-    const unsigned int max_tpp = m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    const unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
         unsigned int s=1;
 
-        while (s <= max_tpp)
+        while (s <= warp_size)
             {
             valid_params.push_back(block_size*10000 + s);
             s = s * 2;
@@ -122,7 +122,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
@@ -160,14 +159,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_r_listsq(m_r_listsq, access_location::device, access_mode::read);
 
-    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
-        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
-        {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << std::endl;
-        throw std::runtime_error("Error updating neighborlist bins");
-        }
-
+    #ifdef __HIP_PLATFORM_NVCC__
     auto& gpu_map = m_exec_conf->getGPUIds();
 
     // prefetch some cell list arrays
@@ -182,6 +174,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    #endif
 
     m_exec_conf->beginMultiGPU();
 

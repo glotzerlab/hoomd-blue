@@ -12,7 +12,7 @@
 #include "GPUTree.h"
 
 #include "hoomd/ManagedArray.h"
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -57,7 +57,7 @@ struct ShapeUnionParams : ShapeParams
         morientation.load_shared(ptr, available_bytes);
 
         // load all member parameters
-        #if defined (__CUDA_ARCH__)
+        #if defined (__HIP_DEVICE_COMPILE__)
         __syncthreads();
         #endif
 
@@ -94,7 +94,7 @@ struct ShapeUnionParams : ShapeParams
         }
 
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
 
     /// Set CUDA memory hints
     void set_memory_hint() const
@@ -113,7 +113,7 @@ struct ShapeUnionParams : ShapeParams
 
     #endif
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
 
     /** Construct with a given number of members
 
@@ -362,7 +362,7 @@ struct ShapeUnion
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     /// Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
@@ -611,7 +611,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     bool ignore_mask = sweep_radius_a != Scalar(0.0) || sweep_radius_b != Scalar(0.0);
 
     #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
-    #ifdef NVCC
+    #ifdef __HIPCC__
     // Parallel tree traversal
     unsigned int offset = threadIdx.x;
     unsigned int stride = blockDim.x;

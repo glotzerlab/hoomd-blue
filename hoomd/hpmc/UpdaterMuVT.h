@@ -11,7 +11,7 @@
 #include "IntegratorHPMCMono.h"
 #include "hoomd/RandomNumbers.h"
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -529,7 +529,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
     m_mc->communicate(false);
 
     // check for overlaps
-    bool overlap = m_mc->countOverlaps(timestep, true);
+    bool overlap = m_mc->countOverlaps(true);
 
     if (!overlap && patch)
         {

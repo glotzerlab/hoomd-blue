@@ -629,7 +629,7 @@ class GSD(hoomd.meta._Analyzer):
                                 overwrite=overwrite,
                                 truncate=truncate,
                                 dynamic=dynamic,
-                                log=dict())
+                                log_writer=None)
 
     def attach(self, simulation):
         # validate dynamic property

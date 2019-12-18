@@ -16,3 +16,14 @@
 [submodule "hoomd/extern/random123"]
 	path = hoomd/extern/random123
 	url = https://github.com/glotzerlab/random123.git
+[submodule "hoomd/extern/HIP"]
+	path = hoomd/extern/HIP
+	url = https://github.com/glotzerlab/HIP.git
+[submodule "hoomd/extern/hipCUB"]
+	path = hoomd/extern/hipCUB
+	url = https://github.com/glotzerlab/hipCUB
+	branch = header_only
+[submodule "hoomd/extern/neighbor"]
+	path = hoomd/extern/neighbor
+	url = https://github.com/jglaser/neighbor.git
+	branch = hip

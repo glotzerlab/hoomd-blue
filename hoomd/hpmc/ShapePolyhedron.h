@@ -10,10 +10,11 @@
 #include "ShapeConvexPolyhedron.h"
 #include "ShapeSpheropolyhedron.h"
 #include "GPUTree.h"
+#include <hoomd/extern/triangle_triangle.h>
 
 #include <cfloat>
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -59,7 +60,7 @@ struct TriangleMesh : ShapeParams
         {
         };
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     /** Initialize with a given number of vertices and vaces
     */
     TriangleMesh(unsigned int n_verts_,
@@ -329,7 +330,7 @@ struct TriangleMesh : ShapeParams
         face_overlap.allocate_shared(ptr, available_bytes);
         }
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     void set_memory_hint() const
         {
         tree.set_memory_hint();
@@ -384,7 +385,7 @@ struct ShapePolyhedron
         return data.sweep_radius != OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     /// Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
@@ -700,8 +701,6 @@ DEVICE inline OverlapReal shortest_distance_triangles(
     return dmin_sq;
     }
 
-#include <hoomd/extern/triangle_triangle.h>
-
 /** Test overlap in narrow phase
     @param dr separation vector between the particles, IN THE REFERENCE FRAME of b
     @param a first shape
@@ -882,7 +881,7 @@ DEVICE inline bool IntersectRayTriangle(const vec3<OverlapReal>& p, const vec3<O
     return true;
     }
 
-#ifndef NVCC
+#ifndef __HIPCC__
 //! Traverse the bounding volume test tree recursively
 inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
      unsigned int cur_node_a, unsigned int cur_node_b,
@@ -970,12 +969,12 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
      * a) an edge of one polyhedron intersects the face of the other
      * b) the center of mass of one polyhedron is contained in the other
      */
-    #ifdef NVCC
+    #ifdef __HIPCC__
     const detail::GPUTree& tree_a = a.tree;
     const detail::GPUTree& tree_b = b.tree;
     #endif
     #ifdef LEAVES_AGAINST_TREE_TRAVERSAL
-    #ifdef NVCC
+    #ifdef __HIPCC__
     // Parallel tree traversal
     unsigned int offset = threadIdx.x;
     unsigned int stride = blockDim.x;
@@ -1022,7 +1021,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
     quat<OverlapReal> q(conj(b.orientation)*a.orientation);
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     if (BVHCollision(a,b,0,0, q, dr_rot, err, abs_tol)) return true;
     #else
 

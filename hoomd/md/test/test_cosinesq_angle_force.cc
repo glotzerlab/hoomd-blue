@@ -11,7 +11,7 @@
 
 #include "hoomd/md/CosineSqAngleForceCompute.h"
 #include "hoomd/ConstForceCompute.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/CosineSqAngleForceComputeGPU.h"
 #endif
 
@@ -258,7 +258,7 @@ std::shared_ptr<CosineSqAngleForceCompute> base_class_af_creator(std::shared_ptr
     return std::shared_ptr<CosineSqAngleForceCompute>(new CosineSqAngleForceCompute(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! AngleForceCompute creator for bond_force_basic_tests()
 std::shared_ptr<CosineSqAngleForceCompute> gpu_af_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -276,7 +276,7 @@ UP_TEST( CosineSqAngleForceCompute_basic )
     angle_force_basic_tests(af_creator, exec_conf);
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for angle forces on the GPU
 UP_TEST( CosineSqAngleForceComputeGPU_basic )
     {

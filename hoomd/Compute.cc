@@ -4,8 +4,6 @@
 
 // Maintainer: joaander
 
-
-
 #include "Compute.h"
 
 namespace py = pybind11;

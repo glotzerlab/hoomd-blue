@@ -16,7 +16,7 @@
 #define __COSINESQANGLEFORCEGPU_CUH__
 
 //! Kernel driver that computes cosine squared angle forces for CosineSqAngleForceComputeGPU
-cudaError_t gpu_compute_cosinesq_angle_forces(Scalar4* d_force,
+hipError_t gpu_compute_cosinesq_angle_forces(Scalar4* d_force,
                                               Scalar* d_virial,
                                               const unsigned int virial_pitch,
                                               const unsigned int N,

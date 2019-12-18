@@ -13,9 +13,12 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/ExecutionConfiguration.h"
-#include <cmath>
-#include <vector>
+
 #include "hoomd/extern/upp11/upp11.h"
+
+#include <cmath>
+#include <string>
+#include <vector>
 
 //! Macro to test if the difference between two floating-point values is within a tolerance
 /*!
@@ -44,6 +47,50 @@ upp11::TestAssert(LOCATION).assertTrue(std::abs((a)-(b)) <= (eps) * std::min(std
 #define UP_ASSERT_SMALL(a,eps) \
 upp11::TestCollection::getInstance().checkpoint(LOCATION, "UP_ASSERT_SMALL"), \
 upp11::TestAssert(LOCATION).assertTrue(std::abs(a) < (eps), #a " (" + std::to_string(a) + ") close to 0")
+
+//! Macro to test if a value is greater than another
+/*!
+ * \param a First value to test
+ * \param b Second value to test
+ *
+ * This assertion will pass if \a a > \b b.
+ */
+#define UP_ASSERT_GREATER(a,b) \
+upp11::TestCollection::getInstance().checkpoint(LOCATION, "UP_ASSERT_GREATER"), \
+upp11::TestAssert(LOCATION).assertTrue(a > b, #a " (" + std::to_string(a) + ") > " #b " (" + std::to_string(b) + ")")
+
+//! Macro to test if a value is greater than or equal to another
+/*!
+ * \param a First value to test
+ * \param b Second value to test
+ *
+ * This assertion will pass if \a a >= \b b.
+ */
+#define UP_ASSERT_GREATER_EQUAL(a,b) \
+upp11::TestCollection::getInstance().checkpoint(LOCATION, "UP_ASSERT_GREATER_EQUAL"), \
+upp11::TestAssert(LOCATION).assertTrue(a >= b, #a " (" + std::to_string(a) + ") >= " #b " (" + std::to_string(b) + ")")
+
+//! Macro to test if a value is less than another
+/*!
+ * \param a First value to test
+ * \param b Second value to test
+ *
+ * This assertion will pass if \a a < \b b.
+ */
+#define UP_ASSERT_LESS(a,b) \
+upp11::TestCollection::getInstance().checkpoint(LOCATION, "UP_ASSERT_LESS"), \
+upp11::TestAssert(LOCATION).assertTrue(a < b, #a " (" + std::to_string(a) + ") < " #b " (" + std::to_string(b) + ")")
+
+//! Macro to test if a value is less than or equal to another
+/*!
+ * \param a First value to test
+ * \param b Second value to test
+ *
+ * This assertion will pass if \a a <= \b b.
+ */
+#define UP_ASSERT_LESS_EQUAL(a,b) \
+upp11::TestCollection::getInstance().checkpoint(LOCATION, "UP_ASSERT_LESS_EQUAL"), \
+upp11::TestAssert(LOCATION).assertTrue(a <= b, #a " (" + std::to_string(a) + ") <= " #b " (" + std::to_string(b) + ")")
 
 // ******** helper macros
 #define CHECK_CLOSE(a,b,c) UP_ASSERT((std::abs((a)-(b)) <= ((c) * std::abs(a))) && (std::abs((a)-(b)) <= ((c) * std::abs(b))))

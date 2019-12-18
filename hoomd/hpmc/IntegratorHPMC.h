@@ -16,8 +16,9 @@
 #include "HPMCCounters.h"
 #include "ExternalField.h"
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #endif
 
 namespace hpmc
@@ -202,10 +203,10 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             {
             hpmc_counters_t counters = getCounters(1);
             m_exec_conf->msg->notice(2) << "-- HPMC stats:" << "\n";
-            m_exec_conf->msg->notice(2) << "Average translate acceptance: " << counters.getTranslateAcceptance() << "\n";
+            /* m_exec_conf->msg->notice(2) << "Average translate acceptance: " << counters.getTranslateCounts() << "\n"; */
             if (counters.rotate_accept_count + counters.rotate_reject_count != 0)
                 {
-                m_exec_conf->msg->notice(2) << "Average rotate acceptance:    " << counters.getRotateAcceptance() << "\n";
+                /* m_exec_conf->msg->notice(2) << "Average rotate acceptance:    " << counters.getRotateCounts() << "\n"; */
                 }
 
             // elapsed time
@@ -220,9 +221,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         //! Get performance in moves per second
         virtual double getMPS()
             {
-            hpmc_counters_t counters = getCounters(1);
-            double cur_time = double(m_clock.getTime()) / Scalar(1e9);
-            return double(counters.getNMoves()) / cur_time;
+            return m_mps;
             }
 
         //! Reset statistics counters
@@ -244,7 +243,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             \param early_exit exit at first overlap found if true
             \returns number of overlaps if early_exit=false, 1 if early_exit=true
         */
-        virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit)
+        virtual unsigned int countOverlaps(bool early_exit)
             {
             return 0;
             }
@@ -373,6 +372,9 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         Scalar m_nominal_width;                      //!< nominal cell width
         Scalar m_extra_ghost_width;                  //!< extra ghost width to add
         ClockSource m_clock;                           //!< Timer for self-benchmarking
+
+        /// Moves-per-second value last recorded
+        double m_mps = 0;
 
         ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be used in a more general setting.
 

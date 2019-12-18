@@ -15,7 +15,7 @@
 
 #include <stdexcept>
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -119,14 +119,14 @@ struct SphereParams : ShapeParams
     /// True when the shape may be oriented
     bool isOriented;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     /// Set CUDA memory hints
     void set_memory_hint() const
         {
         }
     #endif
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
 
     /// Default constructor
     SphereParams() { }
@@ -211,7 +211,7 @@ struct ShapeSphere
         return detail::OBB(getAABB(pos));
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     /// Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {

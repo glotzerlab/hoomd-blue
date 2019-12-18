@@ -145,14 +145,14 @@ Scalar IntegratorHPMC::getLogValue(const std::string& quantity, unsigned int tim
         hpmc_counters_t counters_total = getCounters(0);
         return double(counters_total.getNMoves()) / double(m_pdata->getNGlobal());
         }
-    else if (quantity == "hpmc_translate_acceptance")
-        {
-        return counters.getTranslateAcceptance();
-        }
-    else if (quantity == "hpmc_rotate_acceptance")
-        {
-        return counters.getRotateAcceptance();
-        }
+    /* else if (quantity == "hpmc_translate_acceptance") */
+    /*     { */
+    /*     return counters.getTranslateAcceptance(); */
+    /*     } */
+    /* else if (quantity == "hpmc_rotate_acceptance") */
+    /*     { */
+    /*     return counters.getRotateAcceptance(); */
+    /*     } */
     else if (quantity == "hpmc_d")
         {
         ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
@@ -169,7 +169,7 @@ Scalar IntegratorHPMC::getLogValue(const std::string& quantity, unsigned int tim
         }
     else if (quantity == "hpmc_overlap_count")
         {
-        return countOverlaps(timestep, false);
+        return countOverlaps(false);
         }
     else
         {
@@ -273,7 +273,7 @@ bool IntegratorHPMC::attemptBoxResize(unsigned int timestep, const BoxDim& new_b
     this->communicate(false);
 
     // check overlaps
-    return !this->countOverlaps(timestep, true);
+    return !this->countOverlaps(true);
     }
 
 /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
@@ -339,15 +339,10 @@ void export_IntegratorHPMC(py::module& m)
     ;
 
    py::class_< hpmc_counters_t >(m, "hpmc_counters_t")
-    .def_readwrite("translate_accept_count", &hpmc_counters_t::translate_accept_count)
-    .def_readwrite("translate_reject_count", &hpmc_counters_t::translate_reject_count)
-    .def_readwrite("rotate_accept_count", &hpmc_counters_t::rotate_accept_count)
-    .def_readwrite("rotate_reject_count", &hpmc_counters_t::rotate_reject_count)
-    .def_readwrite("overlap_checks", &hpmc_counters_t::overlap_checks)
-    .def("getTranslateAcceptance", &hpmc_counters_t::getTranslateAcceptance)
-    .def("getRotateAcceptance", &hpmc_counters_t::getRotateAcceptance)
-    .def("getNMoves", &hpmc_counters_t::getNMoves)
-    ;
+    .def_readonly("overlap_checks", &hpmc_counters_t::overlap_checks)
+	.def_readonly("overlap_errors", &hpmc_counters_t::overlap_err_count)
+    .def_property_readonly("translate", &hpmc_counters_t::getTranslateCounts)
+    .def_property_readonly("rotate", &hpmc_counters_t::getRotateCounts);
     }
 
 } // end namespace hpmc

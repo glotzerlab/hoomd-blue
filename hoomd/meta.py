@@ -17,7 +17,9 @@ Example::
 """
 
 import hoomd
+from hoomd.util import is_iterable, dict_map
 from hoomd.triggers import PeriodicTrigger, Trigger
+from hoomd.logger import Loggable
 import json
 import time
 import datetime
@@ -25,9 +27,19 @@ import copy
 
 from collections import OrderedDict
 from collections import Mapping
+from copy import deepcopy
 
 
-class _Operation:
+def note_type(value):
+    if not is_iterable(value):
+        return (value, 'scalar')
+    elif isinstance(value, str):
+        return (value, 'string')
+    else:
+        return (value, 'multi')
+
+
+class _Operation(metaclass=Loggable):
     _reserved_attrs_with_dft = {'_cpp_obj': lambda: None,
                                 '_param_dict': dict,
                                 '_typeparam_dict': dict,
@@ -83,6 +95,7 @@ class _Operation:
 
     def detach(self):
         self._unapply_typeparam_dict()
+        self._update_param_dict()
         self._cpp_obj = None
         if hasattr(self, '_simulation'):
             del self._simulation
@@ -124,6 +137,10 @@ class _Operation:
                 raise ValueError("TypeParameter {}:"
                                  " ".format(typeparam.name) + verr.args[0])
 
+    def _update_param_dict(self):
+        for key in self._param_dict.keys():
+            self._param_dict[key] = getattr(self, key)
+
     def _unapply_typeparam_dict(self):
         for typeparam in self._typeparam_dict.values():
             typeparam.detach()
@@ -134,6 +151,19 @@ class _Operation:
     def _extend_typeparam(self, typeparams):
         for typeparam in typeparams:
             self._add_typeparam(typeparam)
+
+    def _typeparams_to_dict(self):
+        tp_dict = dict()
+        for name, typeparam in self._typeparam_dict.items():
+            tp_dict[name] = typeparam.to_dict()
+        return tp_dict
+
+    @Loggable.log(flag=dict)
+    def state(self):
+        self._update_param_dict()
+        state_dict = deepcopy(self._param_dict)
+        state_dict.update(self._typeparams_to_dict())
+        return dict_map(state_dict, note_type)
 
 
 class _TriggeredOperation(_Operation):

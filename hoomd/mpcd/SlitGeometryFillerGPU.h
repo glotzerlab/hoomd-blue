@@ -11,7 +11,7 @@
 #ifndef MPCD_SLIT_GEOMETRY_FILLER_GPU_H_
 #define MPCD_SLIT_GEOMETRY_FILLER_GPU_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

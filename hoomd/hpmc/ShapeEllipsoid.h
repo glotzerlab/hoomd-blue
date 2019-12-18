@@ -9,7 +9,7 @@
 #include "hoomd/VectorMath.h"
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -50,14 +50,14 @@ struct EllipsoidParams : ShapeParams
     /// True when move statistics should not be counted
     unsigned int ignore;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     /// Set CUDA memory hints
     void set_memory_hint() const
         {
         }
     #endif
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     /// Default constructor
     EllipsoidParams() { }
 
@@ -119,7 +119,7 @@ struct ShapeEllipsoid
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     /// Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {

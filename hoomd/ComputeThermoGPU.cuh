@@ -7,8 +7,6 @@
 #ifndef _COMPUTE_THERMO_GPU_CUH_
 #define _COMPUTE_THERMO_GPU_CUH_
 
-#include <cuda_runtime.h>
-
 #include "ParticleData.cuh"
 #include "ComputeThermoTypes.h"
 #include "HOOMDMath.h"
@@ -44,7 +42,7 @@ struct compute_thermo_args
     };
 
 //! Computes the partial sums of thermodynamic properties for ComputeThermo
-cudaError_t gpu_compute_thermo_partial(Scalar *d_properties,
+hipError_t gpu_compute_thermo_partial(Scalar *d_properties,
                                Scalar4 *d_vel,
                                unsigned int *d_body,
                                unsigned int *d_tag,
@@ -58,7 +56,7 @@ cudaError_t gpu_compute_thermo_partial(Scalar *d_properties,
                                );
 
 //! Computes the final sums of thermodynamic properties for ComputeThermo
-cudaError_t gpu_compute_thermo_final(Scalar *d_properties,
+hipError_t gpu_compute_thermo_final(Scalar *d_properties,
                                Scalar4 *d_vel,
                                unsigned int *d_body,
                                unsigned int *d_tag,

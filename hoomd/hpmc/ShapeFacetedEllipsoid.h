@@ -13,7 +13,7 @@
 #include "hoomd/AABB.h"
 #include "OBB.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -48,7 +48,7 @@ struct FacetedEllipsoidParams : ShapeParams
           a(1.0), b(1.0), c(1.0), N(0), ignore(1)
         { }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     /// Construct a faceted ellipsoid with n_facet facets
     FacetedEllipsoidParams(unsigned int n_facet, bool managed )
         : a(1.0), b(1.0), c(1.0), N(n_facet), ignore(0)
@@ -318,7 +318,7 @@ struct FacetedEllipsoidParams : ShapeParams
         additional_verts.allocate_shared(ptr, available_bytes);
         }
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     void set_memory_hint() const
         {
         n.set_memory_hint();
@@ -513,7 +513,7 @@ struct ShapeFacetedEllipsoid
         return 0.0;
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     /// Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
@@ -579,7 +579,7 @@ struct ShapeFacetedEllipsoid
         return true;
         }
 
-    /// Orientation of the sphere (unused)
+    /// Orientation of the shape
     quat<Scalar> orientation;
 
     /// Faceted sphere parameters

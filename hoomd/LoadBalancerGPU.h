@@ -8,12 +8,12 @@
     \brief Declares an updater that changes the MPI domain decomposition to balance the load using the GPU
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #ifndef __LOADBALANCERGPU_H__
 #define __LOADBALANCERGPU_H__
@@ -68,5 +68,5 @@ void export_LoadBalancerGPU(pybind11::module& m);
 
 #endif // __LOADBALANCERGPU_H__
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI

@@ -13,7 +13,7 @@
     \brief Declares the NeighborListGPU class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -43,11 +43,13 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
             std::swap(m_flags, flags);
             TAG_ALLOCATION(m_flags);
 
+            #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
             if (m_exec_conf->allConcurrentManagedAccess())
                 {
                 cudaMemAdvise(m_flags.get(), m_flags.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
                 CHECK_CUDA_ERROR();
                 }
+            #endif
 
                 {
                 ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
@@ -63,15 +65,18 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
             std::swap(m_req_size_nlist,req_size_nlist);
             TAG_ALLOCATION(m_req_size_nlist);
 
+            #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
             if (m_exec_conf->allConcurrentManagedAccess())
                 {
                 cudaMemAdvise(m_req_size_nlist.get(), m_req_size_nlist.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
                 CHECK_CUDA_ERROR();
                 }
+            #endif
 
             // create cuda event
-            m_tuner_filter.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_filter", this->m_exec_conf));
-            m_tuner_head_list.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_head_list", this->m_exec_conf));
+            unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+            m_tuner_filter.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "nlist_filter", this->m_exec_conf));
+            m_tuner_head_list.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "nlist_head_list", this->m_exec_conf));
             }
 
         //! Destructor

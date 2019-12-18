@@ -5,7 +5,6 @@ set(TEST_LIST
     test_cell_list_stencil
     test_gpu_array
     test_global_array
-    test_gpu_polymorph
     test_gridshift_correct
     test_index1d
     test_messenger
@@ -22,13 +21,17 @@ set(TEST_LIST
     random_numbers_test
     )
 
-if (ENABLE_CUDA)
+if (HIP_PLATFORM STREQUAL "nvcc")
+    set(add TEST_LIST test_gpu_polymorph)
+endif()
+
+if (ENABLE_HIP)
 list(APPEND TEST_LIST
      test_warp_tools
      )
 set(SYNC_TEST_LIST
     test_warp_tools)
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)
 
@@ -44,7 +47,7 @@ endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     # add and link the unit test executable
-    if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+    if(ENABLE_HIP AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
         set(_cuda_sources ${CUR_TEST}.cu)
     else()
         set(_cuda_sources "")
@@ -54,8 +57,8 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     target_include_directories(${CUR_TEST} PRIVATE ${PYTHON_INCLUDE_DIR})
 
     add_dependencies(test_all ${CUR_TEST})
-
     target_link_libraries(${CUR_TEST} _hoomd ${PYTHON_LIBRARIES})
+
     fix_cudart_rpath(${CUR_TEST})
 
 endforeach (CUR_TEST)
@@ -83,7 +86,7 @@ foreach (CUR_TEST ${MPI_TEST_LIST})
 endforeach(CUR_TEST)
 
 # run tests under cuda-memcheck --tool synccheck
-if(ENABLE_CUDA)
+if(ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
 
 foreach (CUR_TEST ${SYNC_TEST_LIST})
     if (ENABLE_MPI)
@@ -94,4 +97,4 @@ foreach (CUR_TEST ${SYNC_TEST_LIST})
         add_test(NAME ${CUR_TEST}-synccheck COMMAND ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool synccheck $<TARGET_FILE:${CUR_TEST}>)
     endif()
 endforeach (CUR_TEST)
-endif(ENABLE_CUDA)
+endif()

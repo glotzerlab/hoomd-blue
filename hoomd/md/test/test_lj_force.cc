@@ -538,7 +538,7 @@ std::shared_ptr<PotentialPairLJ> base_class_lj_creator(std::shared_ptr<SystemDef
     return std::shared_ptr<PotentialPairLJ>(new PotentialPairLJ(sysdef, nlist));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! LJForceComputeGPU creator for unit tests
 std::shared_ptr<PotentialPairLJGPU> gpu_lj_creator(std::shared_ptr<SystemDefinition> sysdef,
                                           std::shared_ptr<NeighborList> nlist)
@@ -570,7 +570,7 @@ UP_TEST( PotentialPairLJ_shift )
     lj_force_shift_test(lj_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-# ifdef ENABLE_CUDA
+# ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( LJForceGPU_particle )
     {

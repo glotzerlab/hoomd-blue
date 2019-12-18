@@ -8,12 +8,11 @@
     \brief Declares the SFCPackUpdaterGPU class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_CUDA
-
+#ifdef ENABLE_HIP
 #include "Updater.h"
 
 #include "SFCPackUpdater.h"
@@ -59,8 +58,6 @@ class PYBIND11_EXPORT SFCPackUpdaterGPU : public SFCPackUpdater
 
         //! Apply the sorted order to the particle data
         virtual void applySortOrder();
-
-        mgpu::ContextPtr m_mgpu_context;                    //!< MGPU context (for sorting)
     };
 
 //! Export the SFCPackUpdaterGPU class to python
@@ -69,4 +66,4 @@ void export_SFCPackUpdaterGPU(pybind11::module& m);
 #endif // __SFC_PACK_UPDATER_GPU_H_
 
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

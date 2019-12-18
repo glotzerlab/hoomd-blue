@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -87,7 +88,7 @@ void gpu_nvt_mtk_step_one_kernel(Scalar4 *d_pos,
     \param exp_fac Thermostat rescaling factor
     \param deltaT Amount of real time to step forward in one time step
 */
-cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
+hipError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
                              Scalar4 *d_vel,
                              const Scalar3 *d_accel,
                              int3 *d_image,
@@ -102,8 +103,8 @@ cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nvt_mtk_step_one_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_nvt_mtk_step_one_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -121,7 +122,7 @@ cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel, starting with offset range.first
-        gpu_nvt_mtk_step_one_kernel<<< grid, threads >>>(d_pos,
+        hipLaunchKernelGGL((gpu_nvt_mtk_step_one_kernel), dim3(grid), dim3(threads ), 0, 0, d_pos,
                              d_vel,
                              d_accel,
                              d_image,
@@ -133,7 +134,7 @@ cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
                              range.first);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! Takes the second 1/2 step forward in the NVT integration step
@@ -195,7 +196,7 @@ void gpu_nvt_mtk_step_two_kernel(Scalar4 *d_vel,
     \param deltaT Amount of real time to step forward in one time step
     \param exp_v_fac_thermo Exponential velocity scaling factor
 */
-cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
+hipError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
@@ -208,8 +209,8 @@ cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nvt_mtk_step_two_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_nvt_mtk_step_two_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -227,10 +228,10 @@ cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_nvt_mtk_step_two_kernel<<< grid, threads >>>(d_vel, d_accel, d_group_members, nwork, d_net_force, deltaT, exp_v_fac_thermo, range.first);
+        hipLaunchKernelGGL((gpu_nvt_mtk_step_two_kernel), dim3(grid), dim3(threads ), 0, 0, d_vel, d_accel, d_group_members, nwork, d_net_force, deltaT, exp_v_fac_thermo, range.first);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 // vim:syntax=cpp

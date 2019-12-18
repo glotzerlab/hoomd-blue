@@ -15,7 +15,7 @@
 #define __CONSTRAINT_ELLIPSOID_GPU_CUH__
 
 //! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
-cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_group_members,
+hipError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const unsigned int N,
                                                  Scalar4 *d_pos,

@@ -52,7 +52,7 @@ TablePotential::TablePotential(std::shared_ptr<SystemDefinition> sysdef,
     m_params.swap(params);
     TAG_ALLOCATION(m_params);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_tables.get(), m_tables.getNumElements()*sizeof(Scalar2), cudaMemAdviseSetReadMostly, 0);
@@ -109,7 +109,7 @@ void TablePotential::slotNumTypesChange()
     m_params.swap(params);
     TAG_ALLOCATION(m_params);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_tables.get(), m_tables.getNumElements()*sizeof(Scalar2), cudaMemAdviseSetReadMostly, 0);

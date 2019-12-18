@@ -11,9 +11,9 @@ set(_${COMPONENT_NAME}_cu_sources
     ExampleUpdater.cu
     )
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 set(_cuda_sources ${_${COMPONENT_NAME}_cu_sources})
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 pybind11_add_module(_${COMPONENT_NAME} SHARED ${_${COMPONENT_NAME}_sources} ${_cuda_sources} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work

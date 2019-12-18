@@ -2,138 +2,18 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 from hoomd import _hoomd
-from hoomd.parameterdicts import TypeParameterDict, AttachedTypeParameterDict
+from hoomd.parameterdicts import TypeParameterDict
 from hoomd.parameterdicts import RequiredArg
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import _integrator
+from hoomd.logger import Loggable
 import hoomd
-import sys
 import json
 
 
-class interaction_matrix:
-    R""" Define pairwise interaction matrix
-
-    All shapes use :py:class:`interaction_matrix` to define the interaction matrix between different
-    pairs of particles indexed by type. The set of pair coefficients is a symmetric
-    matrix defined over all possible pairs of particle types.
-
-    By default, all elements of the interaction matrix are 1, that means that overlaps
-    are checked between all pairs of types. To disable overlap checking for a specific
-    type pair, set the coefficient for that pair to 0.
-
-    Access the interaction matrix with a saved integrator object like so::
-
-        from hoomd import hpmc
-
-        mc = hpmc.integrate.some_shape(arguments...)
-        mv.overlap_checks.set('A', 'A', enable=False)
-        mc.overlap_checks.set('A', 'B', enable=True)
-        mc.overlap_checks.set('B', 'B', enable=False)
-
-    .. versionadded:: 2.1
-    """
-
-    ## \internal
-    # \brief Initializes the class
-    # \details
-    # The main task to be performed during initialization is just to init some variables
-    # \param self Python required class instance variable
-    def __init__(self):
-        self.values = {};
-
-    ## \internal
-    # \brief Return a compact representation of the pair coefficients
-    def get_metadata(self):
-        # return list for easy serialization
-        l = []
-        for (a,b) in self.values:
-            item = dict()
-            item['typei'] = a
-            item['typej'] = b
-            item['enable'] = self.values[(a,b)]
-            l.append(item)
-        return l
-
-    ## \var values
-    # \internal
-    # \brief Contains the matrix of set values in a dictionary
-
-    def set(self, a, b, enable):
-        R""" Sets parameters for one type pair.
-
-        Args:
-            a (str): First particle type in the pair (or a list of type names)
-            b (str): Second particle type in the pair (or a list of type names)
-            enable: Set to True to enable overlap checks for this pair, False otherwise
-
-        By default, all interaction matrix elements are set to 'True'.
-
-        It is not an error, to specify matrix elements for particle types that do not exist in the simulation.
-
-        There is no need to specify matrix elements for both pairs 'A', 'B' and 'B', 'A'. Specifying
-        only one is sufficient.
-
-        To set the same elements between many particle types, provide a list of type names instead of a single
-        one. All pairs between the two lists will be set to the same parameters.
-
-        Examples::
-
-            mc.overlap_checks.set('A', 'A', False);
-            mc.overlap_checks.set('B', 'B', False);
-            mc.overlap_checks.set('A', 'B', True);
-            mc.overlap_checks.set(['A', 'B', 'C', 'D'], 'F', True);
-            mc.overlap_checks.set(['A', 'B', 'C', 'D'], ['A', 'B', 'C', 'D'], False);
-
-
-        """
-
-        # listify the inputs
-        a = hoomd.util.listify(a)
-        b = hoomd.util.listify(b)
-
-        for ai in a:
-            for bi in b:
-                self.set_single(ai, bi, enable);
-
-    ## \internal
-    # \brief Sets a single parameter
-    def set_single(self, a, b, enable):
-        a = str(a);
-        b = str(b);
-
-        # create the pair if it hasn't been created it
-        if (not (a,b) in self.values) and (not (b,a) in self.values):
-            self.values[(a,b)] = bool(enable);
-        else:
-            # Find the pair to update
-            if (a,b) in self.values:
-                cur_pair = (a,b);
-            elif (b,a) in self.values:
-                cur_pair = (b,a);
-            else:
-                hoomd.context.current.device.cpp_msg.error("Bug detected in integrate.interaction_matrix(). Please report\n");
-                raise RuntimeError("Error setting matrix elements");
-
-            self.values[cur_pair] = bool(enable)
-
-    ## \internal
-    # \brief Try to get a single pair coefficient
-    # \detail
-    # \param a First name in the type pair
-    # \param b Second name in the type pair
-    def get(self,a,b):
-        if (a,b) in self.values:
-            cur_pair = (a,b);
-        elif (b,a) in self.values:
-            cur_pair = (b,a);
-        else:
-            return None
-
-        return self.values[cur_pair];
-
 # Helper method to inform about implicit depletants citation
+# TODO: figure out where to call this
 def cite_depletants():
     _citation = hoomd.cite.article(cite_key='glaser2015',
                                    author=['J Glaser', 'A S Karas', 'S C Glotzer'],
@@ -204,16 +84,21 @@ class HPMCIntegrator(_integrator):
         typeparam_a = TypeParameter('a', type_kind='particle_types',
                                     param_dict=TypeParameterDict(a, len_keys=1)
                                     )
+
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
                                                float(0), len_keys=1)
                                            )
 
-        self._extend_typeparam([typeparam_d, typeparam_a, typeparam_fugacity])
+        typeparam_inter_matrix = TypeParameter('interaction_matrix',
+                                               type_kind='particle_types',
+                                               param_dict=TypeParameterDict(
+                                                   True, len_keys=2)
+                                               )
 
-        self.overlap_checks = interaction_matrix()
-
+        self._extend_typeparam([typeparam_d, typeparam_a,
+                                typeparam_fugacity, typeparam_inter_matrix])
 
     def attach(self, simulation):
         '''initialize the reflected c++ class'''
@@ -246,20 +131,8 @@ class HPMCIntegrator(_integrator):
 
     # TODO need to validate somewhere that quaternions are normalized
 
-    # Declare the GSD state schema.
-    @classmethod
-    def _gsd_state_name(cls):
-        return "state/hpmc/" + str(cls.__name__) + "/"
-
-    def restore_state(self):
-        super(HPMCIntegrator, self).restore_state()
-
-        # if restore state succeeds, all shape information is set
-        # set the python level is_set flags to notify this
-        for type in self.shape_param.keys():
-            self.shape_param[type].is_set = True
-
-    def get_type_shapes(self):
+    @property
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Since this behaves differently for different types of shapes, the
@@ -272,10 +145,13 @@ class HPMCIntegrator(_integrator):
             "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
+        if not self.is_attached:
+            return None
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
+    @Loggable.log(flag='multi')
     def map_overlaps(self):
         R""" Build an overlap map of the system
 
@@ -292,12 +168,12 @@ class HPMCIntegrator(_integrator):
             overlap_map = np.asarray(mc.map_overlaps())
         """
 
-        self.update_forces()
-        N = hoomd.context.current.system_definition.getParticleData().getMaximumTag() + 1
-        overlap_map = self._cpp_obj.mapOverlaps()
-        return list(zip(*[iter(overlap_map)] * N))
+        if not self.is_attached:
+            return None
+        return self._cpp_obj.mapOverlaps()
 
-    def count_overlaps(self):
+    @Loggable.log
+    def overlaps(self):
         R""" Count the number of overlaps.
 
         Returns:
@@ -305,16 +181,18 @@ class HPMCIntegrator(_integrator):
 
         Example::
 
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param.set(....);
+            mc = hpmc.integrate.Shape(..)
+            mc.shape['A'] = dict(....)
             run(100)
-            num_overlaps = mc.count_overlaps();
+            num_overlaps = mc.overlaps
         """
-        self.update_forces()
+        if not self.is_attached:
+            return None
         self._cpp_obj.communicate(True)
-        return self._cpp_obj.countOverlaps(hoomd.context.current.system.getCurrentTimeStep(), False)
+        return self._cpp_obj.countOverlaps(False)
 
-    def test_overlap(self, type_i, type_j, rij, qi, qj, use_images=True, exclude_self=False):
+    def test_overlap(self, type_i, type_j, rij, qi, qj, use_images=True,
+                     exclude_self=False):
         R""" Test overlap between two particles.
 
         Args:
@@ -342,28 +220,31 @@ class HPMCIntegrator(_integrator):
         qj = hoomd.util.listify(qj)
         return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images, exclude_self)
 
-    def get_translate_acceptance(self):
-        R""" Get the average acceptance ratio for translate moves.
+    @Loggable.log(flag='multi')
+    def translate_moves(self):
+        R""" Get the number of accepted and rejected translate moves.
 
         Returns:
-            The average translate accept ratio during the last :py:func:`hoomd.run()`.
+            The number of accepted and rejected translate moves during the last
+            :py:func:`hoomd.run()`.
 
         Example::
 
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param.set(....);
+            mc = hpmc.integrate.Shape(..)
+            mc.shape['A'] = dict(....)
             run(100)
-            t_accept = mc.get_translate_acceptance();
+            t_accept = mc.translate_acceptance
 
         """
-        counters = self._cpp_obj.getCounters(1)
-        return counters.getTranslateAcceptance()
+        return self._cpp_obj.getCounters(1).translate
 
-    def get_rotate_acceptance(self):
-        R""" Get the average acceptance ratio for rotate moves.
+    @Loggable.log(flag='multi')
+    def rotate_moves(self):
+        R""" Get the number of accepted and reject rotation moves
 
         Returns:
-            The average rotate accept ratio during the last :py:func:`hoomd.run()`.
+            The number of accepted and rejected rotate moves during the last
+            :py:func:`hoomd.run()`.
 
         Example::
 
@@ -373,10 +254,10 @@ class HPMCIntegrator(_integrator):
             t_accept = mc.get_rotate_acceptance();
 
         """
-        counters = self._cpp_obj.getCounters(1)
-        return counters.getRotateAcceptance()
+        return self._cpp_obj.getCounters(1).rotate
 
-    def get_mps(self):
+    @Loggable.log
+    def mps(self):
         R""" Get the number of trial moves per second.
 
         Returns:
@@ -385,33 +266,18 @@ class HPMCIntegrator(_integrator):
         """
         return self._cpp_obj.getMPS()
 
-    def get_counters(self):
+    @property
+    def counters(self):
         R""" Get all trial move counters.
 
         Returns:
-            A dictionary containing all trial moves counted during the last :py:func:`hoomd.run()`.
-
-        The dictionary contains the entries:
-
-        * *translate_accept_count* - count of the number of accepted translate moves
-        * *translate_reject_count* - count of the number of rejected translate moves
-        * *rotate_accept_count* - count of the number of accepted rotate moves
-        * *rotate_reject_count* - count of the number of rejected rotate moves
-        * *overlap_checks* - estimate of the number of overlap checks performed
-        * *translate_acceptance* - Average translate acceptance ratio over the run
-        * *rotate_acceptance* - Average rotate acceptance ratio over the run
-        * *move_count* - Count of the number of trial moves during the run
+            counter object which has ``translate``, ``rotate``,
+            ``ovelap_checks``, and ``overlap_errors`` attributes. The attributes
+            ``translate`` and ``rotate`` are tuples of the accepted and rejected
+            respective trial move while ``overlap_checks`` and
+            ``overlap_errors`` are integers.
         """
-        counters = self._cpp_obj.getCounters(1)
-        return dict(translate_accept_count=counters.translate_accept_count,
-                    translate_reject_count=counters.translate_reject_count,
-                    rotate_accept_count=counters.rotate_accept_count,
-                    rotate_reject_count=counters.rotate_reject_count,
-                    overlap_checks=counters.overlap_checks,
-                    translate_acceptance=counters.getTranslateAcceptance(),
-                    rotate_acceptance=counters.getRotateAcceptance(),
-                    move_count=counters.getNMoves())
-
+        return self._cpp_obj.getCounters(1)
 
 class Sphere(HPMCIntegrator):
     R""" HPMC integration for spheres (2D/3D).
@@ -469,13 +335,14 @@ class Sphere(HPMCIntegrator):
                                         )
         self._add_typeparam(typeparam_shape)
 
-    def get_type_shapes(self):
+    @Loggable.log(flag='multi')
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Examples:
             The types will be 'Sphere' regardless of dimensionality.
 
-            >>> mc.get_type_shapes()
+            >>> mc.type_shapes
             [{'type': 'Sphere', 'diameter': 1}, {'type': 'Sphere', 'diameter': 2}]
 
         Returns:

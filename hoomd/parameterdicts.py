@@ -1,20 +1,11 @@
 from itertools import product, combinations_with_replacement
 from copy import deepcopy
 from numpy import array, ndarray
+from hoomd.util import to_camel_case, is_iterable
 
 # Psudonym for None that states an argument is required to be supplied by the
 # user
 RequiredArg = None
-
-
-def is_iterable(obj):
-    '''Returns True if object is iterable and not a str or dict.'''
-    return hasattr(obj, '__iter__') and not bad_iterable_type(obj)
-
-
-def bad_iterable_type(obj):
-    '''Returns True if str or dict.'''
-    return isinstance(obj, str) or isinstance(obj, dict)
 
 
 def has_str_elems(obj):
@@ -25,10 +16,6 @@ def has_str_elems(obj):
 def is_good_iterable(obj):
     '''Returns True if object is iterable with respect to types.'''
     return is_iterable(obj) and has_str_elems(obj)
-
-
-def to_camel_case(string):
-    return string.replace('_', ' ').title().replace(' ', '')
 
 
 def proper_type_return(val):
@@ -199,6 +186,8 @@ class TypeParameterDict(_ValidatedDefaultDict):
             for key in self._dict.keys():
                 yield tuple(sorted(list(key)))
 
+    def to_dict(self):
+        return self._dict
 
 class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
@@ -279,3 +268,9 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
             for key in combinations_with_replacement(single_keys,
                                                      self._len_keys):
                 yield tuple(sorted(list(key)))
+
+    def to_dict(self):
+        rtn_dict = dict()
+        for key in self.keys():
+            rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
+        return rtn_dict

@@ -1,7 +1,5 @@
 from hoomd.triggers import Trigger
 from hoomd.meta import _Operation, _TriggeredOperation
-from hoomd.parameterdicts import TypeParameterDict, RequiredArg
-from hoomd.typeparam import TypeParameter
 
 
 class DummySimulation:

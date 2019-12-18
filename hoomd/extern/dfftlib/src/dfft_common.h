@@ -46,7 +46,7 @@ typedef struct
     cpx_t *scratch_3;
     #endif
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     cuda_cpx_t *d_scratch;   /* Scratch array */
     cuda_cpx_t *d_scratch_2;
     cuda_cpx_t *d_scratch_3;
@@ -65,7 +65,7 @@ typedef struct
     int output_cyclic;    /* ==1 if output for the backward transform is cyclic */
 
     int device;           /* ==1 if this is a device plan */
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     int check_cuda_errors; /* == 1 if we are checking errors */
     #endif
 
@@ -74,7 +74,7 @@ typedef struct
     int **c0;             /* variables for redistribution, per stage and dimension */
     int **c1;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     int **d_c0;           /* Device memory for passing variables for redistribution kernels */
     int **d_c1;
     int *d_pidx;
@@ -91,7 +91,7 @@ typedef struct
     int *n_fft;     /* number of FFTs at every level */
     int final_multi; /* If the final stage is a multidimensional transform */
     int **rev_j1, **rev_partial, **rev_global; /* flags to indicate bit reversal per dimension */
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     cuda_plan_t **cuda_plans_multi_fw; /* Multidimensional plan configuration (forward)*/
     cuda_plan_t **cuda_plans_multi_bw; /* backward plans */
     cuda_plan_t *cuda_plans_final_fw; /* Level-0 plans, forward */

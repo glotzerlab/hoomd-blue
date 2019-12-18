@@ -8,7 +8,7 @@
     \brief Declares the ParticleGroup and related classes
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -22,7 +22,7 @@
 
 #include "GlobalArray.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "GPUPartition.cuh"
 #endif
 
@@ -319,7 +319,7 @@ class PYBIND11_EXPORT ParticleGroup
             return m_member_idx;
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Return the load balancing GPU partition
         const GPUPartition& getGPUPartition() const
             {
@@ -375,7 +375,7 @@ class PYBIND11_EXPORT ParticleGroup
         bool m_update_tags;                             //!< True if tags should be updated when global number of particles changes
         mutable bool m_warning_printed;                         //!< True if warning about static groups has been printed
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         mutable GPUPartition m_gpu_partition;           //!< A handy struct to store load balancing info for this group's local members
         #endif
 
@@ -436,7 +436,7 @@ class PYBIND11_EXPORT ParticleGroup
         //! Helper function to build the 1:1 hash for tag membership
         void buildTagHash() const;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
         //! Helper function to rebuild the index lists after the particles have been sorted
         void rebuildIndexListGPU() const;
 #endif

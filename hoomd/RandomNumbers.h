@@ -15,11 +15,8 @@
 
 #include "HOOMDMath.h"
 
-#ifdef ENABLE_CUDA
-// ensure that curand is included before random123. This avoids multiple defiintion issues
-// unfortunately, at the cost of random123 using the coefficients provided by curand
-// for now, they are the same
-#include <curand_kernel.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
 #include <math.h>
@@ -31,7 +28,7 @@ namespace r123 {
 using std::make_signed;
 using std::make_unsigned;
 
-#if defined(__CUDACC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
+#if defined(__HIPCC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
 // Amazing! cuda thinks numeric_limits::max() is a __host__ function, so
 // we can't use it in a device function.
 //
@@ -113,11 +110,11 @@ R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
 // end code copied from random123 examples
 }
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
-#endif // NVCC
+#endif // __HIPCC__
 
 namespace hoomd
 {
@@ -362,7 +359,7 @@ class SpherePointGenerator
 
             // project onto the sphere surface
             const Real sqrtu = fast::sqrt(one_minus_u2);
-            fast::sincos(theta, point.y, point.x);
+            fast::sincos(theta, (Real &) point.y, (Real& ) point.x);
             point.x *= sqrtu;
             point.y *= sqrtu;
             point.z = u;
