@@ -270,3 +270,52 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     with pytest.raises(RuntimeError):
         mc.shape['A'] = args_5_invalid
 
+def test_overlaps(device, dummy_simulation_check_overlaps):
+    hoomd.context.initialize("--mode=cpu");
+    mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456)
+    mc.shape['A'] = dict(normals=[(0, 0, 1)],
+                         a=1,
+                         b=1,
+                         c=0.5,
+                         vertices=[],
+                         origin=(0, 0, 0),
+                         offsets=[0])
+    
+    sim = dummy_simulation_check_overlaps()
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    sim.run(100)
+    #overlaps = sim.operations.integrator.overlaps
+    #assert overlaps > 0
+    assert True
+    
+def test_shape_moves(device, dummy_simulation_check_moves):
+    hoomd.context.initialize("--mode=cpu");
+    mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456)
+    mc.shape['A'] = dict(normals=[(0, 0, 1)],
+                         a=1,
+                         b=1,
+                         c=0.5,
+                         vertices=[],
+                         origin=(0, 0, 0),
+                         offsets=[0])
+    sim = dummy_simulation_check_moves()
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    initial_snap = sim.state.snapshot
+    initial_pos = initial_snap.particles.position
+    sim.run(100)
+    final_snap = sim.state.snapshot
+    final_pos = final_snap.particles.position
+    #accepted_and_rejected = sim.operations.integrator.accepted + 
+    #                        sim.operations.integrator.rejected
+    #assert accepted_and_rejected > 0
+    np.testing.assert_raises(AssertionError, 
+                                np.testing.assert_allclose, 
+                                final_pos, 
+                                initial_pos)
+    
+
+    
+    
+    

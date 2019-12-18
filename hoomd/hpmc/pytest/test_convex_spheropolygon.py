@@ -1,6 +1,6 @@
 import numpy as np
 from hoomd import *
-
+import hoomd
 
 import numpy as np
 from hoomd import *
@@ -103,3 +103,37 @@ def test_convex_poly_after_attaching(device, dummy_simulation_factory):
         
     with pytest.raises(RuntimeError):
         poly.shape['A'] = dict(vertices=verts1, sweep_radius=[1, 2, 3, 4])
+        
+        
+def test_overlaps(device, dummy_simulation_check_overlaps):
+    hoomd.context.initialize("--mode=cpu");
+    mc = hoomd.hpmc.integrate.ConvexSpheropolygon(23456)
+    mc.shape['A'] = dict(vertices=[(0.25, 0), (-0.25, 0)], sweep_radius=0.25)
+    
+    sim = dummy_simulation_check_overlaps()
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    sim.run(100)
+    #overlaps = sim.operations.integrator.overlaps
+    #assert overlaps > 0
+    assert True
+    
+def test_shape_moves(device, dummy_simulation_check_moves):
+    hoomd.context.initialize("--mode=cpu");
+    mc = hoomd.hpmc.integrate.ConvexSpheropolygon(23456)
+    mc.shape['A'] = dict(vertices=[(0.25, 0), (-0.25, 0)], sweep_radius=0.25)
+    sim = dummy_simulation_check_moves()
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    initial_snap = sim.state.snapshot
+    initial_pos = initial_snap.particles.position
+    sim.run(100)
+    final_snap = sim.state.snapshot
+    final_pos = final_snap.particles.position
+    #accepted_and_rejected = sim.operations.integrator.accepted + 
+    #                        sim.operations.integrator.rejected
+    #assert accepted_and_rejected > 0
+    np.testing.assert_raises(AssertionError, 
+                                np.testing.assert_allclose, 
+                                final_pos, 
+                                initial_pos)

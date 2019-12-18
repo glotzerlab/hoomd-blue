@@ -356,7 +356,8 @@ class ConvexPolygon(HPMCIntegrator):
 
     Args:
         seed (int): Random number seed
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a 
+          dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
