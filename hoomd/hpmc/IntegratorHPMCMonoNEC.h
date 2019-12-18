@@ -304,9 +304,9 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     vec3<Scalar> normal_z = cross(lattice_x,lattice_y);
     normal_z /= sqrt(dot(normal_z,normal_z));
 
-    Scalar latticeNormal_x = dot(normal_x,lattice_x);
-    Scalar latticeNormal_y = dot(normal_y,lattice_y);
-    Scalar latticeNormal_z = dot(normal_z,lattice_z);
+    Scalar latticeNormal_x = dot(normal_x,lattice_x) * (1 - ghost_fraction.x);
+    Scalar latticeNormal_y = dot(normal_y,lattice_y) * (1 - ghost_fraction.y);
+    Scalar latticeNormal_z = dot(normal_z,lattice_z) * (1 - ghost_fraction.z);
 
     uchar3 periodic = box.getPeriodic();
     #endif
@@ -401,11 +401,25 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                 double chain_time = m_chain_time;
                 double sweep;
                 
+                int debug_max_chain = 1e5;
+                int count_chain = 0;
+                
                 // perform the chain in a loop.
                 // next denotes the next particle, where -1 means there is no further particle.
+                int prev = -1;
                 int next = i;
                 while( next > -1 )
                     {
+                    
+                    count_chain++;
+                    if( count_chain == debug_max_chain )
+                    {
+                        this->m_exec_conf->msg->error() << "The number of chain elements exceeded safe-guard limit of "<<debug_max_chain<<".\n";
+                        this->m_exec_conf->msg->error() << "Shorten chain_time if this message appears regularly.\n";
+                        this->m_exec_conf->msg->error() << "Hints: "<<prev<<" - "<<next<<"\n";
+                        break;
+                    }
+                        
                     // statistics - we will update a particle
                     count_events++;
                 
@@ -651,8 +665,9 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                                 direction = vel_k / velocity;
                             }
                         #endif
-
-
+                        
+                        // store previous particle.
+                        prev = k;
                         }
                     } // end loop over totalDist.
 
