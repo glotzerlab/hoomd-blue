@@ -387,13 +387,22 @@ struct NeighborListOp
         const unsigned int num_neigh = nneigh[q.idx]; // no __ldg, since this is writeable
 
         // prefetch from the stack if current number of neighbors does not align with a boundary
-        uint4 stack = make_uint4(0,0,0,0);
+        /* NOTE: There seemed to be a compiler error/bug when stack was declared outside this if
+                 statement, initialized with zeros, and then assigned inside (so that only
+                 one return statement was needed). It went away using:
+                 uint4 tmp = neigh_list[...];
+                 stack = tmp;
+                 But this looked funny, so the structure below seems more human readable.
+         */
         if (num_neigh % 4 != 0)
             {
-            stack = neigh_list[(first+num_neigh-1)/4];
+            uint4 stack = neigh_list[(first+num_neigh-1)/4];
+            return ThreadData(q.idx, first, num_neigh, stack);
             }
-
-        return ThreadData(q.idx, first, num_neigh, stack);
+        else
+            {
+            return ThreadData(q.idx, first, num_neigh, make_uint4(0,0,0,0));
+            }
         }
 
     //! Processes a newly intersected primitive.

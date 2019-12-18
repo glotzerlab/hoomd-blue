@@ -9,14 +9,17 @@ v3.0.0 (not yet released)
 
 *Added*
 
-- Implicit depletants are now supported by any **hpmc** integrator through ``mc.set_fugacity('type', fugacity)``.
+- Implicit depletants are now supported by any **hpmc** integrator through
+  ``mc.set_fugacity('type', fugacity)``.
 - Enable implicit depletants for two-dimensional shapes in **hpmc**.
 
 *Changed*
 
-- *CMake* <=3.9, *cereal*, *eigen*, and *pybind11* are required to compile HOOMD.
+- *CMake* >=3.9, *cereal*, *eigen*, and *pybind11* are required to compile
+  HOOMD.
 - Plugins must be updated to build against v3.
-- By default, HOOMD installs to the ``site-packages`` directory associated with the ``python`` executable given, which may be inside a virtual environment.
+- By default, HOOMD installs to the ``site-packages`` directory associated with
+  the ``python`` executable given, which may be inside a virtual environment.
 - Refactored CMake code.
 - ``git submodule update`` no longer runs when during CMake configuration.
 - Use ``random123`` library for implicit depletants in **hpmc**.
@@ -25,9 +28,11 @@ v3.0.0 (not yet released)
 
 *Removed*
 
-- Type swap moves in ``hpmc.update.muvt()`` are no longer supported (``transfer_ratio`` option to ``muvt.set_params()``)
-- The option ``implicit=True`` to ``hpmc.integrate.*`` is no longer available (use ``set_fugacity``).
-- ``static`` parameter in :py:class:`dump.gsd <hoomd.dump.gsd>`.
+- Type swap moves in ``hpmc.update.muvt()`` are no longer supported
+  (``transfer_ratio`` option to ``muvt.set_params()``)
+- The option ``implicit=True`` to ``hpmc.integrate.*`` is no longer available
+  (use ``set_fugacity``).
+- ``static`` parameter in ``dump.gsd``
 - ``util.quiet_status`` and ``util.unquiet_status``.
 - ``deprecated.analyze.msd``.
 - ``deprecated.dump.xml``.
@@ -44,7 +49,7 @@ v3.0.0 (not yet released)
 - **hpmc** ``depletant_mode`` parameter.
 - **hpmc** ``ntrial`` parameter.
 - **hpmc** ``implicit`` boolean parameter.
-- ``group`` parameter to :py:class:`md.integrate.mode_minimize_fire <hoomd.md.integrate.mode_minimize_fire>`
+- ``group`` parameter to ``md.integrate.mode_minimize_fire``
 - ``cgcmm.angle.cgcmm``
 - ``cgcmm.pair.cgcmm``
 - ``COPY_HEADERS`` *CMake* option.
@@ -53,6 +58,55 @@ v3.0.0 (not yet released)
 
 v2.x
 ----
+
+v2.9.0 (not yet released)
+-------------------------
+
+*New features*
+
+* HPMC
+
+  * User-settable parameters in ``jit.patch``.
+  * 2D system support in muVT updater.
+
+* MD
+
+  * The performance of ``nlist.tree`` has been drastically improved for a
+    variety of systems.
+
+v2.8.2 (2019-12-20)
+-------------------
+
+*Bug fixes*
+
+* Fix randomization of barostat and thermostat velocities with
+  ``randomize_velocities()`` for non-unit temperatures.
+* Improve MPCD documentation.
+* Fix uninitialized memory in some locations which could have led to
+  unreproducible results with HPMC in MPI, in particular with
+  ``ALWAYS_USE_MANAGED_MEMORY=ON``.
+* Fix calculation of cell widths in HPMC (GPU) and ``nlist.cell()`` with MPI.
+* Fix potential memory-management issue in MPI for migrating MPCD particles and
+  cell energy.
+* Fix bug where exclusions were sometimes ignored when ``charge.pppm()`` is
+  the only potential using the neighbor list.
+* Fix bug where exclusions were not accounted for properly in the
+  ``pppm_energy`` log quantity.
+* Fix a bug where MD simulations with MPI start off without a ghost layer,
+  leading to crashes or dangerous builds shortly after ``run()``.
+* ``hpmc.update.remove_drift`` now communicates particle positions after
+  updating them.
+
+v2.8.1 (2019-11-26)
+-------------------
+
+*Bug fixes*
+
+* Fix a rare divide-by-zero in the ``collide.srd`` thermostat.
+* Improve performance of first frame written by ``dump.gsd``.
+* Support Python 3.8.
+* Fix an error triggering migration of embedded particles for MPCD with MPI +
+  GPU configurations.
 
 v2.8.0 (2019-10-30)
 ^^^^^^^^^^^^^^^^^^^
