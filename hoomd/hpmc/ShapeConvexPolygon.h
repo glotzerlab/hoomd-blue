@@ -74,7 +74,7 @@ struct poly2d_verts : param_base
         }
     #endif
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
 
     poly2d_verts(pybind11::dict v)
         {

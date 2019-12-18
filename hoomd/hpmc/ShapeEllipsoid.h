@@ -66,7 +66,7 @@ struct ell_params : param_base
         }
     #endif
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     ell_params() { }
 
     ell_params(pybind11::dict v)

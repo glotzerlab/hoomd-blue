@@ -107,7 +107,7 @@ class ManagedArray
             }
 
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
 
         //! Copy data from other array
         /*! Copy data from the other array, but keep our own alignment and managed flags. HPMC uses this when copying

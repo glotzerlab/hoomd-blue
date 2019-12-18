@@ -11,6 +11,7 @@
  #include "ShapeConvexPolyhedron.h"
  #include "ShapeSpheropolyhedron.h"
  #include <cfloat>
+ #include <hoomd/extern/triangle_triangle.h>
 
  #include "GPUTree.h"
 
@@ -308,7 +309,7 @@
          face_overlap.allocate_shared(ptr, available_bytes);
          }
 
-     #ifdef ENABLE_CUDA
+     #ifdef ENABLE_HIP
      //! Set CUDA memory hints
      void set_memory_hint() const
          {
@@ -691,9 +692,7 @@
      return dmin_sq;
      }
 
- #include <hoomd/extern/triangle_triangle.h>
-
- /*! Test overlap in narrow phase
+  /*! Test overlap in narrow phase
 
      \param dr separation vector between the particles, IN THE REFERENCE FRAME of b
      \param a first shape

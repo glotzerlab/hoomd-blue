@@ -155,7 +155,7 @@ bool is_MPI_available()
 bool isCUDAAvailable()
    {
    return
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
        true;
 #else
        false;
