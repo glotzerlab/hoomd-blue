@@ -60,12 +60,6 @@ class sphere(hpmc_sphere):
         if hoomd.context.exec_conf.isCUDAEnabled() or implicit:
             raise NotImplementedError("HPMC-SphereNEC is not implemented for implicit mode or use with CUDA.")
 
-        # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("HPMC-SphereNEC is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up integration method.")
-
         self.cpp_integrator = _hpmc.IntegratorHPMCMonoNECSphere(hoomd.context.current.system_definition, seed);
 
         # set the default parameters
@@ -140,12 +134,6 @@ class convex_polyhedron(hpmc_convex_polyhedron):
 
         # initialize base class
         mode_hpmc.__init__(self,implicit, depletant_mode);
-
-        # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("HPMC-NEC is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up integration method.")        
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
