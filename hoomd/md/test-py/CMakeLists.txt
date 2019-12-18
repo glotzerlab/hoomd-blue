@@ -84,7 +84,7 @@ else()
     set_tests_properties(script-${_test_name}-memcheck-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
 
 endif()
-endif (ENABLE_HIP)
+endif()
 
 endmacro(add_hoomd_script_test_cuda_memcheck test_py)
 endif(ENABLE_HIP)
