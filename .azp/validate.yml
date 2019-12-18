@@ -236,7 +236,7 @@ stages:
 
     container:
        image: $(image_root)-$(container_image)
-       options: -u 0 --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --memory=16g
+       options: -u 0 --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --group-add render --memory=16g
 
     workspace:
       clean: all
