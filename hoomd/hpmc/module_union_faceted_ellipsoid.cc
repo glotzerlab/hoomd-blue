@@ -20,7 +20,7 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterClusters.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
@@ -50,7 +50,7 @@ void export_union_faceted_ellipsoid(py::module& m)
     export_ExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid> >(m, "WallFacetedEllipsoidUnion");
     export_UpdaterExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterExternalFieldWallFacetedEllipsoidUnion");
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "IntegratorHPMCMonoGPUFacetedEllipsoidUnion");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "ComputeFreeVolumeGPUFacetedEllipsoidUnion");

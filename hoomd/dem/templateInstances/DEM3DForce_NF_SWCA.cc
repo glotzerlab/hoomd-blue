@@ -29,7 +29,7 @@ void export_NF_SWCA_3D(py::module& m)
         .def("getTypeShapesPy", &SWCA_DEM_3D::getTypeShapesPy)
         ;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     typedef DEM3DForceComputeGPU<Scalar, Scalar4, SWCA> SWCA_DEM_3D_GPU;
 
     py::class_<SWCA_DEM_3D_GPU, SWCA_DEM_3D, std::shared_ptr<SWCA_DEM_3D_GPU> >(m, "SWCADEM3DGPU")

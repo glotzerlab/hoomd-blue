@@ -11,7 +11,7 @@
 
 #include "hoomd/md/OPLSDihedralForceCompute.h"
 #include "hoomd/ConstForceCompute.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/OPLSDihedralForceComputeGPU.h"
 #endif
 
@@ -520,7 +520,7 @@ std::shared_ptr<OPLSDihedralForceCompute> base_class_tf_creator(std::shared_ptr<
     return std::shared_ptr<OPLSDihedralForceCompute>(new OPLSDihedralForceCompute(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! DihedralForceCompute creator for bond_force_basic_tests()
 std::shared_ptr<OPLSDihedralForceCompute> gpu_tf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -536,7 +536,7 @@ UP_TEST( OPLSDihedralForceCompute_basic )
     dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for dihedral forces on the GPU
 UP_TEST( OPLSDihedralForceComputeGPU_basic )
     {

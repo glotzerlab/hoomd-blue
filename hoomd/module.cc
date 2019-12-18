@@ -3,7 +3,6 @@
 
 
 // Maintainer: joaander All developers are free to add the calls needed to export their modules
-
 #include "HOOMDMath.h"
 #include "ExecutionConfiguration.h"
 #include "ClockSource.h"
@@ -42,13 +41,11 @@
 #include "SnapshotSystemData.h"
 
 // include GPU classes
-#ifdef ENABLE_CUDA
-#include <cuda.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #include "CellListGPU.h"
 #include "ComputeThermoGPU.h"
 #include "SFCPackUpdaterGPU.h"
-
-#include <cuda_profiler_api.h>
 #endif
 
 // include MPI classes
@@ -57,10 +54,10 @@
 #include "DomainDecomposition.h"
 #include "LoadBalancer.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "CommunicatorGPU.h"
 #include "LoadBalancerGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI
 
 #include "SignalHandler.h"
@@ -110,9 +107,9 @@ pybind11::object get_hoomd_version_tuple()
 //! Get the CUDA version as a tuple
 pybind11::object get_cuda_version_tuple()
     {
-    #ifdef ENABLE_CUDA
-    int major = CUDA_VERSION / 1000;
-    int minor = CUDA_VERSION / 10 % 100;
+    #ifdef ENABLE_HIP
+    int major = HIP_VERSION_MAJOR / 1000;
+    int minor = HIP_VERSION_MINOR / 10 % 100;
     return pybind11::make_tuple(major, minor);
     #else
     return pybind11::make_tuple(0,0);
@@ -360,7 +357,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_ForceConstraint(m);
     export_ConstForceCompute(m);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_CellListGPU(m);
     export_ComputeThermoGPU(m);
 #endif
@@ -383,7 +380,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_Integrator(m);
     export_BoxResizeUpdater(m);
     export_SFCPackUpdater(m);
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_SFCPackUpdaterGPU(m);
 #endif
 
@@ -391,10 +388,10 @@ PYBIND11_MODULE(_hoomd, m)
     export_Communicator(m);
     export_DomainDecomposition(m);
     export_LoadBalancer(m);
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_CommunicatorGPU(m);
     export_LoadBalancerGPU(m);
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI
 
     // system

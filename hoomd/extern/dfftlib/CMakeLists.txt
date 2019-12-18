@@ -33,9 +33,9 @@ include(FindLocalFFT.cmake)
 #find_package(CUDA)
 #if(CUDA_FOUND)
 #    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-arch=sm_20")
-#    option(ENABLE_CUDA "CUDA support" ON)
+#    option(ENABLE_HIP "CUDA support" ON)
 #else()
-#    option(ENABLE_CUDA "CUDA support" OFF)
+#    option(ENABLE_HIP "CUDA support" OFF)
 #endif()
 
 # include(CUDA_MPI.cmake)
@@ -54,11 +54,11 @@ install(FILES "${HOOMD_BINARY_DIR}/hoomd/include/dfft_lib_config.h" DESTINATION 
 # unit tests
 #add_subdirectory(test)
 
-if(ENABLE_CUDA)
+if(ENABLE_HIP)
     # CUFFT is default for CUDA
-    set(CUDA_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/cufft_single_interface.c)
+    set(CUDA_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/cufft_single_interface.cc)
 
-    set(CUDA_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/dfft_cuda.c ${CUDA_SOURCES})
+    set(CUDA_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/dfft_cuda.cc ${CUDA_SOURCES})
     # cuda_compile(DFFT_CUDA_O ${CMAKE_CURRENT_SOURCE_DIR}/src/dfft_cuda.cu OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
     # set(CUDA_OBJECTS ${DFFT_CUDA_O})
     # set(CUDA_LIBS ${CUDA_CUDART_LIBRARY} ${CUDA_cufft_LIBRARY})
@@ -71,10 +71,10 @@ if(ENABLE_HOST)
     elseif(LOCAL_FFT_LIB STREQUAL "LOCAL_LIB_ACML")
         set(HOST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/acml_single_interface.c)
     elseif(LOCAL_FFT_LIB STREQUAL "LOCAL_LIB_BARE")
-        set(HOST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/bare_fft_interface.c ${CMAKE_CURRENT_SOURCE_DIR}/src/bare_fft.c)
+        set(HOST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/bare_fft_interface.cc ${CMAKE_CURRENT_SOURCE_DIR}/src/bare_fft.cc)
     endif()
 
-    set(HOST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/dfft_host.c ${HOST_SOURCES})
+    set(HOST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/dfft_host.cc ${HOST_SOURCES})
 endif()
 
-set(DFFT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/dfft_common.c ${HOST_SOURCES} ${CUDA_SOURCES} PARENT_SCOPE)
+set(DFFT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/dfft_common.cc ${HOST_SOURCES} ${CUDA_SOURCES} PARENT_SCOPE)

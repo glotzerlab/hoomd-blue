@@ -5,9 +5,9 @@
 
 #include "utils.h"
 #include "hoomd/mpcd/ATCollisionMethod.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/ATCollisionMethodGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -186,7 +186,7 @@ UP_TEST( at_collision_method_embed )
     {
     at_collision_method_embed_test<mpcd::ATCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! basic test case for MPCD ATCollisionMethodGPU class
 UP_TEST( at_collision_method_basic_gpu )
     {
@@ -197,4 +197,4 @@ UP_TEST( at_collision_method_embed_gpu )
     {
     at_collision_method_embed_test<mpcd::ATCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

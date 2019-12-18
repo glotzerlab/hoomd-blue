@@ -23,7 +23,7 @@
 
  // need to declare these class methods with __device__ qualifiers when building in nvcc
  // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
- #ifdef NVCC
+ #ifdef __HIPCC__
  #define DEVICE __device__
  #define HOSTDEVICE __host__ __device__
  #else
@@ -65,7 +65,7 @@
          {
          };
 
-     #ifndef NVCC
+     #ifndef __HIPCC__
      //! Constructor
      poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, unsigned int n_hull_verts, bool _managed)
          : n_verts(nverts), n_faces(_n_faces), hull_only(0)
@@ -369,7 +369,7 @@
          return data.sweep_radius != OverlapReal(0.0);
          }
 
-     #ifndef NVCC
+     #ifndef __HIPCC__
      std::string getShapeSpec() const
          {
          unsigned int n_verts = data.n_verts;
@@ -899,7 +899,7 @@
      return true;
      }
 
- #ifndef NVCC
+ #ifndef __HIPCC__
  //! Traverse the bounding volume test tree recursively
  inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
       unsigned int cur_node_a, unsigned int cur_node_b,
@@ -995,13 +995,13 @@
       * a) an edge of one polyhedron intersects the face of the other
       * b) the center of mass of one polyhedron is contained in the other
       */
-     #ifdef NVCC
+     #ifdef __HIPCC__
      const detail::GPUTree& tree_a = a.tree;
      const detail::GPUTree& tree_b = b.tree;
      #endif
 
      #ifdef LEAVES_AGAINST_TREE_TRAVERSAL
-     #ifdef NVCC
+     #ifdef __HIPCC__
      // Parallel tree traversal
      unsigned int offset = threadIdx.x;
      unsigned int stride = blockDim.x;
@@ -1051,7 +1051,7 @@
      vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
      quat<OverlapReal> q(conj(b.orientation)*a.orientation);
 
-     #ifndef NVCC
+     #ifndef __HIPCC__
      if (BVHCollision(a,b,0,0, q, dr_rot, err, abs_tol)) return true;
      #else
      // stackless traversal on GPU

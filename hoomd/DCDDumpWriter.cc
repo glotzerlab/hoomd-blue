@@ -8,8 +8,6 @@
     \brief Defines the DCDDumpWriter class and related helper functions
 */
 
-
-
 #include "DCDDumpWriter.h"
 #include "Filesystem.h"
 #include "time.h"

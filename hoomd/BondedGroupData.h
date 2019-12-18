@@ -8,7 +8,7 @@
     \brief Declares BondedGroupData
  */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -26,14 +26,14 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include "HOOMDMPI.h"
 #include "ParticleData.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "CachedAllocator.h"
 #include "BondedGroupData.cuh"
 #endif
 
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -690,13 +690,12 @@ class BondedGroupData
             #endif
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Helper function to rebuild lookup by index table on the GPU
         void rebuildGPUTableGPU();
 
         GPUArray<unsigned int> m_condition;          //!< Condition variable for rebuilding GPU table on the GPU
         unsigned int m_next_flag;                    //!< Next flag value for GPU table rebuild
-        mgpu::ContextPtr m_mgpu_context;                   //!< moderngpu context
         #endif
     };
 

@@ -55,6 +55,66 @@ class charge_pppm_tests (unittest.TestCase):
         context.initialize()
 
 # charge.pppm
+class charge_pppm_bond_exclusions_test(unittest.TestCase):
+    def test_exclusion_energy(self):
+        # initialize a two particle system in a large box, to minimize effect of PBC
+        snap = data.make_snapshot(N=2, particle_types=[u'A1'], bond_types=['bondA'], box = data.boxdim(L=50))
+
+        if context.current.device.comm.rank == 0:
+            snap.particles.position[0] = (0,0,0)
+            snap.particles.position[1] = (1,1,1)
+            snap.particles.charge[0] = 1
+            snap.particles.charge[1] = -1
+
+        self.s = init.read_snapshot(snap);
+
+        # measure the Coulomb energy with sufficient number of grid cells so that the exclusions are accurate
+        nl = md.nlist.cell()
+        c = md.charge.pppm(group.all(), nlist = nl);
+
+        # rcut should be larger than distance of pair, so we have a split into short range and long range energy
+        c.set_params(Nx=128, Ny=128, Nz=128, order=7, rcut=3);
+        log = analyze.log(quantities = ['potential_energy','pair_ewald_energy','pppm_energy'], period = 1, filename=None);
+        md.integrate.mode_standard(dt=0.0);
+        md.integrate.nve(group.all());
+        # trick to allow larger decompositions
+        nl.set_params(r_buff=0.1)
+        context.current.sorter.disable()
+
+        run(1)
+        pppm_energy_nobond = log.query('pppm_energy')
+        ewald_energy_nobond = log.query('pair_ewald_energy')
+        potential_energy_nobond = log.query('potential_energy')
+
+        # check that it is **roughly** equal to the Coulomb energy (not accounting for PBC)
+        import numpy as np
+        self.assertAlmostEqual(potential_energy_nobond,
+            -1/np.linalg.norm(np.array(self.s.particles[1].position)-np.array(self.s.particles[0].position)),3)
+
+        # now introduce a bond
+        self.s.bonds.add('bondA', 0,1)
+
+        # we need to manually add it to the exclusions currently
+        nl.reset_exclusions(exclusions=['bond'])
+        run(1)
+        pppm_energy_bond = log.query('pppm_energy')
+        ewald_energy_bond = log.query('pair_ewald_energy')
+        potential_energy_bond = log.query('potential_energy')
+
+        # energy should be practically zero
+        # but not exactly -- exclusions are computed analytically, the long range part using fft
+        self.assertAlmostEqual(pppm_energy_bond, 0.0, 3)
+        self.assertAlmostEqual(potential_energy_bond, 0.0, 3)
+
+        # but strictly zero for the short range part
+        self.assertEqual(ewald_energy_bond, 0.0)
+
+    def tearDown(self):
+        del self.s
+        context.initialize();
+
+
+# charge.pppm
 class charge_pppm_twoparticle_tests (unittest.TestCase):
     def setUp(self):
         print

@@ -3,7 +3,6 @@
 
 
 // Maintainer: jglaser
-
 #include "CachedAllocator.h"
 
 /*! \file ParticleGroup.cuh
@@ -13,7 +12,7 @@
 #define __PARTICLE_GROUP_CUH__
 
 //! GPU method for rebuilding the index list of a ParticleGroup
-cudaError_t gpu_rebuild_index_list(unsigned int N,
+hipError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int *d_is_member_tag,
                                    unsigned int *d_is_member,
                                    unsigned int *d_tag);
@@ -26,7 +25,7 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
     \param d_tag Array of tags
     \param num_local_members Number of members on the local processor (return value)
 */
-cudaError_t gpu_compact_index_list(unsigned int N,
+hipError_t gpu_compact_index_list(unsigned int N,
                                    unsigned int *d_is_member,
                                    unsigned int *d_member_idx,
                                    unsigned int &num_local_members,

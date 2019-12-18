@@ -20,7 +20,7 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterClusters.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
@@ -50,7 +50,7 @@ void export_union_convex_polyhedron(py::module& m)
     export_ExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron> >(m, "WallConvexPolyhedronUnion");
     export_UpdaterExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterExternalFieldWallConvexPolyhedronUnion");
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoGPUConvexPolyhedronUnion");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "ComputeFreeVolumeGPUConvexPolyhedronUnion");

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -236,7 +237,7 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
 
     \note This is just a kernel driver. See gpu_compute_table_angle_forces_kernel for full documentation.
 */
-cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
+hipError_t gpu_compute_table_angle_forces(Scalar4* d_force,
                                      Scalar* d_virial,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
@@ -255,13 +256,13 @@ cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
     assert(table_width > 1);
 
     if (N == 0)
-        return cudaSuccess;
+        return hipSuccess;
 
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_compute_table_angle_forces_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_compute_table_angle_forces_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -273,8 +274,7 @@ cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
 
     Scalar delta_th = Scalar(M_PI)/(Scalar)(table_width - 1);
 
-    gpu_compute_table_angle_forces_kernel<<< grid, threads >>>
-            (d_force,
+    hipLaunchKernelGGL((gpu_compute_table_angle_forces_kernel), dim3(grid), dim3(threads ), 0, 0, d_force,
              d_virial,
              virial_pitch,
              N,
@@ -288,7 +288,7 @@ cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
              table_value,
              delta_th);
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 // vim:syntax=cpp

@@ -18,7 +18,7 @@ void test_operator(int* result, const ArithmeticOperator* op, unsigned int N)
     {
     const unsigned int block_size = 32;
     const unsigned int num_blocks = (N + block_size - 1)/block_size;
-    test_operator_kernel<<<num_blocks,block_size>>>(result, op, N);
+    hipLaunchKernelGGL((test_operator_kernel), dim3(num_blocks), dim3(block_size), 0, 0, result, op, N);
     }
 
 template AdditionOperator* hoomd::gpu::device_new(int);

@@ -4,7 +4,7 @@
 #include "EAMForceCompute.h"
 
 // include GPU classes
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "EAMForceComputeGPU.h"
 #endif
 
@@ -19,7 +19,7 @@ PYBIND11_MODULE(_metal, m)
     {
     export_EAMForceCompute(m);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_EAMForceComputeGPU(m);
 #endif
     }

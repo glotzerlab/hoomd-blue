@@ -5,7 +5,7 @@
 
 typedef DEMEvaluator<Scalar, Scalar4, SWCAPotential<Scalar, Scalar4, NoFriction<Scalar> > > SWCADEM;
 
-template cudaError_t gpu_compute_dem3d_forces<Scalar, Scalar4, SWCADEM>(
+template hipError_t gpu_compute_dem3d_forces<Scalar, Scalar4, SWCADEM>(
         Scalar4* d_force, Scalar4* d_torque, Scalar* d_virial,
         const unsigned int virial_pitch, const unsigned int N, const unsigned int n_ghosts,
         const Scalar4 *d_pos,

@@ -16,7 +16,7 @@
 #include "ExternalField.h"
 #include "ExternalFieldWall.h" // do we need anything else?
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 

@@ -8,7 +8,7 @@
     \brief Declares the HOOMDInitializer class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -16,7 +16,7 @@
 #include <string>
 #include "hoomd/extern/gsd.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 

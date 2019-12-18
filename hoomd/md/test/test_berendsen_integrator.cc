@@ -11,7 +11,7 @@
 #include "hoomd/md/IntegratorTwoStep.h"
 #include "hoomd/md/TwoStepLangevin.h"
 #include "hoomd/md/TwoStepBerendsen.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/TwoStepBerendsenGPU.h"
 #endif
 
@@ -115,7 +115,7 @@ UP_TEST( TwoStepBerendsen_LJ_tests )
     berend_updater_lj_tests<TwoStepBerendsen>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! extended LJ-liquid test for the GPU class
 UP_TEST( TwoStepBerendsenGPU_LJ_tests )
     {

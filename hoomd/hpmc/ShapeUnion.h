@@ -20,7 +20,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -63,7 +63,7 @@ struct union_params : param_base
         morientation.load_shared(ptr, available_bytes);
 
         // load all member parameters
-        #if defined (__CUDA_ARCH__)
+        #if defined (__HIP_DEVICE_COMPILE__)
         __syncthreads();
         #endif
 
@@ -99,7 +99,7 @@ struct union_params : param_base
         }
 
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     //! Set CUDA memory hints
     void set_memory_hint() const
         {
@@ -116,7 +116,6 @@ struct union_params : param_base
         }
     #endif
 
-
     //! Shape constructor
     union_params(unsigned int _N, bool _managed)
         : N(_N)
@@ -126,7 +125,7 @@ struct union_params : param_base
         mparams = ManagedArray<mparam_type>(N,_managed);
         moverlap = ManagedArray<unsigned int>(N,_managed);
         }
-    #ifndef NVCC
+    #ifndef __HIPCC__
     union_params(pybind11::dict v)
         : union_params(pybind11::len(v["members"]), false)
         {
@@ -215,12 +214,12 @@ struct union_params : param_base
     pybind11::dict asDict()
         {
         pybind11::dict v;
-        
+
         pybind11::list positions;
         pybind11::list orientations;
         pybind11::list overlaps;
         pybind11::list members;
-        
+
         for (unsigned int i = 0; i < N; i++)
             {
             pybind11::list pos_i;
@@ -229,7 +228,7 @@ struct union_params : param_base
             pos_i.append(mpos[i].z);
             pybind11::tuple pos_tuple = pybind11::tuple(pos_i);
             positions.append(pos_tuple);
-            
+
            // quat<OverlapReal> orientation_i = morientation[i];
             //QuatIterator<OverlapReal> begin = orientation_i.begin();
             //QuatIterator<OverlapReal> end = orientation_i.end();
@@ -333,7 +332,7 @@ struct ShapeUnion
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this shape class.");
@@ -577,7 +576,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     bool ignore_mask = sweep_radius_a != Scalar(0.0) || sweep_radius_b != Scalar(0.0);
 
     #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
-    #ifdef NVCC
+    #ifdef __HIPCC__
     // Parallel tree traversal
     unsigned int offset = threadIdx.x;
     unsigned int stride = blockDim.x;

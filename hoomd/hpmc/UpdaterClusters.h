@@ -2166,7 +2166,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     // in MPI and GPU simulations the integrator takes care of the grid shift
     bool grid_shift = true;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         grid_shift = false;
     #endif
@@ -2181,7 +2181,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         if (m_prof) m_prof->push(m_exec_conf,"Grid shift");
 
         // nominal width may be larger than nearest plane distance, correct
-        Scalar max_shift = std::min(npd.x, std::min(npd.y,npd.z));
+        Scalar max_shift = std::min((Scalar )npd.x, std::min((Scalar)npd.y,(Scalar) npd.z));
         max_shift = std::min(max_shift, nominal_width);
 
         // perform the grid shift to compensate for the uncrossable boundaries

@@ -10,7 +10,7 @@
 
 #include "dfft_common.h"
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && 0
 #define EXTERN_DFFT extern "C"
 #else
 #define EXTERN_DFFT

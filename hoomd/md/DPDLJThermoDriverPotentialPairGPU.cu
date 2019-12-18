@@ -8,7 +8,7 @@
 #include "EvaluatorPairDPDLJThermo.h"
 #include "AllDriverPotentialPairGPU.cuh"
 
-cudaError_t gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,
+hipError_t gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,
                                               const Scalar4 *d_params)
     {
     return gpu_compute_dpd_forces<EvaluatorPairDPDLJThermo>(args,
@@ -16,7 +16,7 @@ cudaError_t gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,
     }
 
 
-cudaError_t gpu_compute_dpdljthermo_forces(const pair_args_t& args,
+hipError_t gpu_compute_dpdljthermo_forces(const pair_args_t& args,
                                            const Scalar4 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairDPDLJThermo>(args,

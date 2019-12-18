@@ -16,7 +16,7 @@
 #include "MPIConfiguration.h"
 #include "HOOMDMPI.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

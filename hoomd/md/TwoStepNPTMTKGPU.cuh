@@ -7,7 +7,7 @@
 #ifndef __TWOSTEP_NPT_MTK_GPU_CUH__
 #define __TWOSTEP_NPT_MTK_GPU_CUH__
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
@@ -18,7 +18,7 @@
 */
 
 //! Kernel driver for the the first step of the computation
-cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
+hipError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                              Scalar4 *d_vel,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
@@ -32,14 +32,14 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                              const unsigned int block_size);
 
 //! Kernel driver for wrapping particles back in the box (part of first step)
-cudaError_t gpu_npt_mtk_wrap(const GPUPartition& gpu_partition,
+hipError_t gpu_npt_mtk_wrap(const GPUPartition& gpu_partition,
                              Scalar4 *d_pos,
                              int3 *d_image,
                              const BoxDim& box,
                              const unsigned int block_size);
 
 //! Kernel driver for the the second step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
+hipError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              const GPUPartition& gpu_partition,

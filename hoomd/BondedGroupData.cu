@@ -7,9 +7,10 @@
 #include "ParticleData.cuh"
 #include "BondedGroupData.cuh"
 
-#include "hoomd/extern/kernels/scan.cuh"
-#include "hoomd/extern/kernels/mergesort.cuh"
-#include "hoomd/extern/kernels/intervalmove.cuh"
+#include <hip/hip_runtime.h>
+#include <thrust/sort.h>
+#include <thrust/device_ptr.h>
+#include <thrust/execution_policy.h>
 
 /*! \file BondedGroupData.cu
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables
@@ -33,7 +34,6 @@ __global__ void gpu_count_groups_kernel(
 
     group_t g = d_group_table[group_idx];
 
-    #pragma unroll
     for (unsigned int i = 0; i < group_size; ++i)
         {
         unsigned int tag_i = g.tag[i];
@@ -103,7 +103,6 @@ __global__ void gpu_group_scatter_kernel(
     // position in group
     unsigned int gpos = 0;
 
-    #pragma unroll
     for (unsigned int k = 0; k < group_size; ++k)
         {
         unsigned int tag_k = g.tag[k];
@@ -139,19 +138,18 @@ void gpu_update_group_table(
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
-    unsigned int *d_seg_offsets,
     bool has_type_mapping,
-    mgpu::ContextPtr mgpu_context
+    CachedAllocator& alloc
     )
     {
     // construct scratch table by expanding the group table by particle index
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned n_blocks = n_groups / block_size + 1;
 
     // reset number of groups
-    cudaMemsetAsync(d_n_groups, 0, sizeof(unsigned int)*N);
+    hipMemsetAsync(d_n_groups, 0, sizeof(unsigned int)*N);
 
-    gpu_count_groups_kernel<group_size><<<n_blocks, block_size>>>(
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_count_groups_kernel<group_size>), dim3(n_blocks), dim3(block_size), 0, 0,
         n_groups,
         d_group_table,
         d_rtag,
@@ -163,31 +161,41 @@ void gpu_update_group_table(
         next_flag);
 
     // read back flag
-    cudaMemcpyAsync(&flag, d_condition, sizeof(unsigned int), cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
+    hipMemcpy(&flag, d_condition, sizeof(unsigned int), hipMemcpyDeviceToHost);
 
     if (! (flag >= next_flag) && n_groups)
         {
         // we are good, fill group table
+        // sort groups by particle idx
+        thrust::device_ptr<unsigned int> scratch_idx(d_scratch_idx);
+        thrust::device_ptr<unsigned int> scratch_g(d_scratch_g);
+        #ifdef __HIP_PLATFORM_HCC__
+        thrust::sort_by_key(thrust::hip::par(alloc),
+        #else
+        thrust::sort_by_key(thrust::cuda::par(alloc),
+        #endif
+            scratch_idx,
+            scratch_idx + group_size*n_groups,
+            scratch_g);
 
-        // sort groups by particle index
-        mgpu::MergesortPairs(d_scratch_idx, d_scratch_g, group_size*n_groups, *mgpu_context);
-
-        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_n_groups, N, (unsigned int) 0, mgpu::plus<unsigned int>(),
-            (unsigned int *) NULL, (unsigned int *)NULL, d_seg_offsets,*mgpu_context);
-
-        // use IntervalMove to perform a segmented scan of d_scratch_idx,
-        // using segment offsets as input
-        mgpu::constant_iterator<unsigned int> const_it(0);
-        mgpu::counting_iterator<unsigned int> count_it(0);
-        mgpu::IntervalMove(group_size*n_groups, const_it, d_seg_offsets, d_seg_offsets, N,
-            count_it, d_offsets, *mgpu_context);
+        // perform a segmented scan of d_scratch_idx
+        thrust::device_ptr<unsigned int> offsets(d_offsets);
+        thrust::constant_iterator<unsigned int> const_it(1);
+        #ifdef __HIP_PLATFORM_HCC__
+        thrust::exclusive_scan_by_key(thrust::hip::par(alloc),
+        #else
+        thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
+        #endif
+            scratch_idx,
+            scratch_idx + group_size*n_groups,
+            const_it,
+            offsets);
 
         // scatter groups to destinations
-        block_size = 512;
-        n_blocks = group_size*n_groups/block_size + 1;
+        block_size = 256;
+        n_blocks = (group_size*n_groups)/block_size + 1;
 
-        gpu_group_scatter_kernel<group_size><<<n_blocks, block_size>>>(
+        hipLaunchKernelGGL(gpu_group_scatter_kernel<group_size>, dim3(n_blocks), dim3(block_size), 0, 0,
             n_groups*group_size,
             d_scratch_g,
             d_scratch_idx,
@@ -224,9 +232,8 @@ template void gpu_update_group_table<2>(
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
-    unsigned int *d_seg_offsets,
     bool has_type_mapping,
-    mgpu::ContextPtr mgpu_context
+    CachedAllocator& alloc
     );
 
 //! AngleData
@@ -247,9 +254,8 @@ template void gpu_update_group_table<3>(
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
-    unsigned int *d_seg_offsets,
     bool has_type_mapping,
-    mgpu::ContextPtr mgpu_context
+    CachedAllocator& alloc
     );
 
 //! DihedralData and ImproperData
@@ -270,7 +276,6 @@ template void gpu_update_group_table<4>(
     unsigned int *d_scratch_g,
     unsigned int *d_scratch_idx,
     unsigned int *d_offsets,
-    unsigned int *d_seg_offsets,
     bool has_type_mapping,
-    mgpu::ContextPtr mgpu_context
+    CachedAllocator& alloc
     );

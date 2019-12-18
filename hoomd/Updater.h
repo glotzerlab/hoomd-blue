@@ -4,6 +4,7 @@
 
 // Maintainer: joaander
 
+
 #include "HOOMDMath.h"
 #include "SystemDefinition.h"
 #include "Profiler.h"
@@ -18,7 +19,7 @@
     \brief Declares a base class for all updaters
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

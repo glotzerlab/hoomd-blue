@@ -27,7 +27,7 @@ class Communicator;
     \brief Declares the System class and associated helper classes
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

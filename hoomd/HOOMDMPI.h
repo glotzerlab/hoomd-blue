@@ -62,10 +62,10 @@ namespace cereal
    template<class Archive>
    void serialize(Archive & ar, Scalar4 & s, const unsigned int version)
        {
-       ar & s.x;
-       ar & s.y;
-       ar & s.z;
-       ar & s.w;
+       ar & (Scalar &) s.x;
+       ar & (Scalar &) s.y;
+       ar & (Scalar &) s.z;
+       ar & (Scalar &) s.w;
        }
 
     //! Serialization of Scalar3

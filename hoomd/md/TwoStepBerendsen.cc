@@ -5,7 +5,7 @@
 // Maintainer: joaander
 
 #include "TwoStepBerendsen.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "TwoStepBerendsenGPU.cuh"
 #endif
 

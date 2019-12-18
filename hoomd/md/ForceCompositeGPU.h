@@ -12,7 +12,7 @@
     \brief Implementation of a rigid body force compute, GPU version
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

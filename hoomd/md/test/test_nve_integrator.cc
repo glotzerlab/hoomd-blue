@@ -12,7 +12,7 @@
 #include "hoomd/ConstForceCompute.h"
 #include "hoomd/ComputeThermo.h"
 #include "hoomd/md/TwoStepNVE.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/TwoStepNVEGPU.h"
 #endif
 
@@ -370,7 +370,7 @@ void nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration> exec_conf, t
     Scalar epsilon = Scalar(1.0);
     Scalar lperp = Scalar(0.45);
     Scalar lpar = Scalar(0.5);
-    fc_1->setParams(0,0,make_scalar3(epsilon,lperp,lpar));
+    fc_1->setParams(0,0,make_pair_gb_params(epsilon, lperp, lpar));
     // If we want accurate calculation of potential energy, we need to apply the
     // energy shift
     fc_1->setShiftMode(AnisoPotentialPairGB::shift);
@@ -441,7 +441,7 @@ std::shared_ptr<TwoStepNVE> base_class_nve_creator(std::shared_ptr<SystemDefinit
     return std::shared_ptr<TwoStepNVE>(new TwoStepNVE(sysdef, group));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! TwoStepNVEGPU factory for the unit tests
 std::shared_ptr<TwoStepNVE> gpu_nve_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group)
     {
@@ -478,7 +478,7 @@ UP_TEST( TwoStepNVE_aniso_test )
     }
 
 //! Need work on NVEUpdaterGPU with rigid bodies to test these cases
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for base class integration tests
 UP_TEST( TwoStepNVEGPU_integrate_tests )
     {

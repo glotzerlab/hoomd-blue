@@ -16,7 +16,7 @@
 #include "HPMCCounters.h"
 #include "ExternalField.h"
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #endif

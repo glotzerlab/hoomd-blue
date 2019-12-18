@@ -14,13 +14,13 @@
 #include "PotentialBondGPU.cuh"
 
 //! Compute harmonic bond forces on the GPU with BondEvaluatorHarmonic
-cudaError_t __attribute__((visibility("default")))
+hipError_t __attribute__((visibility("default")))
 gpu_compute_harmonic_forces(const bond_args_t& bond_args,
                             const Scalar2 *d_params,
                             unsigned int *d_flags);
 
 //! Compute FENE bond forces on the GPU with BondEvaluatorFENE
-cudaError_t __attribute__((visibility("default")))
+hipError_t __attribute__((visibility("default")))
 gpu_compute_fene_forces(const bond_args_t& bond_args,
                         const Scalar4 *d_params,
                         unsigned int *d_flags);

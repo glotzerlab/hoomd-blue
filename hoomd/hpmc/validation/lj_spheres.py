@@ -114,6 +114,9 @@ class nvt_lj_sphere_energy(unittest.TestCase):
         context.current.device.cpp_msg.notice(1,'rho_star = {:.3f}\nU    = {:.5f} +- {:.5f}\n'.format(rho_star,mean_U,sigma_U))
         context.current.device.cpp_msg.notice(1,'Uref = {:.5f} +- {:.5f}\n'.format(mean_Uref,sigma_Uref))
 
+        # max error 0.5%
+        self.assertLessEqual(sigma_U/mean_U,0.005)
+
         # 0.99 confidence interval
         ci = 2.576
 

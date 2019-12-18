@@ -10,7 +10,7 @@
     \brief Declares a class for computing ellipsoid constraint forces
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

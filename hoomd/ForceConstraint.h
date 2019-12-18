@@ -3,7 +3,6 @@
 
 
 // Maintainer: joaander
-
 #include "ForceCompute.h"
 
 #include <memory>
@@ -12,7 +11,7 @@
     \brief Declares a base class for computing constraint
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
