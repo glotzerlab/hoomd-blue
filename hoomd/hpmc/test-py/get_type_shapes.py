@@ -1,5 +1,5 @@
 import hoomd
-from hoomd import hpmc, md, dem
+from hoomd import hpmc
 import unittest
 hoomd.context.initialize()
 print(hoomd.__file__)
