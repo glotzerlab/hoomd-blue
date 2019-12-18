@@ -23,7 +23,7 @@ if (ENABLE_MPI)
     mark_as_advanced(OMPI_INFO)
 
     # now perform some more in-depth tests of whether the MPI library supports CUDA memory
-    if (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
+    if (ENABLE_HIP AND NOT DEFINED ENABLE_MPI_CUDA)
         if (MPI_LIBRARY MATCHES mpich)
             # find out if this is MVAPICH2
             get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
@@ -61,21 +61,17 @@ if (ENABLE_MPI)
         else(MPI_CUDA)
            option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
         endif(MPI_CUDA)
-    endif (ENABLE_CUDA AND NOT DEFINED ENABLE_MPI_CUDA)
+    endif (ENABLE_HIP AND NOT DEFINED ENABLE_MPI_CUDA)
 
-# backport CMake FindMPI fix from 3.12 to earlier versions
-# https://gitlab.kitware.com/cmake/cmake/merge_requests/2529/diffs
-
-if (CMAKE_VERSION VERSION_LESS 3.12.0 AND ENABLE_CUDA)
-    string(REPLACE "-pthread" "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler>;-pthread"
+if (ENABLE_HIP)
+    string(REPLACE "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler>;-pthread"
       _MPI_C_COMPILE_OPTIONS "${MPI_C_COMPILE_OPTIONS}")
     set_property(TARGET MPI::MPI_C PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_C_COMPILE_OPTIONS}")
     unset(_MPI_C_COMPILE_OPTIONS)
 
-    string(REPLACE "-pthread" "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler>;-pthread"
+    string(REPLACE "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler>;-pthread"
       _MPI_CXX_COMPILE_OPTIONS "${MPI_CXX_COMPILE_OPTIONS}")
     set_property(TARGET MPI::MPI_CXX PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_CXX_COMPILE_OPTIONS}")
-    message(STATUS "_MPI_CXX_COMPILE_OPTIONS: ${_MPI_CXX_COMPILE_OPTIONS}")
     unset(_MPI_CXX_COMPILE_OPTIONS)
 endif()
 

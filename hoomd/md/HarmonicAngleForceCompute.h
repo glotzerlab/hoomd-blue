@@ -14,7 +14,7 @@
     \brief Declares a class for computing harmonic angles
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

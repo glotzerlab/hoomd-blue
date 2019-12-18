@@ -34,13 +34,13 @@ mpcd::CellCommunicator::CellCommunicator(std::shared_ptr<SystemDefinition> sysde
       m_needs_init(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellCommunicator" << std::endl;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         m_tuner_pack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_pack_" + std::to_string(m_id), m_exec_conf));
         m_tuner_unpack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_unpack_" + std::to_string(m_id), m_exec_conf));
         }
-    #endif // ENABLE_CUDA
+    #endif // ENABLE_HIP
 
     m_cl->getSizeChangeSignal().connect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
     }

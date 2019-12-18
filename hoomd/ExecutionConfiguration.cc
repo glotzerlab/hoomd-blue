@@ -6,8 +6,12 @@
 #include "ExecutionConfiguration.h"
 #include "HOOMDVersion.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
+
+#if defined(__HIP_PLATFORM_NVCC__)
 #include <cuda_runtime.h>
+#endif
 #endif
 
 #ifdef ENABLE_MPI
@@ -23,7 +27,7 @@ namespace py = pybind11;
 
 using namespace std;
 
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_HIP)
 #include "CachedAllocator.h"
 #endif
 
@@ -33,13 +37,13 @@ using namespace std;
 
 /*! \param mode Execution mode to set (cpu or gpu)
     \param gpu_id List of GPU IDs on which to run, or empty for automatic selection
-    \param min_cpu If set to true, cudaDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
+    \param min_cpu If set to true, hipDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
     \param ignore_display If set to true, try to ignore GPUs attached to the display
     \param mpi_config MPI configuration object
     \param _msg Messenger to use for status message printing
 
     Explicitly force the use of either CPU or GPU execution. If GPU execution is selected, then a default GPU choice
-    is made by not calling cudaSetDevice.
+    is made by not calling hipSetDevice.
 */
 ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                std::vector<int> gpu_id,
@@ -48,7 +52,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                std::shared_ptr<MPIConfiguration> mpi_config,
                                                std::shared_ptr<Messenger> _msg
                                                )
-    : m_cuda_error_checking(false), m_mpi_config(mpi_config), msg(_msg)
+    : m_hip_error_checking(false), m_mpi_config(mpi_config), msg(_msg)
     {
     if (! m_mpi_config)
         {
@@ -71,7 +75,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     msg->notice(5) << "Constructing ExecutionConfiguration: ( " << s.str() << ") " <<  min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
 
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_HIP)
     // scan the available GPUs
     scanGPUs(ignore_display);
     int dev_count = getNumCapableGPUs();
@@ -86,7 +90,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             exec_mode = CPU;
         }
 
+    #ifdef __HIP_PLATFORM_NVCC__
     m_concurrent = exec_mode==GPU;
+    #else
+    m_concurrent = false;
+    #endif
+
     m_in_multigpu_block = false;
 
     // now, exec_mode should be either CPU or GPU - proceed with initialization
@@ -102,7 +111,9 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             gpu_id.push_back((local_rank % dev_count));
             }
 
+        #ifdef __HIP_PLATFORM_NVCC__
         cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
+        #endif
 
         if (! gpu_id.size())
             {
@@ -119,7 +130,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 #else
     if (exec_mode == GPU)
         {
-        msg->error() << "GPU execution requested, but this hoomd was built without CUDA support" << endl;
+        msg->error() << "GPU execution requested, but this hoomd was built without GPU support" << endl;
         throw runtime_error("Error initializing execution configuration");
         }
     // "auto-select" the CPU
@@ -129,7 +140,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     setupStats();
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP)
     if (exec_mode == GPU)
         {
         if (! m_concurrent && gpu_id.size() > 1)
@@ -162,10 +173,10 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             }
 
         // select first device by default
-        cudaSetDevice(m_gpu_id[0]);
+        hipSetDevice(m_gpu_id[0]);
 
-        cudaError_t err_sync = cudaGetLastError();
-        handleCUDAError(err_sync, __FILE__, __LINE__);
+        hipError_t err_sync = hipGetLastError();
+        handleHIPError(err_sync, __FILE__, __LINE__);
 
         // initialize cached allocator, max allocation 0.5*global mem
         m_cached_alloc.reset(new CachedAllocator(false, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem)));
@@ -234,31 +245,30 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         }
     #endif
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP)
     // setup synchronization events
     m_events.resize(m_gpu_id.size());
     for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
         {
-        cudaSetDevice(m_gpu_id[idev]);
-        cudaEventCreateWithFlags(&m_events[idev],cudaEventDisableTiming);
+        hipSetDevice(m_gpu_id[idev]);
+        hipEventCreateWithFlags(&m_events[idev],hipEventDisableTiming);
         }
     #endif
-    
     }
 
 ExecutionConfiguration::~ExecutionConfiguration()
     {
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP)
     for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
         {
-        cudaEventDestroy(m_events[idev]);
+        hipEventDestroy(m_events[idev]);
         }
     #endif
 
-    #ifdef ENABLE_CUDA
-    // the destructors of these objects can issue cuda calls, so free them before the device reset
+    #if defined(ENABLE_HIP)
+    // the destructors of these objects can issue hip calls, so free them before the device reset
     m_cached_alloc.reset();
     m_cached_alloc_managed.reset();
     #endif
@@ -266,7 +276,7 @@ ExecutionConfiguration::~ExecutionConfiguration()
 
 std::string ExecutionConfiguration::getGPUName(unsigned int idev) const
     {
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP)
     if (exec_mode == GPU)
         return string(m_dev_prop[idev].name);
     else
@@ -277,7 +287,7 @@ std::string ExecutionConfiguration::getGPUName(unsigned int idev) const
     }
 
 
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_HIP)
 /*! \returns Compute capability of GPU 0 as a string
     \note Silently returns an empty string if no GPUs are specified
 */
@@ -308,31 +318,31 @@ unsigned int ExecutionConfiguration::getComputeCapability(unsigned int idev) con
     return result;
     }
 
-void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, unsigned int line) const
+void ExecutionConfiguration::handleHIPError(hipError_t err, const char *file, unsigned int line) const
     {
     // if there was an error
-    if (err != cudaSuccess)
+    if (err != hipSuccess)
         {
         // remove HOOMD_SOURCE_DIR from the front of the file
         if (strlen(file) > strlen(HOOMD_SOURCE_DIR))
             file += strlen(HOOMD_SOURCE_DIR);
 
         // print an error message
-        msg->errorAllRanks() << string(cudaGetErrorString(err)) << " before "
+        msg->errorAllRanks() << string(hipGetErrorString(err)) << " before "
                              << file << ":" << line << endl;
 
         // throw an error exception
-        throw(runtime_error("CUDA Error"));
+        throw(runtime_error("HIP Error"));
         }
     }
 
 /*! \param gpu_id Index for the GPU to initialize, set to -1 for automatic selection
-    \param min_cpu If set to true, the cudaDeviceBlockingSync device flag is set
+    \param min_cpu If set to true, the hipDeviceBlockingSync device flag is set
 
     \pre scanGPUs has been called
 
     initializeGPU will loop through the specified list of GPUs, validate that each one is available for CUDA use
-    and then setup CUDA to use the given GPU. After initializeGPU completes, cuda calls can be made by the main
+    and then setup CUDA to use the given GPU. After initializeGPU completes, hip calls can be made by the main
     application.
 */
 void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
@@ -342,17 +352,6 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         {
         msg->errorAllRanks() << "No capable GPUs were found!" << endl;
         throw runtime_error("Error initializing execution configuration");
-        }
-
-    // setup the flags
-    int flags = 0;
-    if (min_cpu)
-        {
-        flags |= cudaDeviceBlockingSync;
-        }
-    else
-        {
-        flags |= cudaDeviceScheduleSpin;
         }
 
     if (gpu_id < -1)
@@ -374,26 +373,27 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         throw runtime_error("Error initializing execution configuration");
         }
 
-    cudaSetDeviceFlags(flags | cudaDeviceMapHost);
+    // setup the flags
+    hipSetDeviceFlags(hipDeviceMapHost);
 
     if (gpu_id != -1)
         {
-        cudaSetDevice(m_gpu_list[gpu_id]);
+        hipSetDevice(m_gpu_list[gpu_id]);
         }
     else
         {
         // initialize the default CUDA context
-        cudaFree(0);
+        hipFree(0);
         }
 
-    int cuda_gpu_id;
-    cudaGetDevice(&cuda_gpu_id);
+    int hip_gpu_id;
+    hipGetDevice(&hip_gpu_id);
 
     // add to list of active GPUs
-    m_gpu_id.push_back(cuda_gpu_id);
+    m_gpu_id.push_back(hip_gpu_id);
 
-    cudaError_t err_sync = cudaGetLastError();
-    handleCUDAError(err_sync, __FILE__, __LINE__);
+    hipError_t err_sync = hipGetLastError();
+    handleHIPError(err_sync, __FILE__, __LINE__);
     }
 
 /*! Prints out a status line for the selected GPU
@@ -427,17 +427,29 @@ void ExecutionConfiguration::printGPUStats()
         int mib = int(float(m_dev_prop[idev].totalGlobalMem) / float(1024*1024));
         s << ", " << setw(4) << mib << " MiB DRAM";
 
-        // follow up with some flags to signify device features
-        if (m_dev_prop[idev].kernelExecTimeoutEnabled)
-            s << ", DIS";
+        #if defined(__HIP_PLATFORM_NVCC__)
+        // hip doesn't currently have the concurrentManagedAccess property, so resort to the CUDA API
+        cudaDeviceProp cuda_prop;
+        cudaError_t error = cudaGetDeviceProperties(&cuda_prop, dev);
+        if (error != cudaSuccess)
+            {
+            msg->errorAllRanks() << "Error calling cudaGetDeviceProperties()" << endl;
+            throw runtime_error("Error initializing execution configuration");
+            }
 
         // follow up with some flags to signify device features
-        if (m_dev_prop[idev].concurrentManagedAccess)
+        if (cuda_prop.kernelExecTimeoutEnabled)
+            s << ", DIS";
+
+        if (cuda_prop.concurrentManagedAccess)
             {
             s << ", MNG";
             }
         else
+        #endif
+            {
             m_concurrent = false;
+            }
 
         s << std::endl;
         }
@@ -477,20 +489,20 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
     {
     // check the CUDA driver version
     int driverVersion = 0;
-    cudaError_t error = cudaDriverGetVersion(&driverVersion);
+    hipError_t error = hipDriverGetVersion(&driverVersion);
 
-    if (error != cudaSuccess)
+    if (error != hipSuccess)
         {
-        msg->notice(1) << string(cudaGetErrorString(error)) << endl;
+        msg->notice(1) << string(hipGetErrorString(error)) << endl;
         return;
         }
 
     // determine the number of GPUs that CUDA thinks there is
     int dev_count;
-    error = cudaGetDeviceCount(&dev_count);
-    if (error != cudaSuccess)
+    error = hipGetDeviceCount(&dev_count);
+    if (error != hipSuccess)
         {
-        msg->notice(1) << string(cudaGetErrorString(error)) << endl;
+        msg->notice(1) << string(hipGetErrorString(error)) << endl;
         return;
         }
 
@@ -502,11 +514,12 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
     for (int dev = 0; dev < dev_count; dev++)
         {
         // get the device properties
-        cudaDeviceProp prop;
-        cudaError_t error = cudaGetDeviceProperties(&prop, dev);
-        if (error != cudaSuccess)
+        hipDeviceProp_t prop;
+        hipError_t error = hipGetDeviceProperties(&prop, dev);
+
+        if (error != hipSuccess)
             {
-            msg->errorAllRanks() << "Error calling cudaGetDeviceProperties()" << endl;
+            msg->errorAllRanks() << "Error calling hipGetDeviceProperties()" << endl;
             throw runtime_error("Error initializing execution configuration");
             }
 
@@ -523,6 +536,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 
         // exclude a GPU if it's compute version is not high enough
         int compoundComputeVer = prop.minor + prop.major * 10;
+        #ifdef __HIP_PLATFORM_NVCC__
         if (m_gpu_available[dev] && compoundComputeVer < CUDA_ARCH)
             {
             m_gpu_available[dev] = false;
@@ -535,7 +549,9 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             msg->notice(2) << "This build of hoomd was compiled for a minimum capability of of " << min_major << "."
                            << min_minor << " but the GPU is only " << prop.major << "." << prop.minor << endl;
             }
+        #endif
 
+        #ifdef __HIP_PLATFORM_NVCC__
         // ignore the display gpu if that was requested
         if (m_gpu_available[dev] && ignore_display && prop.kernelExecTimeoutEnabled)
             {
@@ -543,9 +559,10 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             msg->notice(2) << "Notice: GPU id " << dev << " is not available for computation because "
                            << "it appears to be attached to a display" << endl;
             }
+        #endif
 
         // exclude a gpu if it is compute-prohibited
-        if (m_gpu_available[dev] && prop.computeMode == cudaComputeModeProhibited)
+        if (m_gpu_available[dev] && prop.computeMode == hipComputeModeProhibited)
             {
             m_gpu_available[dev] = false;
             msg->notice(2) << "Notice: GPU id " << dev << " is not available for computation because "
@@ -554,7 +571,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 
         // count the number of compute-exclusive gpus
         if (m_gpu_available[dev] &&
-            (prop.computeMode == cudaComputeModeExclusive || prop.computeMode == cudaComputeModeExclusiveProcess))
+            (prop.computeMode == hipComputeModeExclusive || prop.computeMode == hipComputeModeExclusiveProcess))
             n_exclusive_gpus++;
         }
 
@@ -563,11 +580,11 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         {
         if (m_gpu_available[dev])
             {
-            cudaDeviceProp prop;
-            cudaError_t error = cudaGetDeviceProperties(&prop, dev);
-            if (error != cudaSuccess)
+            hipDeviceProp_t prop;
+            hipError_t error = hipGetDeviceProperties(&prop, dev);
+            if (error != hipSuccess)
                 {
-                msg->errorAllRanks() << "Error calling cudaGetDeviceProperties()" << endl;
+                msg->errorAllRanks() << "Error calling hipGetDeviceProperties()" << endl;
                 throw runtime_error("Error initializing execution configuration");
                 }
 
@@ -575,8 +592,10 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             // then subtract a bit if the device is attached to a display
             float priority = float(prop.major*1000000 + prop.minor*10000 + prop.multiProcessorCount);
 
+            #ifdef __HIP_PLATFORM_NVCC__
             if (prop.kernelExecTimeoutEnabled)
                 priority -= 0.1f;
+            #endif
 
             gpu_priorities.push_back(gpu_elem(priority, dev));
             }
@@ -637,15 +656,15 @@ void ExecutionConfiguration::setupStats()
     {
     n_cpu = 1;
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) 
     if (exec_mode == GPU)
         {
         m_dev_prop.resize(m_gpu_id.size());
 
         for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
             {
-            cudaSetDevice(m_gpu_id[idev]);
-            cudaGetDeviceProperties(&m_dev_prop[idev], m_gpu_id[idev]);
+            hipSetDevice(m_gpu_id[idev]);
+            hipGetDeviceProperties(&m_dev_prop[idev], m_gpu_id[idev]);
             }
 
         // initialize dev_prop with device properties of first device for now
@@ -669,22 +688,22 @@ void ExecutionConfiguration::setupStats()
 
 void ExecutionConfiguration::multiGPUBarrier() const
     {
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP)
     if (getNumActiveGPUs() > 1)
         {
         // record the synchronization point on every GPU after the last kernel has finished, count down in reverse
         for (int idev = m_gpu_id.size() - 1; idev >= 0; --idev)
             {
-            cudaSetDevice(m_gpu_id[idev]);
-            cudaEventRecord(m_events[idev], 0);
+            hipSetDevice(m_gpu_id[idev]);
+            hipEventRecord(m_events[idev], 0);
             }
 
         // wait for all those events on all GPUs
         for (int idev_i = m_gpu_id.size()-1; idev_i >= 0; --idev_i)
             {
-            cudaSetDevice(m_gpu_id[idev_i]);
+            hipSetDevice(m_gpu_id[idev_i]);
             for (int idev_j = 0; idev_j < (int) m_gpu_id.size(); ++idev_j)
-                cudaStreamWaitEvent(0, m_events[idev_j], 0);
+                hipStreamWaitEvent(0, m_events[idev_j], 0);
             }
         }
     #endif
@@ -694,27 +713,27 @@ void ExecutionConfiguration::beginMultiGPU() const
     {
     m_in_multigpu_block = true;
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP)
     // implement a one-to-n barrier
     if (getNumActiveGPUs() > 1)
         {
         // record a syncrhonization point on GPU 0
-        cudaEventRecord(m_events[0], 0);
+        hipEventRecord(m_events[0], 0);
 
         // wait for that event on all GPUs (except GPU 0, for which we rely on implicit synchronization)
         for (int idev = m_gpu_id.size()-1; idev >= 1; --idev)
             {
-            cudaSetDevice(m_gpu_id[idev]);
-            cudaStreamWaitEvent(0, m_events[0], 0);
+            hipSetDevice(m_gpu_id[idev]);
+            hipStreamWaitEvent(0, m_events[0], 0);
             }
 
         // set GPU 0
-        cudaSetDevice(m_gpu_id[0]);
+        hipSetDevice(m_gpu_id[0]);
 
         if (isCUDAErrorCheckingEnabled())
             {
-            cudaError_t err_sync = cudaGetLastError();
-            handleCUDAError(err_sync, __FILE__, __LINE__);
+            hipError_t err_sync = hipGetLastError();
+            handleHIPError(err_sync, __FILE__, __LINE__);
             }
         }
     #endif
@@ -724,28 +743,28 @@ void ExecutionConfiguration::endMultiGPU() const
     {
     m_in_multigpu_block = false;
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP)
     // implement an n-to-one barrier
     if (getNumActiveGPUs() > 1)
         {
         // record the synchronization point on every GPU, except GPU 0
         for (int idev = m_gpu_id.size() - 1; idev >= 1; --idev)
             {
-            cudaSetDevice(m_gpu_id[idev]);
-            cudaEventRecord(m_events[idev], 0);
+            hipSetDevice(m_gpu_id[idev]);
+            hipEventRecord(m_events[idev], 0);
             }
 
         // wait for these events on GPU 0
-        cudaSetDevice(m_gpu_id[0]);
+        hipSetDevice(m_gpu_id[0]);
         for (int idev = m_gpu_id.size()-1; idev >= 1; --idev)
             {
-            cudaStreamWaitEvent(0, m_events[idev], 0);
+            hipStreamWaitEvent(0, m_events[idev], 0);
             }
 
         if (isCUDAErrorCheckingEnabled())
             {
-            cudaError_t err_sync = cudaGetLastError();
-            handleCUDAError(err_sync, __FILE__, __LINE__);
+            hipError_t err_sync = hipGetLastError();
+            handleHIPError(err_sync, __FILE__, __LINE__);
             }
         }
     #endif
@@ -832,14 +851,14 @@ void export_ExecutionConfiguration(py::module& m)
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
         .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
-#ifdef ENABLE_CUDA
-        .def("cudaProfileStart", &ExecutionConfiguration::cudaProfileStart)
-        .def("cudaProfileStop", &ExecutionConfiguration::cudaProfileStop)
+#if defined(ENABLE_HIP)
+        .def("hipProfileStart", &ExecutionConfiguration::hipProfileStart)
+        .def("hipProfileStop", &ExecutionConfiguration::hipProfileStop)
 #endif
         .def("getGPUName", &ExecutionConfiguration::getGPUName)
         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
         .def_readonly("msg", &ExecutionConfiguration::msg)
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_HIP)
         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
         .def("getPartition", &ExecutionConfiguration::getPartition)

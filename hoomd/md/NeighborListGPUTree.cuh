@@ -10,7 +10,7 @@
     \brief Declares GPU kernel code for neighbor list tree traversal on the GPU
 */
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
@@ -20,7 +20,7 @@
 #include "hoomd/extern/neighbor/neighbor/InsertOps.h"
 #include "hoomd/extern/neighbor/neighbor/TransformOps.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__ __forceinline__
 #define HOSTDEVICE __host__ __device__ __forceinline__
 #else
@@ -39,7 +39,7 @@ struct SkippableBoundingSphere : public neighbor::BoundingSphere
     //! Default constructor, always skip
     HOSTDEVICE SkippableBoundingSphere() : skip(true) {}
 
-    #ifdef NVCC
+    #ifdef __HIPCC__
     //! Constructor
     /*!
      * \param o Center of sphere.
@@ -96,7 +96,7 @@ struct PointMapInsertOp : public neighbor::PointInsertOp
         : neighbor::PointInsertOp(points_, N_), map(map_)
         {}
 
-    #ifdef NVCC
+    #ifdef __HIPCC__
     //! Construct bounding box
     /*!
      * \param idx Nominal index of the primitive [0,N).
@@ -160,7 +160,7 @@ struct ParticleQueryOp
           N(N_), Nown(Nown_), rcut(rcut_), rlist(rlist_), box(box_)
           {}
 
-    #ifdef NVCC
+    #ifdef __HIPCC__
     //! Data stored per thread for traversal
     /*!
      * The body tag and diameter are only actually set if these are specified
@@ -336,7 +336,7 @@ struct NeighborListOp
         neigh_list = reinterpret_cast<uint4*>(neigh_list_);
         }
 
-    #ifdef NVCC
+    #ifdef __HIPCC__
     //! Thread-local data
     /*!
      * The thread-local data constitutes a stack of neighbors to write, the index of the current
@@ -457,7 +457,7 @@ struct NeighborListOp
 const unsigned int NeighborListTypeSentinel = 0xffffffff;
 
 //! Kernel driver to generate morton code-type keys for particles and reorder by type
-cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
+hipError_t gpu_nlist_mark_types(unsigned int *d_types,
                                  unsigned int *d_indexes,
                                  unsigned int *d_lbvh_errors,
                                  Scalar4 *d_last_pos,
@@ -479,7 +479,7 @@ uchar2 gpu_nlist_sort_types(void *d_tmp,
                             const unsigned int num_bits);
 
 //! Kernel driver to count particles by type
-cudaError_t gpu_nlist_count_types(unsigned int *d_first,
+hipError_t gpu_nlist_count_types(unsigned int *d_first,
                                   unsigned int *d_last,
                                   const unsigned int *d_types,
                                   const unsigned int ntypes,
@@ -487,7 +487,7 @@ cudaError_t gpu_nlist_count_types(unsigned int *d_first,
                                   const unsigned int block_size);
 
 //! Kernel driver to rearrange primitives for faster traversal
-cudaError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
+hipError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
                                       const unsigned int *d_indexes,
                                       const unsigned int *d_primitives,
                                       const unsigned int N,

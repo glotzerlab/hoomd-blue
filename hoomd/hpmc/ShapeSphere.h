@@ -22,7 +22,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -112,7 +112,7 @@ struct sph_params : param_base
     bool isOriented;                    //!< Flag to specify whether a sphere has orientation or not. Intended for
                                         //!  for use with anisotropic/patchy pair potentials.
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     //! Set CUDA memory hints
     void set_memory_hint() const
         {
@@ -164,7 +164,7 @@ struct ShapeSphere
         return detail::OBB(getAABB(pos));
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;

@@ -18,7 +18,7 @@
     \brief Declares the NeighborList class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -385,8 +385,13 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth(unsigned int type) const
+        virtual Scalar getGhostLayerWidth(unsigned int type)
             {
+            if (m_rcut_changed)
+                {
+                updateRList();
+                }
+
             ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
             const Scalar rcut_max_i = h_rcut_max.data[type];
 
@@ -529,7 +534,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
         #endif
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Reset memory usage hints
         void unsetMemoryMapping();
 
@@ -584,7 +589,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             m_need_reallocate_exlist = true;
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints
         #endif
     };

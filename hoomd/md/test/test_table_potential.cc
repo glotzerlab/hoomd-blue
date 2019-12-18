@@ -10,7 +10,7 @@
 
 #include "hoomd/md/TablePotential.h"
 #include "hoomd/md/NeighborListTree.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/TablePotentialGPU.h"
 #endif
 
@@ -312,7 +312,7 @@ std::shared_ptr<TablePotential> base_class_table_creator(std::shared_ptr<SystemD
     return std::shared_ptr<TablePotential>(new TablePotential(sysdef, nlist, width));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! TablePotentialGPU creator for unit tests
 std::shared_ptr<TablePotential> gpu_table_creator(std::shared_ptr<SystemDefinition> sysdef,
                                              std::shared_ptr<NeighborList> nlist,
@@ -339,7 +339,7 @@ UP_TEST( TablePotential_type )
     table_potential_type_test(table_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for basic test on GPU
 UP_TEST( TablePotentialGPU_basic )
     {

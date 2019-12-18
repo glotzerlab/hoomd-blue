@@ -11,7 +11,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "2.6.0")
+set(HOOMD_VERSION_RAW "2.8.1")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -78,6 +78,8 @@ endif()
 #################################
 ## Build options
 option(SINGLE_PRECISION "Use single precision math" OFF)
+OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
+SET(ENABLE_HIP ${ENABLE_GPU})
 
 option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
 
@@ -105,19 +107,28 @@ option(BUILD_HPMC "Build the hpmc package" off)
 endif()
 option(BUILD_METAL "Build the metal package" on)
 option(BUILD_DEM "Build the dem package" on)
-option(BUILD_MPCD "Build the mpcd package" on)
 option(BUILD_JIT "Build the jit package" off)
 
 # Optionally use TBB for threading
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
 
+# this needs to go before CUDA setup
+include (HOOMDHIPSetup)
+
+# Find CUDA and set it up
+include (HOOMDCUDASetup)
+include (hoomd-macros)
+
 # setup MPI support
 include (HOOMDMPISetup)
 # find the python libraries to link to
 include(HOOMDPythonSetup)
-# Find CUDA and set it up
-include (HOOMDCUDASetup)
-include (hoomd-macros)
+
+if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
+    option(BUILD_MPCD "Build the mpcd package" on)
+else()
+    option(BUILD_MPCD "Build the mpcd package" off)
+endif()
 
 find_package(Eigen3 3.2 CONFIG REQUIRED)
 if (Eigen3_FOUND)
@@ -132,6 +143,7 @@ if (
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cub/cub/cub.cuh OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/nano-signal-slot/nano_signal_slot.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/HIP/include/hip/hip_runtime.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/include/Random123/philox.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/neighbor/neighbor/LBVH.h
@@ -179,10 +191,10 @@ if (BUILD_TESTING OR BUILD_VALIDATION)
 endif (BUILD_TESTING OR BUILD_VALIDATION)
 
 # In jenkins tests on multiple build configurations, it is wasteful to run CPU tests on CPU and all GPU test paths
-# this option turns off CPU only tests in builds with ENABLE_CUDA=ON
+# this option turns off CPU only tests in builds with ENABLE_HIP=ON
 option(TEST_CPU_IN_GPU_BUILDS "Test CPU code path in GPU enabled builds" on)
 mark_as_advanced(TEST_CPU_IN_GPU_BUILDS)
-if (NOT TEST_CPU_IN_GPU_BUILDS AND ENABLE_CUDA)
+if (NOT TEST_CPU_IN_GPU_BUILDS AND ENABLE_HIP)
     message(STATUS "Warning: Skipping CPU tests")
 endif()
 
@@ -228,6 +240,13 @@ configure_package_config_file(hoomd-config.cmake.in
 
 install(FILES CMake/hoomd/FindTBB.cmake
               CMake/hoomd/FindCUDALibs.cmake
+              CMake/HIP/FindHIP.cmake
+              CMake/hoomd/HOOMDHIPSetup.cmake
+              CMake/hoomd/hipcc.cmake
               CMake/hoomd/hoomd-macros.cmake
               ${HOOMD_BINARY_DIR}/hoomd-config.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})
+
+install(FILES CMake/HIP/FindHIP/run_hipcc.cmake
+              CMake/HIP/FindHIP/run_make2cmake.cmake
+        DESTINATION ${CONFIG_INSTALL_DIR}/FindHIP)

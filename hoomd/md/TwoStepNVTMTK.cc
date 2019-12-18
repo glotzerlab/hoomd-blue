@@ -453,7 +453,7 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
     Scalar& xi = v.variable[0];
 
     unsigned int g = m_thermo->getNDOF();
-    Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_T_randomize*m_tau*m_tau);
+    Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
 
     bool master = m_exec_conf->getRank() == 0;
     hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNVTMTK, m_seed_randomize, timestep);
@@ -476,7 +476,7 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
         {
         // update thermostat for rotational DOF
         Scalar &xi_rot = v.variable[2];
-        Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_thermo->getRotationalNDOF()*m_T_randomize*m_tau*m_tau);
+        Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_thermo->getRotationalNDOF()*m_tau*m_tau);
 
         if (master)
             {

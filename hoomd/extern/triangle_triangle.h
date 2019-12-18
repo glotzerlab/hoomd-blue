@@ -15,12 +15,13 @@
  *
  */
 
+#pragma once
 #include <math.h>
 #define FABS(x) (float(fabs(x)))        /* implement as is fastest on your machine */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -315,3 +316,7 @@ DEVICE inline int NoDivTriTriIsect(float V0[3],float V1[3],float V2[3],
   if(isect1[1]<isect2[0] || isect2[1]<isect1[0]) return 0;
   return 1;
 }
+
+#undef DEVICE
+#undef EPSILON
+#undef FABS

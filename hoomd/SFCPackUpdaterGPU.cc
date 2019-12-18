@@ -8,8 +8,7 @@
     \brief Defines the SFCPackUpdaterGPU class
 */
 
-#ifdef ENABLE_CUDA
-
+#ifdef ENABLE_HIP
 
 #include "SFCPackUpdaterGPU.h"
 #include "SFCPackUpdaterGPU.cuh"
@@ -41,9 +40,6 @@ SFCPackUpdaterGPU::SFCPackUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
     GlobalArray<unsigned int> gpu_particle_bins(m_pdata->getMaxN(), m_exec_conf);
     m_gpu_particle_bins.swap(gpu_particle_bins);
     TAG_ALLOCATION(m_gpu_particle_bins);
-
-    // create at ModernGPU context
-    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
     }
 
 /*! reallocate the internal arrays
@@ -132,7 +128,7 @@ void SFCPackUpdaterGPU::getSortedOrder3D()
         d_gpu_sort_order.data,
         box,
         m_sysdef->getNDimensions() == 2,
-        m_mgpu_context);
+        m_exec_conf->getCachedAllocator());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     }

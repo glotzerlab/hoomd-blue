@@ -42,7 +42,7 @@ endif()
 
 macro(compile_test TEST_EXE TEST_SRC)
     # check for extra cuda files
-    if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_EXE}.cu)
+    if(ENABLE_HIP AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_EXE}.cu)
         set(CUDA_SEPARABLE_COMPILATION OFF)
         set(_cuda_sources ${TEST_EXE}.cu)
     else()

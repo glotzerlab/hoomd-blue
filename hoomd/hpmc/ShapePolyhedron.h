@@ -13,6 +13,7 @@
 #include <cfloat>
 
 #include "GPUTree.h"
+#include <hoomd/extern/triangle_triangle.h>
 
 #ifndef __SHAPE_POLYHEDRON_H__
 #define __SHAPE_POLYHEDRON_H__
@@ -23,7 +24,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -38,7 +39,7 @@
   faster than checking all leaves against the tree on the CPU. On the GPU, leave against tree traversal may be faster due
   to the possibility of parallelizing over the leave nodes, but that also leads to longer autotuning times. Even though
   tree traversal is non-recursive, occasionally I see stack errors (= overflows) on Pascal GPUs when the shape is highly complicated.
-  Then the stack frame could be increased using cudaDeviceSetLimit().
+  Then the stack frame could be increased using hipDeviceSetLimit().
 
   Since GPU performance is mostly deplorable for concave polyhedra, I have not put much effort into optimizing for that code path.
   The parallel overlap check code path has been left in here for future experimentation, and can be enabled by
@@ -61,7 +62,7 @@ struct poly3d_data : param_base
     {
     poly3d_data() : n_faces(0), ignore(0) {};
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     //! Constructor
     poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, unsigned int n_hull_verts, bool _managed)
         : n_verts(nverts), n_faces(_n_faces), hull_only(0)
@@ -116,7 +117,7 @@ struct poly3d_data : param_base
         face_overlap.allocate_shared(ptr, available_bytes);
         }
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     //! Set CUDA memory hints
     void set_memory_hint() const
         {
@@ -177,7 +178,7 @@ struct ShapePolyhedron
         return data.sweep_radius != OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         unsigned int n_verts = data.n_verts;
@@ -499,8 +500,6 @@ DEVICE inline OverlapReal shortest_distance_triangles(
     return dmin_sq;
     }
 
-#include <hoomd/extern/triangle_triangle.h>
-
 /*! Test overlap in narrow phase
 
     \param dr separation vector between the particles, IN THE REFERENCE FRAME of b
@@ -707,7 +706,7 @@ DEVICE inline bool IntersectRayTriangle(const vec3<OverlapReal>& p, const vec3<O
     return true;
     }
 
-#ifndef NVCC
+#ifndef __HIPCC__
 //! Traverse the bounding volume test tree recursively
 inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
      unsigned int cur_node_a, unsigned int cur_node_b,
@@ -803,13 +802,13 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
      * a) an edge of one polyhedron intersects the face of the other
      * b) the center of mass of one polyhedron is contained in the other
      */
-    #ifdef NVCC
+    #ifdef __HIPCC__
     const detail::GPUTree& tree_a = a.tree;
     const detail::GPUTree& tree_b = b.tree;
     #endif
 
     #ifdef LEAVES_AGAINST_TREE_TRAVERSAL
-    #ifdef NVCC
+    #ifdef __HIPCC__
     // Parallel tree traversal
     unsigned int offset = threadIdx.x;
     unsigned int stride = blockDim.x;
@@ -859,7 +858,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
     quat<OverlapReal> q(conj(b.orientation)*a.orientation);
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     if (BVHCollision(a,b,0,0, q, dr_rot, err, abs_tol)) return true;
     #else
     // stackless traversal on GPU

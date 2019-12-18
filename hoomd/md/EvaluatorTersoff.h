@@ -5,7 +5,7 @@
 #ifndef __EVALUATOR_TERSOFF__
 #define __EVALUATOR_TERSOFF__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -15,7 +15,7 @@
     \brief Defines the evaluator class for the three-body Tersoff potential
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -356,7 +356,7 @@ class EvaluatorTersoff
             else return false;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
         /*! \returns The potential name.  Must be short and all lowercase, as this is the name
             energies will be logged as via analyze.log.

@@ -50,7 +50,7 @@ struct stream_args_t
 template<class Geometry>
 cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom);
 
-#ifdef NVCC
+#ifdef __HIPCC__
 namespace kernel
 {
 
@@ -156,7 +156,7 @@ cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom)
 
     return cudaSuccess;
     }
-#endif // NVCC
+#endif // __HIPCC__
 
 } // end namespace gpu
 } // end namespace mpcd

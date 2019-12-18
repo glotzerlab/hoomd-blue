@@ -8,7 +8,6 @@
     \brief Defines the System class
 */
 
-
 #include "System.h"
 #include "SignalHandler.h"
 
@@ -573,7 +572,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             m_last_status_tstep = m_cur_tstep;
 
             // check for any CUDA errors
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (m_exec_conf->isCUDAEnabled())
                 {
                 CHECK_CUDA_ERROR();

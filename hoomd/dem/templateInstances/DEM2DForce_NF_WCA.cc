@@ -29,7 +29,7 @@ void export_NF_WCA_2D(py::module& m)
         .def("getTypeShapesPy", &WCA_DEM_2D::getTypeShapesPy)
         ;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     typedef DEM2DForceComputeGPU<Scalar, Scalar2, Scalar4, WCA> WCA_DEM_2D_GPU;
 
     py::class_<WCA_DEM_2D_GPU, WCA_DEM_2D, std::shared_ptr<WCA_DEM_2D_GPU> >(m, "WCADEM2DGPU")

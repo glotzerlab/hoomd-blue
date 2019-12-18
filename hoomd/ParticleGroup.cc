@@ -5,11 +5,11 @@
 // Maintainer: joaander
 #include "ParticleGroup.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "ParticleGroup.cuh"
 #include "CachedAllocator.h"
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 #endif
 
 #include <algorithm>
@@ -380,7 +380,7 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
       m_update_tags(update_tags),
       m_warning_printed(false)
     {
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_pdata->getExecConf()->isCUDAEnabled())
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     #endif
@@ -473,7 +473,7 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
     m_member_idx.swap(member_idx);
     TAG_ALLOCATION(m_member_idx);
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_pdata->getExecConf()->isCUDAEnabled())
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     #endif
@@ -817,7 +817,7 @@ void ParticleGroup::rebuildIndexList() const
     // notice message
     m_pdata->getExecConf()->msg->notice(10) << "ParticleGroup: rebuilding index" << std::endl;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_pdata->getExecConf()->isCUDAEnabled() )
         {
         rebuildIndexListGPU();
@@ -852,7 +852,7 @@ void ParticleGroup::rebuildIndexList() const
     // index has been rebuilt
     m_particles_sorted = false;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_pdata->getExecConf()->isCUDAEnabled())
         {
         // Update GPU load balancing info
@@ -863,7 +863,7 @@ void ParticleGroup::rebuildIndexList() const
 
 void ParticleGroup::updateGPUAdvice() const
     {
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // split preferred location of group indices across GPUs
@@ -888,7 +888,7 @@ void ParticleGroup::updateGPUAdvice() const
     #endif
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! rebuild index list on the GPU
 void ParticleGroup::rebuildIndexListGPU() const
     {

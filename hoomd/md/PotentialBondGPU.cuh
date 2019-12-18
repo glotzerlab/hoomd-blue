@@ -4,6 +4,7 @@
 
 // Maintainer: joaander
 
+#include "hip/hip_runtime.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
@@ -71,7 +72,7 @@ struct bond_args_t
     const unsigned int block_size;     //!< Block size to execute
     };
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 //! Kernel for calculating bond forces
 /*! This kernel is called to calculate the bond forces on all N particles. Actual evaluation of the potentials and
@@ -251,7 +252,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
     This is just a driver function for gpu_compute_bond_forces_kernel(), see it for details.
 */
 template< class evaluator >
-cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
+hipError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
                                     const typename evaluator::param_type *d_params,
                                     unsigned int *d_flags)
     {
@@ -264,8 +265,8 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, gpu_compute_bond_forces_kernel<evaluator>);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr,reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator>));
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -279,12 +280,12 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
                                 bond_args.n_bond_types;
 
     // run the kernel
-    gpu_compute_bond_forces_kernel<evaluator><<<grid, threads, shared_bytes>>>(
+    hipLaunchKernelGGL(gpu_compute_bond_forces_kernel<evaluator>, grid, threads, shared_bytes, 0,
         bond_args.d_force, bond_args.d_virial, bond_args.virial_pitch, bond_args.N,
         bond_args.d_pos, bond_args.d_charge, bond_args.d_diameter, bond_args.box, bond_args.d_gpu_bondlist,
         bond_args.gpu_table_indexer, bond_args.d_gpu_n_bonds, bond_args.n_bond_types, d_params, d_flags);
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 #endif
 

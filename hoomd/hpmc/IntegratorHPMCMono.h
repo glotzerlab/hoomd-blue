@@ -34,7 +34,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -290,12 +290,10 @@ class IntegratorHPMCMono : public IntegratorHPMC
             flags[comm_flag::tag] = 1;
 
             std::ostringstream o;
-            o << "IntegratorHPMCMono: Requesting communication flags for pos tag ";
-            if (m_hasOrientation)
-                {
-                flags[comm_flag::orientation] = 1;
-                o << "orientation ";
-                }
+            o << "IntegratorHPMCMono: Requesting communication flags for pos tag orientation";
+
+            // many things depend internally on the orientation field (for ghosts) being initialized, therefore always request it
+            flags[comm_flag::orientation] = 1;
 
             if (m_patch)
                 {
@@ -909,7 +907,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     continue;
                     }
 
-                move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
+                if (ndim == 2)
+                    move_rotate<2>(shape_i.orientation, rng_i, h_a.data[typ_i]);
+                else
+                    move_rotate<3>(shape_i.orientation, rng_i, h_a.data[typ_i]);
                 }
 
 
@@ -1881,10 +1882,10 @@ template <class Shape>
 void IntegratorHPMCMono<Shape>::limitMoveDistances()
     {
     Scalar3 npd_global = m_pdata->getGlobalBox().getNearestPlaneDistance();
-    Scalar min_npd = detail::min(npd_global.x, npd_global.y);
+    Scalar min_npd = detail::min((Scalar) npd_global.x, (Scalar) npd_global.y);
     if (this->m_sysdef->getNDimensions() == 3)
         {
-        min_npd = detail::min(min_npd, npd_global.z);
+        min_npd = detail::min(min_npd, (Scalar) npd_global.z);
         }
 
     ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);

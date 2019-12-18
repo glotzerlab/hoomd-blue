@@ -7,7 +7,7 @@
 #define __GPU_TREE_H__
 
 // need to declare these class methods with appropriate qualifiers when building in nvcc
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -15,7 +15,7 @@
 #define HOSTDEVICE
 #endif
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <sstream>
 #endif
 
@@ -36,7 +36,7 @@ class GPUTree
             : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0)
             { }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Constructor
         /*! \param tree OBBTree to construct from
          *  \param managed True if we use CUDA managed memory
@@ -114,7 +114,7 @@ class GPUTree
             return m_num_nodes;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Initialize the ancestor count index
         void initializeAncestorCounts(unsigned int idx, const OBBTree& tree, unsigned int ancestors)
             {
@@ -258,7 +258,7 @@ class GPUTree
             return obb;
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Set CUDA memory hints
         void set_memory_hint() const
             {

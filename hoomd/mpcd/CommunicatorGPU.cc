@@ -9,7 +9,7 @@
  */
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "CommunicatorGPU.h"
 #include "CommunicatorGPU.cuh"
@@ -278,8 +278,8 @@ void mpcd::CommunicatorGPU::migrateParticles(unsigned int timestep)
                 if (m_n_send_ptls[ineigh])
                     {
                     MPI_Isend(h_sendbuf.data+sendidx,
-                        m_n_send_ptls[ineigh]*sizeof(mpcd::detail::pdata_element),
-                        MPI_BYTE,
+                        m_n_send_ptls[ineigh],
+                        m_pdata_element,
                         neighbor,
                         1,
                         m_mpi_comm,
@@ -292,8 +292,8 @@ void mpcd::CommunicatorGPU::migrateParticles(unsigned int timestep)
                 if (m_n_recv_ptls[ineigh])
                     {
                     MPI_Irecv(h_recvbuf.data+m_offsets[ineigh],
-                        m_n_recv_ptls[ineigh]*sizeof(mpcd::detail::pdata_element),
-                        MPI_BYTE,
+                        m_n_recv_ptls[ineigh],
+                        m_pdata_element,
                         neighbor,
                         1,
                         m_mpi_comm,
@@ -363,5 +363,5 @@ void mpcd::detail::export_CommunicatorGPU(py::module& m)
         .def("setMaxStages",&mpcd::CommunicatorGPU::setMaxStages);
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI

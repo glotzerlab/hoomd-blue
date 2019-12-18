@@ -7,12 +7,11 @@
     \brief Defines the Integrator base class
 */
 
-
 #include "Integrator.h"
 
 namespace py = pybind11;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "Integrator.cuh"
 #endif
 
@@ -273,7 +272,7 @@ void Integrator::computeAccelerations(unsigned int timestep)
 Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     {
     // grab access to the particle data
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
 
     // sum up the kinetic energy
     double p_tot_x = 0.0;
@@ -290,9 +289,9 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        MPI_Allreduce(MPI_IN_PLACE, &p_tot_x, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &p_tot_y, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &p_tot_z, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_x, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_y, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_z, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
         }
     #endif
 
@@ -486,7 +485,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         }
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 /*! \param timestep Current time step of the simulation
     \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
     \note The summation step is performed <b>on the GPU</b>.
@@ -544,9 +543,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         if (m_forces.size() == 0)
             {
             // start by zeroing the net force and virial arrays
-            cudaMemset(d_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
-            cudaMemset(d_net_torque.data, 0, sizeof(Scalar4)*net_torque.getNumElements());
-            cudaMemset(d_net_virial.data, 0, 6*sizeof(Scalar)*net_virial_pitch);
+            hipMemset(d_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
+            hipMemset(d_net_torque.data, 0, sizeof(Scalar4)*net_torque.getNumElements());
+            hipMemset(d_net_virial.data, 0, 6*sizeof(Scalar)*net_virial_pitch);
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }

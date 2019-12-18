@@ -15,7 +15,7 @@
 #ifndef __OBB_H__
 #define __OBB_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
@@ -32,7 +32,7 @@
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #undef DEVICE
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE __attribute__((always_inline))
@@ -109,7 +109,7 @@ struct OBB
         return is_sphere;
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     //! Get list of OBB corners
     std::vector<vec3<OverlapReal> > getCorners() const
         {
@@ -418,7 +418,7 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<Overla
     return true;
     }
 
-#ifndef NVCC
+#ifndef __HIPCC__
 // Ericson, Christer (2013-05-02). Real-Time Collision Detection (Page 111). Taylor and Francis CRC
 // https://doi.org/10.1201/b14581
 

@@ -5,7 +5,7 @@
 #ifndef __POTENTIAL_TERSOFF_GPU_H__
 #define __POTENTIAL_TERSOFF_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include <memory>
 
@@ -17,7 +17,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -32,7 +32,7 @@
 
     \sa export_PotentialTersoffGPU()
 */
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     {
@@ -62,7 +62,7 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
         virtual void computeForces(unsigned int timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                                 std::shared_ptr<NeighborList> nlist,
@@ -82,11 +82,11 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<
     // initialize autotuner
     // the full block size and threads_per_particle matrix is searched,
     // encoded as block_size*10000 + threads_per_particle
-    unsigned int max_tpp = 1;
-    max_tpp = this->m_exec_conf->dev_prop.warpSize;
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    unsigned int max_tpp = warp_size;
 
     std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
         unsigned int s=1;
 
@@ -100,14 +100,14 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<
     m_tuner.reset(new Autotuner(valid_params, 5, 100000, "pair_tersoff", this->m_exec_conf));
     }
 
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 PotentialTersoffGPU< evaluator, gpu_cgpf >::~PotentialTersoffGPU()
         {
         this->m_exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << std::endl;
         }
 
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {
@@ -192,5 +192,5 @@ template < class T, class Base > void export_PotentialTersoffGPU(pybind11::modul
     ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif

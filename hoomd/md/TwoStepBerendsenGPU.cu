@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -116,7 +117,7 @@ void gpu_berendsen_step_two_kernel(Scalar4 *d_vel,
         }
     }
 
-cudaError_t gpu_berendsen_step_one(Scalar4 *d_pos,
+hipError_t gpu_berendsen_step_one(Scalar4 *d_pos,
                                    Scalar4 *d_vel,
                                    const Scalar3 *d_accel,
                                    int3 *d_image,
@@ -132,7 +133,7 @@ cudaError_t gpu_berendsen_step_one(Scalar4 *d_pos,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_berendsen_step_one_kernel<<< grid, threads, block_size * sizeof(Scalar) >>>(d_pos,
+    hipLaunchKernelGGL((gpu_berendsen_step_one_kernel), dim3(grid), dim3(threads), block_size * sizeof(Scalar) , 0, d_pos,
                                                                                    d_vel,
                                                                                    d_accel,
                                                                                    d_image,
@@ -142,10 +143,10 @@ cudaError_t gpu_berendsen_step_one(Scalar4 *d_pos,
                                                                                    lambda,
                                                                                    deltaT);
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
-cudaError_t gpu_berendsen_step_two(Scalar4 *d_vel,
+hipError_t gpu_berendsen_step_two(Scalar4 *d_vel,
                                    Scalar3 *d_accel,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
@@ -158,12 +159,12 @@ cudaError_t gpu_berendsen_step_two(Scalar4 *d_vel,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_berendsen_step_two_kernel<<< grid, threads, block_size * sizeof(Scalar) >>>(d_vel,
+    hipLaunchKernelGGL((gpu_berendsen_step_two_kernel), dim3(grid), dim3(threads), block_size * sizeof(Scalar) , 0, d_vel,
                                                                                    d_accel,
                                                                                    d_group_members,
                                                                                    group_size,
                                                                                    d_net_force,
                                                                                    deltaT);
 
-    return cudaSuccess;
+    return hipSuccess;
     }
