@@ -208,8 +208,10 @@ stages:
       clean: all
 
     steps:
-    - script: sudo addgroup render --gid `grep render /etc/group_host | awk -F: '{printf $3}'`
+    - script: "sudo addgroup render --gid `grep render /etc/group_host | awk -F: '{printf $3}'`"
+      displayName: Add render group
     - script: sudo usermod -G render `whoami`
+      displayName: Add user to render group
     - template: templates/build_test.yml
 
 - stage: doc
