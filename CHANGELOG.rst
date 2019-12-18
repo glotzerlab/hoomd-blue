@@ -1,6 +1,21 @@
 Change Log
 ==========
 
+v2.9.0 (not yet released)
+-------------------------
+
+*New features*
+
+* HPMC
+
+  * User-settable parameters in ``jit.patch``.
+  * 2D system support in muVT updater.
+
+* MD
+
+  * The performance of ``nlist.tree`` has been drastically improved for a
+    variety of systems.
+
 v2.8.2 (2019-12-20)
 -------------------
 
