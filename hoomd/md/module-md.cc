@@ -19,6 +19,7 @@
 #include "OneDConstraint.h"
 #include "Enforce2DUpdater.h"
 #include "EvaluatorTersoff.h"
+#include "EvaluatorRevCross.h"
 #include "EvaluatorSquareDensity.h"
 #include "FIREEnergyMinimizer.h"
 #include "ForceComposite.h"
@@ -40,6 +41,7 @@
 #include "PotentialPairDPDThermo.h"
 #include "PotentialPair.h"
 #include "PotentialTersoff.h"
+#include "PotentialRevCross.h"
 #include "PPPMForceCompute.h"
 #include "QuaternionMath.h"
 #include "TableAngleForceCompute.h"
@@ -83,6 +85,7 @@
 #include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairGPU.h"
 #include "PotentialTersoffGPU.h"
+#include "PotentialRevCrossGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "TableAngleForceComputeGPU.h"
 #include "TableDihedralForceComputeGPU.h"
@@ -120,6 +123,21 @@ void export_tersoff_params(py::module& m)
         ;
 
     m.def("make_tersoff_params", &make_tersoff_params);
+}
+
+
+//! Function to export the revcross parameter type to python
+void export_revcross_params(py::module& m)
+{
+    py::class_<revcross_params>(m, "revcross_params")
+        .def(py::init<>())
+        .def_readwrite("sigma", &revcross_params::sigma)
+        .def_readwrite("n", &revcross_params::n)
+        .def_readwrite("epsilon", &revcross_params::epsilon)
+        .def_readwrite("lambda3", &revcross_params::lambda3)
+        ;
+
+    m.def("make_revcross_params", &make_revcross_params);
 }
 
 
@@ -263,12 +281,14 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairDPD>(m, "PotentialPairDPD");
     export_PotentialPair<PotentialPairMoliere>(m, "PotentialPairMoliere");
     export_PotentialPair<PotentialPairZBL>(m, "PotentialPairZBL");
+    export_PotentialRevCross<PotentialTripletRevCross>(m, "PotentialRevCross");
     export_PotentialTersoff<PotentialTripletTersoff>(m, "PotentialTersoff");
     export_PotentialTersoff<PotentialTripletSquareDensity> (m, "PotentialSquareDensity");
     export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
+    export_revcross_params(m);
     export_tersoff_params(m);
     export_pair_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
@@ -324,6 +344,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD>(m, "PotentialPairDPDGPU");
     export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere>(m, "PotentialPairMoliereGPU");
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL>(m, "PotentialPairZBLGPU");
+    export_PotentialRevCrossGPU<PotentialTripletRevCrossGPU, PotentialTripletRevCross>(m, "PotentialRevCrossGPU");
     export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff>(m, "PotentialTersoffGPU");
     export_PotentialTersoffGPU<PotentialTripletSquareDensityGPU, PotentialTripletSquareDensity> (m, "PotentialSquareDensityGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJGPU");
