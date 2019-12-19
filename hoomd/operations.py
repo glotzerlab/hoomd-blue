@@ -11,6 +11,8 @@ class Operations:
         self._analyzers = list()
 
     def add(self, op):
+        if op in self:
+            return None
         if isinstance(op, hoomd.integrate._integrator):
             self.integrator = op
             return None
@@ -49,6 +51,8 @@ class Operations:
         sim = self.simulation
         ops = self._operations if ops is None else ops
         for op in ops:
+            if op.is_attached:
+                continue
             new_objs = op.attach(sim)
             if isinstance(op, hoomd.integrate._integrator):
                 sim._cpp_sys.setIntegrator(op._cpp_obj)
@@ -60,6 +64,9 @@ class Operations:
     def _store_reader(self, reader):
         # TODO
         pass
+
+    def __contains__(self, obj):
+        return any([op is obj for op in self._operations])
 
     @property
     def scheduled(self):
