@@ -124,18 +124,9 @@ def _dict_flatten(value, key):
             new_dict.update(_dict_flatten(inner, (key,)))
         return new_dict
     elif not isinstance(value, dict):
-        print(type(key))
         return {key: value}
     else:
         new_dict = dict()
         for k, val in value.items():
-            print(type(key))
             new_dict.update(_dict_flatten(val, key + (k,)))
         return new_dict
-
-
-def flatten_log(log, sep='/'):
-    flat_dict = dict()
-    for key, value in dict_flatten(log).items():
-        flat_dict[sep.join(key)] = value
-    return flat_dict
