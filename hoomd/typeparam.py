@@ -35,3 +35,6 @@ class TypeParameter:
 
     def to_dict(self):
         return self.param_dict.to_dict()
+
+    def keys(self):
+        yield from self.param_dict.keys()
