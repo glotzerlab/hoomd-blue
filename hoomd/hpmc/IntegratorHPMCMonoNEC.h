@@ -770,13 +770,14 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
         ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
         // precalculate the grid shift
-        hoomd::detail::Saru rng(timestep, this->m_seed, 0xf4a3210e);
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShift, this->m_seed, timestep);
         Scalar3 shift = make_scalar3(0,0,0);
-        shift.x = rng.s(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
-        shift.y = rng.s(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
+        hoomd::UniformDistribution<Scalar> uniform(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
+        shift.x = uniform(rng);
+        shift.y = uniform(rng);
         if (this->m_sysdef->getNDimensions() == 3)
             {
-            shift.z = rng.s(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
+            shift.z = uniform(rng);
             }
         for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
             {
