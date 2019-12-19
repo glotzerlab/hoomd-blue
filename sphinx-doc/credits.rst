@@ -395,6 +395,10 @@ William Zygmunt, Luis Rivera-Rivera, University of Michigan
  * Patchy interaction support in HPMC CPU integrators
  * GSD state bug fixes
 
+Simone Ciarella, Wouter Ellenbroek, Eindhoven University of Technology
+
+ * RevCross potential
+
 DEM developers
 --------------
 
