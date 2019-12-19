@@ -910,6 +910,10 @@ void GSDDumpWriter::writeLogQuantities(pybind11::dict dict)
                 {
                 type = GSD_TYPE_DOUBLE;
                 }
+            else if (dtype.kind() == 'b' && dtype.itemsize() == 1)
+                {
+                type = GSD_TYPE_UINT8;
+                }
             else
                 {
                 throw runtime_error("Invalid numpy array format in gsd log data [" + name + "]: "
@@ -925,6 +929,11 @@ void GSDDumpWriter::writeLogQuantities(pybind11::dict dict)
                 // gsd treats them as 1x1 arrays.
                 M = 1;
                 N = 1;
+                }
+            if (ndim == 1)
+                {
+                N = arr.shape(0);
+                M = 1;
                 }
             if (ndim == 2)
                 {
