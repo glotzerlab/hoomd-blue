@@ -2053,7 +2053,7 @@ class revcross(pair):
     for the effects of third bodies, it is included in the pair potentials because its is actually just a
     combination of two body potential terms. It can thus use type-pair parameters similar to those of the pair potentials.
 
-    The revcross potential has been described in detail in REF_Ciarella. It is based on a generalized-Lennard-Jones pairwise
+    The revcross potential has been described in detail in `S. Ciarella and W.G. Ellenbroek 2019 <https://arxiv.org/abs/1912.08569>`_. It is based on a generalized-Lennard-Jones pairwise
     attraction to form bonds between interacting particless:
 
     .. math::
@@ -2102,7 +2102,7 @@ v^{\left( 3b \right)}_{ijk}=\lambda \epsilon\,\hat{v}^{ \left( 2b \right)}_{ij}\
 
     This three-body term also tunes the energy required for a bond swap through the coefficient: 
     - :math:`\lambda` - *lambda3* (unitless)
-    in REF_Ciarella is explained that setting :math:`\lambda=1` corresponds to no energy requirement to initiate bond swap, while this
+    in `S. Ciarella and W.G. Ellenbroek 2019 <https://arxiv.org/abs/1912.08569>`_ is explained that setting :math:`\lambda=1` corresponds to no energy requirement to initiate bond swap, while this
     energy barrier scales roughly as :math:`\beta \Delta E_\text{sw} =\beta \varepsilon(\lambda-1)`.
 
     Note:

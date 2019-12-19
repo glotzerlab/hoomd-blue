@@ -156,7 +156,7 @@ class EvaluatorRevCross
 		       				
 		}
 		       	
-		//~~~~~~~~~~~~~~~~then case (3), look at REF_Ciarella for details
+		//~~~~~~~~~~~~~~~~then case (3), look at S. Ciarella and W.G. Ellenbroek 2019 https://arxiv.org/abs/1912.08569 for details
 		else if ((rij > rm) && (rik > rm) ){
 		
 		       //starting with the contribute of the particle j in the 3B term	

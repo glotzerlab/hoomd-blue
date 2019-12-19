@@ -374,7 +374,7 @@ __global__ void gpu_compute_revcross_forces_kernel(Scalar4 *d_force,
     	        	       if (compute_virial)
     	        	           {
     	        	           //a single term is needed to account for all of the 3 body virial that is stored in the 'i' particle data
-    	        	           //look at REF_Ciarella for the definition of the virial tensor
+    	        	           //look at S. Ciarella and W.G. Ellenbroek 2019 https://arxiv.org/abs/1912.08569 for the definition of the virial tensor
     	        	           virialxx += (force_divr_ij*dxij.x*dxij.x + force_divr_ik*dxik.x*dxik.x);	
     	        	           virialyy += (force_divr_ij*dxij.y*dxij.y + force_divr_ik*dxik.y*dxik.y);	
     	        	           virialzz += (force_divr_ij*dxij.z*dxij.z + force_divr_ik*dxik.z*dxik.z);	
