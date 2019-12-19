@@ -153,12 +153,18 @@ class _Operation(metaclass=Loggable):
             self._add_typeparam(typeparam)
 
     def _typeparams_to_dict(self):
-        tp_dict = dict()
+        tps_dict = dict()
         for name, typeparam in self._typeparam_dict.items():
-            tp_dict[name] = typeparam.to_dict()
-        return tp_dict
+            if typeparam.param_dict._len_keys > 1:
+                tp_dict = dict()
+                for key, value in typeparam.to_dict().items():
+                    tp_dict['/'.join(key)] = value
+                tps_dict[name] = tp_dict
+            else:
+                tps_dict[name] = typeparam.to_dict()
+        return tps_dict
 
-    @Loggable.log(flag=dict)
+    @Loggable.log(flag='dict')
     def state(self):
         self._update_param_dict()
         state_dict = deepcopy(self._param_dict)
