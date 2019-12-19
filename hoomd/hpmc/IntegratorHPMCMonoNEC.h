@@ -667,11 +667,8 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                             this->m_exec_conf->msg->warning() << "Cannot continue a chain without moving.\n";
                             next = -1;
                             }
-                        else
-                            {
-                            direction = vel_n / velocity;
-                            }
-                        // store previous particle.
+
+                            // store previous particle.
                         prev = k;
                         }
                     } // end loop over totalDist.
