@@ -912,12 +912,22 @@ void GSDDumpWriter::writeLogQuantity(std::string name, pybind11::object obj)
                                 + string(pybind11::str(arr.dtype())));
             }
 
-        int M = 1;
-        if (arr.ndim() == 2)
+        size_t M = 1;
+        size_t N = 1;
+        auto ndim = arr.ndim();
+        if (ndim == 0)
             {
+            // numpy converts scalars to arrays with zero dimensions
+            // gsd treats them as 1x1 arrays.
+            M = 1;
+            N = 1;
+            }
+        if (ndim == 2)
+            {
+            N = arr.shape(0);
             M = arr.shape(1);
             }
-        if (arr.ndim() > 2 || arr.ndim() == 0)
+        if (ndim > 2)
             {
             throw runtime_error("Invalid numpy dimension in gsd log data [" + name + "]");
             }
@@ -925,7 +935,7 @@ void GSDDumpWriter::writeLogQuantity(std::string name, pybind11::object obj)
         int retval = gsd_write_chunk(&m_handle,
                                      name.c_str(),
                                      type,
-                                     arr.shape(0),
+                                     N,
                                      M,
                                      0,
                                      (void *)arr.data());
