@@ -41,7 +41,11 @@ class Loggable(type):
 
 
 def generate_namespace(cls):
-    return tuple(cls.__module__.split('.') + [cls.__name__])
+    ns = tuple(cls.__module__.split('.') + [cls.__name__])
+    if ns[0] == 'hoomd':
+        return ns[1:]
+    else:
+        return ns
 
 
 class LoggerQuantity:
