@@ -279,6 +279,7 @@ class HPMCIntegrator(_integrator):
         """
         return self._cpp_obj.getCounters(1)
 
+
 class Sphere(HPMCIntegrator):
     R""" HPMC integration for spheres (2D/3D).
 

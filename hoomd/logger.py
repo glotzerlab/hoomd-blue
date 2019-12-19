@@ -25,12 +25,13 @@ class Loggable(type):
 
     def __new__(cls, name, base, dct):
         new_cls = super().__new__(cls, name, base, dct)
-        namespace = generate_namespace(new_cls)
         log_dict = dict()
         for name, flag in cls._meta_export_dict.items():
-            log_dict[name] = LoggerQuantity(name, namespace, flag)
+            log_dict[name] = LoggerQuantity(name, new_cls, flag)
         if hasattr(new_cls, '_export_dict'):
             old_dict = deepcopy(new_cls._export_dict)
+            for key, value in old_dict.items():
+                old_dict[key] = value.update_cls(new_cls)
             old_dict.update(log_dict)
             new_cls._export_dict = old_dict
         else:
@@ -44,14 +45,9 @@ def generate_namespace(cls):
 
 
 class LoggerQuantity:
-    def __init__(self, name, namespace, flag='scalar'):
-        if not isinstance(name, str):
-            raise ValueError("Name must be a string.")
+    def __init__(self, name, cls, flag='scalar'):
         self.name = name
-        if not isinstance(namespace, tuple):
-            raise ValueError("Namespace must be an ordered tuple of "
-                             "namespaces.")
-        self.namespace = namespace
+        self.update_cls(cls)
         self.flag = flag
 
     def yield_names(self):
@@ -59,6 +55,11 @@ class LoggerQuantity:
         for i in count(start=1, step=1):
             yield self.namespace[:-1] + \
                 (self.namespace[-1] + '_' + str(i), self.name)
+
+    def update_cls(self, cls):
+        self.namespace = generate_namespace(cls)
+        return self
+
 
 
 class SafeNamespaceDict:
