@@ -108,8 +108,8 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
         hoomd::detail::SharedSignal<int (gsd_handle&)>& getWriteSignal() { return m_write_signal; }
 
-        /// Write a logged quantity
-        void writeLogQuantity(std::string name, pybind11::object obj);
+        /// Write a logged quantities
+        void writeLogQuantities(pybind11::dict dict);
 
         /// Set the log writer
         void setLogWriter(pybind11::object log_writer)
