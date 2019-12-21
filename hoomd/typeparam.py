@@ -43,6 +43,6 @@ class TypeParameter:
     def state(self):
         state = self.to_dict()
         if self.param_dict._len_keys > 1:
-            state = {'/'.join(key): value for key, value in state.items()}
+            state = {str(key): value for key, value in state.items()}
         state['__default'] = self.default
         return state

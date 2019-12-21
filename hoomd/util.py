@@ -132,6 +132,12 @@ def _dict_flatten(value, key):
         return new_dict
 
 
+def str_to_tuple_keys(dict_):
+    pattern = re.compile(r"'([^']*)'")
+    return {tuple(pattern.findall(key)): value
+            for key, value in dict_.items()}
+
+
 class SafeNamespaceDict:
     def __init__(self, dict_=None):
         self._dict = dict() if dict_ is None else dict_
