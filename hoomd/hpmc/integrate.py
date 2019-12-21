@@ -88,7 +88,7 @@ class HPMCIntegrator(_integrator):
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
-                                               float(0), len_keys=1)
+                                               0., len_keys=1)
                                            )
 
         typeparam_inter_matrix = TypeParameter('interaction_matrix',
