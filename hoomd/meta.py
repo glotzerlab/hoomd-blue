@@ -154,14 +154,15 @@ class _Operation(metaclass=Loggable):
             self._add_typeparam(typeparam)
 
     def _typeparam_states(self):
-        return {name: state for name, state in self._typeparam_dict.items()}
+        state = {name: state for name, state in self._typeparam_dict.items()}
+        return deepcopy(state)
 
     @Loggable.log(flag='dict')
     def state(self):
         self._update_param_dict()
-        state_dict = deepcopy(self._param_dict)
-        state_dict.update(self._typeparam_states())
-        return dict_map(state_dict, note_type)
+        state = self._typeparam_states()
+        state['params'] = deepcopy(self._param_dict)
+        return dict_map(state, note_type)
 
 
 class _TriggeredOperation(_Operation):
