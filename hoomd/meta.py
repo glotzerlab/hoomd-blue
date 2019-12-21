@@ -17,7 +17,7 @@ Example::
 """
 
 import hoomd
-from hoomd.util import is_iterable, dict_map, dict_flatten
+from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
 from hoomd.triggers import PeriodicTrigger, Trigger
 from hoomd.logger import Loggable
 from hoomd.util import SafeNamespaceDict
@@ -163,6 +163,35 @@ class _Operation(metaclass=Loggable):
         state = self._typeparam_states()
         state['params'] = deepcopy(self._param_dict)
         return dict_map(state, note_type)
+
+    @classmethod
+    def from_state(cls, state, final_namespace=None, **kwargs):
+        state_dict, unused_args = cls._get_state_dict(state,
+                                                      final_namespace,
+                                                      **kwargs)
+        return cls._from_state_with_state_dict(state_dict, **unused_args)
+
+    @classmethod
+    def _get_state_dict(cls, data, final_namespace, **kwargs):
+        pass
+
+    @classmethod
+    def _from_state_with_state_dict(cls, state, **kwargs):
+
+        # Initialize object using params from state and passed arguments
+        params = state['params']
+        params.update(kwargs)
+        obj = cls(**params)
+        del state['params']
+
+        # Add typeparameter information
+        for name, tp_dict in state.items():
+            obj._typeparam_dict[name].default = tp_dict['__default']
+            del tp_dict['__default']
+            if obj._typeparam_dict[name]._len_keys > 1:
+                tp_dict = str_to_tuple_keys(tp_dict)
+            obj._typeparam_dict[name] = tp_dict
+        return obj
 
 
 class _TriggeredOperation(_Operation):
