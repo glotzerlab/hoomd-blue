@@ -123,6 +123,7 @@ void export_tersoff_params(py::module& m)
     m.def("make_tersoff_params", &make_tersoff_params);
 }
 
+
 //! Function to make the Fourier parameter type
 inline pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
     {

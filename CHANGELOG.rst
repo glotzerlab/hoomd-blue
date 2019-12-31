@@ -1,6 +1,55 @@
 Change Log
 ==========
 
+v2.9.0 (not yet released)
+-------------------------
+
+*New features*
+
+* HPMC
+
+  * User-settable parameters in ``jit.patch``.
+  * 2D system support in muVT updater.
+
+* MD
+
+  * The performance of ``nlist.tree`` has been drastically improved for a
+    variety of systems.
+
+v2.8.2 (2019-12-20)
+-------------------
+
+*Bug fixes*
+
+* Fix randomization of barostat and thermostat velocities with
+  ``randomize_velocities()`` for non-unit temperatures.
+* Improve MPCD documentation.
+* Fix uninitialized memory in some locations which could have led to
+  unreproducible results with HPMC in MPI, in particular with
+  ``ALWAYS_USE_MANAGED_MEMORY=ON``.
+* Fix calculation of cell widths in HPMC (GPU) and ``nlist.cell()`` with MPI.
+* Fix potential memory-management issue in MPI for migrating MPCD particles and
+  cell energy.
+* Fix bug where exclusions were sometimes ignored when ``charge.pppm()`` is
+  the only potential using the neighbor list.
+* Fix bug where exclusions were not accounted for properly in the
+  ``pppm_energy`` log quantity.
+* Fix a bug where MD simulations with MPI start off without a ghost layer,
+  leading to crashes or dangerous builds shortly after ``run()``.
+* ``hpmc.update.remove_drift`` now communicates particle positions after
+  updating them.
+
+v2.8.1 (2019-11-26)
+-------------------
+
+*Bug fixes*
+
+* Fix a rare divide-by-zero in the ``collide.srd`` thermostat.
+* Improve performance of first frame written by ``dump.gsd``.
+* Support Python 3.8.
+* Fix an error triggering migration of embedded particles for MPCD with MPI +
+  GPU configurations.
+
 v2.8.0 (2019-10-30)
 -------------------
 

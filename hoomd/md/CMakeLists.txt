@@ -272,6 +272,9 @@ if (CUSOLVER_AVAILABLE)
 else()
     target_link_libraries(_md PRIVATE _hoomd ${HOOMD_COMMON_LIBS})
 endif()
+if (ENABLE_CUDA)
+    target_link_libraries(_md PRIVATE neighbor)
+endif()
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags

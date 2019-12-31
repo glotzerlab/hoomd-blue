@@ -131,6 +131,12 @@ class managed_deleter
                 }
             #endif
 
+            // we used placement new in the allocation, so call destructors explicitly
+            for (std::size_t i = 0; i < m_N; ++i)
+                {
+                ptr[i].~T();
+                }
+
             #ifdef ENABLE_CUDA
             if (m_use_device)
                 {
@@ -751,6 +757,9 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             deleter.setTag(m_tag);
             m_data = std::unique_ptr<T, decltype(deleter)>(reinterpret_cast<T *>(ptr), deleter);
 
+            // construct objects explicitly using placement new
+            for (std::size_t i = 0; i < m_num_elements; ++i) ::new ((void **) &((T *)ptr)[i]) T;
+
             // register new allocation
             if (this->m_exec_conf && this->m_exec_conf->getMemoryTracer())
                 this->m_exec_conf->getMemoryTracer()->registerAllocation(reinterpret_cast<const void *>(m_data.get()),
@@ -801,11 +810,12 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
             );
     #endif
 
+    checkAcquired(*this);
+    m_acquired = true;
+
     // make sure a null array can be acquired
     if (!this->m_exec_conf || isNull() )
         return GlobalArrayDispatch<T>(nullptr, *this);
-
-    checkAcquired(*this);
 
     if (this->m_exec_conf && this->m_exec_conf->inMultiGPUBlock())
         {
@@ -824,8 +834,6 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
             CHECK_CUDA_ERROR();
         }
     #endif
-
-    m_acquired = true;
 
     return GlobalArrayDispatch<T>(m_data.get(), *this);
     }

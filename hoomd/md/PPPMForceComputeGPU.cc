@@ -25,11 +25,14 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
     m_tuner_update.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_update_mesh", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_force", this->m_exec_conf));
     m_tuner_influence.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_influence", this->m_exec_conf));
+
+    m_cufft_initialized = false;
+    m_cuda_dfft_initialized = false;
     }
 
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
-    if (m_local_fft)
+    if (m_local_fft && m_cufft_initialized)
         {
         for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
             {
@@ -38,7 +41,7 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
             }
         }
     #ifdef ENABLE_MPI
-    else
+    else if (m_cuda_dfft_initialized)
         {
         dfft_destroy_plan(m_dfft_plan_forward);
         dfft_destroy_plan(m_dfft_plan_inverse);
@@ -102,6 +105,8 @@ void PPPMForceComputeGPU::initializeFFT()
         dfft_create_plan(&m_dfft_plan_inverse, 3, gdim, NULL, embed, pdim, pidx,
             row_m, 0, 1, m_exec_conf->getMPICommunicator(), (int *) h_cart_ranks.data);
         #endif
+
+        m_cuda_dfft_initialized = true;
         }
     #endif // ENABLE_MPI
 
@@ -114,6 +119,7 @@ void PPPMForceComputeGPU::initializeFFT()
             cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
             CHECK_CUFFT_ERROR(cufftPlan3d(&m_cufft_plan[idev], m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, CUFFT_C2C));
             }
+        m_cufft_initialized = true;
         }
 
     // allocate mesh and transformed mesh
