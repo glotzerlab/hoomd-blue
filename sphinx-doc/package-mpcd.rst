@@ -23,5 +23,6 @@ mpcd
     module-mpcd-data
     module-mpcd-force
     module-mpcd-init
+    module-mpcd-integrate
     module-mpcd-stream
     module-mpcd-update

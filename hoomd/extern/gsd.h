@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2016-2019 The Regents of the University of Michigan
 // This file is part of the General Simulation Data (GSD) project, released under the BSD 2-Clause License.
 
 #ifndef __GSD_H__
@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -104,6 +105,7 @@ struct gsd_handle
     uint64_t cur_frame;
     int64_t file_size;                  //!< File size (in bytes)
     enum gsd_open_flag open_flags;      //!< Flags passed to gsd_open()
+    bool needs_sync; //!< Whether the handle requires an fsync call (new data was written)
     };
 
 //! Specify a version
@@ -111,6 +113,15 @@ uint32_t gsd_make_version(unsigned int major, unsigned int minor);
 
 //! Create a GSD file
 int gsd_create(const char *fname, const char *application, const char *schema, uint32_t schema_version);
+
+//! Create and open a GSD file
+int gsd_create_and_open(struct gsd_handle* handle,
+                        const char *fname,
+                        const char *application,
+                        const char *schema,
+                        uint32_t schema_version,
+                        const enum gsd_open_flag flags,
+                        int exclusive_create);
 
 //! Open a GSD file
 int gsd_open(struct gsd_handle* handle, const char *fname, const enum gsd_open_flag flags);
@@ -144,6 +155,9 @@ uint64_t gsd_get_nframes(struct gsd_handle* handle);
 
 //! Query size of a GSD type ID
 size_t gsd_sizeof_type(enum gsd_type type);
+
+//! Search for chunk names in a gsd file
+const char *gsd_find_matching_chunk_name(struct gsd_handle* handle, const char* match, const char *prev);
 
 #ifdef __cplusplus
 }

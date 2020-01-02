@@ -21,11 +21,11 @@
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-//! DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+//! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
-#define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
-#define DEVICE
+#define HOSTDEVICE
 #endif
 
 // call different optimized sqrt functions on the host / device
@@ -54,10 +54,45 @@
 #define _EXP(x) exp( (x) )
 #endif
 
+struct pair_dipole_params
+    {
+    Scalar mu;         //! The magnitude of the magnetic moment.
+    Scalar A;          //! The electrostatic energy scale.
+    Scalar kappa;      //! The inverse screening length.
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+        {
+        // No-op for this struct since it contains no arrays.
+        }
+    };
+
+// Nullary structure required by AnisoPotentialPair.
+struct dipole_shape_params
+    {
+    HOSTDEVICE dipole_shape_params() {}
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const {}
+    #endif
+    };
+
 class EvaluatorPairDipole
     {
     public:
-        typedef Scalar3 param_type;
+        typedef pair_dipole_params param_type;
+        typedef dipole_shape_params shape_param_type;
+
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centers of mass
             \param _rcutsq Squared distance at which the potential goes to 0
@@ -68,36 +103,58 @@ class EvaluatorPairDipole
             \param _kappa Inverse screening length
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairDipole(Scalar3& _dr, Scalar4& _quat_i, Scalar4& _quat_j, Scalar _rcutsq, param_type& params)
-            :dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j),
-             mu(params.x), A(params.y), kappa(params.z)
+        HOSTDEVICE EvaluatorPairDipole(Scalar3& _dr, Scalar4& _quat_i, Scalar4& _quat_j, Scalar _rcutsq, const param_type& _params)
+            :dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), params(_params)
             {
             }
 
         //! uses diameter
-        DEVICE static bool needsDiameter()
+        HOSTDEVICE static bool needsDiameter()
             {
             return false;
+            }
+
+        //! Whether the pair potential uses shape.
+        HOSTDEVICE static bool needsShape()
+            {
+            return false;
+            }
+
+        //! Whether the pair potential needs particle tags.
+        HOSTDEVICE static bool needsTags()
+            {
+            return false;
+            }
+
+        //! whether pair potential requires charges
+        HOSTDEVICE static bool needsCharge()
+            {
+            return true;
             }
 
         //! Accept the optional diameter values
         /*! \param di Diameter of particle i
             \param dj Diameter of particle j
         */
-        DEVICE void setDiameter(Scalar di, Scalar dj){}
+        HOSTDEVICE void setDiameter(Scalar di, Scalar dj){}
 
-        //! whether pair potential requires charges
-        DEVICE static bool needsCharge()
-            {
-            return true;
-            }
+        //! Accept the optional shape values
+        /*! \param shape_i Shape of particle i
+            \param shape_j Shape of particle j
+        */
+        HOSTDEVICE void setShape(const shape_param_type *shapei, const shape_param_type *shapej) {}
 
-        //! Accept the optional diameter values
-        //! This function is pure virtual
+        //! Accept the optional tags
+        /*! \param tag_i Tag of particle i
+            \param tag_j Tag of particle j
+        */
+        HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) {}
+
+        //! Accept the optional charge values
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
-        DEVICE void setCharge(Scalar qi, Scalar qj)
+        HOSTDEVICE void setCharge(Scalar qi, Scalar qj)
             {
             q_i = qi;
             q_j = qj;
@@ -111,7 +168,7 @@ class EvaluatorPairDipole
             \param torque_j The torque exerted on the j^th particle.
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
-        DEVICE  bool
+        HOSTDEVICE  bool
       evaluate(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
             {
             vec3<Scalar> rvec(dr);
@@ -126,8 +183,8 @@ class EvaluatorPairDipole
             Scalar r5inv = r3inv*r2inv;
 
             // convert dipole vector in the body frame of each particle to space frame
-            vec3<Scalar> p_i = rotate(quat<Scalar>(quat_i), vec3<Scalar>(mu, 0, 0));
-            vec3<Scalar> p_j = rotate(quat<Scalar>(quat_j), vec3<Scalar>(mu, 0, 0));
+            vec3<Scalar> p_i = rotate(quat<Scalar>(quat_i), vec3<Scalar>(params.mu, 0, 0));
+            vec3<Scalar> p_j = rotate(quat<Scalar>(quat_j), vec3<Scalar>(params.mu, 0, 0));
 
             vec3<Scalar> f;
             vec3<Scalar> t_i;
@@ -135,10 +192,10 @@ class EvaluatorPairDipole
             Scalar e = Scalar(0.0);
 
             Scalar r = Scalar(1.0)/rinv;
-            Scalar prefactor = A*_EXP(-kappa*r);
+            Scalar prefactor = params.A*_EXP(-params.kappa*r);
 
             // dipole-dipole
-            if (mu != Scalar(0.0))
+            if (params.mu != Scalar(0.0))
                 {
                 Scalar r7inv = r5inv*r2inv;
                 Scalar pidotpj = dot(p_i, p_j);
@@ -149,7 +206,7 @@ class EvaluatorPairDipole
                 Scalar pre2 = prefactor*Scalar(3.0)*r5inv*pjdotr;
                 Scalar pre3 = prefactor*Scalar(3.0)*r5inv*pidotr;
                 Scalar pre4 = prefactor*Scalar(-1.0)*r3inv;
-                Scalar pre5 = prefactor*(r3inv*pidotpj - Scalar(3.0)*r5inv*pidotr*pjdotr)*kappa*rinv;
+                Scalar pre5 = prefactor*(r3inv*pidotpj - Scalar(3.0)*r5inv*pidotr*pjdotr)*params.kappa*rinv;
 
                 f += pre1*rvec + pre2*p_i + pre3*p_j + pre5*rvec;
 
@@ -161,12 +218,12 @@ class EvaluatorPairDipole
                 e += prefactor*(r3inv*pidotpj - Scalar(3.0)*r5inv*pidotr*pjdotr);
                 }
             // dipole i - electrostatic j
-            if (mu != Scalar(0.0) && q_j != Scalar(0.0))
+            if (params.mu != Scalar(0.0) && q_j != Scalar(0.0))
                 {
                 Scalar pidotr = dot(p_i, rvec);
                 Scalar pre1 = prefactor*Scalar(3.0)*q_j*r5inv * pidotr;
                 Scalar pre2 = prefactor*q_j*r3inv;
-                Scalar pre3 = prefactor*q_j*r3inv*pidotr*kappa*rinv;
+                Scalar pre3 = prefactor*q_j*r3inv*pidotr*params.kappa*rinv;
 
                 f += pre2*p_i - pre1*rvec - pre3*rvec;
 
@@ -175,12 +232,12 @@ class EvaluatorPairDipole
                 e -= pidotr*pre2;
                 }
             // electrostatic i - dipole j
-            if (q_i != Scalar(0.0) && mu != Scalar(0.0))
+            if (q_i != Scalar(0.0) && params.mu != Scalar(0.0))
                 {
                 Scalar pjdotr = dot(p_j, rvec);
                 Scalar pre1 = prefactor*Scalar(3.0)*q_i*r5inv * pjdotr;
                 Scalar pre2 = prefactor*q_i*r3inv;
-                Scalar pre3 = prefactor*q_i*r3inv*pjdotr*kappa*rinv;
+                Scalar pre3 = prefactor*q_i*r3inv*pjdotr*params.kappa*rinv;
 
                 f += pre1*rvec - pre2*p_j + pre3*rvec;
 
@@ -191,7 +248,7 @@ class EvaluatorPairDipole
             // electrostatic-electrostatic
             if (q_i != Scalar(0.0) && q_j != Scalar(0.0))
                 {
-                Scalar fforce = prefactor*q_i*q_j*(kappa+rinv)*r2inv;
+                Scalar fforce = prefactor*q_i*q_j*(params.kappa+rinv)*r2inv;
 
                 f += fforce*rvec;
 
@@ -216,6 +273,10 @@ class EvaluatorPairDipole
             return "dipole";
             }
 
+        std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not supported for this pair potential.");
+            }
         #endif
 
     protected:
@@ -223,7 +284,7 @@ class EvaluatorPairDipole
         Scalar rcutsq;              //!< Stored rcutsq from the constructor
         Scalar q_i, q_j;            //!< Stored particle charges
         Scalar4 quat_i,quat_j;      //!< Stored quaternion of ith and jth particle from constructor
-        Scalar mu, A, kappa;        //!< Stored dipole magnitude, electrostatic magnitude and inverse screening length
+        const param_type &params;   //!< The pair potential parameters
     };
 
 

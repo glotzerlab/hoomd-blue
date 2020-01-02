@@ -16,6 +16,7 @@ set(_mpcd_sources
     ParticleData.cc
     ParticleDataSnapshot.cc
     SlitGeometryFiller.cc
+    SlitPoreGeometryFiller.cc
     Sorter.cc
     SRDCollisionMethod.cc
     StreamingGeometry.cc
@@ -27,6 +28,7 @@ set(_mpcd_sources
 
 set(_mpcd_headers
     ATCollisionMethod.h
+    BounceBackNVE.h
     BoundaryCondition.h
     BulkGeometry.h
     CellCommunicator.h
@@ -43,6 +45,8 @@ set(_mpcd_headers
     ParticleDataUtilities.h
     SlitGeometry.h
     SlitGeometryFiller.h
+    SlitPoreGeometry.h
+    SlitPoreGeometryFiller.h
     Sorter.h
     SRDCollisionMethod.h
     StreamingGeometry.h
@@ -59,12 +63,15 @@ list(APPEND _mpcd_sources
     CellListGPU.cc
     CommunicatorGPU.cc
     SlitGeometryFillerGPU.cc
+    SlitPoreGeometryFillerGPU.cc
     SorterGPU.cc
     SRDCollisionMethodGPU.cc
     )
 list(APPEND _mpcd_headers
     ATCollisionMethodGPU.cuh
     ATCollisionMethodGPU.h
+    BounceBackNVEGPU.cuh
+    BounceBackNVEGPU.h
     CellCommunicator.cuh
     CellThermoComputeGPU.cuh
     CellThermoComputeGPU.h
@@ -77,6 +84,8 @@ list(APPEND _mpcd_headers
     ParticleData.cuh
     SlitGeometryFillerGPU.cuh
     SlitGeometryFillerGPU.h
+    SlitPoreGeometryFillerGPU.cuh
+    SlitPoreGeometryFillerGPU.h
     SorterGPU.cuh
     SorterGPU.h
     SRDCollisionMethodGPU.cuh
@@ -86,6 +95,7 @@ endif()
 
 set(_mpcd_cu_sources
     ATCollisionMethodGPU.cu
+    BounceBackNVEGPU.cu
     CellThermoComputeGPU.cu
     CellListGPU.cu
     ConfinedStreamingMethodGPU.cu
@@ -93,6 +103,7 @@ set(_mpcd_cu_sources
     ExternalField.cu
     ParticleData.cu
     SlitGeometryFillerGPU.cu
+    SlitPoreGeometryFillerGPU.cu
     SorterGPU.cu
     SRDCollisionMethodGPU.cu
     )
@@ -157,6 +168,7 @@ set(files
     data.py
     force.py
     init.py
+    integrate.py
     stream.py
     update.py
     )
@@ -200,3 +212,6 @@ if (BUILD_TESTING)
     add_subdirectory(test-py)
 endif()
 add_subdirectory(test)
+if (BUILD_VALIDATION)
+    add_subdirectory(validation)
+endif (BUILD_VALIDATION)
