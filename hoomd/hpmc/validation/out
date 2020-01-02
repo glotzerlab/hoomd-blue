@@ -1,0 +1,629 @@
+test_low_density_clusters (__main__.nvt_lj_sphere_energy) ... HOOMD-blue v2.8.1-667-g763f97f3c HIP [CUDA] (10.1) DOUBLE HPMC_MIXED MPI SSE SSE2 ALWAYS_MANAGED 
+Compiled: 12/08/2019
+Copyright (c) 2009-2019 The Regents of the University of Michigan.
+HOOMD-blue is running on the following GPU(s):
+ [0]          Quadro GV100  80 SM_7.0 @ 1.63 GHz, 32508 MiB DRAM
+ [1]          Quadro GV100  80 SM_7.0 @ 1.63 GHz, 32508 MiB DRAM
+-----
+You are using HOOMD-blue. Please cite the following:
+* J A Anderson, C D Lorenz, and A Travesset. "General purpose molecular dynamics
+  simulations fully implemented on graphics processing units", Journal of
+  Computational Physics 227 (2008) 5342--5359
+* J Glaser, T D Nguyen, J A Anderson, P Lui, F Spiga, J A Millan, D C Morse, and
+  S C Glotzer. "Strong scaling of general-purpose molecular dynamics simulations
+  on GPUs", Computer Physics Communications 192 (2015) 97--107
+-----
+-----
+You are using HPMC. Please cite the following:
+* J A Anderson, M E Irrgang, and S C Glotzer. "Scalable Metropolis Monte Carlo
+  for simulation of hard shapes", Computer Physics Communications 204 (2016) 21
+  --30
+-----
+notice(2): Group "all" created containing 512 particles
+========= CUDA-MEMCHECK
+========= Invalid __global__ system-scoped atomic of size 4
+=========     at 0x00001460 in /opt/cuda/bin/../targets/x86_64-linux/include/sm_60_atomic_functions.hpp:103:hpmc::gpu::kernel::hpmc_accept(unsigned int const *, unsigned int const *, unsigned int const *, unsigned int*, unsigned int*, unsigned int const *, unsigned int const *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int const *, unsigned int const *, unsigned int const *, unsigned int const *, float const *, float const *, unsigned int, unsigned int*, unsigned int, unsigned int, unsigned int)
+=========     by thread (0,1,0) in block (2,0,0)
+=========     Address 0x7f87a0e00000 is not allowed
+=========     Device Frame:/opt/cuda/bin/../targets/x86_64-linux/include/sm_60_atomic_functions.hpp:103:hpmc::gpu::kernel::hpmc_accept(unsigned int const *, unsigned int const *, unsigned int const *, unsigned int*, unsigned int*, unsigned int const *, unsigned int const *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int const *, unsigned int const *, unsigned int const *, unsigned int const *, float const *, float const *, unsigned int, unsigned int*, unsigned int, unsigned int, unsigned int) (hpmc::gpu::kernel::hpmc_accept(unsigned int const *, unsigned int const *, unsigned int const *, unsigned int*, unsigned int*, unsigned int const *, unsigned int const *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int const *, unsigned int const *, unsigned int const *, unsigned int const *, float const *, float const *, unsigned int, unsigned int*, unsigned int, unsigned int, unsigned int) : 0x1460)
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========     Host Frame:/usr/lib/libcuda.so.1 (cuLaunchKernel + 0x2c5) [0x27d265]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 [0x19c27]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 [0x19cb7]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 (cudaLaunchKernel + 0x225) [0x51695]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/hpmc/_hpmc.cpython-37m-x86_64-linux-gnu.so [0x6b0310]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/hpmc/_hpmc.cpython-37m-x86_64-linux-gnu.so [0x14abdc]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN6System3runEjjN8pybind116objectEdj + 0x94f) [0x35970f]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x362535]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0xcac78]
+=========     Host Frame:python (_PyMethodDef_RawFastCallKeywords + 0x254) [0x164744]
+=========     Host Frame:python (_PyCFunction_FastCallKeywords + 0x21) [0x164861]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x52f8) [0x1d06e8]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0x387) [0x163f57]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x14dc) [0x1cc8cc]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0xac9) [0x114d09]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0x387) [0x163f57]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x14dc) [0x1cc8cc]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0xfb) [0x163ccb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x416) [0x1cb806]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========
+========= Invalid __global__ system-scoped atomic of size 4
+=========     at 0x00001460 in /opt/cuda/bin/../targets/x86_64-linux/include/sm_60_atomic_functions.hpp:103:hpmc::gpu::kernel::hpmc_accept(unsigned int const *, unsigned int const *, unsigned int const *, unsigned int*, unsigned int*, unsigned int const *, unsigned int const *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int const *, unsigned int const *, unsigned int const *, unsigned int const *, float const *, float const *, unsigned int, unsigned int*, unsigned int, unsigned int, unsigned int)
+=========     by thread (0,31,0) in block (0,0,0)
+=========     Address 0x7f87a0e00000 is not allowed
+=========     Device Frame:/opt/cuda/bin/../targets/x86_64-linux/include/sm_60_atomic_functions.hpp:103:hpmc::gpu::kernel::hpmc_accept(unsigned int const *, unsigned int const *, unsigned int const *, unsigned int*, unsigned int*, unsigned int const *, unsigned int const *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int const *, unsigned int const *, unsigned int const *, unsigned int const *, float const *, float const *, unsigned int, unsigned int*, unsigned int, unsigned int, unsigned int) (hpmc::gpu::kernel::hpmc_accept(unsigned int const *, unsigned int const *, unsigned int const *, unsigned int*, unsigned int*, unsigned int const *, unsigned int const *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int const *, unsigned int const *, unsigned int const *, unsigned int const *, float const *, float const *, unsigned int, unsigned int*, unsigned int, unsigned int, unsigned int) : 0x1460)
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========     Host Frame:/usr/lib/libcuda.so.1 (cuLaunchKernel + 0x2c5) [0x27d265]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 [0x19c27]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 [0x19cb7]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 (cudaLaunchKernel + 0x225) [0x51695]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/hpmc/_hpmc.cpython-37m-x86_64-linux-gnu.so [0x6b0310]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/hpmc/_hpmc.cpython-37m-x86_64-linux-gnu.so [0x14abdc]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN6System3runEjjN8pybind116objectEdj + 0x94f) [0x35970f]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x362535]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0xcac78]
+=========     Host Frame:python (_PyMethodDef_RawFastCallKeywords + 0x254) [0x164744]
+=========     Host Frame:python (_PyCFunction_FastCallKeywords + 0x21) [0x164861]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x52f8) [0x1d06e8]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0x387) [0x163f57]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x14dc) [0x1cc8cc]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0xac9) [0x114d09]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0x387) [0x163f57]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x14dc) [0x1cc8cc]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0xfb) [0x163ccb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x416) [0x1cb806]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaDeviceSynchronize. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/usr/lib/libcuda.so.1 [0x38cc03]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 (cudaDeviceSynchronize + 0x166) [0x39656]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/hpmc/_hpmc.cpython-37m-x86_64-linux-gnu.so [0x14bc76]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN6System3runEjjN8pybind116objectEdj + 0x94f) [0x35970f]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x362535]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0xcac78]
+=========     Host Frame:python (_PyMethodDef_RawFastCallKeywords + 0x254) [0x164744]
+=========     Host Frame:python (_PyCFunction_FastCallKeywords + 0x21) [0x164861]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x52f8) [0x1d06e8]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0x387) [0x163f57]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x14dc) [0x1cc8cc]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0xac9) [0x114d09]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0x387) [0x163f57]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x14dc) [0x1cc8cc]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0xfb) [0x163ccb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x416) [0x1cb806]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObj**ERROR**: unknown error before /hoomd/hpmc/IntegratorHPMCMonoGPU.h:1112
+ERROR
+test_low_density_normal (__main__.nvt_lj_sphere_energy) ... HOOMD-blue v2.8.1-667-g763f97f3c HIP [CUDA] (10.1) DOUBLE HPMC_MIXED MPI SSE SSE2 ALWAYS_MANAGED 
+Compiled: 12/08/2019
+Copyright (c) 2009-2019 The Regents of the University of Michigan.
+**ERROR**: unknown error before /hoomd/ExecutionConfiguration.cc:392
+ect_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0xfb) [0x163ccb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x6a3) [0x1cba93]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0xfb) [0x163ccb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x6a3) [0x1cba93]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0xac9) [0x114d09]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaGetLastError. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/usr/lib/libcuda.so.1 [0x38cc03]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 (cudaGetLastError + 0x163) [0x4c493]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN22ExecutionConfiguration13initializeGPUEib + 0xbb) [0x23177b]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN22ExecutionConfigurationC1ENS_13executionModeESt6vectorIiSaIiEEbbSt10shared_ptrI16MPIConfigurationES4_I9MessengerE + 0xa3e) [0x233d6e]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x245433]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x24585b]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0xcac78]
+=========     Host Frame:python (_PyMethodDef_RawFastCallDict + 0x24d) [0x13563d]
+=========     Host Frame:python (_PyCFunction_FastCallDict + 0x21) [0x1357c1]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0xde) [0x133ece]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python [0x9e214]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x128) [0x16c588]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x52f8) [0x1d06e8]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x400) [0x115860]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16b97a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x128) [0x16c588]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x569f) [0x1d0a8f]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0xac9) [0x114d09]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0x387) [0x163f57]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x14dc) [0x1cc8cc]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0xfb) [0x163ccb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x416) [0x1cb806]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrERROR
+test_low_density_union (__main__.nvt_lj_sphere_energy) ... HOOMD-blue v2.8.1-667-g763f97f3c HIP [CUDA] (10.1) DOUBLE HPMC_MIXED MPI SSE SSE2 ALWAYS_MANAGED 
+Compiled: 12/08/2019
+Copyright (c) 2009-2019 The Regents of the University of Michigan.
+ameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========
+========= Program hit cudaErrorSetOnActiveProcess (error 708) due to "cannot set while device is active in this process" on CUDA API call to cudaSetDeviceFlags. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/usr/lib/libcuda.so.1 [0x38cc03]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 (cudaSetDeviceFlags + 0x180) [0x4b0c0]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN22ExecutionConfiguration13initializeGPUEib + 0x76) [0x231736]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN22ExecutionConfigurationC1ENS_13executionModeESt6vectorIiSaIiEEbbSt10shared_ptrI16MPIConfigurationES4_I9MessengerE + 0xa3e) [0x233d6e]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x245433]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x24585b]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0xcac78]
+=========     Host Frame:python (_PyMethodDef_RawFastCallDict + 0x24d) [0x13563d]
+=========     Host Frame:python (_PyCFunction_FastCallDict + 0x21) [0x1357c1]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0xde) [0x133ece]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python [0x9e214]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x128) [0x16c588]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x52f8) [0x1d06e8]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x400) [0x115860]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16b97a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x128) [0x16c588]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x569f) [0x1d0a8f]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0xac9) [0x114d09]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0x387) [0x163f57]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x14dc) [0x1cc8cc]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0xfb) [0x163ccb]
+=========**ERROR**: unknown error before /hoomd/ExecutionConfiguration.cc:392
+     Host Frame:python (_PyEval_EvalFrameDefault + 0x416) [0x1cb806]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========
+========= Program hit cudaErrorSetOnActiveProcess (error 708) due to "cannot set while device is active in this process" on CUDA API call to cudaGetLastError. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/usr/lib/libcuda.so.1 [0x38cc03]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 (cudaGetLastError + 0x163) [0x4c493]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN22ExecutionConfiguration13initializeGPUEib + 0xbb) [0x23177b]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN22ExecutionConfigurationC1ENS_13executionModeESt6vectorIiSaIiEEbbSt10shared_ptrI16MPIConfigurationES4_I9MessengerE + 0xa3e) [0x233d6e]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x245433]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x24585b]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0xcac78]
+=========     Host Frame:python (_PyMethodDef_RawFastCallDict + 0x24d) [0x13563d]
+=========     Host Frame:python (_PyCFunction_FastCallDict + 0x21) [0x1357c1]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0xde) [0x133ece]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python [0x9e214]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x128) [0x16c588]ERROR
+test_moderate_density_normal (__main__.nvt_lj_sphere_energy) ... HOOMD-blue v2.8.1-667-g763f97f3c HIP [CUDA] (10.1) DOUBLE HPMC_MIXED MPI SSE SSE2 ALWAYS_MANAGED 
+Compiled: 12/08/2019
+Copyright (c) 2009-2019 The Regents of the University of Michigan.
+
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x52f8) [0x1d06e8]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x400) [0x115860]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16b97a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x128) [0x16c588]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x569f) [0x1d0a8f]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0xac9) [0x114d09]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0x387) [0x163f57]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x14dc) [0x1cc8cc]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0xfb) [0x163ccb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x416) [0x1cb806]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========
+========= Program hit cudaErrorSetOnActiveProcess (error 708) due to "cannot set while device is active in this process" on CUDA API call to cudaSetDeviceFlags. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/usr/lib/libcuda.so.1 [0x38cc03]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 (cudaSetDeviceFlags + 0x180) [0x4b0c0]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN22ExecutionConfiguration13initializeGPUEib + 0x76) [0x231736]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN22ExecutionConfigurationC1ENS_13executionModeESt6vectorIiSaIiEEbbSt10shared_ptrI16MPIConfigurationES4_I9MessengerE + 0xa3e) [0x233d6e]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x245433]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x24585b]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0xcac78]
+=========     Host Frame:python (_PyMethodDef_RawFastCallDict + 0x24d) [0x13563d]
+=========     Host Frame:python (_PyCFunction_FastCallDict + 0x21) [0x1357c1]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0xde) [0x133ece]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python [0x9e214]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x128) [0x16c588]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x52f8) [0x1d06e8]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x400) [0x115860]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16b97a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x128) [0x16c588]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x569f) [0x1d0a8f]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0xac9) [0x114d09]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0x387) [0x163f57]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x14dc) [0x1cc8cc]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0xfb) [0x163ccb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x416) [0x1cb806]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========
+========= Program hit cudaErrorSetOnActiveProcess (error 708) due to "cannot set while device is active **ERROR**: unknown error before /hoomd/ExecutionConfiguration.cc:392
+in this process" on CUDA API call to cudaGetLastError. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/usr/lib/libcuda.so.1 [0x38cc03]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 (cudaGetLastError + 0x163) [0x4c493]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN22ExecutionConfiguration13initializeGPUEib + 0xbb) [0x23177b]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN22ExecutionConfigurationC1ENS_13executionModeESt6vectorIiSaIiEEbbSt10shared_ptrI16MPIConfigurationES4_I9MessengerE + 0xa3e) [0x233d6e]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x245433]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x24585b]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0xcac78]
+=========     Host Frame:python (_PyMethodDef_RawFastCallDict + 0x24d) [0x13563d]
+=========     Host Frame:python (_PyCFunction_FastCallDict + 0x21) [0x1357c1]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0xde) [0x133ece]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python [0x9e214]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x128) [0x16c588]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x52f8) [0x1d06e8]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x400) [0x115860]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16b97a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x128) [0x16c588]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x569f) [0x1d0a8f]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0xac9) [0x114d09]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0x387) [0x163f57]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x14dc) [0x1cc8cc]
+=========     Host Frame:python (_PyFunction_FastCallKeywords + 0xfb) [0x163ccb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x416) [0x1cb806]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python [0x16ba3a]
+=========     Host Frame:python (_PyObERROR
+
+======================================================================
+ERROR: test_low_density_clusters (__main__.nvt_lj_sphere_energy)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "lj_spheres.py", line 149, in test_low_density_clusters
+    use_clusters=True, union=False);
+  File "lj_spheres.py", line 99, in run_statepoint
+    run(100,quiet=True);
+  File "/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/__init__.py", line 199, in run
+    context.current.system.run(int(tsteps), callback_period, callback, limit_hours, int(limit_multiple));
+RuntimeError: HIP Error
+
+======================================================================
+ERROR: test_low_density_normal (__main__.nvt_lj_sphere_energy)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "lj_spheres.py", line 131, in test_low_density_normal
+    use_clusters=False, union=False);
+  File "lj_spheres.py", line 41, in run_statepoint
+    context.initialize(device=device.GPU(gpu_ids=[0,1]))
+  File "/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/device.py", line 268, in __init__
+    self.cpp_msg)
+RuntimeError: HIP Error
+
+======================================================================
+ERROR: test_low_density_union (__main__.nvt_lj_sphere_energy)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "lj_spheres.py", line 140, in test_low_density_union
+    use_clusters=False, union=True);
+  File "lj_spheres.py", line 41, in run_statepoint
+    context.initialize(device=device.GPU(gpu_ids=[0,1]))
+  File "/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/device.py", line 268, in __init__
+    self.cpp_msg)
+RuntimeError: HIP Error
+
+======================================================================
+ERROR: test_moderate_density_normal (__main__.nvt_lj_sphere_energy)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "lj_spheres.py", line 153, in test_moderate_density_normal
+    use_clusters=False, union=False);
+  File "lj_spheres.py", line 41, in run_statepoint
+    context.initialize(device=device.GPU(gpu_ids=[0,1]))
+  File "/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/device.py", line 268, in __init__
+    self.cpp_msg)
+RuntimeError: HIP Error
+
+----------------------------------------------------------------------
+Ran 4 tests in 5.969s
+
+FAILED (errors=4)
+ject_FastCallKeywords + 0x49b) [0x16c8fb]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x4a96) [0x1cfe86]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========     Host Frame:python (PyObject_Call + 0x6e) [0x126dbe]
+=========     Host Frame:python (_PyEval_EvalFrameDefault + 0x1e42) [0x1cd232]
+=========     Host Frame:python (_PyEval_EvalCodeWithName + 0x2f9) [0x114539]
+=========     Host Frame:python (_PyFunction_FastCallDict + 0x1d5) [0x115635]
+=========     Host Frame:python (_PyObject_Call_Prepend + 0x63) [0x133e53]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaEventDestroy. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/usr/lib/libcuda.so.1 [0x38cc03]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 (cudaEventDestroy + 0x18e) [0x49c8e]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN17SFCPackUpdaterGPUD1Ev + 0xc1) [0x396b01]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZNSt15_Sp_counted_ptrIP17SFCPackUpdaterGPULN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv + 0x25) [0x397cf5]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZNSt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE2EE10_M_releaseEv + 0x47) [0xa6c57]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0x397c40]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so [0xc96c1]
+=========     Host Frame:python [0x10db08]
+=========     Host Frame:python [0x1a1831]
+=========     Host Frame:python [0x10d7b2]
+=========     Host Frame:python [0x10dbf8]
+=========     Host Frame:python [0x1a1831]
+=========     Host Frame:python (PyDict_Clear + 0x131) [0xfd651]
+=========     Host Frame:python [0xfd71a]
+=========     Host Frame:python [0x123648]
+=========     Host Frame:python (_PyGC_CollectNoFail + 0x2a) [0x21bfda]
+=========     Host Frame:python (PyImport_Cleanup + 0x470) [0x1a7da0]
+=========     Host Frame:python (Py_FinalizeEx + 0x67) [0x223087]
+=========     Host Frame:python (Py_Exit + 0x9) [0x2231e9]
+=========     Host Frame:python [0x2232a7]
+=========     Host Frame:python (PyErr_PrintEx + 0x32) [0x223342]
+=========     Host Frame:python [0xf4051]
+=========     Host Frame:python [0x236195]
+=========     Host Frame:python (_Py_UnixMain + 0x3c) [0x2362bc]
+=========     Host Frame:/usr/lib/libc.so.6 (__libc_start_main + 0xf3) [0x27153]
+=========     Host Frame:python [0x1db062]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaGetLastError. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/usr/lib/libcuda.so.1 [0x38cc03]
+=========     Host Frame:/opt/cuda/lib64/libcudart.so.10.1 (cudaGetLastError + 0x163) [0x4c493]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN17SFCPackUpdaterGPUD1Ev + 0xc6) [0x396b06]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZNSt15_Sp_counted_ptrIP17SFCPackUpdaterGPULN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv + 0x25) [0x397cf5]
+=========     Host Frame:/nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so (_ZN**ERROR**: unknown error before /hoomd/GlobalArray.h:202
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  HIP Error
+[brett:1052637] *** Process received signal ***
+[brett:1052637] Signal: Aborted (6)
+[brett:1052637] Signal code:  (-6)
+[brett:1052637] [ 0] /usr/lib/libpthread.so.0(+0x14930)[0x7f882d391930]
+[brett:1052637] [ 1] /usr/lib/libc.so.6(gsignal+0x145)[0x7f882d1f1f25]
+[brett:1052637] [ 2] /usr/lib/libc.so.6(abort+0x12b)[0x7f882d1db897]
+[brett:1052637] [ 3] /usr/lib/libstdc++.so.6(+0x9681d)[0x7f882236e81d]
+[brett:1052637] [ 4] /usr/lib/libstdc++.so.6(+0xa34da)[0x7f882237b4da]
+[brett:1052637] [ 5] /usr/lib/libstdc++.so.6(+0xa24aa)[0x7f882237a4aa]
+[brett:1052637] [ 6] /usr/lib/libstdc++.so.6(__gxx_personality_v0+0x2a5)[0x7f882237ae75]
+[brett:1052637] [ 7] /usr/lib/libgcc_s.so.1(+0x10723)[0x7f88222ce723]
+[brett:1052637] [ 8] /usr/lib/libgcc_s.so.1(_Unwind_RaiseException+0x2a2)[0x7f88222cec72]
+[brett:1052637] [ 9] /usr/lib/libstdc++.so.6(__cxa_throw+0x3f)[0x7f882237b77f]
+[brett:1052637] [10] /nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so(+0x81e16)[0x7f882af97e16]
+[brett:1052637] [11] /nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so(_ZN17SFCPackUpdaterGPUD1Ev+0xe7)[0x7f882b2acb27]
+[brett:1052637] [12] /nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so(_ZNSt15_Sp_counted_ptrIP17SFCPackUpdaterGPULN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv+0x25)[0x7f882b2adcf5]
+[brett:1052637] [13] /nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so(_ZNSt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE2EE10_M_releaseEv+0x47)[0x7f882afbcc57]
+[brett:1052637] [14] /nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so(+0x397c40)[0x7f882b2adc40]
+[brett:1052637] [15] /nfs/turbo/bi-vislab/jsglaser/miniconda3/envs/myenv/lib/python3.7/site-packages/hoomd/_hoomd.cpython-37m-x86_64-linux-gnu.so(+0xc96c1)[0x7f882afdf6c1]
+[brett:1052637] [16] python(+0x10db08)[0x55c975f10b08]
+[brett:1052637] [17] python(+0x1a1831)[0x55c975fa4831]
+[brett:1052637] [18] python(+0x10d7b2)[0x55c975f107b2]
+[brett:1052637] [19] python(+0x10dbf8)[0x55c975f10bf8]
+[brett:1052637] [20] python(+0x1a1831)[0x55c975fa4831]
+[brett:1052637] [21] python(PyDict_Clear+0x131)[0x55c975f00651]
+[brett:1052637] [22] python(+0xfd71a)[0x55c975f0071a]
+[brett:1052637] [23] python(+0x123648)[0x55c975f26648]
+[brett:1052637] [24] python(_PyGC_CollectNoFail+0x2a)[0x55c97601efda]
+[brett:1052637] [25] python(PyImport_Cleanup+0x470)[0x55c975faada0]
+[brett:1052637] [26] python(Py_FinalizeEx+0x67)[0x55c976026087]
+[brett:1052637] [27] python(Py_Exit+0x9)[0x55c9760261e9]
+[brett:1052637] [28] python(+0x2232a7)[0x55c9760262a7]
+[brett:1052637] [29] python(PyErr_PrintEx+0x32)[0x55c976026342]
+[brett:1052637] *** End of error message ***

@@ -19,7 +19,12 @@ namespace py = pybind11;
 */
 
 using namespace std;
-
+/*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
+    \param group Group of particles on which to apply this constraint
+    \param nlist Neighborlist to use
+    \param seed Random number generator seed
+    \param period Period at which to call the updater
+*/
 PopBD::PopBD(std::shared_ptr<SystemDefinition> sysdef,
              std::shared_ptr<ParticleGroup> group,
              std::shared_ptr<NeighborList> nlist,
@@ -288,10 +293,9 @@ void PopBD::update(unsigned int timestep)
                         assert(idx_a <= m_pdata->getMaximumTag());
                         assert(idx_b <= m_pdata->getMaximumTag());
 
-                        // remove bond with index "bond_number" between particles i and j, then exit the loop
                         if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
                             {
-                            // remove bond with index "bond_number" between particles i and j, then leave the loop
+                            // remove bond with tag "bond_number" between particles i and j, then leave the loop
                             m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
                             break;
                             }

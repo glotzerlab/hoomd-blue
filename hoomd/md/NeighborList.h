@@ -385,8 +385,13 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth(unsigned int type) const
+        virtual Scalar getGhostLayerWidth(unsigned int type)
             {
+            if (m_rcut_changed)
+                {
+                updateRList();
+                }
+
             ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
             const Scalar rcut_max_i = h_rcut_max.data[type];
 
@@ -502,6 +507,9 @@ class PYBIND11_EXPORT NeighborList : public Compute
 
         //! Loops through all pairs, and updates the r_list(i,j)
         void updateRList();
+
+        //! Checks that box is big enough for neighbor list cutoff
+        void checkBoxSize();
 
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();

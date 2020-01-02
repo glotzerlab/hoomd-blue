@@ -28,3 +28,6 @@
 [submodule "correlator-hoomd-plugin"]
 	path = correlator-hoomd-plugin
 	url = https://github.com/atravitz/correlator-hoomd-plugin.git
+[submodule "hoomd/extern/neighbor"]
+	path = hoomd/extern/neighbor
+	url = https://github.com/mphoward/neighbor.git

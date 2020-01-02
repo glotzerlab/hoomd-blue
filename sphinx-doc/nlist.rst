@@ -23,8 +23,9 @@ reduces the complexity of the problem. There are three accelerators implemented 
 
 * :ref:`lbvh-tree`
 
-More details for each can be found below and in `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_. Each
-neighbor list style has its own advantages and disadvantages that the user should consider on a case-by-case basis.
+More details for each can be found below and in `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_ and
+`M.P. Howard et al. 2019 <https://doi.org/10.1016/j.commatsci.2019.04.004>`_ . Each neighbor list style has its own advantages
+and disadvantages that the user should consider on a case-by-case basis.
 
 .. _cell-list:
 
@@ -48,7 +49,7 @@ radius asymmetries due to the significantly increased number of particles per ce
 example, the small A particles, who have a majority of neighbors who are also A particles within cutoff :math:`r_{\rm AA}`
 must now search through the full volume defined by :math:`r_{\rm BB}`. In practice, we have found that this neighbor
 list style is the best option for most users when the asymmetry between the largest and smallest cutoff radius is
-less than 2:1.
+less than 2:1, but the performance of :py:class:`hoomd.md.nlist.tree` may still be competitive at smaller asymmetries.
 
 .. note::
     Users may find that the cell-list neighbor list consumes a significant amount of memory, especially on CUDA devices.
@@ -75,9 +76,9 @@ evaluations and the amount of particle data that is read.
     :align: center
     :alt: Stenciled cell list schematic
 
-We have found that the stenciled cell list (:py:class:`hoomd.md.nlist.stencil`) performs well for size asymmetric systems
-that have comparable concentrations of both small and large particles. Performance may degrade when the fraction of
-large particles is low (< 20%). The memory consumed by the stenciled cell list is typically much lower than that used
+We have found that the stenciled cell list (:py:class:`hoomd.md.nlist.stencil`) is most useful when a cell list
+performs well, but is too memory intensive. It may also be useful for some systems with modest size asymmetry or many
+types. The memory consumed by the stenciled cell list is typically much lower than that used
 for a comparable simple cell list because of the way the stencils constructed to query the cell list. However, this
 comes at the expense of higher register usage on CUDA devices, which may lead to reduced performance compared to the
 simple cell list in some cases depending on your CUDA device's architecture.
@@ -105,9 +106,10 @@ The LBVH algorithm is *O(N* log *N)* to search the tree.
     :alt: LBVH tree schematic
 
 We have found that LBVHs (:py:class:`hoomd.md.nlist.tree`) are very useful for systems with size asymmetry greater than 2:1 between the largest
-and smallest cutoffs, and when the fraction of large particles is dilute (< 20%). These conditions are typical of many
-colloidal systems. Additionally, LBVHs can be used advantageously in sparse systems or systems with large volumes,
-where they have less overhead and memory demands than cell lists.
+and smallest cutoffs. These conditions are typical of many colloidal systems. Additionally, LBVHs can be used advantageously in sparse systems
+or systems with large volumes, where they have less overhead and memory demands than cell lists. The performance of the
+LBVHs has been improved since their original implementation (see `M.P. Howard et al. 2019 <https://doi.org/10.1016/j.commatsci.2019.04.004>`_
+for details), making them more competitive for different types of systems.
 
 Multiple neighbor lists
 -----------------------

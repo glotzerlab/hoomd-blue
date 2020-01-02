@@ -105,6 +105,8 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
 
         std::vector<cufftHandle> m_cufft_plan;          //!< The FFT plans
         bool m_local_fft;                  //!< True if we are only doing local FFTs (not distributed)
+        bool m_cufft_initialized;          //!< True if CUFFT has been initialized
+        bool m_cuda_dfft_initialized;      //!< True if dfft has been initialized
 
         #ifdef ENABLE_MPI
         typedef CommunicatorGridGPU<cufftComplex> CommunicatorGridGPUComplex;
