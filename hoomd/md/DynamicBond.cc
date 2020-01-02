@@ -36,7 +36,6 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
 
     // construct a vector to track # of eligible bonds (i.e. "loops" on each particle)
     int n_particles = m_pdata->getN();
-    m_nloops.resize(n_particles);
     }
 
 
