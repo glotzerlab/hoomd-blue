@@ -138,7 +138,7 @@ void PopBD::update(unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
     // Access bond data
-    m_bond_data = m_sysdef->getBondData();
+    // m_bond_data = m_sysdef->getBondData();
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
@@ -191,10 +191,10 @@ void PopBD::update(unsigned int timestep)
                 // count the number of bonds between i and j
                 int n_bonds = h_gpu_n_bonds.data[i];
                 int nbridges_ij = 0;
-                for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+                for (int bond_number = 0; bond_number < n_bonds; bond_number++)
                     {
-                    group_storage<2> cur_bond = h_gpu_bondlist.data[gpu_table_indexer(i, bond_idx)];
-                    int bonded_idx = cur_bond.idx[0]; // bonded-particle's index
+                    group_storage<2> current_bond = h_gpu_bondlist.data[gpu_table_indexer(i, bond_number)];
+                    int bonded_idx = current_bond.idx[0]; // bonded-particle's index
                     if (bonded_idx == j)
                         {
                         nbridges_ij += 1;
@@ -239,6 +239,8 @@ void PopBD::update(unsigned int timestep)
                 Scalar M = M0 + f * (M1 - M0);
                 Scalar L = L0 + f * (L1 - L0);
 
+
+
                 // (1) Compute P_ij, P_ji, and Q_ij
 
                 Scalar p0 = m_delta_t * L;
@@ -277,11 +279,12 @@ void PopBD::update(unsigned int timestep)
                 // (5) check to see if a bond should be broken between particles i and j
                 if (rnd3 < q_ij && nbridges_ij >= 1)
                     {
-                    // remove one bond between i and j for each of the bonds in the *system*
+                    // remove one bond between i and j
+                    // iterate over each of the bonds in the *system*
                     const unsigned int size = (unsigned int)m_bond_data->getN();
                     for (unsigned int bond_number = 0; bond_number < size; bond_number++)
                         {
-                        // look up the tag of each of the particles participating in the bond
+                        // look up the tag of both of the particles participating in the bond
                         const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
                         assert(bond.tag[0] < m_pdata->getN());
                         assert(bond.tag[1] < m_pdata->getN());

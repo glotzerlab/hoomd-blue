@@ -14,8 +14,6 @@ from hoomd.md import _md
 import hoomd
 from hoomd.update import _updater
 import math
-import sys
-
 
 
 def _table_eval(r, rmin, rmax, XB, M, L, dr):
