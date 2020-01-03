@@ -5,8 +5,6 @@
 #ifndef __DFFT_CUFFT_SINGLE_INTERFACE_H__
 #define __DFFT_CUFFT_SINGLE_INTERFACE_H__
 
-#pragma GCC visibility push(default)
-
 #include <hip/hip_runtime.h>
 
 #if defined(ENABLE_HIP)
@@ -18,6 +16,8 @@ typedef cufftComplex hipfftComplex;
 typedef cufftHandle hipfftHandle;
 #endif
 #endif
+
+#pragma GCC visibility push(default)
 
 typedef float cuda_scalar_t;
 typedef hipfftComplex cuda_cpx_t;

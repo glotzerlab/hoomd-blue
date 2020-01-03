@@ -5,12 +5,12 @@
 #ifndef __DFFT_COMMON_H__
 #define __DFFT_COMMON_H__
 
-#pragma GCC visibility push(default)
-
 #include <dfft_lib_config.h>
 #include "dfft_local_fft_config.h"
 
 #include <mpi.h>
+
+#pragma GCC visibility push(default)
 
 /*
  * Data structure for a distributed FFT

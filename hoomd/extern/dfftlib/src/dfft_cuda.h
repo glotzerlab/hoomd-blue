@@ -5,8 +5,6 @@
 #ifndef __DFFT_CUDA_H__
 #define __DFFT_CUDA_H__
 
-#pragma GCC visibility push(default)
-
 #include <dfft_lib_config.h>
 
 #ifdef ENABLE_HIP
@@ -19,6 +17,8 @@
 #else
 #define EXTERN_DFFT
 #endif
+
+#pragma GCC visibility push(default)
 
 /*
  * Create a device plan for distributed FFT

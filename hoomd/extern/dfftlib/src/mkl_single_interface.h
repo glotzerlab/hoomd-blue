@@ -4,10 +4,10 @@
 #ifndef __DFFT_MKL_SINGLE_INTERFACE_H__
 #define __DFFT_MKL_SINGLE_INTERFACE_H__
 
-#pragma GCC visibility push(default)
-
 #include <omp.h>
 #include <mkl.h>
+
+#pragma GCC visibility push(default)
 
 #define FFT1D_SUPPORTS_THREADS
 
