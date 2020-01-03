@@ -4,7 +4,7 @@
 #ifndef __DFFT_BARE_FFT_INTERFACE_H__
 #define __DFFT_BARE_FFT_INTERFACE_H__
 
-#pragma GCC visibility push(hidden)
+#pragma GCC visibility push(default)
 
 #include "bare_fft.h"
 #include <stdlib.h>
