@@ -15,7 +15,7 @@ PYTHON_LIBRARY_PATH=$(python -c "import distutils.sysconfig as sysconfig; import
 CMAKE_FLAGS="${CMAKE_FLAGS} -DPYTHON_LIBRARY=${PYTHON_LIBRARY_PATH}"
 
 # Install to the conda packages path
-CMAKE_FLAGS="${CMAKE_FLAGS} -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX}/lib/python3.6/site-packages"
+CMAKE_FLAGS="${CMAKE_FLAGS} -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX}/lib/python3.7/site-packages"
 
 cmake ../ ${CMAKE_FLAGS}
 make -j4

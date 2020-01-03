@@ -33,9 +33,6 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
         : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed), m_r_cut(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
-
-    // construct a vector to track # of eligible bonds (i.e. "loops" on each particle)
-    int n_particles = m_pdata->getN();
     }
 
 
@@ -69,6 +66,9 @@ DynamicBond::~DynamicBond()
 
 void DynamicBond::update(unsigned int timestep)
     {
+    // start the profile for this compute
+    if (m_prof) m_prof->push("DynamicBond");
+
     assert(m_pdata);
     assert(m_nlist);
 
@@ -77,9 +77,6 @@ void DynamicBond::update(unsigned int timestep)
 
     // get box dimensions
     const BoxDim& box = m_pdata->getGlobalBox();
-
-    // start the profile for this compute
-    if (m_prof) m_prof->push("DynamicBond");
 
     // access the neighbor list
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
@@ -92,37 +89,29 @@ void DynamicBond::update(unsigned int timestep)
 
     // Access bond data
     m_bond_data = m_sysdef->getBondData();
-
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
-    // ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int>  h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
-
-    assert(h_pos);
     Scalar r_cut_sq = m_r_cut*m_r_cut;
 
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
-
         // Access the GPU bond table for reading
         const Index2D& gpu_table_indexer = this->m_bond_data->getGPUTableIndexer();
         ArrayHandle<BondData::members_t> h_gpu_bondlist(this->m_bond_data->getGPUTable(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int > h_gpu_n_bonds(this->m_bond_data->getNGroupsArray(), access_location::host, access_mode::read);
 
         // Access the CPU bond table for reading
-        ArrayHandle<unsigned int>  h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
+        ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
 
-       // initialize the RNG
+        // initialize the RNG
         detail::Saru saru(i, timestep, m_seed);
 
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-
-        // sanity check
         assert(typei < m_pdata->getNTypes());
 
         // access diameter of particle i
@@ -174,7 +163,6 @@ void DynamicBond::update(unsigned int timestep)
                 // generate random numbers
                     Scalar rnd1 = saru.s<Scalar>(0,1);
                     Scalar rnd2 = saru.s<Scalar>(0,1);
-                    Scalar rnd3 = saru.s<Scalar>(0,1);
 
                 // check to see if a bond should be created between particles i and j
                 if (rnd1 < m_prob_form)
@@ -183,10 +171,10 @@ void DynamicBond::update(unsigned int timestep)
                     }
 
                 // check to see if a bond should be broken between particles i and j
-                if (rnd3 < m_prob_break and nbridges_ij >=1.0)
+                if (rnd2 < m_prob_break and nbridges_ij >= 1.0)
                     {
                     // remove one bond between i and j
-                    // for each of the bonds in the *system*
+                    // iterate each of the bonds in the *system*
                     const unsigned int size = (unsigned int)m_bond_data->getN();
                     for (unsigned int bond_number = 0; bond_number < size; bond_number++) // turn into hashtable look-up
                         {
