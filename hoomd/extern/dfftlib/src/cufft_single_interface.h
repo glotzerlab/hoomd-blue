@@ -5,6 +5,8 @@
 #ifndef __DFFT_CUFFT_SINGLE_INTERFACE_H__
 #define __DFFT_CUFFT_SINGLE_INTERFACE_H__
 
+#pragma GCC visibility push(default)
+
 #include <hip/hip_runtime.h>
 
 #if defined(ENABLE_HIP)
@@ -80,4 +82,7 @@ int dfft_cuda_destroy_local_plan(cuda_plan_t *p);
 int dfft_cuda_local_fft( cuda_cpx_t *in, cuda_cpx_t *out, cuda_plan_t p, int dir);
 
 #endif /* NVCC */
+
+#pragma GCC visibility pop
+
 #endif

@@ -4,6 +4,8 @@
 #ifndef __DFFT_BARE_FFT_INTERFACE_H__
 #define __DFFT_BARE_FFT_INTERFACE_H__
 
+#pragma GCC visibility push(hidden)
+
 #include "bare_fft.h"
 #include <stdlib.h>
 
@@ -49,4 +51,7 @@ void dfft_local_1dfft(
     cpx_t *out,
     plan_t p,
     int dir);
+
+#pragma GCC visibility pop
+
 #endif

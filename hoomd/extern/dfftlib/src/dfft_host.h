@@ -5,6 +5,8 @@
 #ifndef __DFFT_HOST_H__
 #define __DFFT_HOST_H__
 
+#pragma GCC visibility push(default)
+
 #include <dfft_lib_config.h>
 #ifdef ENABLE_HOST
 
@@ -40,4 +42,5 @@ EXTERN_DFFT int dfft_execute(cpx_t *h_in, cpx_t *h_out, int dir, dfft_plan p);
 #undef EXTERN_DFFT
 
 #endif // ENABLE_HOST
+#pragma GCC visibility pop
 #endif

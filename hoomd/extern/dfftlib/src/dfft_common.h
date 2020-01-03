@@ -5,6 +5,8 @@
 #ifndef __DFFT_COMMON_H__
 #define __DFFT_COMMON_H__
 
+#pragma GCC visibility push(default)
+
 #include <dfft_lib_config.h>
 #include "dfft_local_fft_config.h"
 
@@ -125,4 +127,5 @@ int dfft_create_plan_common(dfft_plan *plan,
  */
 void dfft_destroy_plan_common(dfft_plan plan, int device);
 
+#pragma GCC visibility pop
 #endif

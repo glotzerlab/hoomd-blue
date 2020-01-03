@@ -5,6 +5,8 @@
 #ifndef __DFFT_CUDA_H__
 #define __DFFT_CUDA_H__
 
+#pragma GCC visibility push(default)
+
 #include <dfft_lib_config.h>
 
 #ifdef ENABLE_HIP
@@ -46,4 +48,6 @@ EXTERN_DFFT int dfft_cuda_execute(cuda_cpx_t *id_in, cuda_cpx_t *d_out, int dir,
 #undef EXTERN_DFFT
 #endif
 #endif // ENABLE_HIP
+
+#pragma GCC visibility pop
 #endif

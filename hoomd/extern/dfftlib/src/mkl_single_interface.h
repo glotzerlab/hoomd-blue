@@ -4,6 +4,8 @@
 #ifndef __DFFT_MKL_SINGLE_INTERFACE_H__
 #define __DFFT_MKL_SINGLE_INTERFACE_H__
 
+#pragma GCC visibility push(default)
+
 #include <omp.h>
 #include <mkl.h>
 
@@ -51,4 +53,6 @@ void dfft_local_1dfft(
     cpx_t *out,
     plan_t p,
     int dir);
+
+#pragma GCC visibility pop
 #endif
