@@ -851,10 +851,8 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
         }
     }
 
-void GSDDumpWriter::writeLogQuantity(std::string name, pybind11::object obj)
+void GSDDumpWriter::writeLogQuantities(pybind11::dict dict)
     {
-    m_exec_conf->msg->notice(10) << "dump.gsd: writing " << name << endl;
-
     bool root=true;
     #ifdef ENABLE_MPI
     root = m_exec_conf->isRoot();
@@ -863,73 +861,99 @@ void GSDDumpWriter::writeLogQuantity(std::string name, pybind11::object obj)
     // only evaluate the numpy array on the root rank
     if (root)
         {
-        pybind11::array arr = pybind11::array::ensure(obj, pybind11::array::c_style);
-        gsd_type type = GSD_TYPE_UINT8;
-        auto dtype = arr.dtype();
-        if (dtype.kind() == 'u' && dtype.itemsize() == 1)
+        for (auto key_iter = dict.begin(); key_iter != dict.end(); ++key_iter)
             {
-            type = GSD_TYPE_UINT8;
-            }
-        else if (dtype.kind() == 'u' && dtype.itemsize() == 2)
-            {
-            type = GSD_TYPE_UINT16;
-            }
-        else if (dtype.kind() == 'u' && dtype.itemsize() == 4)
-            {
-            type = GSD_TYPE_UINT32;
-            }
-        else if (dtype.kind() == 'u' && dtype.itemsize() == 8)
-            {
-            type = GSD_TYPE_UINT64;
-            }
-        else if (dtype.kind() == 'i' && dtype.itemsize() == 1)
-            {
-            type = GSD_TYPE_INT8;
-            }
-        else if (dtype.kind() == 'i' && dtype.itemsize() == 2)
-            {
-            type = GSD_TYPE_INT16;
-            }
-        else if (dtype.kind() == 'i' && dtype.itemsize() == 4)
-            {
-            type = GSD_TYPE_INT32;
-            }
-        else if (dtype.kind() == 'i' && dtype.itemsize() == 8)
-            {
-            type = GSD_TYPE_INT64;
-            }
-        else if (dtype.kind() == 'f' && dtype.itemsize() == 4)
-            {
-            type = GSD_TYPE_FLOAT;
-            }
-        else if (dtype.kind() == 'f' && dtype.itemsize() == 8)
-            {
-            type = GSD_TYPE_DOUBLE;
-            }
-        else
-            {
-            throw runtime_error("Invalid numpy array format in gsd log data [" + name + "]: "
-                                + string(pybind11::str(arr.dtype())));
-            }
+            std::string name = pybind11::cast<std::string>(key_iter->first);
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing " << name << endl;
 
-        int M = 1;
-        if (arr.ndim() == 2)
-            {
-            M = arr.shape(1);
-            }
-        if (arr.ndim() > 2 || arr.ndim() == 0)
-            {
-            throw runtime_error("Invalid numpy dimension in gsd log data [" + name + "]");
-            }
+            pybind11::array arr = pybind11::array::ensure(key_iter->second,
+                                                          pybind11::array::c_style);
+            gsd_type type = GSD_TYPE_UINT8;
+            auto dtype = arr.dtype();
+            if (dtype.kind() == 'u' && dtype.itemsize() == 1)
+                {
+                type = GSD_TYPE_UINT8;
+                }
+            else if (dtype.kind() == 'u' && dtype.itemsize() == 2)
+                {
+                type = GSD_TYPE_UINT16;
+                }
+            else if (dtype.kind() == 'u' && dtype.itemsize() == 4)
+                {
+                type = GSD_TYPE_UINT32;
+                }
+            else if (dtype.kind() == 'u' && dtype.itemsize() == 8)
+                {
+                type = GSD_TYPE_UINT64;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 1)
+                {
+                type = GSD_TYPE_INT8;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 2)
+                {
+                type = GSD_TYPE_INT16;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 4)
+                {
+                type = GSD_TYPE_INT32;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 8)
+                {
+                type = GSD_TYPE_INT64;
+                }
+            else if (dtype.kind() == 'f' && dtype.itemsize() == 4)
+                {
+                type = GSD_TYPE_FLOAT;
+                }
+            else if (dtype.kind() == 'f' && dtype.itemsize() == 8)
+                {
+                type = GSD_TYPE_DOUBLE;
+                }
+            else if (dtype.kind() == 'b' && dtype.itemsize() == 1)
+                {
+                type = GSD_TYPE_UINT8;
+                }
+            else
+                {
+                throw runtime_error("Invalid numpy array format in gsd log data [" + name + "]: "
+                                    + string(pybind11::str(arr.dtype())));
+                }
 
-        int retval = gsd_write_chunk(&m_handle,
-                                     name.c_str(),
-                                     type,
-                                     arr.shape(0),
-                                     M,
-                                     0,
-                                     (void *)arr.data());
-        checkError(retval);
+            size_t M = 1;
+            size_t N = 1;
+            auto ndim = arr.ndim();
+            if (ndim == 0)
+                {
+                // numpy converts scalars to arrays with zero dimensions
+                // gsd treats them as 1x1 arrays.
+                M = 1;
+                N = 1;
+                }
+            if (ndim == 1)
+                {
+                N = arr.shape(0);
+                M = 1;
+                }
+            if (ndim == 2)
+                {
+                N = arr.shape(0);
+                M = arr.shape(1);
+                }
+            if (ndim > 2)
+                {
+                throw runtime_error("Invalid numpy dimension in gsd log data [" + name + "]");
+                }
+
+            int retval = gsd_write_chunk(&m_handle,
+                                        name.c_str(),
+                                        type,
+                                        N,
+                                        M,
+                                        0,
+                                        (void *)arr.data());
+            checkError(retval);
+            }
         }
     }
 
@@ -1017,7 +1041,7 @@ void export_GSDDumpWriter(py::module& m)
         .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)
         .def("setWriteMomentum", &GSDDumpWriter::setWriteMomentum)
         .def("setWriteTopology", &GSDDumpWriter::setWriteTopology)
-        .def("writeLogQuantity", &GSDDumpWriter::writeLogQuantity)
+        .def("writeLogQuantities", &GSDDumpWriter::writeLogQuantities)
         .def_property("log_writer", &GSDDumpWriter::getLogWriter, &GSDDumpWriter::setLogWriter)
         .def_property_readonly("filename", &GSDDumpWriter::getFilename)
         .def_property_readonly("overwrite", &GSDDumpWriter::getOverwrite)

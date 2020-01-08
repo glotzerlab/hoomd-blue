@@ -111,3 +111,22 @@ def dict_fold(dict_, func, init_value, use_keys=False):
             else:
                 final_value = func(value, final_value)
     return final_value
+
+
+def dict_flatten(dict_):
+    return _dict_flatten(dict_, None)
+
+
+def _dict_flatten(value, key):
+    if key is None:
+        new_dict = dict()
+        for key, inner in value.items():
+            new_dict.update(_dict_flatten(inner, (key,)))
+        return new_dict
+    elif not isinstance(value, dict):
+        return {key: value}
+    else:
+        new_dict = dict()
+        for k, val in value.items():
+            new_dict.update(_dict_flatten(val, key + (k,)))
+        return new_dict

@@ -11,11 +11,14 @@ each command writes.
 from collections import namedtuple
 from hoomd.filters import All
 from hoomd import _hoomd
+from hoomd.util import dict_flatten
+from hoomd.logger import Logger
+import numpy as np
 import hoomd
 import json
 import os
-import sys
 import types
+
 
 class dcd(hoomd.analyze._analyzer):
     R""" Writes simulation snapshots in the DCD format
@@ -94,6 +97,7 @@ class dcd(hoomd.analyze._analyzer):
 
         hoomd.context.current.device.cpp_msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
+
 
 class getar(hoomd.analyze._analyzer):
     """Analyzer for dumping system properties to a getar file at intervals.
@@ -483,6 +487,7 @@ class getar(hoomd.analyze._analyzer):
         """Closes the trajectory if it is open. Finalizes any IO beforehand."""
         self.cpp_analyzer.close();
 
+
 class GSD(hoomd.meta._Analyzer):
     R""" Write simulation trajectories in the GSD format.
 
@@ -496,11 +501,12 @@ class GSD(hoomd.meta._Analyzer):
         truncate (bool): When True, truncate the file and write a new frame 0
                          each time this operation triggers.
         dynamic (list[str]): Quantity categories to save in every frame.
+        log (``hoomd.logger.Logger``): A ``Logger`` object for GSD logging.
 
     .. note::
 
         All parameters are also available as instance attributes. Only
-        *trigger* may be modified after construction.
+        *trigger* and *log* may be modified after construction.
 
     :py:class:`GSD` Write a simulation snapshot to the specified file each time
     it triggers. :py:class:`GSD` can store all particle, bond, angle, dihedral,
@@ -568,32 +574,6 @@ class GSD(hoomd.meta._Analyzer):
         :py:class:`GSD` will write out all of the selected particles in
         ascending tag order and will **not** write out **topology**.
 
-    .. rubric:: State data
-
-    Some HOOMD operations can provide internal state data that :py:class:`GSD`
-    can save to the file. Call :py:meth:`dump_state` with the object as an
-    argument to write its state in each frame. State saved in this way can be
-    restored after initializing the system with :py:meth:`hoomd.init.read_gsd`.
-
-    .. rubric:: User-defined log quantities
-
-    Associate a name with a callable python object that returns a numpy array
-    in ``log``, and :py:class:`GSD` will save the data you provide on
-    every frame. Prefix per-particle quantities with ``particles/`` and
-    per-bond quantities with ``bonds/`` so that visualization tools such as
-    `OVITO <https://www.ovito.org/>`_ will make them available in their
-    pipelines. OVITO also understand scalar values (length 1 numpy arrays) and
-    strings encoded as uint8 numpy arrays.
-
-    ``log`` is a dictionary that maps keys to callables. The key provides the
-    name of the data chunk in the gsd file (e.g.
-    ``particles/lj_potential_energy``). The value is a callable Python object
-    that takes the current time step as an argument and returns a numpy array
-    that has 1 or 2 dimensions and has a data type supported by `gsd
-    <https://gsd.readthedocs.io>`_.
-
-    Delete a key from ``log`` to stop logging that quantity.
-
     .. note::
 
         All logged data chunks must be present in the first frame in the gsd
@@ -620,7 +600,8 @@ class GSD(hoomd.meta._Analyzer):
                  filter=All(),
                  overwrite=False,
                  truncate=False,
-                 dynamic=None):
+                 dynamic=None,
+                 log=None):
 
         super().__init__(trigger)
 
@@ -629,7 +610,9 @@ class GSD(hoomd.meta._Analyzer):
                                 overwrite=overwrite,
                                 truncate=truncate,
                                 dynamic=dynamic,
-                                log_writer=None)
+                                )
+
+        self._log = None if log is None else GSDLogWriter(log)
 
     def attach(self, simulation):
         # validate dynamic property
@@ -654,6 +637,7 @@ class GSD(hoomd.meta._Analyzer):
         self._cpp_obj.setWriteProperty('property' in dynamic_quantities)
         self._cpp_obj.setWriteMomentum('momentum' in dynamic_quantities)
         self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
+        self._cpp_obj.log_writer = self.log
         super().attach(simulation)
 
     def dump_state(self, obj):
@@ -704,3 +688,67 @@ class GSD(hoomd.meta._Analyzer):
             obj._connect_gsd_shape_spec(self)
         else:
             raise RuntimeError("GSD.dump_shape does not support {}".format(obj.__class__.__name__))
+
+    @property
+    def log(self):
+        return self._log
+
+    @log.setter
+    def log(self, log):
+        if isinstance(log, Logger):
+            log = GSDLogWriter(log)
+        else:
+            raise ValueError("GSD.log can only be set with a Logger.")
+        if self.is_attached:
+            self._cpp_obj.log_writer = log
+        self._log = log
+
+
+class GSDLogWriter:
+
+    _per_keys = ['particles', 'bonds', 'dihedrals', 'impropers', 'pairs']
+    _convert_kinds = ['string']
+    _special_keys = ['type_shapes']
+    _global_prepend = 'log'
+
+    def __init__(self, logger):
+        self.logger = logger
+
+    def log(self):
+        log = dict()
+        for key, value in dict_flatten(self.logger.log()).items():
+            log_value, kind = value
+            if key[-1] in self._special_keys:
+                self._log_special(log, key[-1], log_value)
+            else:
+                if kind in self._per_keys:
+                    log['/'.join((self._global_prepend,
+                                  kind) + key)] = log_value
+                elif kind in self._convert_kinds:
+                    self._log_convert_value(
+                        log, '/'.join((self._global_prepend,) + key),
+                        kind, value)
+                else:
+                    log['/'.join((self._global_prepend,) + key)] = \
+                        log_value
+        return log
+
+    def _write_frame(self, _gsd):
+        _gsd.writeLogQuantities(self.log())
+
+    def _log_special(self, dict_, key, value):
+        if key == 'type_shapes':
+            shape_list = [bytes(json.dumps(type_shape) + '\0', 'UTF-8')
+                          for type_shape in value]
+            max_len = np.max([len(shape) for shape in shape_list])
+            num_shapes = len(shape_list)
+            str_array = np.array(shape_list)
+            dict_['particles/type_shapes'] = \
+                str_array.view(dtype=np.int8).reshape(num_shapes, max_len)
+
+    def _log_convert_value(self, dict_, key, kind, value):
+        if kind == 'string':
+            value = bytes(value, 'UTF-8')
+            value = np.array([value], dtype=np.dtype((bytes, len(value) + 1)))
+            value = value.view(dtype=np.int8)
+        dict_[key] = value
