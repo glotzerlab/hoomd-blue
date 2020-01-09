@@ -17,6 +17,8 @@ typedef cufftHandle hipfftHandle;
 #endif
 #endif
 
+#pragma GCC visibility push(default)
+
 typedef float cuda_scalar_t;
 typedef hipfftComplex cuda_cpx_t;
 typedef hipfftHandle cuda_plan_t;
@@ -80,4 +82,7 @@ int dfft_cuda_destroy_local_plan(cuda_plan_t *p);
 int dfft_cuda_local_fft( cuda_cpx_t *in, cuda_cpx_t *out, cuda_plan_t p, int dir);
 
 #endif /* NVCC */
+
+#pragma GCC visibility pop
+
 #endif
