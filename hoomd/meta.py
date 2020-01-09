@@ -21,6 +21,7 @@ from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
 from hoomd.triggers import PeriodicTrigger, Trigger
 from hoomd.logger import Loggable
 from hoomd.util import NamespaceDict
+from hoomd._hoomd import GSDStateReader
 import json
 import time
 import datetime
@@ -38,6 +39,16 @@ def note_type(value):
         return (value, 'string')
     else:
         return (value, 'multi')
+
+
+def handle_gsd_arrays(arr):
+    if arr.size == 1:
+        return arr[0]
+    if arr.ndim == 1:
+        if arr.size < 3:
+            return tuple(arr.flatten())
+    else:
+        return arr
 
 
 class _Operation(metaclass=Loggable):
@@ -207,6 +218,26 @@ class _Operation(metaclass=Loggable):
                              "".format(data))
 
         return (state, kwargs)
+
+    @classmethod
+    def _state_from_gsd(cls, filename, namespace, **kwargs):
+        if 'frame' not in kwargs.keys():
+            frame = -1
+        else:
+            frame = kwargs['frame']
+            del kwargs['frame']
+        # Grab state keys from gsd
+        reader = GSDStateReader(filename, frame)
+        namespace_str = 'log/' + '/'.join(namespace)
+        state_chunks = reader.getAvailableChunks(namespace_str)
+        state_dict = NamespaceDict()
+        chunk_slice = slice(len(namespace_str + 1), None)
+        # Build up state dict
+        for state_chunk in state_chunks:
+            state_dict_key = tuple(state_chunk[chunk_slice].split('/'))
+            state_dict[state_dict_key] = \
+                handle_gsd_arrays(reader.readChunk(state_chunk))
+        return (state_dict._dict, kwargs)
 
     @classmethod
     def _from_state_with_state_dict(cls, state, **kwargs):
