@@ -6,13 +6,14 @@
 R""" Utilities.
 """
 
-import sys;
-import traceback;
-import os.path;
-import linecache;
-import re;
-import hoomd;
-from hoomd import _hoomd;
+import sys
+from copy import deepcopy
+import traceback
+import os.path
+import linecache
+import re
+import hoomd
+from hoomd import _hoomd
 
 ## \internal
 # \brief Compatibility definition of a basestring for python 2/3
@@ -33,7 +34,7 @@ def listify(s):
 
 ## \internal
 # \brief Internal flag tracking if status lines should be quieted
-_status_quiet_count = 0;
+_status_quiet_count = 0
 
 def cuda_profile_start():
     """ Start CUDA profiling.
@@ -46,20 +47,20 @@ def cuda_profile_start():
     Example::
 
         from hoomd import *
-        init.read_xml("init.xml");
+        init.read_xml("init.xml")
         # setup....
         run(30000);  # warm up and auto-tune kernel block sizes
         option.set_autotuner_params(enable=False);  # prevent block sizes from further autotuning
-        cuda_profile_start();
-        run(100);
+        cuda_profile_start()
+        run(100)
 
     """
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        raise RuntimeError("Cannot start profiling before initialization\n");
+        raise RuntimeError("Cannot start profiling before initialization\n")
 
     if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-        hoomd.context.current.device.cpp_exec_conf.cudaProfileStart();
+        hoomd.context.current.device.cpp_exec_conf.cudaProfileStart()
 
 def cuda_profile_stop():
     """ Stop CUDA profiling.
@@ -69,11 +70,11 @@ def cuda_profile_stop():
     """
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot stop profiling before initialization\n");
-        raise RuntimeError('Error stopping profile');
+        hoomd.context.current.device.cpp_msg.error("Cannot stop profiling before initialization\n")
+        raise RuntimeError('Error stopping profile')
 
     if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-        hoomd.context.current.device.cpp_exec_conf.cudaProfileStop();
+        hoomd.context.current.device.cpp_exec_conf.cudaProfileStop()
 
 
 def to_camel_case(string):
@@ -130,12 +131,6 @@ def _dict_flatten(value, key):
         for k, val in value.items():
             new_dict.update(_dict_flatten(val, key + (k,)))
         return new_dict
-
-
-def str_to_tuple_keys(dict_):
-    pattern = re.compile(r"'([^']*)'")
-    return {tuple(pattern.findall(key)): value
-            for key, value in dict_.items()}
 
 
 class NamespaceDict:
@@ -264,3 +259,8 @@ def str_to_tuple_parse(string):
     # Add the last type
     type_list.append(next_type + string[beg:end])
     return tuple(type_list)
+
+
+def str_to_tuple_keys(dict_):
+    return {str_to_tuple_parse(key): value
+            for key, value in dict_.items()}
