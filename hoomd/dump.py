@@ -172,7 +172,7 @@ class getar(hoomd.analyze._analyzer):
         dem_wca.setParams('A', vertices=vertices, faces=faces)
         dump.writeJSON('type_shapes.json', dem_wca.get_type_shapes())
 
-        mc = hpmc.integrate.convex_polygon(seed=415236)
+        mc = hpmc.integrate.ConvexPolygon(seed=415236)
         mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)])
         dump.writeJSON('type_shapes.json', mc.get_type_shapes(), dynamic=True)
 
@@ -665,13 +665,13 @@ class GSD(hoomd.meta._Analyzer):
         writing shape information to GSD files:
 
         * :py:class:`hoomd.hpmc.integrate.Sphere`
-        * :py:class:`hoomd.hpmc.integrate.convex_polyhedron`
-        * :py:class:`hoomd.hpmc.integrate.convex_spheropolyhedron`
-        * :py:class:`hoomd.hpmc.integrate.polyhedron`
-        * :py:class:`hoomd.hpmc.integrate.convex_polygon`
-        * :py:class:`hoomd.hpmc.integrate.convex_spheropolygon`
-        * :py:class:`hoomd.hpmc.integrate.simple_polygon`
-        * :py:class:`hoomd.hpmc.integrate.ellipsoid`
+        * :py:class:`hoomd.hpmc.integrate.ConvexPolyhedron`
+        * :py:class:`hoomd.hpmc.integrate.ConvexSpheropolyhedron`
+        * :py:class:`hoomd.hpmc.integrate.Polyhedron`
+        * :py:class:`hoomd.hpmc.integrate.ConvexPolygon`
+        * :py:class:`hoomd.hpmc.integrate.ConvexSpheropolygon`
+        * :py:class:`hoomd.hpmc.integrate.SimplePolygon`
+        * :py:class:`hoomd.hpmc.integrate.Ellipsoid`
         * :py:class:`hoomd.dem.pair.WCA`
         * :py:class:`hoomd.dem.pair.SWCA`
         * :py:class:`hoomd.md.pair.gb`

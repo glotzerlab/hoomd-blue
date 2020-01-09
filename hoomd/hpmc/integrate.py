@@ -366,7 +366,7 @@ class ConvexPolygon(HPMCIntegrator):
                              for a description of what state data restored. (added in version 2.2)
 
     Note:
-        For concave polygons, use :py:class:`simple_polygon`.
+        For concave polygons, use :py:class:`SimplePolygon`.
 
     Convex polygon parameters:
 
@@ -386,7 +386,7 @@ class ConvexPolygon(HPMCIntegrator):
 
     Examples::
 
-        mc = hpmc.integrate.convex_polygon(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.ConvexPolygon(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
 
@@ -457,7 +457,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
     Examples::
 
-        mc = hpmc.integrate.convex_spheropolygon(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.ConvexSpheropolygon(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)], sweep_radius=0.1, ignore_statistics=False);
         mc.shape_param.set('A', vertices=[(0,0)], sweep_radius=0.5, ignore_statistics=True);
         print('vertices = ', mc.shape_param['A'].vertices)
@@ -508,8 +508,8 @@ class SimplePolygon(HPMCIntegrator):
                              for a description of what state data restored. (added in version 2.2)
 
     Note:
-        For simple polygons that are not concave, use :py:class:`convex_polygon`, it will execute much faster than
-        :py:class:`simple_polygon`.
+        For simple polygons that are not concave, use :py:class:`ConvexPolygon`, it will execute much faster than
+        :py:class:`SimplePolygon`.
 
     Simple polygon parameters:
 
@@ -528,7 +528,7 @@ class SimplePolygon(HPMCIntegrator):
 
     Examples::
 
-        mc = hpmc.integrate.simple_polygon(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.SimplePolygon(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(0, 0.5), (-0.5, -0.5), (0, 0), (0.5, -0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
 
@@ -705,13 +705,13 @@ class ConvexPolyhedron(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.ConvexPolyhedron(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
 
     Depletants Example::
 
-        mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.ConvexPolyhedron(seed=415236, d=0.3, a=0.4)
         mc.set_param(nselect=1)
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
@@ -797,7 +797,7 @@ class FacetedEllipsoid(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.FacetedEllipsoid(seed=415236, d=0.3, a=0.4)
 
         # half-space intersection
         slab_normals = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)]
@@ -811,7 +811,7 @@ class FacetedEllipsoid(HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.faceted_ellipsoid(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.FacetedEllipsoid(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],a=1.0, b=0.5, c=0.25);
         # depletant sphere
         mc.shape_param.set('B', normals=[],a=0.1,b=0.1,c=0.1);
@@ -992,14 +992,14 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.ConvexSpheropolyhedron(seed=415236, d=0.3, a=0.4)
         mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
         mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1, ignore_statistics=True);
 
     Depletants example::
 
-        mc = hpmc.integrate.convex_spheropolyhedron(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.ConvexSpheropolyhedron(seed=415236, d=0.3, a=0.4)
         mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
         mc.set_fugacity('B',fugacity=3.0)
@@ -1040,7 +1040,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
 
 class Ellipsoid(HPMCIntegrator):
     R""" HPMC integration for ellipsoids (2D/3D).
-​
+
     Args:
         seed (int): Random number seed.
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
@@ -1049,22 +1049,22 @@ class Ellipsoid(HPMCIntegrator):
         nselect (int): The number of trial moves to perform in each cell.
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
-​
+
     Ellipsoid parameters:
-​
+
     * *a* (**required**) - principle axis a of the ellipsoid (radius in the x direction) (distance units)
     * *b* (**required**) - principle axis b of the ellipsoid (radius in the y direction) (distance units)
     * *c* (**required**) - principle axis c of the ellipsoid (radius in the z direction) (distance units)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
-​
+
     Example::
-​
+
         mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
         print('ellipsoids parameters (a,b,c) = ', mc.shape_param['A'].a, mc.shape_param['A'].b, mc.shape_param['A'].c)
-​
+
     Depletants Example::
-​
+
         mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
         mc.set_param(nselect=1)
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
@@ -1133,14 +1133,14 @@ class SphereUnion(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.SphereUnion(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
         print('diameter of the first sphere = ', mc.shape_param['A'].members[0].diameter)
         print('center of the first sphere = ', mc.shape_param['A'].centers[0])
 
     Depletants Example::
 
-        mc = hpmc.integrate.sphere_union(seed=415236, d=0.3, a=0.4)
+        mc = hpmc.integrate.SphereUnion(seed=415236, d=0.3, a=0.4)
         mc.set_param(nselect=1)
         mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
@@ -1195,7 +1195,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.convex_spheropolyhedron_union(seed=27, d=0.3, a=0.4)
+        mc = hpmc.integrate.ConvexSpheropolyhedronUnion(seed=27, d=0.3, a=0.4)
         cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
                      [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
         mc.shape_param.set('A', vertices=[cube_verts, cube_verts],
@@ -1241,7 +1241,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
 
     .. versionadded:: 2.5
 
-    See :py:class:`faceted_ellipsoid` for a detailed explanation of the constituent particle parameters.
+    See :py:class:`FacetedEllipsoid` for a detailed explanation of the constituent particle parameters.
 
     Faceted ellipsiod union parameters:
 
@@ -1255,7 +1255,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.faceted_ellipsoid_union(seed=27, d=0.3, a=0.4)
+        mc = hpmc.integrate.FacetedEllipsoidUnion(seed=27, d=0.3, a=0.4)
 
         # make a prolate Janus ellipsoid
         # cut away -x halfspace
