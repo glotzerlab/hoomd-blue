@@ -185,12 +185,15 @@ class NamespaceDict:
             raise KeyError("Expected a tuple or string key.")
         self._setitem(namespace, value)
 
-    def _unsafe_getitem(self, namespace):
+    def __getitem__(self, namespace):
         ret_val = self._dict
         if isinstance(namespace, str):
             namespace = (namespace,)
-        for name in namespace:
-            ret_val = ret_val[name]
+        try:
+            for name in namespace:
+                ret_val = ret_val[name]
+        except (TypeError, KeyError):
+            raise KeyError("Namespace {} not in dictionary.".format(namespace))
         return ret_val
 
     def __delitem__(self, namespace):
@@ -211,13 +214,16 @@ class NamespaceDict:
         return namespace
 
 
-class SafeNamespaceDict:
+class SafeNamespaceDict(NamespaceDict):
     def __setitem__(self, namespace, value):
         if namespace in self:
             raise KeyError("Namespace {} is being used. Remove before "
                            "replacing.".format(namespace))
         else:
             super().__setitem__(namespace, value)
+
+    def __getitem__(self, namespace):
+        return deepcopy(super().__getitem__(namespace))
 
 
 # Functions for parsing stringified tuples
