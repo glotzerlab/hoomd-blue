@@ -7,6 +7,13 @@ class TypeParameter:
         self.type_kind = type_kind
         self.param_dict = param_dict
 
+    def __getattr__(self, attr):
+        try:
+            return getattr(self.param_dict, attr)
+        except AttributeError:
+            raise AttributeError("'{}' object has no attribute "
+                                 "'{}'".format(type(self), attr))
+
     def __getitem__(self, key):
         return self.param_dict[key]
 
