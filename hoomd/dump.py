@@ -718,6 +718,8 @@ class GSDLogWriter:
         log = dict()
         for key, value in dict_flatten(self.logger.log()).items():
             log_value, kind = value
+            if log_value is None:
+                continue
             if key[-1] in self._special_keys:
                 self._log_special(log, key[-1], log_value)
             else:
