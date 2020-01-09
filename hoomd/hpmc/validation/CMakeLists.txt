@@ -51,6 +51,7 @@ endmacro()
 set(TEST_LIST_CPU
 spheres_implicit.py 0 1
 sphere_eos.py 0 0
+sphere_eos_nec.py 0 0
 disk_eos.py 0 0
 )
 
@@ -64,6 +65,7 @@ endif(BUILD_JIT)
 set(TEST_LIST_GPU
 spheres_implicit.py 0 1
 sphere_eos.py 0 0
+sphere_eos_nec.py 0 0
 disk_eos.py 0 0
 )
 
