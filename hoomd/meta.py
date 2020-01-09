@@ -20,7 +20,7 @@ import hoomd
 from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
 from hoomd.triggers import PeriodicTrigger, Trigger
 from hoomd.logger import Loggable
-from hoomd.util import SafeNamespaceDict
+from hoomd.util import NamespaceDict
 import json
 import time
 import datetime
@@ -154,7 +154,7 @@ class _Operation(metaclass=Loggable):
             self._add_typeparam(typeparam)
 
     def _typeparam_states(self):
-        state = {name: state for name, state in self._typeparam_dict.items()}
+        state = {name: tp.state for name, tp in self._typeparam_dict.items()}
         return deepcopy(state)
 
     @Loggable.log(flag='dict')
@@ -173,7 +173,40 @@ class _Operation(metaclass=Loggable):
 
     @classmethod
     def _get_state_dict(cls, data, final_namespace, **kwargs):
-        pass
+
+        # resolve the namespace
+        namespace = list(cls._export_dict.values())[0].namespace
+        if final_namespace is not None:
+            namespace = namespace[:-1] + (final_namespace,)
+        namespace = namespace + ('state',)
+        # Filenames
+        if isinstance(data, str):
+            if data.endswith('gsd'):
+                state, kwargs = cls._state_from_gsd(data, namespace, **kwargs)
+
+        # Dictionaries and like objects
+        elif isinstance(data, dict):
+            try:
+                # try to grab the namespace
+                state = deepcopy(NamespaceDict(data)[namespace])
+            except KeyError:
+                # if namespace can't be found assume that dictionary is the
+                # state dictionary (This assumes that values are of the form
+                # (value, flag)
+                try:
+                    state = dict_map(data, lambda x: x[0])
+                except TypeError:
+                    state = deepcopy(data)
+
+        elif isinstance(data, NamespaceDict):
+            state = deepcopy(data[namespace])
+
+        # Data is of an unusable type
+        else:
+            raise ValueError("Object {} cannot be used to get state."
+                             "".format(data))
+
+        return (state, kwargs)
 
     @classmethod
     def _from_state_with_state_dict(cls, state, **kwargs):
@@ -186,8 +219,10 @@ class _Operation(metaclass=Loggable):
 
         # Add typeparameter information
         for name, tp_dict in state.items():
-            obj._typeparam_dict[name].default = tp_dict['__default']
-            del tp_dict['__default']
+            if '__default' in tp_dict.keys():
+                obj._typeparam_dict[name].default = tp_dict['__default']
+                del tp_dict['__default']
+            # Parse the stringified tuple back into tuple
             if obj._typeparam_dict[name]._len_keys > 1:
                 tp_dict = str_to_tuple_keys(tp_dict)
             obj._typeparam_dict[name] = tp_dict
