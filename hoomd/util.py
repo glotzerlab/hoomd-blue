@@ -223,3 +223,44 @@ class SafeNamespaceDict:
                            "replacing.".format(namespace))
         else:
             super().__setitem__(namespace, value)
+
+
+# Functions for parsing stringified tuples
+def _escaped_character(string, end):
+    esc_char = string[end + 1]
+    return _escaped_character.dict.get(esc_char, esc_char)
+
+
+_escaped_character.dict = {'n': '\n', 't': '\t', 'r': '\r', 'b': '\b',
+                           'f': '\f', 'v': '\v', '0': '\0', "'": "'", '"': '"'}
+
+
+def str_to_tuple_parse(string):
+    type_list = []
+    next_type = ''
+    final_location = len(string) - 2
+    quote = string[1]
+    beg = 2
+    end = 2
+    # find all types until the last
+    while end < final_location:
+        # if the type name is complete
+        if string[end] == quote:
+            type_list.append(next_type + string[beg:end])
+            next_type = ''
+            # Move to next type beginning
+            end += 3
+            quote = string[end]
+            end += 1
+            beg = end
+        # Convert escaped character
+        elif string[end] == '\\':
+            next_type += string[beg:end] + _escaped_character(string, end)
+            end += 2
+            beg = end
+        # Otherwise move forward one character
+        else:
+            end += 1
+    # Add the last type
+    type_list.append(next_type + string[beg:end])
+    return tuple(type_list)
