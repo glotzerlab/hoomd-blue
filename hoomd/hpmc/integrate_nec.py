@@ -13,6 +13,27 @@ from hoomd.hpmc.integrate import mode_hpmc, setD, setA
 from hoomd.hpmc.integrate import sphere as hpmc_sphere
 from hoomd.hpmc.integrate import convex_polyhedron as hpmc_convex_polyhedron
 
+
+# add HPMC-NEC article citation notice
+import hoomd
+_citation_nec = hoomd.cite.article(cite_key='klement2019',
+                               author=['M Klement', 'M Engel'],
+                               title='Efficient equilibration of hard spheres with Newtonian event chains',
+                               journal='The Journal of Chemical Physics',
+                               volume=150,
+                               pages='174108',
+                               month='May',
+                               year='2019',
+                               doi='10.1063/1.5090882',
+                               feature='HPMC-NEC')
+
+if hoomd.context.bib is None:
+    hoomd.cite._extra_default_entries.append(_citation_nec)
+else:
+    hoomd.context.bib.add(_citation_nec)
+
+
+
 class sphere(hpmc_sphere):
     R""" HPMC chain integration for spheres (2D/3D).
 
@@ -37,12 +58,17 @@ class sphere(hpmc_sphere):
             snapshot.particles.velocity[i] = [ random.uniform(-1,1) for d in range(3) ]
         system.restore_snapshot(snapshot)
 
-        mc = hoomd.hpmc.integrate.sphere_nec(
+        target_nc = 100
+
+        mc = hoomd.hpmc.integrate_nec.sphere(
                     d=0.5,
                     chain_time=10.0,
-                    update_fraction=0.02,
+                    update_fraction=1.0/target_nc,
                     seed=1354765,
                     );
+                    
+        tune_nec_d  = hpmc.util.tune(self.mc, tunables=['d'],         max_val=[4],   gamma=1, target=0.03)
+        tune_nec_ct = hpmc.util.tune(self.mc, tunables=['chain_time'], max_val=[100], gamma=1, target=1.0/target_nc, tunable_map=hoomd.hpmc.integrate_nec.make_tunable_map(mc))
 
     """
 
@@ -78,6 +104,25 @@ class sphere(hpmc_sphere):
 
         if restore_state:
             self.restore_state()
+            
+    def get_particles_per_chain(self):
+        R"""
+        Returns the average number of particles in a chain for the last update step. (For use in a tuner.)
+        """
+        return self.cpp_integrator.getTunerParticlesPerChain()
+
+    def get_chain_time(self):
+        R"""
+        Get the current chain_time value. (For use in a tuner.)
+        """
+        return self.cpp_integrator.getChainTime()
+    
+    def set_chain_time(self,chain_time):
+        R"""
+        Set the chain_time parameter to a new value. (For use in a tuner.)
+        """
+        self.cpp_integrator.setChainTime(chain_time)
+        
 
 
 class convex_polyhedron(hpmc_convex_polyhedron):
@@ -87,12 +132,8 @@ class convex_polyhedron(hpmc_convex_polyhedron):
         seed (int): Random number seed.
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        move_ratio (float): Ratio of chains to rotation moves. As there should be several particles in a chain it will be small. See example.
         nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        implicit (bool): Flag to enable implicit depletants.
-        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            (added in version 2.2)
-        max_verts (int): Set the maximum number of vertices in a polyhedron. (deprecated in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -110,16 +151,27 @@ class convex_polyhedron(hpmc_convex_polyhedron):
         for i in range(snapshot.particles.N):
             snapshot.particles.velocity[i] = [ random.uniform(-1,1) for d in range(3) ]
         system.restore_snapshot(snapshot)
-            
-        mc = hoomd.hpmc.integrate.convex_polyhedron_nec(
+        
+        target_nc = 100
+        target_mr = 0.5
+        
+        param_mr = target_mr/(1+target_nc*(1-target_mr))
+        
+        mc = hoomd.hpmc.integrate_nec.convex_polyhedron(
                     d=0.5,
                     a=0.2,
-                    move_ratio=0.05,
+                    move_ratio=param_mr,
                     chain_time=10.0,
                     update_fraction=0.5,
                     seed=1354765,
                     );
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
+        
+        tune_mc_a   = hpmc.util.tune(self.mc, tunables=['a'],         max_val=[0.5], gamma=1, target=0.3)
+        tune_nec_d  = hpmc.util.tune(self.mc, tunables=['d'],         max_val=[4],   gamma=1, target=0.03)
+        tune_nec_ct = hpmc.util.tune(self.mc, tunables=['chain_time'],max_val=[100], gamma=1, target=1.0/target_nc,  tunable_map=hoomd.hpmc.integrate_nec.make_tunable_map(mc) )
+
+        
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.1, chain_time=10, update_fraction=0.5, nselect=4, restore_state=False):
         hoomd.util.print_status_line();
@@ -163,3 +215,38 @@ class convex_polyhedron(hpmc_convex_polyhedron):
         if restore_state:
             self.restore_state()
             
+    def get_particles_per_chain(self):
+        R"""
+        Returns the average number of particles in a chain for the last update step. (For use in a tuner.)
+        """
+        return self.cpp_integrator.getTunerParticlesPerChain()
+
+    def get_chain_time(self):
+        R"""
+        Get the current chain_time value. (For use in a tuner.)
+        """
+        return self.cpp_integrator.getChainTime()
+    
+    def set_chain_time(self,chain_time):
+        R"""
+        Set the chain_time parameter to a new value. (For use in a tuner.)
+        """
+        self.cpp_integrator.setChainTime(chain_time)
+        
+def make_tunable_map(obj=None):
+    R"""
+    Creates a tunable map for hpmc.tune and NEC.
+    
+    By updating the chain time the number of chains per particle is pushed towards the target.
+    We used chains-per-particle = 1.0 / particles-per-chain as that value is treated like an
+    acceptance rate for 'a' and 'd'.
+    
+    See the examples in integrate_nec.sphere and integrate_nec.convex_polyhedron for how it is used.
+    """
+    return {'chain_time': {
+                    'get': lambda: getattr(obj, 'get_chain_time')(),
+                    'acceptance': lambda: 1.0/getattr(obj, 'get_particles_per_chain')(),
+                    'set': lambda x: getattr(obj, 'set_chain_time')(x),
+                    'maximum': 100.0
+                    }
+              }

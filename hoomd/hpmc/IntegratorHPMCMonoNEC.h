@@ -46,6 +46,10 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         unsigned long int count_move_attempts;   // Counts chains
         unsigned long int count_events;          // Counts everything (translations, repeated translations, and rotations [if applicable])
         
+        unsigned long int count_tuner_chains;  
+        unsigned long int count_tuner_collisions;  
+        
+        
         // statistics - pressure
         // We follow the equations of Isobe and Krauth, Journal of Chemical Physics 143, 084509 (2015)
         Scalar count_pressurevarial; 
@@ -122,6 +126,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
             std::vector< std::string > result = IntegratorHPMCMono<Shape>::getProvidedLogQuantities();
 
             // then add ours
+            result.push_back("hpmc_chain_time");
             result.push_back("hpmc_ec_move_size");
             result.push_back("hpmc_ec_sweepequivalent");
             result.push_back("hpmc_ec_raw_events");
@@ -134,6 +139,11 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
 
         //! Get the value of a logged quantity
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        
+        Scalar getTunerParticlesPerChain()
+        {
+            return count_tuner_collisions*Scalar(1.0)/count_tuner_chains;
+        }
         
     private:
         /*!
@@ -317,6 +327,9 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     count_pressurevarial = 0.0;
     count_movelength = 0.0;
 
+    count_tuner_chains = 0;
+    count_tuner_collisions = 0;
+    
     // update the AABB Tree
     this->buildAABBTree();
     // limit m_d entries so that particles cannot possibly wander more than one box image in one time step
@@ -381,6 +394,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                 // start a chain
                 // -> increment chain counter
                 count_move_attempts++;
+                count_tuner_chains++;
             
                 // take the particle's velocity as direction and normalize the direction vector
                 vec3<Scalar> direction = vec3<Scalar>(velocity_i);
@@ -408,6 +422,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     {
                     
                     count_chain++;
+                
                     if( count_chain == debug_max_chain )
                     {
                         this->m_exec_conf->msg->error() << "The number of chain elements exceeded safe-guard limit of "<<debug_max_chain<<".\n";
@@ -568,14 +583,15 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     // increment accept counter
                     if (!shape_i.ignoreStatistics())
                         {
-                        counters.translate_accept_count++;
                     
                         if( next != k )
                             {
                             count_moved_particles++;
+                            counters.translate_reject_count++;
                             }
                             else
                             {
+                            counters.translate_accept_count++;
                             count_moved_again++;
                             }
                         }
@@ -623,6 +639,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                         
                         //statistics for pressure  -2-
                         count_pressurevarial   += dot(delta_pos, direction);
+                        count_tuner_collisions++;
 
                         #ifdef ENABLE_MPI
                         if (! this->m_comm || isActive( vec_to_scalar3(pos_n),box,ghost_fraction) )
@@ -673,7 +690,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                         }
                     } // end loop over totalDist.
 
-                counters.translate_accept_count++;
+//                 counters.translate_accept_count++;
 
                 }
             else
@@ -1150,7 +1167,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                     if( newDist < -3.5 ) // resultOverlapping = -3.0;
                                         {
                                         
-                                        if( dot(r_ij,direction) > 0 )
+                                        if( dot(newCollisionPlaneVector,direction) < 0 )
                                             {
                                             collisionPlaneVector = newCollisionPlaneVector;
                                             next = j;
@@ -1189,6 +1206,10 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
 template<class Shape>
 Scalar IntegratorHPMCMonoNEC<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
     {
+    if (quantity == "hpmc_chain_time")
+        {
+        return m_chain_time;
+        }
     if (quantity == "hpmc_ec_move_size")
         {
         if( count_move_attempts == 0 ) return 0;
@@ -1235,6 +1256,8 @@ template < class Shape > void export_IntegratorHPMCMonoNEC(pybind11::module& m, 
     pybind11::class_<IntegratorHPMCMonoNEC<Shape>, std::shared_ptr< IntegratorHPMCMonoNEC<Shape> > >(m, name.c_str(),  pybind11::base< IntegratorHPMCMono<Shape> >())
         .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
         .def("setChainTime", &IntegratorHPMCMonoNEC<Shape>::setChainTime)
+        .def("getChainTime", &IntegratorHPMCMonoNEC<Shape>::getChainTime)
+        .def("getTunerParticlesPerChain", &IntegratorHPMCMonoNEC<Shape>::getTunerParticlesPerChain)
         .def("setUpdateFraction", &IntegratorHPMCMonoNEC<Shape>::setUpdateFraction)
         ;
 
