@@ -138,7 +138,7 @@ def str_to_tuple_keys(dict_):
             for key, value in dict_.items()}
 
 
-class SafeNamespaceDict:
+class NamespaceDict:
     def __init__(self, dict_=None):
         self._dict = dict() if dict_ is None else dict_
 
@@ -166,16 +166,13 @@ class SafeNamespaceDict:
     def keys(self):
         raise NotImplementedError
 
-    def pop_namespace(self, namespace):
+    def _pop_namespace(self, namespace):
         return (namespace[-1], namespace[:-1])
 
     def _setitem(self, namespace, value):
-        if namespace in self:
-            raise KeyError("Namespace {} is being used. Remove before "
-                           "replacing.".format(namespace))
         # Grab parent dictionary creating sub dictionaries as necessary
         parent_dict = self._dict
-        base_name, parent_namespace = self.pop_namespace(namespace)
+        base_name, parent_namespace = self._pop_namespace(namespace)
         for name in parent_namespace:
             # If key does not exist create key with empty dictionary
             try:
@@ -217,3 +214,12 @@ class SafeNamespaceDict:
         if not isinstance(namespace, tuple):
             raise ValueError("Expected a string or tuple namespace.")
         return namespace
+
+
+class SafeNamespaceDict:
+    def __setitem__(self, namespace, value):
+        if namespace in self:
+            raise KeyError("Namespace {} is being used. Remove before "
+                           "replacing.".format(namespace))
+        else:
+            super().__setitem__(namespace, value)
