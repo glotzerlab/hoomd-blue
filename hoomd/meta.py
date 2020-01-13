@@ -231,7 +231,7 @@ class _Operation(metaclass=Loggable):
         namespace_str = 'log/' + '/'.join(namespace)
         state_chunks = reader.getAvailableChunks(namespace_str)
         state_dict = NamespaceDict()
-        chunk_slice = slice(len(namespace_str + 1), None)
+        chunk_slice = slice(len(namespace_str) + 1, None)
         # Build up state dict
         for state_chunk in state_chunks:
             state_dict_key = tuple(state_chunk[chunk_slice].split('/'))
@@ -256,7 +256,7 @@ class _Operation(metaclass=Loggable):
             # Parse the stringified tuple back into tuple
             if obj._typeparam_dict[name]._len_keys > 1:
                 tp_dict = str_to_tuple_keys(tp_dict)
-            obj._typeparam_dict[name] = tp_dict
+            setattr(obj, name, tp_dict)
         return obj
 
 
