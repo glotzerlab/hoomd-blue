@@ -241,7 +241,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         int multi = (int)m_multi[dihedral_type];
         Scalar p = Scalar(1.0);
         Scalar dfab = Scalar(0.0);
-        Scalar ddfab;
+        Scalar ddfab = Scalar(0.0);
 
         for (int j = 0; j < multi; j++)
             {
