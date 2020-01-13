@@ -270,3 +270,11 @@ def str_to_tuple_parse(string):
 def str_to_tuple_keys(dict_):
     return {str_to_tuple_parse(key): value
             for key, value in dict_.items()}
+
+
+def is_constructor(obj):
+    type_ = type(obj)
+    if type_ == type or type in type_.__mro__:
+        return True
+    else:
+        return False
