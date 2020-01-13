@@ -1,0 +1,32 @@
+steps:
+- checkout: self
+  submodules: true
+
+- task: CMake@1
+  inputs:
+    cmakeArgs: $(Build.SourcesDirectory) -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_CUDA=$(enable_cuda) -DENABLE_MPI=$(enable_mpi) -DENABLE_TBB=$(enable_tbb) -DBUILD_VALIDATION=$(build_validation) -DBUILD_TESTING=$(build_testing) -DBUILD_JIT=$(build_jit) -DLLVM_DIR=/usr/lib/llvm-$(llvm_version)/cmake -DBUILD_DEPRECATED=off -DALWAYS_USE_MANAGED_MEMORY=$(always_use_managed_memory) -DTEST_CPU_IN_GPU_BUILDS=off -GNinja
+    workingDirectory: $(Build.BinariesDirectory)
+
+- script: nice -n 19 ninja -j 4
+  displayName: Compile
+  workingDirectory: $(Build.BinariesDirectory)
+
+- script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH ctest -I $(ctest_start),,$(ctest_stride) --no-compress-output -T test --output-on-failure --test-output-size-failed 1048576 --test-output-size-passed 1048576
+  displayName: Run tests
+  workingDirectory: $(Build.BinariesDirectory)
+  env:
+    # allow openmpi to oversubscribe cores
+    OMPI_MCA_rmaps_base_oversubscribe: 1
+    # prevent errors from mis-configured openib systems
+    OMPI_MCA_btl: "vader,self"
+    # prevent deadlocked MPI tests from causing the job to cancel
+    MPIEXEC_TIMEOUT: $(mpiexec_timeout)
+    # workaround issues on Mac
+    TMPDIR: /tmp
+
+- task: PublishTestResults@2
+  condition: or(succeeded(), failed())
+  inputs:
+    testResultsFormat: 'cTest'
+    testResultsFiles: '$(Build.BinariesDirectory)/Testing/**/Test.xml'
+    testRunTitle: $(suite_name)

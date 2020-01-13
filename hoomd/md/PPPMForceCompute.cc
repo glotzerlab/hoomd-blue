@@ -1232,12 +1232,6 @@ Scalar PPPMForceCompute::computePE()
 
 void PPPMForceCompute::computeForces(unsigned int timestep)
     {
-    if (m_particles_sorted)
-        {
-        // need to recompute forces
-        m_force_compute = true;
-        }
-
     if (m_prof) m_prof->push("PPPM");
 
     if (m_need_initialize || m_ptls_added_removed)
@@ -1308,6 +1302,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
     // If there are exclusions, correct for the long-range part of the potential
     if(m_nlist->getExclusionsSet())
         {
+        m_nlist->compute(timestep);
         fixExclusions();
         }
 
@@ -1600,7 +1595,17 @@ Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int t
     {
     if (quantity == m_log_names[0])
         {
-        return computePE();
+        // make sure values are current
+        compute(timestep);
+
+        Scalar result = computePE();
+
+        if(m_nlist->getExclusionsSet())
+            {
+            result += calcEnergySum();
+            }
+
+        return result;
         }
 
     // nothing found? return base class value

@@ -34,7 +34,7 @@ import hoomd;
 
 import math;
 import sys;
-
+import json;
 from collections import OrderedDict
 
 class coeff:
@@ -532,6 +532,30 @@ class pair(force._force):
         """
         # future versions could use np functions to test the assumptions above and raise an error if they occur.
         return self.cpp_force.computeEnergyBetweenSets(tags1, tags2);
+
+    def _connect_gsd_shape_spec(self, gsd):
+        # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_force, "connectGSDShapeSpec"):
+            self.cpp_force.connectGSDShapeSpec(gsd.cpp_analyzer);
+        else:
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
+
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Since this behaves differently for different types of shapes, the
+        default behavior just raises an exception. Subclasses can override this
+        to properly return.
+        """
+        raise NotImplementedError(
+            "You are using a shape type that is not implemented! "
+            "If you want it, please modify the "
+            "hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function.")
+
+    def _return_type_shapes(self):
+        type_shapes = self.cpp_force.getTypeShapesPy();
+        ret = [ json.loads(json_string) for json_string in type_shapes ];
+        return ret;
 
 class lj(pair):
     R""" Lennard-Jones pair potential.
@@ -2093,8 +2117,19 @@ class mie(pair):
         mie4 = m
         return _hoomd.make_scalar4(mie1, mie2, mie3, mie4);
 
+
+class _shape_dict(dict):
+    """Simple dictionary subclass to improve handling of anisotropic potential
+    shape information."""
+    def __getitem__(self, key):
+        try:
+            return super(_shape_dict, self).__getitem__(key)
+        except KeyError as e:
+            raise KeyError("No shape parameters specified for particle type {}!".format(key)) from e
+
+
 class ai_pair(pair):
-    R""" Generic anisotropic pair potential.
+    R"""Generic anisotropic pair potential.
 
     Users should not instantiate :py:class:`ai_pair` directly. It is a base class that
     provides common features to all anisotropic pair forces. Rather than repeating all of that documentation in a
@@ -2129,8 +2164,10 @@ class ai_pair(pair):
         self.nlist.subscribe(lambda:self.get_rcut())
         self.nlist.update_rcut()
 
+        self._shape = _shape_dict()
+
     def set_params(self, mode=None):
-        R""" Set parameters controlling the way forces are computed.
+        R"""Set parameters controlling the way forces are computed.
 
         Args:
             mode (str): (if set) Set the mode with which potentials are handled at the cutoff
@@ -2157,6 +2194,18 @@ class ai_pair(pair):
                 hoomd.context.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");
 
+    @property
+    def shape(self):
+        R"""Get or set shape parameters per type.
+
+        In addition to any pair-specific parameters required to characterize a
+        pair potential, individual particles that have anisotropic interactions
+        may also have their own shapes that affect the potentials. General
+        anisotropic pair potentials may set per-particle shapes using this
+        method.
+        """
+        return self._shape
+
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut"];
         # check that the pair coefficients are valid
@@ -2171,15 +2220,24 @@ class ai_pair(pair):
             type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
         for i in range(0,ntypes):
+            self._set_cpp_shape(i, type_list[i])
+
             for j in range(i,ntypes):
                 # build a dict of the coeffs to pass to process_coeff
-                coeff_dict = {};
+                coeff_dict = {}
                 for name in coeff_list:
                     coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
 
                 param = self.process_coeff(coeff_dict);
                 self.cpp_force.setParams(i, j, param);
                 self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
+
+    def _set_cpp_shape(self, type_id, type_name):
+        """Update shape information in C++.
+
+        This method must be implemented by subclasses to generate the
+        appropriate shape structure. The default behavior is to do nothing."""
+        pass
 
 class gb(ai_pair):
     R""" Gay-Berne anisotropic pair potential.
@@ -2269,7 +2327,20 @@ class gb(ai_pair):
         lperp = coeff['lperp'];
         lpar = coeff['lpar'];
 
-        return _hoomd.make_scalar3(epsilon, lperp, lpar);
+        return _md.make_pair_gb_params(epsilon, lperp, lpar);
+
+    def get_type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+
+            >>> my_gb.get_type_shapes()
+            [{'type': 'Ellipsoid', 'a': 1.0, 'b': 1.0, 'c': 1.5}]
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super(ai_pair, self)._return_type_shapes();
 
 class dipole(ai_pair):
     R""" Screened dipole-dipole interactions.
@@ -2338,9 +2409,7 @@ class dipole(ai_pair):
         A = float(coeff['A']);
         kappa = float(coeff['kappa']);
 
-        params = _hoomd.make_scalar3(mu, A, kappa)
-
-        return params
+        return _md.make_pair_dipole_params(mu, A, kappa);
 
     def set_params(self, *args, **kwargs):
         """ :py:class:`dipole` has no energy shift modes """
@@ -2627,7 +2696,7 @@ class buckingham(pair):
 
         \begin{eqnarray*}
         V_{\mathrm{Buckingham}}(r)  = & A \exp\left(-\frac{r}{\rho}\right) -
-                          \frac{C}{r} & r < r_{\mathrm{cut}} \\
+                          \frac{C}{r^6} & r < r_{\mathrm{cut}} \\
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
@@ -2638,7 +2707,7 @@ class buckingham(pair):
 
     - :math:`A` - *A* (in energy units)
     - :math:`\rho` - *rho* (in distance units)
-    - :math:`C` - *C* (in energy/distance units )
+    - :math:`C` - *C* (in energy * distance**6 units )
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
