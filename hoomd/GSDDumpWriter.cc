@@ -80,7 +80,7 @@ void GSDDumpWriter::initFileIO()
         retval = gsd_create(m_fname.c_str(),
                             o.str().c_str(),
                             "hoomd",
-                            gsd_make_version(1,3));
+                            gsd_make_version(2,0));
         if (retval != 0)
             {
             m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
@@ -131,7 +131,7 @@ void GSDDumpWriter::initFileIO()
         m_exec_conf->msg->error() << "dump.gsd: " << "Invalid schema in " << m_fname << endl;
         throw runtime_error("Error opening GSD file");
         }
-    if (m_handle.header.schema_version >= gsd_make_version(2,0))
+    if (m_handle.header.schema_version >= gsd_make_version(2,1))
         {
         m_exec_conf->msg->error() << "dump.gsd: " << "Invalid schema version in " << m_fname << endl;
         throw runtime_error("Error opening GSD file");
@@ -1004,7 +1004,7 @@ void GSDDumpWriter::populateNonDefault()
         m_exec_conf->msg->error() << "dump.gsd: " << "Invalid schema in " << m_fname << endl;
         throw runtime_error("Error opening GSD file");
         }
-    if (m_handle.header.schema_version >= gsd_make_version(2,0))
+    if (m_handle.header.schema_version >= gsd_make_version(2,1))
         {
         m_exec_conf->msg->error() << "dump.gsd: " << "Invalid schema version in " << m_fname << endl;
         throw runtime_error("Error opening GSD file");

@@ -84,7 +84,7 @@ GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
         m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid schema in " << name << endl;
         throw runtime_error("Error opening GSD file");
         }
-    if (m_handle.header.schema_version >= gsd_make_version(2,0))
+    if (m_handle.header.schema_version >= gsd_make_version(2,1))
         {
         m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid schema version in " << name << endl;
         throw runtime_error("Error opening GSD file");
@@ -419,7 +419,7 @@ GSDStateReader::GSDStateReader(const std::string &name, const int64_t frame)
         s << "Error opening GSD file " << m_name << ": Invalid schema.";
         throw runtime_error(s.str());
         }
-    if (m_handle.header.schema_version >= gsd_make_version(2,0))
+    if (m_handle.header.schema_version >= gsd_make_version(2,1))
         {
         ostringstream s;
         s << "Error opening GSD file " << m_name << ": Invalid schema version.";
