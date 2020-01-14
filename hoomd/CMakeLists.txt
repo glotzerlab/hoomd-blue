@@ -313,8 +313,9 @@ set(files analyze.py
           state.py
           operations.py
           parameterdicts.py
-          typeparam.py
           triggers.py
+          typeparam.py
+	  typeconverter.py
           filters.py
           groups.py
           snapshot.py
