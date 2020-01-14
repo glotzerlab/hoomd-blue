@@ -278,3 +278,22 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         for key in self.keys():
             rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
         return rtn_dict
+
+
+class ParameterDict(dict):
+    def __init__(self, explicit_defaults=None, **kwargs):
+        self._type_converter = TypeConverter.from_default(kwargs)
+        super().__init__(**from_type_converter_input_to_default(
+            kwargs, explicit_defaults)
+            )
+
+    def __setitem__(self, key, value):
+        if key not in self.keys():
+            super().__setitem__(key, value)
+            self._type_converter[key] = TypeConverter.from_default(value)
+        else:
+            super().__setitem__(key, self._type_converter[key](value))
+
+    def update(self, dict_):
+        for key, value in dict_.items():
+            self[key] = value
