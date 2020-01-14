@@ -11,7 +11,7 @@ def typeparam():
     return TypeParameter(name='type_param',
                          type_kind='particle_types',
                          param_dict=TypeParameterDict(
-                             foo=1, bar=RequiredArg,
+                             foo=1, bar=lambda x: x,
                              len_keys=1)
                          )
 

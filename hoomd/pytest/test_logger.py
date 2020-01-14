@@ -4,26 +4,34 @@ from hoomd.logger import generate_namespace
 from hoomd.logger import Loggable
 
 
+class DummyNamespace:
+    pass
+
+
+@fixture(scope='module')
+def dummy_namespace():
+    return ('pytest', 'test_logger', 'DummyNamespace')
+
+
 # ------- Test LoggerQuantity
 class TestLoggerQuantity:
-    def test_initialization(self):
-        logquant = LoggerQuantity('foo', ('bar', 'boo' 'baz'), flag='particle')
+    def test_initialization(self, dummy_namespace):
+        logquant = LoggerQuantity('foo', DummyNamespace, flag='particle')
         assert logquant.flag == 'particle'
         assert logquant.name == 'foo'
-        assert logquant.namespace == ('bar', 'boo' 'baz')
+        assert logquant.namespace == dummy_namespace
 
-    def test_yield_names(self):
-        namespace = ('bar', 'boo', 'baz')
+    def test_yield_names(self, dummy_namespace):
         name = 'foo'
-        quantity = LoggerQuantity(name=name, namespace=namespace)
+        quantity = LoggerQuantity(name=name, cls=DummyNamespace)
         for i, given_namespace in enumerate(quantity.yield_names()):
             if i == 0:
-                assert given_namespace == namespace + (name,)
+                assert given_namespace == dummy_namespace + (name,)
             elif i < 100:
                 assert given_namespace[-2].endswith('_' + str(i)) and \
-                    given_namespace[:-2] == namespace[:-1] and \
-                    given_namespace[-2].split('_')[0] == namespace[-1] and \
-                    given_namespace[-1] == name
+                    given_namespace[:-2] == dummy_namespace[:-1] and \
+                    given_namespace[-2].split('_')[0] == \
+                    dummy_namespace[-1] and given_namespace[-1] == name
             else:
                 break
 
@@ -31,7 +39,7 @@ class TestLoggerQuantity:
 # ------- Test generate_logger_decorator and associated functions
 def test_generate_namespace():
     assert generate_namespace(TestLoggerQuantity) == \
-        ('hoomd', 'pytest', 'test_logger', 'TestLoggerQuantity')
+        ('pytest', 'test_logger', 'TestLoggerQuantity')
 
 
 class DummyLoggable(metaclass=Loggable):
@@ -113,8 +121,7 @@ def test_dict_map(base_dict, expected_mapped_dict):
 
 @fixture
 def namespace_dict(base_dict):
-    dict_ = SafeNamespaceDict()
-    dict_._dict = base_dict
+    dict_ = SafeNamespaceDict(base_dict)
     return dict_
 
 
@@ -174,7 +181,7 @@ def blank_logger():
 
 @fixture
 def log_quantity():
-    return LoggerQuantity('example', ('lorem', 'lipsum'))
+    return LoggerQuantity('example', DummyNamespace)
 
 
 @fixture
@@ -184,7 +191,7 @@ def logged_obj():
 
 @fixture
 def base_namespace():
-    return ('hoomd', 'pytest', 'test_logger', 'DummyLoggable')
+    return ('pytest', 'test_logger', 'DummyLoggable')
 
 
 class TestLogger:
@@ -200,7 +207,7 @@ class TestLogger:
         blank_logger._add_single_quantity(None, log_quantity)
         namespace = log_quantity.namespace + (log_quantity.name,)
         assert namespace in blank_logger
-        log_value = blank_logger._unsafe_getitem(namespace)
+        log_value = blank_logger[namespace]
         assert log_value[0] is None
         assert log_value[1] == log_quantity.name
         assert log_value[2] == log_quantity.flag
@@ -232,11 +239,11 @@ class TestLogger:
                 logged_obj, bad_quantities)
 
     def test_flags_checks(self, blank_logger):
-        scalar = LoggerQuantity('name', ('name', 'space'), flag='scalar')
-        multi = LoggerQuantity('name', ('name', 'space'), flag='multi')
-        particle = LoggerQuantity('name', ('name', 'space'), flag='particle')
+        scalar = LoggerQuantity('name', DummyNamespace, flag='scalar')
+        multi = LoggerQuantity('name', DummyNamespace, flag='multi')
+        particle = LoggerQuantity('name', DummyNamespace, flag='particle')
         assert all([blank_logger.flag_checks(log_quantity)
-                   for log_quantity in [scalar, multi, particle]])
+                    for log_quantity in [scalar, multi, particle]])
         blank_logger._flags.append('scalar')
         assert blank_logger.flag_checks(scalar)
         assert not blank_logger.flag_checks(multi) and \
@@ -328,7 +335,7 @@ class TestLogger:
         assert dict_namespace in log
 
         # Test remove just given namespaces
-        prop_namespace = ('hoomd', 'pytest', 'test_logger',
+        prop_namespace = ('pytest', 'test_logger',
                           'DummyLoggable', 'prop')
         log = Logger()
         log.add(logged_obj)
@@ -364,7 +371,7 @@ class TestLogger:
         # Test when given string
         log = Logger()
         log += logged_obj
-        log -= 'hoomd'
+        log -= 'pytest'
         assert len(log) == 0
         log += logged_obj
         log -= 'eg'
@@ -392,7 +399,7 @@ class TestLogger:
         log = Logger()
         log += logged_obj
         logged = log.log()
-        inner_dict = logged['hoomd']['pytest']['test_logger']['DummyLoggable']
+        inner_dict = logged['pytest']['test_logger']['DummyLoggable']
         assert inner_dict['prop'] == (logged_obj.prop, 'scalar')
         assert inner_dict['proplist'] == (logged_obj.proplist, 'multi')
         assert inner_dict['propdict'] == logged_obj.propdict
