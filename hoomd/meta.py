@@ -38,6 +38,8 @@ def note_type(value):
         return (value, 'scalar')
     elif isinstance(value, str):
         return (value, 'string')
+    elif is_iterable(value) and all([isinstance(v, str) for v in value]):
+        return (value, 'strings')
     else:
         return (value, 'multi')
 

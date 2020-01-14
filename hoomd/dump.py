@@ -12,6 +12,8 @@ from collections import namedtuple
 from hoomd.filters import All
 from hoomd import _hoomd
 from hoomd.util import dict_flatten
+from hoomd.filters import ParticleFilter
+from hoomd.parameterdicts import ParameterDict
 from hoomd.logger import Logger
 import numpy as np
 import hoomd
@@ -605,11 +607,31 @@ class GSD(hoomd.meta._Analyzer):
 
         super().__init__(trigger)
 
-        self._param_dict = dict(filename=filename,
-                                filter=filter,
-                                overwrite=overwrite,
-                                truncate=truncate,
-                                dynamic=dynamic,
+        def dynamic_string_list(value):
+            if isinstance(value, np.ndarray):
+                string_list = []
+                for string in value:
+                    string_list.append(
+                        string.view(dtype='|S{}'.format(value.shape[1])
+                                    ).decode('UTF-8')
+                        )
+                value = string_list
+
+            dynamic_options = ['attribute', 'property', 'momentum', 'topology']
+            if not isinstance(value, list) or \
+                    not all([v in dynamic_options for v in value]):
+                raise ValueError("Expected a list of strings with options "
+                                 "attribute, property, momentum, and topology.")
+            return value
+
+        self._param_dict = ParameterDict(filename=str,
+                                         filter=ParticleFilter,
+                                         overwrite=bool,
+                                         truncate=bool,
+                                         dynamic=dynamic_string_list)
+        self._param_dict.update(dict(filename=filename, filter=filter,
+                                overwrite=overwrite, truncate=truncate,
+                                dynamic=dynamic)
                                 )
 
         self._log = None if log is None else GSDLogWriter(log)
@@ -707,7 +729,7 @@ class GSD(hoomd.meta._Analyzer):
 class GSDLogWriter:
 
     _per_keys = ['particles', 'bonds', 'dihedrals', 'impropers', 'pairs']
-    _convert_kinds = ['string']
+    _convert_kinds = ['string', 'strings']
     _special_keys = ['type_shapes']
     _global_prepend = 'log'
 
@@ -753,4 +775,10 @@ class GSDLogWriter:
             value = bytes(value, 'UTF-8')
             value = np.array([value], dtype=np.dtype((bytes, len(value) + 1)))
             value = value.view(dtype=np.int8)
+        if kind == 'strings':
+            value = [bytes(v + '\0', 'UTF-8') for v in value]
+            max_len = np.max([len(string) for string in value])
+            num_strings = len(value)
+            value = np.array(value)
+            value = value.view(dtype=np.int8).reshape(num_strings, max_len)
         dict_[key] = value

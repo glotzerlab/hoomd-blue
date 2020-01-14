@@ -3,7 +3,7 @@
 
 from hoomd import _hoomd
 from hoomd.parameterdicts import TypeParameterDict
-from hoomd.parameterdicts import RequiredArg
+from hoomd.parameterdicts import ParameterDict
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import _integrator
@@ -72,17 +72,23 @@ class HPMCIntegrator(_integrator):
         super().__init__()
 
         # Set base parameter dict for hpmc integrators
-        self._param_dict.update(dict(seed=seed, move_ratio=move_ratio,
-                                     nselect=nselect,
-                                     deterministic=deterministic)
+        self._param_dict = ParameterDict(dict(seed=int, move_ratio=float,
+                                         nselect=int, deterministic=bool)
+                                         )
+        self._param_dict.update(dict(seed=int(seed),
+                                     move_ratio=float(move_ratio),
+                                     nselect=int(nselect),
+                                     deterministic=bool(deterministic))
                                 )
 
         # Set standard typeparameters for hpmc integrators
         typeparam_d = TypeParameter('d', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(d, len_keys=1)
+                                    param_dict=TypeParameterDict(float(d),
+                                                                 len_keys=1)
                                     )
         typeparam_a = TypeParameter('a', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(a, len_keys=1)
+                                    param_dict=TypeParameterDict(float(a),
+                                                                 len_keys=1)
                                     )
 
         typeparam_fugacity = TypeParameter('depletant_fugacity',
@@ -329,7 +335,7 @@ class Sphere(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            diameter=RequiredArg,
+                                            diameter=float,
                                             ignore_statistics=False,
                                             orientable=False,
                                             len_keys=1)
