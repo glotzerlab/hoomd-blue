@@ -67,6 +67,20 @@ class TypeConverter:
             except KeyError:
                 return value
 
+    def __getitem__(self, key):
+        if isinstance(self.converter, dict):
+            return self.converter[key]
+        else:
+            raise RuntimeError("Cannot call getitem on TypeConverter that is "
+                               "not a dictionary.")
+
+    def __setitem__(self, key, value):
+        if isinstance(self.converter, dict):
+            self.converter[key] = value
+        else:
+            raise RuntimeError("Cannot call setitem on TypeConverter that is "
+                               "not a dictionary.")
+
     def __call__(self, value):
         return self.convert(value)
 
