@@ -22,6 +22,7 @@ from hoomd.triggers import PeriodicTrigger, Trigger
 from hoomd.logger import Loggable
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
+from hoomd.parameterdicts import ParameterDict
 import json
 import time
 import datetime
@@ -53,7 +54,7 @@ def handle_gsd_arrays(arr):
 
 class _Operation(metaclass=Loggable):
     _reserved_attrs_with_dft = {'_cpp_obj': lambda: None,
-                                '_param_dict': dict,
+                                '_param_dict': ParameterDict,
                                 '_typeparam_dict': dict,
                                 '_dependent_list': lambda: []}
 
