@@ -186,6 +186,9 @@ class NamespaceDict:
         self._setitem(namespace, value)
 
     def __getitem__(self, namespace):
+        return self._unsafe_getitem(namespace)
+
+    def _unsafe_getitem(self, namespace):
         ret_val = self._dict
         if isinstance(namespace, str):
             namespace = (namespace,)
