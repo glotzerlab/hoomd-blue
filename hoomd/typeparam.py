@@ -1,4 +1,5 @@
 from hoomd.parameterdicts import AttachedTypeParameterDict
+from copy import deepcopy
 
 
 class TypeParameter:
@@ -53,3 +54,7 @@ class TypeParameter:
             state = {str(key): value for key, value in state.items()}
         state['__default'] = self.default
         return state
+
+    def __deepcopy__(self, memo):
+        return TypeParameter(self.name, self.type_kind,
+                             deepcopy(self.param_dict))
