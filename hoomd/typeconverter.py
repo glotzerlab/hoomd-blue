@@ -19,8 +19,31 @@ def to_array(value):
         return TypeConverter(array)
 
 
+def is_string(value):
+    if not isinstance(value, str):
+        raise ValueError("Not a string.")
+    else:
+        return value
+
+
+def get_attempt_obj_conversion(value):
+    type_ = type(value)
+
+    def attempt_obj_conversion(v):
+        if isinstance(v, type_):
+            return v
+        else:
+            try:
+                return type_(v)
+            except Exception:
+                raise ValueError("{} not converted to type {}.".format(v,
+                                                                       type_))
+
+    return attempt_obj_conversion
+
+
 class TypeConverter:
-    _conversion_func_dict = {list: to_list, ndarray: to_array}
+    _conversion_func_dict = {list: to_list, ndarray: to_array, str: is_string}
 
     def __init__(self, converter):
         self.converter = converter
@@ -106,8 +129,11 @@ class TypeConverter:
         # if type with special default setting logic
         elif type(default) in cls._conversion_func_dict.keys():
             return cls(cls._conversion_func_dict[type(default)])
-        # if function or object constructor
-        elif is_constructor(default) or isfunction(default):
+        # if object constructor
+        elif is_constructor(default):
+            return cls(get_attempt_obj_conversion(default))
+        # if function
+        elif isfunction(default):
             return cls(default)
         # if other object
         else:
