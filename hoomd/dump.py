@@ -624,6 +624,7 @@ class GSD(hoomd.meta._Analyzer):
                                  "attribute, property, momentum, and topology.")
             return value
 
+        dynamic = ['property'] if dynamic is None else dynamic
         self._param_dict = ParameterDict(filename=str,
                                          filter=ParticleFilter,
                                          overwrite=bool,
