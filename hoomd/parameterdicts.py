@@ -1,7 +1,8 @@
 from itertools import product, combinations_with_replacement
 from copy import deepcopy
-from numpy import array, ndarray
 from hoomd.util import to_camel_case, is_iterable
+from hoomd.typeconverter import TypeConverter, TypeConversionError
+from hoomd.typeconverter import from_type_converter_input_to_default
 
 # Psudonym for None that states an argument is required to be supplied by the
 # user
@@ -31,6 +32,12 @@ def proper_type_return(val):
 class _ValidatedDefaultDict:
 
     def __init__(self, *args, **kwargs):
+        if 'explicit_defaults' in kwargs.keys():
+            explicit_defaults = kwargs['explicit_defaults']
+            del kwargs['explicit_defaults']
+        else:
+            explicit_defaults = None
+
         if len(kwargs) != 0 and len(args) != 0:
             raise ValueError("An unnamed argument and keyword arguments "
                              "cannot both be specified.")
@@ -40,33 +47,28 @@ class _ValidatedDefaultDict:
         if len(args) > 1:
             raise ValueError("Only one unnamed argument allowed.")
         if len(kwargs) > 0:
-            self._default = kwargs
-            self._dft_constructor = dict
+            default_arg = kwargs
         else:
-            dft = args[0]
-            self._default = dft
-            if isinstance(dft, ndarray):
-                self._dft_constructor = array
-            else:
-                self._dft_constructor = type(dft)
-
-    def _cast_to_dft(self, val):
-        '''Attempts to convert val to expected value type.'''
-        try:
-            val = self._dft_constructor(val)
-        except TypeError:
-            raise TypeError("Provided type {} cannot be cast to initialized "
-                            "required type {}".format(type(val),
-                                                      type(self._default))
-                            )
-        else:
-            return val
+            default_arg = args[0]
+        self._default = from_type_converter_input_to_default(default_arg,
+                                                             explicit_defaults)
+        self._type_converter = TypeConverter.from_default(default_arg)
 
     def _validate_values(self, val):
-        val = self._cast_to_dft(val)
+        try:
+            val = self._type_converter(val)
+        except TypeConversionError as err:
+            if len(err.args) > 1:
+                raise TypeConversionError("TypeParameter {} key {} has "
+                                          "conversion error {}".format(
+                                              self, err.args[1], err.args[0]))
+            else:
+                raise TypeConversionError("TypeParameter {} has "
+                                          "conversion error {}".format(
+                                              self, err.args[0]))
         if type(self._default) == dict:
             dft_copy = self.default
-            dft_keys = set(dft_copy)
+            dft_keys = set(dft_copy.keys())
             if len(dft_keys.intersection(val.keys())) != len(val.keys()):
                 raise ValueError("Keys must be a subset of available keys ")
             dft_copy.update(val)
@@ -143,7 +145,7 @@ class _ValidatedDefaultDict:
 
     @default.setter
     def default(self, new_default):
-        new_default = self._cast_to_dft(new_default)
+        new_default = self._type_converter(new_default)
         if isinstance(new_default, dict):
             keys = set(self._default.keys())
             provided_keys = set(new_default.keys())
@@ -202,7 +204,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         self._len_keys = type_param_dict._len_keys
         # Get default data
         self._default = type_param_dict.default
-        self._dft_constructor = type_param_dict._dft_constructor
+        self._type_converter = type_param_dict._type_converter
         # add all types to c++
         for key in self.keys():
             try:
@@ -217,6 +219,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         else:
             type_param_dict = TypeParameterDict(self.default,
                                                 len_keys=self._len_keys)
+        type_param_dict._type_converter = self._type_converter
         for key in self.keys():
             type_param_dict[key] = self[key]
         return type_param_dict
