@@ -60,6 +60,8 @@ class _Operation(metaclass=Loggable):
                                 '_typeparam_dict': dict,
                                 '_dependent_list': lambda: []}
 
+    _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
+
     def __getattr__(self, attr):
         if attr in self._reserved_attrs_with_dft.keys():
             setattr(self, attr, self._reserved_attrs_with_dft[attr]())
@@ -107,6 +109,17 @@ class _Operation(metaclass=Loggable):
         except TypeError:
             raise ValueError("To set {}, you must use a dictionary "
                              "with types as keys.".format(attr))
+
+    def __eq__(self, other):
+        other_keys = set(other.__dict__.keys())
+        for key in self.__dict__.keys():
+            if key in self._skip_for_equality:
+                continue
+            else:
+                if key not in other_keys \
+                        or self.__dict__[key] != other.__dict__[key]:
+                    return False
+        return True
 
     def detach(self):
         self._unapply_typeparam_dict()

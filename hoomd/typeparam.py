@@ -21,6 +21,11 @@ class TypeParameter:
     def __setitem__(self, key, value):
         self.param_dict[key] = value
 
+    def __eq__(self, other):
+        return self.name == other.name and \
+            self.type_kind == other.type_kind and \
+            self.param_dict == other.param_dict
+
     @property
     def default(self):
         return self.param_dict.default

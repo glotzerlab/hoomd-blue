@@ -139,6 +139,18 @@ class _ValidatedDefaultDict:
         else:
             yield from self._validate_and_split_key(key)
 
+    def __eq__(self, other):
+        if self.default != other.default:
+            return False
+        keys = set(self.keys())
+        if keys.union(other.keys()) != keys or \
+                keys.difference(other.keys()) != set():
+            return False
+        for key in self.keys():
+            if not self[key] == other[key]:
+                return False
+        return True
+
     @property
     def default(self):
         return deepcopy(self._default)
