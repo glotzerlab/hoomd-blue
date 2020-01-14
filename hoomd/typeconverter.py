@@ -26,17 +26,16 @@ def is_string(value):
         return value
 
 
-def get_attempt_obj_conversion(value):
-    type_ = type(value)
+def get_attempt_obj_conversion(type_):
 
-    def attempt_obj_conversion(v):
-        if isinstance(v, type_):
-            return v
+    def attempt_obj_conversion(value):
+        if isinstance(value, type_):
+            return value
         else:
             try:
-                return type_(v)
+                return type_(value)
             except Exception:
-                raise ValueError("{} not converted to type {}.".format(v,
+                raise ValueError("{} not converted to type {}.".format(value,
                                                                        type_))
 
     return attempt_obj_conversion
@@ -137,7 +136,7 @@ class TypeConverter:
             return cls(default)
         # if other object
         else:
-            return cls(type(default))
+            return cls(get_attempt_obj_conversion(type(default)))
 
 
 def from_type_converter_input_to_default(default, overwrite_default=None):
