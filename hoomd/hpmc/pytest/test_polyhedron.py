@@ -154,27 +154,39 @@ def test_poly_after_attaching(device,
         
         
 def test_overlaps(device, dummy_simulation_check_overlaps):
-    hoomd.context.initialize("--mode=cpu");
     mc = hoomd.hpmc.integrate.Polyhedron(23456)
     mc.shape['A'] = dict(vertices=[(0,(0.75**0.5)/2, -0.5),
                                    (-0.5,-(0.75**0.5)/2, -0.5),
                                    (0.5, -(0.75**0.5)/2, -0.5),
                                    (0, 0, 0.5),
                                    (0, 0, 0)],
-                         faces=[(3, 1, 2),
-                                (3, 0, 1),
-                                (3, 2, 0),
-                                (4, 2, 1),
-                                (4, 0, 2),
-                                (4, 1, 0)],
-                         overlap=[0, 0, 0, 0, 0, 0])
+                         # faces=[(3, 1, 2),
+                         #        (3, 0, 1),
+                         #        (3, 2, 0),
+                         #        (4, 2, 1),
+                         #        (4, 0, 2),
+                         #        (4, 1, 0)],
+                         faces=[(0, 3, 1),
+                                (0, 2, 3),
+                                (1, 3, 2),
+                                (1, 2, 4),
+                                (0, 1, 4),
+                                (0, 4, 2)],
+                         overlap=[True, True, True, True, True, True])
     sim = dummy_simulation_check_overlaps()
     sim.operations.add(mc)
+    
+    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_polyhedron.gsd', trigger=1, overwrite=True)
+    # gsd_logger = hoomd.logger.Logger()
+    # gsd_logger += mc
+    # gsd_dumper.log = gsd_logger
+    
+    # sim.operations.add(gsd_dumper)
     sim.operations.schedule()
     sim.run(100)
-    # overlaps = sim.operations.integrator.overlaps
-    # assert overlaps > 0
-    assert True
+    overlaps = sim.operations.integrator.overlaps
+    assert overlaps > 0
+    # assert True
     
 def test_shape_moves(device, dummy_simulation_check_moves):
     hoomd.context.initialize("--mode=cpu");

@@ -1,5 +1,6 @@
 import hoomd
 import hoomd.hpmc
+import gsd
 from hoomd.hpmc import _hpmc
 import pytest
 import numpy
@@ -89,6 +90,11 @@ def test_overlaps(device, dummy_simulation_check_overlaps):
     mc.shape['A'] = dict(diameter=1)
     sim = dummy_simulation_check_overlaps()
     sim.operations.add(mc)
+    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_sphere.gsd', trigger=1, overwrite=True)
+    # gsd_logger = hoomd.logger.Logger()
+    # gsd_logger += mc
+    # gsd_dumper.log = gsd_logger
+    # sim.operations.add(gsd_dumper)
     sim.operations.schedule()
     sim.run(100)
     overlaps = sim.operations.integrator.overlaps

@@ -409,11 +409,12 @@ class ConvexPolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    def get_type_shapes(self):
+    @Loggable.log(flag='multi')
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Example:
-            >>> mc.get_type_shapes()
+            >>> mc.type_shapes()
             [{'type': 'Polygon', 'rounding_radius': 0,
               'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
 
@@ -481,11 +482,12 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    def get_type_shapes(self):
+    @Loggable.log(flag='multi')
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Example:
-            >>> mc.get_type_shapes()
+            >>> mc.type_shapes()
             [{'type': 'Polygon', 'rounding_radius': 0.1,
               'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
 
@@ -552,11 +554,12 @@ class SimplePolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    def get_type_shapes(self):
+    @Loggable.log(flag='multi')
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Example:
-            >>> mc.get_type_shapes()
+            >>> mc.type_shapes()
             [{'type': 'Polygon', 'rounding_radius': 0,
               'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
 
@@ -663,11 +666,12 @@ class Polyhedron(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    def get_type_shapes(self):
+    @Loggable.log(flag='multi')
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Example:
-            >>> mc.get_type_shapes()
+            >>> mc.type_shapes()
             [{'type': 'Mesh', 'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5], [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]],
               'indices': [[0, 1, 2], [0, 3, 1], [0, 2, 3], [1, 3, 2]]}]
 
@@ -735,11 +739,12 @@ class ConvexPolyhedron(HPMCIntegrator):
                                         )
         self._add_typeparam(typeparam_shape)
 
-    def get_type_shapes(self):
+    @Loggable.log(flag='multi')
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Example:
-            >>> mc.get_type_shapes()
+            >>> mc.type_shapes()
             [{'type': 'ConvexPolyhedron', 'rounding_radius': 0,
               'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
                            [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
@@ -1023,11 +1028,12 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
         self._add_typeparam(typeparam_shape)
 
 
-    def get_type_shapes(self):
+    @Loggable.log(flag='multi')
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Example:
-            >>> mc.get_type_shapes()
+            >>> mc.type_shapes()
             [{'type': 'ConvexPolyhedron', 'rounding_radius': 0.1,
               'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
                            [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
@@ -1090,10 +1096,11 @@ class Ellipsoid(HPMCIntegrator):
 
         self._extend_typeparam([typeparam_shape])
 
-    def get_type_shapes(self):
+    @Loggable.log(flag='multi')
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
         Example:
-            >>> mc.get_type_shapes()
+            >>> mc.type_shapes()
             [{'type': 'Ellipsoid', 'a': 1.0, 'b': 1.5, 'c': 1}]
         Returns:
             A list of dictionaries, one for each particle type in the system.

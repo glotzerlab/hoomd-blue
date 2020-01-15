@@ -148,14 +148,14 @@ class _integrator(hoomd.meta._Operation):
 
     def _connect_gsd(self, gsd):
         # This is an internal method, and should not be called directly. See gsd.dump_state() instead
-        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self._cpp_obj, "connectGSDStateSignal"):
+        if isinstance(gsd, hoomd.dump.GSD) and hasattr(self._cpp_obj, "connectGSDStateSignal"):
             self._cpp_obj.connectGSDStateSignal(gsd.cpp_analyzer, self._gsd_state_name());
         else:
             raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
 
     def _connect_gsd_shape_spec(self, gsd):
         # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
-        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self._cpp_obj, "connectGSDShapeSpec"):
+        if isinstance(gsd, hoomd.dump.GSD) and hasattr(self._cpp_obj, "connectGSDShapeSpec"):
             self._cpp_obj.connectGSDShapeSpec(gsd.cpp_analyzer);
         else:
             raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));

@@ -178,14 +178,15 @@ def test_shape_params_attached(device, dummy_simulation_factory):
 def test_overlaps(device, dummy_simulation_check_overlaps):
     hoomd.context.initialize("--mode=cpu");
     mc = hoomd.hpmc.integrate.Sphinx(23456)
-    mc.shape['A'] = dict(centers=[(0,0,0),(0.5,0,0)], diameters=[1,.1])
+    mc.shape['A'] = dict(centers=[(0,0,0),(0.5,0,0)], diameters=[1,.001])
+    
     sim = dummy_simulation_check_overlaps()
     sim.operations.add(mc)
     sim.operations.schedule()
     sim.run(100)
-    # overlaps = sim.operations.integrator.overlaps
-    # assert overlaps > 0
-    assert True
+    overlaps = sim.operations.integrator.overlaps
+    assert overlaps > 0
+    # assert True
     
 def test_shape_moves(device, dummy_simulation_check_moves):
     hoomd.context.initialize("--mode=cpu");

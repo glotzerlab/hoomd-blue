@@ -33,12 +33,17 @@ def test_overlaps(device, dummy_simulation_check_overlaps):
     hoomd.context.initialize("--mode=cpu");
     mc = hoomd.hpmc.integrate.SimplePolygon(23456)
     mc.shape['A'] = dict(vertices=[(0,(0.75**0.5)/2),
-                                   (0, 0),
+                                   (0, -0.2),
                                    (-0.5,-(0.75**0.5)/2),
                                    (0.5, -(0.75**0.5)/2)])
     
     sim = dummy_simulation_check_overlaps()
     sim.operations.add(mc)
+    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_polygon.gsd', trigger=1, overwrite=True)
+    # gsd_logger = hoomd.logger.Logger()
+    # gsd_logger += mc
+    # gsd_dumper.log = gsd_logger
+    # sim.operations.add(gsd_dumper)
     sim.operations.schedule()
     sim.run(100)
     overlaps = sim.operations.integrator.overlaps
