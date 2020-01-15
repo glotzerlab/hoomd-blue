@@ -17,7 +17,7 @@ args_1 = {'vertices':[(0, 0, 0),
                     (0, 1, 1),
                     (1, 1, 1),
                     (0, 0, 1)],
-            'overlap': [1, 2, 3, 4, 5, 6],
+            'overlap': [1, 1, 1, 1, 1, 1],
             'sweep_radius': 0,
             'ignore_statistics': 1,
             'capacity': 4,
@@ -36,7 +36,7 @@ args_2 = {'vertices':[(0, 3, 0),
                     (5, 1, 3),
                     (1, 4, 3),
                     (0, 2, 1)],
-            'overlap': [1, 4, 6, 4, 1, 6],
+            'overlap': [0, 0, 0, 0, 0, 0],
             'sweep_radius': 2,
             'ignore_statistics': 0,
             'capacity': 3,
@@ -57,7 +57,7 @@ args_3 = {'vertices':[(0, 3, 0),
                     (3, 4, 6),
                     (4, 5, 1),
                     (6, 2, 5)],
-            'overlap': [5, 4, 3, 4, 1, 2, 3],
+            'overlap': [True, True, True, True, True, True, True],
             'sweep_radius': 1,
             'ignore_statistics': 1,
             'capacity': 4,
@@ -66,7 +66,7 @@ args_3 = {'vertices':[(0, 3, 0),
 
 args_4 = {'vertices':[(0, 3, 0), (2, 1, 0), (3, 0, 1), (0, 3, 3)],
             'faces':[(0, 1, 2), (3, 2, 1), (1, 2, 0), (3, 2, 1)],
-            'overlap': [5, 4, 3, 1],
+            'overlap': [False, False, False, False],
             'sweep_radius': 0,
             'ignore_statistics': 0,
             'capacity': 4,
@@ -91,7 +91,7 @@ args_5 = {'vertices':[(0, 3, 0),
                     (6, 7, 5),
                     (1, 7, 8),
                     (6, 8, 2)],
-            'overlap': [5, 4, 3, 4, 1, 2, 3, 1, 1],
+            'overlap': [0, 1, 1, 0, 0, 0, 1, 1, 0],
             'sweep_radius': 0,
             'ignore_statistics': 1,
             'capacity': 4,
@@ -154,7 +154,7 @@ def test_poly_after_attaching(device,
         
         
 def test_overlaps(device, dummy_simulation_check_overlaps):
-    mc = hoomd.hpmc.integrate.Polyhedron(23456)
+    mc = hoomd.hpmc.integrate.Polyhedron(23456, d=0, a=0)
     mc.shape['A'] = dict(vertices=[(0,(0.75**0.5)/2, -0.5),
                                    (-0.5,-(0.75**0.5)/2, -0.5),
                                    (0.5, -(0.75**0.5)/2, -0.5),
@@ -175,18 +175,45 @@ def test_overlaps(device, dummy_simulation_check_overlaps):
                          overlap=[True, True, True, True, True, True])
     sim = dummy_simulation_check_overlaps()
     sim.operations.add(mc)
-    
     # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_polyhedron.gsd', trigger=1, overwrite=True)
     # gsd_logger = hoomd.logger.Logger()
     # gsd_logger += mc
     # gsd_dumper.log = gsd_logger
-    
     # sim.operations.add(gsd_dumper)
     sim.operations.schedule()
-    sim.run(100)
+    sim.run(1)
     overlaps = sim.operations.integrator.overlaps
     assert overlaps > 0
-    # assert True
+    
+    s = sim.state.snapshot
+    s.particles.position[0] = (0, 0, 0)
+    s.particles.position[1] = (0, 8, 0)
+    sim.state.snapshot = s
+    sim.operations.add(mc)
+    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_polyhedron.gsd', trigger=1, overwrite=True)
+    # gsd_logger = hoomd.logger.Logger()
+    # gsd_logger += mc
+    # gsd_dumper.log = gsd_logger
+    # sim.operations.add(gsd_dumper)
+    sim.operations.schedule()
+    sim.run(1)
+    overlaps = sim.operations.integrator.overlaps
+    assert overlaps == 0
+    
+    s = sim.state.snapshot
+    s.particles.position[0] = (0, 0, 0)
+    s.particles.position[1] = (0, 0.85, 0)
+    sim.state.snapshot = s
+    sim.operations.add(mc)
+    gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_polyhedron.gsd', trigger=1, overwrite=True)
+    gsd_logger = hoomd.logger.Logger()
+    gsd_logger += mc
+    gsd_dumper.log = gsd_logger
+    sim.operations.add(gsd_dumper)
+    sim.operations.schedule()
+    sim.run(1)
+    overlaps = sim.operations.integrator.overlaps
+    assert overlaps > 0
     
 def test_shape_moves(device, dummy_simulation_check_moves):
     hoomd.context.initialize("--mode=cpu");

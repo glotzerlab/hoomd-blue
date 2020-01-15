@@ -76,15 +76,50 @@ def test_convex_polyhedron_after_attaching(device, dummy_simulation_factory):
     
 def test_overlaps(device, dummy_simulation_check_overlaps):
     hoomd.context.initialize("--mode=cpu");
-    mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
+    mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456, d=0, a=0)
     mc.shape['A'] = dict(vertices=[(0,(0.75**0.5)/2, -0.5),
                                    (-0.5,-(0.75**0.5)/2, -0.5),
                                    (0.5, -(0.75**0.5)/2, -0.5),
                                    (0, 0, 0.5)])
     sim = dummy_simulation_check_overlaps()
     sim.operations.add(mc)
+    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_convex_polyhedron.gsd', trigger=1, overwrite=True)
+    # gsd_logger = hoomd.logger.Logger()
+    # gsd_logger += mc
+    # gsd_dumper.log = gsd_logger
+    # sim.operations.add(gsd_dumper)
     sim.operations.schedule()
-    sim.run(100)
+    sim.run(1)
+    overlaps = sim.operations.integrator.overlaps
+    assert overlaps > 0
+    
+    s = sim.state.snapshot
+    s.particles.position[0] = (0, 0, 0)
+    s.particles.position[1] = (0, 8, 0)
+    sim.state.snapshot = s
+    sim.operations.add(mc)
+    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_convex_polyhedron.gsd', trigger=1, overwrite=True)
+    # gsd_logger = hoomd.logger.Logger()
+    # gsd_logger += mc
+    # gsd_dumper.log = gsd_logger
+    # sim.operations.add(gsd_dumper)
+    sim.operations.schedule()
+    sim.run(1)
+    overlaps = sim.operations.integrator.overlaps
+    assert overlaps == 0
+    
+    s = sim.state.snapshot
+    s.particles.position[0] = (0, 0, 0)
+    s.particles.position[1] = (0, 0.85, 0)
+    sim.state.snapshot = s
+    sim.operations.add(mc)
+    gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_convex_polyhedron.gsd', trigger=1, overwrite=True)
+    gsd_logger = hoomd.logger.Logger()
+    gsd_logger += mc
+    gsd_dumper.log = gsd_logger
+    sim.operations.add(gsd_dumper)
+    sim.operations.schedule()
+    sim.run(1)
     overlaps = sim.operations.integrator.overlaps
     assert overlaps > 0
     

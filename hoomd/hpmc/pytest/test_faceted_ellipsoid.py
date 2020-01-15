@@ -272,7 +272,7 @@ def test_shape_params_attached(device, dummy_simulation_factory):
 
 def test_overlaps(device, dummy_simulation_check_overlaps):
     hoomd.context.initialize("--mode=cpu");
-    mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456)
+    mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456, d=0, a=0)
     mc.shape['A'] = dict(normals=[(0, 0, 1)],
                          a=1,
                          b=1,
@@ -283,8 +283,43 @@ def test_overlaps(device, dummy_simulation_check_overlaps):
     
     sim = dummy_simulation_check_overlaps()
     sim.operations.add(mc)
+    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_faceted_ellipsoid.gsd', trigger=1, overwrite=True)
+    # gsd_logger = hoomd.logger.Logger()
+    # gsd_logger += mc
+    # gsd_dumper.log = gsd_logger
+    # sim.operations.add(gsd_dumper)
     sim.operations.schedule()
-    sim.run(100)
+    sim.run(1)
+    overlaps = sim.operations.integrator.overlaps
+    assert overlaps > 0
+    
+    s = sim.state.snapshot
+    s.particles.position[0] = (0, 0, 0)
+    s.particles.position[1] = (0, 8, 0)
+    sim.state.snapshot = s
+    sim.operations.add(mc)
+    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_faceted_ellipsoid.gsd', trigger=1, overwrite=True)
+    # gsd_logger = hoomd.logger.Logger()
+    # gsd_logger += mc
+    # gsd_dumper.log = gsd_logger
+    # sim.operations.add(gsd_dumper)
+    sim.operations.schedule()
+    sim.run(1)
+    overlaps = sim.operations.integrator.overlaps
+    assert overlaps == 0
+    
+    s = sim.state.snapshot
+    s.particles.position[0] = (0, 0, 0)
+    s.particles.position[1] = (0, 1.99, 0)
+    sim.state.snapshot = s
+    sim.operations.add(mc)
+    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_faceted_ellipsoid.gsd', trigger=1, overwrite=True)
+    # gsd_logger = hoomd.logger.Logger()
+    # gsd_logger += mc
+    # gsd_dumper.log = gsd_logger
+    # sim.operations.add(gsd_dumper)
+    sim.operations.schedule()
+    sim.run(1)
     overlaps = sim.operations.integrator.overlaps
     assert overlaps > 0
     
