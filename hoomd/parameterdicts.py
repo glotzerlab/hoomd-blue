@@ -1,12 +1,8 @@
 from itertools import product, combinations_with_replacement
 from copy import deepcopy
 from hoomd.util import to_camel_case, is_iterable
-from hoomd.typeconverter import TypeConverter, TypeConversionError
+from hoomd.typeconverter import TypeConverter, TypeConversionError, RequiredArg
 from hoomd.typeconverter import from_type_converter_input_to_default
-
-# Psudonym for None that states an argument is required to be supplied by the
-# user
-RequiredArg = None
 
 
 def has_str_elems(obj):
@@ -262,7 +258,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         if isinstance(val, dict):
             not_set_keys = []
             for k, v in val.items():
-                if v is None:
+                if v is RequiredArg:
                     not_set_keys.append(k)
             if not_set_keys != []:
                 raise ValueError("{} were not set.".format(not_set_keys))

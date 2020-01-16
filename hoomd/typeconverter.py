@@ -7,6 +7,10 @@ class TypeConversionError(Exception):
     pass
 
 
+class RequiredArg:
+    pass
+
+
 def to_list(value):
     if isinstance(value, str) or isinstance(value, dict):
         raise ValueError
@@ -152,6 +156,6 @@ def from_type_converter_input_to_default(default, overwrite_default=None):
                 new_default[key] = from_type_converter_input_to_default(value)
         return new_default
     elif is_constructor(default) or isfunction(default):
-        return None if overwrite_default is None else overwrite_default
+        return RequiredArg if overwrite_default is None else overwrite_default
     else:
         return default if overwrite_default is None else overwrite_default
