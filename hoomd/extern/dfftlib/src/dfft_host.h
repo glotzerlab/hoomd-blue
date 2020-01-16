@@ -16,6 +16,8 @@
 #define EXTERN_DFFT
 #endif
 
+#pragma GCC visibility push(default)
+
 /* 
  *
  * Create a plan for distributed FFT on the host
@@ -40,4 +42,5 @@ EXTERN_DFFT int dfft_execute(cpx_t *h_in, cpx_t *h_out, int dir, dfft_plan p);
 #undef EXTERN_DFFT
 
 #endif // ENABLE_HOST
+#pragma GCC visibility pop
 #endif

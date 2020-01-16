@@ -10,6 +10,8 @@
 
 #include <mpi.h>
 
+#pragma GCC visibility push(default)
+
 /*
  * Data structure for a distributed FFT
  */
@@ -125,4 +127,5 @@ int dfft_create_plan_common(dfft_plan *plan,
  */
 void dfft_destroy_plan_common(dfft_plan plan, int device);
 
+#pragma GCC visibility pop
 #endif
