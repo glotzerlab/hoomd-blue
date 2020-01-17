@@ -16,7 +16,7 @@ polyhedron_args_3 = {'vertices': [(0, 0, 0), (1, 1, 1),
                                   (1, 0, 2), (2, 1, 1)],
                      'ignore_statistics': 1,
                      'sweep_radius': 3.125}
-polyhedron_args_4 = {'vertices' :[(0, 1, 0), (1, 1, 1), (1, 0, 1),
+polyhedron_args_4 = {'vertices': [(0, 1, 0), (1, 1, 1), (1, 0, 1),
                                   (0, 1, 1), (1, 1, 0), (0, 0, 1),
                                   (0, 0, 1), (0, 0, 1)],
                      'ignore_statistics': 0,
@@ -267,7 +267,7 @@ def test_shape_params():
     assert mc.shape['A']['ignore_statistics'] is False
 
     mc.shape['A'] = dict(shapes=polyhedron_union_args1['shapes'])
-    assert mc.shape['A']['shapes']  == polyhedron_union_args1['shapes']
+    assert mc.shape['A']['shapes'] == polyhedron_union_args1['shapes']
     assert mc.shape['A']['positions'] is None
     assert mc.shape['A']['orientations'] is None
     assert mc.shape['A']['overlap'] == 1
@@ -284,13 +284,13 @@ def test_shape_params():
     assert mc.shape['A']['ignore_statistics'] is True
 
     mc.shape['A'] = polyhedron_union_args3
-    assert mc.shape['A']['shapes'] == polyhedron_union_args3['shapes']
-    assert mc.shape['A']['positions'] == polyhedron_union_args3['positions']
-    assert mc.shape['A']['orientations'] == polyhedron_union_args3['orientations']
-    assert mc.shape['A']['overlap'] == polyhedron_union_args3['overlap']
-    assert mc.shape['A']['capacity'] == polyhedron_union_args3['capacity']
-    assert mc.shape['A']['ignore_statistics'] == polyhedron_union_args3['ignore_statistics']
-
+    test_args = polyhedron_union_args3
+    assert mc.shape['A']['shapes'] == test_args['shapes']
+    assert mc.shape['A']['positions'] == test_args['positions']
+    assert mc.shape['A']['orientations'] == test_args['orientations']
+    assert mc.shape['A']['overlap'] == test_args['overlap']
+    assert mc.shape['A']['capacity'] == test_args['capacity']
+    assert mc.shape['A']['ignore_statistics'] == test_args['ignore_statistics']
 
 
 def test_shape_params_attached(device, dummy_simulation_factory):
@@ -308,87 +308,98 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     mc.shape['J'] = polyhedron_union_args10
     mc.shape['K'] = polyhedron_union_args11
 
-    sim = dummy_simulation_factory(particle_types=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'])
+    sim = dummy_simulation_factory(particle_types=['A', 'B', 'C', 'D', 'E', 'F',
+                                                   'G', 'H', 'I', 'J', 'K'])
     sim.operations.add(mc)
     sim.operations.schedule()
 
+    test_args = polyhedron_union_args1
+    assert mc.shape['A']['shapes'] == test_args['shapes']
+    assert mc.shape['A']['positions'] == test_args['positions']
+    assert mc.shape['A']['orientations'] == test_args['orientations']
+    assert mc.shape['A']['overlap'] == test_args['overlap']
+    assert mc.shape['A']['capacity'] == test_args['capacity']
+    assert mc.shape['A']['ignore_statistics'] == test_args['ignore_statistics']
 
-    assert mc.shape['A']['shapes'] == polyhedron_union_args1['shapes']
-    assert mc.shape['A']['positions'] == polyhedron_union_args1['positions']
-    assert mc.shape['A']['orientations'] == polyhedron_union_args1['orientations']
-    assert mc.shape['A']['overlap'] == polyhedron_union_args1['overlap']
-    assert mc.shape['A']['capacity'] == polyhedron_union_args1['capacity']
-    assert mc.shape['A']['ignore_statistics'] == polyhedron_union_args1['ignore_statistics']
+    test_args = polyhedron_union_args2
+    assert mc.shape['B']['shapes'] == test_args['shapes']
+    assert mc.shape['B']['positions'] == test_args['positions']
+    assert mc.shape['B']['orientations'] == test_args['orientations']
+    assert mc.shape['B']['overlap'] == test_args['overlap']
+    assert mc.shape['B']['capacity'] == test_args['capacity']
+    assert mc.shape['B']['ignore_statistics'] == test_args['ignore_statistics']
 
-    assert mc.shape['B']['shapes'] == polyhedron_union_args2['shapes']
-    assert mc.shape['B']['positions'] == polyhedron_union_args2['positions']
-    assert mc.shape['B']['orientations'] == polyhedron_union_args2['orientations']
-    assert mc.shape['B']['overlap'] == polyhedron_union_args2['overlap']
-    assert mc.shape['B']['capacity'] == polyhedron_union_args2['capacity']
-    assert mc.shape['B']['ignore_statistics'] == polyhedron_union_args2['ignore_statistics']
+    test_args = polyhedron_union_args3
+    assert mc.shape['C']['shapes'] == test_args['shapes']
+    assert mc.shape['C']['positions'] == test_args['positions']
+    assert mc.shape['C']['orientations'] == test_args['orientations']
+    assert mc.shape['C']['overlap'] == test_args['overlap']
+    assert mc.shape['C']['capacity'] == test_args['capacity']
+    assert mc.shape['C']['ignore_statistics'] == test_args['ignore_statistics']
 
-    assert mc.shape['C']['shapes'] == polyhedron_union_args3['shapes']
-    assert mc.shape['C']['positions'] == polyhedron_union_args3['positions']
-    assert mc.shape['C']['orientations'] == polyhedron_union_args3['orientations']
-    assert mc.shape['C']['overlap'] == polyhedron_union_args3['overlap']
-    assert mc.shape['C']['capacity'] == polyhedron_union_args3['capacity']
-    assert mc.shape['C']['ignore_statistics'] == polyhedron_union_args3['ignore_statistics']
+    test_args = polyhedron_union_args4
+    assert mc.shape['D']['shapes'] == test_args['shapes']
+    assert mc.shape['D']['positions'] == test_args['positions']
+    assert mc.shape['D']['orientations'] == test_args['orientations']
+    assert mc.shape['D']['overlap'] == test_args['overlap']
+    assert mc.shape['D']['capacity'] == test_args['capacity']
+    assert mc.shape['D']['ignore_statistics'] == test_args['ignore_statistics']
 
-    assert mc.shape['D']['shapes'] == polyhedron_union_args4['shapes']
-    assert mc.shape['D']['positions'] == polyhedron_union_args4['positions']
-    assert mc.shape['D']['orientations'] == polyhedron_union_args4['orientations']
-    assert mc.shape['D']['overlap'] == polyhedron_union_args4['overlap']
-    assert mc.shape['D']['capacity'] == polyhedron_union_args4['capacity']
-    assert mc.shape['D']['ignore_statistics'] == polyhedron_union_args4['ignore_statistics']
+    test_args = polyhedron_union_args5
+    assert mc.shape['E']['shapes'] == test_args['shapes']
+    assert mc.shape['E']['positions'] == test_args['positions']
+    assert mc.shape['E']['orientations'] == test_args['orientations']
+    assert mc.shape['E']['overlap'] == test_args['overlap']
+    assert mc.shape['E']['capacity'] == test_args['capacity']
+    assert mc.shape['E']['ignore_statistics'] == test_args['ignore_statistics']
 
-    assert mc.shape['E']['shapes'] == polyhedron_union_args5['shapes']
-    assert mc.shape['E']['positions'] == polyhedron_union_args5['positions']
-    assert mc.shape['E']['orientations'] == polyhedron_union_args5['orientations']
-    assert mc.shape['E']['overlap'] == polyhedron_union_args5['overlap']
-    assert mc.shape['E']['capacity'] == polyhedron_union_args5['capacity']
-    assert mc.shape['E']['ignore_statistics'] == polyhedron_union_args5['ignore_statistics']
+    test_args = polyhedron_union_args6
+    assert mc.shape['F']['shapes'] == test_args['shapes']
+    assert mc.shape['F']['positions'] == test_args['positions']
+    assert mc.shape['F']['orientations'] == test_args['orientations']
+    assert mc.shape['F']['overlap'] == test_args['overlap']
+    assert mc.shape['F']['capacity'] == test_args['capacity']
+    assert mc.shape['F']['ignore_statistics'] == test_args['ignore_statistics']
 
-    assert mc.shape['F']['shapes'] == polyhedron_union_args6['shapes']
-    assert mc.shape['F']['positions'] == polyhedron_union_args6['positions']
-    assert mc.shape['F']['orientations'] == polyhedron_union_args6['orientations']
-    assert mc.shape['F']['overlap'] == polyhedron_union_args6['overlap']
-    assert mc.shape['F']['capacity'] == polyhedron_union_args6['capacity']
-    assert mc.shape['F']['ignore_statistics'] == polyhedron_union_args6['ignore_statistics']
+    test_args = polyhedron_union_args7
+    assert mc.shape['G']['shapes'] == test_args['shapes']
+    assert mc.shape['G']['positions'] == test_args['positions']
+    assert mc.shape['G']['orientations'] == test_args['orientations']
+    assert mc.shape['G']['overlap'] == test_args['overlap']
+    assert mc.shape['G']['capacity'] == test_args['capacity']
+    assert mc.shape['G']['ignore_statistics'] == test_args['ignore_statistics']
 
-    assert mc.shape['G']['shapes'] == polyhedron_union_args7['shapes']
-    assert mc.shape['G']['positions'] == polyhedron_union_args7['positions']
-    assert mc.shape['G']['orientations'] == polyhedron_union_args7['orientations']
-    assert mc.shape['G']['overlap'] == polyhedron_union_args7['overlap']
-    assert mc.shape['G']['capacity'] == polyhedron_union_args7['capacity']
-    assert mc.shape['G']['ignore_statistics'] == polyhedron_union_args7['ignore_statistics']
+    test_args = polyhedron_union_args8
+    assert mc.shape['H']['shapes'] == test_args['shapes']
+    assert mc.shape['H']['positions'] == test_args['positions']
+    assert mc.shape['H']['orientations'] == test_args['orientations']
+    assert mc.shape['H']['overlap'] == test_args['overlap']
+    assert mc.shape['H']['capacity'] == test_args['capacity']
+    assert mc.shape['H']['ignore_statistics'] == test_args['ignore_statistics']
 
-    assert mc.shape['H']['shapes'] == polyhedron_union_args8['shapes']
-    assert mc.shape['H']['positions'] == polyhedron_union_args8['positions']
-    assert mc.shape['H']['orientations'] == polyhedron_union_args8['orientations']
-    assert mc.shape['H']['overlap'] == polyhedron_union_args8['overlap']
-    assert mc.shape['H']['capacity'] == polyhedron_union_args8['capacity']
-    assert mc.shape['H']['ignore_statistics'] == polyhedron_union_args8['ignore_statistics']
+    test_args = polyhedron_union_args9
+    assert mc.shape['I']['shapes'] == test_args['shapes']
+    assert mc.shape['I']['positions'] == test_args['positions']
+    assert mc.shape['I']['orientations'] == test_args['orientations']
+    assert mc.shape['I']['overlap'] == test_args['overlap']
+    assert mc.shape['I']['capacity'] == test_args['capacity']
+    assert mc.shape['I']['ignore_statistics'] == test_args['ignore_statistics']
 
-    assert mc.shape['I']['shapes'] == polyhedron_union_args9['shapes']
-    assert mc.shape['I']['positions'] == polyhedron_union_args9['positions']
-    assert mc.shape['I']['orientations'] == polyhedron_union_args9['orientations']
-    assert mc.shape['I']['overlap'] == polyhedron_union_args9['overlap']
-    assert mc.shape['I']['capacity'] == polyhedron_union_args9['capacity']
-    assert mc.shape['I']['ignore_statistics'] == polyhedron_union_args9['ignore_statistics']
+    test_args = polyhedron_union_args10
+    assert mc.shape['J']['shapes'] == test_args['shapes']
+    assert mc.shape['J']['positions'] == test_args['positions']
+    assert mc.shape['J']['orientations'] == test_args['orientations']
+    assert mc.shape['J']['overlap'] == test_args['overlap']
+    assert mc.shape['J']['capacity'] == test_args['capacity']
+    assert mc.shape['J']['ignore_statistics'] == test_args['ignore_statistics']
 
-    assert mc.shape['J']['shapes'] == polyhedron_union_args10['shapes']
-    assert mc.shape['J']['positions'] == polyhedron_union_args10['positions']
-    assert mc.shape['J']['orientations'] == polyhedron_union_args10['orientations']
-    assert mc.shape['J']['overlap'] == polyhedron_union_args10['overlap']
-    assert mc.shape['J']['capacity'] == polyhedron_union_args10['capacity']
-    assert mc.shape['J']['ignore_statistics'] == polyhedron_union_args10['ignore_statistics']
-
-    assert mc.shape['K']['shapes'] == polyhedron_union_args11['shapes']
-    assert mc.shape['K']['positions'] == polyhedron_union_args11['positions']
-    assert mc.shape['K']['orientations'] == polyhedron_union_args11['orientations']
-    assert mc.shape['K']['overlap'] == polyhedron_union_args11['overlap']
-    assert mc.shape['K']['capacity'] == polyhedron_union_args11['capacity']
-    assert mc.shape['K']['ignore_statistics'] == polyhedron_union_args11['ignore_statistics']
+    test_args = polyhedron_union_args11
+    assert mc.shape['K']['shapes'] == test_args['shapes']
+    assert mc.shape['K']['positions'] == test_args['positions']
+    assert mc.shape['K']['orientations'] == test_args['orientations']
+    assert mc.shape['K']['overlap'] == test_args['overlap']
+    assert mc.shape['K']['capacity'] == test_args['capacity']
+    assert mc.shape['K']['ignore_statistics'] == test_args['ignore_statistics']
 
     polyhedron_union_args1_invalid = copy.deepcopy(polyhedron_union_args1)
     polyhedron_union_args2_invalid = copy.deepcopy(polyhedron_union_args2)

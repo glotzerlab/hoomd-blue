@@ -198,12 +198,15 @@ class HPMCIntegrator(_integrator):
         Args:
             type_i (str): Type of first particle
             type_j (str): Type of second particle
-            rij (tuple): Separation vector **rj**-**ri** between the particle centers
+            rij (tuple): Separation vector **rj**-**ri** between the particle
+              centers
             qi (tuple): Orientation quaternion of first particle
             qj (tuple): Orientation quaternion of second particle
-            use_images (bool): If True, check for overlap between the periodic images of the particles by adding
-                the image vector to the separation vector
-            exclude_self (bool): If both **use_images** and **exclude_self** are true, exclude the primary image
+            use_images (bool): If True, check for overlap between the periodic
+              images of the particles by adding
+              the image vector to the separation vector
+            exclude_self (bool): If both **use_images** and **exclude_self** are
+              true, exclude the primary image
 
         For two-dimensional shapes, pass the third dimension of **rij** as zero.
 
@@ -261,7 +264,8 @@ class HPMCIntegrator(_integrator):
         R""" Get the number of trial moves per second.
 
         Returns:
-            The number of trial moves per second performed during the last :py:func:`hoomd.run()`.
+            The number of trial moves per second performed during the last
+              :py:func:`hoomd.run()`.
 
         """
         return self._cpp_obj.getMPS()
@@ -286,12 +290,13 @@ class Sphere(HPMCIntegrator):
     Args:
         seed (int): Random number seed
         d (float): Maximum move displacement, Scalar to set for all types, or a
-            dict containing {type:size} to set by type.
+          dict containing {type:size} to set by type.
         a (float): Maximum rotation move to set for all types, or a dict
-            containing {type:size} to set by type.
+          containing {type:size} to set by type.
         move_ratio (float, only used with **orientable=True**): Ratio of
-            translation moves to rotation moves. (added in version 2.3)
+          translation moves to rotation moves. (added in version 2.3)
         nselect (int): The number of trial moves to perform in each cell.
+        deterministic (bool):
 
     Hard particle Monte Carlo integration method for spheres.
 
@@ -302,6 +307,7 @@ class Sphere(HPMCIntegrator):
       orientation (added in version 2.3)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking
+    * *len_keys* (**default: 1**) -
 
     Examples::
 
@@ -344,7 +350,8 @@ class Sphere(HPMCIntegrator):
             The types will be 'Sphere' regardless of dimensionality.
 
             >>> mc.type_shapes
-            [{'type': 'Sphere', 'diameter': 1}, {'type': 'Sphere', 'diameter': 2}]
+            [{'type': 'Sphere', 'diameter': 1},
+              {'type': 'Sphere', 'diameter': 2}]
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
@@ -357,37 +364,47 @@ class ConvexPolygon(HPMCIntegrator):
 
     Args:
         seed (int): Random number seed
-        d (float): Maximum move displacement, Scalar to set for all types, or a 
+        d (float): Maximum move displacement, Scalar to set for all types, or a
           dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
-                             for a description of what state data restored. (added in version 2.2)
+        deterministic (bool):
 
     Note:
         For concave polygons, use :py:class:`SimplePolygon`.
 
     Convex polygon parameters:
 
-    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y) tuples of numbers (distance units)
+    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y)
+      tuples of numbers (distance units)
 
         * Vertices **MUST** be specified in a *counter-clockwise* order.
         * The origin **MUST** be contained within the vertices.
         * Points inside the polygon **MUST NOT** be included.
-        * The origin centered circle that encloses all vertices should be of minimal size for optimal performance (e.g.
-          don't put the origin right next to an edge).
+        * The origin centered circle that encloses all vertices should be of
+          minimal size for optimal performance (e.g. don't put the origin right
+          next to an edge).
 
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking
+    * *sweep_radius* (**default: 0**) - the radius of the sphere swept around
+      the edges of the polygon (distance units). Set a non-zero sweep_radius
+      to create a spheropolygon
+    * *len_keys* (**default: 1**) -
 
     Warning:
-        HPMC does not check that all requirements are met. Undefined behavior will result if they are
-        violated.
+        HPMC does not check that all requirements are met. Undefined behavior
+        will result if they are violated.
 
     Examples::
 
         mc = hpmc.integrate.ConvexPolygon(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
+        mc.shape_param.set('A', vertices=[(-0.5, -0.5),
+                                          (0.5, -0.5),
+                                          (0.5, 0.5),
+                                          (-0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
@@ -429,23 +446,29 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
-                             for a description of what state data restored. (added in version 2.2)
+        deterministic (bool):
 
     Spheropolygon parameters:
 
-    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y) tuples of numbers (distance units)
+    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y)
+      tuples of numbers (distance units)
 
         * The origin **MUST** be contained within the shape.
-        * The origin centered circle that encloses all vertices should be of minimal size for optimal performance (e.g.
-          don't put the origin right next to an edge).
+        * The origin centered circle that encloses all vertices should be of
+          minimal size for optimal performance (e.g. don't put the origin right
+          next to an edge).
 
-    * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around
+      the edges of the polygon (distance units) - **optional**
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking
+    * *len_keys* (**default: 1**) -
 
     Useful cases:
 
@@ -453,14 +476,23 @@ class ConvexSpheropolygon(HPMCIntegrator):
      * A 2-vertex spheropolygon is a spherocylinder.
 
     Warning:
-        HPMC does not check that all requirements are met. Undefined behavior will result if they are
-        violated.
+        HPMC does not check that all requirements are met. Undefined behavior
+        will result if they are violated.
 
     Examples::
 
         mc = hpmc.integrate.ConvexSpheropolygon(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)], sweep_radius=0.1, ignore_statistics=False);
-        mc.shape_param.set('A', vertices=[(0,0)], sweep_radius=0.5, ignore_statistics=True);
+        mc.shape_param.set('A',
+                           vertices=[(-0.5, -0.5),
+                                     (0.5, -0.5),
+                                     (0.5, 0.5),
+                                     (-0.5, 0.5)],
+                           sweep_radius=0.1,
+                           ignore_statistics=False);
+        mc.shape_param.set('A',
+                           vertices=[(0,0)],
+                           sweep_radius=0.5,
+                           ignore_statistics=True);
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
@@ -502,36 +534,47 @@ class SimplePolygon(HPMCIntegrator):
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
-                             for a description of what state data restored. (added in version 2.2)
+        deterministic (bool):
 
     Note:
-        For simple polygons that are not concave, use :py:class:`ConvexPolygon`, it will execute much faster than
-        :py:class:`SimplePolygon`.
+        For simple polygons that are not concave, use :py:class:`ConvexPolygon`,
+        it will execute much faster than :py:class:`SimplePolygon`.
 
     Simple polygon parameters:
 
-    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y) tuples of numbers (distance units)
+    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y)
+      tuples of numbers (distance units)
 
         * Vertices **MUST** be specified in a *counter-clockwise* order.
         * The polygon may be concave, but edges must not cross.
         * The origin doesn't necessarily need to be inside the shape.
-        * The origin centered circle that encloses all vertices should be of minimal size for optimal performance.
+        * The origin centered circle that encloses all vertices should be of
+          minimal size for optimal performance.
 
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking.
+    * *sweep_radius* (**default: 0**) - the radius of the sphere swept around
+      the edges of the polygon (distance units). Set a non-zero sweep_radius
+      to create a spheropolygon.
+    * *len_keys* (**default: 1**) -
 
     Warning:
-        HPMC does not check that all requirements are met. Undefined behavior will result if they are
-        violated.
+        HPMC does not check that all requirements are met. Undefined behavior
+        will result if they are violated.
 
     Examples::
 
         mc = hpmc.integrate.SimplePolygon(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', vertices=[(0, 0.5), (-0.5, -0.5), (0, 0), (0.5, -0.5)]);
+        mc.shape_param.set('A', vertices=[(0, 0.5),
+                                          (-0.5, -0.5),
+                                          (0, 0),
+                                          (0.5, -0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
@@ -573,59 +616,90 @@ class Polyhedron(HPMCIntegrator):
     R""" HPMC integration for general polyhedra (3D).
 
     This shape uses an internal OBB tree for fast collision queries.
-    Depending on the number of constituent spheres in the tree, different values of the number of
-    spheres per leaf node may yield different optimal performance.
-    The capacity of leaf nodes is configurable.
+    Depending on the number of constituent spheres in the tree, different
+    values of the number of spheres per leaf node may yield different
+    optimal performance. The capacity of leaf nodes is configurable.
 
-    Only triangle meshes and spheres are supported. The mesh must be free of self-intersections.
+    Only triangle meshes and spheres are supported. The mesh must be free of
+    self-intersections.
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
-                             for a description of what state data restored. (added in version 2.2)
+        deterministic (bool):
 
     Polyhedron parameters:
 
-    * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
+    * *vertices* (**required**) - vertices of the polyhedron as is a list of
+      (x,y,z) tuples of numbers (distance units)
 
-        * The origin **MUST** strictly be contained in the generally nonconvex volume defined by the vertices and faces
-        * The (0,0,0) centered sphere that encloses all vertices should be of minimal size for optimal performance (e.g.
-          don't translate the shape such that (0,0,0) right next to a face).
+        * The origin **MUST** strictly be contained in the generally nonconvex
+          volume defined by the vertices and faces
+        * The (0,0,0) centered sphere that encloses all vertices should be of
+          minimal size for optimal performance (e.g. don't translate the shape
+          such that (0,0,0) right next to a face).
 
     * *faces* (**required**) - a list of vertex indices for every face
 
-        * For visualization purposes, the faces **MUST** be defined with a counterclockwise winding order to produce an outward normal.
+        * For visualization purposes, the faces **MUST** be defined with a
+          counterclockwise winding order to produce an outward normal.
 
     * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking
+    * *overlap* (**default: None for all particles**) - only check overlap
+      between constituent particles for which *overlap [i] & overlap[j]* is !=0,
+      where '&' is the bitwise AND operator.
 
-    * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
+    * *capacity* (**default: 4**) - set to the maximum number of particles per
+      leaf node for better performance
+
+        * .. versionadded:: 2.2
+
+    * *origin* (**default: (0,0,0)**) - a point strictly inside the shape,
+      needed for correctness of overlap checks
 
         * .. versionadded:: 2.2
 
-    * *origin* (**default: (0,0,0)**) - a point strictly inside the shape, needed for correctness of overlap checks
+    * *hull_only* (**default: True**) - if True, only consider intersections
+      between hull polygons
 
         * .. versionadded:: 2.2
 
-    * *hull_only* (**default: True**) - if True, only consider intersections between hull polygons
-
-        * .. versionadded:: 2.2
+    * *len_keys* (**default: 1**) -
 
     Warning:
-        HPMC does not check that all requirements are met. Undefined behavior will result if they are
-        violated.
+        HPMC does not check that all requirements are met. Undefined behavior
+        will result if they are violated.
 
     Example::
 
         mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
-                 (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)],\
-        faces = [[0, 2, 6], [6, 4, 0], [5, 0, 4], [5,1,0], [5,4,6], [5,6,7], [3,2,0], [3,0,1], [3,6,2], \
-                 [3,7,6], [3,1,5], [3,5,7]]
+        mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5),
+                                          (-0.5, -0.5, 0.5),
+                                          (-0.5, 0.5, -0.5),
+                                          (-0.5, 0.5, 0.5),
+                                          (0.5, -0.5, -0.5),
+                                          (0.5, -0.5, 0.5),
+                                          (0.5, 0.5, -0.5),
+                                          (0.5, 0.5, 0.5)],
+        faces = [[0, 2, 6],
+                 [6, 4, 0],
+                 [5, 0, 4],
+                 [5, 1, 0],
+                 [5, 4, 6],
+                 [5, 6, 7],
+                 [3, 2, 0],
+                 [3, 0, 1],
+                 [3, 6, 2],
+                 [3, 7, 6],
+                 [3, 1, 5],
+                 [3, 5, 7]]
         print('vertices = ', mc.shape_param['A'].vertices)
         print('faces = ', mc.shape_param['A'].faces)
 
@@ -633,14 +707,34 @@ class Polyhedron(HPMCIntegrator):
 
         mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4)
         mc.set_param(nselect=1)
-        cube_verts = [(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
-                     (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)];
-        cube_faces = [[0, 2, 6], [6, 4, 0], [5, 0, 4], [5,1,0], [5,4,6], [5,6,7], [3,2,0], [3,0,1], [3,6,2], \
-                     [3,7,6], [3,1,5], [3,5,7]]
-        tetra_verts = [(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)];
+        cube_verts = [(-0.5, -0.5, -0.5),
+                      (-0.5, -0.5, 0.5),
+                      (-0.5, 0.5, -0.5),
+                      (-0.5, 0.5, 0.5),
+                      (0.5, -0.5, -0.5),
+                      (0.5, -0.5, 0.5),
+                      (0.5, 0.5, -0.5),
+                      (0.5, 0.5, 0.5)];
+        cube_faces = [[0, 2, 6],
+                      [6, 4, 0],
+                      [5, 0, 4],
+                      [5,1,0],
+                      [5,4,6],
+                      [5,6,7],
+                      [3,2,0],
+                      [3,0,1],
+                      [3,6,2],
+                      [3,7,6],
+                      [3,1,5],
+                      [3,5,7]]
+        tetra_verts = [(0.5, 0.5, 0.5),
+                       (0.5, -0.5, -0.5),
+                       (-0.5, 0.5, -0.5),
+                       (-0.5, -0.5, 0.5)];
         tetra_faces = [[0, 1, 2], [3, 0, 2], [3, 2, 1], [3,1,0]];
         mc.shape_param.set('A', vertices = cube_verts, faces = cube_faces);
-        mc.shape_param.set('B', vertices = tetra_verts, faces = tetra_faces, origin = (0,0,0));
+        mc.shape_param.set('B', vertices = tetra_verts, faces = tetra_faces,
+          origin = (0,0,0));
     """
 
     _cpp_cls = 'IntegratorHPMCMonoPolyhedron'
@@ -659,7 +753,7 @@ class Polyhedron(HPMCIntegrator):
                                             capacity=4,
                                             origin=(0, 0, 0),
                                             hull_only=True,
-                                            overlap=None,
+                                            overlap=False,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -672,7 +766,8 @@ class Polyhedron(HPMCIntegrator):
 
         Example:
             >>> mc.type_shapes()
-            [{'type': 'Mesh', 'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5], [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]],
+            [{'type': 'Mesh', 'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
+              [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]],
               'indices': [[0, 1, 2], [0, 3, 1], [0, 2, 3], [1, 3, 2]]}]
 
         Returns:
@@ -686,39 +781,57 @@ class ConvexPolyhedron(HPMCIntegrator):
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
-                             for a description of what state data restored. (added in version 2.2)
+        nselect (int): (Override the automatic choice for the number of trial
+          moves to perform in each cell.
+        deterministic (bool):
 
     Convex polyhedron parameters:
 
-    * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
+    * *vertices* (**required**) - vertices of the polyhedron as is a list of
+      (x,y,z) tuples of numbers (distance units)
 
         * The origin **MUST** be contained within the vertices.
-        * The origin centered circle that encloses all vertices should be of minimal size for optimal performance (e.g.
+        * The origin centered circle that encloses all vertices should be of
+          minimal size for optimal performance (e.g.
           don't put the origin right next to a face).
 
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *sweep_radius* (**default: 0**) - the radius of the sphere swept around
+      the edges of the polyhedron (distance units). Set a non-zero sweep_radius
+      to create a spheropolyhedron
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking
+    * *len_keys* (**default: 1**) -
 
     Warning:
-        HPMC does not check that all requirements are met. Undefined behavior will result if they are
-        violated.
+        HPMC does not check that all requirements are met. Undefined behavior
+        will result if they are violated.
 
     Example::
 
         mc = hpmc.integrate.ConvexPolyhedron(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
+        mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5),
+                                          (0.5, -0.5, -0.5),
+                                          (-0.5, 0.5, -0.5),
+                                          (-0.5, -0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
 
     Depletants Example::
 
         mc = hpmc.integrate.ConvexPolyhedron(seed=415236, d=0.3, a=0.4)
         mc.set_param(nselect=1)
-        mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
-        mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
+        mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5),
+                                          (0.5, -0.5, -0.5),
+                                          (-0.5, 0.5, -0.5),
+                                          (-0.5, -0.5, 0.5)]);
+        mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05),
+                                          (0.05, -0.05, -0.05),
+                                          (-0.05, 0.05, -0.05),
+                                          (-0.05, -0.05, 0.05)]);
         mc.set_fugacity('B',fugacity=3.0)
     """
 
@@ -755,21 +868,22 @@ class ConvexPolyhedron(HPMCIntegrator):
         return super(ConvexPolyhedron, self)._return_type_shapes()
 
 
-
 class FacetedEllipsoid(HPMCIntegrator):
     R""" HPMC integration for faceted ellipsoids (3D).
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
-                             for a description of what state data restored. (added in version 2.2)
+        deterministic (bool):
 
-    A faceted ellipsoid is an ellipsoid intersected with a convex polyhedron defined through
-    halfspaces. The equation defining each halfspace is given by:
+    A faceted ellipsoid is an ellipsoid intersected with a convex polyhedron
+    defined through halfspaces. The equation defining each halfspace is given
+    by:
 
     .. math::
         n_i\cdot r + b_i \le 0
@@ -777,28 +891,32 @@ class FacetedEllipsoid(HPMCIntegrator):
     where :math:`n_i` is the face normal, and :math:`b_i` is  the offset.
 
     Warning:
-        The origin must be chosen so as to lie **inside the shape**, or the overlap check will not work.
-        This condition is not checked.
+        The origin must be chosen so as to lie **inside the shape**, or the
+        overlap check will not work. This condition is not checked.
 
     Faceted ellipsoid parameters:
 
-    * *normals* (**required**) - list of (x,y,z) tuples defining the facet normals (distance units)
+    * *normals* (**required**) - list of (x,y,z) tuples defining the facet
+      normals (distance units)
     * *offsets* (**required**) - list of offsets (distance unit^2)
     * *a* (**required**) - first half axis of ellipsoid
     * *b* (**required**) - second half axis of ellipsoid
     * *c* (**required**) - third half axis of ellipsoid
     * *vertices* (**required**) - list of vertices for intersection polyhedron
     * *origin* (**required**) - origin vector
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking
+    * *len_keys* (**default: 1**) -
 
     Warning:
         Planes must not be coplanar.
 
     Note:
-        The half-space intersection of the normals has to match the convex polyhedron defined by
-        the vertices (if non-empty), currently the half-space intersection is **not** calculated automatically.
-        For simple intersections with planes that do not intersect within the sphere, the vertices
-        list can be left empty.
+        The half-space intersection of the normals has to match the convex
+        polyhedron defined by the vertices (if non-empty), currently the
+        half-space intersection is **not** calculated automatically. For
+        simple intersections with planes that do not intersect within the
+        sphere, the vertices list can be left empty.
 
     Example::
 
@@ -809,15 +927,33 @@ class FacetedEllipsoid(HPMCIntegrator):
         slab_offsets = [-0.1,-1,-.5,-.5,-.5,-.5)
 
         # polyedron vertices
-        slab_verts = [[-.1,-.5,-.5],[-.1,-.5,.5],[-.1,.5,.5],[-.1,.5,-.5], [1,-.5,-.5],[1,-.5,.5],[1,.5,.5],[1,.5,-.5]]
+        slab_verts = [[-.1,-.5,-.5],
+                      [-.1,-.5,.5],
+                      [-.1,.5,.5],
+                      [-.1,.5,-.5],
+                      [1,-.5,-.5],
+                      [1,-.5,.5],
+                      [1,.5,.5],
+                      [1,.5,-.5]]
 
-        mc.shape_param.set('A', normals=slab_normals, offsets=slab_offsets, vertices=slab_verts,a=1.0, b=0.5, c=0.5);
-        print('a = {}, b = {}, c = {}', mc.shape_param['A'].a,mc.shape_param['A'].b,mc.shape_param['A'].c)
+        mc.shape_param.set('A', normals=slab_normals, offsets=slab_offsets,
+                           vertices=slab_verts, a=1.0, b=0.5, c=0.5);
+        print('a = {}, b = {}, c = {}',
+              mc.shape_param['A'].a,mc.shape_param['A'].b,mc.shape_param['A'].c)
 
     Depletants Example::
 
         mc = hpmc.integrate.FacetedEllipsoid(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],a=1.0, b=0.5, c=0.25);
+        mc.shape_param.set('A',
+                           normals=[(-1,0,0),
+                                    (1,0,0),
+                                    (0,-1,0),
+                                    (0,1,0),
+                                    (0,0,-1),
+                                    (0,0,1)],
+                            a=1.0,
+                            b=0.5,
+                            c=0.25);
         # depletant sphere
         mc.shape_param.set('B', normals=[],a=0.1,b=0.1,c=0.1);
         mc.set_fugacity('B',fugacity=3.0)
@@ -845,20 +981,21 @@ class FacetedEllipsoid(HPMCIntegrator):
         self._add_typeparam(typeparam_shape)
 
 
-
 class FacetedSphere(FacetedEllipsoid):
     R""" HPMC integration for faceted spheres (3D).
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
-                             for a description of what state data restored. (added in version 2.2)
+        deterministic (bool):
 
-    A faceted sphere is a sphere intersected with halfspaces. The equation defining each halfspace is given by:
+    A faceted sphere is a sphere intersected with halfspaces. The equation
+    defining each halfspace is given by:
 
     .. math::
         n_i\cdot r + b_i \le 0
@@ -866,50 +1003,78 @@ class FacetedSphere(FacetedEllipsoid):
     where :math:`n_i` is the face normal, and :math:`b_i` is  the offset.
 
     Warning:
-        The origin must be chosen so as to lie **inside the shape**, or the overlap check will not work.
-        This condition is not checked.
+        The origin must be chosen so as to lie **inside the shape**, or the
+        overlap check will not work. This condition is not checked.
 
     Faceted sphere parameters:
 
-    * *normals* (**required**) - list of (x,y,z) tuples defining the facet normals (distance units)
+    * *normals* (**required**) - list of (x,y,z) tuples defining the facet
+      normals (distance units)
     * *offsets* (**required**) - list of offsets (distance unit^2)
     * *diameter* (**required**) - diameter of sphere
     * *vertices* (**required**) - list of vertices for intersection polyhedron
     * *origin* (**required**) - origin vector
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking
+    * *len_keys* (**default: 1**) -
 
     Warning:
         Planes must not be coplanar.
 
     Note:
-        The half-space intersection of the normals has to match the convex polyhedron defined by
-        the vertices (if non-empty), currently the half-space intersection is **not** calculated automatically.
-        For simple intersections with planes that do not intersect within the sphere, the vertices
-        list can be left empty.
+        The half-space intersection of the normals has to match the convex
+        polyhedron defined by the vertices (if non-empty), currently the
+        half-space intersection is **not** calculated automatically. For
+        simple intersections with planes that do not intersect within the
+        sphere, the vertices list can be left empty.
 
     Example::
+
         # half-space intersection
         slab_normals = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)]
         slab_offsets = [-0.1,-1,-.5,-.5,-.5,-.5)
 
-        # polyedron vertices
-        slab_verts = [[-.1,-.5,-.5],[-.1,-.5,.5],[-.1,.5,.5],[-.1,.5,-.5], [.5,-.5,-.5],[.5,-.5,.5],[.5,.5,.5],[.5,.5,-.5]]
-
+        # polyhedron vertices
+        slab_verts = [[-.1,-.5,-.5],
+                      [-.1,-.5,.5],
+                      [-.1,.5,.5],
+                      [-.1,.5,-.5],
+                      [.5,-.5,-.5],
+                      [.5,-.5,.5],
+                      [.5,.5,.5],
+                      [.5,.5,-.5]]
         mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', normals=slab_normals,offsets=slab_offsets, vertices=slab_verts,diameter=1.0);
+        mc.shape_param.set('A',
+                            normals=slab_normals,
+                            offsets=slab_offsets,
+                            vertices=slab_verts,
+                            diameter=1.0);
         print('diameter = ', mc.shape_param['A'].diameter)
 
     Depletants Example::
 
         mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
+        mc.shape_param.set('A',
+                           normals=[(-1,0,0),
+                                    (1,0,0),
+                                    (0,-1,0),
+                                    (0,1,0),
+                                    (0,0,-1),
+                                    (0,0,1)],
+                           diameter=1.0);
         mc.shape_param.set('B', normals=[],diameter=0.1);
         mc.set_fugacity('B',fugacity=3.0)
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, deterministic=False):
 
-        super(FacetedSphere, self).__init__(seed=seed, d=d, a=a, move_ratio=move_ratio,
-                                             nselect=nselect, deterministic=deterministic)
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
+                 nselect=4, deterministic=False):
+
+        super(FacetedSphere, self).__init__(seed=seed,
+                                            d=d,
+                                            a=a,
+                                            move_ratio=move_ratio,
+                                            nselect=nselect,
+                                            deterministic=deterministic)
 
 
 class Sphinx(HPMCIntegrator):
@@ -917,20 +1082,24 @@ class Sphinx(HPMCIntegrator):
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
-                             for a description of what state data restored. (added in version 2.2)
+        deterministic (bool):
 
-    Sphinx particles are dimpled spheres (spheres with 'positive' and 'negative' volumes).
+    Sphinx particles are dimpled spheres (spheres with 'positive' and 'negative'
+    volumes).
 
     Sphinx parameters:
 
     * *diameters* - diameters of spheres (positive OR negative real numbers)
     * *centers* - centers of spheres in local coordinate frame
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking
+    * *len_keys* (**default: 1**) -
 
     Quick Example::
 
@@ -969,45 +1138,62 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
-                             for a description of what state data restored. (added in version 2.2)
+        deterministic (bool):
 
-    A spheropolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
+    A spheropolyhedron can also represent spheres (0 or 1 vertices), and
+    spherocylinders (2 vertices).
 
     Spheropolyhedron parameters:
 
-    * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
+    * *vertices* (**required**) - vertices of the polyhedron as is a list of
+      (x,y,z) tuples of numbers (distance units)
 
         - The origin **MUST** be contained within the vertices.
-        - The origin centered sphere that encloses all vertices should be of minimal size for optimal performance (e.g.
-          don't put the origin right next to a face).
-        - A sphere can be represented by specifying zero vertices (i.e. vertices=[]) and a non-zero radius R
+        - The origin centered sphere that encloses all vertices should be of
+          minimal size for optimal performance (e.g. don't put the origin right
+          next to a face).
+        - A sphere can be represented by specifying zero vertices
+          (i.e. vertices=[]) and a non-zero radius R
         - Two vertices and a non-zero radius R define a prolate spherocylinder.
 
-    * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around
+      the edges of the polygon (distance units) - **optional**
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking
+    * *len_keys* (**default: 1**) -
 
     Warning:
-        HPMC does not check that all requirements are met. Undefined behavior will result if they are
-        violated.
+        HPMC does not check that all requirements are met. Undefined behavior
+        will result if they are violated.
 
     Example::
 
         mc = hpmc.integrate.ConvexSpheropolyhedron(seed=415236, d=0.3, a=0.4)
-        mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
+        mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5),
+                                                    (0.5, -0.5, -0.5),
+                                                    (-0.5, 0.5, -0.5),
+                                                    (-0.5, -0.5, 0.5)]);
         print('vertices = ', mc.shape_param['A'].vertices)
-        mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1, ignore_statistics=True);
+        mc.shape_param['SphericalDepletant'].set(vertices=[],
+                                                 sweep_radius=0.1,
+                                                 ignore_statistics=True);
 
     Depletants example::
 
         mc = hpmc.integrate.ConvexSpheropolyhedron(seed=415236, d=0.3, a=0.4)
-        mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
+        mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5),
+                                                    (0.5, -0.5, -0.5),
+                                                    (-0.5, 0.5, -0.5),
+                                                    (-0.5, -0.5, 0.5)]);
         mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
         mc.set_fugacity('B',fugacity=3.0)
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSpheropolyhedron'
@@ -1026,7 +1212,6 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
                                             len_keys=1)
                                         )
         self._add_typeparam(typeparam_shape)
-
 
     @Loggable.log(flag='multi')
     def type_shapes(self):
@@ -1049,25 +1234,34 @@ class Ellipsoid(HPMCIntegrator):
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
-                             for a description of what state data restored. (added in version 2.2)
+        deterministic (bool):
 
     Ellipsoid parameters:
 
-    * *a* (**required**) - principle axis a of the ellipsoid (radius in the x direction) (distance units)
-    * *b* (**required**) - principle axis b of the ellipsoid (radius in the y direction) (distance units)
-    * *c* (**required**) - principle axis c of the ellipsoid (radius in the z direction) (distance units)
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *a* (**required**) - principle axis a of the ellipsoid (radius in the x
+      direction) (distance units)
+    * *b* (**required**) - principle axis b of the ellipsoid (radius in the y
+      direction) (distance units)
+    * *c* (**required**) - principle axis c of the ellipsoid (radius in the z
+      direction) (distance units)
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking
+    * *len_keys* (**default: 1**) -
 
     Example::
 
         mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
-        print('ellipsoids parameters (a,b,c) = ', mc.shape_param['A'].a, mc.shape_param['A'].b, mc.shape_param['A'].c)
+        print('ellipsoids parameters (a,b,c) = ',
+              mc.shape_param['A'].a,
+              mc.shape_param['A'].b,
+              mc.shape_param['A'].c)
 
     Depletants Example::
 
@@ -1092,7 +1286,7 @@ class Ellipsoid(HPMCIntegrator):
                                             c=RequiredArg,
                                             ignore_statistics=False,
                                             len_keys=1)
-                                    )
+                                        )
 
         self._extend_typeparam([typeparam_shape])
 
@@ -1112,44 +1306,62 @@ class SphereUnion(HPMCIntegrator):
     R""" HPMC integration for unions of spheres (3D).
 
     This shape uses an internal OBB tree for fast collision queries.
-    Depending on the number of constituent spheres in the tree, different values of the number of
-    spheres per leaf node may yield different optimal performance.
-    The capacity of leaf nodes is configurable.
+    Depending on the number of constituent spheres in the tree, different values
+    of the number of spheres per leaf node may yield different optimal
+    performance. The capacity of leaf nodes is configurable.
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        capacity (int): Set to the number of constituent spheres per leaf node. (added in version 2.2)
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
-                             for a description of what state data restored. (added in version 2.2)
+        capacity (int): Set to the number of constituent spheres per leaf node.
+          (added in version 2.2)
+        deterministic (bool):
 
     Sphere union parameters:
 
-    * *diameters* (**required**) - list of diameters of the spheres (distance units).
-    * *centers* (**required**) - list of centers of constituent spheres in particle coordinates.
-    * *overlap* (**default: 1 for all spheres**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
+    * *shapes* (**required**) - list of sphere objects to be included in union
+    * *positions* (**required**) - list of centers of constituent spheres in
+      particle coordinates.
+    * *orientations* (**required**) - list of orientations of constituent
+      spheres.
+    * *overlap* (**default: 1 for all spheres**) - only check overlap between
+      constituent particles for which *overlap [i] & overlap[j]* is !=0, where
+      '&' is the bitwise AND operator.
 
         * .. versionadded:: 2.1
 
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
-    * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking.
+    * *len_keys* (**default: 1**) -
+    * *capacity* (**default: 4**) - set to the maximum number of particles per
+      leaf node for better performance
+
         * .. versionadded:: 2.2
 
     Example::
 
         mc = hpmc.integrate.SphereUnion(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
-        print('diameter of the first sphere = ', mc.shape_param['A'].members[0].diameter)
+        mc.shape_param.set('A',
+                           diameters=[1.0, 1.0],
+                           centers=[(-0.25, 0.0, 0.0),
+                           0.25, 0.0, 0.0)]);
+        print('diameter of the first sphere = ',
+              mc.shape_param['A'].members[0].diameter)
         print('center of the first sphere = ', mc.shape_param['A'].centers[0])
 
     Depletants Example::
 
         mc = hpmc.integrate.SphereUnion(seed=415236, d=0.3, a=0.4)
         mc.set_param(nselect=1)
-        mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0.0, 0.0), (0.25, 0.0, 0.0)]);
+        mc.shape_param.set('A',
+                           diameters=[1.0, 1.0],
+                           centers=[(-0.25, 0.0, 0.0),
+                           (0.25, 0.0, 0.0)]);
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
         mc.set_fugacity('B',fugacity=3.0)
     """
@@ -1180,36 +1392,60 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        capacity (int): Set to the number of constituent convex polyhedra per leaf node
+        deterministic (bool):
 
     .. versionadded:: 2.2
 
     Convex polyhedron union parameters:
 
-    * *vertices* (**required**) - list of vertex lists of the polyhedra in particle coordinates.
-    * *centers* (**required**) - list of centers of constituent polyhedra in particle coordinates.
-    * *orientations* (**required**) - list of orientations of constituent polyhedra.
-    * *overlap* (**default: 1 for all particles**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
-    * *sweep_radii* (**default: 0 for all particle**) - radii of spheres sweeping out each constituent polyhedron
+    * *shapes* (**required**) - list of polyhedron objects to be included in
+      union
+    * *positions* (**required**) - list of centers of constituent polyhedra in
+      particle coordinates.
+    * *orientations* (**required**) - list of orientations of constituent
+      polyhedra.
+    * *overlap* (**default: 1 for all particles**) - only check overlap between
+      constituent particles for which *overlap [i] & overlap[j]* is !=0, where
+      '&' is the bitwise AND operator.
+    * *sweep_radii* (**default: 0 for all particle**) - radii of spheres
+      sweeping out each constituent polyhedron
 
         * .. versionadded:: 2.4
 
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking.
+    * *len_keys* (**default: 1**) -
+    * *capacity* (**default: 4**) - set to the maximum number of particles per
+      leaf node for better performance
+
+        * .. versionadded:: 2.2
 
     Example::
 
         mc = hpmc.integrate.ConvexSpheropolyhedronUnion(seed=27, d=0.3, a=0.4)
-        cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
-                     [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
-        mc.shape_param.set('A', vertices=[cube_verts, cube_verts],
-                                centers=[[-1,0,0],[1,0,0]],orientations=[[1,0,0,0],[1,0,0,0]]);
-        print('vertices of the first cube = ', mc.shape_param['A'].members[0].vertices)
+        cube_verts = [[-1,-1,-1],
+                      [-1,-1,1],
+                      [-1,1,1],
+                      [-1,1,-1],
+                      [1,-1,-1],
+                      [1,-1,1],
+                      [1,1,1],
+                      [1,1,-1]]
+        mc.shape_param.set('A',
+                           vertices=[cube_verts, cube_verts],
+                           centers=[[-1,0,0],[1,0,0]],
+                           orientations=[[1,0,0,0],[1,0,0,0]]);
+        print('vertices of the first cube = ',
+              mc.shape_param['A'].members[0].vertices)
         print('center of the first cube = ', mc.shape_param['A'].centers[0])
-        print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
+        print('orientation of the first cube = ',
+              mc.shape_param['A'].orientations[0])
     """
 
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedronUnion'
@@ -1240,25 +1476,37 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
 
     Args:
         seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        d (float): Maximum move displacement, Scalar to set for all types, or a
+          dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict
+          containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        capacity (int): Set to the number of constituent convex polyhedra per leaf node
+        deterministic (bool):
 
     .. versionadded:: 2.5
 
-    See :py:class:`FacetedEllipsoid` for a detailed explanation of the constituent particle parameters.
+    See :py:class:`FacetedEllipsoid` for a detailed explanation of the
+    constituent particle parameters.
 
     Faceted ellipsiod union parameters:
 
-    * *normals* (**required**) - list of list of (x,y,z) tuples defining the facet normals (distance units)
-    * *offsets* (**required**) - list of list of offsets (distance unit^2)
-    * *axes* (**required**) - list of half axes, tuple of three per constituent ellipsoid
-    * *vertices* (**required**) - list of list list of vertices for intersection polyhedron
-    * *origin* (**required**) - list of origin vectors
+    * *shapes* (**required**) - list of ellipsoid objects to be included in
+      union
+    * *positions* (**required**) - list of centers of constituent ellipsoids in
+      particle coordinates.
+    * *orientations* (**required**) - list of orientations of constituent
+      ellipsoids.
+    * *overlap* (**default: 1 for all particles**) - only check overlap between
+      constituent particles for which *overlap [i] & overlap[j]* is !=0, where
+      '&' is the bitwise AND operator.
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore
+      for statistics tracking.
+    * *len_keys* (**default: 1**) -
+    * *capacity* (**default: 4**) - set to the maximum number of particles per
+      leaf node for better performance
 
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
+        * .. versionadded:: 2.2
 
     Example::
 
@@ -1276,9 +1524,12 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
                                 centers=[[0,0,0],[0,0,0]],
                                 orientations=[[1,0,0,0],[0,0,0,-1]]);
 
-        print('offsets of the first faceted ellipsoid = ', mc.shape_param['A'].members[0].normals)
-        print('normals of the first faceted ellispoid = ', mc.shape_param['A'].members[0].offsets)
-        print('vertices of the first faceted ellipsoid = ', mc.shape_param['A'].members[0].vertices)
+        print('offsets of the first faceted ellipsoid = ',
+              mc.shape_param['A'].members[0].normals)
+        print('normals of the first faceted ellispoid = ',
+              mc.shape_param['A'].members[0].offsets)
+        print('vertices of the first faceted ellipsoid = ',
+              mc.shape_param['A'].members[0].vertices)
     """
 
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoidUnion'
@@ -1298,5 +1549,5 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
                                             ignore_statistics=False,
                                             capacity=4,
                                             len_keys=1)
-                                            )
+                                        )
         self._add_typeparam(typeparam_shape)
