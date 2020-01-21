@@ -320,6 +320,8 @@ set(files analyze.py
           groups.py
           snapshot.py
 	  logger.py
+	  minimize/__init__.py
+	  minimize/fire.py
     )
 
 install(FILES ${files}
