@@ -163,9 +163,7 @@ def test_shape_moves(device, dummy_simulation_check_moves):
     sim.operations.add(mc)
     sim.operations.schedule()
     sim.run(100)
-    # accepted_rejected_rot= sum(sim.operations.integrator.rotate_moves)
-    # print(sim.operations.integrator.rotate_moves)
-    # print(sim.operations.integrator.translate_moves)
-    # assert accepted_rejected_rot > 0
+    accepted_rejected_rot = sum(sim.operations.integrator.rotate_moves)
+    assert accepted_rejected_rot > 0
     accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
     assert accepted_rejected_trans > 0

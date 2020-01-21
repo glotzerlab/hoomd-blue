@@ -296,7 +296,7 @@ class Sphere(HPMCIntegrator):
         move_ratio (float, only used with **orientable=True**): Ratio of
           translation moves to rotation moves. (added in version 2.3)
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     Hard particle Monte Carlo integration method for spheres.
 
@@ -370,7 +370,7 @@ class ConvexPolygon(HPMCIntegrator):
           containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     Note:
         For concave polygons, use :py:class:`SimplePolygon`.
@@ -452,7 +452,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
           containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     Spheropolygon parameters:
 
@@ -540,7 +540,7 @@ class SimplePolygon(HPMCIntegrator):
           containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     Note:
         For simple polygons that are not concave, use :py:class:`ConvexPolygon`,
@@ -631,7 +631,7 @@ class Polyhedron(HPMCIntegrator):
           containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     Polyhedron parameters:
 
@@ -788,7 +788,7 @@ class ConvexPolyhedron(HPMCIntegrator):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): (Override the automatic choice for the number of trial
           moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     Convex polyhedron parameters:
 
@@ -879,7 +879,7 @@ class FacetedEllipsoid(HPMCIntegrator):
           containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     A faceted ellipsoid is an ellipsoid intersected with a convex polyhedron
     defined through halfspaces. The equation defining each halfspace is given
@@ -992,7 +992,7 @@ class FacetedSphere(FacetedEllipsoid):
           containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     A faceted sphere is a sphere intersected with halfspaces. The equation
     defining each halfspace is given by:
@@ -1088,7 +1088,7 @@ class Sphinx(HPMCIntegrator):
           containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     Sphinx particles are dimpled spheres (spheres with 'positive' and 'negative'
     volumes).
@@ -1144,7 +1144,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
           containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     A spheropolyhedron can also represent spheres (0 or 1 vertices), and
     spherocylinders (2 vertices).
@@ -1240,7 +1240,7 @@ class Ellipsoid(HPMCIntegrator):
           containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     Ellipsoid parameters:
 
@@ -1320,7 +1320,7 @@ class SphereUnion(HPMCIntegrator):
         nselect (int): The number of trial moves to perform in each cell.
         capacity (int): Set to the number of constituent spheres per leaf node.
           (added in version 2.2)
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     Sphere union parameters:
 
@@ -1398,7 +1398,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
           containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     .. versionadded:: 2.2
 
@@ -1482,7 +1482,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
           containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool):
+        deterministic (bool): Make HPMC integration deterministic on the GPU
 
     .. versionadded:: 2.5
 
