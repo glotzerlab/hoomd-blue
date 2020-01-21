@@ -1,12 +1,13 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
 from hoomd import _hoomd
 from hoomd.parameterdicts import TypeParameterDict
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
-from hoomd.integrate import _integrator
+from hoomd.integrate import _BaseIntegrator
 from hoomd.logger import Loggable
 import hoomd
 import json
@@ -27,10 +28,10 @@ def cite_depletants():
     hoomd.cite._ensure_global_bib().add(_citation)
 
 
-class HPMCIntegrator(_integrator):
+class _HPMCIntegrator(_BaseIntegrator):
     R""" Base class HPMC integrator.
 
-    :py:class:`HPMCIntegrator` is the base class for all HPMC integrators. It
+    :py:class:`_HPMCIntegrator` is the base class for all HPMC integrators. It
     provides common interface elements.  Users should not instantiate this class
     directly. Methods documented here are available to all hpmc integrators.
 
@@ -148,7 +149,7 @@ class HPMCIntegrator(_integrator):
         raise NotImplementedError(
             "You are using a shape type that is not implemented! "
             "If you want it, please modify the "
-            "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
+            "hoomd.hpmc.integrate._HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
         if not self.is_attached:
@@ -286,7 +287,7 @@ class HPMCIntegrator(_integrator):
         return self._cpp_obj.getCounters(1)
 
 
-class Sphere(HPMCIntegrator):
+class Sphere(_HPMCIntegrator):
     R""" HPMC integration for spheres (2D/3D).
 
     Args:
@@ -358,7 +359,7 @@ class Sphere(HPMCIntegrator):
         return super()._return_type_shapes()
 
 
-class convex_polygon(HPMCIntegrator):
+class convex_polygon(_HPMCIntegrator):
     R""" HPMC integration for convex polygons (2D).
 
     Args:
@@ -367,7 +368,7 @@ class convex_polygon(HPMCIntegrator):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`_HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
 
     Note:
@@ -399,7 +400,7 @@ class convex_polygon(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -437,7 +438,7 @@ class convex_polygon(HPMCIntegrator):
         return super(convex_polygon, self)._return_type_shapes()
 
 
-class convex_spheropolygon(HPMCIntegrator):
+class convex_spheropolygon(_HPMCIntegrator):
     R""" HPMC integration for convex spheropolygons (2D).
 
     Args:
@@ -446,7 +447,7 @@ class convex_spheropolygon(HPMCIntegrator):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`_HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
 
     Spheropolygon parameters:
@@ -480,7 +481,7 @@ class convex_spheropolygon(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -518,7 +519,7 @@ class convex_spheropolygon(HPMCIntegrator):
         return super(convex_spheropolygon, self)._return_type_shapes()
 
 
-class simple_polygon(HPMCIntegrator):
+class simple_polygon(_HPMCIntegrator):
     R""" HPMC integration for simple polygons (2D).
 
     Args:
@@ -527,7 +528,7 @@ class simple_polygon(HPMCIntegrator):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`_HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
 
     Note:
@@ -559,7 +560,7 @@ class simple_polygon(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -597,7 +598,7 @@ class simple_polygon(HPMCIntegrator):
         return super(simple_polygon, self)._return_type_shapes()
 
 
-class polyhedron(HPMCIntegrator):
+class polyhedron(_HPMCIntegrator):
     R""" HPMC integration for general polyhedra (3D).
 
     This shape uses an internal OBB tree for fast collision queries.
@@ -613,7 +614,7 @@ class polyhedron(HPMCIntegrator):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`_HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
 
     Polyhedron parameters:
@@ -673,7 +674,7 @@ class polyhedron(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -711,7 +712,7 @@ class polyhedron(HPMCIntegrator):
         return super(polyhedron, self)._return_type_shapes()
 
 
-class convex_polyhedron(HPMCIntegrator):
+class convex_polyhedron(_HPMCIntegrator):
     R""" HPMC integration for convex polyhedra (3D).
 
     Args:
@@ -720,7 +721,7 @@ class convex_polyhedron(HPMCIntegrator):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`_HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
 
     Convex polyhedron parameters:
@@ -754,7 +755,7 @@ class convex_polyhedron(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -794,7 +795,7 @@ class convex_polyhedron(HPMCIntegrator):
         return super(convex_polyhedron, self)._return_type_shapes()
 
 
-class faceted_ellipsoid(HPMCIntegrator):
+class faceted_ellipsoid(_HPMCIntegrator):
     R""" HPMC integration for faceted ellipsoids (3D).
 
     Args:
@@ -803,7 +804,7 @@ class faceted_ellipsoid(HPMCIntegrator):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`_HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
 
     A faceted ellipsoid is an ellipsoid intersected with a convex polyhedron defined through
@@ -863,7 +864,7 @@ class faceted_ellipsoid(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -897,7 +898,7 @@ class faceted_sphere(faceted_ellipsoid):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`_HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
 
     A faceted sphere is a sphere intersected with halfspaces. The equation defining each halfspace is given by:
@@ -954,7 +955,7 @@ class faceted_sphere(faceted_ellipsoid):
                                              nselect=nselect, restore_state=restore_state)
 
 
-class sphinx(HPMCIntegrator):
+class sphinx(_HPMCIntegrator):
     R""" HPMC integration for sphinx particles (3D).
 
     Args:
@@ -963,7 +964,7 @@ class sphinx(HPMCIntegrator):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`_HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
 
     Sphinx particles are dimpled spheres (spheres with 'positive' and 'negative' volumes).
@@ -991,7 +992,7 @@ class sphinx(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1018,7 +1019,7 @@ class sphinx(HPMCIntegrator):
             self.restore_state()
 
 
-class convex_spheropolyhedron(HPMCIntegrator):
+class convex_spheropolyhedron(_HPMCIntegrator):
     R""" HPMC integration for spheropolyhedra (3D).
 
     Args:
@@ -1027,7 +1028,7 @@ class convex_spheropolyhedron(HPMCIntegrator):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`_HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
 
     A spheropolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
@@ -1067,7 +1068,7 @@ class convex_spheropolyhedron(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1107,7 +1108,7 @@ class convex_spheropolyhedron(HPMCIntegrator):
         return super(convex_spheropolyhedron, self)._return_type_shapes()
 
 
-class ellipsoid(HPMCIntegrator):
+class ellipsoid(_HPMCIntegrator):
     R""" HPMC integration for ellipsoids (2D/3D).
 
     Args:
@@ -1116,7 +1117,7 @@ class ellipsoid(HPMCIntegrator):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`_HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
 
     Ellipsoid parameters:
@@ -1143,7 +1144,7 @@ class ellipsoid(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1182,7 +1183,7 @@ class ellipsoid(HPMCIntegrator):
         return super(ellipsoid, self)._return_type_shapes()
 
 
-class sphere_union(HPMCIntegrator):
+class sphere_union(_HPMCIntegrator):
     R""" HPMC integration for unions of spheres (3D).
 
     This shape uses an internal OBB tree for fast collision queries.
@@ -1197,7 +1198,7 @@ class sphere_union(HPMCIntegrator):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         capacity (int): Set to the number of constituent spheres per leaf node. (added in version 2.2)
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`HPMCIntegrator`
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`_HPMCIntegrator`
                              for a description of what state data restored. (added in version 2.2)
 
     Sphere union parameters:
@@ -1231,7 +1232,7 @@ class sphere_union(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1256,7 +1257,7 @@ class sphere_union(HPMCIntegrator):
             self.restore_state()
 
 
-class convex_spheropolyhedron_union(HPMCIntegrator):
+class convex_spheropolyhedron_union(_HPMCIntegrator):
     R""" HPMC integration for unions of convex polyhedra (3D).
 
     Args:
@@ -1296,7 +1297,7 @@ class convex_spheropolyhedron_union(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1321,7 +1322,7 @@ class convex_spheropolyhedron_union(HPMCIntegrator):
         self.metadata_fields = ['capacity']
 
 
-class faceted_ellipsoid_union(HPMCIntegrator):
+class faceted_ellipsoid_union(_HPMCIntegrator):
     R""" HPMC integration for unions of faceted ellipsoids (3D).
 
     Args:
@@ -1370,7 +1371,7 @@ class faceted_ellipsoid_union(HPMCIntegrator):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
 
         # initialize base class
-        HPMCIntegrator.__init__(self)
+        _HPMCIntegrator.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
