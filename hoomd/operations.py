@@ -1,4 +1,5 @@
 import hoomd.integrate
+import hoomd.meta
 
 
 class Operations:
@@ -13,7 +14,7 @@ class Operations:
     def add(self, op):
         if op in self:
             return None
-        if isinstance(op, hoomd.integrate._integrator):
+        if isinstance(op, hoomd.integrate._BaseIntegrator):
             self.integrator = op
             return None
         elif isinstance(op, hoomd.meta._Updater):
