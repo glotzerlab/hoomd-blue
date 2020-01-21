@@ -5,45 +5,17 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-R""" Integration methods.
-
-To integrate the system forward in time, an integration mode must be set. Only one integration mode can be active at
-a time, and the last ``integrate.mode_*`` command before the :py:func:`hoomd.run()` command is the one that will take effect. It is
-possible to set one mode, run for a certain number of steps and then switch to another mode before the next run
-command.
-
-The most commonly used mode is :py:class`mode_standard`. It specifies a standard mode where, at each time
-step, all of the specified forces are evaluated and used in moving the system forward to the next step.
-:py:class`mode_standard` doesn't integrate any particles by itself, one or more compatible integration methods must
-be specified before the staring a :py:func:`hoomd.run()`. Like commands that specify forces, integration methods are
-**persistent** and remain set until they are disabled.
-
-To clarify, the following series of commands will run for 1000 time steps in the NVT ensemble and then switch to
-NVE for another 1000 steps::
-
-    all = group.all()
-    integrate.mode_standard(dt=0.005)
-    nvt = integrate.nvt(group=all, kT=1.2, tau=0.5)
-    run(1000)
-    nvt.disable()
-    integrate.nve(group=all)
-    run(1000)
-
-You can change integrator parameters between runs::
-
-    integrator = integrate.nvt(group=all, kT=1.2, tau=0.5)
-    run(100)
-    integrator.set_params(kT=1.0)
-    run(100)
-
-This code snippet runs the first 100 time steps with kT=1.2 and the next 100 with kT=1.0.
-"""
 
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
+from hoomd.meta import _Operation
 from hoomd.integrate import _integration_method
 import copy
+
+
+class _Method(_Operation):
+    pass
 
 
 class nvt(_integration_method):
