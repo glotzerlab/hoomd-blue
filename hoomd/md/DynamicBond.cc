@@ -33,6 +33,10 @@ DynamicBond::DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
         : Updater(sysdef), m_group(group), m_nlist(nlist), m_seed(seed), m_r_cut(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing DynamicBond" << endl;
+    assert(m_pdata);
+    // Access bond data
+    m_bond_data = m_sysdef->getBondData();
+
     }
 
 
@@ -48,10 +52,6 @@ void DynamicBond::setParams(Scalar r_cut,
                             Scalar prob_form,
                             Scalar prob_break)
     {
-    if (m_r_cut < 0)
-        {
-        m_exec_conf->msg->error() << "r_cut cannot be less than 0.\n" << std::endl;
-        }
     m_r_cut = r_cut;
     m_prob_form = prob_form;
     m_prob_break = prob_break;
@@ -86,9 +86,6 @@ void DynamicBond::update(unsigned int timestep)
     // Access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-
-    // Access bond data
-    m_bond_data = m_sysdef->getBondData();
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
@@ -123,7 +120,7 @@ void DynamicBond::update(unsigned int timestep)
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
             {
-            // access the index of neighbor particle j (MEM TRANSFER: 1 scalar)
+            // access the index (j) of neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[myHead + k];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
 
@@ -148,16 +145,15 @@ void DynamicBond::update(unsigned int timestep)
             if (rsq < r_cut_sq)
                 {
                 // count the number of bonds between i and j
-                // TODO alyssa: make this a multimap
                 int n_bonds = h_gpu_n_bonds.data[i];
-                int nbridges_ij = 0;
-                for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+                int nbonds_ij = 0;
+                for (int bond_number = 0; bond_number < n_bonds; bond_number++)
                     {
-                    group_storage<2> cur_bond = h_gpu_bondlist.data[gpu_table_indexer(i, bond_idx)];
-                    int bonded_idx = cur_bond.idx[0]; // bonded-particle's index
+                    group_storage<2> current_bond = h_gpu_bondlist.data[gpu_table_indexer(i, bond_number)];
+                    int bonded_idx = current_bond.idx[0]; // bonded-particle's index
                     if (bonded_idx == j)
                         {
-                        nbridges_ij += 1;
+                        nbonds_ij += 1;
                         }
                     }
                 // generate random numbers
@@ -171,14 +167,14 @@ void DynamicBond::update(unsigned int timestep)
                     }
 
                 // check to see if a bond should be broken between particles i and j
-                if (rnd2 < m_prob_break and nbridges_ij >= 1.0)
+                if (rnd2 < m_prob_break and nbonds_ij >= 1.0)
                     {
                     // remove one bond between i and j
-                    // iterate each of the bonds in the *system*
+                    // iterate over each of the bonds in the *system*
                     const unsigned int size = (unsigned int)m_bond_data->getN();
-                    for (unsigned int bond_number = 0; bond_number < size; bond_number++) // turn into hashtable look-up
+                    for (unsigned int bond_number = 0; bond_number < size; bond_number++)
                         {
-                        // look up the tag of each of the particles participating in the bond
+                        // look up the tag of both of the particles participating in the bond
                         const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
                         assert(bond.tag[0] < m_pdata->getN());
                         assert(bond.tag[1] < m_pdata->getN());
@@ -190,11 +186,10 @@ void DynamicBond::update(unsigned int timestep)
                         assert(idx_a <= m_pdata->getMaximumTag());
                         assert(idx_b <= m_pdata->getMaximumTag());
 
-                        // remove bond with index "bond_number" between particles i and j, the exit the loop
                         if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
                             {
+                            // remove bond with tag "bond_number" between particles i and j, then leave the loop
                             m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
-                            // TODO alyssa: remove tags from multimap
                             break;
                             }
                         }

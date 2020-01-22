@@ -9,8 +9,8 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/md/NeighborList.h"
 #include <memory>
-
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 /*! \file DynamicBond.h
     \brief Declares a class for computing bond breakage/formation
 */
@@ -31,10 +31,10 @@ class PYBIND11_EXPORT DynamicBond : public Updater
     public:
         //! Constructs the compute
         DynamicBond(std::shared_ptr<SystemDefinition> sysdef,
-                 std::shared_ptr<ParticleGroup> group,
-                 std::shared_ptr<NeighborList> nlist,
-                 int seed,
-                 int period);
+                    std::shared_ptr<ParticleGroup> group,
+                    std::shared_ptr<NeighborList> nlist,
+                    int seed,
+                    int period);
 
         //! Destructor
         virtual ~DynamicBond();
