@@ -75,6 +75,7 @@ void PopBD::setParams(Scalar r_cut, std::string bond_type, int n_polymer)
     {
     m_r_cut = r_cut;
     std::fill(m_nloops.begin(), m_nloops.end(), n_polymer);
+    m_type = 0;
     }
 
 void PopBD::setTable(const std::vector<Scalar> &XB,
@@ -83,7 +84,7 @@ void PopBD::setTable(const std::vector<Scalar> &XB,
                      Scalar rmin,
                      Scalar rmax)
     {
-    int type = 0;
+    // int type = 0;
     // access the arrays
     ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::readwrite);
@@ -103,15 +104,15 @@ void PopBD::setTable(const std::vector<Scalar> &XB,
         }
 
     // fill out the parameters
-    h_params.data[type].x = rmin;
-    h_params.data[type].y = rmax;
-    h_params.data[type].z = (rmax - rmin) / Scalar(m_table_width - 1);
+    h_params.data[m_type].x = rmin;
+    h_params.data[m_type].y = rmax;
+    h_params.data[m_type].z = (rmax - rmin) / Scalar(m_table_width - 1);
 
     // fill out the table
     for (unsigned int i = 0; i < m_table_width; i++)
         {
-        h_tables.data[m_table_value(i, type)].x = M[i];
-        h_tables.data[m_table_value(i, type)].y = L[i];
+        h_tables.data[m_table_value(i, m_type)].x = M[i];
+        h_tables.data[m_table_value(i, m_type)].y = L[i];
         }
     }
 
@@ -208,7 +209,7 @@ void PopBD::update(unsigned int timestep)
                 int type = 0;
 
                 // unsigned int type = m_bond_data->getTypeByIndex(i);
-                Scalar4 params = h_params.data[type];
+                Scalar4 params = h_params.data[m_type];
                 Scalar rmin = params.x;
                 Scalar rmax = params.y;
                 Scalar delta_r = params.z;
@@ -223,8 +224,8 @@ void PopBD::update(unsigned int timestep)
 
                 /// Here we use the table!!
                 unsigned int value_i = (unsigned int)floor(value_f);
-                Scalar2 ML0 = h_tables.data[m_table_value(value_i, type)];
-                Scalar2 ML1 = h_tables.data[m_table_value(value_i+1, type)];
+                Scalar2 ML0 = h_tables.data[m_table_value(value_i, m_type)];
+                Scalar2 ML1 = h_tables.data[m_table_value(value_i+1, m_type)];
 
                 // unpack the data
                 Scalar M0 = ML0.x;
@@ -265,14 +266,14 @@ void PopBD::update(unsigned int timestep)
                 // (3) check to see if a loop on i should form a bridge btwn particles i and j
                 if (rnd1 < p_ij && m_nloops[i] >= 1)
                     {
-                    m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
+                    m_bond_data->addBondedGroup(Bond(m_type, h_tag.data[i], h_tag.data[j]));
                     m_nloops[i] -= 1;
                     }
 
                 // (4) check to see if a loop on j should form a bridge btwn particlesi and j
                 if (rnd2 < p_ji && m_nloops[j] >= 1)
                     {
-                    m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
+                    m_bond_data->addBondedGroup(Bond(m_type, h_tag.data[i], h_tag.data[j]));
                     m_nloops[j] -= 1;
                     }
 

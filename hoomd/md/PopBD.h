@@ -57,7 +57,7 @@ protected:
     std::shared_ptr<NeighborList> m_nlist;  //!< neighborlist
     std::shared_ptr<BondData> m_bond_data;  //!< Bond data to use in computing bonds
     int period;                             //!< period to create/destroy bonds
-    int bond_type;                          //!< bond type to create and break
+    int m_type;                          //!< bond type to create and break
     int m_seed;                             //!< seed for random number generator
     Scalar m_r_cut;                         //!< cut off distance for computing bonds
     unsigned int m_table_width;             //!< Width of the tables in memory
@@ -66,6 +66,8 @@ protected:
     Index2D m_table_value;                  //!< Index table helper
     Scalar m_delta_t;                       //!< time step from integrator
     std::vector<int> m_nloops;              //!< structure of size N to store number of loops for each colloid
+    std::map<std::pair<int, int>, int> m_nbonds;
+    // std::map<std::pair<int, int>, int> m_delta_nbonds;
     int n_polymer;                          //!< number of polymers per colloid
 };
 
