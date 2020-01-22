@@ -17,6 +17,11 @@ namespace py = pybind11;
 /*! \file PopBD.cc
     \brief Contains code for the PopBD class
 */
+std::pair<int,int> orderless_pair(int a, int b)
+{
+    if ( a < b ) return std::pair<int,int>(a,b);
+    else return std::pair<int,int>(b,a);
+}
 
 using namespace std;
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
@@ -242,7 +247,7 @@ void PopBD::update(unsigned int timestep)
 
 
 
-                int nbonds_ij = m_nbonds[std::pair<int,int>(i,j)];
+                int nbonds_ij = m_nbonds[orderless_pair(i,j)];
 
                 // (1) Compute P_ij, P_ji, and Q_ij
                 Scalar p0 = m_delta_t * L;
@@ -268,7 +273,7 @@ void PopBD::update(unsigned int timestep)
                 if (rnd1 < p_ij && m_nloops[i] >= 1)
                     {
                     m_bond_data->addBondedGroup(Bond(m_type, h_tag.data[i], h_tag.data[j]));
-                    m_nbonds[std::pair<int,int>(i,j)] += 1;
+                    m_nbonds[orderless_pair(i,j)] += 1;
 
 
                     m_nloops[i] -= 1;
@@ -277,7 +282,7 @@ void PopBD::update(unsigned int timestep)
                 // (4) check to see if a loop on j should form a bridge btwn particlesi and j
                 if (rnd2 < p_ji && m_nloops[j] >= 1)
                     {
-                    m_nbonds[std::pair<int,int>(i,j)] += 1;
+                    m_nbonds[orderless_pair(i,j)] += 1;
                     m_bond_data->addBondedGroup(Bond(m_type, h_tag.data[i], h_tag.data[j]));
                     m_nloops[j] -= 1;
                     }
@@ -306,7 +311,7 @@ void PopBD::update(unsigned int timestep)
                             {
                             // remove bond with tag "bond_number" between particles i and j, then leave the loop
                             m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
-                            m_nbonds[std::pair<int,int>(i,j)] -= 1;
+                            m_nbonds[orderless_pair(i,j)] -= 1;
                             break;
                             }
                         }
