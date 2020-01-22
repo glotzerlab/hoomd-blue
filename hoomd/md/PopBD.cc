@@ -189,18 +189,18 @@ void PopBD::update(unsigned int timestep)
 
             if (rsq < r_cut_sq)
                 {
-                // count the number of bonds between i and j
-                int n_bonds = h_gpu_n_bonds.data[i];
-                int nbridges_ij = 0;
-                for (int bond_number = 0; bond_number < n_bonds; bond_number++)
-                    {
-                    group_storage<2> current_bond = h_gpu_bondlist.data[gpu_table_indexer(i, bond_number)];
-                    int bonded_idx = current_bond.idx[0]; // bonded-particle's index
-                    if (bonded_idx == j)
-                        {
-                        nbridges_ij += 1;
-                        }
-                    }
+                // // count the number of bonds between i and j
+                // int n_bonds = h_gpu_n_bonds.data[i];
+                // int nbonds_ij = 0;
+                // for (int bond_number = 0; bond_number < n_bonds; bond_number++)
+                //     {
+                //     group_storage<2> current_bond = h_gpu_bondlist.data[gpu_table_indexer(i, bond_number)];
+                //     int bonded_idx = current_bond.idx[0]; // bonded-particle's index
+                //     if (bonded_idx == j)
+                //         {
+                //         nbonds_ij += 1;
+                //         }
+                //     }
 
                 Scalar r = sqrt(rsq);
 
@@ -242,14 +242,15 @@ void PopBD::update(unsigned int timestep)
 
 
 
-                // (1) Compute P_ij, P_ji, and Q_ij
+                int nbonds_ij = m_nbonds[std::pair<int,int>(i,j)];
 
+                // (1) Compute P_ij, P_ji, and Q_ij
                 Scalar p0 = m_delta_t * L;
                 Scalar q0 = m_delta_t * M;
 
                 Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]-1.0);
                 Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]-1.0);
-                Scalar q_ij = nbridges_ij * q0 * pow((1 - q0), nbridges_ij - 1.0);
+                Scalar q_ij = nbonds_ij * q0 * pow((1 - q0), nbonds_ij - 1.0);
 
                 // check that P and Q are reasonable
                 if (p_ij < 0 ||p_ji < 0 || q_ij < 0 || p_ij > 1 ||p_ji > 1 || q_ij > 1)
@@ -267,18 +268,22 @@ void PopBD::update(unsigned int timestep)
                 if (rnd1 < p_ij && m_nloops[i] >= 1)
                     {
                     m_bond_data->addBondedGroup(Bond(m_type, h_tag.data[i], h_tag.data[j]));
+                    m_nbonds[std::pair<int,int>(i,j)] += 1;
+
+
                     m_nloops[i] -= 1;
                     }
 
                 // (4) check to see if a loop on j should form a bridge btwn particlesi and j
                 if (rnd2 < p_ji && m_nloops[j] >= 1)
                     {
+                    m_nbonds[std::pair<int,int>(i,j)] += 1;
                     m_bond_data->addBondedGroup(Bond(m_type, h_tag.data[i], h_tag.data[j]));
                     m_nloops[j] -= 1;
                     }
 
                 // (5) check to see if a bond should be broken between particles i and j
-                if (rnd3 < q_ij && nbridges_ij >= 1)
+                if (rnd3 < q_ij && nbonds_ij >= 1)
                     {
                     // remove one bond between i and j
                     // iterate over each of the bonds in the *system*
@@ -301,6 +306,7 @@ void PopBD::update(unsigned int timestep)
                             {
                             // remove bond with tag "bond_number" between particles i and j, then leave the loop
                             m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
+                            m_nbonds[std::pair<int,int>(i,j)] -= 1;
                             break;
                             }
                         }
