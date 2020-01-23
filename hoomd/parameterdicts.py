@@ -303,5 +303,16 @@ class ParameterDict(dict):
             super().__setitem__(key, self._type_converter[key](value))
 
     def update(self, dict_):
-        for key, value in dict_.items():
-            self[key] = value
+        if isinstance(dict_, ParameterDict):
+            for key, value in dict_.items():
+                self.setitem_with_validation_function(key,
+                                                      value,
+                                                      dict_._type_converter[key]
+                                                      )
+        else:
+            for key, value in dict_.items():
+                self[key] = value
+
+    def setitem_with_validation_function(self, key, value, converter):
+        self._type_converter[key] = converter
+        self[key] = value
