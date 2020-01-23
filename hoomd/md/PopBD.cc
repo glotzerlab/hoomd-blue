@@ -89,7 +89,6 @@ void PopBD::setTable(const std::vector<Scalar> &XB,
                      Scalar rmin,
                      Scalar rmax)
     {
-    // int type = 0;
     // access the arrays
     ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::readwrite);
@@ -194,18 +193,18 @@ void PopBD::update(unsigned int timestep)
 
             if (rsq < r_cut_sq)
                 {
-                // // count the number of bonds between i and j
-                // int n_bonds = h_gpu_n_bonds.data[i];
-                // int nbonds_ij = 0;
-                // for (int bond_number = 0; bond_number < n_bonds; bond_number++)
-                //     {
-                //     group_storage<2> current_bond = h_gpu_bondlist.data[gpu_table_indexer(i, bond_number)];
-                //     int bonded_idx = current_bond.idx[0]; // bonded-particle's index
-                //     if (bonded_idx == j)
-                //         {
-                //         nbonds_ij += 1;
-                //         }
-                //     }
+                // count the number of bonds between i and j
+                int n_bonds = h_gpu_n_bonds.data[i];
+                int nbonds_ij = 0;
+                for (int bond_number = 0; bond_number < n_bonds; bond_number++)
+                    {
+                    group_storage<2> current_bond = h_gpu_bondlist.data[gpu_table_indexer(i, bond_number)];
+                    int bonded_idx = current_bond.idx[0]; // bonded-particle's index
+                    if (bonded_idx == j)
+                        {
+                        nbonds_ij += 1;
+                        }
+                    }
 
                 Scalar r = sqrt(rsq);
 
@@ -247,9 +246,10 @@ void PopBD::update(unsigned int timestep)
 
 
 
-                int nbonds_ij = m_nbonds[orderless_pair(i,j)];
+                // int nbonds_ij = m_nbonds[orderless_pair(i,j)];
 
                 // (1) Compute P_ij, P_ji, and Q_ij
+
                 Scalar p0 = m_delta_t * L;
                 Scalar q0 = m_delta_t * M;
 
@@ -272,18 +272,14 @@ void PopBD::update(unsigned int timestep)
                 // (3) check to see if a loop on i should form a bridge btwn particles i and j
                 if (rnd1 < p_ij && m_nloops[i] >= 1)
                     {
-                    m_bond_data->addBondedGroup(Bond(m_type, h_tag.data[i], h_tag.data[j]));
-                    m_nbonds[orderless_pair(i,j)] += 1;
-
-
+                    m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                     m_nloops[i] -= 1;
                     }
 
                 // (4) check to see if a loop on j should form a bridge btwn particlesi and j
                 if (rnd2 < p_ji && m_nloops[j] >= 1)
                     {
-                    m_nbonds[orderless_pair(i,j)] += 1;
-                    m_bond_data->addBondedGroup(Bond(m_type, h_tag.data[i], h_tag.data[j]));
+                    m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                     m_nloops[j] -= 1;
                     }
 
@@ -311,7 +307,7 @@ void PopBD::update(unsigned int timestep)
                             {
                             // remove bond with tag "bond_number" between particles i and j, then leave the loop
                             m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
-                            m_nbonds[orderless_pair(i,j)] -= 1;
+                            // m_nbonds[orderless_pair(i,j)] -= 1;
                             break;
                             }
                         }
