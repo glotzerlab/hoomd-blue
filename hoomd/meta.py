@@ -20,6 +20,7 @@ import hoomd
 from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
 from hoomd.triggers import PeriodicTrigger, Trigger
 from hoomd.logger import Loggable
+from hoomd.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
 from hoomd.parameterdicts import ParameterDict
@@ -33,8 +34,10 @@ from collections import Mapping
 from copy import deepcopy
 
 
-def note_type(value):
-    if not is_iterable(value):
+def convert_values_to_log_form(value):
+    if value is RequiredArg:
+        return (None, 'scalar')
+    elif not is_iterable(value):
         return (value, 'scalar')
     elif isinstance(value, str):
         return (value, 'string')
@@ -158,10 +161,10 @@ class _Operation(metaclass=Loggable):
             except AttributeError:
                 pass
 
-    def _apply_typeparam_dict(self, cpp_obj, sim):
+    def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
             try:
-                typeparam.attach(cpp_obj, sim)
+                typeparam.attach(cpp_obj, simulation)
             except ValueError as verr:
                 raise ValueError("TypeParameter {}:"
                                  " ".format(typeparam.name) + verr.args[0])
@@ -190,7 +193,7 @@ class _Operation(metaclass=Loggable):
         self._update_param_dict()
         state = self._typeparam_states()
         state['params'] = deepcopy(self._param_dict)
-        return dict_map(state, note_type)
+        return dict_map(state, convert_values_to_log_form)
 
     @classmethod
     def from_state(cls, state, final_namespace=None, **kwargs):
