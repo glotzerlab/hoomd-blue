@@ -17,6 +17,7 @@ set(files __init__.py
           test_type_parameter_dict.py
           test_typeparam.py
           test_operation.py
+	  test_syncedlist.py
           test_triggeredops.py
 	  test_logger.py
           dummy.py
