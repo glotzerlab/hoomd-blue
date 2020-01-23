@@ -124,6 +124,10 @@ class _Operation(metaclass=Loggable):
                     return False
         return True
 
+    def __del__(self):
+        if self.is_attached:
+            self.detach()
+
     def detach(self):
         self._unapply_typeparam_dict()
         self._update_param_dict()
