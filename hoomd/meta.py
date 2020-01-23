@@ -304,19 +304,21 @@ class _TriggeredOperation(_Operation):
             raise ValueError("Trigger of type {} must be a subclass of "
                              "hoomd.triggers.Trigger".format(type(new_trigger))
                              )
-        self._trigger = new_trigger
         if self.is_attached:
             sys = self._simulation._cpp_sys
             triggered_ops = getattr(sys, self._cpp_list_name)
             for index in range(len(triggered_ops)):
-                if triggered_ops[index][0] == self._cpp_obj:
+                op, trigger = triggered_ops[index]
+                # If tuple is the operation and trigger according to memory
+                # location (python's is), replace with new trigger
+                if op is self._cpp_obj and trigger is self._trigger:
                     new_tuple = (self._cpp_obj, new_trigger)
                     triggered_ops[index] = new_tuple
+        # Overwrite python trigger
+        self._trigger = new_trigger
 
     def attach(self, simulation):
         self._simulation = simulation
-        sys = simulation._cpp_sys
-        getattr(sys, self._cpp_list_name).append((self._cpp_obj, self.trigger))
 
 
 class _Updater(_TriggeredOperation):
