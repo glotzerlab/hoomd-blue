@@ -313,12 +313,15 @@ set(files analyze.py
           state.py
           operations.py
           parameterdicts.py
-          typeparam.py
           triggers.py
+          typeparam.py
+	  typeconverter.py
           filters.py
           groups.py
           snapshot.py
 	  logger.py
+	  minimize/__init__.py
+	  minimize/fire.py
     )
 
 install(FILES ${files}

@@ -1,13 +1,14 @@
 from hoomd.parameterdicts import TypeParameterDict, RequiredArg
 from hoomd.parameterdicts import AttachedTypeParameterDict
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
+from hoomd.typeconverter import TypeConversionError
 from pytest import fixture, raises
 
 
 @fixture(scope='function')
 def typedict_singleton_keys():
     return TypeParameterDict(**dict(foo=1,
-                                    bar=RequiredArg,
+                                    bar=lambda x: x,
                                     baz='hello'),
                              len_keys=1
                              )
@@ -43,7 +44,7 @@ def test_typeparamdict_key_validation_single(typedict_singleton_keys,
 @fixture(scope='function')
 def typedict_pair_keys():
     return TypeParameterDict(**dict(foo=1,
-                                    bar=RequiredArg,
+                                    bar=lambda x: x,
                                     baz='hello'),
                              len_keys=2
                              )
@@ -155,11 +156,13 @@ def test_setting_arg_values(typedict_with_int,
 
 def test_invalid_value_setting(typedict_with_int, typedict_singleton_keys):
     '''Test value validation on new dict keys and wrong types.'''
+    # New dict key
     with raises(ValueError):
         typedict_singleton_keys['A'] = dict(boo=None)
-    with raises(TypeError):
+    # Invalid types
+    with raises(TypeConversionError):
         typedict_singleton_keys['A'] = 3.
-    with raises(TypeError):
+    with raises(TypeConversionError):
         typedict_with_int['A'] = []
 
 
@@ -212,7 +215,7 @@ def attached_param_dict(typedict_singleton_keys):
 def test_attached_default(attached_param_dict, typedict_singleton_keys):
     tp = typedict_singleton_keys
     assert tp._default == attached_param_dict._default
-    assert tp._dft_constructor == attached_param_dict._dft_constructor
+    assert tp._type_converter == attached_param_dict._type_converter
 
 
 def test_attached_values(attached_param_dict):
@@ -236,7 +239,7 @@ def test_attached_type_error_raising(attached_param_dict):
 def test_attached_set_error_raising(attached_param_dict):
     with raises(ValueError):
         attached_param_dict['A'] = dict(foo=2.)
-    with raises(ValueError):
+    with raises(TypeConversionError):
         attached_param_dict['A'] = dict(foo='third')
 
 
@@ -248,7 +251,7 @@ def test_attached_value_setting(attached_param_dict):
 def test_attach_dettach(attached_param_dict):
     tp = attached_param_dict.to_dettached()
     assert tp._default == attached_param_dict._default
-    assert tp._dft_constructor == attached_param_dict._dft_constructor
+    assert tp._type_converter == attached_param_dict._type_converter
     assert tp['A'] == attached_param_dict['A']
     assert tp['B'] == attached_param_dict['B']
     assert type(tp) == TypeParameterDict

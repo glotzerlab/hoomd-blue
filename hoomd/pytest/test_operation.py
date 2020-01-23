@@ -1,5 +1,6 @@
 from hoomd.typeparam import TypeParameter
 from hoomd.parameterdicts import TypeParameterDict, RequiredArg
+from hoomd.typeconverter import RequiredArg
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
 from hoomd.pytest.dummy import DummyOperation
 from copy import deepcopy
@@ -11,7 +12,7 @@ def typeparam():
     return TypeParameter(name='type_param',
                          type_kind='particle_types',
                          param_dict=TypeParameterDict(
-                             foo=1, bar=RequiredArg,
+                             foo=1, bar=lambda x: x,
                              len_keys=1)
                          )
 
@@ -25,7 +26,7 @@ def test_adding_typeparams(typeparam, base_op):
     base_op._add_typeparam(typeparam)
     assert 'type_param' in base_op._typeparam_dict.keys()
     assert base_op._typeparam_dict['type_param']['A'] == \
-        dict(foo=1, bar=None)
+        dict(foo=1, bar=RequiredArg)
     return base_op
 
 

@@ -1,8 +1,8 @@
 import hoomd
 import hoomd.hpmc
 from hoomd.hpmc import _hpmc
-import pytest
 import copy
+import pytest
 
 polyhedron_args_1 = {'vertices': [(0, 5, 0), (1, 1, 1), (1, 0, 1),
                                   (0, 1, 1), (1, 1, 0), (0, 0, 1)],
@@ -259,27 +259,27 @@ def test_shape_params():
     mc = hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion(23456)
 
     mc.shape['A'] = dict()
-    assert mc.shape['A']['shapes'] is None
-    assert mc.shape['A']['positions'] is None
-    assert mc.shape['A']['orientations'] is None
-    assert mc.shape['A']['overlap'] == 1
+    assert mc.shape['A']['shapes'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['positions'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['orientations'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['overlap'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['capacity'] == 4
     assert mc.shape['A']['ignore_statistics'] is False
 
     mc.shape['A'] = dict(shapes=polyhedron_union_args1['shapes'])
     assert mc.shape['A']['shapes'] == polyhedron_union_args1['shapes']
-    assert mc.shape['A']['positions'] is None
-    assert mc.shape['A']['orientations'] is None
-    assert mc.shape['A']['overlap'] == 1
+    assert mc.shape['A']['positions'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['orientations'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['overlap'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['capacity'] == 4
     assert mc.shape['A']['ignore_statistics'] is False
 
     mc.shape['A'] = dict(positions=polyhedron_union_args2['positions'],
                          ignore_statistics=True)
-    assert mc.shape['A']['shapes'] is None
+    assert mc.shape['A']['shapes'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['positions'] == polyhedron_union_args2['positions']
-    assert mc.shape['A']['orientations'] is None
-    assert mc.shape['A']['overlap'] == 1
+    assert mc.shape['A']['orientations'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['overlap'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['capacity'] == 4
     assert mc.shape['A']['ignore_statistics'] is True
 
@@ -412,7 +412,6 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     polyhedron_union_args9_invalid = copy.deepcopy(polyhedron_union_args9)
     polyhedron_union_args10_invalid = copy.deepcopy(polyhedron_union_args10)
     polyhedron_union_args11_invalid = copy.deepcopy(polyhedron_union_args11)
-    polyhedron_union_args12_invalid = copy.deepcopy(polyhedron_union_args12)
 
     polyhedron_union_args1_invalid['shapes'] = 'invalid'
     polyhedron_union_args2_invalid['shapes'] = 1
@@ -425,41 +424,37 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     polyhedron_union_args9_invalid['overlap'] = 'invalid'
     polyhedron_union_args10_invalid['capacity'] = 'invalid'
     polyhedron_union_args11_invalid['capacity'] = [1, 2, 3]
-    polyhedron_union_args12_invalid['ignore_statistics'] = 'invalid'
 
     # check for errors on invalid input
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = polyhedron_union_args1_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = polyhedron_union_args2_invalid
 
     with pytest.raises(RuntimeError):
         mc.shape['A'] = polyhedron_union_args3_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = polyhedron_union_args4_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = polyhedron_union_args5_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = polyhedron_union_args6_invalid
 
     with pytest.raises(RuntimeError):
         mc.shape['A'] = polyhedron_union_args7_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = polyhedron_union_args8_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = polyhedron_union_args9_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = polyhedron_union_args10_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = polyhedron_union_args11_invalid
-
-    with pytest.raises(RuntimeError):
-        mc.shape['A'] = polyhedron_union_args12_invalid

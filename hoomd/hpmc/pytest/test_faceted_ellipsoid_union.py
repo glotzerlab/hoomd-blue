@@ -88,14 +88,14 @@ faceted_ell_union_args1 = {'shapes': [faceted_ell_args_1, faceted_ell_args_2],
 faceted_ell_union_args2 = {'shapes': [faceted_ell_args_3, faceted_ell_args_2],
                            'positions': [(1, 0, 0), (0, 0, 1)],
                            'orientations': [(1, 1, 0, 0), (1, 0, 0, 0)],
-                           'overlap': [1, 2],
+                           'overlap': [1, 0],
                            'capacity': 3,
                            'ignore_statistics': 0}
 
 faceted_ell_union_args3 = {'shapes': [faceted_ell_args_4, faceted_ell_args_2],
                            'positions': [(1, 1, 0), (0, 0, 1)],
                            'orientations': [(1, 0, 1, 0), (1, 0, 0, 0)],
-                           'overlap': [1, 3],
+                           'overlap': [1, 1],
                            'capacity': 2,
                            'ignore_statistics': 1}
 
@@ -116,14 +116,14 @@ faceted_ell_union_args5 = {'shapes': [faceted_ell_args_1, faceted_ell_args_3],
 faceted_ell_union_args6 = {'shapes': [faceted_ell_args_1, faceted_ell_args_4],
                            'positions': [(1, 0, 0), (0, 1, 1)],
                            'orientations': [(1, 0, 0, 0), (1, 0, 1, 0)],
-                           'overlap': [2, 1],
+                           'overlap': [0, 1],
                            'capacity': 6,
                            'ignore_statistics': 0}
 
 faceted_ell_union_args7 = {'shapes': [faceted_ell_args_1, faceted_ell_args_5],
                            'positions': [(0, 1, 1), (0, 0, 1)],
                            'orientations': [(1, 0, 0, 0), (1, 0, 0, 1)],
-                           'overlap': [3, 1],
+                           'overlap': [0, 1],
                            'capacity': 4,
                            'ignore_statistics': 1}
 
@@ -137,14 +137,14 @@ faceted_ell_union_args8 = {'shapes': [faceted_ell_args_3, faceted_ell_args_4],
 faceted_ell_union_args9 = {'shapes': [faceted_ell_args_3, faceted_ell_args_5],
                            'positions': [(0, 0, 1), (0, 0, 0)],
                            'orientations': [(1, 0, 1, 0), (1, 0, 1, 0)],
-                           'overlap': [2, 2],
+                           'overlap': [1, 1],
                            'capacity': 4,
                            'ignore_statistics': 1}
 
 faceted_ell_union_args10 = {'shapes': [faceted_ell_args_4, faceted_ell_args_5],
                             'positions': [(0, 1, 0), (1, 0, 1)],
                             'orientations': [(1, 1, 0, 1), (1, 0, 0, 0)],
-                            'overlap': [3, 3],
+                            'overlap': [0, 1],
                             'capacity': 4,
                             'ignore_statistics': 0}
 
@@ -166,7 +166,7 @@ faceted_ell_union_args12 = {'shapes': [faceted_ell_args_1,
                             'orientations': [(1, 1, 0, 0),
                                              (1, 0, 0, 0),
                                              (1, 0, 1, 0)],
-                            'overlap': [1, 2, 1],
+                            'overlap': [1, 0, 1],
                             'capacity': 3,
                             'ignore_statistics': 0}
 
@@ -177,7 +177,7 @@ faceted_ell_union_args13 = {'shapes': [faceted_ell_args_1,
                             'orientations': [(1, 0, 1, 0),
                                              (1, 0, 0, 0),
                                              (1, 1, 0, 0)],
-                            'overlap': [1, 3, 0],
+                            'overlap': [1, 1, 0],
                             'capacity': 2,
                             'ignore_statistics': 1}
 
@@ -188,7 +188,7 @@ faceted_ell_union_args14 = {'shapes': [faceted_ell_args_2,
                             'orientations': [(1, 0, 0, 1),
                                              (1, 0, 0, 0),
                                              (1, 0, 0, 0)],
-                            'overlap': [1, 0, 2],
+                            'overlap': [1, 0, 0],
                             'capacity': 4,
                             'ignore_statistics': 0}
 
@@ -210,7 +210,7 @@ faceted_ell_union_args16 = {'shapes': [faceted_ell_args_3,
                             'orientations': [(1, 0, 0, 0),
                                              (1, 0, 1, 0),
                                              (1, 0, 0, 0)],
-                            'overlap': [2, 1, 0],
+                            'overlap': [0, 1, 0],
                             'capacity': 4,
                             'ignore_statistics': 0}
 
@@ -242,7 +242,7 @@ faceted_ell_union_args18 = {'shapes': [faceted_ell_args_1,
                                              (1, 0, 0, 0),
                                              (1, 0, 0, 0),
                                              (1, 0, 0, 1)],
-                            'overlap': [1, 1, 2, 0],
+                            'overlap': [1, 1, 0, 0],
                             'capacity': 3,
                             'ignore_statistics': 0}
 
@@ -258,7 +258,7 @@ faceted_ell_union_args19 = {'shapes': [faceted_ell_args_1,
                                              (1, 0, 0, 0),
                                              (1, 0, 0, 0),
                                              (1, 0, 1, 0)],
-                            'overlap': [1, 2, 1, 1],
+                            'overlap': [1, 0, 1, 1],
                             'capacity': 2,
                             'ignore_statistics': 1}
 
@@ -290,7 +290,7 @@ faceted_ell_union_args21 = {'shapes': [faceted_ell_args_2,
                                              (1, 1, 0, 0),
                                              (1, 0, 0, 1),
                                              (1, 0, 0, 0)],
-                            'overlap': [1, 2, 2, 2],
+                            'overlap': [1, 0, 0, 0],
                             'capacity': 4,
                             'ignore_statistics': 1}
 
@@ -390,27 +390,27 @@ def test_shape_params():
     mc = hoomd.hpmc.integrate.FacetedEllipsoidUnion(23456)
 
     mc.shape['A'] = dict()
-    assert mc.shape['A']['shapes'] is None
-    assert mc.shape['A']['positions'] is None
-    assert mc.shape['A']['orientations'] is None
-    assert mc.shape['A']['overlap'] == 1
+    assert mc.shape['A']['shapes'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['positions'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['orientations'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['overlap'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['capacity'] == 4
     assert mc.shape['A']['ignore_statistics'] is False
 
     mc.shape['A'] = dict(shapes=faceted_ell_union_args1['shapes'])
     assert mc.shape['A']['shapes'] == faceted_ell_union_args1['shapes']
-    assert mc.shape['A']['positions'] is None
-    assert mc.shape['A']['orientations'] is None
-    assert mc.shape['A']['overlap'] == 1
+    assert mc.shape['A']['positions'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['orientations'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['overlap'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['capacity'] == 4
     assert mc.shape['A']['ignore_statistics'] is False
 
     mc.shape['A'] = dict(positions=faceted_ell_union_args2['positions'],
                          ignore_statistics=True)
-    assert mc.shape['A']['shapes'] is None
+    assert mc.shape['A']['shapes'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['positions'] == faceted_ell_union_args2['positions']
-    assert mc.shape['A']['orientations'] is None
-    assert mc.shape['A']['overlap'] == 1
+    assert mc.shape['A']['orientations'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['overlap'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['capacity'] == 4
     assert mc.shape['A']['ignore_statistics'] is True
 
@@ -543,7 +543,6 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     faceted_ell_union_args9_invalid = copy.deepcopy(faceted_ell_union_args1)
     faceted_ell_union_args10_invalid = copy.deepcopy(faceted_ell_union_args1)
     faceted_ell_union_args11_invalid = copy.deepcopy(faceted_ell_union_args1)
-    faceted_ell_union_args12_invalid = copy.deepcopy(faceted_ell_union_args1)
 
     faceted_ell_union_args1_invalid['shapes'] = 'invalid'
     faceted_ell_union_args2_invalid['shapes'] = 1
@@ -556,41 +555,37 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     faceted_ell_union_args9_invalid['overlap'] = 'invalid'
     faceted_ell_union_args10_invalid['capacity'] = 'invalid'
     faceted_ell_union_args11_invalid['capacity'] = [1, 2, 3]
-    faceted_ell_union_args12_invalid['ignore_statistics'] = 'invalid'
 
     # check for errors on invalid input
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = faceted_ell_union_args1_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = faceted_ell_union_args2_invalid
 
     with pytest.raises(RuntimeError):
         mc.shape['A'] = faceted_ell_union_args3_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = faceted_ell_union_args4_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = faceted_ell_union_args5_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = faceted_ell_union_args6_invalid
 
     with pytest.raises(RuntimeError):
         mc.shape['A'] = faceted_ell_union_args7_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = faceted_ell_union_args8_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = faceted_ell_union_args9_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = faceted_ell_union_args10_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = faceted_ell_union_args11_invalid
-
-    with pytest.raises(RuntimeError):
-        mc.shape['A'] = faceted_ell_union_args12_invalid

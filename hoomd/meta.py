@@ -17,9 +17,12 @@ Example::
 """
 
 import hoomd
-from hoomd.util import is_iterable, dict_map
+from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
 from hoomd.triggers import PeriodicTrigger, Trigger
 from hoomd.logger import Loggable
+from hoomd.util import NamespaceDict
+from hoomd._hoomd import GSDStateReader
+from hoomd.parameterdicts import ParameterDict
 import json
 import time
 import datetime
@@ -35,15 +38,29 @@ def note_type(value):
         return (value, 'scalar')
     elif isinstance(value, str):
         return (value, 'string')
+    elif is_iterable(value) and all([isinstance(v, str) for v in value]):
+        return (value, 'strings')
     else:
         return (value, 'multi')
 
 
+def handle_gsd_arrays(arr):
+    if arr.size == 1:
+        return arr[0]
+    if arr.ndim == 1:
+        if arr.size < 3:
+            return tuple(arr.flatten())
+    else:
+        return arr
+
+
 class _Operation(metaclass=Loggable):
     _reserved_attrs_with_dft = {'_cpp_obj': lambda: None,
-                                '_param_dict': dict,
+                                '_param_dict': ParameterDict,
                                 '_typeparam_dict': dict,
                                 '_dependent_list': lambda: []}
+
+    _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
 
     def __getattr__(self, attr):
         if attr in self._reserved_attrs_with_dft.keys():
@@ -92,6 +109,17 @@ class _Operation(metaclass=Loggable):
         except TypeError:
             raise ValueError("To set {}, you must use a dictionary "
                              "with types as keys.".format(attr))
+
+    def __eq__(self, other):
+        other_keys = set(other.__dict__.keys())
+        for key in self.__dict__.keys():
+            if key in self._skip_for_equality:
+                continue
+            else:
+                if key not in other_keys \
+                        or self.__dict__[key] != other.__dict__[key]:
+                    return False
+        return True
 
     def detach(self):
         self._unapply_typeparam_dict()
@@ -152,24 +180,100 @@ class _Operation(metaclass=Loggable):
         for typeparam in typeparams:
             self._add_typeparam(typeparam)
 
-    def _typeparams_to_dict(self):
-        tps_dict = dict()
-        for name, typeparam in self._typeparam_dict.items():
-            if typeparam.param_dict._len_keys > 1:
-                tp_dict = dict()
-                for key, value in typeparam.to_dict().items():
-                    tp_dict['/'.join(key)] = value
-                tps_dict[name] = tp_dict
-            else:
-                tps_dict[name] = typeparam.to_dict()
-        return tps_dict
+    def _typeparam_states(self):
+        state = {name: tp.state for name, tp in self._typeparam_dict.items()}
+        return deepcopy(state)
 
     @Loggable.log(flag='dict')
     def state(self):
         self._update_param_dict()
-        state_dict = deepcopy(self._param_dict)
-        state_dict.update(self._typeparams_to_dict())
-        return dict_map(state_dict, note_type)
+        state = self._typeparam_states()
+        state['params'] = deepcopy(self._param_dict)
+        return dict_map(state, note_type)
+
+    @classmethod
+    def from_state(cls, state, final_namespace=None, **kwargs):
+        state_dict, unused_args = cls._get_state_dict(state,
+                                                      final_namespace,
+                                                      **kwargs)
+        return cls._from_state_with_state_dict(state_dict, **unused_args)
+
+    @classmethod
+    def _get_state_dict(cls, data, final_namespace, **kwargs):
+
+        # resolve the namespace
+        namespace = list(cls._export_dict.values())[0].namespace
+        if final_namespace is not None:
+            namespace = namespace[:-1] + (final_namespace,)
+        namespace = namespace + ('state',)
+        # Filenames
+        if isinstance(data, str):
+            if data.endswith('gsd'):
+                state, kwargs = cls._state_from_gsd(data, namespace, **kwargs)
+
+        # Dictionaries and like objects
+        elif isinstance(data, dict):
+            try:
+                # try to grab the namespace
+                state = deepcopy(NamespaceDict(data)[namespace])
+            except KeyError:
+                # if namespace can't be found assume that dictionary is the
+                # state dictionary (This assumes that values are of the form
+                # (value, flag)
+                try:
+                    state = dict_map(data, lambda x: x[0])
+                except TypeError:
+                    state = deepcopy(data)
+
+        elif isinstance(data, NamespaceDict):
+            state = deepcopy(data[namespace])
+
+        # Data is of an unusable type
+        else:
+            raise ValueError("Object {} cannot be used to get state."
+                             "".format(data))
+
+        return (state, kwargs)
+
+    @classmethod
+    def _state_from_gsd(cls, filename, namespace, **kwargs):
+        if 'frame' not in kwargs.keys():
+            frame = -1
+        else:
+            frame = kwargs['frame']
+            del kwargs['frame']
+        # Grab state keys from gsd
+        reader = GSDStateReader(filename, frame)
+        namespace_str = 'log/' + '/'.join(namespace)
+        state_chunks = reader.getAvailableChunks(namespace_str)
+        state_dict = NamespaceDict()
+        chunk_slice = slice(len(namespace_str) + 1, None)
+        # Build up state dict
+        for state_chunk in state_chunks:
+            state_dict_key = tuple(state_chunk[chunk_slice].split('/'))
+            state_dict[state_dict_key] = \
+                handle_gsd_arrays(reader.readChunk(state_chunk))
+        return (state_dict._dict, kwargs)
+
+    @classmethod
+    def _from_state_with_state_dict(cls, state, **kwargs):
+
+        # Initialize object using params from state and passed arguments
+        params = state['params']
+        params.update(kwargs)
+        obj = cls(**params)
+        del state['params']
+
+        # Add typeparameter information
+        for name, tp_dict in state.items():
+            if '__default' in tp_dict.keys():
+                obj._typeparam_dict[name].default = tp_dict['__default']
+                del tp_dict['__default']
+            # Parse the stringified tuple back into tuple
+            if obj._typeparam_dict[name]._len_keys > 1:
+                tp_dict = str_to_tuple_keys(tp_dict)
+            setattr(obj, name, tp_dict)
+        return obj
 
 
 class _TriggeredOperation(_Operation):

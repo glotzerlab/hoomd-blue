@@ -1,6 +1,6 @@
 from itertools import count
 from copy import deepcopy
-from hoomd.util import is_iterable, dict_fold, dict_map
+from hoomd.util import is_iterable, dict_fold, dict_map, SafeNamespaceDict
 
 
 class Loggable(type):
@@ -63,88 +63,6 @@ class LoggerQuantity:
     def update_cls(self, cls):
         self.namespace = generate_namespace(cls)
         return self
-
-
-
-class SafeNamespaceDict:
-    def __init__(self):
-        self._dict = dict()
-
-    def __len__(self):
-        return dict_fold(self._dict, lambda x, incr: incr + 1, 0)
-
-    def key_exists(self, namespace):
-        try:
-            namespace = self.validate_namespace(namespace)
-        except ValueError:
-            return False
-        current_dict = self._dict
-        # traverse through dictionary hierarchy
-        for name in namespace:
-            try:
-                if name in current_dict.keys():
-                    current_dict = current_dict[name]
-                    continue
-                else:
-                    return False
-            except (TypeError, AttributeError):
-                return False
-        return True
-
-    def keys(self):
-        raise NotImplementedError
-
-    def pop_namespace(self, namespace):
-        return (namespace[-1], namespace[:-1])
-
-    def _setitem(self, namespace, value):
-        if namespace in self:
-            raise KeyError("Namespace {} is being used. Remove before "
-                           "replacing.".format(namespace))
-        # Grab parent dictionary creating sub dictionaries as necessary
-        parent_dict = self._dict
-        base_name, parent_namespace = self.pop_namespace(namespace)
-        for name in parent_namespace:
-            # If key does not exist create key with empty dictionary
-            try:
-                parent_dict = parent_dict[name]
-            except KeyError:
-                parent_dict[name] = dict()
-                parent_dict = parent_dict[name]
-        # Attempt to set the value
-        parent_dict[base_name] = value
-
-    def __setitem__(self, namespace, value):
-        try:
-            namespace = self.validate_namespace(namespace)
-        except ValueError:
-            raise KeyError("Expected a tuple or string key.")
-        self._setitem(namespace, value)
-
-    def _unsafe_getitem(self, namespace):
-        ret_val = self._dict
-        if isinstance(namespace, str):
-            namespace = (namespace,)
-        for name in namespace:
-            ret_val = ret_val[name]
-        return ret_val
-
-    def __delitem__(self, namespace):
-        '''Does not check that key exists.'''
-        if isinstance(namespace, str):
-            namespace = (namespace,)
-        parent_dict = self._unsafe_getitem(namespace[:-1])
-        del parent_dict[namespace[-1]]
-
-    def __contains__(self, namespace):
-        return self.key_exists(namespace)
-
-    def validate_namespace(self, namespace):
-        if isinstance(namespace, str):
-            namespace = (namespace,)
-        if not isinstance(namespace, tuple):
-            raise ValueError("Expected a string or tuple namespace.")
-        return namespace
 
 
 class Logger(SafeNamespaceDict):

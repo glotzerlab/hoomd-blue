@@ -1,12 +1,15 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
 from hoomd import _hoomd
 from hoomd.parameterdicts import TypeParameterDict
-from hoomd.parameterdicts import RequiredArg
+from hoomd.parameterdicts import ParameterDict
+
+from hoomd.typeconverter import RequiredArg
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
-from hoomd.integrate import _integrator
+from hoomd.integrate import _BaseIntegrator
 from hoomd.logger import Loggable
 import hoomd
 import json
@@ -27,10 +30,10 @@ def cite_depletants():
     hoomd.cite._ensure_global_bib().add(_citation)
 
 
-class HPMCIntegrator(_integrator):
+class _HPMCIntegrator(_BaseIntegrator):
     R""" Base class HPMC integrator.
 
-    :py:class:`HPMCIntegrator` is the base class for all HPMC integrators. It
+    :py:class:`_HPMCIntegrator` is the base class for all HPMC integrators. It
     provides common interface elements.  Users should not instantiate this class
     directly. Methods documented here are available to all hpmc integrators.
 
@@ -72,23 +75,29 @@ class HPMCIntegrator(_integrator):
         super().__init__()
 
         # Set base parameter dict for hpmc integrators
-        self._param_dict.update(dict(seed=seed, move_ratio=move_ratio,
-                                     nselect=nselect,
-                                     deterministic=deterministic)
+        self._param_dict = ParameterDict(dict(seed=int, move_ratio=float,
+                                         nselect=int, deterministic=bool)
+                                         )
+        self._param_dict.update(dict(seed=int(seed),
+                                     move_ratio=float(move_ratio),
+                                     nselect=int(nselect),
+                                     deterministic=bool(deterministic))
                                 )
 
         # Set standard typeparameters for hpmc integrators
         typeparam_d = TypeParameter('d', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(d, len_keys=1)
+                                    param_dict=TypeParameterDict(float(d),
+                                                                 len_keys=1)
                                     )
         typeparam_a = TypeParameter('a', type_kind='particle_types',
-                                    param_dict=TypeParameterDict(a, len_keys=1)
+                                    param_dict=TypeParameterDict(float(a),
+                                                                 len_keys=1)
                                     )
 
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
-                                               float(0), len_keys=1)
+                                               0., len_keys=1)
                                            )
 
         typeparam_inter_matrix = TypeParameter('interaction_matrix',
@@ -142,7 +151,7 @@ class HPMCIntegrator(_integrator):
         raise NotImplementedError(
             "You are using a shape type that is not implemented! "
             "If you want it, please modify the "
-            "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
+            "hoomd.hpmc.integrate._HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
         if not self.is_attached:
@@ -284,7 +293,7 @@ class HPMCIntegrator(_integrator):
         return self._cpp_obj.getCounters(1)
 
 
-class Sphere(HPMCIntegrator):
+class Sphere(_HPMCIntegrator):
     R""" HPMC integration for spheres (2D/3D).
 
     Args:
@@ -335,7 +344,7 @@ class Sphere(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            diameter=RequiredArg,
+                                            diameter=float,
                                             ignore_statistics=False,
                                             orientable=False,
                                             len_keys=1)
@@ -359,7 +368,7 @@ class Sphere(HPMCIntegrator):
         return super()._return_type_shapes()
 
 
-class ConvexPolygon(HPMCIntegrator):
+class ConvexPolygon(_HPMCIntegrator):
     R""" HPMC integration for convex polygons (2D).
 
     Args:
@@ -418,7 +427,7 @@ class ConvexPolygon(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            vertices=RequiredArg,
+                                            vertices=list,
                                             ignore_statistics=False,
                                             sweep_radius=0,
                                             len_keys=1)
@@ -441,7 +450,7 @@ class ConvexPolygon(HPMCIntegrator):
         return super(ConvexPolygon, self)._return_type_shapes()
 
 
-class ConvexSpheropolygon(HPMCIntegrator):
+class ConvexSpheropolygon(_HPMCIntegrator):
     R""" HPMC integration for convex spheropolygons (2D).
 
     Args:
@@ -496,6 +505,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
+
     _cpp_cls = 'IntegratorHPMCMonoSpheropolygon'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
@@ -506,8 +516,8 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            vertices=RequiredArg,
-                                            sweep_radius=RequiredArg,
+                                            vertices=list,
+                                            sweep_radius=float,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -529,7 +539,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
         return super(ConvexSpheropolygon, self)._return_type_shapes()
 
 
-class SimplePolygon(HPMCIntegrator):
+class SimplePolygon(_HPMCIntegrator):
     R""" HPMC integration for simple polygons (2D).
 
     Args:
@@ -589,7 +599,7 @@ class SimplePolygon(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            vertices=RequiredArg,
+                                            vertices=list,
                                             ignore_statistics=False,
                                             sweep_radius=0,
                                             len_keys=1)
@@ -612,7 +622,7 @@ class SimplePolygon(HPMCIntegrator):
         return super(SimplePolygon, self)._return_type_shapes()
 
 
-class Polyhedron(HPMCIntegrator):
+class Polyhedron(_HPMCIntegrator):
     R""" HPMC integration for general polyhedra (3D).
 
     This shape uses an internal OBB tree for fast collision queries.
@@ -747,14 +757,15 @@ class Polyhedron(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            vertices=RequiredArg,
-                                            faces=RequiredArg,
+                                            vertices=list,
+                                            faces=list,
                                             sweep_radius=0.0,
                                             capacity=4,
                                             origin=(0, 0, 0),
                                             hull_only=True,
-                                            overlap=False,
+                                            overlap=list,
                                             ignore_statistics=False,
+                                            explict_defaults={'overlap': None},
                                             len_keys=1)
                                         )
 
@@ -776,7 +787,7 @@ class Polyhedron(HPMCIntegrator):
         return super(Polyhedron, self)._return_type_shapes()
 
 
-class ConvexPolyhedron(HPMCIntegrator):
+class ConvexPolyhedron(_HPMCIntegrator):
     R""" HPMC integration for convex polyhedra (3D).
 
     Args:
@@ -845,7 +856,7 @@ class ConvexPolyhedron(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            vertices=RequiredArg,
+                                            vertices=list,
                                             sweep_radius=0.0,
                                             ignore_statistics=False,
                                             len_keys=1)
@@ -868,7 +879,7 @@ class ConvexPolyhedron(HPMCIntegrator):
         return super(ConvexPolyhedron, self)._return_type_shapes()
 
 
-class FacetedEllipsoid(HPMCIntegrator):
+class FacetedEllipsoid(_HPMCIntegrator):
     R""" HPMC integration for faceted ellipsoids (3D).
 
     Args:
@@ -958,6 +969,7 @@ class FacetedEllipsoid(HPMCIntegrator):
         mc.shape_param.set('B', normals=[],a=0.1,b=0.1,c=0.1);
         mc.set_fugacity('B',fugacity=3.0)
     """
+
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoid'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
@@ -968,13 +980,13 @@ class FacetedEllipsoid(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            normals=RequiredArg,
-                                            offsets=RequiredArg,
-                                            a=RequiredArg,
-                                            b=RequiredArg,
-                                            c=RequiredArg,
-                                            vertices=RequiredArg,
-                                            origin=RequiredArg,
+                                            normals=list,
+                                            offsets=list,
+                                            a=float,
+                                            b=float,
+                                            c=float,
+                                            vertices=list,
+                                            origin=tuple,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -1077,7 +1089,7 @@ class FacetedSphere(FacetedEllipsoid):
                                             deterministic=deterministic)
 
 
-class Sphinx(HPMCIntegrator):
+class Sphinx(_HPMCIntegrator):
     R""" HPMC integration for sphinx particles (3D).
 
     Args:
@@ -1115,6 +1127,7 @@ class Sphinx(HPMCIntegrator):
         mc.shape_param.set('B', centers=[(0,0,0)], diameters=[.15])
         mc.set_fugacity('B',fugacity=3.0)
     """
+
     _cpp_cls = 'IntegratorHPMCMonoSphinx'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
@@ -1125,15 +1138,15 @@ class Sphinx(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            diameters=RequiredArg,
-                                            centers=RequiredArg,
+                                            diameters=list,
+                                            centers=list,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
         self._add_typeparam(typeparam_shape)
 
 
-class ConvexSpheropolyhedron(HPMCIntegrator):
+class ConvexSpheropolyhedron(_HPMCIntegrator):
     R""" HPMC integration for spheropolyhedra (3D).
 
     Args:
@@ -1206,7 +1219,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            vertices=RequiredArg,
+                                            vertices=list,
                                             sweep_radius=0.0,
                                             ignore_statistics=False,
                                             len_keys=1)
@@ -1229,7 +1242,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
         return super(ConvexSpheropolyhedron, self)._return_type_shapes()
 
 
-class Ellipsoid(HPMCIntegrator):
+class Ellipsoid(_HPMCIntegrator):
     R""" HPMC integration for ellipsoids (2D/3D).
 
     Args:
@@ -1271,6 +1284,7 @@ class Ellipsoid(HPMCIntegrator):
         mc.shape_param.set('B', a=0.05, b=0.05, c=0.05);
         mc.set_fugacity('B',fugacity=3.0)
     """
+
     _cpp_cls = 'IntegratorHPMCMonoEllipsoid'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
@@ -1281,9 +1295,9 @@ class Ellipsoid(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            a=RequiredArg,
-                                            b=RequiredArg,
-                                            c=RequiredArg,
+                                            a=float,
+                                            b=float,
+                                            c=float,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -1302,7 +1316,7 @@ class Ellipsoid(HPMCIntegrator):
         return super()._return_type_shapes()
 
 
-class SphereUnion(HPMCIntegrator):
+class SphereUnion(_HPMCIntegrator):
     R""" HPMC integration for unions of spheres (3D).
 
     This shape uses an internal OBB tree for fast collision queries.
@@ -1376,18 +1390,20 @@ class SphereUnion(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            shapes=RequiredArg,
-                                            orientations=RequiredArg,
-                                            positions=RequiredArg,
+                                            shapes=list,
+                                            orientations=list,
+                                            positions=list,
                                             capacity=4,
-                                            overlap=1,
+                                            overlap=list,
                                             ignore_statistics=False,
+                                            explict_defaults={'orientations': None,
+                                                              'overlap': None},
                                             len_keys=1)
                                         )
         self._add_typeparam(typeparam_shape)
 
 
-class ConvexSpheropolyhedronUnion(HPMCIntegrator):
+class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
     R""" HPMC integration for unions of convex polyhedra (3D).
 
     Args:
@@ -1458,11 +1474,13 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            shapes=RequiredArg,
-                                            positions=RequiredArg,
-                                            orientations=RequiredArg,
-                                            overlap=1,
+                                            shapes=list,
+                                            positions=list,
+                                            orientations=list,
+                                            overlap=list,
                                             ignore_statistics=False,
+                                            explict_defaults={'orientations': None,
+                                                              'overlap': None},
                                             capacity=4,
                                             len_keys=1)
                                         )
@@ -1471,7 +1489,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
         self.metadata_fields = ['capacity']
 
 
-class FacetedEllipsoidUnion(HPMCIntegrator):
+class FacetedEllipsoidUnion(_HPMCIntegrator):
     R""" HPMC integration for unions of faceted ellipsoids (3D).
 
     Args:
@@ -1542,11 +1560,13 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            shapes=RequiredArg,
-                                            positions=RequiredArg,
-                                            orientations=RequiredArg,
-                                            overlap=1,
+                                            shapes=list,
+                                            positions=list,
+                                            orientations=list,
+                                            overlap=list,
                                             ignore_statistics=False,
+                                            explict_defaults={'orientations': None,
+                                                              'overlap': None},
                                             capacity=4,
                                             len_keys=1)
                                         )

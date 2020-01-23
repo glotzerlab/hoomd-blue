@@ -63,8 +63,8 @@ def test_shape_params():
     mc = hoomd.hpmc.integrate.Sphinx(23456)
 
     mc.shape['A'] = dict()
-    assert mc.shape['A']['diameters'] is None
-    assert mc.shape['A']['centers'] is None
+    assert mc.shape['A']['diameters'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['centers'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['ignore_statistics'] is False
 
     mc.shape['B'] = dict(diameters=[1, 4, 2, 8, 5, 9],
@@ -125,7 +125,6 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     args_1_invalid = copy.deepcopy(args_1)
     args_2_invalid = copy.deepcopy(args_2)
     args_3_invalid = copy.deepcopy(args_3)
-    args_4_invalid = copy.deepcopy(args_4)
     args_1_invalid['diameters'] = 'invalid'
     args_2_invalid['diameters'] = 1
     args_3_invalid['diameters'] = [(0, 0, 0),
@@ -136,20 +135,16 @@ def test_shape_params_attached(device, dummy_simulation_factory):
                                    (0, 0, 1),
                                    (2, 2, 1),
                                    (3, 5, 3)]
-    args_4_invalid['ignore_statistics'] = 'invalid'
 
     # check for errors on invalid input
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = dict(args_1_invalid)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = dict(args_2_invalid)
 
     with pytest.raises(RuntimeError):
         mc.shape['A'] = dict(args_3_invalid)
-
-    with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(args_4_invalid)
 
     args_1_invalid = copy.deepcopy(args_1)
     args_2_invalid = copy.deepcopy(args_2)
@@ -159,10 +154,10 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     args_3_invalid['centers'] = [1, 2, 3, 4, 5, 6, 7, 8]
 
     # check for errors on invalid input
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = dict(args_1_invalid)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = dict(args_2_invalid)
 
     with pytest.raises(TypeError):
@@ -175,60 +170,33 @@ def test_shape_params_attached(device, dummy_simulation_factory):
                                        (0, 0, 0.5)])
 
 
-def test_overlaps(device, dummy_simulation_check_overlaps):
+def test_overlaps(device, lattice_simulation_factory):
     mc = hoomd.hpmc.integrate.Sphinx(23456, d=0, a=0)
     mc.shape['A'] = dict(centers=[(0, 0, 0), (0.5, 0, 0)], diameters=[1, -.001])
 
-    sim = dummy_simulation_check_overlaps()
+    sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=0.25)
     sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_convex_polyhedron.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
     sim.operations.schedule()
     sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps > 0
+    assert mc.overlaps > 0
 
     s = sim.state.snapshot
     s.particles.position[0] = (0, 0, 0)
     s.particles.position[1] = (0, 8, 0)
     sim.state.snapshot = s
-    sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_convex_polyhedron.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
-    sim.operations.schedule()
-    sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps == 0
+    assert mc.overlaps == 0
 
     s = sim.state.snapshot
     s.particles.position[0] = (0, 0, 0)
     s.particles.position[1] = (0, 0.39, 0)
     sim.state.snapshot = s
-    sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_convex_polyhedron.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
-    sim.operations.schedule()
-    sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps > 0
+    assert mc.overlaps > 0
 
 
-def test_shape_moves(device, dummy_simulation_check_moves):
+def test_shape_moves(device, lattice_simulation_factory):
     mc = hoomd.hpmc.integrate.Sphinx(23456)
     mc.shape['A'] = dict(centers=[(0, 0, 0), (0.5, 0, 0)], diameters=[1, .1])
-    sim = dummy_simulation_check_moves()
+    sim = lattice_simulation_factory()
     sim.operations.add(mc)
     sim.operations.schedule()
     sim.run(100)

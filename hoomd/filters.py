@@ -6,9 +6,9 @@ class ParticleFilter:
 
     def __init__(self, *args, **kwargs):
         args_str = ''.join([repr(arg) if not isinstance(arg, np.ndarray)
-                            else repr(list(arg)) for arg in args])
+                            else arg.tostring() for arg in args])
         kwargs_str = ''.join([repr(value) if not isinstance(value, np.ndarray)
-                             else repr(list(value))
+                             else value.tostring()
                              for value in kwargs.values()])
         self.args_str = args_str
         self.kwargs_str = kwargs_str

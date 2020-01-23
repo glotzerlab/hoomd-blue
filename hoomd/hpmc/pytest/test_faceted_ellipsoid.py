@@ -128,20 +128,20 @@ def test_shape_params():
     mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456)
 
     mc.shape['A'] = dict()
-    assert mc.shape['A']['normals'] is None
-    assert mc.shape['A']['offsets'] is None
-    assert mc.shape['A']['vertices'] is None
-    assert mc.shape['A']['origin'] is None
-    assert mc.shape['A']['a'] is None
-    assert mc.shape['A']['b'] is None
-    assert mc.shape['A']['c'] is None
+    assert mc.shape['A']['normals'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['offsets'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['vertices'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['origin'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['a'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['b'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['c'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['ignore_statistics'] is False
 
     mc.shape['B'] = dict(a=2.5, b=1, c=3)
-    assert mc.shape['B']['normals'] is None
-    assert mc.shape['B']['offsets'] is None
-    assert mc.shape['B']['vertices'] is None
-    assert mc.shape['B']['origin'] is None
+    assert mc.shape['B']['normals'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['B']['offsets'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['B']['vertices'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['B']['origin'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['B']['a'] == 2.5
     assert mc.shape['B']['b'] == 1
     assert mc.shape['B']['c'] == 3
@@ -203,16 +203,16 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     args_5_invalid['origin'] = 'invalid'
 
     # check for errors on invalid input
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = args_1_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = args_2_invalid
 
     with pytest.raises(TypeError):
         mc.shape['A'] = args_3_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = args_4_invalid
 
     with pytest.raises(RuntimeError):
@@ -221,27 +221,19 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     args_1_invalid = copy.deepcopy(args_1)
     args_2_invalid = copy.deepcopy(args_2)
     args_3_invalid = copy.deepcopy(args_3)
-    args_4_invalid = copy.deepcopy(args_4)
     args_1_invalid['offsets'] = 'invalid'
     args_2_invalid['offsets'] = 1
     args_3_invalid['offsets'] = [(0, 0, 0), (0, 0, 1), (1, 0, 0), (1, 1, 1,)]
-    args_4_invalid['ignore_statistics'] = 'invalid'
 
     # check for errors on invalid input
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = args_1_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = args_2_invalid
 
     with pytest.raises(RuntimeError):
         mc.shape['A'] = args_3_invalid
-
-    with pytest.raises(RuntimeError):
-        mc.shape['A'] = args_4_invalid
-
-    with pytest.raises(RuntimeError):
-        mc.shape['A'] = args_5_invalid
 
     args_1_invalid = copy.deepcopy(args_1)
     args_2_invalid = copy.deepcopy(args_2)
@@ -254,23 +246,23 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     args_5_invalid['b'] = 'invalid'
 
     # check for errors on invalid input
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = args_1_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = args_2_invalid
 
     with pytest.raises(TypeError):
         mc.shape['A'] = args_3_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = args_4_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = args_5_invalid
 
 
-def test_overlaps(device, dummy_simulation_check_overlaps):
+def test_overlaps(device, lattice_simulation_factory):
 
     mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456, d=0, a=0)
     mc.shape['A'] = dict(normals=[(0, 0, 1)],
@@ -281,53 +273,26 @@ def test_overlaps(device, dummy_simulation_check_overlaps):
                          origin=(0, 0, 0),
                          offsets=[0])
 
-    sim = dummy_simulation_check_overlaps()
+    sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=0.25)
     sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_faceted_ellipsoid.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
     sim.operations.schedule()
     sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps > 0
+    assert mc.overlaps > 0
 
     s = sim.state.snapshot
     s.particles.position[0] = (0, 0, 0)
     s.particles.position[1] = (0, 8, 0)
     sim.state.snapshot = s
-    sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_faceted_ellipsoid.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
-    sim.operations.schedule()
-    sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps == 0
+    assert mc.overlaps == 0
 
     s = sim.state.snapshot
     s.particles.position[0] = (0, 0, 0)
     s.particles.position[1] = (0, 1.99, 0)
     sim.state.snapshot = s
-    sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_faceted_ellipsoid.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
-    sim.operations.schedule()
-    sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps > 0
+    assert mc.overlaps > 0
 
 
-def test_shape_moves(device, dummy_simulation_check_moves):
+def test_shape_moves(device, lattice_simulation_factory):
 
     mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456)
     mc.shape['A'] = dict(normals=[(0, 0, 1)],
@@ -337,7 +302,7 @@ def test_shape_moves(device, dummy_simulation_check_moves):
                          vertices=[],
                          origin=(0, 0, 0),
                          offsets=[0])
-    sim = dummy_simulation_check_moves()
+    sim = lattice_simulation_factory()
     sim.operations.add(mc)
     sim.operations.schedule()
     sim.run(100)

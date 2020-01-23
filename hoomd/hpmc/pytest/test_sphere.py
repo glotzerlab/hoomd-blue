@@ -27,7 +27,7 @@ def test_shape_params():
     mc = hoomd.hpmc.integrate.Sphere(23456)
 
     mc.shape['A'] = dict()
-    assert mc.shape['A']['diameter'] is None
+    assert mc.shape['A']['diameter'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['ignore_statistics'] is False
     assert mc.shape['A']['orientable'] is False
 
@@ -37,7 +37,7 @@ def test_shape_params():
     assert mc.shape['B']['orientable'] is False
 
     mc.shape['B'] = dict(ignore_statistics=True, orientable=True)
-    assert mc.shape['B']['diameter'] is None
+    assert mc.shape['B']['diameter'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['B']['ignore_statistics'] is True
     assert mc.shape['B']['orientable'] is True
 
@@ -70,76 +70,53 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     assert mc.shape['C']['orientable'] is True
 
     # check for errors on invalid input
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = dict(diameter='invalid')
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = dict(diameter=[1, 2, 3])
 
-    with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(diameter=1, ignore_statistics='invalid')
 
-    with pytest.raises(RuntimeError):
-        mc.shape['A'] = dict(diameter=1, orientable='invalid')
-
-
-def test_overlaps(device, dummy_simulation_check_overlaps):
+def test_overlaps(device, lattice_simulation_factory):
 
     mc = hoomd.hpmc.integrate.Sphere(23456, d=0, a=0)
     mc.shape['A'] = dict(diameter=1)
 
-    sim = dummy_simulation_check_overlaps()
+    sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=0.25)
     sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_sphere.gsd', trigger=1, overwrite=True)
+    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_sphere.gsd', trigger=1, overwrite=True)
     # gsd_logger = hoomd.logger.Logger()
     # gsd_logger += mc
     # gsd_dumper.log = gsd_logger
     # sim.operations.add(gsd_dumper)
     sim.operations.schedule()
     sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps > 0
+    assert mc.overlaps > 0
 
     s = sim.state.snapshot
     s.particles.position[0] = (0, 0, 0)
     s.particles.position[1] = (0, 8, 0)
     sim.state.snapshot = s
-    sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_sphere.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
-    sim.operations.schedule()
-    sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps == 0
+    assert mc.overlaps == 0
 
     s = sim.state.snapshot
     s.particles.position[0] = (0, 0, 0)
     s.particles.position[1] = (0, 0.5, 0)
     sim.state.snapshot = s
+    assert mc.overlaps == 1
+
+
+def test_shape_moves(device, lattice_simulation_factory):
+
+    mc = hoomd.hpmc.integrate.Sphere(23456)
+    mc.shape['A'] = dict(diameter=1)
+    sim = lattice_simulation_factory()
     sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_sphere.gsd', trigger=1, overwrite=True)
+    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_sphere.gsd', trigger=1, overwrite=True)
     # gsd_logger = hoomd.logger.Logger()
     # gsd_logger += mc
     # gsd_dumper.log = gsd_logger
     # sim.operations.add(gsd_dumper)
-    sim.operations.schedule()
-    sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps == 1
-
-
-def test_shape_moves(device, dummy_simulation_check_moves):
-
-    mc = hoomd.hpmc.integrate.Sphere(23456)
-    mc.shape['A'] = dict(diameter=1)
-    sim = dummy_simulation_check_moves()
-    sim.operations.add(mc)
     sim.operations.schedule()
     sim.run(100)
     accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)

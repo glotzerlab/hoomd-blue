@@ -1,4 +1,5 @@
 import hoomd.integrate
+import hoomd.meta
 
 
 class Operations:
@@ -13,7 +14,7 @@ class Operations:
     def add(self, op):
         if op in self:
             return None
-        if isinstance(op, hoomd.integrate._integrator):
+        if isinstance(op, hoomd.integrate._BaseIntegrator):
             self.integrator = op
             return None
         elif isinstance(op, hoomd.meta._Updater):
@@ -54,7 +55,7 @@ class Operations:
             if op.is_attached:
                 continue
             new_objs = op.attach(sim)
-            if isinstance(op, hoomd.integrate._integrator):
+            if isinstance(op, hoomd.integrate._BaseIntegrator):
                 sim._cpp_sys.setIntegrator(op._cpp_obj)
             if new_objs is not None:
                 self._compute.extend(new_objs)
@@ -81,7 +82,7 @@ class Operations:
 
     @integrator.setter
     def integrator(self, op):
-        if not isinstance(op, hoomd.integrate._integrator):
+        if not isinstance(op, hoomd.integrate._BaseIntegrator):
             raise TypeError("Cannot set integrator to a type not derived "
                             "from hoomd.integrator._integrator")
         old_ref = self.integrator

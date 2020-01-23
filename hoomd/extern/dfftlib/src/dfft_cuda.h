@@ -18,6 +18,8 @@
 #define EXTERN_DFFT
 #endif
 
+#pragma GCC visibility push(default)
+
 /*
  * Create a device plan for distributed FFT
  */
@@ -43,7 +45,10 @@ EXTERN_DFFT void dfft_cuda_check_errors(dfft_plan *plan, int check_err);
  */
 EXTERN_DFFT int dfft_cuda_execute(cuda_cpx_t *id_in, cuda_cpx_t *d_out, int dir, dfft_plan *p);
 
+#pragma GCC visibility pop
+
 #undef EXTERN_DFFT
 #endif
 #endif // ENABLE_HIP
+
 #endif

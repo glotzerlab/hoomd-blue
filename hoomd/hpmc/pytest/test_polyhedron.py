@@ -151,19 +151,13 @@ def test_poly_after_attaching(device,
         assert poly.shape['B'][key] == args_5[key]
 
 
-def test_overlaps(device, dummy_simulation_check_overlaps):
+def test_overlaps(device, lattice_simulation_factory):
     mc = hoomd.hpmc.integrate.Polyhedron(23456, d=0, a=0)
     mc.shape['A'] = dict(vertices=[(0, (0.75**0.5) / 2, -0.5),
                                    (-0.5, -(0.75**0.5) / 2, -0.5),
                                    (0.5, -(0.75**0.5) / 2, -0.5),
                                    (0, 0, 0.5),
                                    (0, 0, 0)],
-                         # faces=[(3, 1, 2),
-                         #        (3, 0, 1),
-                         #        (3, 2, 0),
-                         #        (4, 2, 1),
-                         #        (4, 0, 2),
-                         #        (4, 1, 0)],
                          faces=[(0, 3, 1),
                                 (0, 2, 3),
                                 (1, 3, 2),
@@ -171,53 +165,26 @@ def test_overlaps(device, dummy_simulation_check_overlaps):
                                 (0, 1, 4),
                                 (0, 4, 2)],
                          overlap=[True, True, True, True, True, True])
-    sim = dummy_simulation_check_overlaps()
+    sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=0.25)
     sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_polyhedron.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
     sim.operations.schedule()
     sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps > 0
+    assert mc.overlaps > 0
 
     s = sim.state.snapshot
     s.particles.position[0] = (0, 0, 0)
     s.particles.position[1] = (0, 8, 0)
     sim.state.snapshot = s
-    sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_polyhedron.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
-    sim.operations.schedule()
-    sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps == 0
+    assert mc.overlaps == 0
 
     s = sim.state.snapshot
     s.particles.position[0] = (0, 0, 0)
     s.particles.position[1] = (0, 0.85, 0)
     sim.state.snapshot = s
-    sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/
-    # test_dump_polyhedron.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
-    sim.operations.schedule()
-    sim.run(1)
-    overlaps = sim.operations.integrator.overlaps
-    assert overlaps > 0
+    assert mc.overlaps > 0
 
 
-def test_shape_moves(device, dummy_simulation_check_moves):
+def test_shape_moves(device, lattice_simulation_factory):
     mc = hoomd.hpmc.integrate.Polyhedron(23456)
     mc.shape['A'] = dict(vertices=[(0, (0.75**0.5) / 2, -0.5),
                                    (-0.5, -(0.75**0.5) / 2, -0.5),
@@ -231,7 +198,7 @@ def test_shape_moves(device, dummy_simulation_check_moves):
                                 (4, 0, 2),
                                 (4, 1, 0)],
                          overlap=[0, 0, 0, 0, 0, 0])
-    sim = dummy_simulation_check_moves()
+    sim = lattice_simulation_factory()
     sim.operations.add(mc)
     sim.operations.schedule()
     sim.run(100)

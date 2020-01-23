@@ -62,10 +62,10 @@ def test_shape_params():
 
     mc.shape['A'] = dict()
     print(mc.shape['A'])
-    assert mc.shape['A']['shapes'] is None
-    assert mc.shape['A']['positions'] is None
-    assert mc.shape['A']['orientations'] is None
-    assert mc.shape['A']['overlap'] == 1
+    assert mc.shape['A']['shapes'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['positions'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['orientations'] == hoomd.typeconverter.RequiredArg
+    assert mc.shape['A']['overlap'] == hoomd.typeconverter.RequiredArg
     assert mc.shape['A']['capacity'] == 4
     assert mc.shape['A']['ignore_statistics'] is False
 
@@ -124,16 +124,16 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     sph_union_args4_invalid['orientations'] = 'invalid'
 
     # check for errors on invalid input
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = sph_union_args1_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = sph_union_args2_invalid
 
     with pytest.raises(RuntimeError):
         mc.shape['A'] = sph_union_args3_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = sph_union_args4_invalid
 
     sph_union_args1_invalid = copy.deepcopy(sph_union_args1)
@@ -145,16 +145,16 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     sph_union_args3_invalid['positions'] = [1, 2, 3]
     sph_union_args4_invalid['positions'] = 'invalid'
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = sph_union_args1_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = sph_union_args2_invalid
 
     with pytest.raises(RuntimeError):
         mc.shape['A'] = sph_union_args3_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = sph_union_args4_invalid
 
     sph_union_args1_invalid['overlap'] = 'invalid'
@@ -162,14 +162,14 @@ def test_shape_params_attached(device, dummy_simulation_factory):
     sph_union_args3_invalid['capacity'] = [1, 2, 3]
     sph_union_args4_invalid['ignore_statistics'] = 'invalid'
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = sph_union_args1_invalid
 
-    with pytest.raises(TypeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = sph_union_args2_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = sph_union_args3_invalid
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
         mc.shape['A'] = sph_union_args4_invalid
