@@ -67,8 +67,13 @@ def lattice_simulation_factory(device):
             n = tuple(n_list)
 
         box_list = [l, l, l, 0, 0, 0]
-
-        center_distance = 0.5 * l - 1
+        bounds = []
+        for n_val in n:
+            bound = (n_val - 1) * a * 0.5
+            bound_up = bound + (a / 1000)
+            if bound == 0:
+                bound_up = a
+            bounds.append((bound, bound_up))
 
         s = Snapshot(device.comm)
         if s.exists:
@@ -78,27 +83,16 @@ def lattice_simulation_factory(device):
             for num_particles in n:
                 s.particles.N *= num_particles
 
-            if n == (2, 1):
-                s.particles.position[0] = [0, 0, 0]
-                s.particles.position[1] = [0, a, 0]
-                s.particles.types = particle_types
-            else:
-                i = 0
-                for x in numpy.linspace(-center_distance,
-                                        center_distance,
-                                        n[0]):
-                    for y in numpy.linspace(-center_distance,
-                                            center_distance,
-                                            n[1]):
-                        if dimensions == 3:
-                            for z in numpy.linspace(-center_distance,
-                                                    center_distance,
-                                                    n[2]):
-                                s.particles.position[i] = [x, y, z]
-                                i += 1
-                        elif dimensions == 2:
-                            s.particles.position[i] = [x, y, 0]
+            i = 0
+            for x in numpy.arange(-bounds[0][0], bounds[0][1], a):
+                for y in numpy.arange(-bounds[1][0], bounds[1][1], a):
+                    if dimensions == 3:
+                        for z in numpy.arange(-bounds[2][0], bounds[2][1], a):
+                            s.particles.position[i] = [x, y, z]
                             i += 1
+                    elif dimensions == 2:
+                        s.particles.position[i] = [x, y, 0]
+                        i += 1
 
                 s.particles.types = particle_types
 

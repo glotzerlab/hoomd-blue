@@ -174,7 +174,7 @@ def test_overlaps(device, lattice_simulation_factory):
     mc = hoomd.hpmc.integrate.Sphinx(23456, d=0, a=0)
     mc.shape['A'] = dict(centers=[(0, 0, 0), (0.5, 0, 0)], diameters=[1, -.001])
 
-    sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=0.25)
+    sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=0.26)
     sim.operations.add(mc)
     sim.operations.schedule()
     sim.run(1)

@@ -84,11 +84,7 @@ def test_overlaps(device, lattice_simulation_factory):
 
     sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=0.25)
     sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_sphere.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
+
     sim.operations.schedule()
     sim.run(1)
     assert mc.overlaps > 0
@@ -112,11 +108,6 @@ def test_shape_moves(device, lattice_simulation_factory):
     mc.shape['A'] = dict(diameter=1)
     sim = lattice_simulation_factory()
     sim.operations.add(mc)
-    # gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_sphere.gsd', trigger=1, overwrite=True)
-    # gsd_logger = hoomd.logger.Logger()
-    # gsd_logger += mc
-    # gsd_dumper.log = gsd_logger
-    # sim.operations.add(gsd_dumper)
     sim.operations.schedule()
     sim.run(100)
     accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
