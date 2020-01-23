@@ -121,7 +121,6 @@ class rescale_temp(_updater):
             rescaler.set_params(kT=2.0)
 
         """
-
         hoomd.util.print_status_line();
         self.check_initialization();
 
