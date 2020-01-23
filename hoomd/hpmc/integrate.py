@@ -120,12 +120,7 @@ class _HPMCIntegrator(_BaseIntegrator):
                                     self._cpp_cls)(sys_def, self.seed)
             cl_c = None
 
-        # set the non type specfic parameters
-        self._apply_param_dict()
-
-        # Deal with type specific properties
-        self._apply_typeparam_dict(self._cpp_obj, simulation)
-
+        super().attach(simulation)
         return [cl_c] if cl_c is not None else None
 
     # Set the external field

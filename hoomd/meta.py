@@ -143,8 +143,9 @@ class _Operation(metaclass=Loggable):
         new_objs = self.attach(sim)
         return new_objs if new_objs is not None else []
 
-    def attach(self, sim):
-        raise NotImplementedError
+    def attach(self, simulation):
+        self._apply_param_dict()
+        self._apply_typeparam_dict(self._cpp_obj, simulation)
 
     @property
     def is_attached(self):
