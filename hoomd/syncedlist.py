@@ -144,7 +144,8 @@ class SyncedList:
         self._simulation = simulation
         self._synced_list = synced_list
         for item in self:
-            item.attach(simulation)
+            if not item.is_attached:
+                item.attach(simulation)
             self._synced_list.append(self._to_synced_list_conversion(item))
 
     def detach(self):
