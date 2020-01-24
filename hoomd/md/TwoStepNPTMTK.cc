@@ -529,14 +529,14 @@ Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, unsigned int time
         Scalar eta = v.variable[0];
         Scalar xi = v.variable[1];
 
-        Scalar thermostat_energy = m_thermo_group->getNDOF()*m_T->getValue(timestep)
+        Scalar thermostat_energy = m_thermo_group->getNDOF()*(*m_T)(timestep)
                                    *(eta + m_tau*m_tau*xi*xi/Scalar(2.0));
 
         if (m_aniso)
             {
             Scalar xi_rot = v.variable[8];
             Scalar eta_rot = v.variable[9];
-            thermostat_energy += m_thermo_group->getRotationalNDOF()*m_T->getValue(timestep)
+            thermostat_energy += m_thermo_group->getRotationalNDOF()*(*m_T)(timestep)
                                    *(eta_rot + m_tau*m_tau*xi_rot*xi_rot/Scalar(2.0));
             }
 
@@ -555,7 +555,7 @@ Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, unsigned int time
         Scalar nuzz = v.variable[7];  // Barostat tensor, zz component
 
         unsigned int d = m_sysdef->getNDimensions();
-        Scalar W = (Scalar)(m_ndof+d)/(Scalar)d*m_T->getValue(timestep)*m_tauP*m_tauP;
+        Scalar W = (Scalar)(m_ndof+d)/(Scalar)d*(*m_T)(timestep)*m_tauP*m_tauP;
         Scalar barostat_energy = W*(nuxx*nuxx+nuyy*nuyy+nuzz*nuzz+nuxy*nuxy+nuxz*nuxz+nuyz*nuyz) / Scalar(2.0);
 
         return barostat_energy;
@@ -700,18 +700,18 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
 
     if ( std::isnan(P.xx) || std::isnan(P.xy) || std::isnan(P.xz) || std::isnan(P.yy) || std::isnan(P.yz) || std::isnan(P.zz) )
         {
-        P.xx = m_S[0]->getValue(timestep);
-        P.yy = m_S[1]->getValue(timestep);
-        P.zz = m_S[2]->getValue(timestep);
-        P.yz = m_S[3]->getValue(timestep);
-        P.xz = m_S[4]->getValue(timestep);
-        P.xy = m_S[5]->getValue(timestep);
+        P.xx = (*m_S[0])(timestep);
+        P.yy = (*m_S[1])(timestep);
+        P.zz = (*m_S[2])(timestep);
+        P.yz = (*m_S[3])(timestep);
+        P.xz = (*m_S[4])(timestep);
+        P.xy = (*m_S[5])(timestep);
         }
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
     // Martyna-Tobias-Klein correction
     unsigned int d = m_sysdef->getNDimensions();
-    Scalar W = (Scalar)(m_ndof+d)/(Scalar)d*m_T->getValue(timestep)*m_tauP*m_tauP;
+    Scalar W = (Scalar)(m_ndof+d)/(Scalar)d*(*m_T)(timestep)*m_tauP*m_tauP;
     Scalar mtk_term = Scalar(2.0)*m_thermo_group_t->getTranslationalKineticEnergy();
     mtk_term *= Scalar(1.0/2.0)*m_deltaT/(Scalar)m_ndof/W;
 
@@ -766,37 +766,37 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
 
     if (m_flags & baro_x)
         {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.x - m_S[0]->getValue(timestep)) + mtk_term;
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.x - (*m_S[0])(timestep)) + mtk_term;
         nuxx -= m_gamma*nuxx;
         }
 
     if (m_flags & baro_xy)
         {
-        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xy - m_S[5]->getValue(timestep));
+        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xy - (*m_S[5])(timestep));
         nuxy -= m_gamma*nuxy;
         }
 
     if (m_flags & baro_xz)
         {
-        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xz- m_S[4]->getValue(timestep));
+        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xz- (*m_S[4])(timestep));
         nuxz -= m_gamma*nuxz;
         }
 
     if (m_flags & baro_y)
         {
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.y - m_S[1]->getValue(timestep)) + mtk_term;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.y - (*m_S[1])(timestep)) + mtk_term;
         nuyy -= m_gamma*nuyy;
         }
 
     if (m_flags & baro_yz)
         {
-        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yz- m_S[3]->getValue(timestep));
+        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yz- (*m_S[3])(timestep));
         nuyz -= m_gamma*nuyz;
         }
 
     if (m_flags & baro_z)
         {
-        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.z - m_S[2]->getValue(timestep)) + mtk_term;
+        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.z - (*m_S[2])(timestep)) + mtk_term;
         nuzz -= m_gamma*nuzz;
         }
 
@@ -814,7 +814,7 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
     m_thermo_group->compute(timestep);
 
     Scalar curr_T_trans = m_thermo_group->getTranslationalTemperature();
-    Scalar T = m_T->getValue(timestep);
+    Scalar T = (*m_T)(timestep);
 
     // update the state variables Xi and eta
     Scalar xi_prime = xi + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/T - Scalar(1.0));

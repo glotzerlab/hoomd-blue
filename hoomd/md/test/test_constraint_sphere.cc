@@ -66,7 +66,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, std::shared_ptr<ExecutionC
 
     // run the particles in a BD simulation with a constraint force applied and verify that the constraint is always
     // satisfied
-    std::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
+    std::shared_ptr<VariantConstant> T_variant(new VariantConstant(Temp));
     std::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant, 123, 0, 0.0, false, false));
     std::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);

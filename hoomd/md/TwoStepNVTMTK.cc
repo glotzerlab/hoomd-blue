@@ -82,13 +82,13 @@ Scalar TwoStepNVTMTK::getLogValue(const std::string& quantity, unsigned int time
         IntegratorVariables v = getIntegratorVariables();
         Scalar& xi = v.variable[0];
         Scalar& eta = v.variable[1];
-        Scalar thermostat_energy = (Scalar) g * m_T->getValue(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
+        Scalar thermostat_energy = (Scalar) g * (*m_T)(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
 
         if (m_aniso)
             {
             Scalar& xi_rot = v.variable[2];
             Scalar& eta_rot = v.variable[3];
-            thermostat_energy += (Scalar)m_thermo->getRotationalNDOF()*m_T->getValue(timestep)
+            thermostat_energy += (Scalar)m_thermo->getRotationalNDOF()* (*m_T)(timestep)
                                    *(eta_rot + m_tau*m_tau*xi_rot*xi_rot/Scalar(2.0));
             }
 
@@ -395,8 +395,8 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     Scalar curr_T_trans = m_thermo->getTranslationalTemperature();
 
     // update the state variables Xi and eta
-    Scalar xi_prime = xi + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/m_T->getValue(timestep) - Scalar(1.0));
-    xi = xi_prime + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/m_T->getValue(timestep) - Scalar(1.0));
+    Scalar xi_prime = xi + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/(*m_T)(timestep) - Scalar(1.0));
+    xi = xi_prime + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/(*m_T)(timestep) - Scalar(1.0));
     eta += xi_prime*m_deltaT;
 
     // update loop-invariant quantity
@@ -421,9 +421,9 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
         unsigned int ndof_rot = m_thermo->getRotationalNDOF();
 
         Scalar xi_prime_rot = xi_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*
-            (Scalar(2.0)*curr_ke_rot/ndof_rot/m_T->getValue(timestep) - Scalar(1.0));
+            (Scalar(2.0)*curr_ke_rot/ndof_rot/(*m_T)(timestep) - Scalar(1.0));
         xi_rot = xi_prime_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*
-            (Scalar(2.0)*curr_ke_rot/ndof_rot/m_T->getValue(timestep) - Scalar(1.0));
+            (Scalar(2.0)*curr_ke_rot/ndof_rot/(*m_T)(timestep) - Scalar(1.0));
 
         eta_rot += xi_prime_rot*m_deltaT;
 

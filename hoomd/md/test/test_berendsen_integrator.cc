@@ -50,8 +50,8 @@ void berend_updater_lj_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     thermo->setNDOF(3*1000-3);
-    std::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    std::shared_ptr<VariantConst> T_variant2(new VariantConst(1.0));
+    std::shared_ptr<VariantConstant> T_variant(new VariantConstant(Temp));
+    std::shared_ptr<VariantConstant> T_variant2(new VariantConstant(1.0));
 
     std::shared_ptr<TwoStepBerendsen> two_step_berendsen(new Berendsen(sysdef, group_all, thermo, 1.0, T_variant));
     std::shared_ptr<IntegratorTwoStep> berendsen_up(new IntegratorTwoStep(sysdef, deltaT));

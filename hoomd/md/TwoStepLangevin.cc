@@ -262,7 +262,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
 
     // grab some initial variables
-    const Scalar currentTemp = m_T->getValue(timestep);
+    const Scalar currentTemp = (*m_T)(timestep);
     const unsigned int D = Scalar(m_sysdef->getNDimensions());
 
     // energy transferred over this time step

@@ -69,7 +69,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         m_prof->push("BD step 1");
 
     // grab some initial variables
-    const Scalar currentTemp = m_T->getValue(timestep);
+    const Scalar currentTemp = (*m_T)(timestep);
     const unsigned int D = Scalar(m_sysdef->getNDimensions());
 
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
